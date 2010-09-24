@@ -197,6 +197,10 @@ spatial_discretisation_options =
                            empty
                         }
                      }
+                  }|
+                  ## EXPERIMENTAL, DO NOT USE!!!
+                  element masslumped_rt0 {
+                     empty
                   }
                )
             },

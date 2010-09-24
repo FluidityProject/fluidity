@@ -87,6 +87,7 @@ module advection_diffusion_DG
   integer, parameter :: BASSI_REBAY=2
   integer, parameter :: CDG=3
   integer, parameter :: IP=4
+  integer, parameter :: MASSLUMPED_RT0=5
   ! Discretisation to use for advective flux.
   integer :: flux_scheme
   integer, parameter :: UPWIND_FLUX=1
@@ -323,6 +324,10 @@ contains
                &discontinuous_galerkin/diffusion_scheme&
                &/interior_penalty/debug/remove_penalty_fluxes")
        end if
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/diffusion_scheme&
+         &/masslumped_rt0")) then
+       diffusion_scheme=MASSLUMPED_RT0
     else
        FLAbort("Unknown diffusion scheme for DG Advection Diffusion")
     end if
@@ -1238,7 +1243,8 @@ contains
                   & ele_val_at_quad(Diffusivity,ele))
           end if
 
-       else 
+       else if (diffusion_scheme/=MASSLUMPED_RT0) then
+         
           ! Tau Q = grad(u)
           Q_inv= shape_shape(q_shape, q_shape, detwei)
           call invert(Q_inv)       
@@ -1422,6 +1428,8 @@ contains
           call local_assembly_arbitrary_upwind
        case(BASSI_REBAY)
           call local_assembly_bassi_rebay
+       case(MASSLUMPED_RT0)
+          call local_assembly_masslumped_rt0
        end select
 
        if (boundary_element) then
@@ -1654,7 +1662,7 @@ contains
     end if
   
   end subroutine local_assembly_primal_face
-
+    
   subroutine local_assembly_cdg_face
     implicit none
     !!< This code assembles the cdg fluxes involving the r_e and l_e lifting
@@ -1831,6 +1839,22 @@ contains
         &add_mat(2,2,:,:)
    
  end subroutine local_assembly_cdg_face
+   
+    subroutine local_assembly_masslumped_rt0
+      
+      if (size(diffusivity_ele,3)/=1 .or. size(diffusivity_mat,1)/=4) then
+        FLExit("Masslumped RT0 diffusivity scheme only works with P0 fields with P0 diffusivity")
+      end if
+      
+      diffusivity_mat=0.0
+
+      diffusivity_mat(2:4,2:4)=masslumped_rt0_aij(diffusivity_ele(:,:,1), X_val, neigh<0, detwei)
+      diffusivity_mat(1,:)=-sum(diffusivity_mat(2:4,:),dim=1)
+      diffusivity_mat(:,1)=-sum(diffusivity_mat(:,2:4),dim=2)
+      
+      assert( all(transpose(diffusivity_mat)-diffusivity_mat<1e-10))
+
+    end subroutine local_assembly_masslumped_rt0
 
   end subroutine construct_adv_diff_element_dg
   
@@ -2451,5 +2475,163 @@ contains
     end subroutine interior_penalty
 
   end subroutine construct_adv_diff_interface_dg
+    
+  function masslumped_rt0_kappa(diff_ele, x_ele, detwei) result (kappa)
+    ! diffusivity tensor (dim x dim)
+    real, dimension(:,:), intent(in):: diff_ele
+    ! nodal location of element (dim x xloc  - xloc should be 3)
+    real, dimension(:,:), intent(in):: x_ele
+    ! DEBUGGING:
+    real, dimension(:), intent(in), optional:: detwei
+    real, parameter:: reference_area=sqrt(3.)/4.
+
+    integer, parameter:: dim=2, xloc=3
+    real, dimension(dim, dim):: kappa
+    ! this computes kappa=J * DF^-1 * K * (DF^-1)^T
+    ! where K is the diffusivity tensor
+    ! F = the transformation from the equilateral reference element to the physical element
+    ! with derivative DF (Jacobian matrix) and J= |det(DF)|
+    
+    ! for the equilateral triangle xi1=(0,0)^T xi2=(1,0)^T xi3=(1/2,sqrt(3)/2)^T
+    ! with matrices dxi=(xi2-xi1, xi3-xi1) and dx=(x2-x1, x3-x1)
+    ! then DF * dxi = dx
+    ! thus DF = dx * dxi^-1
+    real, parameter, dimension(dim,dim):: dxi_inv=reshape( (/ 1., 0., -sqrt(1./3.), sqrt(4./3.) /), (/dim,dim/))
+    
+    real, dimension(dim, dim):: dx, df
+    real:: J    
+    
+    
+    assert(size(diff_ele,1)==dim .and. size(diff_ele,2)==dim)
+    assert(size(x_ele,1)==dim)
+    assert(size(x_ele,2)==xloc)
+
+    
+    dx(:,1)=x_ele(:,2)-x_ele(:,1)
+    dx(:,2)=x_ele(:,3)-x_ele(:,1)
+    
+    df = matmul(dx, dxi_inv)
+    
+    J=abs(det(df))
+    
+    ! DEBUGGING:
+    if (present(detwei)) then
+      ! if all is well J*reference area should be the physical triangle area
+      assert( abs(sum(detwei)-J*reference_area)<1e-10*sum(detwei) )
+    end if
+    
+    call invert(df)
+    
+    kappa = J * matmul(matmul(df, diff_ele),transpose(df))
+   
+  end function masslumped_rt0_kappa
+  
+  function masslumped_rt0_aij(diff_ele, x_ele, boundary, detwei) result (aij)
+    ! diffusivity tensor (dim x dim)
+    real, dimension(:,:), intent(in):: diff_ele
+    ! nodal location of element (dim x xloc  - xloc should be 3)
+    real, dimension(:,:), intent(in):: x_ele
+    logical, dimension(:), intent(in):: boundary
+    ! DEBUGGING:
+    real, dimension(:), intent(in), optional:: detwei
+    
+    ! that's right: this only works for triangles and linear coordinates
+    integer, parameter:: dim=2, xloc=3, nfaces=3
+    real, dimension(nfaces, nfaces):: aij
+    
+    ! precomputed tensor that stores the integrals
+    !       /
+    !  a_ij=| vhat_i vhat_j  (no inner product, so for each i,j we have a dim x dim tensor)
+    !       /
+    real, dimension(nfaces,nfaces,dim,dim), save:: aijxy
+    logical, save:: aijxy_initialised=.false.
+    
+    real, dimension(dim,dim):: kappa
+    real:: C_ii
+    integer:: ix,iy,i
+   
+    assert(size(diff_ele,1)==dim .and. size(diff_ele,2)==dim)
+    assert(size(x_ele,1)==dim)
+    assert(size(x_ele,2)==xloc)
+    
+    if (.not. aijxy_initialised) call initialise_aijxy
+    
+    kappa=masslumped_rt0_kappa(diff_ele, x_ele, detwei)
+    
+    ! now we simply contract
+    aij=0.
+    do ix=1,dim
+      do iy=1,dim
+        aij=aij+kappa(ix,iy)*aijxy(:,:,ix,iy)
+      end do
+    end do
+      
+    ! while we're at it we might as well do the scaling with C
+    ! so we actually return C_ij^{-1} A_ij C_ij^{-1}
+    ! where C_ij=\int vhat_i\cdot\vhat_j=Tr(aijxy)  which is diagonal: C_ij==0 for i/=j
+    do i=1, nfaces
+      C_ii=aijxy(i,i,1,1)+aijxy(i,i,2,2)
+      ! twice as we also evaluate in the neighbouring element
+      if (.not. boundary(i)) C_ii=C_ii*2.0
+      ! should be 1/(4*reference_area)
+      !assert( (C_ii-1.0/sqrt(3.))<1e-10 )
+      aij(i,:)=aij(i,:)/C_ii
+      aij(:,i)=aij(:,i)/C_ii
+    end do
+    
+    contains
+    
+    subroutine initialise_aijxy
+      ! computes the above aijxy using the following quadrature rule
+      ! \int \psi = area/6. ( psi(x1)+psi(x2)+psi(x3)+3*psi(xc) )
+      
+      ! location of the reference triangle vertices:
+      real, dimension(dim,xloc):: x=reshape( (/ &
+        0.,  0., &
+        1.0, 0., &
+        0.5, sqrt(3.)/2. &
+        /), (/ dim, xloc /))
+      ! location of the reference triangle centroid:
+      real, dimension(dim):: xc=(/ 0.5, sqrt(3.)/6. /)
+      real, parameter:: area=sqrt(3.)/4.
+      
+      integer:: i, j, k
+      
+      do i=1, nfaces
+        do j=1, nfaces
+          ! first evaluate in xc
+          aijxy(i,j,:,:)=3.*outer_product(xc-x(:,i), xc-x(:,j))
+          ! then in the vertices
+          do k=1, nfaces
+            if (k==i .or. k==j) cycle
+            aijxy(i,j,:,:)=aijxy(i,j,:,:)+outer_product(x(:,k)-x(:,i), x(:,k)-x(:,j))
+          end do
+        end do
+      end do
+      ! multiply by area/6. and divide by 2.*area twice (to scale both vhat_i and vhat_j)
+      aijxy=aijxy/area/24.
+      
+      aijxy_initialised=.true.
+      
+    end subroutine initialise_aijxy
+      
+    ! copy of outer_product in vector tools, but now as function
+    function outer_product(x, y) result (M)
+      !!< Give two column vectors x, y
+      !!< compute the matrix xy*
+
+      real, dimension(:), intent(in) :: x, y
+      real, dimension(size(x), size(y)) :: M
+      integer :: i, j
+
+      forall (i=1:size(x))
+        forall (j=1:size(y))
+          M(i, j) = x(i) * y(j)
+        end forall
+      end forall
+      
+    end function outer_product
+    
+  end function masslumped_rt0_aij
 
 end module advection_diffusion_DG

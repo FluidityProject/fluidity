@@ -228,6 +228,10 @@ Use 2x distance to face centre on boundaries</a:documentation>
                   </choice>
                 </element>
               </element>
+              <element name="masslumped_rt0">
+                <a:documentation>EXPERIMENTAL, DO NOT USE!!!</a:documentation>
+                <empty/>
+              </element>
             </choice>
           </element>
           <optional>
