@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>driven_cavity</name>
+  <owner userid="piggt01"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">import numpy
+import driven_cavity
+NN=numpy.array([ 16, 32, 64, 128 ])
+
+error=driven_cavity.retrieve_results(NN)
+
+convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(NN[1:]/NN[:-1]).T*numpy.matrix([1,1,1,1,1,1,1,1]))
+
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Quantity1ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,0]&gt;1.9))</test>
+    <test name="Quantity2ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,1]&gt;1.9))</test>
+    <test name="Quantity3ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,2]&gt;1.9))</test>
+    <test name="Quantity4ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,3]&gt;1.9))</test>
+    <test name="Quantity5ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,0]&gt;1.9))</test>
+    <test name="Quantity6ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,1]&gt;1.9))</test>
+    <test name="Quantity7ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,2]&gt;1.9))</test>
+    <test name="Quantity8ConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,3]&gt;1.9))</test>
+  </pass_tests>
+</testproblem>
