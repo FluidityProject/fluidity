@@ -299,10 +299,13 @@ def six_component(state, parameters):
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
         
-        if (N_n < 1e-7):
+        if (P_n < 1e-7):
             theta = 1000.
         else:
-            theta = C_n/(N_n*zeta) # C=N_n*zeta
+            theta = C_n/(P_n*zeta) # C=P_n*zeta
+        
+        # temp fix to alpha whilst debugging:
+        #alpha = 0.01
         alpha = alpha_c * theta # diff to paper - check other paper/emails
 
         # Light limited phytoplankton growth rate.
