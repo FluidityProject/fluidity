@@ -117,13 +117,15 @@ subroutine set_sediment_reentrainment(state)
     integer, dimension(:), pointer     :: surface_element_list
     type(mesh_type), pointer           :: bottom_mesh
     logical                            :: alloced
+    real                               :: dt
 
     ewrite(1,*) "In set_sediment_bc"
 
     bedShearStress => extract_vector_field(state, "BedShearStress")
 
-    call get_option('/material_phase::'//trim(state%name)&
-           //"ScalarField::SedimentTemplate/porosity", porosity, default=0.3)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option("/material_phase[0]/sediment/scalar_field::SedimentTemplate/porosity", porosity, default=0.3)
     call get_option("/physical_parameters/gravity/magnitude", g)
     viscosity = 1. / 1000.
 
@@ -193,17 +195,18 @@ subroutine set_sediment_reentrainment(state)
             ! using Shield's formula (depends on grain size and density and
             ! (vertical) viscosity)
             erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) / critical_shear_stress)
+                 
             if (erosion_flux < 0) then 
                 erosion_flux = 0.0
             end if
             ! A limit is placed depending on how much of that sediment is in the
             ! bedload
-            if (erosion_flux > node_val(bedLoadSurface,j)) then
-                erosion_flux = node_val(bedLoadSurface,j)
+            if (erosion_flux*dt > node_val(bedLoadSurface,j)) then
+                erosion_flux = node_val(bedLoadSurface,j)/dt
             end if
 
             call set(erosion,j,erosion_flux)
-            
+       
         end do
 
     end do

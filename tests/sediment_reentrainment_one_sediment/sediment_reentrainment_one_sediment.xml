@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sediment_reentrainment_one_sediment</name>
+  <owner userid="jhill1"/>
+  <tags>flml sediment</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity sediment_reentrainment_one_sediment.flml</command_line>
+    <!-- Check that the sediment re-entrainment rate is correct -->
+</problem_definition>
+  <variables>   
+    <variable name="sediment_flux_200" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Reentrainment.stat")
+sediment_flux_200 = s["Fluid"]["SedimentFluxSingle"]["integral"][199]
+    </variable>
+    <variable name="sediment_flux_final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Reentrainment.stat")
+sediment_flux_final = s["Fluid"]["SedimentFluxSingle"]["integral"][-1]
+    </variable>    
+    <variable name="sediment_flux_near_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Reentrainment.stat")
+sediment_flux_near_end = s["Fluid"]["SedimentFluxSingle"]["integral"][-3]
+    </variable>
+    <variable name="sediment_concentration_initial" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Reentrainment.stat")
+sediment_concentration_initial = s["Fluid"]["SedimentConcentrationSingle"]["integral"][0]
+    </variable>
+    <variable name="sediment_concentration_final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Reentrainment.stat")
+sediment_concentration_final = s["Fluid"]["SedimentConcentrationSingle"]["integral"][-1]
+    </variable>
+
+  </variables>
+  <pass_tests>
+      <!-- initial concentration = 0.1, sinking velocity = 0.1, therefore after 200 seconds 
+           we should have 2m of sediment, which should be an integral of 200m over the 10m channel
+           -->
+    <test name="Sediment is deposited" language="python">
+assert(199. &lt; sediment_flux_200 &lt; 201.)
+    </test>
+    <!-- has it all gone? -->
+    <test name="Sediment vanishes" language="python">
+assert(0 &lt; sediment_flux_final &lt; 0.05)
+    </test>
+    <!-- just to check it wasn't swept away too quickly, three timesteps before the end should be 
+         > than final and be about 2m over all channel -->
+    <test name="Sediment vanishes at correct rate" language="python">
+assert(1.75 &lt; sediment_flux_near_end &lt; 2.25)
+    </test>
+    <!-- Did we lose any sediment? Hope not! -->
+    <test name="Sediment is conserved" language="python">
+assert(0 &lt; abs(sediment_concentration_final - sediment_concentration_initial) &lt; 1.0)
+    </test>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

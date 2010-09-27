@@ -56,5 +56,7 @@ default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.mod ../include/
 
+Sediment_Diagnostics.o: Sediment.o
+
 clean:
 	rm -f *.o *.d *.mod
