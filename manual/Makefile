@@ -1,5 +1,4 @@
 XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
-./examples_images/sediment/bathymetry \
 ./configuring_fluidity_images/periodic_domain \
 ./numerical_discretisation_images/P1cgshapefunction1d \
 ./numerical_discretisation_images/P2cgshapefunction1d \
@@ -18,10 +17,6 @@ IMAGES=geometry_dimension mesh_name \
 ./examples_images/lock_exchange/le_basic_30_mesh \
 ./examples_images/lock_exchange/le_basic_30_T \
 ./numerical_discretisation_images/bisection_method \
-./examples_images/sediment/bathymetry \
-./examples_images/sediment/sed_conc_20 \
-./examples_images/sediment/sed_conc_35 \
-./examples_images/sediment/sed_conc_50 \
 ./visualisation_and_diagnostics_images/Paraview-opacity \
 ./visualisation_and_diagnostics_images/Paraviewconnectbutton \
 ./visualisation_and_diagnostics_images/Paraviewchooseserver \

@@ -925,55 +925,6 @@ against previous simulations for regression testing purposes.
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------SEDIMENT TRANSPORT--------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Sediment transport}
-\label{sect:sediment_transport}
-
-\subsection{Overview}
-
-In this simulation a 2D density-driven current, laden with four classes of sediment
-moves down a 2$^{\circ}$ slope. This problem demonstrates how to set up sediments, 
-the non-uniform deposition of sediments and the reduction in density as sediment is
-deposited. It is not intended to replicated any laboratory or observational data.
-
-\subsubsection{Configuration}
-
-The initial geometry is shown in figure \ref{Fig:sediment:bathymetry}. A vertical column of sediment-
-laden fluid is placed in the last 300m of the right-hand side of the plateau above the slope. 
-This initial concentration of sediment is 6\%, with each of the four classes starting with
-1.5\% concentration. Each sediment class has a different sinking velocity, corresponding to 
-grain sizes of 800, 500, 200 and 20 microns. The lower boundary of the domain is a 
-no-slip boundary, with the two lateral boundaries and top set to no outflow, making this domain closed.
-
-\begin{figure}[ht]
-  \centering
-  \xfig{examples_images/sediment/bathymetry}
-  \caption{Initial bathymetry of the sediment example.}
-  \label{Fig:sediment:bathymetry}
-\end{figure}
-
-\subsubsection{Results}
-
-The results show a density current travelling downslope, with Kelvin-Helmholtz billows
-on the upper surface of the density-driven flow (figure \ref{fig:sediment_concentration}). 
-The coarser sediment drops from suspension first, with the majority of this
-grain size deposited at the head of the slope. In the final stages the density current contains
-only the finest sediment.
-\begin{figure}[ht]
-  \centering
-  \subfigure[$t = 200\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_20}}
-  \subfigure[$t = 350\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_35}}
-  \subfigure[$t = 500\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_50}}
-  \caption{Sediment concentration of the four sediment classes at time ($t$)}
-  \label{fig:sediment_concentration}
-\end{figure}
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---Open ocean deep convection--------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
