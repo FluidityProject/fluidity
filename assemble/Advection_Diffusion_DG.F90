@@ -1435,49 +1435,64 @@ contains
        if (boundary_element) then
           ! Weak application of dirichlet conditions on diffusion term.
 
-          ! Local node map counter.
-          start=size(T_ele)+1
-           
-          boundary_neighbourloop: do ni=1,size(neigh)
-             ele_2=neigh(ni)
+          do i=1, 2
+            ! this is done in 2 passes
+            ! iteration 1: wipe the rows corresponding to weak dirichlet boundary faces
+            ! iteration 2: for columns corresponding to weak dirichlet boundary faces,
+            !               move this coefficient multiplied with the bc value to the rhs
+            !               then wipe the column
+            ! The 2 iterations are necessary for elements with more than one weak dirichlet boundary face
+            ! as we should not try to move the coefficient in columns corresponding to boundary face 1
+            ! in rows correspoding to face 2 to the rhs, i.e. we need to wipe *all* boundary rows first.
+            ! Local node map counter.
+            start=size(T_ele)+1
              
-             ! Note that although face is calculated on field U, it is in fact
-             ! applicable to any field which shares the same mesh topology.
-             if (ele_2>0) then
-                ! Interior face - we need the neighbouring face to
-                ! calculate the new start
-                face=ele_face(T, ele_2, ele)
+            boundary_neighbourloop: do ni=1,size(neigh)
+               ele_2=neigh(ni)
+               
+               ! Note that although face is calculated on field U, it is in fact
+               ! applicable to any field which shares the same mesh topology.
+               if (ele_2>0) then
+                  ! Interior face - we need the neighbouring face to
+                  ! calculate the new start
+                  face=ele_face(T, ele_2, ele)
 
-             else
-                ! Boundary face
+               else
+                  ! Boundary face
 
-                face=ele_face(T, ele, ele_2)
+                  face=ele_face(T, ele, ele_2)
 
-                if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
+                  if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
 
-                  ! weak Dirichlet condition.
+                    ! weak Dirichlet condition.
+                    
+                    finish=start+face_loc(T, face)-1
+                    
+                    if (i==1) then
+                      ! Wipe out boundary condition's coupling to itself.
+                      Diffusivity_mat(start:finish,:)=0.0
+                    else
+                      
+                      ! Add BC into RHS
+                      !
+                      call addto(RHS_diff, local_glno, &
+                           & -matmul(Diffusivity_mat(:,start:finish), &
+                           & ele_val( bc_value, face )))
+                      
+                      ! Ensure it is not used again.
+                      Diffusivity_mat(:,start:finish)=0.0
+                      
+                    end if
                   
-                  finish=start+face_loc(T, face)-1
-                  
-                  ! Wipe out boundary condition's coupling to itself.
-                  Diffusivity_mat(start:finish,:)=0.0                      
-                  
-                  ! Add BC into RHS
-                  !
-                  call addto(RHS_diff, local_glno, &
-                       & -matmul(Diffusivity_mat(:,start:finish), &
-                       & ele_val( bc_value, face )))
-                  
-                  ! Ensure it is not used again.
-                  Diffusivity_mat(:,start:finish)=0.0
-                
-                end if
-                   
-             end if
+                  end if
+                     
+               end if
 
-             start=start+face_loc(T, face)
-             
-          end do boundary_neighbourloop
+               start=start+face_loc(T, face)
+               
+            end do boundary_neighbourloop
+            
+          end do
           
        end if
        
@@ -2570,7 +2585,7 @@ contains
     ! so we actually return C_ij^{-1} A_ij C_ij^{-1}
     ! where C_ij=\int vhat_i\cdot\vhat_j=Tr(aijxy)  which is diagonal: C_ij==0 for i/=j
     do i=1, nfaces
-      C_ii=aijxy(i,i,1,1)+aijxy(i,i,2,2)
+      C_ii=1.0/sqrt(3.0)/2.0 !aijxy(i,i,1,1)+aijxy(i,i,2,2)
       ! twice as we also evaluate in the neighbouring element
       if (.not. boundary(i)) C_ii=C_ii*2.0
       ! should be 1/(4*reference_area)
