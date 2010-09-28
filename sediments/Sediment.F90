@@ -165,9 +165,12 @@ subroutine set_sediment_reentrainment(state)
         else
             ! calc critical shear stress
             s = density/1024.
-            S_star = sqrt((s-1)*g*diameter**3)/viscosity
-            critical_shear_stress = 0.105*S_star**(-0.13) + &
-                                    0.045*exp(-35*S_star**(-0.59))
+            !S_star = sqrt((s-1)*g*diameter**3)/viscosity
+            !critical_shear_stress = 0.105*S_star**(-0.13) + &
+            !                        0.045*exp(-35*S_star**(-0.59))
+            ! estimate of critical shear stress assuming grains larger than
+            ! 10 microns and constant viscosity
+            critical_shear_stress = 0.041 * (s-1) * 1024. * g * diameter
         end if
         
         

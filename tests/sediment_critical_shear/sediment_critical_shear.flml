@@ -1,0 +1,388 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">Sediment_Reentrainment</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="channel">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PeriodicMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <periodic_boundary_conditions name="x">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">6</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">7</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value lines="20" type="python">def val(X,t):
+   from math import pi
+   return(X[0]-1, X[1])</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">10</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">400</real_value>
+    </finish_time>
+    <steady_state>
+      <tolerance replaces="STEDER">
+        <real_value rank="0">1e-10</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </steady_state>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">9.81</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+    <coriolis>
+      <f_plane>
+        <f>
+          <real_value rank="0">1</real_value>
+        </f>
+      </f_plane>
+    </coriolis>
+  </physical_parameters>
+  <material_phase name="Fluid">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1</real_value>
+          </reference_density>
+          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term replaces="NOFILT"/>
+            <integrate_continuity_by_parts replaces="PREOPT"/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <reference_node replaces="NDPSET">
+          <integer_value rank="0">1</integer_value>
+        </reference_node>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC"/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+        if (t &lt; 200):
+                return [0,0]
+        else:
+                return [X[1]/50,0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field name="BedShearStress" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <density>
+          <real_value rank="0">1000</real_value>
+        </density>
+        <drag_coefficient>
+          <real_value rank="0">0.02</real_value>
+        </drag_coefficient>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+      </diagnostic>
+    </vector_field>
+    <sediment>
+      <scalar_field name="SedimentTemplate" rank="0">
+        <prognostic>
+          <mesh name="VelocityMesh"/>
+          <equation name="AdvectionDiffusion"/>
+          <spatial_discretisation>
+            <continuous_galerkin>
+              <stabilisation>
+                <streamline_upwind>
+                  <nu_bar_optimal/>
+                  <nu_scale name="0.5">
+                    <real_value shape="1" rank="0">0.5</real_value>
+                  </nu_scale>
+                </streamline_upwind>
+              </stabilisation>
+              <advection_terms/>
+              <mass_terms/>
+            </continuous_galerkin>
+            <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+              <real_value rank="0">1</real_value>
+            </conservative_advection>
+          </spatial_discretisation>
+          <temporal_discretisation>
+            <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+              <real_value rank="0">1</real_value>
+            </theta>
+          </temporal_discretisation>
+          <solver>
+            <iterative_method name="gmres">
+              <restart>
+                <integer_value rank="0">30</integer_value>
+              </restart>
+            </iterative_method>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">3000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+          <initial_condition name="WholeMesh">
+            <constant>
+              <real_value rank="0">0.1</real_value>
+            </constant>
+          </initial_condition>
+          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="SolidLid">
+            <surface_ids>
+              <integer_value shape="1" rank="1">11</integer_value>
+            </surface_ids>
+            <type name="dirichlet">
+              <constant>
+                <real_value rank="0">0</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
+          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Reentrainment">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+            <type name="sediment_reentrainment"/>
+          </boundary_conditions>
+          <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+            <prescribed>
+              <value name="WholeMesh">
+                <isotropic>
+                  <constant>
+                    <real_value rank="0">0.01</real_value>
+                  </constant>
+                </isotropic>
+              </value>
+              <output/>
+            </prescribed>
+          </tensor_field>
+          <scalar_field name="SinkingVelocity" rank="0">
+            <prescribed>
+              <value name="WholeMesh">
+                <python>
+                  <string_value lines="20" type="python">def val(X,t):
+        if (t &lt; 200):
+                return 0.1
+        else:
+                return 0</string_value>
+                </python>
+              </value>
+              <output/>
+              <stat/>
+              <detectors>
+                <exclude_from_detectors/>
+              </detectors>
+            </prescribed>
+          </scalar_field>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+          <consistent_interpolation/>
+        </prognostic>
+        <porosity>
+          <real_value rank="0">0.5</real_value>
+        </porosity>
+      </scalar_field>
+      <scalar_field name="SedimentFluxTemplate" rank="0">
+        <diagnostic>
+          <surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </surface_ids>
+          <mesh name="VelocityMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <sediment_class name="Single">
+        <density>
+          <real_value rank="0">2000</real_value>
+        </density>
+        <diameter>
+          <real_value rank="0">0.049948999</real_value>
+          <comment>Made to make the critical shear stress = 19.607 which gives and erosion rate of 0.1</comment>
+        </diameter>
+      </sediment_class>
+    </sediment>
+  </material_phase>
+</fluidity_options>
