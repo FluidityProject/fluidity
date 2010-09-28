@@ -391,68 +391,81 @@ However, the adaptive simulation runs approximately 60 percent faster than the f
 The lid-driven cavity is a problem that is often used as part of the verification procedure for
 CFD codes. The geometry and boundary conditions are simple to prescribe and in
 two dimensions there are a number of highly accurate numerical benchmark solutions
-available for a wide range of Reynolds numbers \citep{botella1998,bruneau2006,erturk2005}. Here the two-dimensional
-problem at a Reynolds number of 1000 is given as an example.
+available for a wide range of Reynolds numbers \citep{botella1998,erturk2005,bruneau2006}. 
+Here the two-dimensional problem at a Reynolds number of 1000 is given as an example.
 
 \subsection{Configuration}
-The unsteady momentum equations with nonlinear advection and viscosity
-terms are solved in a unit square in the $x$ and $y$
-directions along with the continuity equations expressing incompressibility. 
-No-slip velocity boundary conditions are imposed on boundaries $x=0,1$ and $y=0$, and the prescribed velocity $u=1$, $v=0$ are
-set on the boundary $y=1$ (the `lid'). Here the problem is initialised with a zero velocity field and the solution
-allowed to converge to steady state via time-stepping.
-A subset of the benchmark data available from the literature is then used to
-test for numerical convergence. Here this involves the calculation of the kinetic energy
-\begin{equation}
-\int_{\Omega} (u^2+v^2) \; d\Omega,
-\end{equation}
-which is compared against the value 0.044503 taken from \cite{bruneau2006}. In addition, the x-component of velocity and
-pressure are evaluated at 17 points along the line $x=0.5$ and compared against the data from \cite{botella1998}.
+The problem domain is $(x,y) \in [0,1]^2$ and this is represented by an unstructured triangluar mesh
+of approximately uniform resolution. To enable convergence analysis a sequence of meshes are considered
+with spacing of $h=1/2^n$, $n=4,5,6,7$. The two-dimensional incompressible Navier-Stokes equations are
+considered with unit density.
 
+No-slip velocity boundary conditions are imposed on the boundaries $x=0,1$ and $y=0$, 
+and the prescribed velocity $u=1$, $v=0$ are set on the boundary $y=1$ (the `lid'). 
 
+Here the problem is initialised with a zero velocity field and the solution
+allowed to converge to steady state via time-stepping. The steady state convergence criterion is
+that in the infinity norm the velocity varies by less that $10^{-6}$ between time levels.
 
-%\begin{table}
-%\centering
-%\caption{Results from Botella along the $x=0.5$ line ... need to double check these values}
-%\smallskip
-%\renewcommand{\tabcolsep}{1cm}
-%\renewcommand{\arraystretch}{1.0}
-%\begin{tabular}{@{\hspace{0.3cm}}c@{\hspace{0.3cm}} @{\hspace{0.3cm}}c@{\hspace{0.3cm}} @{\hspace{0.3cm}}c@{\hspace{0.3cm}}}
-%\hline
-%$y$     \ &     $u$          \  &  $p$  \\
-%
-%\hline
-%
-%0.0000 \   &  0.0000000 \   &  0.110591   \\
-%0.0547 \   & -0.1812881 \   &  0.109689   \\
-%0.0625 \   & -0.2023300 \   &  0.109200   \\
-%0.0703 \   & -0.2228955 \   &  0.108566   \\
-%0.1016 \   & -0.3004561 \   &  0.104187   \\
-%0.1719 \   & -0.3885691 \   &  0.081925   \\
-%0.2813 \   & -0.2803696 \   &  0.040377   \\
-%0.4531 \   & -0.1081999 \   &  0.004434   \\
-%0.5000 \   & -0.0620561 \   &  0.000000   \\
-%0.6172 \   &  0.0570178 \   & -0.000827   \\
-%0.7344 \   &  0.1886747 \   &  0.012122   \\
-%0.8516 \   &  0.3372212 \   &  0.034910   \\
-%0.9531 \   &  0.4723329 \   &  0.050329   \\
-%0.9609 \   &  0.5169277 \   &  0.050949   \\
-%0.9688 \   &  0.5808359 \   &  0.051514   \\
-%0.9766 \   &  0.6644227 \   &  0.052009   \\
-%1.0000 \   &  1.0000000 \   &  0.052987   \\
-%\hline
-%\end{tabular}
-%\label{Tab:drivcav}
-%\end{table}
+The time step is constant between all runs, $\Delta t = 0.05$, and data is dumped to disk every
+1.0 time units (20 time steps). The Crank-Nicolson $(\theta=0.5)$ discretisation is used in time. 
+A \Poo Galerkin method is used for the discretisation of velocity and pressure, with no stabilisation
+of velocity. Based on a domain size of $L=1.0$ and a velocity scale taken from the lid $(U=1.0)$, to achive
+a Reynolds number of 1000 viscosity is taken to be isotropic with a value of $\nu=0.001$.
+
+ 
+
+\begin{figure}
+\centering
+\subfigure{
+\includegraphics[width=7cm,clip]{examples_images/driven_cavity_2d/driven_cavity_streamfunction.png}}
+\subfigure{
+\includegraphics[width=7cm,clip]{examples_images/driven_cavity_2d/driven_cavity_vorticity.png}}
+\caption{Diagnostic fields from the lid-driven cavity problem at steady state at $1/128$ resolution.
+Left: the streamfunction. Right: the vorticity. The contour levels are taken from those given by \cite{botella1998} in their tables
+7 and 8.}
+\label{fig:driven_cavity1}
+\end{figure}
+
 
 \subsection{Results}
-Plots of the solutions and benchmark data are given in figure \ref{fig:drivcav1}. Also shown is a plot
-of the error convergence with mesh spacing. Here a regular triangular mesh is used with progressive uniform
-refinement in the $x,y$ plane. Second order spatial convergence can clearly be seen for the three quantities compared.
+Plots of the streamfunction and vorticity from the $h=1/128$ simulation are shown in figure \ref{fig:driven_cavity1}.
+Observe the good qualititative agreement with \citep{botella1998,erturk2005,bruneau2006}. 
+For a quantitative comaprison we take advantage of the tabulated benchmark data available in these papers.
+Only a subset of these are computed: the $u$ velocity at a series of points along the line $x=0.5$ and the
+$v$ velocity at a series of points along the line $y=0.5$ from \citep{erturk2005}, the same quantities at
+different points along the same lines as well as the pressure along both the $x=0.5$ and $y=0.5$ lines from 
+\citep{botella1998}, and the kinetic energy and the minimum streamfunction value from \citep{bruneau2006}.
+The RMS difference in the case of the first six sets of benchmark data are taken with values extracted from 
+the numerical solution, and the absolute difference taken in the final two. These eight error values are
+defined as error1, \ldots error8 respectively and and plotted for the four mesh resolutions in figure 
+\ref{fig:driven_cavity2}.
+Second order spatial convergence can clearly be seen.
 Adaptive refinement is not particularly advantageous for the problem at this reasonably low Reynolds number, but
 yields significant improvements in efficiency at higher Reynolds number where boundary layers and
 recirculating eddies are more dynamic, anisotropic and smaller in size compared to the entire domain.
 
+\begin{figure}
+\centering
+\includegraphics[width=10cm,clip]{examples_images/driven_cavity_2d/driven_cavity_error_plot.png}
+\caption{Convergence of the eight error metrics computed for the lid-driven cavity problem with mesh spacing. The eight
+metrics are described in the text.}
+\label{fig:driven_cavity2}
+\end{figure}
+
+\subsection{Exercises}
+\begin{enumerate}
+\item Examine the way that the $u=1$ lid condition is applied in the flml file. Why has it not been set as simply a constant?
+Try changing it to a constant and see what happens to the errors that you achieve. [Hint: some people consider to "regularised" 
+lid-driven cavity problem, try finding some papers that discuss this, try updating the boundary condition so it matches the 
+regularised problem and compare to benchmark data if you can find it].
+\item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the python which computes
+the errors for a higher Reynolds number.
+\item Try switching on mesh adaptivity. Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
+differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
+sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
+error for the same number of nodes compared to the fixed mesh [Hint: it may be easier to achieve this at higher Reynolds numbers].
+\end{enumerate}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
