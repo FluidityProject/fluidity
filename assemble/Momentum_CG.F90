@@ -90,7 +90,9 @@
     logical :: vel_lump_on_submesh, cmc_lump_on_submesh, abs_lump_on_submesh
     ! integrate the surface tension by parts
     logical :: integrate_surfacetension_by_parts
-    
+    ! add viscous terms to inverse_masslump for low Re which is only used for pressure correction
+    logical :: low_re_p_correction_fix
+
     ! which terms do we have?
     logical :: have_source
     logical :: have_gravity
@@ -130,7 +132,7 @@
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
-                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, &
+                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
                                      state, assemble_ct_matrix, cg_pressure)
       !!< Assembles the momentum matrix and rhs for the LinearMomentum,
       !!< Boussinesq and Drainage equation types such that
@@ -154,7 +156,7 @@
       type(petsc_csr_matrix), intent(inout) :: mass
       ! the lumped mass matrix (may vary per component as absorption could be included)
       ! NOTE: see the logical assemble_inverse_masslump below to see when this is actually assembled
-      type(vector_field), intent(inout) :: inverse_masslump
+      type(vector_field), intent(inout) :: inverse_masslump, visc_inverse_masslump
       ! NOTE: you have to call deallocate_cg_mass after you're done
       ! with mass and inverse_masslump
       
@@ -398,6 +400,9 @@
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
           &/integrate_continuity_by_parts")
+      low_re_p_correction_fix=have_option(trim(p%option_path)//&
+          &"/prognostic/spatial_discretisation/continuous_galerkin&
+          &/low_re_p_correction_fix")
       legacy_stress = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation&
           &/continuous_galerkin/stress_terms/stress_form/legacy_stress_form")
@@ -491,10 +496,17 @@
         call remap_field(wettingdrying_alpha, alpha_u_field)
       end if
       
+      ! For Low Reynolds number fix
+      if (low_re_p_correction_fix) then
+        ! construct the inverse of the lumped mass matrix
+        call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
+        call zero(visc_inverse_masslump)
+      end if
+      
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
-         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, &
+         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
@@ -554,7 +566,7 @@
                  assemble_ct_matrix, cg_pressure, viscosity, oldu, fs_sf=fs_sf)
             
          end do surface_element_loop
-         
+
          call deallocate(velocity_bc)
          deallocate(velocity_bc_type)
          call deallocate(pressure_bc)
@@ -610,6 +622,42 @@
           end if
         end if
         
+        if (low_re_p_correction_fix) then
+          ewrite(2,*) "****************************************"
+          ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
+          ewrite(2,*) "Invert it and apply dirichlet conditions!"
+          ! Add viscous terms (stored in visc_inverse_masslump)
+          ! and inverse_masslump and store it in visc_inverse_masslump:
+          call addto(visc_inverse_masslump, inverse_masslump)
+          ewrite(2,*) "For comparison only:"
+          ewrite(2,*) "The orig inverse_masslump is:"
+          do dim = 1, rhs%dim
+            ewrite_minmax(inverse_masslump%val(dim)%ptr)
+          end do
+          ewrite(2,*) "The new visc_inverse_masslump is:"
+          do dim = 1, rhs%dim
+            ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
+          end do
+          ! invert the visc_inverse_masslump:
+          call invert(visc_inverse_masslump)
+          ! apply boundary conditions (zeroing out strong dirichl. rows)
+          call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
+          
+          ewrite(2,*) "Invert new visc_inverse_masslump and apply boundary conditions is:"
+          do dim = 1, rhs%dim
+            ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
+          end do
+          ! For comparison only
+          call invert(inverse_masslump)
+          ! apply boundary conditions (zeroing out strong dirichl. rows)
+          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+          ewrite(2,*) "Orig inverse_masslump (inverted and boundary conditions is:"
+          do dim = 1, rhs%dim
+            ewrite_minmax(inverse_masslump%val(dim)%ptr)
+          end do
+          ewrite(2,*) "****************************************"
+        endif
+
         ! thus far we have just assembled the lumped mass in inverse_masslump
         ! now invert it:
         call invert(inverse_masslump)
@@ -880,7 +928,7 @@
 
 
     subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
-                                            mass, masslump, &
+                                            mass, masslump, visc_masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
@@ -921,6 +969,10 @@
 
       ! Vertical velocity relaxation scale factor and ib min density grad
       real, intent(in), optional :: vvr_sf, ib_min_grad
+      
+      ! low Re fix for pressure correction:
+      type(vector_field), intent(inout) :: visc_masslump
+      real, dimension(u%dim, ele_loc(u, ele)) :: viscous_terms
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1074,6 +1126,15 @@
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
            du_t, detwei, big_m_tensor_addto, rhs_addto)
+      end if
+      
+      ! Get only the viscous terms
+      if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les)) then
+        call get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
+         du_t, detwei, viscous_terms)
+        ! Add viscous terms to visc_masslump
+        call addto(visc_masslump, u_ele, viscous_terms)
+        ! At this point, only the viscous_terms are stored in visc_masslump!
       end if
       
       ! Coriolis terms
@@ -1682,6 +1743,87 @@
       end do
       
     end subroutine add_viscosity_element_cg
+    
+    subroutine get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
+         du_t, detwei, viscous_terms)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: u, nu
+      real, dimension(:,:), intent(in) :: oldu_val
+      type(vector_field), intent(in) :: x
+      type(tensor_field), intent(in) :: viscosity
+      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
+      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
+      real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: viscous_terms
+    
+      integer :: dim, dimj, gi
+      real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
+      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: les_tensor_gi
+      real, dimension(ele_ngi(u, ele)) :: les_coef_gi
+      
+      if (have_viscosity) then
+         viscosity_gi = ele_val_at_quad(viscosity, ele)
+      else
+         ! if we don't have viscosity but maybe LES
+         viscosity_gi = 0.0
+      end if
+      
+      if (have_les) then
+         ! add in LES viscosity
+         les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+         les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
+         do gi=1, size(les_coef_gi)
+            les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
+                 smagorinsky_coefficient**2
+         end do
+         viscosity_gi=viscosity_gi+les_tensor_gi
+      end if
+      
+      ! element viscosity matrix - tensor form
+      !  /
+      !  | gradN_A^T viscosity gradN_B dV
+      !  /
+      ! only valid when incompressible and viscosity tensor is isotropic
+      viscosity_mat = 0.0
+      if(stress_form) then
+        ! add in the stress form entries of the element viscosity matrix
+        !  /
+        !  | B_A^T C B_B dV
+        !  /
+        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei, legacy_stress)
+      else
+        if(isotropic_viscosity .and. .not. have_les) then
+          assert(u%dim > 0)
+          viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
+          do dim = 2, u%dim
+            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
+          end do
+        else if(diagonal_viscosity .and. .not. have_les) then
+          assert(u%dim > 0)
+          viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          do dim = 2, u%dim
+            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
+          end do
+        else
+          do dim = 1, u%dim
+            viscosity_mat(dim, dim, :, :) = &
+                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          end do
+        end if
+      end if
+      
+      do dim = 1, u%dim
+        viscous_terms(dim, :) = matmul(viscosity_mat(dim,dim,:,:), oldu_val(dim,:))
+        ! off block diagonal viscosity terms
+        if(stress_form) then
+          do dimj = 1, u%dim
+            if (dim==dimj) cycle ! already done this
+            viscous_terms(dim, :) = matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
+          end do
+        end if
+      end do
+
+    end subroutine get_viscous_terms_element_cg
     
     subroutine add_coriolis_element_cg(ele, test_function, x, u, oldu_val, density, detwei, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele

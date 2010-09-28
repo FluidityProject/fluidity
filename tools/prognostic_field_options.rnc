@@ -905,6 +905,10 @@ prognostic_pressure_field =
                element integrate_continuity_by_parts {
                   attribute replaces { "PREOPT" },
                   empty
+               }?,
+               ## Fix for low Re (in pressure correction and update of u)
+               element low_re_p_correction_fix {
+                  empty
                }?
             }|
             element control_volumes {

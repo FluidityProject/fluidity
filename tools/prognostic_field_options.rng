@@ -1129,6 +1129,13 @@ If activated this means that the pressure gradient operator is not integrated by
               <empty/>
             </element>
           </optional>
+          <optional>
+            <element name="low_re_p_correction_fix">
+              <a:documentation>**UNDER DEVELOPMENT**
+Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="control_volumes">
           <attribute name="replaces">

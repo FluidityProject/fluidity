@@ -170,7 +170,7 @@
       ! compressible pressure gradient operator/left hand matrix of cmc
       type(block_csr_matrix), pointer :: ctp_m
       ! the lumped mass matrix (may vary per component as absorption could be included)
-      type(vector_field) :: inverse_masslump
+      type(vector_field) :: inverse_masslump, visc_inverse_masslump
       ! mass matrix
       type(petsc_csr_matrix), target :: mass
       ! for DG:
@@ -234,6 +234,9 @@
       logical :: pressure_debugging_vtus
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
+      
+      ! add viscous terms to inverse_masslump for low Re which is only used for pressure correction
+      logical :: low_re_p_correction_fix
       
       ! the list of stiff nodes
       ! this is saved because the list is only formed when cmc is assembled, which
@@ -441,6 +444,11 @@
             FLAbort("Unknown Matrix Type for Full_Projection")
          end select
       end if
+      
+      ! low Re fix for pressure correction?
+      low_re_p_correction_fix=have_option(trim(p%option_path)//&
+          &"/prognostic/spatial_discretisation/continuous_galerkin&
+          &/low_re_p_correction_fix")
 
       ! are we getting the pressure gradient matrix using control volumes?
       cv_pressure = (have_option(trim(p%option_path)//&
@@ -547,7 +555,7 @@
       else
          call construct_momentum_cg(u, p, density, x, &
               big_m, mom_rhs, ct_m, &
-              ct_rhs, mass, inverse_masslump, &
+              ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
               state(istate), &
               assemble_ct_matrix=get_ct_m, &
               cg_pressure=cg_pressure)
@@ -693,6 +701,14 @@
 
           if(dg.and.(.not.lump_mass)) then
             call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass)
+          elseif(lump_mass .and. low_re_p_correction_fix) then
+            ewrite(2,*) "Assembling CMC_M with visc_inverse_masslump"
+            call assemble_masslumped_cmc(cmc_m, ctp_m, visc_inverse_masslump, ct_m)
+            ! P1-P1 stabilisation
+            if (apply_kmk) then
+              ewrite(2,*) "Adding P1-P1 stabilisation matrix to cmc_m"
+              call add_kmk_matrix(state(istate), cmc_m)
+            end if
           else
             call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump, ct_m)
 
@@ -1034,8 +1050,10 @@
             ! correct velocity according to new delta_p
             if(full_schur) then
               call correct_velocity_cg(u, inner_m, ct_m, delta_p, state(istate))
-            elseif(lump_mass) then
+            elseif(lump_mass .and. (.not.low_re_p_correction_fix)) then
               call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
+            elseif(lump_mass .and. low_re_p_correction_fix) then
+              call correct_masslumped_velocity(u, visc_inverse_masslump, ct_m, delta_p)
            elseif(dg) then
               call correct_velocity_dg(u, inverse_mass, ct_m, delta_p)
            else
@@ -1124,6 +1142,9 @@
         end if
       else
         call deallocate_cg_mass(mass, inverse_masslump)
+      end if
+      if (low_re_p_correction_fix) then
+        call deallocate(visc_inverse_masslump)
       end if
       
       if (use_theta_pg) then
