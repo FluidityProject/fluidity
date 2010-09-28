@@ -1513,84 +1513,91 @@ contains
         select case(viscosity_scheme)
         case(ARBITRARY_UPWIND)
             call local_assembly_arbitrary_upwind
-         case(BASSI_REBAY)
+        case(BASSI_REBAY)
             call local_assembly_bassi_rebay
-         end select
+        end select
         
         if (boundary_element) then
-            ! Weak application of dirichlet conditions on viscosity term.
-            ! Note that this necessitates per dimenson Viscosity matrices as
-            ! the boundary condition may vary between dimensions.
   
             do dim=1,U%dim
   
-              ! Local node map counter.
-              start=loc+1
+              ! Weak application of dirichlet conditions on viscosity term.
+              ! Note that this necessitates per dimenson Viscosity matrices as
+              ! the boundary condition may vary between dimensions.
+              
+              weak_dirichlet_loop: do i=1,2
+                ! this is done in 2 passes
+                ! iteration 1: wipe the rows corresponding to weak dirichlet boundary faces
+                ! iteration 2: for columns corresponding to weak dirichlet boundary faces,
+                !               move this coefficient multiplied with the bc value to the rhs
+                !               then wipe the column
+                ! The 2 iterations are necessary for elements with more than one weak dirichlet boundary face
+                ! as we should not try to move the coefficient in columns corresponding to boundary face 1
+                ! in rows correspoding to face 2 to the rhs, i.e. we need to wipe *all* boundary rows first.
+                
+                ! Local node map counter.
+                start=loc+1
 
-              boundary_neighbourloop: do ni=1,size(neigh)
-                  ele_2=neigh(ni)
-              
-                  ! Note that although face is calculated on field U, it is in fact
-                  ! applicable to any field which shares the same mesh topology.
-                  if (ele_2>0) then
-                    ! Interior face - we need the neighbouring face to
-                    ! calculate the new start
-                    face=ele_face(U, ele_2, ele)
-                  else   
-                  ! Boundary face
-                    face=ele_face(U, ele, ele_2)
-                    if (velocity_bc_type(dim,face)==1) then
-                        ! Dirichlet condition.
+                boundary_neighbourloop: do ni=1,size(neigh)
+                    ele_2=neigh(ni)
+                
+                    ! Note that although face is calculated on field U, it is in fact
+                    ! applicable to any field which shares the same mesh topology.
+                    if (ele_2>0) then
+                      ! Interior face - we need the neighbouring face to
+                      ! calculate the new start
+                      face=ele_face(U, ele_2, ele)
+                    else   
+                    ! Boundary face
+                      face=ele_face(U, ele, ele_2)
+                      if (velocity_bc_type(dim,face)==1) then
+                          ! Dirichlet condition.
+                          
+                          finish=start+face_loc(U, face)-1
+                      
+                          if (i==1) then
+                            ! Wipe out boundary condition's coupling to itself.
+                            Viscosity_mat(dim,start:finish,:)=0.0
+                          else
                         
-                        finish=start+face_loc(U, face)-1
-                    
-                        ! Wipe out boundary condition's coupling to itself.
-                        Viscosity_mat(dim,start:finish,:)=0.0
-                    
-                        ! Add BC into RHS
-                        !
-                        rhs_addto(dim,:) = rhs_addto(dim,:) &
-                            & -matmul(Viscosity_mat(dim,:,start:finish), &
-                            & ele_val(velocity_bc,dim,face))
-                    
-                        ! Ensure it is not used again.
-                        Viscosity_mat(dim,:,start:finish)=0.0
-                    ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
-                    elseif (velocity_bc_type(dim,face)==4 .or. velocity_bc_type(dim,face)==5) then  
-                         face=face_neigh(turbine_conn_mesh, face)
-                    end if
-                  end if               
-                  start=start+face_loc(U, face)
-              
-              end do boundary_neighbourloop
-              
-              ! Insert viscosity in matrix.
-              big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
-                      Viscosity_mat(dim,:,:)*theta*dt
-              if (acceleration) then
-                  rhs_addto(dim,:) = rhs_addto(dim,:) - &
-                        matmul(Viscosity_mat(dim,:,:), &
-                        &node_val(U, dim, local_glno))
-              end if
-           end do
-  
-        else
-            ! Interior element - the easy case.
-  
-            ! Insert viscosity in matrix.
-            do dim=1,U%dim
-               big_m_tensor_addto(dim, dim, :, :) = &
-                    big_m_tensor_addto(dim, dim, :, :) + &
-                      Viscosity_mat(dim,:,:)*theta*dt
-              
-              if (acceleration) then
-                  rhs_addto(dim, :) = rhs_addto(dim, :) &
-                        -matmul(Viscosity_mat(dim,:,:), &
-                        node_val(U, dim, local_glno))
-              end if
+                            ! Add BC into RHS
+                            !
+                            rhs_addto(dim,:) = rhs_addto(dim,:) &
+                                & -matmul(Viscosity_mat(dim,:,start:finish), &
+                                & ele_val(velocity_bc,dim,face))
+                        
+                            ! Ensure it is not used again.
+                            Viscosity_mat(dim,:,start:finish)=0.0
+                            
+                          end if
+                      ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
+                      elseif (velocity_bc_type(dim,face)==4 .or. velocity_bc_type(dim,face)==5) then  
+                           face=face_neigh(turbine_conn_mesh, face)
+                      end if
+                    end if               
+                    start=start+face_loc(U, face)
+                
+                end do boundary_neighbourloop
+                
+              end do weak_dirichlet_loop
+                
             end do
-              
+          
         end if
+  
+        ! Insert viscosity in matrix.
+        do dim=1,U%dim
+           big_m_tensor_addto(dim, dim, :, :) = &
+                big_m_tensor_addto(dim, dim, :, :) + &
+                  Viscosity_mat(dim,:,:)*theta*dt
+          
+          if (acceleration) then
+              rhs_addto(dim, :) = rhs_addto(dim, :) &
+                    -matmul(Viscosity_mat(dim,:,:), &
+                    node_val(U, dim, local_glno))
+          end if
+        end do
+        
      end if !have_viscosity
     
     end if !dg.and.(have_viscosity.or.have_advection)
