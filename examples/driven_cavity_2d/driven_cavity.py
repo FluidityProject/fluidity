@@ -43,8 +43,8 @@ def plot_results(NN, error):
     '''plot_results(error)
 
     Produce a plot of the actual errors provided in the argument
-    "error". Error should be a two column matrix with the first column being
-    the velocity error and the second column the pressure error.
+    "error". Error is a matrix with eight columns, one for each of the 
+    error metrics computed. 
     '''
     from pylab import \
     figure,xticks,yticks,axis,xlabel,ylabel,loglog,legend,title,savefig
@@ -72,13 +72,22 @@ def retrieve_results(NN):
     from the simulation results in appropriate driven_cavity-NN
     directory.
 
-    The columns of the results are the: Erturk u and v errors, 
-    the Botella u, v, and p errors and the Brunean ??? errors. 
+    The columns of the results are the: Erturk et al 2005 u and v errors, 
+    the Botella et al 1998 u, v, and p errors and the Brunean et al 2006 kinetic energy and
+    streamfunction errors. 
     The errors are the RMS difference between highly accurate
     tabulated values available in the papers: 
-    Erturk ????
-    Botella ????
-    Brunea ????
+
+    E. Erturk, T. C. Corke and C. Gokcol C, Numerical Solutions of 2-D Steady 
+    Incompressible Driven Cavity Flow at High Reynolds Numbers, International 
+    Journal for Numerical Methods in Fluids 48, 747-774, 2005. doi:10.1002/fld.953
+
+    O. Botella and R. Peyret, Benchmark spectral results on the lid-driven cavity flow,
+    Computers & Fluids 27, 421-433, 1998, doi:10.1016/S0045-7930(98)00002-4 
+
+    C.-H. Bruneau and M. Saad, The 2D lid-driven cavity problem revisited,
+    Computers & Fluids 35, 326-348, 2006, doi:10.1016/j.compfluid.2004.12.004 
+
     '''
     from numpy import zeros
 
@@ -92,13 +101,14 @@ def retrieve_results(NN):
         error[i,3]=botella_v(NN)
         error[i,4]=botella_p1(NN)
         error[i,5]=botella_p2(NN)
-        error[i,6]=botella_ke(NN)
-        error[i,7]=botella_sf(NN)
+        error[i,6]=bruneau_ke(NN)
+        error[i,7]=bruneau_sf(NN)
     
     return error
 
 
 def erturk_u(NN):
+#Erturk et al 2005. Table VI
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -150,6 +160,7 @@ def erturk_u(NN):
 
 
 def erturk_v(NN):
+#Erturk et al 2005. Table VII
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -200,6 +211,7 @@ def erturk_v(NN):
   return norm
 
 def botella_u(NN):
+#Botella and Peyret (1998) Table 9. NB.our velocity at the lid is reverse theirs therefore minus signs in u below
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -244,6 +256,7 @@ def botella_u(NN):
   return norm
 
 def botella_v(NN):
+#Botella and Peyret (1998) Table 10. 
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -289,6 +302,7 @@ def botella_v(NN):
   return norm
 
 def botella_p1(NN):
+#Botella and Peyret (1998) Table 9. 
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -338,6 +352,7 @@ def botella_p1(NN):
   return norm
 
 def botella_p2(NN):
+#Botella and Peyret (1998) Table 10. 
   filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
@@ -387,16 +402,18 @@ def botella_p2(NN):
   return norm
 
 
-def botella_ke(NN):
+def bruneau_ke(NN):
+#Bruneau and Saad 2006. Table 7. 
   vel_l2_norm = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['Velocity%magnitude']['l2norm'][-1]
   kinetic_energy = 0.5*vel_l2_norm**2
   kinetic_energy_error = abs( kinetic_energy - 0.044503 )
   print "botella_ke_error:", kinetic_energy_error
   return kinetic_energy_error
 
-def botella_sf(NN):
+def bruneau_sf(NN):
+#Bruneau and Saad 2006. Table 2. 
   streamfunction_min = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
-  streamfunction_min_error = abs( streamfunction_min - -0.118942 )
+  streamfunction_min_error = abs( streamfunction_min - -0.11892 )
   print "streamfunction_min_error:", streamfunction_min_error
   return streamfunction_min_error
 
