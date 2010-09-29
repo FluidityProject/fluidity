@@ -190,40 +190,40 @@ To explore the functionality of \fluidity, the following variations on this exam
 \end{itemize}
 Note to compare Froude numbers and mixing between different runs the remember to copy the images otherwise they will be overwritten.
 
-\subsection{Lagrangian trajectories illustrated in the lock-exchange}
-\label{sect:lock_exchange_Lagrangian_trajectories}
-Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
-Also, the denser (cooler) fluid is now on the right ($0<x \leq 5\,$m) as opposed to the previous example. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
-
-Figure \ref{fig:lock_exchange_Lagrangian_trajectories} illustrates the Lagrangian trajectories from three particles initially at three different positions in the interface between the fluids.
-
-\begin{figure}[ht]
-  \centering
-\begin{minipage}{1\linewidth}
-  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1000vtu}
-  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1000vtu}
-\end{minipage}\\
-\begin{minipage}{1\linewidth}
-\vspace{0.5cm}
-  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1500vtu}
-  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1500vtu}
-\end{minipage}
-  \caption{Lock-exchange temperature distribution and meshes at two different instants in time}
-  \label{fig:lock_exchange_Lag_traject_Temp_mesh}
-\end{figure}
-
-%\vspace*{-1.8cm}
-
-\begin{figure}[ht]
-  \centering
-\vspace*{-2.6cm}
-  \fig[width=0.6\textwidth]{./examples_images/lock_exchange/Lag_paths_lock_exchange_labels}
-\vspace{-2.8cm}
-  \caption{An example of Lagrangian trajectories in a lock-exchange. Note that in this test case the denser fluid is on the right as opposed to the lock-exchange test case from Figure \ref{fig:lock_exchange} where the denser fluid is on the left. Here, the denser fluid flows below the lighter from right to left. The particles presented at initially three different positions in the interface between the fluids, follow the vortical structures resulting from the shear instability in the interface.}
-  \label{fig:lock_exchange_Lagrangian_trajectories}
-\end{figure}
-
-Note that the results indicated in Figures \ref{fig:lock_exchange_Lag_traject_Temp_mesh} and \ref{fig:lock_exchange_Lagrangian_trajectories} have been calculated with a time step $\Delta t$=0.1 s. This is a large time step for this simulation but has been chosen for this test case since it runs faster and illustrates the Lagrangian trajectories. However, when accuracy is sought, it is recommended to use a smaller time step, i.e., $\Delta t$=0.01 s.
+% \subsection{Lagrangian trajectories illustrated in the lock-exchange}
+% \label{sect:lock_exchange_Lagrangian_trajectories}
+% Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
+% Also, the denser (cooler) fluid is now on the right ($0<x \leq 5\,$m) as opposed to the previous example. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
+% 
+% Figure \ref{fig:lock_exchange_Lagrangian_trajectories} illustrates the Lagrangian trajectories from three particles initially at three different positions in the interface between the fluids.
+% 
+% \begin{figure}[ht]
+%   \centering
+% \begin{minipage}{1\linewidth}
+%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1000vtu}
+%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1000vtu}
+% \end{minipage}\\
+% \begin{minipage}{1\linewidth}
+% \vspace{0.5cm}
+%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1500vtu}
+%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1500vtu}
+% \end{minipage}
+%   \caption{Lock-exchange temperature distribution and meshes at two different instants in time}
+%   \label{fig:lock_exchange_Lag_traject_Temp_mesh}
+% \end{figure}
+% 
+% %\vspace*{-1.8cm}
+% 
+% \begin{figure}[ht]
+%   \centering
+% \vspace*{-2.6cm}
+%   \fig[width=0.6\textwidth]{./examples_images/lock_exchange/Lag_paths_lock_exchange_labels}
+% \vspace{-2.8cm}
+%   \caption{An example of Lagrangian trajectories in a lock-exchange. Note that in this test case the denser fluid is on the right as opposed to the lock-exchange test case from Figure \ref{fig:lock_exchange} where the denser fluid is on the left. Here, the denser fluid flows below the lighter from right to left. The particles presented at initially three different positions in the interface between the fluids, follow the vortical structures resulting from the shear instability in the interface.}
+%   \label{fig:lock_exchange_Lagrangian_trajectories}
+% \end{figure}
+% 
+% Note that the results indicated in Figures \ref{fig:lock_exchange_Lag_traject_Temp_mesh} and \ref{fig:lock_exchange_Lagrangian_trajectories} have been calculated with a time step $\Delta t$=0.1 s. This is a large time step for this simulation but has been chosen for this test case since it runs faster and illustrates the Lagrangian trajectories. However, when accuracy is sought, it is recommended to use a smaller time step, i.e., $\Delta t$=0.01 s.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------ADVECTION--------------------------%
