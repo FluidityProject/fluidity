@@ -1,55 +1,44 @@
 \chapter{Examples}
 \label{chap:examples}
+\section{Introduction}
+\label{sect:examples_introduction}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%--------------------WRITING A TEST CASE--------------------------%
+%---------------------One-dimensional advection-------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Writing a test case} 
+\section{One dimensional advection}
+\label{sect:oned_advection}
+\subsection{Overview}
+In this test example a very simple one-dimensional problem is 
+studied: the advection of an inital ``top hat'' distribution 
+of a tracer (see figure ???). Since this test runs in a  
+short time, it allows users to play around with various
+settings, e.g. spatial discretisation options, adaptivity 
+and interpolation settings, etc., and quickly see the results
+of their changes.
 
-\subsection{Options file validation}
+\subsection{Configuration}
+This example provides three basic configurations, corresponding to
+the three main discretisation types of the advection-diffusion equation
+available in fluidity:
+\begin{itemize}
+\item {\bf Continuous Galerkin}, section ???
+This is the most basic finite-element discretisation that is simple 
+and fairly efficient. It is however not very good at advection
+of discontinuous tracers. In this example SUPG stabilisation 
+is applied to improve the results.
+\item {\bf Discontinuous Galerkin}
+\dots
+\item {\bf Control Volume}
+\dots
+\end{itemize}
+Adaptivity and interpolation options.
+Timestepping.
 
-Since the grammar of \fluidity\ options files is defined in terms of a RelaxNG
-schema, it is possible to check whether a given options file is valid. The
-medium test ``diamond\_validation'' validates all test problem options files
-with the .flml file extension. Hence if the options schema is updated in such
-a way that an options file becomes invalid, the diamond\_validation test will
-flag an error. Test problem XML files are also tested for validation against a
-RelaxNG schema defining their format.
+\subsection{Results}
+\subsection{Exercises}
 
-Some validation failures, such as the addition of new compulsory options, can
-be repaired automatically using Diamond. The \lstinline[language = Bash]+update_options+
-script can be used to attempt an automatic update of all test options files.
-
-\subsection{The method of manufactured solutions}\label{sect:mms}
-\index{method of manufactured solutions}
-Problems with analytical solutions provide a powerful mechanism for testing the implementation
-of numerical algorithms (code verification). The problem can be run on a series of meshes
-with increasing resolution (\eg $\Delta x \rightarrow \Delta x/2$), or decreasing time step,
-and the exact error between numerical and analytical solution computed in any norm. The theoretical
-order of convergence of the algorithm can then be confirmed for the implentation code. Any significant
-deviation from the theoretical order of convergence can be identified and is often due to coding bugs
-or because the treatment of boundary conditions is reducing accuracy.
-
-However, analytical solutions are not generally available, especially for complex equations sets
-and for problems with physical realism. These are of course the problems that we are primarily 
-interested in tackling numerically.
-The method of manufactured solutions (MMS) takes the opoosite approach to deriving a solution to 
-a given equation set: it starts from a given solution and derives the equations that admit this
-solution. This achieved by substituting the solution into the eqution set and evaluating the residual
-symbolically. This residual is then taken as a prescribed source term in the equation set being considered
-and the identical procedure used for verification with an analytical solution used. The flexibility of the MMS
-approach means that individual terms and discretisations can be rigorously tested through a suite of MMS problems. 
-
-This procedure is especially useful in \fluidity\ as it is very easy to prescibe source terms in the equations
-being solved. When substituting in a relatively simple analytical form for a solution into the governing
-equations one will typically obtain a very complex expression for the residual or source term. While this
-can result in a problem for many codes, in \fluidity\ one is able to prescribe anaytical source terms easily
-within Diamond's Python function interface. The complex source term can be obtained using a Python symbolic algebra
-library such as SAGE and then simply cut-and-paste into the Diamond file.
-
-Some background material on the method of manufactured solutions, and guidelines for selecting good solutions,
-is given in \cite{salari2000}. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------THE LOCK-EXCHANGE---------------------------%
