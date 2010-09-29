@@ -209,7 +209,7 @@ points an assigns the surface IDs 1 and 2 to them.
 \section{The Gmsh format}\label{sect:gmsh_format}
 
 
-\fluidity\ also contains built-in support for the Gmsh format. Gmsh is a mesh
+\fluidity\ also contains support for the Gmsh format. Gmsh is a mesh
 generator freely available on the World Wide Web
 (\url{http://geuz.org/gmsh/}) and is included in
 Linux distributions such as Ubuntu. 
@@ -220,13 +220,20 @@ be either binary or ASCII.
 
 \subsection{Using Gmsh files with \fluidity}\label{sect:using_gmsh}
 
+There are two ways in which Gmsh files can be used with \fluidity. The first
+is to run \lstinline[language=Bash]{gmsh2triangle} and import the resulting
+triangle files. The second, newer and more convenient but still experimental
+way is to directly load the Gmsh file into \fluidity. To enable this,
 \fluidity\ needs to be told to expect a Gmsh file. This is achieved by
 setting the \onlypdf\linebreak\option{/geometry/mesh/from\_file/format}\ option.  \fluidity\
 will now look for a file with the extension \lstinline[language=bash]+.msh+ when it runs.
 
 For parallel simulations, you must use \lstinline[language=bash]+fldecomp+ to decompose a Gmsh
 mesh into sub-meshes for each process. Here, only binary Gmsh files can be
-used - see section \ref{mesh!meshing tools!fldecomp}\ for details.
+used - see section \ref{mesh!meshing tools!fldecomp}\ for details. \lstinline[language=bash]+periodise+
+does not yet correctly process Gmsh files so if you need to run
+\lstinline[language=bash]+periodise+ you will have to convert the Gmsh file
+to triangle format first.
 
 \subsection{Gmsh file format}\label{sect:gmsh_file_format}
 
@@ -363,9 +370,10 @@ where left and right define the range of the line. It has a number of user defin
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
 
-This script converts Gmsh mesh files into triangle format. Its use is now
-deprecated in favour of directly reading Gmsh files into \fluidity. See
-section \ref{sect:gmsh_format}.
+This script converts Gmsh mesh files into triangle format. 
+% Its use is now
+% deprecated in favour of directly reading Gmsh files into \fluidity. See
+% section \ref{sect:gmsh_format}.
 
 \lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
