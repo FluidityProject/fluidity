@@ -2107,12 +2107,13 @@ contains
        ewrite(-1,*) 'max(ndglno)=',maxval(mesh%ndglno), 'nodes',mesh%nodes
        FLAbort('Ndglno contains value greater than nonods')
     end if
-    do nod = 1, mesh%nodes
-       if(.not.any(nod==mesh%ndglno)) then
-          ewrite(-1,*) 'node',nod,'not present in ndglno'
-          FLAbort('periodic mesh error!')
-       end if
-    end do
+!    ! This test is quadratic in mesh%nodes
+!    do nod = 1, mesh%nodes
+!       if(.not.any(nod==mesh%ndglno)) then
+!          ewrite(-1,*) 'node',nod,'not present in ndglno'
+!          FLAbort('periodic mesh error!')
+!       end if
+!    end do
 
     if (has_faces(model) .and. present(periodic_face_map)) then
 
