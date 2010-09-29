@@ -57,9 +57,9 @@ contains
   ! -----------------------------------------------------------------
   ! GMSH version of triangle equivalent.
 
-  subroutine identify_gmsh_file(filename, numDimenOut, numVerticesOut, &
+  subroutine identify_gmsh_file(filename, numDimenOut, locOut, &
        numNodesOut, numElementsOut, &
-       nodeAttributesOut, selementsOut, selementBoundariesOut)
+       nodeAttributesOut, selementsOut, boundaryFlagOut)
     ! Discover the dimension and size of the GMSH mesh.
     ! Filename is the base name of the file without .msh.
     ! In parallel, filename must *include* the process number.
@@ -68,9 +68,9 @@ contains
     character(len=option_path_len) :: lfilename
 
     !! Number of vertices of elements.
-    integer, intent(out), optional :: numDimenOut, numVerticesOut, numNodesOut
+    integer, intent(out), optional :: numDimenOut, locOut, numNodesOut
     integer, intent(out), optional :: numElementsOut, nodeAttributesOut
-    integer, intent(out), optional :: selementsOut, selementBoundariesOut
+    integer, intent(out), optional :: selementsOut, boundaryFlagOut
 
 
     logical :: fileExists
@@ -78,9 +78,9 @@ contains
     integer :: fd, gmshFormat
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
-    integer :: numElements, numBoundaries, numNodes, numDimen
-    integer :: numVertices
-    integer :: effDimen
+    integer :: numElements, boundaryFlag, numNodes, numDimen
+    integer :: loc, effDimen, nodeAttributes
+    integer :: i
 
 
     lfilename = trim(filename) // ".msh"
@@ -114,10 +114,23 @@ contains
     close( fd )
 
     ! We're assuming all elements have the same number of vertices/nodes
-    numVertices = size(elements(1)%nodeIDs)
+    loc = size(elements(1)%nodeIDs)
 
-    ! Can't specify this in GMSH file, value=1 is near-universal
-    numBoundaries = 1
+    do i=1, numNodes
+        if( nodes(i)%columnID>0 ) nodeAttributes=1
+    end do
+
+    ! NOTE:  'boundaries' variable
+    ! (see Read_Triangle.F90) is a flag which indicates whether
+    ! faces have boundaries (physical IDs). Values:
+    ! =0  : no boundaries
+    ! =1  : boundaries, normal
+    ! =2 : boundaries, periodic mesh (internal boundary)
+
+    ! Just set as this for now
+    do i=1, size(faces)
+        if( faces(i)%numTags>0 ) boundaryFlag=1
+    end do
 
     if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
        effDimen = numDimen+1
@@ -125,12 +138,14 @@ contains
        effDimen = numDimen
     end if
 
+
     ! Return optional variables requested
 
-    if(present(numDimenOut)) numDimenOut=numDimen
+    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
+    if(present(numDimenOut)) numDimenOut=effDimen
     if(present(numElementsOut)) numElementsOut=numElements
-    if(present(numDimenOut)) numDimenOut=effDImen
-    if(present(numVerticesOut)) numVerticesOut=numVertices
+    if(present(locOut)) locOut=loc
+    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
 
     deallocate(nodes)
 
@@ -159,10 +174,10 @@ contains
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: loc, sloc
     type(mesh_type) :: mesh
-    integer :: numNodes, numElements, numFaces, numBoundaries
+    integer :: numNodes, numElements, numFaces, boundaryFlag
     integer :: numDimen, effDimen
     integer :: gmshFormat
-    integer :: n, d, e, f
+    integer :: n, d, e, f, nodeID
 
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
@@ -194,6 +209,8 @@ contains
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
          elements, faces )
 
+    call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
+
     ! According to fluidity/scripts/gmsh2triangle, Fluidity doesn't need
     ! anything past $EndElements, so we close the file.
     close( fd )
@@ -202,8 +219,17 @@ contains
     numNodes = size(nodes)
     numFaces = size(faces)
 
-    ! Can't specify this in GMSH file, value=1 is near-universal
-    numBoundaries = 1
+    ! NOTE:  'boundaries' variable
+    ! (see Read_Triangle.F90) is a flag which indicates whether
+    ! faces have boundaries (physical IDs). Values:
+    ! =0  : no boundaries
+    ! =1  : boundaries, normal
+    ! =2 : boundaries, periodic mesh (internal boundary)
+
+    do f=1, size(faces)
+        if(faces(f)%numTags > 0) boundaryFlag=1
+    end do
+
     numElements = size(elements)
 
     if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
@@ -212,60 +238,61 @@ contains
        effDimen = numDimen
     end if
 
-    call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
 
+    call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
     call allocate( field, effDimen, mesh, name="Coordinate")
     call deallocate( mesh )
 
-    allocate( field%mesh%region_ids(numElements) )
-
-
     ! Now construct within Fluidity data structures
+
+    allocate( field%mesh%region_ids(numElements) )
+    if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
 
     loc = size( elements(1)%nodeIDs )
     sloc = size( faces(1)%nodeIDs )
 
     assert(loc==shape%loc)
 
+    ! Loop round nodes copying across coords and column IDs to field mesh,
+    ! if they exist
     do n=1, numNodes
-       forall (d = 1:effDimen)
-          field%val(d)%ptr(n) = nodes(n)%x(d)
 
+       nodeID = nodes(n)%nodeID
+       forall (d = 1:effDimen)
+          field%val(d)%ptr(nodeID) = nodes(n)%x(d)
        end forall
 
        ! If there's a valid node column ID, use it.
        if ( nodes(n)%columnID .ne. -1 ) then
-          field%mesh%columns(n) = nodes(n)%columnID
+          field%mesh%columns(nodeID) = nodes(n)%columnID
        end if
 
     end do
 
-
+    ! Copy elements to field
     forall (e=1:numElements)
        field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
        field%mesh%region_ids(e) = elements(e)%physicalID
     end forall
 
-
+    ! Now faces
     allocate(sndglno(1:numFaces*sloc))
     sndglno=0
     allocate(boundaryIDs(1:numFaces))
 
-
-    forall (f=1:numFaces)
+    do f=1, numFaces
        sndglno((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
        boundaryIDs(f) = faces(f)%physicalID
-    end forall
+    end do
 
-
-    if( numBoundaries<2 ) then
+   ! If we've got boundaries, do something
+    if( boundaryFlag<2 ) then
        call add_faces( field%mesh, &
-            & sndgln = sndglno(1:numFaces*sloc), &
-            & boundary_ids = boundaryIDs(1:numFaces) )
+                sndgln = sndglno(1:numFaces*sloc), &
+                boundary_ids = boundaryIDs(1:numFaces) )
     else
-       FLAbort("boundaries > 1 currently unsupported in read_gmsh_file()")
+       FLAbort("Internal period boundaries currently unsupported in read_gmsh_file()")
     end if
-
 
     deallocate(sndglno)
     deallocate(boundaryIDs)
@@ -452,7 +479,7 @@ contains
        else
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
-       ! Set column ID to -1: this will be changed later if $NodeData
+       ! Set column ID to -1: this will be changed later if $NodeData exists
        nodes(i)%columnID = -1
 
     end do
@@ -466,7 +493,7 @@ contains
     ! Read in end node section
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndNodes" ) then
-       FLExit("Error: cannot find '$EndNodes' in GMSH mesh file")
+       FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
 
   end subroutine read_nodes_coords
@@ -486,14 +513,14 @@ contains
 
     integer :: numStringTags, numRealTags, numIntTags
     integer :: timeStep, numComponents, numNodes
-    integer :: i, nodeIx
+    integer :: i, nodeIx, fileState
     real :: rval
 
     call ascii_formatting( fd, filename, "read" )
 
     ! If there's no $NodeData section, don't try to read in column IDs: return
-    read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$NodeData" ) then
+    read(fd, iostat=fileState, fmt=*) charBuf
+    if( trim(charBuf) .ne. "$NodeData" .or. fileState .lt. 0 ) then
        return
     end if
 
@@ -503,7 +530,7 @@ contains
        FLExit("Error: must have one string tag in GMSH file $NodeData part")
     end if
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "node_column_ids") then
+    if( trim(charBuf) .ne. "column_ids") then
        FLExit("Error: GMSH string tag in $NodeData section != 'column_ids'")
     end if
 
@@ -538,11 +565,11 @@ contains
     do i=1, numNodes
        select case(gmshFormat)
        case(asciiFormat)
-          read(fd, *) nodeIx, nodes(i)%columnID
+          read(fd, *) nodeIx, rval
        case(binaryFormat)
           read(fd ) nodeIx, rval
-          nodes(i)%columnID = int(rval)
        end select
+       nodes(i)%columnID = floor(rval)
     end do
 
     ! Skip newline character when in binary mode
@@ -569,14 +596,12 @@ contains
     type(GMSHnode), pointer :: nodes(:)
     real, pointer :: absZ(:)
 
-
     mesh_dimensions = 3
 
     allocate ( absZ(size(nodes)) )
     absZ(:) = nodes(:)%x(3)
 
-    if( all( absZ .lt. verySmall ) ) mesh_dimensions=2
-
+    if( all( absZ > -verySmall .and. absZ < verySmall) ) mesh_dimensions=2
 
     deallocate(absZ)
   end function mesh_dimensions
@@ -724,7 +749,14 @@ contains
     end do
 
 
-    if (gmshFormat .eq. binaryFormat) read(fd) newlineChar
+!    if (gmshFormat .eq. binaryFormat) read(fd) newlineChar
+
+    ! Check for $EndElements tag
+    call ascii_formatting( fd, filename, "read" )
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$EndElements" ) then
+       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
 
     ! This decides which element types are faces, and which are
     ! regular elements, as per gmsh2triangle logic. Implicit in that logic
@@ -750,8 +782,6 @@ contains
     else
        FLExit("Unsupported mixture of face/element types")
     end if
-
-
 
     call copy_to_faces_and_elements( allElements, elements, &
          faces, numFaces, faceType )
