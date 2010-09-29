@@ -233,7 +233,11 @@ contains
     ! Fields for vertical velocity relaxation
     type(scalar_field), pointer :: dtt, dtb
     type(scalar_field) :: depth
-    integer :: node   
+    integer :: node  
+    real :: vvr_sf ! A scale factor for the absorption
+     
+    ! Min vertical density gradient for implicit buoyancy
+    real :: ib_min_grad
    
     !! DG LES
     type(mesh_type), pointer :: cg_mesh
@@ -348,6 +352,7 @@ contains
     ! sigma = n_z*g*dt*_rho_o/depth
     have_vertical_velocity_relaxation=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
     if (have_vertical_velocity_relaxation) then
+      call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
       dtt => extract_scalar_field(state, "DistanceToTop")
       dtb => extract_scalar_field(state, "DistanceToBottom")
       call allocate(depth, dtt%mesh, "Depth")
@@ -357,7 +362,14 @@ contains
     endif
 
     ! Implicit buoyancy (theta*g*dt*drho/dr)
-    have_implicit_buoyancy=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")    
+    have_implicit_buoyancy=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")  
+    if (have_implicit_buoyancy) then
+      if (have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient")) then
+        call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient", ib_min_grad)
+      else
+        ib_min_grad=0.0
+      end if
+    end if  
 
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
         stat)
@@ -392,6 +404,7 @@ contains
         end do
       end do
     end if
+
     have_dg_les=.false.
     if (have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation&
@@ -444,7 +457,7 @@ contains
          &/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
         &"/prognostic/vector_field::Absorption&
-        &/include_pressure_correction") .or. have_vertical_stabilization
+        &/include_pressure_correction") .or. (have_vertical_stabilization.and.(.not.on_sphere))
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -600,7 +613,7 @@ contains
     cg_mesh=>extract_mesh(state, "CoordinateMesh")
     call allocate(u_cg, u%dim, cg_mesh, "U_CG")
     call zero(u_cg)
-    call allocate(u_nl_cg, u%dim, cg_mesh, "U_CG")
+    call allocate(u_nl_cg, u%dim, cg_mesh, "U_CG_NL")
     call zero(u_nl_cg)
     
     if (have_dg_les) then
@@ -631,7 +644,8 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
             & subcycle_m=subcycle_m, &
-            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, Abs_wd=Abs_wd)
+            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, &
+            & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
       
     end do element_loop
 
@@ -684,7 +698,8 @@ contains
        &pressure_bc, pressure_bc_type, &
        &u_cg, u_nl_cg, &
        &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
-       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd)
+       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, &
+       &Abs_wd, vvr_sf, ib_min_grad)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -726,7 +741,7 @@ contains
     type(csr_matrix), intent(inout), optional :: mass
     logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
     type(scalar_field), intent(in), optional :: alpha_u_field
-    type(vector_field), intent(in), optional :: Abs_wd 
+    type(vector_field), intent(in), optional :: Abs_wd
     
     ! Bilinear forms.
     real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: &
@@ -741,8 +756,12 @@ contains
          Source_mat
     real, dimension(U%dim, ele_loc(U,ele), ele_loc(U,ele)) :: &
          Abs_mat
+    real, dimension(U%dim, U%dim, ele_loc(U,ele), ele_loc(U,ele)) :: &
+         Abs_mat_sphere
     real, dimension(U%dim, ele_loc(U,ele)) :: &
          Abs_lump
+        real, dimension(U%dim, U%dim, ele_loc(U,ele)) :: &
+         Abs_lump_sphere
     real, dimension(ele_loc(U,ele)) :: &
          source_lump
     real, dimension(ele_loc(q_mesh,ele), ele_loc(q_mesh,ele)) :: Q_inv 
@@ -827,17 +846,26 @@ contains
     ! If on the sphere evaluate gravity direction at the gauss points
     logical :: on_sphere
 
+    ! Absorption matrices
+    real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
+    real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: tensor_absorption_gi
+    real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat
+    real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat_sphere
+
     ! Add vertical velocity relaxation to the absorption if present
-    real, dimension(U%dim, ele_ngi(U,ele)) :: vvr_abs
-    real, dimension(ele_ngi(U,ele)) :: depth_at_quads
+    real, intent(in), optional :: vvr_sf
+    real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
+    real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
+    real, dimension(ele_ngi(u,ele)) :: depth_at_quads
     type(scalar_field), optional, intent(in) :: depth
 
     ! Add implicit buoyancy to the absorption if present
-    real, dimension(U%dim, ele_ngi(U,ele)) :: ib_abs
-    real, dimension(ele_loc(U,ele),ele_ngi(U,ele),mesh_dim(U)) :: dt_rho
-    real, dimension(ele_ngi(U,ele),U%dim) :: grad_rho
-    real, dimension(U%dim,ele_ngi(U,ele)) :: grav_at_quads
-    real, dimension(ele_ngi(U,ele)) :: drho_dz
+    real, intent(in), optional :: ib_min_grad
+    real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
+    real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
+    real, dimension(ele_loc(u,ele),ele_ngi(u,ele),mesh_dim(u)) :: dt_rho
+    real, dimension(U%dim,ele_ngi(u,ele)) :: grad_rho, grav_at_quads
+    real, dimension(ele_ngi(u,ele)) :: drho_dz
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -942,7 +970,7 @@ contains
       end if
     end if
 
-    if(have_viscosity.and.(.not.(q_mesh==u%mesh))) then
+    if((have_viscosity.or.have_dg_les).and.(.not.(q_mesh==u%mesh))) then
       ! Transform q derivatives into physical space.
       call transform_to_physical(X, ele,&
           & q_shape , dshape=dq_t)
@@ -1013,11 +1041,9 @@ contains
       
     end if
    
-    if (have_viscosity.and.owned_element) then
+    if ((have_viscosity.or.have_dg_les).and.owned_element) then
       Viscosity_ele = ele_val(Viscosity,ele)
       if (have_dg_les) Viscosity_ele = Viscosity_ele + dg_les_loc
-    else if (have_dg_les.and.owned_element) then
-      Viscosity_ele = dg_les_loc
     end if
    
     if (owned_element) then
@@ -1203,34 +1229,47 @@ contains
       end if
     end if
 
+    absorption_gi = ele_val_at_quad(Abs, ele)
+    if (on_sphere.and.have_absorption) then ! Rotate the absorption
+      tensor_absorption_gi=rotate_diagonal_to_sphere_gi(X, ele, absorption_gi)
+    end if
+
     if(have_absorption.or.have_vertical_stabilization.or.have_wd_abs) then
+      vvr_abs_diag=0.0
       vvr_abs=0.0
       ib_abs=0.0
-      ! Momentum absorption matrix.
+      ib_abs_diag=0.0
+
       if (have_vertical_velocity_relaxation) then
         
-        assert(ele_ngi(U, ele)==ele_ngi(rho, ele))
+        assert(ele_ngi(U, ele)==ele_ngi(Rho, ele))
         assert(ele_ngi(rho,ele)==ele_ngi(depth,ele))          
         
         ! Form the vertical velocity relaxation absorption term
         if (on_sphere) then
           assert(ele_ngi(U, ele)==ele_ngi(X, ele))
-          vvr_abs=sphere_inward_normal_at_quad_ele(X, ele)
         else
           assert(ele_ngi(U, ele)==ele_ngi(gravity, ele))
-          vvr_abs=ele_val_at_quad(gravity, ele)
+          grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
         depth_at_quads=ele_val_at_quad(depth, ele)
 
-        do i=1,ele_ngi(U,ele)
-          vvr_abs(:,i)=gravity_magnitude*dt*vvr_abs(:,i)*rho_q(i)/depth_at_quads(i)
-        end do
+        if (on_sphere) then
+          do i=1,ele_ngi(U,ele)
+            vvr_abs_diag(3,i)=-vvr_sf*gravity_magnitude*dt*rho_q(i)/depth_at_quads(i)
+          end do
+          vvr_abs=rotate_diagonal_to_sphere_gi(X, ele, vvr_abs_diag)
+        else
+          do i=1,ele_ngi(u,ele)
+            vvr_abs_diag(:,i)=vvr_sf*gravity_magnitude*dt*grav_at_quads(:,i)*rho_q(i)/depth_at_quads(i)
+          end do
+        end if
 
       end if
 
       if (have_implicit_buoyancy) then
 
-        assert(ele_ngi(U, ele)==ele_ngi(buoyancy, ele))
+        assert(ele_ngi(u, ele)==ele_ngi(buoyancy, ele))
         
         call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
         grad_rho=ele_grad_at_quad(buoyancy, ele, dt_rho)
@@ -1241,26 +1280,84 @@ contains
         else
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
+
         do i=1,ele_ngi(U,ele)
-          drho_dz(i)=dot_product(grad_rho(i,:),grav_at_quads(:,i))
-          if (drho_dz(i) < 0.0) drho_dz(i)=0.0
+          drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+          if (drho_dz(i) < ib_min_grad) drho_dz(i)=ib_min_grad ! Default ib_min_grad=0.0
         end do
 
         ! Form the implicit buoyancy absorption terms
-        do i=1,ele_ngi(U,ele)
-          ib_abs(:,i)=theta*dt*gravity_magnitude*drho_dz(i)*grav_at_quads(:,i)
+        if (on_sphere) then
+          do i=1,ele_ngi(U,ele)
+            ib_abs_diag(3,i)=-theta*dt*gravity_magnitude*drho_dz(i)
+          end do
+          ib_abs=rotate_diagonal_to_sphere_gi(X, ele, ib_abs_diag)
+        else
+          do i=1,ele_ngi(U,ele)
+              ib_abs_diag(:,i)=theta*dt*gravity_magnitude*drho_dz(i)*grav_at_quads(:,i)
+          end do
+        end if
+     
+      end if
+
+      ! Add any vertical stabilization to the absorption term
+      if (on_sphere) then
+        tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
+      else
+        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
+      end if
+
+    end if
+
+    ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
+    ! the absorption cannot be used in the pressure correction. 
+    if (on_sphere) then
+
+      Abs_mat_sphere = shape_shape_tensor(U_shape, U_shape, detwei*rho_q, tensor_absorption_gi)
+
+      if(lump_abs) then
+
+          Abs_lump_sphere = sum(Abs_mat_sphere, 4)
+          do i = 1, ele_loc(U, ele)
+            do dim = 1, U%dim
+              do dim2 = 1, U%dim
+                big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
+                  & dt*theta*Abs_lump_sphere(dim,dim2,i)
+              end do
+              if (acceleration) then
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
+                ! off block diagonal absorption terms
+                do dim2 = 1, u%dim
+                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
+                end do
+              end if
+            end do
+          end do
+
+      else
+
+        do dim = 1, u%dim
+          do dim2 = 1, u%dim
+            big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
+              & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
+          end do
+          if (acceleration) then
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), u_val(dim,:))
+            ! off block diagonal absorption terms
+            do dim2 = 1, u%dim
+              if (dim==dim2) cycle ! The dim=dim2 terms were done above
+              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+            end do
+          end if
         end do
+        Abs_lump_sphere = 0.0
 
       end if
 
-      Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, &
-          &                                 ele_val_at_quad(Abs,ele)-vvr_abs-ib_abs)
-          
-      if (have_wd_abs) then
-        alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)  !! Wetting and drying absorption becomes active when water level reaches d_0
-        Abs_mat = Abs_mat + shape_shape_vector(U_shape, U_shape, alpha_u_quad*detwei*rho_q, &
-          &                                 ele_val_at_quad(Abs_wd,ele))
-      end if
+    else
+
+      Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
 
       if(lump_abs) then
         
@@ -1303,6 +1400,7 @@ contains
         end do
         
       end if
+
     end if
       
     if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
@@ -1394,7 +1492,7 @@ contains
     ! Interface integrals
     !-------------------------------------------------------------------
     
-    if(dg.and.(have_viscosity.or.have_advection).and.owned_element) then
+    if(dg.and.((have_viscosity.or.have_dg_les).or.have_advection).and.owned_element) then
       neigh=>ele_neigh(U, ele)
       ! x_neigh/=t_neigh only on periodic boundaries.
       x_neigh=>ele_neigh(X, ele)
@@ -1611,11 +1709,11 @@ contains
        ! add lumped terms to the diagonal of the matrix
        call add_diagonal_to_tensor(big_m_diag_addto, big_m_tensor_addto)
        
-       if(dg.and.(have_viscosity.or.have_advection)) then
+       if(dg.and.((have_viscosity.or.have_dg_les).or.have_advection)) then
          
           ! first the diagonal blocks, i.e. the coupling within the element
           ! and neighbouring face nodes but with the same component
-          if(have_viscosity) then
+          if(have_viscosity.or.have_dg_les) then
              ! add to the matrix
              call addto(big_m, local_glno, local_glno, big_m_tensor_addto, &
                 block_mask=diagonal_block_mask)
@@ -1990,7 +2088,7 @@ contains
         
     end if
 
-    if (have_viscosity) then
+    if (have_viscosity.or.have_dg_les) then
        ! Boundary term in grad_U.
        !   /
        !   | q, u, normal dx
@@ -2874,7 +2972,7 @@ contains
       owned_neighbours = 0
       foreign_neighbours = 0
       
-      if (have_viscosity .or. have_advection) then
+      if ((have_viscosity.or.have_dg_les) .or. have_advection) then
         ! start with first order
         neighbours => ele_neigh(neigh_mesh, ele)
         do i=1, size(neighbours)
@@ -2888,7 +2986,8 @@ contains
         end do
       end if
       
-      if (have_viscosity .and. .not. compact_stencil) then
+      ! Added brackes around (.not. compact_stencil), check this
+      if ((have_viscosity.or.have_dg_les) .and. (.not. compact_stencil)) then
         ! traverse the second order neighbours
         do i=1, size(neighbours)
           ! skip boundaries
