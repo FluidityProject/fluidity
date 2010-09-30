@@ -2,6 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <!-- Drag calculation in 2D flow past circle -->
+<!-- Checks the serial run against parallel against parallel adaptivity which can only be done with Zoltan -->
 <testproblem>
   <name>circle-2d-drag-zoltan</name>
   <owner userid="jhill1"/>

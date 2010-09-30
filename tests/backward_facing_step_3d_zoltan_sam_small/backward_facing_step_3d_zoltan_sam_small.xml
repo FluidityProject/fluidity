@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<!-- test zoltan output to ensure it's comparable to Sams -->
+
+<testproblem>
+  <name>Three-dimensional backward facing step.</name>
+  <owner userid="jhill1"/>
+  <tags>flml zoltan</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec -n 3 -x PYTHONPATH ../../bin/fluidity backward_facing_step_3d.flml</command_line>
+</problem_definition>
+  <variables>
+    <variable name="FinalTime" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("backward_facing_step_3d.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTimeSam" language="python">
+import fluidity_tools
+FinalTimeSam = fluidity_tools.stat_parser("sam_result/backward_facing_step_3d_sam.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="MaximumVelocity" language="python">
+import fluidity_tools
+MaximumVelocity = fluidity_tools.stat_parser("backward_facing_step_3d.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable>    
+    <variable name="MaximumVelocitySam" language="python">
+import fluidity_tools
+MaximumVelocitySam = fluidity_tools.stat_parser("sam_result/backward_facing_step_3d_sam.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable>
+    <variable name="FinalNodeCount" language="python">
+import fluidity_tools
+FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_3d.stat")['CoordinateMesh']['nodes'][-1]
+    </variable>    
+    <variable name="FinalNodeCountSam" language="python">
+import fluidity_tools
+FinalNodeCountSam = fluidity_tools.stat_parser("sam_result/backward_facing_step_3d_sam.stat")['CoordinateMesh']['nodes'][-1]
+    </variable>
+
+  </variables>
+  <pass_tests>
+    <test name="Final time the same" language="python">
+assert (abs(FinalTime-FinalTimeSam) &lt; 1e-6)
+    </test>    
+    <test name="Max velocity the same" language="python">
+print MaximumVelocity, MaximumVelocitySam
+assert (abs(MaximumVelocity-MaximumVelocitySam) &lt; 1e-3)
+    </test>
+    <test name="Node count within 5%" language="python">
+nodeCountErr = (abs(FinalNodeCount-FinalNodeCountSam) / FinalNodeCountSam) *100
+print nodeCountErr, FinalNodeCount, FinalNodeCountSam
+assert ( nodeCountErr &lt; 5)
+    </test>
+  </pass_tests>
+</testproblem>
+

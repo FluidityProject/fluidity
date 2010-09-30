@@ -178,7 +178,7 @@ module zoltan_integration
     assert(count == num_obj)
 
     do node=1,count
-      num_edges(node) = row_length(zz_sparsity_two, local_ids(node))
+      num_edges(node) = row_length(zz_sparsity_one, local_ids(node))
     end do
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
@@ -205,7 +205,7 @@ module zoltan_integration
     integer(zoltan_int), intent(in) :: wgt_dim
     real(zoltan_float), intent(out), dimension(*) :: ewgts
     integer(zoltan_int), intent(out) :: ierr 
-    integer :: count
+    integer :: count, err
     integer :: node, i, j
     integer :: head
     integer, dimension(:), pointer :: neighbours
@@ -215,12 +215,12 @@ module zoltan_integration
     real(zoltan_float) :: quality, min_quality
 
 !   variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
-    real(zoltan_float) :: min_weight, max_weight, ninety_weight
+    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
 
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     type(integer_set) :: nelistA, nelistB, intersection
 
-    integer :: ele, total_num_edges
+    integer :: ele, total_num_edges, my_num_edges
 
     real :: value
 
@@ -233,18 +233,22 @@ module zoltan_integration
     count = zz_halo%nowned_nodes
     assert(count == num_obj)
 
-    total_num_edges = sum(num_edges(1:num_obj))
+    my_num_edges = sum(num_edges(1:num_obj))
 
-    if (zoltan_iteration==zoltan_max_adapt_iteration) then
+    ! global sum of total num_edges
+    call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
+                      MPI_COMM_WORLD,err)
+
+    if (zoltan_iteration .eq. zoltan_max_adapt_iteration) then
       
       ! last iteration - hopefully the mesh is of sufficient quality by now
       ! we only want to optimize the edge cut to minimize halo communication
-       ewgts(1:total_num_edges) = 1.0
+       ewgts(1:my_num_edges) = 1.0
        
        head = 1
        do node=1,count
 !         find nodes neighbours
-          neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
+          neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
 !         check the number of neighbours matches the number of edges
           assert(size(neighbours) == num_edges(node))
 !         find global ids for each neighbour
@@ -268,7 +272,7 @@ module zoltan_integration
     do node=1,count
 
 !      find nodes neighbours
-       neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
+       neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
 
 !      check the number of neighbours matches the number of edges
        assert(size(neighbours) == num_edges(node))
@@ -306,7 +310,7 @@ module zoltan_integration
           do i=1,key_count(intersection)
              ele = fetch(intersection, i)
 !            determine the quality of the element
-             quality = node_val(element_quality, ele)
+             quality = minval(ele_val(element_quality, ele))
 
 !            store the element quality if it's less (worse) than any previous elements
              if (quality .LT. min_quality) then
@@ -321,36 +325,51 @@ module zoltan_integration
 !           if it is
             ewgts(head + j - 1) = 1.0
          else
-!           if it's not
-            ewgts(head + j - 1) = (1.0 - min_quality) * (total_num_edges + 1)
-         end if
+!           if it's not, set it to something big (~20 times bigger than others
+!           to make it non-cuttable
+            ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
+        end if
       end do
 
       call deallocate(nelistA)
       value = maxval(ewgts(head:head+size(neighbours)-1))
-      if (output_edge_weights) call set(max_edge_weight_on_node,local_ids(node),value)
       head = head + size(neighbours)
    end do
 
    assert(head == sum(num_edges(1:num_obj))+1)
 
 !  calculate the local maximum edge weight
-   max_weight = maxval(ewgts(1:head-1))
+   my_max_weight = maxval(ewgts(1:head-1))
 
 !  calculate the local minimum edge weight
    min_weight = minval(ewgts(1:head-1))
 
-!  calculate the local 90th percentile edge weight   
-   ninety_weight = max_weight * 0.9
+   call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, &
+                      MPI_COMM_WORLD,err)
+
+!  calculate the global 90th percentile edge weight   
+   ninety_weight = max_weight * 0.90
 
 !  don't want to adjust the weights if all the elements are of a similar quality
    if (min_weight < ninety_weight) then
 !     make the worst 10% of elements uncuttable
       do i=1,head-1
          if (ewgts(i) .GT. ninety_weight) then
+            ! largest number possible for the edge weight - should make this
+            ! uncuttable by the partitioner
             ewgts(i) = total_num_edges + 1
          end if
       end do
+   end if
+
+   if (output_edge_weights) then
+     head = 1
+     do node=1,count
+        neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
+        value = maxval(ewgts(head:head+size(neighbours)-1))
+        call set(max_edge_weight_on_node,local_ids(node),value)
+        head = head + size(neighbours)
+     end do
    end if
    
    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
@@ -3073,7 +3092,7 @@ module zoltan_integration
       else         
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
       end if
-
+      
       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
 
           if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
@@ -3132,8 +3151,10 @@ module zoltan_integration
       else
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
         if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
-           ! chosen to match what Sam uses
+            ! chosen to match what Sam uses - don't seem to actually chnage
+            ! anything though....
            ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
+           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
         end if
       end if
 
