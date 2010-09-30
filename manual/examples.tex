@@ -16,25 +16,71 @@ of a tracer (see figure ???). Since this test runs in a
 short time, it allows users to play around with various
 settings, e.g. spatial discretisation options, adaptivity 
 and interpolation settings, etc., and quickly see the results
-of their changes.
+of their changes. The challenge in this example is get an accurate
+answer while keeping the solution conservative and bounded.
 
 \subsection{Configuration}
+The domain is the one-dimensional interval $[0,3]$. The initial 
+mesh with $\Delta x=0.025~m$ is created using the ``interval'' 
+script. The initial ``top hat'' distribution (figure ???) is 
+prescribed by a python function. The advective velocity is 
+prescribed as a constant of $u=0.01~ms^{-1}$. Output is created
+in the form of a .vtu-file every second of simulation time
+and a .stat file. The total simulation time is $500~s$. 
+The ``top-hat'' does not reach the boundary in this time, so that
+boundary conditions play no role in this example.
+
+\subsubsection{Spatial discretisation}
 This example provides three basic configurations, corresponding to
 the three main discretisation types of the advection-diffusion equation
 available in fluidity:
 \begin{itemize}
 \item {\bf Continuous Galerkin}, section ???
 This is the most basic finite-element discretisation that is simple 
-and fairly efficient. It is however not very good at advection
-of discontinuous tracers. In this example SUPG stabilisation 
-is applied to improve the results.
-\item {\bf Discontinuous Galerkin}
-\dots
+and fairly efficient. It is however not very good for advection problems
+of tracers with sharp discontinuities. In the example configuration
+SUPG stabilisation is applied to improve the results.
+\item {\bf Discontinuous Galerkin}, section ???
+This is a popular method for advection problems, in particular 
+for non-smooth tracer solutions. To prevent under and overshoots
+slope limiters may still be necessary near discontinuities, and are
+therefore used in this example.
 \item {\bf Control Volume}
-\dots
+This is a simple and efficient method, that however in some cases 
+can be fairly diffusive. Its accuracy is determined by the choice 
+of interpolation at the control volume faces - a ``FiniteElement''
+interpolation is used here in combination with a ``Sweby'' slope 
+limiter to keep the solution bounded. 
 \end{itemize}
-Adaptivity and interpolation options.
-Timestepping.
+
+\subsubsection{Adaptivity and interpolation options}
+The mesh adaptivity procedure is guided by the metric that is based on
+the (interpolation) error bounds set for the tracer field. Since at 
+the front and back of the top hat solution the derivatives 
+become very large, this would lead to nearly infinite resolution at these
+discontinuties. A ``MinimumEdgeLength'' therefore needs to be set, to prevent
+such very small elements that would produce very high CFL numbers.
+
+This example uses ``adapt\_at\_first\_timestep'', so that a suitably
+adapted mesh is used from the first time step. The initial condition
+will be directly prescribed on this first adapted mesh and not interpolated
+from the user provided initial mesh.
+
+Since we want to exactly conserve the amount of tracer in this example
+a galerkin projection based interpolation scheme is used to interpolate
+between subsequently adapted meshes. To keep the solution bounded the
+``minimally dissipative'' bounding procedure is used.
+
+\subsubsection{Time stepping}
+Although this example uses a stable implicit time integration scheme (Crank Nicolson),
+it is generally desirable for advection problems to control the CFL number. This is done
+via the adaptive time stepping scheme which dynamically changes the time 
+step based on a desired CFL number - set to 0.5 in the example configurations. Because the 
+example uses a constant velocity, the time step is only determined by the smallest 
+element size which may vary due to the adaptivity process, although it is here
+limited by the chosen ``MinimumEdgeLength''. Since we use an adapted mesh from the first 
+timestep we need the option \option{at\_first\_timestep} to use a corresponding 
+adaptive initial timestep.
 
 \subsection{Results}
 \subsection{Exercises}
