@@ -496,7 +496,8 @@ lid-driven cavity problem, try finding some papers that discuss this, try updati
 regularised problem and compare to benchmark data if you can find it].
 \item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the python which computes
 the errors for a higher Reynolds number.
-\item Try switching on mesh adaptivity. Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
+\item Try switching on mesh adaptivity (you will need to ensure that you have compiled your \fluidity executable with 2D-adaptivity enabled. 
+Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
 differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
 sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
 error for the same number of nodes compared to the fixed mesh [Hint: it may be easier to achieve this at higher Reynolds numbers].
@@ -656,27 +657,35 @@ meshes, such as is necessary in time-averaging.
 
 
 \section{Flow past a sphere: drag calculation}
-
+\label{sect:flow_past_sphere}
+\subsection{Overview}
 In this validation test uniform flow past an isolated sphere is simulated
 and the drag on the sphere is calculated and compared to a curve optimised
 to fit a large amount of experimental data.
 
+\subsection{Configuration}
 The sphere is of unit diameter centred at the origin. The entire domain is
 the cuboid defined by $-10\le x\le 20$, $-10\le y\le 10$, $-10\le z\le 10$.
+GiD is used to mesh the initial geometry.
+
 The unsteady momentum equations with nonlinear advection and viscous terms
 along with the incompressibility constraint are solved. Free slip velocity
-boundary conditions are applied at the four lateral boundaries, $u=1$ is
+boundary conditions are applied at the four lateral boundaries, $u=1$, $v=w=0$ is
 applied at the inflow boundary $x=-10$, and a free stress boundary condition
-applied to the outflow at $x=20$. A series of Reynolds numbers in the range
+applied to the outflow at $x=20$. 
+
+A series of Reynolds numbers in the range
 $Re\in [1,1000]$ are considered. The problem is run for a long enough
 period that the low Reynolds number simulations reach steady state, and the
 higher Reynolds number runs long enough that a wake develops behind the
 sphere and boundary layers on the sphere are formed.  This is deemed
 sufficient for the purposes of this test which is not an in-depth
 investigation of the physics of this problem, nor an investigation of the optimal
-set of numerical options to use.  Here an unstructured
-tetrahedral mesh is used along with mesh optimisation (adaptivity). 
-Figure \ref{fig:drag} shows a snapshot of the
+set of numerical options to use. 
+
+Here an unstructured
+tetrahedral mesh is used along with mesh adaptivity. 
+Figure \ref{fig:flow_past_sphere_2} shows a snapshot of the
 mesh and velocity vectors taken from a Reynolds number 1000 simulation. The
 mesh can be seen to be resolving the wake and the boundary layers on the
 sphere with enhanced anisotropic resolution. At higher Reynolds numbers the
@@ -686,6 +695,7 @@ parameters and the use of averaged values from simulations allowed to run
 for longer periods. The drag coefficient is calculated from
 \begin{equation}
 C_D = \frac{F_x}{\frac{1}{2}\rho u_0^2 A},\qquad F_x = \int_S (n_xp - n_i\tau_{ix})\;dS,
+\label{eqn:drag_coeff}
 \end{equation}
 where $\rho$ is the density, taken here to be unity; 
 $u_0$ is the inflow velocity, here unity; 
@@ -699,38 +709,63 @@ component, here summation over repeated indices is assumed);
 $p$ is the pressure and $\tau$ is the stress tensor;
 see \citet{panton2006}.
 
-Figure \ref{fig:drag} also shows a comparison between the computed drag coefficient with
+\begin{figure}
+\centering
+\subfigure{
+\includegraphics[width=6cm,clip]{examples_images/flow_past_sphere/sphere-Re1-streamlines.png}}
+\subfigure{
+\includegraphics[width=6cm,clip]{examples_images/flow_past_sphere/sphere-Re10-streamlines.png}}
+\subfigure{
+\includegraphics[width=6cm,clip]{examples_images/flow_past_sphere/sphere-Re100-streamlines.png}}
+\subfigure{
+\includegraphics[width=6cm,clip]{examples_images/flow_past_sphere/sphere-Re1000-streamlines.png}}
+\caption{Streamlines and surface mesh in the flow past the sphere example. Top-left to bottom-right
+show results from Reynolds numbers $Re=1,10,100,1000$.}
+\label{fig:flow_past_sphere_1}
+\end{figure}
+
+
+\begin{figure}
+\centering
+\includegraphics[width=15cm,clip]{examples_images/flow_past_sphere/sphere-Re1000-combined.pdf}
+\caption{Details of the mesh and flow at $Re=1000$.}
+\label{fig:flow_past_sphere_2}
+\end{figure}
+
+\subsection{Results}
+Figure \ref{fig:flow_past_sphere_1} shows streamlines close to the sphere and the surface mesh.
+The mesh can be seen to be much finer on the sphere compares to the far wall seen in the background.
+This is empahsised in figure \ref{fig:flow_past_sphere_2} where a more detailed plot of the mesh (with
+half of the domain removed) over the whole domain and close to the sphere, and the velocity vectors
+close to the sphere are shown.
+
+Figure \ref{fig:drag} shows a comparison between the computed drag coefficient with
 a correlation (to a large amount of laboratory data) taken from \citet{brown2003}:
 \begin{equation}
 C_D = \frac{24}{Re}\left(1+0.15Re^{0.681}\right) + \frac{0.407}{1+\frac{8710}{Re}}.
-\label{drag_corr}
+\label{eqn:sphere_drag_corr}
 \end{equation}
+Good agreement can be seen at the range of Reynolds numbers tested in this exercise.
 
-The assertions tested are that the difference between
-the computed drag coefficient and values from the correlation 
-(\ref{drag_corr}) at a number of Reynolds numbers are within acceptable bounds.
-Checks on the number of nodes produced by the adaptive algorithm for 
-given error measure choice and other options are also conducted. While
-all of these simulations can be run comfortably in serial, the Reynolds 
-number 100 and 1000 cases are performed on 8 cores both to accelerate the 
-tests and as a test of the parallel implementation.
 
-%\begin{figure*}
-%\vspace*{2mm}
-%\begin{center}
-%\includegraphics[width=12cm]{images/Drag-combined}
-%\includegraphics[width=5.5cm]{images/Sphere_Drag}
-%\end{center}
-%\caption{Left: Unstructured adapted mesh from flow past a sphere simulation at Re=$10^3$,
-%with insets showing the mesh and velocity vectors in a blown up region close to the sphere. 
-%Right:
-%Comparisons between the computed drag coefficient (circles) and the correlation (solid line) given by expression
-%(\ref{drag_corr}) in the range $Re\in [1,1000]$.}
-%\label{fig:drag}
-%\end{figure*}
+\begin{figure}
+\centering
+\includegraphics[width=8cm,clip]{examples_images/flow_past_sphere/Sphere_Drag.pdf}
+\caption{Comparison between the numerically calculated drag coefficients ($C_D$, circles) and the correlation \eqref{eqn:sphere_drag_corr} (solid line)
+for $Re=1,10,100,1000$.}
+\label{fig:flow_past_sphere_3}
+\end{figure}
 
 
 
+\subsection{Exercises}
+\begin{enumerate}
+\item We actually compute the (vector) force on the sphere and output this to the stat file. This can then be converted to the drag coefficient 
+via \label{eqn:drag_coeff}. Write a Python function to do this conversion and the error from the correlation \eqref{eqn:sphere_drag_corr}.
+\item Try varying some of the discretisation and adaptivity parameters to see what the impact on the accuracy of the
+calculated drag is.
+\item Try changing the shape of the object, e.g. benchmark data is also available for flow past a cylinder.
+\end{enumerate}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
