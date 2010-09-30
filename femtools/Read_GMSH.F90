@@ -117,7 +117,7 @@ contains
     loc = size(elements(1)%nodeIDs)
 
     do i=1, numNodes
-        if( nodes(i)%columnID>0 ) nodeAttributes=1
+       if( nodes(i)%columnID>0 ) nodeAttributes=1
     end do
 
     ! NOTE:  'boundaries' variable
@@ -129,7 +129,7 @@ contains
 
     ! Just set as this for now
     do i=1, size(faces)
-        if( faces(i)%numTags>0 ) boundaryFlag=1
+       if( faces(i)%numTags>0 ) boundaryFlag=1
     end do
 
     if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
@@ -169,12 +169,13 @@ contains
     type(vector_field)  :: field
 
     integer :: fd
-    integer,  pointer, dimension(:) :: sndglno, boundaryIDs, element_owner
+    integer,  pointer, dimension(:) :: sndglno, boundaryIDs, faceOwner
 
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: loc, sloc
     type(mesh_type) :: mesh
-    integer :: numNodes, numElements, numFaces, boundaryFlag
+    integer :: numNodes, numElements, numFaces
+    logical :: haveBounds, haveInternalBounds
     integer :: numDimen, effDimen
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
@@ -219,15 +220,19 @@ contains
     numNodes = size(nodes)
     numFaces = size(faces)
 
-    ! NOTE:  'boundaries' variable
-    ! (see Read_Triangle.F90) is a flag which indicates whether
-    ! faces have boundaries (physical IDs). Values:
-    ! =0  : no boundaries
-    ! =1  : boundaries, normal
-    ! =2 : boundaries, periodic mesh (internal boundary)
+    ! NOTE:  similar function 'boundaries' variable in Read_Triangle.F90
+    ! ie. flag for boundaries and internal boundaries (period mesh bounds)
+    haveBounds=.false.
+    haveInternalBounds=.false.
 
     do f=1, size(faces)
-        if(faces(f)%numTags > 0) boundaryFlag=1
+       if(faces(f)%numTags > 0) then
+          ! We have boundaries,
+          haveBounds=.true.
+
+          ! We have internal boundaries (at the join of a period mesh)
+          if(faces(f)%numTags > 2) haveInternalBounds=.true.
+       end if
     end do
 
     numElements = size(elements)
@@ -279,24 +284,38 @@ contains
     allocate(sndglno(1:numFaces*sloc))
     sndglno=0
     allocate(boundaryIDs(1:numFaces))
+    if(haveInternalBounds) allocate(faceOwner(1:numFaces))
 
     do f=1, numFaces
        sndglno((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
        boundaryIDs(f) = faces(f)%physicalID
+       if(haveInternalBounds) faceOwner(f) = faces(f)%owner
     end do
 
-   ! If we've got boundaries, do something
-    if( boundaryFlag<2 ) then
-       call add_faces( field%mesh, &
-                sndgln = sndglno(1:numFaces*sloc), &
-                boundary_ids = boundaryIDs(1:numFaces) )
+    ! If we've got boundaries, do something
+    if( haveBounds ) then
+       if ( haveInternalBounds ) then
+          call add_faces( field%mesh, &
+               sndgln = sndglno(1:numFaces*sloc), &
+               boundary_ids = boundaryIDs(1:numFaces), &
+               element_owner=faceOwner )
+       else
+          call add_faces( field%mesh, &
+               sndgln = sndglno(1:numFaces*sloc), &
+               boundary_ids = boundaryIDs(1:numFaces) )
+       end if
     else
-       FLAbort("Internal period boundaries currently unsupported in read_gmsh_file()")
+       ewrite(2,*) "WARNING: no boundaries in GMSH file "//trim(lfilename)
     end if
 
+    ! Deallocate arrays
     deallocate(sndglno)
     deallocate(boundaryIDs)
+    if (haveInternalBounds) deallocate(faceOwner)
 
+    deallocate(nodes)
+    deallocate(faces)
+    deallocate(elements)
 
     return
 
@@ -719,10 +738,18 @@ contains
        ! These two are apparently standard tags
        if( allElements(e)%numTags .ge. 1) then
           allElements(e)%physicalID = allElements(e)%tags(1)
-          if( allElements(e)%numTags .ge. 2) then
-             allElements(e)%elementary = allElements(e)%tags(2)
-          end if
        end if
+
+       ! No idea what this is, but GMSH generates it - may come in handy later.
+       if( allElements(e)%numTags .ge. 2) then
+          allElements(e)%elementary = allElements(e)%tags(2)
+       end if
+
+       ! Third tag is for element owner - used in periodic meshes
+       if( allElements(e)%numTags .ge. 3) then
+          allElements(e)%owner = allElements(e)%tags(3)
+       end if
+
 
        call toFluidityElementNodeOrdering( allElements(e)%nodeIDs )
 
@@ -747,9 +774,6 @@ contains
        end select
 
     end do
-
-
-!    if (gmshFormat .eq. binaryFormat) read(fd) newlineChar
 
     ! Check for $EndElements tag
     call ascii_formatting( fd, filename, "read" )
@@ -849,7 +873,6 @@ contains
     end do
 
   end subroutine copy_to_faces_and_elements
-
 
 
 end module read_gmsh

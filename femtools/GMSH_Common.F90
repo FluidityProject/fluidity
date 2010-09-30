@@ -54,7 +54,7 @@ module gmsh_common
   end type GMSHnode
 
   type GMSHelement
-     integer elementID, type, numTags, physicalID, elementary
+     integer :: elementID, type, numTags, physicalID, elementary, owner
      integer, pointer :: tags(:), nodeIDs(:)
   end type GMSHelement
 

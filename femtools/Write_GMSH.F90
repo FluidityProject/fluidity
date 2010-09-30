@@ -93,7 +93,6 @@ contains
     character(len=longStringLen) :: meshFile
     type(vector_field), intent(in):: positions
     logical, intent(in), optional :: print_internal_faces
-
     integer :: numParts, fileDesc
 
     fileDesc=free_unit()
@@ -109,21 +108,24 @@ contains
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return
 
-    if (present_and_true(print_internal_faces) .and. .not. has_faces(positions%mesh)) then
+    if (present_and_true(print_internal_faces) &
+         .and. .not. has_faces(positions%mesh) ) then
        call add_faces(positions%mesh)
     end if
+
+
 
     if( getprocno() <= numParts ) then
        ! Writing GMSH file header
        call write_gmsh_header( fileDesc, meshFile, useBinaryGMSH )
        call write_gmsh_nodes( fileDesc, meshFile, positions, useBinaryGMSH )
-       call write_gmsh_faces_and_elements( fileDesc, meshFile, positions%mesh, &
-                useBinaryGMSH )
+       call write_gmsh_faces_and_elements( fileDesc, meshFile, &
+            positions%mesh, useBinaryGMSH )
 
        ! write columns data if present
        if (associated(positions%mesh%columns)) then
           call write_gmsh_node_columns( fileDesc, meshFile, positions, &
-                useBinaryGMSH )
+               useBinaryGMSH )
        end if
        ! Close GMSH file
     end if
@@ -155,10 +157,10 @@ contains
 
 
     if(useBinaryGMSH) then
-    ! GMSH binary format 
-        GMSHFileFormat="1"
+       ! GMSH binary format 
+       GMSHFileFormat="1"
     else
-        GMSHFileFormat="0"
+       GMSHFileFormat="0"
     end if
 
     write(GMSHdoubleNumBytes, *) doubleNumBytes
@@ -167,11 +169,11 @@ contains
          //trim(adjustl(GMSHdoubleNumBytes))
 
     if(useBinaryGMSH) then
-        call binary_formatting(fd, lfilename, "write")
+       call binary_formatting(fd, lfilename, "write")
 
-        ! The 32-bit integer "1", followed by a newline
-        write(fd) oneInt, char(10)
-        call ascii_formatting(fd, lfilename, "write")
+       ! The 32-bit integer "1", followed by a newline
+       write(fd) oneInt, char(10)
+       call ascii_formatting(fd, lfilename, "write")
     end if
 
     write(fd, "(A)") "$EndMeshFormat"
@@ -207,8 +209,8 @@ contains
     write(fd, "(I0)", err=201) numNodes
 
     if( useBinaryGMSH) then
-        ! Write out nodes in binary format
-        call binary_formatting( fd, lfilename, "write" )
+       ! Write out nodes in binary format
+       call binary_formatting( fd, lfilename, "write" )
     end if
 
 5959 format( I0, 999(X, F0.10) )
@@ -218,17 +220,17 @@ contains
        coords = node_val(field, i)
 
        if(useBinaryGMSH) then
-            write( fd ) i, coords
-        else
-            write(fd, 5959) i, coords
-        end if
+          write( fd ) i, coords
+       else
+          write(fd, 5959) i, coords
+       end if
     end do
 
     if( useBinaryGMSH) then
-        ! Write newline character
-        write(fd) char(10)
+       ! Write newline character
+       write(fd) char(10)
 
-        call ascii_formatting(fd, lfilename, "write")
+       call ascii_formatting(fd, lfilename, "write")
     end if
 
     write( fd, "(A)" ) "$EndNodes"
@@ -243,7 +245,8 @@ contains
 
   ! -----------------------------------------------------------------
 
-  subroutine write_gmsh_faces_and_elements( fd, lfilename, mesh, useBinaryGMSH )
+  subroutine write_gmsh_faces_and_elements( fd, lfilename, mesh, &
+       useBinaryGMSH )
     ! Writes out elements for the given mesh
     type(mesh_type), intent(in):: mesh
     logical :: useBinaryGMSH
@@ -251,15 +254,19 @@ contains
     character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
 
-    integer :: fd, numGMSHElems, numElements, numFaces, numTags, nloc, sloc
-    integer :: faceType, elemType
+    integer :: fd, numGMSHElems, numElements, numFaces
+    integer :: numTags, nloc, sloc, faceType, elemType
     integer, pointer :: lnodelist(:)
 
     integer :: e, f, elemID
     character, parameter :: newLineChar=char(10)
 
+    logical :: periodicMesh
+
+    ! Gather some info about the mesh
     numElements = ele_count(mesh)
     numFaces = surface_element_count(mesh)
+    periodicMesh = mesh_periodic(mesh)
 
     ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces
@@ -307,7 +314,11 @@ contains
 
     ! Number of tags associated with elements
     if(associated(mesh%region_ids)) then
-       numTags = 2
+       if(periodicMesh) then
+          numTags = 3
+       else
+          numTags = 2
+       end if
     else
        numTags = 0
     end if
@@ -323,8 +334,8 @@ contains
 
     ! Faces written out first
     if(useBinaryGMSH) then
-        call binary_formatting( fd, lfilename, "write" )
-        write(fd) faceType, numFaces, numTags
+       call binary_formatting( fd, lfilename, "write" )
+       write(fd) faceType, numFaces, numTags
     end if
 
     ! Correct format for ASCII mode element lines
@@ -336,19 +347,32 @@ contains
        lnodelist = face_global_nodes(mesh, f)
        call toGMSHElementNodeOrdering(lnodelist)
 
-       if(numTags .eq. 2) then
+       ! Output face data
+       select case(numTags)
+
+       case (3)
           if(useBinaryGMSH) then
-            write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), 0, &
+                  face_ele(mesh, f), lnodelist
           else
-            write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, 6969, err=301) f, faceType, numTags, &
+                  surface_element_id(mesh, f), 0, face_ele(mesh, f), lnodelist
           end if
-       else
+
+       case (2)
           if(useBinaryGMSH) then
-            write(fd, err=301) f, lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
           else
-            write(fd, 6969, err=301) f, faceType, lnodelist
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
           end if
-       end if
+
+       case default
+          if(useBinaryGMSH) then
+             write(fd, err=301) f, lnodelist
+          else
+             write(fd, 6969, err=301) f, faceType, lnodelist
+          end if
+       end select
 
        deallocate(lnodelist)
     end do
@@ -356,7 +380,7 @@ contains
 
     ! Then regular elements
     if(useBinaryGMSH) then
-        write(fd) elemType, numElements, numTags
+       write(fd) elemType, numElements, numTags
     end if
 
     do e=1, numElements
@@ -366,26 +390,38 @@ contains
        lnodelist = ele_nodes(mesh, e)
        call toGMSHElementNodeOrdering(lnodelist)
 
-       if(numTags .eq. 2) then
+       ! Output element data
+       select case(numTags)
+
+       case (3)
           if(useBinaryGMSH) then
-            write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
+             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, 0, lnodelist
           else
-            write(fd, 6969, err=301) elemID, elemType, numTags, &
-                    ele_region_id(mesh, e), 0, lnodelist
+             write(fd, 6969, err=301) elemID, elemType, numTags, &
+                  ele_region_id(mesh, e), 0, 0, lnodelist
           end if
-       else
+
+       case (2)
           if(useBinaryGMSH) then
-            write(fd, err=301) elemID, lnodelist
+             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
           else
-            write(fd, 6969, err=301) elemID,elemType,lnodelist
+             write(fd, 6969, err=301) elemID, elemType, numTags, &
+                  ele_region_id(mesh, e), 0, lnodelist
           end if
-       end if
+
+       case default
+          if(useBinaryGMSH) then
+             write(fd, err=301) elemID, lnodelist
+          else
+             write(fd, 6969, err=301) elemID,elemType,lnodelist
+          end if
+       end select
 
        deallocate(lnodelist)
     end do
 
     if(useBinaryGMSH) then
-        write(fd, err=301) newLineChar
+       write(fd, err=301) newLineChar
     end if
 
 
@@ -450,16 +486,16 @@ contains
     do i=1, numNodes
        columnID = real(field%mesh%columns(i))
        if(useBinaryGMSH) then
-        write(fd) i, columnID
+          write(fd) i, columnID
        else
-        write(fd, "(I0, X, F0.8)") i, columnID
+          write(fd, "(I0, X, F0.8)") i, columnID
        end if
     end do
     ! Newline
 
     if(useBinaryGMSH) then
-        write(fd) char(10)
-        call ascii_formatting(fd, meshFile, "write")
+       write(fd) char(10)
+       call ascii_formatting(fd, meshFile, "write")
     end if
 
     ! Write out end tag and return
