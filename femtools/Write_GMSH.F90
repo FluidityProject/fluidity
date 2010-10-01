@@ -49,7 +49,7 @@ module write_gmsh
   end interface
 
   ! Writes to GMSH binary format - can set to ASCII (handy for debugging)
-  logical, parameter  :: useBinaryGMSH=.true.
+  logical, parameter  :: useBinaryGMSH=.false.
 
 contains
 
@@ -127,9 +127,9 @@ contains
           call write_gmsh_node_columns( fileDesc, meshFile, positions, &
                useBinaryGMSH )
        end if
-       ! Close GMSH file
     end if
 
+    ! Close GMSH file
     close( fileDesc )
 
     return
@@ -217,7 +217,7 @@ contains
 
     do i=1, numNodes
        coords = 0
-       coords = node_val(field, i)
+       coords(1:numCoords) = node_val(field, i)
 
        if(useBinaryGMSH) then
           write( fd ) i, coords
@@ -315,7 +315,7 @@ contains
     ! Number of tags associated with elements
     if(associated(mesh%region_ids)) then
        if(periodicMesh) then
-          numTags = 3
+          numTags = 4
        else
           numTags = 2
        end if
@@ -350,13 +350,13 @@ contains
        ! Output face data
        select case(numTags)
 
-       case (3)
+       case (4)
           if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, &
+             write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, &
                   face_ele(mesh, f), lnodelist
           else
              write(fd, 6969, err=301) f, faceType, numTags, &
-                  surface_element_id(mesh, f), 0, face_ele(mesh, f), lnodelist
+                  surface_element_id(mesh,f), 0, 0, face_ele(mesh,f), lnodelist
           end if
 
        case (2)
@@ -393,12 +393,12 @@ contains
        ! Output element data
        select case(numTags)
 
-       case (3)
+       case (4)
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, 0, lnodelist
+             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, 0, 0, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, numTags, &
-                  ele_region_id(mesh, e), 0, 0, lnodelist
+                  ele_region_id(mesh, e), 0, 0, 0, lnodelist
           end if
 
        case (2)

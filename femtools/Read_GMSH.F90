@@ -30,8 +30,6 @@
 module read_gmsh
   ! This module reads GMSH files and results in a vector field of
   ! positions.
-  ! NOTE: can't ascribe anything other than coordinates as properties of 
-  ! nodes, so column IDs are temporarily out.
 
   use futils
   use elements
@@ -82,6 +80,8 @@ contains
     integer :: loc, effDimen, nodeAttributes
     integer :: i
 
+    logical :: haveBounds, haveInternalBounds
+
 
     lfilename = trim(filename) // ".msh"
 
@@ -127,10 +127,28 @@ contains
     ! =1  : boundaries, normal
     ! =2 : boundaries, periodic mesh (internal boundary)
 
-    ! Just set as this for now
+    haveBounds=.false.
+    haveInternalBounds=.false.
+
     do i=1, size(faces)
-       if( faces(i)%numTags>0 ) boundaryFlag=1
+       if(faces(i)%numTags > 0) then
+          ! We have boundaries,
+          haveBounds=.true.
+
+          ! We have internal boundaries (at the join of a period mesh)
+          if(faces(i)%numTags >= 4) then
+             if (faces(i)%tags(4) > 0) haveInternalBounds=.true.
+          end if
+       end if
     end do
+
+    if(haveInternalBounds) then
+       boundaryFlag=2
+    elseif(haveBounds) then
+       boundaryFlag=1
+    else
+       boundaryFlag=0
+    end if
 
     if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
        effDimen = numDimen+1
@@ -231,7 +249,9 @@ contains
           haveBounds=.true.
 
           ! We have internal boundaries (at the join of a period mesh)
-          if(faces(f)%numTags > 2) haveInternalBounds=.true.
+          if(faces(f)%numTags >= 4) then
+             if(faces(4)%tags(4) > 0) haveInternalBounds=.true.
+          end if
        end if
     end do
 
@@ -719,9 +739,10 @@ contains
           e = e+groupElems        
        end do
 
-       read(fd) newlineChar
-
     end select
+
+    ! Skip final newline
+    if(gmshFormat==binaryFormat) read(fd) newlineChar
 
 
     ! Run through final list of elements, reorder nodes etc.
@@ -736,18 +757,18 @@ contains
     do e=1, numAllElements
 
        ! These two are apparently standard tags
-       if( allElements(e)%numTags .ge. 1) then
+       if( allElements(e)%numTags >= 1) then
           allElements(e)%physicalID = allElements(e)%tags(1)
        end if
 
        ! No idea what this is, but GMSH generates it - may come in handy later.
-       if( allElements(e)%numTags .ge. 2) then
+       if( allElements(e)%numTags >= 2) then
           allElements(e)%elementary = allElements(e)%tags(2)
        end if
 
-       ! Third tag is for element owner - used in periodic meshes
-       if( allElements(e)%numTags .ge. 3) then
-          allElements(e)%owner = allElements(e)%tags(3)
+       ! Fourth tag is for element owner - used in periodic meshes
+       if( allElements(e)%numTags >= 4) then
+          allElements(e)%owner = allElements(e)%tags(4)
        end if
 
 
