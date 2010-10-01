@@ -1342,6 +1342,31 @@
           end if
 
         end if
+        
+        ! Check options for Low Re Fix:
+        if(have_option("/material_phase["//int2str(i)//&
+                            "]/scalar_field::Pressure/prognostic&
+                            &/spatial_discretisation/continuous_galerkin&
+                            &/low_re_p_correction_fix")) then
+          if(.not.have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/continuous_galerkin&
+                              &/mass_terms/lump_mass_matrix").or.&
+                            have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/continuous_galerkin&
+                              &/mass_terms/lump_mass_matrix/use_submesh")) then
+              ewrite(-1,*) "Error: You're not lumping the velocity mass matrix"
+              ewrite(-1,*) "or you are using the 'lump on submesh' option"
+              ewrite(-1,*) "but have selected the low Reynolds number fix."
+              ewrite(-1,*) "If you want to use the low Reynolds number fix,"
+              ewrite(-1,*) "enable continuous galerkin discretisation for the velocity"
+              ewrite(-1,*) "and lump the mass matrix. You can do so under:"
+              ewrite(-1,*) "material_phase/Velocity/prognostic/spatial_discretisation/"
+              ewrite(-1,*) "continuous_galerkin/mass_terms/lump_mass_matrix"
+              FLExit("Lump the mass matrix (of the velocity) if you want to make use of the low Reynolds number fix")
+            end if
+        end if
 
       end do
 
