@@ -107,7 +107,7 @@ subroutine set_sediment_reentrainment(state)
     type(scalar_field), pointer        :: SedConc, erosion, bedload
     type(vector_field), pointer        :: bedShearStress
     real                               :: erodibility, porosity, critical_shear_stress, shear
-    real                               :: erosion_flux, diameter, density, g, s, S_star
+    real                               :: erosion_flux, diameter, density, g, s
     real                               :: viscosity
     integer                            :: nNodes, i, j
     character(len=FIELD_NAME_LEN)      :: class_name
@@ -157,20 +157,20 @@ subroutine set_sediment_reentrainment(state)
             nNodes = node_count(bedLoadSurface)
             alloced = .true.
         end if
-        call get_option(trim(option_path)//"/erodibility", erodibility, default=1.0)
+        call get_option(trim(option_path)//"/erodability", erodibility, default=1.0)
         call get_option(trim(option_path)//"/density",density)
         call get_option(trim(option_path)//"/diameter",diameter)
         if (have_option(trim(option_path)//"/critical_shear_stress")) then
             call get_option(trim(option_path)//"/critical_shear_stress", critical_shear_stress)
         else
             ! calc critical shear stress
-            s = density/1024.
+            s = density/1000.
             !S_star = sqrt((s-1)*g*diameter**3)/viscosity
             !critical_shear_stress = 0.105*S_star**(-0.13) + &
             !                        0.045*exp(-35*S_star**(-0.59))
             ! estimate of critical shear stress assuming grains larger than
-            ! 10 microns and constant viscosity
-            critical_shear_stress = 0.041 * (s-1) * 1024. * g * diameter
+            ! 10 microns and constant viscosity - not the conversion to mm!
+            critical_shear_stress = 0.041 * (s-1) * 1024. * g * (diameter/1000.)
         end if
         
         

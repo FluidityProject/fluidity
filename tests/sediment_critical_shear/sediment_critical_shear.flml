@@ -231,7 +231,7 @@
           <real_value rank="0">1000</real_value>
         </density>
         <drag_coefficient>
-          <real_value rank="0">0.02</real_value>
+          <real_value rank="0">0.001</real_value>
         </drag_coefficient>
         <output/>
         <stat>
@@ -379,9 +379,12 @@
           <real_value rank="0">2000</real_value>
         </density>
         <diameter>
-          <real_value rank="0">0.049948999</real_value>
-          <comment>Made to make the critical shear stress = 19.607 which gives and erosion rate of 0.1</comment>
+          <real_value rank="0">0.5</real_value>
         </diameter>
+        <erodability>
+          <real_value rank="0">0.00518674459</real_value>
+          <comment>Fixed to give a flux of 0.01 with a bed shear stress of 1Nm-2</comment>
+        </erodability>
       </sediment_class>
     </sediment>
   </material_phase>
