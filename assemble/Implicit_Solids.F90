@@ -97,7 +97,7 @@ module implicit_solids
   real, dimension(:,:), allocatable, save :: translation_coordinates
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
-  logical, save :: have_temperature, do_print_multiple_solids_diagnostics
+  logical, save :: have_temperature, do_print_multiple_solids_diagnostics, print_drag
   integer, dimension(:), allocatable, save :: node_to_particle
 
   private
@@ -192,18 +192,26 @@ contains
                have_option("/implicit_solids/one_way_coupling/print_diagnostics")
           do_print_multiple_solids_diagnostics = &
                have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+          ! figure out if we want to print out the drag force
+          print_drag = have_option("/implicit_solids/one_way_coupling/print_drag")
 
-          ! initialise drag force data file
+          ! initialise diagnostics (and drag force) data file
           if (GetRank() == 0 .and. do_print_diagnostics) then
              dat_unit = free_unit()
              open(dat_unit, file="diagnostic_data", status="replace")
              close(dat_unit)
-
+             
              if (do_print_multiple_solids_diagnostics) then
                 dat_unit = free_unit()
                 open(dat_unit, file="particle_diagnostic_data", status="replace")
                 close(dat_unit)
              end if
+          end if
+          ! drag_force file
+          if (GetRank() == 0 .and. print_drag) then
+             dat_unit = free_unit()
+             open(dat_unit, file="drag_force", status="replace")
+             close(dat_unit)
           end if
 
        else if (two_way_coupling)  then
@@ -239,7 +247,7 @@ contains
        call set_source(state)
        call set_absorption_coefficient(state)
 
-       if (do_print_diagnostics .and. its==itinoi) call print_diagnostics(state)
+       if ((do_print_diagnostics .or. print_drag) .and. its==itinoi) call print_diagnostics(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -595,6 +603,13 @@ contains
             current_time, (drag(i), i = 1, positions%dim), nusselt
        close(1453)
 
+       ! Print out F_d in drag_force
+       if (print_drag) then
+         open(1455, file="drag_force", position="append")
+         write(1455, *) (drag(i), i = 1, positions%dim)
+         close(1455)
+       end if
+
        if (do_print_multiple_solids_diagnostics) then
           ! file format: 
           ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
@@ -604,6 +619,7 @@ contains
                (particle_nusselt(i), i = 1, number_of_solids)
           close(1454)
        end if
+
     end if
 
     deallocate(particle_drag, drag, particle_nusselt)
