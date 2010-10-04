@@ -88,7 +88,7 @@ module spontaneous_potentials
     if (stat/=0) then
       FLExit('Did not find an ElectricalPotential field.')
     end if
-    if (i==0) call zero(electrical_potential)
+    if (i==1) call zero(electrical_potential)
 
     ! extract source for electrical potential field
     ep_source => extract_scalar_field(state, "ElectricalPotentialSource", stat=stat)
@@ -105,9 +105,9 @@ module spontaneous_potentials
       ewrite(3,*) 'Computing electrical conductivity of formation.'
       call allocate(conductivity, vmesh, 'ElectricalConductivity')
       call calculate_formation_conductivity(state, i, conductivity, stat)
-      ewrite_minmax(conductivity)
       have_sigma_fs = .false.
     end if
+    ewrite_minmax(conductivity)
 
     ! ELECTROKINETIC
     if (have_option(trim(tmpstring)//'scalar_field::Electrokinetic')) then
@@ -214,8 +214,9 @@ module spontaneous_potentials
     call addto(rhs, ep_source)
 
     ! solve for electrical potential
-    call petsc_solve(delta_ep, matrix, rhs, option_path = electrical_potential%option_path)
-    call addto(electrical_potential, delta_ep, dt)
+    !call petsc_solve(delta_ep, matrix, rhs, option_path = electrical_potential%option_path)
+    call petsc_solve(electrical_potential, matrix, rhs, option_path = electrical_potential%option_path)
+    !call addto(electrical_potential, delta_ep, dt)
     ewrite_minmax(electrical_potential)
 
     ! deallocate memory
@@ -312,7 +313,8 @@ module spontaneous_potentials
     call addto(matrix, ele_nodes(t, ele), ele_nodes(t, ele), matrix_addto)
     call addto(rhs, ele_nodes(t, ele), rhs_addto)
 
-    call apply_dirichlet_conditions(matrix, rhs, t, dt)
+    !call apply_dirichlet_conditions(matrix, rhs, t, dt)
+    call apply_dirichlet_conditions(matrix, rhs, t)
 
   end subroutine assemble_ep_diffusivity_element
 
@@ -327,9 +329,9 @@ module spontaneous_potentials
     ! declare local variables
     logical :: have_saturation
     integer :: j, n
-    real :: sigma_o, tmp, archie
-    type(scalar_field), pointer :: porosity, salinity
-    type(scalar_field) :: saturation, sigma_w
+    real :: sigma_o, archie, tmp
+    type(scalar_field), pointer :: saturation, porosity
+    type(scalar_field) :: sigma_w
 
     ! extract porosity field
     porosity => extract_scalar_field(state, "Porosity", stat)
@@ -337,17 +339,13 @@ module spontaneous_potentials
       FLExit('Did not find a Porosity field.')
     end if
 
-    ! extract phase saturation if present otherwise set to 1.0
-    saturation = extract_scalar_field(state, "PhaseVolumeFraction", stat)
+    ! extract phase saturation if present
+    saturation => extract_scalar_field(state, "PhaseVolumeFraction", stat)
     if (stat==0) then
       have_saturation = .true.
     else
-      call allocate(saturation, sigma_fs%mesh, 'PhaseVolumeFraction')
-      call zero(saturation)
-      call addto(saturation,1.0)
       have_saturation = .false.
     end if
-    ewrite_minmax(saturation)
 
     ! get electrical conductivity of oil
     ! NB: hard coding value for now
@@ -366,24 +364,27 @@ module spontaneous_potentials
       n = node_count(sigma_fs)
     end if
 
-    ! compute electrical conductivity of the formation
+    ! get exponent used in Archie's law
     if (have_option("/material_phase["//int2str(i-1)//"]/electrical_properties/archie_exponent")) then
-      ! get electrical conductivity of brine
       call get_option("/material_phase["//int2str(i-1)//"]/electrical_properties/archie_exponent",archie)
     else
-      archie=1.65
+      archie = 2.0
     endif
+    
+    ! assign conductivity field
     call zero(sigma_fs)
-    do j=1,n
-      if (porosity%val(j) > 0.29) then
-         saturation%val(j) = 1.0
-      endif
-      tmp = saturation%val(j)**archie
-      call set(sigma_fs, j, (porosity%val(j)**1.8)*(sigma_w%val(j)*tmp+sigma_o*(1.0-tmp)))
-    end do
+    if (have_saturation) then
+      do j=1,n
+        tmp = saturation%val(j)**archie
+        call set(sigma_fs, j, (porosity%val(j)**1.8)*(sigma_w%val(j)*tmp+sigma_o*(1.0-tmp)))
+      end do
+    else
+      do j=1,n
+        call set(sigma_fs, j, (porosity%val(j)**1.8)*sigma_w%val(j))
+      end do
+    endif
 
     ! clean up
-    if (.not.have_saturation) call deallocate(saturation)
     call deallocate(sigma_w)
 
     stat = 0
@@ -460,12 +461,12 @@ module spontaneous_potentials
     integer, intent(in) :: i
     type(scalar_field), intent(inout) :: L_x
     character(len=*), intent(in) :: coupling
+    type(scalar_field), intent(in) :: sigma_fs
     integer, intent(out) :: stat
     ! declare local variables
     logical :: have_sigma_fs
     integer :: n, j
     type(scalar_field), pointer :: Cv
-    type(scalar_field) :: sigma_fs
 
     stat = -1
 

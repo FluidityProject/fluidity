@@ -516,7 +516,8 @@ contains
        if(i == 1) then
          s_field => extract_scalar_field(state(i), "ElectricalConductivity", stat)
          if(stat == 0) then
-           if(recalculate(trim(s_field%option_path))) then
+           diagnostic = have_option(trim(s_field%option_path)//"/diagnostic/algorithm::Internal")
+           if(diagnostic .and. recalculate(trim(s_field%option_path))) then
              call calculate_formation_conductivity(state(i), i, s_field, stat)
            end if
          end if

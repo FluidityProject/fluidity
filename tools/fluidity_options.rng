@@ -5075,6 +5075,11 @@ Required in porous_media problem type</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field"/>
           </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
         </choice>
       </element>
       <element name="scalar_field">

@@ -3856,6 +3856,11 @@ scalar_field_choice =
                element prescribed {
                   velocity_mesh_choice,
                   prescribed_scalar_field
+               }|
+               element diagnostic {
+                  velocity_mesh_choice,
+                  scalar_python_diagnostic_algorithm,
+                  diagnostic_scalar_field_no_adapt
                }
             )
          }|
