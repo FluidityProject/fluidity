@@ -906,7 +906,11 @@ prognostic_pressure_field =
                   attribute replaces { "PREOPT" },
                   empty
                }?,
-               ## Fix for low Re (in pressure correction and update of u)
+               ## ** UNDER DEVELOPMENT **
+               ##
+               ## Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
+               ## 
+               ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
                   empty
                }?

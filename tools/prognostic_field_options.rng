@@ -1131,11 +1131,11 @@ If activated this means that the pressure gradient operator is not integrated by
           </optional>
           <optional>
             <element name="low_re_p_correction_fix">
-              <a:documentation>**UNDER DEVELOPMENT**
+              <a:documentation>** UNDER DEVELOPMENT **
 
 Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
 
-**ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
+** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
               <empty/>
             </element>
           </optional>
