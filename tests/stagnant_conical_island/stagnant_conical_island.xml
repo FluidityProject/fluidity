@@ -130,6 +130,6 @@ assert array([max(abs(runups[:,a*3+3])) &lt; 0.05 for a in range(len(angles))], 
   </pass_tests>
   <warn_tests>
     <test name="no_nodes_decreases_enough" language="python">print 'change no_nodes = ', no_nodes[-1]-no_nodes[0]
-assert no_nodes[-1]-no_nodes[0] &lt; -500</test>
+assert no_nodes[-1]-no_nodes[0] &lt; -300</test>
   </warn_tests>
 </testproblem>
