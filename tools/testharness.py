@@ -239,7 +239,7 @@ class TestHarness:
                   os.chdir(os.pardir)
 
                 if count == 0: break
-            time.sleep(60)                  
+                time.sleep(60)                  
         else:
           for t in self.tests:
             test = t[1]
