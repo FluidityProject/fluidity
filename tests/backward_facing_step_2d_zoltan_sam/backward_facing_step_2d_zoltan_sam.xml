@@ -52,10 +52,10 @@ Err = (abs(MaximumVelocity-MaximumVelocitySam) / MaximumVelocitySam) *100
 print Err
 assert (Err &lt; 5)
     </test>
-    <test name="Node count within 5%" language="python">
+    <test name="Node count within 10%" language="python">
 nodeCountErr = (abs(FinalNodeCount-FinalNodeCountSam) / FinalNodeCountSam) *100
 print nodeCountErr, FinalNodeCount, FinalNodeCountSam
-assert ( nodeCountErr &lt; 5)
+assert ( nodeCountErr &lt; 10)
     </test>
 
   </pass_tests>
