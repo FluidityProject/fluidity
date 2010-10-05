@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="channel">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period>
       <constant replaces="TIMDUM">
-        <real_value rank="0">0.04</real_value>
+        <real_value rank="0">0.12</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -65,7 +65,7 @@
       <real_value rank="0">0.02</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">0.1</real_value>
+      <real_value rank="0">0.3</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters/>
@@ -75,7 +75,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 3.0 0.0</real_value>
+            <real_value shape="3" dim1="dim" rank="1">0.0 1.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -158,23 +158,6 @@
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
-      <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
