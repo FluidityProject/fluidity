@@ -414,7 +414,7 @@ Note that \eqref{eq:dg_adv_diff_integrated_once} and
 \eqref{eq:dg_adv_diff_integrated_twice} are completely equivalent. The
 advantage of the second form, referred to in \fluidity\ as
 ``integrated-by-parts-twice'', is that the numerical evaluation of the
-integrals (quadrature), may be chosen not be exact (incomplete quadrature). For this
+integrals (quadrature), may be chosen not to be exact (incomplete quadrature). For this
 reason the second form may be more accurate as the internal outflow boundary
 integrals are cancelled exactly.
 
@@ -434,12 +434,66 @@ where $c_{\mathrm{ext}}$ is the value of $c$ on the exterior side of the
   C= \sup_{x\in s}|\vec{\hat u}\cdot\vec{n}|
 \end{equation}
 
-\subsubsection{Control volume discretisation}
+\subsection{Control volume discretisation}
 \label{ControlVolumeAdvection}
 \index{control volume!advection}
 \index{advection-diffusion equation!control volume}
 
+Finite volume discretisations may be thought of as the lowest order discontinuous Galerkin method, using piecewise constant shape functions (see Figure \ref{fig:p0shapefunctions}).  In \fluidity\ this type of element centred discretisation is handled through the discontinuous Galerkin method, however the model also supports an alternative finite volume discretisation referred to as a control volume discretisation.
 
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{c}
+\xfig{numerical_discretisation_images/P0shapefunction1d}  \\
+\xfig{numerical_discretisation_images/P0shapefunction2d} 
+\end{tabular}
+\caption{One-dimensional (a) and two-dimensional (b) schematics of piecewise constant shape functions.  The shape function has value $1$ at node $A$ and across the element, $e$, descending to $0$ at the element boundaries.  As with other discontinuous shape functions, the support, $s$, coincides with the element, $e$.}
+\label{fig:p0shapefunctions}
+\end{center}
+\end{figure}
+
+The control volume discretisation uses a dual mesh constructed around the nodes of the parent finite element mesh.  In two dimensions this is constructed by connecting the element centroids to the edge midpoints while in three dimensions the face centroids are also introduced.  For cube meshes (quadrilaterals in 2D and hexahedra in 3D) this produces a staggered mesh of the same type.  For simplex meshes this process produces complex polyhedra (see Figures \ref{fig:cornerunstruct} and \ref{fig:cvmesh3d}).
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/corner_unstructured} & \xfig{numerical_discretisation_images/corner_unstructured_cv}
+\end{tabular}
+\caption{Comparison between (a) a two-dimensional finite volume simplex mesh and (b) the equivalent control volume dual mesh (solid lines) constructed around a piecewise linear continuous finite element parent mesh (dashed lines).  In the finite volume mesh the nodes (e.g. A) are element centred whereas in the control volume dual mesh the nodes are vertex based.  In 2D the control volumes are constructed around A by connecting the centroids of the neighbouring triangles to the edge midpoints.  See Figure \ref{fig:cvmesh3d} for the equivalent three-dimensional construction.}
+\label{fig:cornerunstruct}
+\end{center}
+\end{figure}
+
+\begin{figure}[tb]
+\begin{center}
+\xfig{numerical_discretisation_images/P1controlvolume3d}
+\caption{The six dual control volume mesh faces within a piecewise linear tetrahedral parent mesh element.  Each face is constructed by connecting the element centroid, the face centroids and the edge midpoint.}
+\label{fig:cvmesh3d}
+\end{center}
+\end{figure}
+
+
+
+\begin{figure}[btp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/P1cvshapefunction1d} & \xfig{numerical_discretisation_images/P2cvshapefunction1d} \\
+\xfig{numerical_discretisation_images/P1cvshapefunction2d} & \xfig{numerical_discretisation_images/P2cvshapefunction2d}
+\end{tabular}
+\caption{One-dimensional (a, b) and two-dimensional (c, d) schematics of piecewise constant control volume shape functions and dual meshes based on the parent (dashed lines) linear (a, c) and quadratic (b, d) finite element meshes.  The shape function has value $1$ at node $A$ descending to $0$ at the control volume boundaries.  The support, $s$, coincides with the volume, $v$.}
+\label{fig:cvshapefunctions}
+\end{center}
+\end{figure}
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/upwind_node_internal} & \xfig{numerical_discretisation_images/upwind_node_boundary}
+\end{tabular}
+\caption{Calculation of the upwind value, $c_{u_k}$, on an unstructured mesh (a) internally and (b) on a boundary.  The control volume mesh is shown (solid lines) around the nodes (black circles) which are co-located with the solution nodes of the parent piecewise linear continuous finite element mesh (dashed lines).  An initial estimate of the upwind value, $c^*_{u_k}$, is found by interpolation within the upwind parent element, $e_u$, of face $k$, $f_k$.  The point-wise gradient between this estimate and the donor node, $c_{c_k}$, is then extrapolated the same distance between the donor and downwind, $c_{d_k}$, to the upwind value, $c_{u_k}$.}
+\label{fig:unstructupwindnode}
+\end{center}
+\end{figure}
 
 
 \section{Advective stabilisation for CG}

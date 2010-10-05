@@ -7,6 +7,17 @@ XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
 ./numerical_discretisation_images/P1dgshapefunction1d \
 ./numerical_discretisation_images/P2dgshapefunction1d \
 ./numerical_discretisation_images/P1dgshapefunction2d \
+./numerical_discretisation_images/P0shapefunction1d \
+./numerical_discretisation_images/P0shapefunction2d \
+./numerical_discretisation_images/P1cvshapefunction1d \
+./numerical_discretisation_images/P2cvshapefunction1d \
+./numerical_discretisation_images/P1cvshapefunction2d \
+./numerical_discretisation_images/P2cvshapefunction2d \
+./numerical_discretisation_images/corner_unstructured_cv \
+./numerical_discretisation_images/corner_unstructured \
+./numerical_discretisation_images/P1controlvolume3d \
+./numerical_discretisation_images/upwind_node_internal \
+./numerical_discretisation_images/upwind_node_boundary \
 ./numerical_discretisation_images/P2dgshapefunction2d
 
 IMAGES=geometry_dimension mesh_name \
