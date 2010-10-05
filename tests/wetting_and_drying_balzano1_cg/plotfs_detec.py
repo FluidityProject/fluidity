@@ -32,14 +32,14 @@ def usage():
 
 # should be copied from the diamond extrude function. X is 2 dimensional
 def bathymetry_function(X):
-  return -5.0*X/13800+0.1
+  return -5.0*X/13800
 
 ################# Main ###########################
 def main(argv=None):
 
         filename=''
         timestep_ana=0.0
-        dzero=0.5
+        dzero=0.01
         save='' # If nonempty, we save the plots as images instead if showing them
         wetting=False
 
@@ -139,8 +139,8 @@ def main(argv=None):
                         plt.xticks(locs, labels)
 
 
-                        plt.title(plot_name)
-                        plt.xlabel('x position [km]')
+                        #plt.title(plot_name)
+                        plt.xlabel('Position [km]')
                         plt.ylabel('Free surface [m]')
 
                         if save=='':
