@@ -129,7 +129,6 @@ def main(argv=None):
 
                 #plt.legend()
                 if t==plot_end:
-                        plt.ylim(-2.2,1.4)
                         # change from meters in kilometers in the x-axis
                         # return locs, labels where locs is an array of tick locations and
                         # labels is an array of tick labels.
@@ -138,7 +137,7 @@ def main(argv=None):
                                 labels[i]=str(locs[i]/1000)
                         plt.xticks(locs, labels)
 
-
+                        plt.ylim(-2.2,1.4)
                         #plt.title(plot_name)
                         plt.xlabel('Position [km]')
                         plt.ylabel('Free surface [m]')

@@ -134,7 +134,7 @@ def main(argv=None):
 
                 #plt.legend()
                 if t==plot_end:
-                        plt.ylim(-4.2,1.4)
+                        plt.ylim(-2.2,1.4)
                         # change from meters in kilometers in the x-axis
                         # return locs, labels where locs is an array of tick locations and
                         # labels is an array of tick labels.

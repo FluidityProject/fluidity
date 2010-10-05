@@ -84,9 +84,9 @@ def main(argv=None):
         fig2 = figure()
         ax2 = fig2.add_subplot(111)
 
-        plot_start=598  # in timesteps
-        plot_end=599  # in timesteps
-        plot_name='Drying'
+        plot_start=580  # in timesteps
+        plot_end=581  # in timesteps
+        plot_name=''
 
         
 
@@ -124,7 +124,6 @@ def main(argv=None):
 
                 #plt.legend()
                 if t==plot_end:
-                        plt.ylim(-4.2,1.4)
                         # change from meters in kilometers in the x-axis
                         # return locs, labels where locs is an array of tick locations and
                         # labels is an array of tick labels.
@@ -133,7 +132,7 @@ def main(argv=None):
                                 labels[i]=str(locs[i]/1000)
                         plt.xticks(locs, labels)
 
-
+                        plt.ylim(-2.2,1.4)
                        # plt.title(plot_name)
                         plt.xlabel('Position [km]')
                         plt.ylabel('Free surface [m]')
@@ -142,7 +141,7 @@ def main(argv=None):
                                 plt.draw()
                                 raw_input("Please press Enter")
                         else:
-                                plt.savefig(save+'_'+plot_name+'.pdf', facecolor='white', edgecolor='black', dpi=100)
+                                plt.savefig(save+'.pdf', facecolor='white', edgecolor='black', dpi=100)
                         plt.cla()
                 t=t+1
                 
