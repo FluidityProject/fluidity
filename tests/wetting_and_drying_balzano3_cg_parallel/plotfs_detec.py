@@ -43,7 +43,7 @@ def main(argv=None):
 
         filename=''
         timestep_ana=0.0
-        dzero=0.5
+        dzero=0.01
         save='' # If nonempty, we save the plots as images instead if showing them
         wetting=False
 
