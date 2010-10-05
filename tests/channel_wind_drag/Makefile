@@ -1,8 +1,7 @@
 PROJECT = channel
 
 input: clean
-	gmsh -3 -o channel.msh src/channel.geo
-	../../scripts/gmsh2triangle channel.msh
+	gmsh -3 -bin -o channel.msh src/channel.geo -o channel.msh
 	../../bin/periodise channel.flml
 
 clean:
