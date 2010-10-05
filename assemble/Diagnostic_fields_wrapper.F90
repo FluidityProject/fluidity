@@ -525,7 +525,9 @@ contains
        ! End of spontaneous potentials diagnostics
 
        ! Start of sediment diagnostics.
-       call calculate_sediment_flux(state(i))
+       if (have_option("/material_phase[0]/sediment")) then
+          call calculate_sediment_flux(state(i))
+       end if
        ! End of sediment diagnostics.
 
        ! end of fields that cannot be called through the generic

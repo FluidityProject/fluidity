@@ -75,11 +75,6 @@ contains
     sediment_classes=option_count("/material_phase::"&
          //trim(state%name)//"/sediment/sediment_class")
 
-    if (sediment_classes==0) then
-       !! If there is no sediment then this whole activity is pointless.
-       return
-    end if
-
     call get_option("/timestepping/timestep", dt)
     
     allocate(sediment_field(sediment_classes))
