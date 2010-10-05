@@ -62,7 +62,7 @@ checkpoint_differences=dict([(name,abs(diff.GetField(name)).max()) for name in d
     <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;200</test>
     <test name="fs_end_value" language="python">assert abs(fs_right['end_value']+1.0)&lt;0.2</test>
     <test name="checkpoint_differences_zero" language="python">assert len(checkpoint_differences.values())==7
-assert max(checkpoint_differences.values())&lt;1e-10<comment>For me it comes out as 0 exactly, but let's allow for some round off.</comment></test>
+assert max(checkpoint_differences.values())&lt;1e-9<comment>For me it comes out as 0 exactly, but let's allow for some round off.</comment></test>
   </pass_tests>
   <warn_tests/>
 </testproblem>

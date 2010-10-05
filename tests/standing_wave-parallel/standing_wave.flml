@@ -66,7 +66,7 @@
     </mesh>
     <mesh name="HorizontalMesh">
       <from_file file_name="standing_wave">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
