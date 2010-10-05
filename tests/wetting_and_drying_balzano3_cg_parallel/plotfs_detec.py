@@ -25,7 +25,7 @@ def mirror(x):
 
 def usage():
         print 'Usage:'
-        print 'plotfs_detec.py [-w] --file=detector_filename --save=filename'
+        print 'plotfs_detec.py --file=detector_filename --save=filename'
         print '--save=... saves the plots as images instead of plotting them on the screen.'
 
 
@@ -84,8 +84,8 @@ def main(argv=None):
         fig2 = figure()
         ax2 = fig2.add_subplot(111)
 
-        plot_start=0  # in timesteps
-        plot_end=100  # in timesteps
+        plot_start=598  # in timesteps
+        plot_end=599  # in timesteps
         plot_name='Drying'
 
         
@@ -134,8 +134,8 @@ def main(argv=None):
                         plt.xticks(locs, labels)
 
 
-                        plt.title(plot_name)
-                        plt.xlabel('x position [km]')
+                       # plt.title(plot_name)
+                        plt.xlabel('Position [km]')
                         plt.ylabel('Free surface [m]')
 
                         if save=='':
