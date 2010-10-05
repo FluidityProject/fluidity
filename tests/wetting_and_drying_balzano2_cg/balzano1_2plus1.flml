@@ -50,7 +50,7 @@
             <bottom_depth>
               <python>
                 <string_value lines="20" type="python">def val(X, t):
-    d0=0.05
+    d0=0.01
     if X[0]&lt;=3600 or X[0]&gt;6000:
       return X[0]/2760+d0
     elif X[0]&gt;3600 and X[0]&lt;=4800:
@@ -464,7 +464,7 @@
         <move_whole_mesh/>
         <wetting_and_drying>
           <d0>
-            <real_value rank="0">0.05</real_value>
+            <real_value rank="0">0.01</real_value>
             <comment>Note: if you change d0 you also have to change extrusion accordingly</comment>
           </d0>
         </wetting_and_drying>
