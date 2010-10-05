@@ -39,8 +39,6 @@ module read_gmsh
   use gmsh_common
   use global_parameters, only : OPTION_PATH_LEN
 
-  use mesh_files
-
   implicit none
 
   private
