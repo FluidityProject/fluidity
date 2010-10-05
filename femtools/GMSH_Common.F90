@@ -123,20 +123,22 @@ contains
   ! -----------------------------------------------------------------
   ! Reorder to Fluidity node ordering
 
-  subroutine toFluidityElementNodeOrdering( oldList )
+  subroutine toFluidityElementNodeOrdering( oldList, elemType )
     integer, pointer :: oldList(:), flNodeList(:), nodeOrder(:)
-    integer i
+    integer i, elemType
 
     numNodes = size(oldList)
     allocate( flNodeList(numNodes) )
     allocate( nodeOrder(numNodes) )
 
     ! Specify node ordering
-    select case( numNodes )
+    select case( elemType )
+    ! Quads
     case (3)
-       nodeOrder = (/1, 2, 3/)
-    case (6)
-       nodeOrder = (/1, 6, 2, 5, 4, 3/)
+       nodeOrder = (/1, 2, 4, 3/)
+    ! Hexahedron  
+    case (5)
+       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
     case default
        do i=1, numNodes
           nodeOrder(i) = i
@@ -160,9 +162,9 @@ contains
   ! -----------------------------------------------------------------
   ! Reorder Fluidity node ordering to GMSH
 
-  subroutine toGMSHElementNodeOrdering( oldList )
+  subroutine toGMSHElementNodeOrdering( oldList, elemType )
     integer, pointer :: oldList(:), gmshNodeList(:), nodeOrder(:)
-    integer i
+    integer i, elemType
 
 
     numNodes = size(oldList)
@@ -170,11 +172,14 @@ contains
     allocate( nodeOrder(numNodes) )
 
     ! Specify node ordering
-    select case( numNodes )
+    select case( elemType )
+    ! Quads
     case (3)
-       nodeOrder = (/1, 2, 3/)
-    case (6)
-       nodeOrder = (/1, 3, 6, 5, 4, 2/)
+       nodeOrder = (/1, 2, 4, 3/)
+    ! Hexahedron  
+    case (5)
+       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
+
     case default
        do i=1, numNodes
           nodeOrder(i) = i

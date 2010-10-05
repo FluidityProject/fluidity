@@ -39,6 +39,8 @@ module read_gmsh
   use gmsh_common
   use global_parameters, only : OPTION_PATH_LEN
 
+  use mesh_files
+
   implicit none
 
   private
@@ -108,6 +110,7 @@ contains
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
          elements, faces )
 
+
     ! Try reading in node column ID data (if there is any)
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes)
 
@@ -137,7 +140,9 @@ contains
 
           ! We have internal boundaries (at the join of a period mesh)
           if(faces(i)%numTags >= 4) then
-             if (faces(i)%tags(4) > 0) haveInternalBounds=.true.
+             if (faces(i)%tags(4) > 0) then
+                haveInternalBounds=.true.
+             end if
           end if
        end if
     end do
@@ -772,7 +777,8 @@ contains
        end if
 
 
-       call toFluidityElementNodeOrdering( allElements(e)%nodeIDs )
+       call toFluidityElementNodeOrdering( allElements(e)%nodeIDs, &
+            allElements(e)%type )
 
        select case ( allElements(e)%type )
           ! A line

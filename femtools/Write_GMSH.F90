@@ -345,7 +345,7 @@ contains
        allocate( lnodelist(sloc) )
 
        lnodelist = face_global_nodes(mesh, f)
-       call toGMSHElementNodeOrdering(lnodelist)
+       call toGMSHElementNodeOrdering(lnodelist, faceType)
 
        ! Output face data
        select case(numTags)
@@ -388,7 +388,7 @@ contains
        allocate( lnodelist(nloc) )
 
        lnodelist = ele_nodes(mesh, e)
-       call toGMSHElementNodeOrdering(lnodelist)
+       call toGMSHElementNodeOrdering(lnodelist, elemType)
 
        ! Output element data
        select case(numTags)
