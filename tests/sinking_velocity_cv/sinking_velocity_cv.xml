@@ -29,7 +29,7 @@ mixed_layer_detritus_final = s["Water"]["MixedLayerDetritus"]["integral"][-1]
   <pass_tests>
     <test name="Detritus is conserved" language="python">
 import fluidity_tools
-fluidity_tools.compare_variable(detritus_final, detritus_initial, 1.0e-5)
+fluidity_tools.compare_variable(detritus_final, detritus_initial, 1.6e-5)
     </test>
     <test name="MixedLayerDetritus vanishes" language="python">
 assert (abs(mixed_layer_detritus_final)&lt;110)

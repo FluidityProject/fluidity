@@ -5,7 +5,7 @@ MODEL = coarse-corner-locked
 default: input
 
 input: src/$(MESH).msh
-	../../scripts/gmsh2triangle src/$(MESH).msh
+	cp src/$(MESH).msh $(MESH).msh
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

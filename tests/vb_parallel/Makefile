@@ -1,7 +1,6 @@
 input: default
 default: clean
-	gmsh -2 square.geo
-	../../scripts/gmsh2triangle --2d square.msh
-	fldecomp -n 2 square
+	gmsh -2 -bin square.geo -o square.msh
+	fldecomp -m gmsh -n 2 square
 clean: 
-	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.stat
+	rm -rf *.msh *.halo *.vtu *.pvtu *.log *.stat blob_[012]

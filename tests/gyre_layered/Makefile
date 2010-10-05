@@ -1,12 +1,7 @@
 PROJECT = gyre
 
-input:	$(PROJECT).ele
-
-$(PROJECT).ele: $(PROJECT).msh
-	../../scripts/gmsh2triangle --2d $<
-
-$(PROJECT).msh: src/$(PROJECT).geo
-	gmsh -2 -o $@ $<
+input:
+	gmsh -2 -bin src/$(PROJECT).geo -o $(PROJECT).msh
 
 clean:
 	rm -f $(PROJECT).s $(PROJECT).stat

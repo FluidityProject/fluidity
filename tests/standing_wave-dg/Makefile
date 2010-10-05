@@ -1,9 +1,7 @@
 PROJECT = standing_wave
 
 input: clean
-	gmsh -3 src/standing_wave.geo
-	mv src/standing_wave.msh .
-	../../scripts/gmsh2triangle standing_wave.msh
+	gmsh -3 -bin src/standing_wave.geo -o standing_wave.msh
 
 clean:
 	rm -f $(PROJECT) $(PROJECT)0 $(PROJECT).fld
