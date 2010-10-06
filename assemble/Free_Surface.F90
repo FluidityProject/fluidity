@@ -1158,8 +1158,8 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
           FLExit("The diagnostic FreeSurface field and the Pressure field have to be on the same mesh")
         end if
         if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(0,*) "Warning: your diagnostic free surface will only be" // &
-            "defined at the free surface nodes and not extrapolated downwards," // &
+          ewrite(0,*) "Warning: your diagnostic free surface will only be " // &
+            "defined at the free surface nodes and not extrapolated downwards, " // &
             "because you didn't specify geometry/ocean_boundaries."
         end if
       end if
