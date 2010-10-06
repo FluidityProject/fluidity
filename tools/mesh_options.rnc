@@ -107,15 +107,24 @@ mesh_info =
             ## adapt the extrusion is again done as specified in the other
             ## extrusion options and under the adaptivity options.
             element checkpoint_from_file {
-                element format {
+               (
                   ## Triangle mesh format.
                   ##
                   ## Enter the base name without the .edge .ele, .face or
                   ## .node extensions, and without process numbers.
-                  attribute name { "triangle" }
-                },
-                attribute file_name { xsd:string },
-                comment
+                  element format {
+                    attribute name { "triangle" },
+                    comment
+                  }|
+                  ## GMSH mesh format
+                  element format {
+                     attribute name { "gmsh" },
+                     comment
+                  }
+               ),
+               attribute file_name { xsd:string },
+               from_file_mesh_stat_options,
+               comment
             }?
          }?,
          derived_mesh_stat_options,
