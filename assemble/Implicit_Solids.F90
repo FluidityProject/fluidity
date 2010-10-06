@@ -90,6 +90,7 @@ module implicit_solids
 
   type(vector_field), target, save :: ext_pos_solid_vel, ext_pos_fluid_vel
   type(vector_field), target, save :: fl_pos_solid_vel
+  type(vector_field), save :: ext_pos_bulk_vel
 
   type(scalar_field), save :: solid_local
   type(vector_field), save :: external_positions
@@ -503,7 +504,7 @@ contains
        call zero(source)
 
        do i = 1, node_count(source)
-          sigma = node_val(solid_local, i)*beta/dt
+          sigma = node_val(solid_local, i)*(1.-node_val(solid_local, i))*beta/dt
           do j = 1, source%dim
              call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i))
           end do
@@ -738,6 +739,11 @@ contains
          external_positions%mesh, name="Velocity")
     call zero(ext_pos_fluid_vel)
 
+    ! this is the bulk velocity on the solid mesh
+    call allocate(ext_pos_bulk_vel, external_positions%dim, &
+         external_positions%mesh, name="BulkVelocity")
+    call zero(ext_pos_bulk_vel)
+
     assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
     assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_vel))
 
@@ -757,6 +763,7 @@ contains
     real, save :: rho
     character(len=field_name_len), save :: external_mesh_name
     logical, save :: init=.false.
+    integer :: i
 
     if (.not. init) then
        call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
@@ -767,15 +774,22 @@ contains
     end if
 
 #ifdef USING_FEMDEM
-    ! in  :: ext_pos_fluid_vel
+    ! in  :: ext_pos_bulk_vel
     ! out :: updated external_positions and ext_pos_solid_vel
+
+    call zero(ext_pos_bulk_vel)
+    do i = 1, external_positions%dim
+       ext_pos_bulk_vel%val(i)%ptr(:) = &
+       ext_pos_fluid_vel%val(i)%ptr(:) + ext_pos_solid_vel%val(i)%ptr(:)
+     end do
+
     call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho, &
          external_positions%val(1)%ptr, external_positions%val(2)%ptr, &
          external_positions%val(3)%ptr, &
          ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, &
          ext_pos_solid_vel%val(3)%ptr, &
-         ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, &
-         ext_pos_fluid_vel%val(3)%ptr)
+         ext_pos_bulk_vel%val(1)%ptr, ext_pos_bulk_vel%val(2)%ptr, &
+         ext_pos_bulk_vel%val(3)%ptr)
 #endif
 
   end subroutine femdem_two_way_update
