@@ -5498,6 +5498,24 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>OldSolidConcentration</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>This scalar field is meant to replace DENTRAF.
 Basically, if you use new options, DENTRAF is no longer needed
 No repointing is done from this field to DENTRAF.</a:documentation>
