@@ -272,7 +272,7 @@ condition needs to be imposed strictly for physical reasons.
 Integration by parts can be used to avoid taking
 derivatives of discontinuous functions.
 When using discontinuous test \emph{and} trial functions (see Figure \ref{fig:dgshapefunctions}) however,
-neither the original advection equation, equation \eqref{eq:weak_adv_diff} with $\mu=0$,
+neither the original advection equation, \eqref{eq:weak_adv_diff} with $\mu=0$,
 nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined.
 Within an element $e$ however the functions are continuous, and everything is well defined. So within
 a single element we may write
@@ -316,8 +316,7 @@ conditions, this results in:
   - \int_{\partial e\,\cap\dOmega^{D_c}}
   \phi\vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
   \left. + \int_{\partial e\,\cap\dOmega^{N_c}} \phi\vec{n}\cdot\vec{u}~c
-  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N \right. \\
-  \left. + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c}
+  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c}
   - \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
     = 0.
 \end{multline}
@@ -439,7 +438,7 @@ where $c_{\mathrm{ext}}$ is the value of $c$ on the exterior side of the
 \index{control volume!advection}
 \index{advection-diffusion equation!control volume}
 
-Finite volume discretisations may be thought of as the lowest order discontinuous Galerkin method, using piecewise constant shape functions (see Figure \ref{fig:p0shapefunctions}).  In \fluidity\ this type of element centred discretisation is handled through the discontinuous Galerkin method, however the model also supports an alternative finite volume discretisation referred to as a control volume discretisation.
+Finite volume discretisations may be thought of as the lowest order discontinuous Galerkin method, using piecewise constant shape functions (see Figure \ref{fig:p0shapefunctions}).  In \fluidity\ this type of element centred discretisation is handled through the discontinuous Galerkin method, however the model also supports an alternative finite volume discretisation referred to as a control volume (CV) discretisation.
 
 \begin{figure}[tbp]
 \begin{center}
@@ -447,7 +446,7 @@ Finite volume discretisations may be thought of as the lowest order discontinuou
 \xfig{numerical_discretisation_images/P0shapefunction1d}  \\
 \xfig{numerical_discretisation_images/P0shapefunction2d} 
 \end{tabular}
-\caption{One-dimensional (a) and two-dimensional (b) schematics of piecewise constant shape functions.  The shape function has value $1$ at node $A$ and across the element, $e$, descending to $0$ at the element boundaries.  As with other discontinuous shape functions, the support, $s$, coincides with the element, $e$.}
+\caption{One-dimensional (a) and two-dimensional (b) schematics of piecewise constant, element centred shape functions.  The shape function has value $1$ at node $A$ and across the element, $e$, descending to $0$ at the element boundaries.  As with other discontinuous shape functions, the support, $s$, coincides with the element, $e$.}
 \label{fig:p0shapefunctions}
 \end{center}
 \end{figure}
@@ -472,7 +471,14 @@ The control volume discretisation uses a dual mesh constructed around the nodes 
 \end{center}
 \end{figure}
 
-
+Once the dual control volume mesh has been defined, it is possible to discretise the advection-diffusion equation \eqref{eq:weak_adv_diff} using piecewise constant shape functions within each volume, $v$ (see Figure \ref{fig:cvshapefunctions}).  However, as with the discontinuous Galerkin method the equation is only well defined when integrated by parts within such a volume, $v$, allowing us to write:
+\begin{equation}\label{eq:adv_diff_cv}
+  \int_v \frac{\partial c}{\partial t} +
+    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c} -
+    \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+    = 0,
+\end{equation}
+Note that the test function present in the previous discretisation sections, $\phi$, can be dropped from the equation as it is $1$ everywhere within the volume $v$.  Furthermore, terms involving the gradient of either $\phi$ or $c$ can be dropped as both as constant functions.  The boundary integral for the viscosity $\tensor{\mu}$ is a special case that will be dealt with in a later section.
 
 \begin{figure}[btp]
 \begin{center}
@@ -485,6 +491,50 @@ The control volume discretisation uses a dual mesh constructed around the nodes 
 \end{center}
 \end{figure}
 
+As with the discontinuous Galerkin discretisation, the hatted terms represent fluxes across the volume facets: and therefore from one volume to the other.  Due to the discontinuous nature of the fields, there is no unique value for these flux terms, however the requirement that $c$ by a conserved quantity does demand that adjacent volumes make a consistent choice for the flux between them.  The choice of flux schemes tehrefore forms a critical component of the control volume method.
+
+The application of boundary conditions occurs in the same manner as for the discontinuous Galerkin method.  The complete system of equations is formed by summing over all the volumes.  Assuming weakly applied boundary conditions, this results in:
+\begin{multline}
+  \sum_v \left\{ \int_v \frac{\partial c}{\partial t}
+  + \int_{\partial v\,\cap\dOmega^{D_c}_{-}} \vec{n}\cdot\vec{u}~g_D
+  + \int_{\partial v\,\cap\dOmega^{D_c}_{+}} \vec{n}\cdot\vec{u}~c
+  - \int_{\partial v\,\cap\dOmega^{D_c}} \vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
+  \left. + \int_{\partial v\,\cap\dOmega^{N_c}} \vec{n}\cdot\vec{u}~c
+  - \vec{n}\cdot\tensor{\mu}\cdot\grad g_N 
+  + \int_{\partial v\,\setminus\dOmega} \widehat{\vec{n}\cdot\vec{u}~c}
+  - \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
+    = 0.
+\end{multline}
+
+\subsubsection{Control Volume advection}
+\label{Sect:ND_control_volume_advection}
+
+Consider first the case in which $\tensor{\mu}=0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
+\begin{equation}\label{eq:adv_cv}
+  \int_v \frac{\partial c}{\partial t} +
+    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c}
+    = 0,
+\end{equation}
+and the question becomes, how do we represent the flux $\widehat{\vec{n}\cdot\vec{u}~c}$\ ?
+
+\fluidity\ supports multiple different advective fluxes for CV.  Unlike with DG the advection velocity $\vec{u}$ is always well-defined at the control volume facets owing to the fact that they cross through the centre of the elements of the parent mesh where the velocity is continuous.  Therefore it is only necessary to describe how the face value of $c$ is going to be defined.
+
+\paragraph{First Order Upwinding}
+
+\paragraph{Trapezoidal}
+
+\paragraph{Finite Element Interpolation}
+
+\paragraph{First Order Downwinding}
+
+\paragraph{Face Value Limiting}
+
+\paragraph{HyperC}
+
+\paragraph{UltraC}
+
+\paragraph{PotentialUltraC}
+
 \begin{figure}[tbp]
 \begin{center}
 \begin{tabular}{lr}
@@ -495,6 +545,7 @@ The control volume discretisation uses a dual mesh constructed around the nodes 
 \end{center}
 \end{figure}
 
+\subsubsection{Control Volume diffusion}
 
 \section{Advective stabilisation for CG}
 \label{Sect:ND_advective_stabilisation_CG}
