@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, no_active_processes
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -3083,6 +3083,16 @@ module zoltan_integration
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
       else         
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
+      end if
+
+      ! If we are not an active process, then let's set the number of local parts to be zero
+      if (no_active_processes > 0) then
+        if (getprocno() > no_active_processes) then
+          ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "0"); assert(ierr == ZOLTAN_OK)
+        else
+          ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "1"); assert(ierr == ZOLTAN_OK)
+        end if
+        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
       end if
 
       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
