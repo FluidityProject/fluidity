@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Barotropic gyre on beta plane in one element deep 3d</name>
+  <owner userid="mpiggott"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v3 -l barotropic_double_gyre.flml</command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+</testproblem>
