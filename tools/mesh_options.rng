@@ -142,11 +142,10 @@ checkpoint, so that when starting from the checkpoint .flml
 fluidity picks up the extruded mesh from file. After the next
 adapt the extrusion is again done as specified in the other
 extrusion options and under the adaptivity options.</a:documentation>
-
                 <choice>
                   <element name="format">
-                   <a:documentation>Triangle mesh format.
-              
+                    <a:documentation>Triangle mesh format.
+
 Enter the base name without the .edge .ele, .face or
 .node extensions, and without process numbers.</a:documentation>
                     <attribute name="name">
@@ -162,10 +161,10 @@ Enter the base name without the .edge .ele, .face or
                     <ref name="comment"/>
                   </element>
                 </choice>
-                
                 <attribute name="file_name">
                   <data type="string"/>
                 </attribute>
+                <ref name="from_file_mesh_stat_options"/>
                 <ref name="comment"/>
               </element>
             </optional>
