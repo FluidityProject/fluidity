@@ -1,6 +1,6 @@
 \chapter{Dimensional analysis}
 
-\section{Non-dimensionalisation and Buckingham-Pi}
+\section{Non-dimensionalisation}
 Consider system (\ref{boussinesq}) and rescale spatial lengths with the transformation
 \begin{equation}
 \tilde{x}=\frac{x}{L},\quad \tilde{y}=\frac{y}{L},\quad \tilde{z}=\frac{z}{H},
@@ -122,12 +122,21 @@ Dropping tildes and using $p=U^{-2}p$ we have finally that
 +\Re_H^{-1}\left(\frac{\pp^2 {v}}{\pp {x}^2}+\frac{\pp^2  {v}}{\pp {y}^2}\right)+ \Re_V^{-1}\frac{\pp^2 {v}}{\pp {z}^2}.
 \end{subeqnarray*}
 
-\begin{thm}[Buckingham-Pi Theorem]
-Why nondimensionalising can help reduce parameter phase space ... Barenblatt ...
-\end{thm}
+%\begin{thm}[Buckingham-Pi Theorem]
+%Why nondimensionalising can help reduce parameter phase space ... Barenblatt ...
+%\end{thm}
 
 
 \section{Dimensionless parameters}
+Table \ref{table:dimensionless} gives some common non-dimensional numbers.
+The following expressions are also useful
+\begin{equation*}
+N^2=-\frac{g}{\rho_0}\ddt[z]{\rho} \approx \frac{g}{\rho_0}\frac{\Delta\rho}{H}=\frac{g'}{H}
+\end{equation*}
+\begin{equation*}
+g' =\frac{\Delta\rho}{\rho_0}g
+\end{equation*}
+
 
 \begin{table}[t]
 \begin{center}
@@ -149,6 +158,7 @@ Ekman       &   viscous/Coriolis    &   $\Ek=2\nu_H/fL^2$   \\
 Grashof     &    free convective/viscous    & $\Gr=g\Delta\rho L^3/\rho \nu^2$\\
 Rayleigh    &     $Ra=\Gr\,\Pr$                 & $\Ra = g\beta(T-T_0)L^3/\alpha\nu$\\
             &                           &               \\  \hline
+\label{table:dimensionless}
 \end{tabular}
 \end{center}
 
@@ -159,6 +169,4 @@ Rayleigh    &     $Ra=\Gr\,\Pr$                 & $\Ra = g\beta(T-T_0)L^3/\alpha
 \footnotetext[6]{Also ratio of rotational and convective timescales.}
 \footnotetext[7]{This sometimes termed the first Froude number and is also often defined as the square root of this (the second Froude number).}
 \footnotetext[8]{also $(\textrm{internal Froude number})^{-2}$ if $H=L$}
-$N^2=-\frac{g}{\rho_0}\ddt[z]{\rho} \approx \frac{g}{\rho_0}\frac{\Delta\rho}{H}=\frac{g'}{H}$
 
-$g' =\frac{\Delta\rho}{\rho_0}g$
