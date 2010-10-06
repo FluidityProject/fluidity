@@ -142,15 +142,27 @@ checkpoint, so that when starting from the checkpoint .flml
 fluidity picks up the extruded mesh from file. After the next
 adapt the extrusion is again done as specified in the other
 extrusion options and under the adaptivity options.</a:documentation>
-                <element name="format">
-                  <attribute name="name">
-                    <a:documentation>Triangle mesh format.
 
+                <choice>
+                  <element name="format">
+                   <a:documentation>Triangle mesh format.
+              
 Enter the base name without the .edge .ele, .face or
 .node extensions, and without process numbers.</a:documentation>
-                    <value>triangle</value>
-                  </attribute>
-                </element>
+                    <attribute name="name">
+                      <value>triangle</value>
+                    </attribute>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="format">
+                    <a:documentation>GMSH mesh format</a:documentation>
+                    <attribute name="name">
+                      <value>gmsh</value>
+                    </attribute>
+                    <ref name="comment"/>
+                  </element>
+                </choice>
+                
                 <attribute name="file_name">
                   <data type="string"/>
                 </attribute>
