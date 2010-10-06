@@ -327,6 +327,8 @@ clean-light:
 	@cd parameterisation; $(MAKE) clean
 	@echo "    CLEAN parameterisation/tests"
 	@cd parameterisation/tests; $(MAKE) clean
+	@echo "    MAKE sediments"
+	@cd sediments; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
 	@echo "    CLEAN assemble/tests"
