@@ -519,13 +519,29 @@ and the question becomes, how do we represent the flux $\widehat{\vec{n}\cdot\ve
 
 \fluidity\ supports multiple different advective fluxes for CV.  Unlike with DG the advection velocity $\vec{u}$ is always well-defined at the control volume facets owing to the fact that they cross through the centre of the elements of the parent mesh where the velocity is continuous.  Therefore it is only necessary to describe how the face value of $c$ is going to be defined.
 
+In the following paragraphs we will refer to the donor or central value, $c_{c_k}$, and the downwind value, $c_{d_k}$.  These are associated with facet $k$ of the control volume dual mesh and are defined depending on the direction of the flux across that facet.  If the flow across facet $k$ is exiting volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k>0$, then the donor value, $c_{c_k}$ is the value in the volume, $c_v$ and the downwind value, $c_{d_k}$ is the value in the volume that the flux is entering.  Similarly if the flow is entering the volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k<0$, then the donor value, $c_{c_k}$, is the value from the neighbouring control volume while the downwind value, $c_{d_k}$, is the value in the volume, $c_v$.  By default only first order quadrature is performed on the control volume facets, however if higher order control volume facet quadrature is selected then $k$ refers to each quadrature point on the facet.
+
 \paragraph{First Order Upwinding}
+
+In this case, the value of $c$ at each quadrature point on each facet is taken to be the donor value, $c_{c_k}$.  Then \eqref{eq:adv_cv} becomes:
+\begin{equation}
+  \int_v \ppt{c} +
+    \int_{\partial v} \vec{n}\cdot\vec{u}~c_{v}
+    = 0.
+\end{equation}
+First order upwinding is stable in the sense of boundedness, assuming an appropriate temporal discretisation is selected.
 
 \paragraph{Trapezoidal}
 
+In this case, the average of the donor and downwind values, $\frac{c_{c_k}+c_{d_k}}{2}$, is taken as the value of $c$ at each facet.  This is generally unstable regardless of the temporal discretisation chosen so requires limiting (see below).
+
 \paragraph{Finite Element Interpolation}
 
+In this case, the value of $c$ at each quadrature point of the facet is interpolated using the finite element basis functions on the parent mesh.  This is possible as the nodes of both the dual and parent meshes are co-located.  Like the trapezoidal face value this method is also generally unstable so normally requires limiting (see below).
+
 \paragraph{First Order Downwinding}
+
+In this case, the value of $c$ at each quadrature point of the facet is set to the downwind value, $c_{d_k}$.  First order downwinding is unconditionally unstable and is intended for demonstration purposes only.
 
 \paragraph{Face Value Limiting}
 
