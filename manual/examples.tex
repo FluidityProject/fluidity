@@ -522,45 +522,60 @@ In the context of ocean modelling flow separation is important
 in large scale western boundary currents such as the Gulf Stream.
 
 Accurate experimental results for a wide range of flow regimes exist
+in 2D and 3D
 (e.g. see \cite{armaly1983}) and the problem has several important flow
 characteristics, such as the downstream length at which the flow reattaches
 with the bottom of the domain.
 
 
 \subsection{Configuration}
-\subsubsection{Geometry}
-A schematic of the domain is shown in figure \ref{Fig:Schematic}.
+\subsubsection{Geometry: 3D}
+A schematic of the domain is shown in figure \ref{Fig:Schematic3d}.
 An inflow is imposed at the left hand boundary and encounters a step
 down in the geometry. The region directly downstream of the step is
 of particular interest in this problem. An outflow boundary is located at the
 right hand end of the geometry.
 
-%\begin{figure}
-%\centering
-%\fig[width=12.0cm]{images/BackwardStep-schematic.pdf}
-%\caption{Schematic of the domain for the three-dimensional flow past a backward facing step
-%problem.}
-%\label{Fig:Schematic}
-%\end{figure}
+\begin{figure}
+\centering
+\fig[width=12.0cm]{examples_images/BackwardStep-schematic}
+\caption{Schematic of the domain for the three-dimensional flow past a backward facing step
+problem.}
+\label{Fig:Schematic3d}
+\end{figure}
 
 Following \cite{le1997} the length scales are given by: $L_x=30$, $L_i=10$, $L_y=4$, $h=1$, $L_z=6$,
 so that $L_z-h=5$ and the expansion ratio is $L_z/(L_z-h)=1.2$.
 The base of the domain is located at $z=0$, the inflow plane is given by $x=-10$ with the step
 at $x=0$, and the back of the domain in the spanwise direction is given by $y=0$.
 
-Note that the choice of an expansion ratio
-of 2 is also common in the literature, where the upper boundary in that case is often treated as no-slip.
+\subsubsection{Geometry: 2D}
+%A schematic of the domain is shown in figure \ref{Fig:Schematic2d}.
+In the 2D case the expansion ratio is 2, and the upper boundary is treated as no-slip,
+consistent with \cite{armaly1983}.
+
+%\begin{figure}
+%\centering
+%\fig[width=12.0cm]{examples_images/backward_facing_step/BackwardStep-schematic.pdf}
+%\caption{Schematic of the domain for the two-dimensional flow past a backward facing step
+%problem.}
+%\label{Fig:Schematic2d}
+%\end{figure}
 
 
-\subsubsection{Initial and boundary conditions}
-The inflow boundary condition at $x=-10$ is given by
-\begin{equation}
-u(z) = \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right), \quad v = w = 0,
-\end{equation}
-with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$, $\kappa = 0.41$, and $u(z)$ set to zero for
-$z<h+z_0$.
-A plot of this inflow profile is given in figure \ref{Fig:Inflow}.
+\subsubsection{Initial and boundary conditions: 3D}
+In the 3D case, the inflow boundary condition at $x=-10$ is a log profile given by
+\begin{equation*}
+u(z) =
+  \begin{cases}
+    0.0 & \text{if } z-h \leq z_0 \\
+    \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right) & \text{if } z_0 < z-h
+  \end{cases}
+\end{equation*}
 
+with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$ and $\kappa = 0.41$.
+
+%A plot of this inflow profile is given in figure \ref{Fig:Inflow}.
 %\begin{figure}
 %\centering
 %\fig[width=8.0cm]{images/StepInflow.pdf}
@@ -585,7 +600,17 @@ No-slip boundary conditions are applied at the bottom of the domain and at the s
 u=v=w=0.
 \end{equation*}
 
-
+\subsubsection{Initial and boundary conditions: 2D}
+In the 2D case, the inlet velocity profile is a log profile extending from each wall to the midpoint, with the same parameters:
+\begin{equation*}
+u(z) =
+  \begin{cases}
+    0.0 & \text{if } (z-h) \leq z_0 \\
+    \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right) & \text{if } z_0 < (z-h) \leq 0.5 \\
+    \frac{u_{\tau}}{\kappa} \log \left(\frac{2h - z}{z_0}\right) & \text{if } 0.5 < (z-h) \leq (2h-z_0) \\
+    0.0 & \text{if } 2h-z_0 < (z-h)
+  \end{cases}
+\end{equation*}
 
 
 \subsection{Results}
