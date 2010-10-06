@@ -11,8 +11,8 @@ mesh_info =
               attribute name { "triangle" },
               comment
             }|
-            ## Read the mesh from a vtu. Note that the mesh will have no surface
-            ## or region IDs.
+            ## Read the mesh from a vtu. Note that the mesh will have no 
+            ## surface or region IDs.
             element format {
               attribute name { "vtu" },
               comment
@@ -113,9 +113,10 @@ mesh_info =
                   ## Enter the base name without the .edge .ele, .face or
                   ## .node extensions, and without process numbers.
                   element format {
-                    attribute name { "triangle" },
-                    comment
+                     attribute name { "triangle" },
+                     comment
                   }|
+
                   ## GMSH mesh format
                   element format {
                      attribute name { "gmsh" },
@@ -123,7 +124,6 @@ mesh_info =
                   }
                ),
                attribute file_name { xsd:string },
-               from_file_mesh_stat_options,
                comment
             }?
          }?,

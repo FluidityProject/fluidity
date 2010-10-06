@@ -16,8 +16,8 @@ Enter the base name without the .edge .ele, .face or
             <ref name="comment"/>
           </element>
           <element name="format">
-            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no surface
-or region IDs.</a:documentation>
+            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
+surface or region IDs.</a:documentation>
             <attribute name="name">
               <value>vtu</value>
             </attribute>
@@ -164,7 +164,6 @@ Enter the base name without the .edge .ele, .face or
                 <attribute name="file_name">
                   <data type="string"/>
                 </attribute>
-                <ref name="from_file_mesh_stat_options"/>
                 <ref name="comment"/>
               </element>
             </optional>
