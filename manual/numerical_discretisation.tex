@@ -526,7 +526,7 @@ In the following paragraphs we will refer to the donor or central value, $c_{c_k
 In this case, the value of $c$ at each quadrature point on each facet is taken to be the donor value, $c_{c_k}$.  Then \eqref{eq:adv_cv} becomes:
 \begin{equation}
   \int_v \ppt{c} +
-    \int_{\partial v} \vec{n}\cdot\vec{u}~c_{v}
+    \sum_k\int_{\partial v_k} \vec{n}\cdot\vec{u}~c_{c_k}
     = 0.
 \end{equation}
 First order upwinding is stable in the sense of boundedness, assuming an appropriate temporal discretisation is selected.
@@ -545,11 +545,7 @@ In this case, the value of $c$ at each quadrature point of the facet is set to t
 
 \paragraph{Face Value Limiting}
 
-\paragraph{HyperC}
-
-\paragraph{UltraC}
-
-\paragraph{PotentialUltraC}
+As noted above, several of the face value schemes 
 
 \begin{figure}[tbp]
 \begin{center}
@@ -560,6 +556,41 @@ In this case, the value of $c$ at each quadrature point of the facet is set to t
 \label{fig:unstructupwindnode}
 \end{center}
 \end{figure}
+
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/swebynvd} \\ \vspace{0.5cm}
+\xfig{numerical_discretisation_images/ultimatenvd}
+\caption{The Sweby (a) and ULTIMATE (b) limiters (shaded regions) represented on a normalised variable diagram (NVD).  For comparison the trapezoidal face value scheme is plotted as a dashed line in both diagrams.}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+
+\paragraph{HyperC}
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/hypercnvd}
+\caption{The HyperC face value scheme represented on a normalised variable diagram (NVD).}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+\paragraph{UltraC}
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/ultracmodnvd}
+\caption{The UltraC face value scheme represented on (a) a normalised variable diagram (NVD) and (b) a modified normalised variable diagram.}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+\paragraph{PotentialUltraC}
+
+\paragraph{Coupled Limiting}
 
 \subsubsection{Control Volume diffusion}
 

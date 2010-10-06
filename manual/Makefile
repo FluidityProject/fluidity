@@ -18,6 +18,11 @@ XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
 ./numerical_discretisation_images/P1controlvolume3d \
 ./numerical_discretisation_images/upwind_node_internal \
 ./numerical_discretisation_images/upwind_node_boundary \
+./numerical_discretisation_images/swebynvd \
+./numerical_discretisation_images/ultimatenvd \
+./numerical_discretisation_images/hypercnvd \
+./numerical_discretisation_images/ultracnvd \
+./numerical_discretisation_images/ultracmodnvd \
 ./numerical_discretisation_images/P2dgshapefunction2d
 
 IMAGES=geometry_dimension mesh_name \
