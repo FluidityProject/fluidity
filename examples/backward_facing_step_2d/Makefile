@@ -1,8 +1,6 @@
 preprocess: 
 	@echo **********Generating the mesh using gmsh in 2d:
-	gmsh -2 -optimize -o step2d.msh src/step2d.geo
-	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle -2 step2d.msh
+	gmsh -2 -bin -clmax 0.1 src/step2d.geo -o step2d.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
@@ -16,5 +14,5 @@ input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh *.node *.edge *.ele backward_facing_step_2d_*.vtu *.log-0 *.err-0 matrixdump* *.dat *.steady_state
+	rm -rf *.stat *.msh backward_facing_step_2d_*.vtu *.log-0 *.err-0 matrixdump* *.dat *.steady_state
 
