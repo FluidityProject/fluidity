@@ -4220,13 +4220,17 @@ contains
 
           end do
 
-          if (all(this_det%local_coords>-10.0e-8)) exit
+!          if (all(this_det%local_coords>-10.0e-8)) exit
+
+          if ((all(this_det%local_coords>-10.0e-8)).and.(this_det%dt>1.0e-5*keep_value_this_det_dt)) exit
 
        end do
 
        det_inside_an_ele=0.0
 
-       if  (all(this_det%local_coords>-10.0e-8)) then
+!       if  (all(this_det%local_coords>-10.0e-8)) then
+
+       if ((all(this_det%local_coords>-10.0e-8)).and.(this_det%dt>1.0e-5*keep_value_this_det_dt)) then
 
            det_inside_an_ele=det_inside_an_ele+1
 
@@ -4271,6 +4275,8 @@ contains
     
     real :: dt_var_check, dt_temp_check, dt_a, dt_b
     integer :: cont_p, cont_ready_out
+
+    ewrite(1,*) "Inside placing_det_in_boundary_between_elem subroutine"
 
     bound_elem_iteration=0
 
@@ -4323,6 +4329,8 @@ contains
 
           !If not yet on one of the faces of the element (within tolerance), it needs to be moved further 
           !in the direction of the flow until it hits the element face.
+
+          if (dt_b-dt_a<1.0e-8) exit
 
           do
 
