@@ -23,6 +23,7 @@ XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
 ./numerical_discretisation_images/hypercnvd \
 ./numerical_discretisation_images/ultracnvd \
 ./numerical_discretisation_images/ultracmodnvd \
+./numerical_discretisation_images/coupledlimiter \
 ./numerical_discretisation_images/P2dgshapefunction2d
 
 IMAGES=geometry_dimension mesh_name \

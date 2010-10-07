@@ -1132,18 +1132,19 @@ In this case, the value of $c$ at each quadrature point of the facet is set to t
 
 \paragraph{Face Value Limiting}
 
-As noted above, several of the face value schemes 
+As noted above, several of the face value schemes above result in unstable, unbounded advective fluxes.  To compensate for this it is possible to limit the face value in an attempt to maintain boundedness.  This requires an estimate of the upwind flux entering the control volume so we introduce a new value, $c_{u_k}$, for the value upwind of the donor volume, $c_{c_k}$.  On a fully unstructured mesh this value is not directly available so instead it must be estimated.  For cube meshes the default behaviour is to estimate the upwind value from the minimum or maximum of the surrounding nodes depending on the gradient between the donor and downwind values.  On simplex meshes \fluidity\ defaults to more accurate schemes that project the value at the upwind position based on all the nodes in the parent element immediately upwind of the donor node (see Figure \ref{fig:unstructupwindnode}(a)).  As this value is not necessarily bounded itself it is also possible to bound it so that it falls within the values of the upwind element.  Additionally, on a boundary it is possible to reflect the upwind value back into the domain (see Figure \ref{fig:unstructupwindnode}(b)), which may be more appropriate.
 
 \begin{figure}[tbp]
 \begin{center}
 \begin{tabular}{lr}
 \xfig{numerical_discretisation_images/upwind_node_internal} & \xfig{numerical_discretisation_images/upwind_node_boundary}
 \end{tabular}
-\caption{Calculation of the upwind value, $c_{u_k}$, on an unstructured mesh (a) internally and (b) on a boundary.  The control volume mesh is shown (solid lines) around the nodes (black circles) which are co-located with the solution nodes of the parent piecewise linear continuous finite element mesh (dashed lines).  An initial estimate of the upwind value, $c^*_{u_k}$, is found by interpolation within the upwind parent element, $e_u$, of face $k$, $f_k$.  The point-wise gradient between this estimate and the donor node, $c_{c_k}$, is then extrapolated the same distance between the donor and downwind, $c_{d_k}$, to the upwind value, $c_{u_k}$.}
+\caption{Calculation of the upwind value, $c_{u_k}$, on an unstructured simplex mesh (a) internally and (b) on a boundary.  The control volume mesh is shown (solid lines) around the nodes (black circles) which are co-located with the solution nodes of the parent piecewise linear continuous finite element mesh (dashed lines).  An initial estimate of the upwind value, $c^*_{u_k}$, is found by interpolation within the upwind parent element.  The point-wise gradient between this estimate and the donor node, $c_{c_k}$, is then extrapolated the same distance between the donor and downwind, $c_{d_k}$, to the upwind value, $c_{u_k}$.}
 \label{fig:unstructupwindnode}
 \end{center}
 \end{figure}
 
+Once an upwind value is available 
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1169,8 +1170,9 @@ As noted above, several of the face value schemes
 
 \begin{figure}[tbp]
 \begin{center}
+\xfig{numerical_discretisation_images/ultracnvd} \\ \vspace{0.5cm}
 \xfig{numerical_discretisation_images/ultracmodnvd}
-\caption{The UltraC face value scheme represented on (a) a normalised variable diagram (NVD) and (b) a modified normalised variable diagram.}
+\caption{The UltraC face value scheme represented on (a) a normalised variable diagram (NVD) and (b) a modified normalised variable diagram.  For comparison (a) also shows the HyperC face value scheme as a dotted line.}
 \label{fig:swebylimiter}
 \end{center}
 \end{figure}
@@ -1178,6 +1180,14 @@ As noted above, several of the face value schemes
 \paragraph{PotentialUltraC}
 
 \paragraph{Coupled Limiting}
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/coupledlimiter}
+\caption{The coupled limiter for the field $c^I$ represented by the grey shaded area on a normalised variable diagram (NVD).  Labels in the upper left blue region refer to the case when the difference between the parent sum downwind and upwind values has the same sign as the limited field, $\text{sign}\left(c^{\sum_{I}}_{d_k}-c^{\sum_{I}}_{u_k}\right) = \text{sign}\left(c^{I}_{d_k}-c^{I}_{u_k}\right)$.  Similarly, labels in the lower right yellow region refer to the case when the signs of the slopes are opposite, $\text{sign}\left(c^{\sum_{I}}_{d_k}-c^{\sum_{I}}_{u_k}\right) \neq \text{sign}\left(c^{I}_{d_k}-c^{I}_{u_k}\right)$. The regions are separated by the upwinding line, $\bar{\hat{c}}^{I}_{f} = \bar{c}^{I}_{c_k} + \bar{c}^{\sum_{I-1}}_{c_k} - \bar{c}^{\sum_{I-1}}_{f}$.}
+\label{fig:coupledlimiter}
+\end{center}
+\end{figure}
 
 \subsubsection{Control Volume diffusion}
 
