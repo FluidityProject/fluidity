@@ -5898,7 +5898,7 @@ upwind_value_options =
          ## Chooses an upwind value by selecting the maximum or minimum of the neighbouring
          ## nodes depending on the local slope of the donor and downwind values.
          ## Otherwise known as isotropic limiting.
-         ## This is available on all meshes.
+         ## This is available on all meshes except periodic domains.
          element locally_bound_upwind_value {
             attribute replaces { "all cube elements, NDISOT < 0 on simplex elements" },
             empty

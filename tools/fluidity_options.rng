@@ -7584,7 +7584,7 @@ element meshes.
 Chooses an upwind value by selecting the maximum or minimum of the neighbouring
 nodes depending on the local slope of the donor and downwind values.
 Otherwise known as isotropic limiting.
-This is available on all meshes.</a:documentation>
+This is available on all meshes except periodic domains.</a:documentation>
         <attribute name="replaces">
           <value>all cube elements, NDISOT &lt; 0 on simplex elements</value>
         </attribute>
