@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="step2d">
-        <format name="gmsh"/>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -80,7 +80,7 @@
     </nonlinear_iterations>
     <adaptive_timestep replaces="TIMAUT">
       <requested_cfl>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">2.0</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -285,26 +285,6 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <adaptivity_options>
-          <absolute_measure>
-            <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value shape="2" dim1="dim" rank="1">0.05 0.025</real_value>
-                  </constant>
-                </value>
-                <output/>
-                <stat>
-                  <include_in_stat/>
-                </stat>
-                <detectors>
-                  <exclude_from_detectors/>
-                </detectors>
-              </prescribed>
-            </vector_field>
-          </absolute_measure>
-        </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
@@ -326,32 +306,4 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
-  <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
-      <period replaces="TIMMES">
-        <real_value rank="0">1.0</real_value>
-      </period>
-      <maximum_number_of_nodes replaces="MXNODS">
-        <integer_value rank="0">100000</integer_value>
-      </maximum_number_of_nodes>
-      <max_node_increase>
-        <real_value rank="0">1.1</real_value>
-      </max_node_increase>
-      <enable_gradation/>
-      <tensor_field name="MinimumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.05 0 0 0.05</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <tensor_field name="MaximumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">10.0 0.0 0.0 1.0</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-    </hr_adaptivity>
-  </mesh_adaptivity>
 </fluidity_options>
