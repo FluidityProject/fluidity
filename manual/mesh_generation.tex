@@ -209,10 +209,9 @@ points an assigns the surface IDs 1 and 2 to them.
 \section{The Gmsh format}\label{sect:gmsh_format}
 
 
-\fluidity\ also contains support for the Gmsh format. Gmsh is a mesh
-generator freely available on the World Wide Web
-(\url{http://geuz.org/gmsh/}) and is included in
-Linux distributions such as Ubuntu. 
+\fluidity\ also contains  support for the Gmsh format. Gmsh is a mesh
+generator freely available on the Web at (\url{http://geuz.org/gmsh/}), and 
+is included in Linux distributions such as Ubuntu. 
 
 Unlike triangle files, Gmsh meshes are contained within one file, which have
 the extension \lstinline[language=bash]+.msh+. The file contents may
@@ -222,32 +221,41 @@ be either binary or ASCII.
 
 There are two ways in which Gmsh files can be used with \fluidity. The first
 is to run \lstinline[language=Bash]{gmsh2triangle} and import the resulting
-triangle files. The second, newer and more convenient but still experimental
-way is to directly load the Gmsh file into \fluidity. To enable this,
-\fluidity\ needs to be told to expect a Gmsh file. This is achieved by
-setting the \onlypdf\linebreak\option{/geometry/mesh/from\_file/format}\ option.  \fluidity\
-will now look for a file with the extension \lstinline[language=bash]+.msh+ when it runs.
+triangle files; this works on ASCII Gmsh files only. The second way is to 
+use Fluidity's native Gmsh support, which loads in Gmsh files directly into
+\fluidity, and works with binary and ASCII Gmsh formats. To enable native 
+support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
+by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
+to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
+\lstinline[language=bash]+.msh+ when it runs.
 
 For parallel simulations, you must use \lstinline[language=bash]+fldecomp+ to decompose a Gmsh
 mesh into sub-meshes for each process. Here, only binary Gmsh files can be
-used - see section \ref{mesh!meshing tools!fldecomp}\ for details. \lstinline[language=bash]+periodise+
-does not yet correctly process Gmsh files so if you need to run
-\lstinline[language=bash]+periodise+ you will have to convert the Gmsh file
-to triangle format first.
+used - see section \ref{mesh!meshing tools!fldecomp}\ for details.
+
+Using native Gmsh support within Fluidity can result in faster start-up times,
+especially when using large meshes and binary Gmsh files. Whilst it works
+reliably in many circumstances, it is still classed as experimental.  You are 
+encouraged to try using it, but if you run into any problems you should
+ default to using the
+\lstinline[language=bash]+gmsh2triangle+ utility and triangle format
+instead.
 
 \subsection{Gmsh file format}\label{sect:gmsh_file_format}
 
-This section briefly describes the Gmsh format. For more
+This section briefly describes the Gmsh format, and is only intended
+to serve as a short introduction. If you need further
 information, please read the official Gmsh documentation
 (\url{http://geuz.org/gmsh/doc/texinfo/gmsh.pdf}).
-Typically, Gmsh files used in \fluidity\ contain three parts: a header, a
-section for nodes, and one for elements. These are explained in more detail
-below.
+Typically Gmsh files used in \fluidity\ contain three parts: a header, a
+section for nodes, and one for elements. These  are explained in more
+detail below.
 
 
 
 \subsubsection*{The header}\label{sect:gmsh_header_section}
-This contains Gmsh file version information, and indicates whether the main data is in ASCII or binary format. This will typically look like:
+This contains Gmsh file version information, and indicates whether 
+the main data is in ASCII or binary format. This will typically look like:
 \begin{lstlisting}
 $MeshFormat
 2.1 0 8
@@ -297,8 +305,8 @@ element2_id ...
 $EndElements
 \end{lstlisting}
 \textit{Tags} are integer properties ascribed to the element. In \fluidity,
-we are only concerned with the first one, the physical ID. This can mean one
-of two things:
+usually we are only concerned with the first one, the physical ID. This can mean
+one of two things:
 
 \begin{itemize}
 \item A region ID - in the case of elements
@@ -308,6 +316,18 @@ of two things:
 Since Gmsh doesn't explicitly label facets or regular elements as such,
 internally \fluidity\ works this out from type: eg, if there a mesh consists
 of tetrahedra and triangles, then triangles must be the facets.
+
+\subsubsection*{Internal use }
+\label{sect:gmsh_internal_use_section}
+
+\fluidity occasionally auguments GMSH files for it's own internal use. It
+does this in two cases. Firstly, when generating periodic meshes 
+through \lstinline+periodise+ (section \ref{sect:decomposing_meshes_periodise}), the
+fourth element tag is reserved to label elements at the periodic boundary.
+Secondly, when checkpointing extruded meshes, a new section called
+\lstinline+$NodeData+ is created at the end of the GMSH file; this contains
+essential node column ID information.
+ 
 
 \section{Mesh types}
 \subsection{Extruded meshes}
@@ -370,7 +390,11 @@ where left and right define the range of the line. It has a number of user defin
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
 
-This script converts Gmsh mesh files into triangle format. 
+This script converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
+can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, in
+cases where native Gmsh support does not work you should use 
+\lstinline[language = Bash]+gmsh2triangle+ instead.
+
 % Its use is now
 % deprecated in favour of directly reading Gmsh files into \fluidity. See
 % section \ref{sect:gmsh_format}.
@@ -378,10 +402,9 @@ This script converts Gmsh mesh files into triangle format.
 \lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
 and instead the \lstinline[language=Bash]{gmsh2triangle_large} script
-should be used. This stores a minimal
-amount of data in memory at any one time (it works ``out-of-core''), but
-is slower for small files as it requires the input .msh file to be read multiple
-times.
+should be used. This stores a minimal amount of data in memory at 
+any one time, but is slower for small files as it requires the 
+input .msh file to be read multiple times.
 
 \lstinline[language=Bash]{gmsh2triangle[_large]} is used via:
 
@@ -449,7 +472,7 @@ binary Gmsh files. These are generated by passing the \lstinline{-bin}\
 argument to Gmsh, for example:
 
 \begin{lstlisting}[language=bash]
-gmsh -3 -bin project.geo
+gmsh -3 -bin project.geo -o project.msh
 \end{lstlisting}
 
 This creates a 3D binary Gmsh mesh called \lstinline{project.msh} from the geometry file.
@@ -481,6 +504,7 @@ as the new flml; in this case \lstinline+foo_flredecomp.flml+.
 %\subsubsection{Decomposing a periodic mesh}
 \subsection{periodise}
 \index{mesh!meshing tools!periodise}
+\label{sect:decomposing_meshes_periodise}
 
 To be able to run \fluidity\ on a periodic mesh in parallel you have to use
 two tools (these tools are built as part of the fltools build target (see
