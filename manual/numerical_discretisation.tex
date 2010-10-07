@@ -16,7 +16,7 @@ outward facing normal vector to the domain.
 In the following this notation is used to describe both the normal vector at the boundary
 and between elements in the interior.
 
-\section{Discretisation of the advection-diffusion equation}
+\section{Spatial discretisation of the advection-diffusion equation}
 \label{Sect:ND_advection_diffusion_discretisation}
 
 The advection-diffusion equation for a scalar tracer $c$,
@@ -195,6 +195,211 @@ where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
   \mat{A}_{ij}=-\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
 \end{equation}
+
+\subsubsection{Advective stabilisation for CG}
+\label{Sect:ND_advective_stabilisation_CG}
+\index{advection-diffusion equation!continuous Galerkin}
+\index{Galerkin!continuous!advection}
+\index{stabilisation!advection}
+
+It is well known that a continuous Galerkin discretisation of an
+advection-diffusion equation for an advection dominated flow can suffer from
+over- and under-shoot errors. Furthermore, these overshoot errors are not
+localised: they can propagate throughout the simulation domain and pollute the
+global solution \citep{hughes1987}. Consider a simple 1D linear steady-state
+advection-diffusion problem for a single scalar $c$:
+
+\begin{equation}\label{eqn:trivial_advdif}
+  u \ppx{c} - \kappa \ppxx{c} = f(x),
+\end{equation}
+or equivalently in weak form:
+\begin{equation}\label{eqn:trivial_advdif_weak}
+  \int_\Omega \phi (u \ppx{c} + \kappa \ppx{\phi} \ppx{c} - f(x)) = 0,
+\end{equation}
+where we have integrated by parts and applied the natural Neumann boundary
+condition $\partial c / \partial x = 0$ on $\partial \Omega$.
+Discretising \eqref{eqn:trivial_advdif_weak} with a continuous Galerkin method
+leads to truncation errors in the advection term equivalent to a negative
+diffusivity term of magnitude \citep{DoneaBook}:
+\begin{equation}\label{eqn:cg_implicit_diffusivity}
+  \bar{\kappa} = \xi \kappa \Pe,
+\end{equation}
+where:
+\begin{equation}\label{eqn:xi_parameter}
+  \xi = \frac{1}{\tanh(\Pe)} - \frac{1}{\Pe},
+\end{equation}
+and:
+\begin{equation}\label{eqn:grid_pe}
+  \Pe = \frac{u h}{2 \kappa},
+\end{equation}
+is a grid P\'eclet number, with grid spacing $h$.
+\index{P\'eclet number!grid}
+
+This implicit negative diffusivity becomes
+equal to the explicit diffusivity at a P\'eclet greater than one, and hence
+instability occurs for $\Pe \geq 1$. In order to achieve a stable discretisation
+using a continuous Galerkin method one is therefore required either to increase
+the model resolution so as to reduce the grid P\'eclet number, or to apply
+advective stabilisation methods.
+
+\paragraph{Balancing diffusion}\label{sec:balancing_diffusion}
+\index{stabilisation!advection!balancing diffusion}
+
+A simple way to stabilise the system is to add an extra diffusivity of
+equal magnitude to that introduced by the discretisation of the advection term,
+but of opposite sign. This method is referred to as \textit{balancing diffusion}.
+Note, however, that for two or more dimensions, we require this balancing
+diffusion to apply in the along-stream direction only \citep{brooks1982, DoneaBook}.
+For this reason this method is also referred to as \textit{streamline-upwind}
+stabilisation. The multidimensional weak-form equation:
+\begin{equation}\label{eqn:trivial_advdif_weak_md}
+  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c -f(x)) = 0,
+\end{equation}
+is therefore modified to include an additional artificial balancing diffusion
+term \citep{DoneaBook}:
+\begin{equation}\label{eqn:balancing_diffusion}
+  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
+  \int_\Omega \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2}
+  (\vec{u} \cdot \grad \phi) (\vec{u} \cdot \grad \vec{c})
+  = 0.
+\end{equation}
+
+The exact form of the multidimensional stability parameter $\bar{\kappa}$
+is a research issue. See \ref{sec:stabilisation_parameter} for implementations in
+\fluidity.
+
+The addition of the balancing diffusion term combats the negative implicit
+diffusivity of the continuous Galerkin method. However, we are no longer solving
+the original equation - for a pure advection flow we are now solving a modified
+version of the original advection-diffusion equation with the grid
+P\'eclet number artificially reduced from
+infinity to unity everywhere. Hence streamline-upwind is not a \textit{consistent}
+stabilisation method, and there is a reduction in the degree of numerical
+convergence.
+
+\paragraph{Streamline-upwind Petrov-Galerkin}\label{sec:supg}
+\index{Galerkin!Petrov-}
+\index{Petrov-Galerkin}
+\index{stabilisation!advection!Petrov-Galerkin}
+
+The streamline-upwind stabilisation method can be extended to a consistent (and
+hence high order accurate) method by introducing stabilisation in the form of a weighted
+residual \citep{DoneaBook}:
+\begin{equation*}
+  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
+  \int_\Omega \tau P(\phi) R(\phi)
+  = 0,
+\end{equation*}
+where:
+\begin{equation*}
+  R(\phi) = \vec{u} \cdot \grad c - \kappa \grad^2 c - f(x),
+\end{equation*}
+is the equation residual, $\tau$ is a stabilisation parameter and $P(\phi)$ is
+some operator.
+Note that this is equivalent to replacing the test function in the original
+equation with $\tilde{\phi} = \phi + \tau P(\phi)$.
+Looking at equation \eqref{eqn:balancing_diffusion}, it can seen that the
+balancing diffusion term is equivalent to replacing the test function for the
+advection term with:
+\begin{equation}\label{eqn:supg_test_function}
+  \tilde{\phi} = \phi + \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2} u \cdot \grad.
+\end{equation}
+
+This suggests a stabilisation method whereby the test function in the advection-diffusion
+equation is replaced with the test function in \eqref{eqn:supg_test_function}.
+This approach defines the \textit{streamline-upwind Petrov-Galerkin} (SUPG) method. The
+weighted residual formulation of this method guarantees consistency, and hence
+preserves the accuracy of the method. Furthermore, while this method does
+still possess under- and over-shoot errors in the presence of sharp solution
+gradients, these errors remain localised \citep{hughes1987}.
+
+\paragraph{Stabilisation parameter}\label{sec:stabilisation_parameter}
+
+Note that, as mentioned in \ref{sec:balancing_diffusion}, the choice of
+stabilisation parameter $\bar{\kappa}$ is somewhat arbitrary. \fluidity\ implements \citep{brooks1982, DoneaBook}:
+
+\begin{equation}\label{eqn:md_nu_bar}
+  \bar{\kappa} = \frac{1}{2} \sum{\xi_i u_i h_i},
+\end{equation}
+
+where the summation is over the quadrature points of an individual element. The
+grid spacings $h_i$ are approximated from the elemental Jacobian.
+
+As an alternative, \citet{raymond1976} show that for
+1D transient pure-advection a choice of:
+
+\begin{equation}\label{eqn:md_nu_bar_transient}
+  \bar{\kappa} = \frac{1}{\sqrt{15}} \sum{\xi_i u_i h_i},
+\end{equation}
+
+minimises phase errors.
+
+Computing the $\xi$ factor at quadrature points is potentially expensive due to
+the evaluation of a hyperbolic-tangent \eqref{eqn:xi_parameter}. Sub-optimal but more computationally
+efficient approximations for $\xi$ are the \emph{critical rule} approximation \citep{brooks1982}:
+
+\begin{equation}
+  \xi = \begin{cases}
+          -1 - 1 / \Pe  & \Pe < -1 \\
+          0             & -1 \le \Pe \le 1 \\
+          1 + 1 / \Pe   & \Pe > 1,
+        \end{cases}
+\end{equation}
+
+and the \emph{doubly-asymptotic} approximation \citep{DoneaBook}:
+
+\begin{equation}
+  \xi = \begin{cases}
+          \Pe / 3  & \left| \Pe \right| \le 3 \\
+          \sgn(\Pe)  & \textrm{otherwise}.
+        \end{cases}
+\end{equation}
+
+\paragraph{Implementation limitations}
+
+The SUPG implementation in \fluidity\ does not modify the test function derivatives
+or the face test functions. Hence the SUPG implementation is only consistent
+for degree one elements with no non-zero Neumann or weak Dirichlet boundary
+conditions.
+
+SUPG is considered ready for production use for scalar advection-diffusion
+equation discretisation, but is still experimental for momentum discretisation.
+
+\subsubsection{Example}
+
+The following example considers pure advection of a 1D top hat of unit magnitude
+and width 0.25 in a periodic domain of unit size. The top hat is advected with a
+Courant number of $1 / 8$. Figure \ref{fig:top_hat_cg} shows the solution after
+80 timesteps using a continuous Galerkin discretisation. Figure \ref{fig:top_hat_su}
+shows the solution when streamline-upwind stabilisation is applied.
+Figure \ref{fig:top_hat_supg} shows the solution when streamline-upwind
+Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_nu_bar}.
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/cg}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation.}
+  \label{fig:top_hat_cg}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/su}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation with streamline-upwind
+           stabilisation.}
+  \label{fig:top_hat_su}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/supg}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation with streamline-upwind
+           Petrov-Galerkin stabilisation.}
+  \label{fig:top_hat_supg}
+\end{figure}
 
 \subsection{Boundary conditions}
 \index{boundary conditions!Neumann!weakly imposed}
@@ -433,373 +638,7 @@ where $c_{\mathrm{ext}}$ is the value of $c$ on the exterior side of the
   C= \sup_{x\in s}|\vec{\hat u}\cdot\vec{n}|
 \end{equation}
 
-\subsection{Control volume discretisation}
-\label{ControlVolumeAdvection}
-\index{control volume!advection}
-\index{advection-diffusion equation!control volume}
-
-Finite volume discretisations may be thought of as the lowest order discontinuous Galerkin method, using piecewise constant shape functions (see Figure \ref{fig:p0shapefunctions}).  In \fluidity\ this type of element centred discretisation is handled through the discontinuous Galerkin method, however the model also supports an alternative finite volume discretisation referred to as a control volume (CV) discretisation.
-
-\begin{figure}[tbp]
-\begin{center}
-\begin{tabular}{c}
-\xfig{numerical_discretisation_images/P0shapefunction1d}  \\
-\xfig{numerical_discretisation_images/P0shapefunction2d} 
-\end{tabular}
-\caption{One-dimensional (a) and two-dimensional (b) schematics of piecewise constant, element centred shape functions.  The shape function has value $1$ at node $A$ and across the element, $e$, descending to $0$ at the element boundaries.  As with other discontinuous shape functions, the support, $s$, coincides with the element, $e$.}
-\label{fig:p0shapefunctions}
-\end{center}
-\end{figure}
-
-The control volume discretisation uses a dual mesh constructed around the nodes of the parent finite element mesh.  In two dimensions this is constructed by connecting the element centroids to the edge midpoints while in three dimensions the face centroids are also introduced.  For cube meshes (quadrilaterals in 2D and hexahedra in 3D) this produces a staggered mesh of the same type.  For simplex meshes this process produces complex polyhedra (see Figures \ref{fig:cornerunstruct} and \ref{fig:cvmesh3d}).
-
-\begin{figure}[tbp]
-\begin{center}
-\begin{tabular}{lr}
-\xfig{numerical_discretisation_images/corner_unstructured} & \xfig{numerical_discretisation_images/corner_unstructured_cv}
-\end{tabular}
-\caption{Comparison between (a) a two-dimensional finite volume simplex mesh and (b) the equivalent control volume dual mesh (solid lines) constructed around a piecewise linear continuous finite element parent mesh (dashed lines).  In the finite volume mesh the nodes (e.g. A) are element centred whereas in the control volume dual mesh the nodes are vertex based.  In 2D the control volumes are constructed around A by connecting the centroids of the neighbouring triangles to the edge midpoints.  See Figure \ref{fig:cvmesh3d} for the equivalent three-dimensional construction.}
-\label{fig:cornerunstruct}
-\end{center}
-\end{figure}
-
-\begin{figure}[tb]
-\begin{center}
-\xfig{numerical_discretisation_images/P1controlvolume3d}
-\caption{The six dual control volume mesh faces within a piecewise linear tetrahedral parent mesh element.  Each face is constructed by connecting the element centroid, the face centroids and the edge midpoint.}
-\label{fig:cvmesh3d}
-\end{center}
-\end{figure}
-
-Once the dual control volume mesh has been defined, it is possible to discretise the advection-diffusion equation \eqref{eq:weak_adv_diff} using piecewise constant shape functions within each volume, $v$ (see Figure \ref{fig:cvshapefunctions}).  However, as with the discontinuous Galerkin method the equation is only well defined when integrated by parts within such a volume, $v$, allowing us to write:
-\begin{equation}\label{eq:adv_diff_cv}
-  \int_v \frac{\partial c}{\partial t} +
-    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c} -
-    \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
-    = 0,
-\end{equation}
-Note that the test function present in the previous discretisation sections, $\phi$, can be dropped from the equation as it is $1$ everywhere within the volume $v$.  Furthermore, terms involving the gradient of either $\phi$ or $c$ can be dropped as both as constant functions.  The boundary integral for the viscosity $\tensor{\mu}$ is a special case that will be dealt with in a later section.
-
-\begin{figure}[btp]
-\begin{center}
-\begin{tabular}{lr}
-\xfig{numerical_discretisation_images/P1cvshapefunction1d} & \xfig{numerical_discretisation_images/P2cvshapefunction1d} \\
-\xfig{numerical_discretisation_images/P1cvshapefunction2d} & \xfig{numerical_discretisation_images/P2cvshapefunction2d}
-\end{tabular}
-\caption{One-dimensional (a, b) and two-dimensional (c, d) schematics of piecewise constant control volume shape functions and dual meshes based on the parent (dashed lines) linear (a, c) and quadratic (b, d) finite element meshes.  The shape function has value $1$ at node $A$ descending to $0$ at the control volume boundaries.  The support, $s$, coincides with the volume, $v$.}
-\label{fig:cvshapefunctions}
-\end{center}
-\end{figure}
-
-As with the discontinuous Galerkin discretisation, the hatted terms represent fluxes across the volume facets: and therefore from one volume to the other.  Due to the discontinuous nature of the fields, there is no unique value for these flux terms, however the requirement that $c$ by a conserved quantity does demand that adjacent volumes make a consistent choice for the flux between them.  The choice of flux schemes tehrefore forms a critical component of the control volume method.
-
-The application of boundary conditions occurs in the same manner as for the discontinuous Galerkin method.  The complete system of equations is formed by summing over all the volumes.  Assuming weakly applied boundary conditions, this results in:
-\begin{multline}
-  \sum_v \left\{ \int_v \frac{\partial c}{\partial t}
-  + \int_{\partial v\,\cap\dOmega^{D_c}_{-}} \vec{n}\cdot\vec{u}~g_D
-  + \int_{\partial v\,\cap\dOmega^{D_c}_{+}} \vec{n}\cdot\vec{u}~c
-  - \int_{\partial v\,\cap\dOmega^{D_c}} \vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
-  \left. + \int_{\partial v\,\cap\dOmega^{N_c}} \vec{n}\cdot\vec{u}~c
-  - \vec{n}\cdot\tensor{\mu}\cdot\grad g_N 
-  + \int_{\partial v\,\setminus\dOmega} \widehat{\vec{n}\cdot\vec{u}~c}
-  - \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
-    = 0.
-\end{multline}
-
-\subsubsection{Control Volume advection}
-\label{Sect:ND_control_volume_advection}
-
-Consider first the case in which $\tensor{\mu}=0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
-\begin{equation}\label{eq:adv_cv}
-  \int_v \frac{\partial c}{\partial t} +
-    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c}
-    = 0,
-\end{equation}
-and the question becomes, how do we represent the flux $\widehat{\vec{n}\cdot\vec{u}~c}$\ ?
-
-\fluidity\ supports multiple different advective fluxes for CV.  Unlike with DG the advection velocity $\vec{u}$ is always well-defined at the control volume facets owing to the fact that they cross through the centre of the elements of the parent mesh where the velocity is continuous.  Therefore it is only necessary to describe how the face value of $c$ is going to be defined.
-
-In the following paragraphs we will refer to the donor or central value, $c_{c_k}$, and the downwind value, $c_{d_k}$.  These are associated with facet $k$ of the control volume dual mesh and are defined depending on the direction of the flux across that facet.  If the flow across facet $k$ is exiting volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k>0$, then the donor value, $c_{c_k}$ is the value in the volume, $c_v$ and the downwind value, $c_{d_k}$ is the value in the volume that the flux is entering.  Similarly if the flow is entering the volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k<0$, then the donor value, $c_{c_k}$, is the value from the neighbouring control volume while the downwind value, $c_{d_k}$, is the value in the volume, $c_v$.  By default only first order quadrature is performed on the control volume facets, however if higher order control volume facet quadrature is selected then $k$ refers to each quadrature point on the facet.
-
-\paragraph{First Order Upwinding}
-
-In this case, the value of $c$ at each quadrature point on each facet is taken to be the donor value, $c_{c_k}$.  Then \eqref{eq:adv_cv} becomes:
-\begin{equation}
-  \int_v \ppt{c} +
-    \sum_k\int_{\partial v_k} \vec{n}\cdot\vec{u}~c_{c_k}
-    = 0.
-\end{equation}
-First order upwinding is stable in the sense of boundedness, assuming an appropriate temporal discretisation is selected.
-
-\paragraph{Trapezoidal}
-
-In this case, the average of the donor and downwind values, $\frac{c_{c_k}+c_{d_k}}{2}$, is taken as the value of $c$ at each facet.  This is generally unstable regardless of the temporal discretisation chosen so requires limiting (see below).
-
-\paragraph{Finite Element Interpolation}
-
-In this case, the value of $c$ at each quadrature point of the facet is interpolated using the finite element basis functions on the parent mesh.  This is possible as the nodes of both the dual and parent meshes are co-located.  Like the trapezoidal face value this method is also generally unstable so normally requires limiting (see below).
-
-\paragraph{First Order Downwinding}
-
-In this case, the value of $c$ at each quadrature point of the facet is set to the downwind value, $c_{d_k}$.  First order downwinding is unconditionally unstable and is intended for demonstration purposes only.
-
-\paragraph{Face Value Limiting}
-
-As noted above, several of the face value schemes 
-
-\begin{figure}[tbp]
-\begin{center}
-\begin{tabular}{lr}
-\xfig{numerical_discretisation_images/upwind_node_internal} & \xfig{numerical_discretisation_images/upwind_node_boundary}
-\end{tabular}
-\caption{Calculation of the upwind value, $c_{u_k}$, on an unstructured mesh (a) internally and (b) on a boundary.  The control volume mesh is shown (solid lines) around the nodes (black circles) which are co-located with the solution nodes of the parent piecewise linear continuous finite element mesh (dashed lines).  An initial estimate of the upwind value, $c^*_{u_k}$, is found by interpolation within the upwind parent element, $e_u$, of face $k$, $f_k$.  The point-wise gradient between this estimate and the donor node, $c_{c_k}$, is then extrapolated the same distance between the donor and downwind, $c_{d_k}$, to the upwind value, $c_{u_k}$.}
-\label{fig:unstructupwindnode}
-\end{center}
-\end{figure}
-
-
-\begin{figure}[tbp]
-\begin{center}
-\xfig{numerical_discretisation_images/swebynvd} \\ \vspace{0.5cm}
-\xfig{numerical_discretisation_images/ultimatenvd}
-\caption{The Sweby (a) and ULTIMATE (b) limiters (shaded regions) represented on a normalised variable diagram (NVD).  For comparison the trapezoidal face value scheme is plotted as a dashed line in both diagrams.}
-\label{fig:swebylimiter}
-\end{center}
-\end{figure}
-
-
-\paragraph{HyperC}
-
-\begin{figure}[tbp]
-\begin{center}
-\xfig{numerical_discretisation_images/hypercnvd}
-\caption{The HyperC face value scheme represented on a normalised variable diagram (NVD).}
-\label{fig:swebylimiter}
-\end{center}
-\end{figure}
-
-\paragraph{UltraC}
-
-\begin{figure}[tbp]
-\begin{center}
-\xfig{numerical_discretisation_images/ultracmodnvd}
-\caption{The UltraC face value scheme represented on (a) a normalised variable diagram (NVD) and (b) a modified normalised variable diagram.}
-\label{fig:swebylimiter}
-\end{center}
-\end{figure}
-
-\paragraph{PotentialUltraC}
-
-\paragraph{Coupled Limiting}
-
-\subsubsection{Control Volume diffusion}
-
-\section{Advective stabilisation for CG}
-\label{Sect:ND_advective_stabilisation_CG}
-\index{advection-diffusion equation!continuous Galerkin}
-\index{Galerkin!continuous!advection}
-\index{stabilisation!advection}
-
-It is well known that a continuous Galerkin discretisation of an
-advection-diffusion equation for an advection dominated flow can suffer from
-over- and under-shoot errors. Furthermore, these overshoot errors are not
-localised: they can propagate throughout the simulation domain and pollute the
-global solution \citep{hughes1987}. Consider a simple 1D linear steady-state
-advection-diffusion problem for a single scalar $c$:
-
-\begin{equation}\label{eqn:trivial_advdif}
-  u \ppx{c} - \kappa \ppxx{c} = f(x),
-\end{equation}
-or equivalently in weak form:
-\begin{equation}\label{eqn:trivial_advdif_weak}
-  \int_\Omega \phi (u \ppx{c} + \kappa \ppx{\phi} \ppx{c} - f(x)) = 0,
-\end{equation}
-where we have integrated by parts and applied the natural Neumann boundary
-condition $\partial c / \partial x = 0$ on $\partial \Omega$.
-Discretising \eqref{eqn:trivial_advdif_weak} with a continuous Galerkin method
-leads to truncation errors in the advection term equivalent to a negative
-diffusivity term of magnitude \citep{DoneaBook}:
-\begin{equation}\label{eqn:cg_implicit_diffusivity}
-  \bar{\kappa} = \xi \kappa \Pe,
-\end{equation}
-where:
-\begin{equation}\label{eqn:xi_parameter}
-  \xi = \frac{1}{\tanh(\Pe)} - \frac{1}{\Pe},
-\end{equation}
-and:
-\begin{equation}\label{eqn:grid_pe}
-  \Pe = \frac{u h}{2 \kappa},
-\end{equation}
-is a grid P\'eclet number, with grid spacing $h$.
-\index{P\'eclet number!grid}
-
-This implicit negative diffusivity becomes
-equal to the explicit diffusivity at a P\'eclet greater than one, and hence
-instability occurs for $\Pe \geq 1$. In order to achieve a stable discretisation
-using a continuous Galerkin method one is therefore required either to increase
-the model resolution so as to reduce the grid P\'eclet number, or to apply
-advective stabilisation methods.
-
-\subsection{Balancing diffusion}\label{sec:balancing_diffusion}
-\index{stabilisation!advection!balancing diffusion}
-
-A simple way to stabilise the system is to add an extra diffusivity of
-equal magnitude to that introduced by the discretisation of the advection term,
-but of opposite sign. This method is referred to as \textit{balancing diffusion}.
-Note, however, that for two or more dimensions, we require this balancing
-diffusion to apply in the along-stream direction only \citep{brooks1982, DoneaBook}.
-For this reason this method is also referred to as \textit{streamline-upwind}
-stabilisation. The multidimensional weak-form equation:
-\begin{equation}\label{eqn:trivial_advdif_weak_md}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c -f(x)) = 0,
-\end{equation}
-is therefore modified to include an additional artificial balancing diffusion
-term \citep{DoneaBook}:
-\begin{equation}\label{eqn:balancing_diffusion}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
-  \int_\Omega \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2}
-  (\vec{u} \cdot \grad \phi) (\vec{u} \cdot \grad \vec{c})
-  = 0.
-\end{equation}
-
-The exact form of the multidimensional stability parameter $\bar{\kappa}$
-is a research issue. See \ref{sec:stabilisation_parameter} for implementations in
-\fluidity.
-
-The addition of the balancing diffusion term combats the negative implicit
-diffusivity of the continuous Galerkin method. However, we are no longer solving
-the original equation - for a pure advection flow we are now solving a modified
-version of the original advection-diffusion equation with the grid
-P\'eclet number artificially reduced from
-infinity to unity everywhere. Hence streamline-upwind is not a \textit{consistent}
-stabilisation method, and there is a reduction in the degree of numerical
-convergence.
-
-\subsection{Streamline-upwind Petrov-Galerkin}\label{sec:supg}
-\index{Galerkin!Petrov-}
-\index{Petrov-Galerkin}
-\index{stabilisation!advection!Petrov-Galerkin}
-
-The streamline-upwind stabilisation method can be extended to a consistent (and
-hence high order accurate) method by introducing stabilisation in the form of a weighted
-residual \citep{DoneaBook}:
-\begin{equation*}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
-  \int_\Omega \tau P(\phi) R(\phi)
-  = 0,
-\end{equation*}
-where:
-\begin{equation*}
-  R(\phi) = \vec{u} \cdot \grad c - \kappa \grad^2 c - f(x),
-\end{equation*}
-is the equation residual, $\tau$ is a stabilisation parameter and $P(\phi)$ is
-some operator.
-Note that this is equivalent to replacing the test function in the original
-equation with $\tilde{\phi} = \phi + \tau P(\phi)$.
-Looking at equation \eqref{eqn:balancing_diffusion}, it can seen that the
-balancing diffusion term is equivalent to replacing the test function for the
-advection term with:
-\begin{equation}\label{eqn:supg_test_function}
-  \tilde{\phi} = \phi + \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2} u \cdot \grad.
-\end{equation}
-
-This suggests a stabilisation method whereby the test function in the advection-diffusion
-equation is replaced with the test function in \eqref{eqn:supg_test_function}.
-This approach defines the \textit{streamline-upwind Petrov-Galerkin} (SUPG) method. The
-weighted residual formulation of this method guarantees consistency, and hence
-preserves the accuracy of the method. Furthermore, while this method does
-still possess under- and over-shoot errors in the presence of sharp solution
-gradients, these errors remain localised \citep{hughes1987}.
-
-\subsubsection{Stabilisation parameter}\label{sec:stabilisation_parameter}
-
-Note that, as mentioned in \ref{sec:balancing_diffusion}, the choice of
-stabilisation parameter $\bar{\kappa}$ is somewhat arbitrary. \fluidity\ implements \citep{brooks1982, DoneaBook}:
-
-\begin{equation}\label{eqn:md_nu_bar}
-  \bar{\kappa} = \frac{1}{2} \sum{\xi_i u_i h_i},
-\end{equation}
-
-where the summation is over the quadrature points of an individual element. The
-grid spacings $h_i$ are approximated from the elemental Jacobian.
-
-As an alternative, \citet{raymond1976} show that for
-1D transient pure-advection a choice of:
-
-\begin{equation}\label{eqn:md_nu_bar_transient}
-  \bar{\kappa} = \frac{1}{\sqrt{15}} \sum{\xi_i u_i h_i},
-\end{equation}
-
-minimises phase errors.
-
-Computing the $\xi$ factor at quadrature points is potentially expensive due to
-the evaluation of a hyperbolic-tangent \eqref{eqn:xi_parameter}. Sub-optimal but more computationally
-efficient approximations for $\xi$ are the \emph{critical rule} approximation \citep{brooks1982}:
-
-\begin{equation}
-  \xi = \begin{cases}
-          -1 - 1 / \Pe  & \Pe < -1 \\
-          0             & -1 \le \Pe \le 1 \\
-          1 + 1 / \Pe   & \Pe > 1,
-        \end{cases}
-\end{equation}
-
-and the \emph{doubly-asymptotic} approximation \citep{DoneaBook}:
-
-\begin{equation}
-  \xi = \begin{cases}
-          \Pe / 3  & \left| \Pe \right| \le 3 \\
-          \sgn(\Pe)  & \textrm{otherwise}.
-        \end{cases}
-\end{equation}
-
-\subsubsection{Implementation limitations}
-
-The SUPG implementation in \fluidity\ does not modify the test function derivatives
-or the face test functions. Hence the SUPG implementation is only consistent
-for degree one elements with no non-zero Neumann or weak Dirichlet boundary
-conditions.
-
-SUPG is considered ready for production use for scalar advection-diffusion
-equation discretisation, but is still experimental for momentum discretisation.
-
-\subsection{Example}
-
-The following example considers pure advection of a 1D top hat of unit magnitude
-and width 0.25 in a periodic domain of unit size. The top hat is advected with a
-Courant number of $1 / 8$. Figure \ref{fig:top_hat_cg} shows the solution after
-80 timesteps using a continuous Galerkin discretisation. Figure \ref{fig:top_hat_su}
-shows the solution when streamline-upwind stabilisation is applied.
-Figure \ref{fig:top_hat_supg} shows the solution when streamline-upwind
-Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_nu_bar}.
-
-\begin{figure}[ht]
-  \centering
-  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/cg}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
-           using a continuous Galerkin discretisation.}
-  \label{fig:top_hat_cg}
-\end{figure}
-
-\begin{figure}[ht]
-  \centering
-  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/su}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
-           using a continuous Galerkin discretisation with streamline-upwind
-           stabilisation.}
-  \label{fig:top_hat_su}
-\end{figure}
-
-\begin{figure}[ht]
-  \centering
-  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/supg}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
-           using a continuous Galerkin discretisation with streamline-upwind
-           Petrov-Galerkin stabilisation.}
-  \label{fig:top_hat_supg}
-\end{figure}
-
-\section{Advective stabilisation for DG}
+\subsubsection{Advective stabilisation for DG}
 \index{stabilisation!advection!discontinuous Galerkin}
 \index{Galerkin!discontinuous!slope limiters}
 \index{discontinuous Galerkin!see{Galerkin!discontinuous}}
@@ -832,7 +671,7 @@ values. For \Pone, only the slopes can be adjusted to make the solution
 bounded element-wise, and hence the adjustment schemes are called
 \emph{slope limiters}.
 
-\subsection{Types of slope limiter}
+\paragraph{Types of slope limiter}
 \label{Sect:ND_DG_slope_limiters}
 \index{slope limiters}
 There are two stages in any slope limiter. First all the elements
@@ -846,7 +685,7 @@ little as possible, in order to introduce as little extra diffusion as
 possible. For high-order elements, exactly how to do this is a very
 contentious issue but a few approaches are satisfactory for low-order
 elements.
-\subsubsection{Cockburn-Shu limiter}
+\subparagraph{Cockburn-Shu limiter}
 This limiter, introduced in \cite{cockburn2001}, only checks the element
 bounded condition at face centres. There is a tolerance parameter, the
 TVB factor, which controls how sensitive the method is to the bounds
@@ -856,7 +695,7 @@ scales the reconstructed slope (the value recommended in the paper is
 assumes an $\mathcal{O}(1)$ field, so these factors need tuning for
 other scalings.
 
-\subsubsection{Vertex-based limiter}
+\subparagraph{Vertex-based limiter}
 This limiter, introduced in \cite{Ku2010}, works on a hierarchical
 Taylor expansion. It is only currently implemented for linear elements.
 In this case, the DG field $c$ in one element $e$ may be written as
@@ -872,8 +711,7 @@ bounded by the maximum and minimum of the values of T at that vertex
 over all elements that share the vertex.  This limiter has no
 parameters, and is the currently recommended limiter.
 
-\subsubsection{Hermite-WENO limiter}
-\label{sect:ND_hermite_weno_limiter}
+\subparagraph{Hermite-WENO limiter} \label{sect:ND_hermite_weno_limiter}
 This limiter makes use of the Weighted Essentially Non-Oscillatory
 (WENO) interpolation methods, originally used to obtain high-order
 non-oscillatory fluxes for finite volume methods, to reconstruct the
@@ -934,7 +772,7 @@ damage to the solution if the discontinuity detector is too strict
 \emph{i.e.}  identifies too many elements as troubled, but will reduce
 the efficiency of the method.
 
-\section{Diffusion term for DG}
+\subsubsection{Diffusion term for DG}
 \label{sec:NM_DG_diffusion}
 \index{Galerkin!discontinuous!diffusion}
 \index{diffusion!discontinuous Galerkin} In this section we describe
@@ -1115,7 +953,7 @@ with some particular choice of the functional $\alpha$. Hence, it is
 possible to describe the three options available in Fluidity together,
 in the following subsections.
 
-\subsection{Interior Penalty}
+\paragraph{Interior Penalty}
 The Interior Penalty method is a very simple scheme with penalty
 functional of the form
 \begin{equation}
@@ -1132,7 +970,7 @@ For convergence, the constant $C_{\Gamma}$ should be positive and
 proportional to $h^{-1}$, where $h$ is the element edge length. This
 needs to be carefully defined for anistropic meshes.
 
-\subsection{Bassi-Rebay}
+\paragraph{Bassi-Rebay}
 \label{BassiRebay}
 \index{diffusion!discontinuous Galerkin!Bassi-Rebay}
 \index{Bassi-Rebay}
@@ -1153,7 +991,7 @@ Bassi-Rebay scheme has a very large stencil (large number of non-zero
 values in the resulting matrix). For this reason, other more
 sophisticated flux choices have been investigated.
 
-\subsection{Compact Discontinuous Galerkin}
+\paragraph{Compact Discontinuous Galerkin}
 \label{CDG}
 \index{Compact Discontinuous Galerkin}
 \index{diffusion!discontinuous Galerkin!CDG}
@@ -1180,6 +1018,168 @@ accurate without this term). Since the penalty term has only one tunable
 constant (which may be set to zero) with does not depend on $h$, this makes
 the CDG scheme very attractive for anisotropic elements, including large
 aspect ratio meshes such as those used in large scale ocean modelling.
+
+
+\subsection{Control volume discretisation}
+\label{ControlVolumeAdvection}
+\index{control volume!advection}
+\index{advection-diffusion equation!control volume}
+
+Finite volume discretisations may be thought of as the lowest order discontinuous Galerkin method, using piecewise constant shape functions (see Figure \ref{fig:p0shapefunctions}).  In \fluidity\ this type of element centred discretisation is handled through the discontinuous Galerkin method, however the model also supports an alternative finite volume discretisation referred to as a control volume (CV) discretisation.
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{c}
+\xfig{numerical_discretisation_images/P0shapefunction1d}  \\
+\xfig{numerical_discretisation_images/P0shapefunction2d} 
+\end{tabular}
+\caption{One-dimensional (a) and two-dimensional (b) schematics of piecewise constant, element centred shape functions.  The shape function has value $1$ at node $A$ and across the element, $e$, descending to $0$ at the element boundaries.  As with other discontinuous shape functions, the support, $s$, coincides with the element, $e$.}
+\label{fig:p0shapefunctions}
+\end{center}
+\end{figure}
+
+The control volume discretisation uses a dual mesh constructed around the nodes of the parent finite element mesh.  In two dimensions this is constructed by connecting the element centroids to the edge midpoints while in three dimensions the face centroids are also introduced.  For cube meshes (quadrilaterals in 2D and hexahedra in 3D) this produces a staggered mesh of the same type.  For simplex meshes this process produces complex polyhedra (see Figures \ref{fig:cornerunstruct} and \ref{fig:cvmesh3d}).
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/corner_unstructured} & \xfig{numerical_discretisation_images/corner_unstructured_cv}
+\end{tabular}
+\caption{Comparison between (a) a two-dimensional finite volume simplex mesh and (b) the equivalent control volume dual mesh (solid lines) constructed around a piecewise linear continuous finite element parent mesh (dashed lines).  In the finite volume mesh the nodes (e.g. A) are element centred whereas in the control volume dual mesh the nodes are vertex based.  In 2D the control volumes are constructed around A by connecting the centroids of the neighbouring triangles to the edge midpoints.  See Figure \ref{fig:cvmesh3d} for the equivalent three-dimensional construction.}
+\label{fig:cornerunstruct}
+\end{center}
+\end{figure}
+
+\begin{figure}[tb]
+\begin{center}
+\xfig{numerical_discretisation_images/P1controlvolume3d}
+\caption{The six dual control volume mesh faces within a piecewise linear tetrahedral parent mesh element.  Each face is constructed by connecting the element centroid, the face centroids and the edge midpoint.}
+\label{fig:cvmesh3d}
+\end{center}
+\end{figure}
+
+Once the dual control volume mesh has been defined, it is possible to discretise the advection-diffusion equation \eqref{eq:weak_adv_diff} using piecewise constant shape functions within each volume, $v$ (see Figure \ref{fig:cvshapefunctions}).  However, as with the discontinuous Galerkin method the equation is only well defined when integrated by parts within such a volume, $v$, allowing us to write:
+\begin{equation}\label{eq:adv_diff_cv}
+  \int_v \frac{\partial c}{\partial t} +
+    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c} -
+    \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+    = 0,
+\end{equation}
+Note that the test function present in the previous discretisation sections, $\phi$, can be dropped from the equation as it is $1$ everywhere within the volume $v$.  Furthermore, terms involving the gradient of either $\phi$ or $c$ can be dropped as both as constant functions.  The boundary integral for the viscosity $\tensor{\mu}$ is a special case that will be dealt with in a later section.
+
+\begin{figure}[btp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/P1cvshapefunction1d} & \xfig{numerical_discretisation_images/P2cvshapefunction1d} \\
+\xfig{numerical_discretisation_images/P1cvshapefunction2d} & \xfig{numerical_discretisation_images/P2cvshapefunction2d}
+\end{tabular}
+\caption{One-dimensional (a, b) and two-dimensional (c, d) schematics of piecewise constant control volume shape functions and dual meshes based on the parent (dashed lines) linear (a, c) and quadratic (b, d) finite element meshes.  The shape function has value $1$ at node $A$ descending to $0$ at the control volume boundaries.  The support, $s$, coincides with the volume, $v$.}
+\label{fig:cvshapefunctions}
+\end{center}
+\end{figure}
+
+As with the discontinuous Galerkin discretisation, the hatted terms represent fluxes across the volume facets: and therefore from one volume to the other.  Due to the discontinuous nature of the fields, there is no unique value for these flux terms, however the requirement that $c$ by a conserved quantity does demand that adjacent volumes make a consistent choice for the flux between them.  The choice of flux schemes tehrefore forms a critical component of the control volume method.
+
+The application of boundary conditions occurs in the same manner as for the discontinuous Galerkin method.  The complete system of equations is formed by summing over all the volumes.  Assuming weakly applied boundary conditions, this results in:
+\begin{multline}
+  \sum_v \left\{ \int_v \frac{\partial c}{\partial t}
+  + \int_{\partial v\,\cap\dOmega^{D_c}_{-}} \vec{n}\cdot\vec{u}~g_D
+  + \int_{\partial v\,\cap\dOmega^{D_c}_{+}} \vec{n}\cdot\vec{u}~c
+  - \int_{\partial v\,\cap\dOmega^{D_c}} \vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
+  \left. + \int_{\partial v\,\cap\dOmega^{N_c}} \vec{n}\cdot\vec{u}~c
+  - \vec{n}\cdot\tensor{\mu}\cdot\grad g_N 
+  + \int_{\partial v\,\setminus\dOmega} \widehat{\vec{n}\cdot\vec{u}~c}
+  - \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
+    = 0.
+\end{multline}
+
+\subsubsection{Control Volume advection}
+\label{Sect:ND_control_volume_advection}
+
+Consider first the case in which $\tensor{\mu}=0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
+\begin{equation}\label{eq:adv_cv}
+  \int_v \frac{\partial c}{\partial t} +
+    \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c}
+    = 0,
+\end{equation}
+and the question becomes, how do we represent the flux $\widehat{\vec{n}\cdot\vec{u}~c}$\ ?
+
+\fluidity\ supports multiple different advective fluxes for CV.  Unlike with DG the advection velocity $\vec{u}$ is always well-defined at the control volume facets owing to the fact that they cross through the centre of the elements of the parent mesh where the velocity is continuous.  Therefore it is only necessary to describe how the face value of $c$ is going to be defined.
+
+In the following paragraphs we will refer to the donor or central value, $c_{c_k}$, and the downwind value, $c_{d_k}$.  These are associated with facet $k$ of the control volume dual mesh and are defined depending on the direction of the flux across that facet.  If the flow across facet $k$ is exiting volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k>0$, then the donor value, $c_{c_k}$ is the value in the volume, $c_v$ and the downwind value, $c_{d_k}$ is the value in the volume that the flux is entering.  Similarly if the flow is entering the volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k<0$, then the donor value, $c_{c_k}$, is the value from the neighbouring control volume while the downwind value, $c_{d_k}$, is the value in the volume, $c_v$.  By default only first order quadrature is performed on the control volume facets, however if higher order control volume facet quadrature is selected then $k$ refers to each quadrature point on the facet.
+
+\paragraph{First Order Upwinding}
+
+In this case, the value of $c$ at each quadrature point on each facet is taken to be the donor value, $c_{c_k}$.  Then \eqref{eq:adv_cv} becomes:
+\begin{equation}
+  \int_v \ppt{c} +
+    \sum_k\int_{\partial v_k} \vec{n}\cdot\vec{u}~c_{c_k}
+    = 0.
+\end{equation}
+First order upwinding is stable in the sense of boundedness, assuming an appropriate temporal discretisation is selected, it is however very diffusive so normally a higher order but less stable face value scheme is selected.
+
+\paragraph{Trapezoidal}
+
+In this case, the average of the donor and downwind values, $\frac{c_{c_k}+c_{d_k}}{2}$, is taken as the value of $c$ at each facet.  This is generally unstable regardless of the temporal discretisation chosen so requires limiting (see below).
+
+\paragraph{Finite Element Interpolation}
+
+In this case, the value of $c$ at each quadrature point of the facet is interpolated using the finite element basis functions on the parent mesh.  This is possible as the nodes of both the dual and parent meshes are co-located.  Like the trapezoidal face value this method is also generally unstable so normally requires limiting (see below).
+
+\paragraph{First Order Downwinding}
+
+In this case, the value of $c$ at each quadrature point of the facet is set to the downwind value, $c_{d_k}$.  First order downwinding is unconditionally unstable and is intended for demonstration purposes only.
+
+\paragraph{Face Value Limiting}
+
+As noted above, several of the face value schemes 
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/upwind_node_internal} & \xfig{numerical_discretisation_images/upwind_node_boundary}
+\end{tabular}
+\caption{Calculation of the upwind value, $c_{u_k}$, on an unstructured mesh (a) internally and (b) on a boundary.  The control volume mesh is shown (solid lines) around the nodes (black circles) which are co-located with the solution nodes of the parent piecewise linear continuous finite element mesh (dashed lines).  An initial estimate of the upwind value, $c^*_{u_k}$, is found by interpolation within the upwind parent element, $e_u$, of face $k$, $f_k$.  The point-wise gradient between this estimate and the donor node, $c_{c_k}$, is then extrapolated the same distance between the donor and downwind, $c_{d_k}$, to the upwind value, $c_{u_k}$.}
+\label{fig:unstructupwindnode}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/swebynvd} \\ \vspace{0.5cm}
+\xfig{numerical_discretisation_images/ultimatenvd}
+\caption{The Sweby (a) and ULTIMATE (b) limiters (shaded regions) represented on a normalised variable diagram (NVD).  For comparison the trapezoidal face value scheme is plotted as a dashed line in both diagrams.}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+
+\paragraph{HyperC}
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/hypercnvd}
+\caption{The HyperC face value scheme represented on a normalised variable diagram (NVD).}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+\paragraph{UltraC}
+
+\begin{figure}[tbp]
+\begin{center}
+\xfig{numerical_discretisation_images/ultracmodnvd}
+\caption{The UltraC face value scheme represented on (a) a normalised variable diagram (NVD) and (b) a modified normalised variable diagram.}
+\label{fig:swebylimiter}
+\end{center}
+\end{figure}
+
+\paragraph{PotentialUltraC}
+
+\paragraph{Coupled Limiting}
+
+\subsubsection{Control Volume diffusion}
 
 \section{The time loop}
 \label{sect:ND_time_loop}
