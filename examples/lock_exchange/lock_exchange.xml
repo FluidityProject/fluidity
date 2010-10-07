@@ -6,8 +6,8 @@
 </comment></name>
   <owner userid="hhiester"/>
   <tags>flml 2dadapt</tags>
-    <problem_definition length="long" nprocs="1">
-    <command_line>mpiexec fluidity -v2 -l lock_exchange_2d.flml </command_line>
+    <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec fluidity -v2 -l lock_exchange.flml </command_line>
   </problem_definition>  
   <variables>  
      <variable name="temp_bin_lower_0" language="python"> 

@@ -5,7 +5,7 @@
   <owner userid="cwilson"/>
   <tags>flml 2dadapt<comment>- uses flml
 - uses 2d adaptivity</comment></tags>
-  <problem_definition length="long" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>mpiexec fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>
   <variables>

@@ -1,8 +1,6 @@
 preprocess: 
 	@echo **********Generating the mesh using gmsh in 2d:
-	gmsh -2 channel_2d.geo
-	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle -2 channel_2d.msh
+	gmsh -2 -bin channel_2d.geo -o channel_2d.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
@@ -16,6 +14,6 @@ input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.pdf *.png *.stat *.msh *.node *.edge *.ele lock_exchange_*.vtu *checkpoint* *convergence* *.log-* *.err-* matrixdump*
+	rm -rf *.pdf *.png *.stat *.msh lock_exchange_*.vtu *checkpoint* *convergence* *.log-* *.err-* matrixdump*
 	@echo **********Cleaning the output from previous python runs:
 	rm -rf diagnostics le_tools.pyc
