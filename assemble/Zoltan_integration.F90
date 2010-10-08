@@ -1135,10 +1135,22 @@ module zoltan_integration
 
     call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
 
+    dimen=zz_positions%dim
+    
+    allocate(list_into_array(detector_list%length,dimen+4))
+          
+    !! This subroutine below creates a csr_sparsity matrix called element_detector_list that we use to find out 
+    !! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
+    !! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector. 
+    !! By accessing the array at that/those row indexes we can extract the information (position, id_number, type) of each detector present 
+    !! in the element (each row index corresponds to a detector) to be packed and sent together with the field information
+          
+    call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
+    
     do i=1,num_ids
- 
+       
        allocate(rbuf(sizes(i)/real_size))
-
+       
        old_universal_element_number = global_ids(i)
        old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
        
@@ -1180,22 +1192,6 @@ module zoltan_integration
           
        end do
 
-       dimen=zz_positions%dim
-
-       if (i==1) then
-          
-          allocate(list_into_array(detector_list%length,dimen+4))
-          
-          !! This subroutine below creates a csr_sparsity matrix called element_detector_list that we use to find out 
-          !! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
-          !! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector. 
-          !! By accessing the array at that/those row indexes we can extract the information (position, id_number, type) of each detector present 
-          !! in the element (each row index corresponds to a detector) to be packed and sent together with the field information
-          
-          call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
-          
-       end if
-       
        dets_in_ele=0
        
        rbuf(rhead) = dets_in_ele
