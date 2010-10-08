@@ -1107,7 +1107,7 @@ module zoltan_integration
     real, dimension(:,:), allocatable :: list_into_array
     integer, dimension(:), pointer:: det_index_in_list_into_array
 
-    integer, dimension(:), allocatable :: old_local_element_number_array, old_universal_element_number_array
+    integer, dimension(:), allocatable :: old_universal_element_number_array
 
     type(detector_type), pointer :: node, node_to_send
 
@@ -1135,8 +1135,6 @@ module zoltan_integration
 
     call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
 
-    allocate(old_local_element_number_array(num_ids))
-
     do i=1,num_ids
  
        allocate(rbuf(sizes(i)/real_size))
@@ -1144,8 +1142,6 @@ module zoltan_integration
        old_universal_element_number = global_ids(i)
        old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
        
-       old_local_element_number_array(i)=old_local_element_number
-
        if (has_key(uen_to_new_local_numbering, old_universal_element_number)) then
           
           new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
@@ -1318,8 +1314,6 @@ module zoltan_integration
     call deallocate(ihash_sparsity) 
 
     call deallocate(element_detector_list)
-
-    deallocate(old_local_element_number_array)
 
     ierr = ZOLTAN_OK
 
