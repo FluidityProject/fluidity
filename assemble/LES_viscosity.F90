@@ -33,7 +33,7 @@ module les_viscosity_module
 
   private
 
-  public les_viscosity_strength, les_length_scale_tensor
+  public les_viscosity_strength, les_length_scale_tensor, wale_viscosity_strength
 
 contains
 
@@ -48,10 +48,8 @@ contains
 
     real, dimension(size(du_t,3),size(du_t,3)):: s
     real vis
-    integer dim, ngi, nloc
-    integer gi, loc, i, j
+    integer dim, ngi, gi
 
-    nloc=size(du_t,1)
     ngi=size(du_t,2)
     dim=size(du_t,3)
 
@@ -62,11 +60,44 @@ contains
 
        vis=sqrt( 2*sum( s**2 ) )
 
-       les_viscosity_strength(gi)=4.0 * vis
+       les_viscosity_strength(gi)=vis
 
     end do
 
   end function les_viscosity_strength
+
+  function wale_viscosity_strength(du_t, relu)
+    !! Computes the traceless symmetric part of the square of
+    !! the resolved velocity gradient tensor for the LES model
+    !! See a WALE paper for more (G_{ij})
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! relative velocity (nonl. vel.- grid vel.) (dim x nloc)
+    real, dimension(:,:), intent(in):: relu
+
+    real, dimension( size(du_t,2) ):: wale_viscosity_strength
+
+    real, dimension(size(du_t,3),size(du_t,3)):: s, g
+    real vis
+    integer dim, ngi, gi, i
+
+    ngi=size(du_t,2)
+    dim=size(du_t,3)
+
+    do gi=1, ngi
+
+       s=matmul( relu, du_t(:,gi,:) )
+       g=0.5*matmul(s,s)
+       g=g+transpose(g)
+       forall(i=1:dim) g(i,i)=0.
+       
+       vis=sqrt( 2*sum( g**2 ) )
+
+       wale_viscosity_strength(gi)=vis
+
+    end do
+
+  end function wale_viscosity_strength
 
   function les_length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)

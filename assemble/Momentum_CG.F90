@@ -106,7 +106,7 @@
     logical :: have_geostrophic_pressure
     logical :: have_les
     logical :: have_surface_fs_stabilisation
-    logical :: les_fourth_order
+    logical :: les_fourth_order, wale
     logical :: on_sphere
     
     logical :: move_mesh
@@ -337,13 +337,15 @@
          &/continuous_galerkin/les_model")
       if (have_les) then
          call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model/smagorinsky_coefficient", &
-            smagorinsky_coefficient)
+              &/continuous_galerkin/les_model/smagorinsky_coefficient", &
+              smagorinsky_coefficient)
          les_fourth_order=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model/order/fourth_order")
+              &/continuous_galerkin/les_model/model/fourth_order")
+         wale=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+              &/continuous_galerkin/les_model/model/wale")
          if (les_fourth_order) then
-           call allocate( grad_u, u%mesh, "VelocityGradient")
-           call differentiate_field_lumped( nu, x, grad_u)
+            call allocate( grad_u, u%mesh, "VelocityGradient")
+            call differentiate_field_lumped( nu, x, grad_u)
          end if
       end if
       
@@ -1661,7 +1663,7 @@
       real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele)) :: les_coef_gi
+      real, dimension(ele_ngi(u, ele)) :: les_coef_gi, wale_coef_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele)) :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele)) :: grad_u_nodes
       
@@ -1671,28 +1673,38 @@
          ! if we don't have viscosity but maybe LES
          viscosity_gi = 0.0
       end if
-      
+
+      ! add in LES viscosity
       if (have_les) then
-         ! add in LES viscosity
-         les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
-         les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
-         do gi=1, size(les_coef_gi)
-            les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
-                 smagorinsky_coefficient**2
-         end do
-         if (les_fourth_order) then
-           div_les_viscosity=dshape_dot_tensor_shape(du_t, les_tensor_gi, ele_shape(u, ele), detwei)
-           grad_u_nodes=ele_val(grad_u, ele)
-           do dim=1, u%dim
-             do iloc=1, ele_loc(u, ele)
-               rhs_addto(dim,iloc)=rhs_addto(dim,iloc)+ &
-                 sum(div_les_viscosity(:,:,iloc)*grad_u_nodes(:,dim,:))
-             end do
-           end do
+         if (wale) then
+            les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+            les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
+            wale_coef_gi=wale_viscosity_strength(du_t, ele_val(nu, ele))
+            do gi=1, size(les_coef_gi)
+               les_tensor_gi(:,:,gi)=4.*les_tensor_gi(:,:,gi)* &
+                    wale_coef_gi(gi)**3 * smagorinsky_coefficient**2 / &
+                    max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
+            end do
+         else
+            les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+            les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
+            do gi=1, size(les_coef_gi)
+               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
+                    smagorinsky_coefficient**2
+            end do
+            if (les_fourth_order) then
+               div_les_viscosity=dshape_dot_tensor_shape(du_t, les_tensor_gi, ele_shape(u, ele), detwei)
+               grad_u_nodes=ele_val(grad_u, ele)
+               do dim=1, u%dim
+                  do iloc=1, ele_loc(u, ele)
+                     rhs_addto(dim,iloc)=rhs_addto(dim,iloc)+ &
+                          sum(div_les_viscosity(:,:,iloc)*grad_u_nodes(:,dim,:))
+                  end do
+               end do
+            end if
          end if
          viscosity_gi=viscosity_gi+les_tensor_gi
       end if
-      
       ! element viscosity matrix - tensor form
       !  /
       !  | gradN_A^T viscosity gradN_B dV

@@ -509,7 +509,7 @@ are the components of the viscosity tensor.</a:documentation>
 suggested value 0.1</a:documentation>
                 <ref name="real"/>
               </element>
-              <element name="order">
+              <element name="model">
                 <a:documentation>les options</a:documentation>
                 <choice>
                   <element name="second_order">
@@ -523,6 +523,10 @@ dissipation issues of the original Smag model
 use this if your turbulence dissipates faster than it should
 
 requires a fine mesh to perform well</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="wale">
+                    <a:documentation>similar to the original WALE model</a:documentation>
                     <empty/>
                   </element>
                 </choice>

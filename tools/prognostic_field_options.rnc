@@ -417,7 +417,7 @@ prognostic_velocity_field =
                      real
                   },
                   ## les options
-                  element order {
+                  element model {
                      ## similar to the original Smag model
                      element second_order{empty}
                    |
@@ -428,6 +428,9 @@ prognostic_velocity_field =
                      ##
                      ## requires a fine mesh to perform well
                      element fourth_order{empty}
+                   |
+                     ## similar to the original WALE model
+                     element wale{empty}
                   }
                }?
             }|
