@@ -1107,8 +1107,6 @@ module zoltan_integration
     real, dimension(:,:), allocatable :: list_into_array
     integer, dimension(:), pointer:: det_index_in_list_into_array
 
-    integer, dimension(:), allocatable :: old_universal_element_number_array
-
     type(detector_type), pointer :: node, node_to_send
 
     integer :: row_in_spar_matrix, original_length, remove_det, unn, processor_number, processor_number_a, processor_number_old_mesh, det_found
@@ -1698,7 +1696,6 @@ module zoltan_integration
       type(csr_sparsity) :: element_detector_list
       real, dimension(:,:), allocatable :: list_into_array
       integer, dimension(:), pointer:: det_index_in_list_into_array
-!     integer, dimension(:), allocatable :: old_local_element_number_array, old_universal_element_number_array, processor_number_array
 
       type(detector_type), pointer :: node
       integer :: j, row_in_spar_matrix, ele, count, row, dimen, det_found, dets_in_ele
