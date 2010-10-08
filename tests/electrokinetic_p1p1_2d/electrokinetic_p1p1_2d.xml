@@ -15,11 +15,19 @@ import vtktools
 v = vtktools.vtu("electrokinetic_1.vtu")
 pressure = v.GetScalarRange("Pressure")
     </variable>
+    <variable name="elec" language="python">
+import vtktools
+e = vtktools.vtu("electrokinetic_2.vtu")
+elec = e.GetScalarRange("ElectricalPotential")
+    </variable>
   </variables>
     <pass_tests>
-    <test name="Pressure range correct." language="python">
+    <test name="pressure range check" language="python">
 assert abs(pressure[0]) &lt; 1e-6
 assert abs(pressure[1] - 1.0e9) &lt; 1.0
+    </test>
+    <test name="electrical range check" language="python">
+assert abs(elec[0] + 10.0) &lt; 0.1
     </test>
   </pass_tests>
   <warn_tests>

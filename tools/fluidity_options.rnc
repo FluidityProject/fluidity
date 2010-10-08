@@ -1488,6 +1488,8 @@ start =
                      element x_min {real},
                     ## The maximum x-coordinate of the test space
                      element x_max {real},
+                    ## The initial width of the segments, positioned symmetrically opposite the borehole
+                     element width {real},
                     ## The minimum y-coordinate of the test space
                      element y_min {real},
                     ## The maximum y-coordinate of the test space
@@ -1516,6 +1518,8 @@ start =
                      element x_min {real},
                     ## The maximum x-coordinate of the test space
                      element x_max {real},
+                    ## The initial width of the segments, positioned symmetrically opposite the borehole
+                     element width {real},
                     ## The minimum y-coordinate of the test space,
                     ## usually equal to the initial position of the water front
                      element y_min {real},

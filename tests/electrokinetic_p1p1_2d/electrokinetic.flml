@@ -386,7 +386,7 @@
 x = log10(0.8410792485)
 c = (-8.0613,-0.807,0.107,-0.0996,-0.1064)
 for i in range(field.mesh.node_count):
-  field.val[i] = 10.0**(c[4]*x**4.0 + c[3]*x**3.0 + c[2]*x**2.0 + c[1]*x + c[0])</string_value>
+  field.val[i] = (-1)*10.0**(c[4]*x**4.0 + c[3]*x**3.0 + c[2]*x**2.0 + c[1]*x + c[0])</string_value>
               <comment>Electrokinetic coupling coefficient based on linear fit with salinity from empirical data.  See Saunders et al. (2008) Geophysics, *73*, E165--E180.</comment>
             </algorithm>
             <output/>

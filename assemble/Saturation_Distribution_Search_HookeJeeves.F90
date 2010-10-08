@@ -52,17 +52,17 @@ module saturation_distribution_search_hookejeeves
 
   contains
 
-  subroutine search_saturations_hookejeeves(state,i)
+  subroutine search_saturations_hookejeeves(state, state_no)
 
     ! declare interface variables
     type(state_type), dimension(:), intent(inout) :: state
     type(state_type), dimension(:), pointer :: working_state
-    integer, intent(in) :: i
+    integer, intent(in) :: state_no
 
     ! declare working variables for this subrtn
     character(len=50) :: positions
     character(len=OPTION_PATH_LEN) :: option_buffer
-    real, allocatable :: base_point(:)
+    real, allocatable :: base_point(:), widths(:)
     real :: step_length, nought, search_min, search_max
     type(scalar_field) :: saturation
     type(scalar_field), pointer :: Cv
@@ -73,14 +73,14 @@ module saturation_distribution_search_hookejeeves
 
     ewrite(3,*) 'In search_saturations'
 
-    option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/'
+    option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/'
 
     if (have_option(trim(option_buffer)//'search_criteria_vertical_well')) then
        is_vwell=.true.
-       option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_vertical_well/'
+       option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_vertical_well/'
     elseif (have_option(trim(option_buffer)//'search_criteria_horizontal_well')) then
        is_vwell=.false.
-       option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_horizontal_well/'
+       option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_horizontal_well/'
     else
        FLExit('Cannot find well geometry')
     endif
@@ -91,6 +91,7 @@ module saturation_distribution_search_hookejeeves
     !set dimension of coordinates (number of variables to be optimised)
     call get_option(trim(option_buffer)//'sections', sections)
     allocate(base_point(sections))
+    allocate(widths(sections))
     
     if (is_vwell) then
        call get_option(trim(option_buffer)//'y_min',search_min)
@@ -99,6 +100,12 @@ module saturation_distribution_search_hookejeeves
        call get_option(trim(option_buffer)//'z_min',search_min)
        call get_option(trim(option_buffer)//'z_max',search_max)
     endif
+    call get_option(trim(option_buffer)//'width',widths(1))
+    
+    do j=1,sections
+       widths(j)=widths(1)
+    end do
+    ewrite(3,*) 'Initial widths',widths(1)
 
     if (have_option(trim(option_buffer)//'initial_base_point')) then
        call get_option(trim(option_buffer)//'initial_base_point',base_point)
@@ -110,17 +117,19 @@ module saturation_distribution_search_hookejeeves
     endif
     do_PS=.false.
     nought=0.0
-    call set_base_point(state, do_PS, base_point, step_length, base_point, nought, search_min, search_max)
+    call set_base_point(state, state_no, do_PS, base_point, widths, step_length, base_point, nought, &
+                        search_min, search_max)
     
     deallocate(base_point)
+    deallocate(widths)
    
   end subroutine search_saturations_hookejeeves
     
-  recursive subroutine set_base_point(state, do_PS, base_point, step_length, previous_base_point, &
+  recursive subroutine set_base_point(state, state_no, do_PS, base_point, widths, step_length, previous_base_point, &
                                       current_error, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
-     real, dimension(:) :: base_point
+     real, dimension(:) :: base_point, widths
      real, dimension(size(base_point)) :: copy_base_point
      real :: step_length, minimum_step_length, new_error, search_min, search_max
      logical :: do_PS, is_improved, finished
@@ -129,6 +138,7 @@ module saturation_distribution_search_hookejeeves
      ! optional argument current_error records error at this base_point
      real :: current_error, error
 !     integer, save :: dump_no
+     integer, intent(in) :: state_no
      
      ewrite(3,*) 'setting base point', base_point
      
@@ -137,40 +147,43 @@ module saturation_distribution_search_hookejeeves
   
      if (do_PS) then
 !        call write_state(dump_no, state)
-        call make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, &
+        call make_pattern_step(state, state_no, base_point, previous_base_point, widths, step_length, minimum_step_length, &
                                current_error, search_min, search_max)
      else
         ! This is the first time through so need to calculate a first error
-        call run_model(state, base_point, step_length, error)
+        call run_model(state, state_no, base_point, widths, step_length, error)
 !        dump_no=1
 !        call write_state(dump_no, state)
         ! Copy current base point for pattern search in case base_point is updated by exploration
         copy_base_point=base_point
-        call make_exploration(state, base_point, step_length, is_improved, error, search_min, search_max)
+        call make_exploration(state, state_no, base_point, widths, step_length, is_improved, error, search_min, search_max)
         if(.not.is_improved) then
-           call reduce_step_length(state, base_point, base_point, step_length, minimum_step_length, &
+           call reduce_step_length(state, state_no, base_point, base_point, widths, step_length, minimum_step_length, &
                                    error, finished, search_min, search_max)
            if(.not.finished) then
-              call set_base_point(state, do_PS, base_point, step_length, base_point, error, search_min, search_max)
+              call set_base_point(state, state_no, do_PS, base_point, widths, step_length, base_point, error, &
+                                  search_min, search_max)
            else
               ewrite(3,*) 'Finishing search'
               return ! FINISHED! PRINT RESULTS ETC ETC
            endif
         else
-           call set_base_point(state, .TRUE., base_point, step_length, copy_base_point, error, search_min, search_max)
+           call set_base_point(state, state_no, .TRUE., base_point, widths, step_length, copy_base_point, error, &
+                               search_min, search_max)
         endif
      endif
   
   end subroutine set_base_point
   
-  subroutine make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, &
+  subroutine make_pattern_step(state, state_no, base_point, previous_base_point, widths, step_length, minimum_step_length, &
                                current_error, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
-     real, dimension(:) :: base_point, previous_base_point
+     real, dimension(:) :: base_point, previous_base_point, widths
      real, dimension(size(base_point)) :: pattern_point
      real :: step_length, current_error, minimum_step_length, search_min, search_max
      integer :: i
+     integer, intent(in) :: state_no
      logical :: is_improved, finished
      
      ewrite(3,*) 'making pattern step'
@@ -186,25 +199,29 @@ module saturation_distribution_search_hookejeeves
      ! current error records error at base point we're going to try to leap over
      
      ! explore around this new point
-     call make_exploration(state, pattern_point, step_length, is_improved, current_error, search_min, search_max)
+     call make_exploration(state, state_no, pattern_point, widths, step_length, is_improved, current_error, &
+                           search_min, search_max)
      finished=.false.
      if (.not.is_improved) then
-        call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
+        call reduce_step_length(state, state_no, base_point, pattern_point, widths, step_length, minimum_step_length, &
                                 current_error, finished, search_min, search_max)
      else
-        call set_base_point(state, .TRUE., pattern_point, step_length, base_point, current_error, search_min, search_max)
+        call set_base_point(state, state_no, .TRUE., pattern_point, widths, step_length, base_point, current_error, &
+                            search_min, search_max)
      endif
   
   end subroutine make_pattern_step
   
-  subroutine make_exploration(state, base_point, step_length, is_improved, error, search_min, search_max)
+  subroutine make_exploration(state, state_no, base_point, widths, step_length, is_improved, error, &
+                              search_min, search_max)
      
      type(state_type), dimension(:), intent(inout) :: state
-     real, dimension(:) :: base_point
+     real, dimension(:) :: base_point, widths
      real, allocatable, dimension(:) :: base_point_in
      real :: step_length, error, new_error, search_min, search_max
      logical :: is_improved
      integer :: i
+     integer, intent(in) :: state_no
      
      ewrite(3,*) 'making exploration, step ', step_length
      
@@ -221,63 +238,79 @@ module saturation_distribution_search_hookejeeves
         base_point(i)=base_point(i)+step_length
         base_point(i)=max(base_point(i), search_min)
         base_point(i)=min(base_point(i), search_max)
-        call run_model(state, base_point, step_length, new_error)
+        call run_model(state, state_no, base_point, widths, step_length, new_error)
         if (new_error>=error) then
            !decrease by step length
            base_point(i)=base_point_in(i)-step_length
            base_point(i)=max(base_point(i), search_min)
            base_point(i)=min(base_point(i), search_max)
-           call run_model(state, base_point, step_length, new_error)
+           call run_model(state, state_no, base_point, widths, step_length, new_error)
            if (new_error>=error) then
               ! keep original
               base_point(i)=base_point_in(i)
            else
               ! set coordinate to new value
-              ewrite(3,*) 'Error at', base_point(i), new_error, 'less than error at', base_point(i)+step_length, error
+              ewrite(3,*) 'Error at', base_point(i), new_error, 'less than previous error', error
               error=new_error
               is_improved=.true.
            endif
         else
            ! set coordinate to new value
-           ewrite(3,*) 'Error at', base_point(i), new_error, 'less than error at', base_point(i)-step_length, error
+           ewrite(3,*) 'Error at', base_point(i), new_error, 'less than previous error', error
            error=new_error
            is_improved=.true.
         endif
      end do
      deallocate(base_point_in)
+     
+     ! Vary width of each layer to find a better fit
+     call improve_width(state, state_no, base_point, widths, step_length, error)
   
   end subroutine make_exploration
   
-  subroutine run_model(state, point, step_length, error)
+  subroutine run_model(state, state_no, point, widths, step_length, error)
   
      type(state_type), dimension(:), intent(inout) :: state
      type(scalar_field) :: saturation, temp_saturation
      type(scalar_field), pointer :: Cv, electrical_potential
      type(vector_field), pointer :: coordinates
-     real, dimension(:) :: point
-     real, allocatable, dimension(:,:), save :: target_potential
+     real, dimension(:) :: point, widths
+     real, allocatable, dimension(:,:), save :: target_potential, used_list
      real, allocatable, dimension(:) :: model_potential
      real :: step_length, error
      real :: x_min, x_max, y_min, y_max, z_min, z_max
      real :: bh_x, bh_y, bh_z, err
-     logical :: is_vwell
+     logical :: is_vwell, used
      integer :: stat, i, j
+     integer, intent(in) :: state_no
      integer, save :: have_target, samples, dump_no, smallest_error
      integer, allocatable, dimension(:), save :: node_list
      character(len=OPTION_PATH_LEN) :: option_buffer, target_filename
      character(len=25) :: fstr
      
-     ewrite(3,*) 'running model, point:',point
+     ewrite(3,*) 'running model, point, widths:',point, widths
+     
+     ! Check to see if we've run this point width combo before
+     used = .false.
+     if (.not.allocated(used_list)) then
+        allocate(used_list(1000,size(point)+size(widths)+1))
+        used_list=0.0
+     endif
+     call check_already_used(point, widths, used_list, used, error)
+     if (used) then
+        ewrite(3,*) 'Used this point, width combo before'
+        return
+     endif
      
      ! Get all the limits etc relevant - do this fresh each time from flml
-     option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/'
+     option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/'
 
      if (have_option(trim(option_buffer)//'search_criteria_vertical_well')) then
         is_vwell=.true.
-        option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_vertical_well/'
+        option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_vertical_well/'
      elseif (have_option(trim(option_buffer)//'search_criteria_horizontal_well')) then
         is_vwell=.false.
-        option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_horizontal_well/'
+        option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/search_criteria_horizontal_well/'
      else
         FLExit('Cannot find well geometry')
      endif
@@ -289,6 +322,7 @@ module saturation_distribution_search_hookejeeves
      call get_option(trim(option_buffer)//'y_max', y_max)
      call get_option(trim(option_buffer)//'z_min', z_min)
      call get_option(trim(option_buffer)//'z_max', z_max)
+     call get_option(trim(option_buffer)//'borehole_x',bh_x)
      
      ! Set saturations to point
      saturation = extract_scalar_field(state, "PhaseVolumeFraction", stat)
@@ -297,12 +331,12 @@ module saturation_distribution_search_hookejeeves
      call set(temp_saturation,saturation)
      coordinates=>extract_vector_field(state, "Coordinate")
      
-     call set_saturations(saturation, point, is_vwell, &
+     call set_saturations(saturation, point, widths, bh_x, is_vwell, &
                           x_min, x_max, y_min, y_max, z_min, z_max, &
                           coordinates)
 
      ! get target potential curve if it hasn't been got before
-     if (have_target.ne.8) then
+     if (.not.allocated(target_potential)) then
         samples=100
         have_target=8
         call get_option(trim(option_buffer)//'target_filename', target_filename)
@@ -331,7 +365,6 @@ module saturation_distribution_search_hookejeeves
         do i=1,samples
 !           ewrite(3,*) 'i: ',i
            if (is_vwell) then
-              call get_option(trim(option_buffer)//'borehole_x',bh_x)
               call get_option(trim(option_buffer)//'borehole_y',bh_y)
               do j=1,node_count(coordinates)
                  if ((abs(coordinates%val(X_)%ptr(j)-bh_x)<err).and.(abs(coordinates%val(Y_)%ptr(j)-bh_y)<err).and.&
@@ -354,18 +387,18 @@ module saturation_distribution_search_hookejeeves
 !     ewrite(3,*) 'node_list: ', node_list
      
      ! Update coupling coefficient
-     Cv => extract_scalar_field(state, 'Electrokinetic[0]', stat=stat)
+     Cv => extract_scalar_field(state(state_no), 'Electrokinetic[0]', stat=stat)
      if (stat/=0) then
         FLExit('Did not find an Electrokinetic coupling coefficient scalar field.')
      end if
 
-     call calculate_diagnostic_variable(state, 1, Cv) 
+     call calculate_diagnostic_variable(state, state_no, Cv) 
      ! Get streaming potential
-     call calculate_electrical_potential(state(1), 1)
+     call calculate_electrical_potential(state(state_no), state_no)
      ewrite(3,*) 'out of calculate_electrical_potential'
      
      ! get potential curve from new model
-     electrical_potential=>extract_scalar_field(state, "ElectricalPotential", stat)
+     electrical_potential=>extract_scalar_field(state(state_no), "ElectricalPotential", stat)
      allocate(model_potential(samples))
      
      ewrite(3,*) 'getting potentials from latest model'
@@ -378,14 +411,17 @@ module saturation_distribution_search_hookejeeves
 !     ewrite(3,*) 'target_potential, model_potential',target_potential(1:samples,2), model_potential
      call curve_error(target_potential(1:samples,2), model_potential, error)
      
-     ewrite(3,*) 'point, error: ', point, error
+     ewrite(3,*) 'point, widths, error: ', point, widths, error
      open(911, file = 'output.data', action="write", position="append")
-     write(fstr,'("(",i4,"f7.2,2x,f10.6)")') size(point)
-     ewrite(3,*) 'fstr: ',fstr
-     write(911,fstr) point, error
-!  10 FORMAT(16(F9.4))
+!     write(fstr,'("(",i4,"f7.2,2x,",i4,"f5.1,2x,f10.6)")') size(point)
+!     ewrite(3,*) 'fstr: ',fstr
+     write(911,10) point, widths, error
+  10 FORMAT(16(F9.4,2x),16(F5.1,2x),F10.6)
      close(911)
      deallocate(model_potential)
+     
+     ! add point to used_list
+     call add_to_used_list(point, widths, error, used_list)
      
      dump_no=max(1,dump_no)
      if (dump_no.eq.1) then
@@ -402,15 +438,15 @@ module saturation_distribution_search_hookejeeves
 
   end subroutine run_model
   
-  subroutine set_saturations(saturation, point, is_vwell, &
+  subroutine set_saturations(saturation, point, widths, borehole_x, is_vwell, &
                              x_min, x_max, y_min, y_max, z_min, z_max, &
                              coordinates)
     
     type(scalar_field) :: saturation
     type(vector_field), intent(in) :: coordinates
-    real, dimension (:) :: point
+    real, dimension (:) :: point, widths
     real, intent(in) :: x_min, x_max, y_min, y_max, z_min, z_max
-    real :: along_step
+    real :: along_step, borehole_x
     real :: zone_along_min, err
     real, dimension(coordinates%dim, coordinates%mesh%shape%loc) :: coords
     integer :: ele, node, in_zone_counter
@@ -454,11 +490,11 @@ module saturation_distribution_search_hookejeeves
           coords = ele_val(coordinates, ele)
           in_zone=.false.
           in_zone_counter=0
-          if ((coords(1,1).gt.x_min-err).and.(coords(1,1).lt.x_max+err).and.&
+          if ((coords(1,1).gt.borehole_x-widths(i)/2-err).and.(coords(1,1).lt.borehole_x+widths(i)/2+err).and.&
                 (coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
                 (coords(coord_perp,1).lt.point(i)+err)) then
             do node=2,coordinates%mesh%shape%loc
-              if ((coords(1,node).gt.x_min-err).and.(coords(1,node).lt.x_max+err).and.&
+              if ((coords(1,node).gt.borehole_x-widths(i)/2-err).and.(coords(1,node).lt.borehole_x+widths(i)/2+err).and.&
                    (coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
                    (coords(coord_perp,node).lt.point(i)+err)) then
                 in_zone_counter=in_zone_counter+1
@@ -484,14 +520,15 @@ module saturation_distribution_search_hookejeeves
     
   end subroutine set_saturations
   
-  recursive subroutine reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
+  recursive subroutine reduce_step_length(state, state_no, base_point, pattern_point, widths, step_length, minimum_step_length, &
                                           current_error, finished, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
-     real, dimension(:) :: base_point, pattern_point
+     real, dimension(:) :: base_point, pattern_point, widths
      real :: step_length, minimum_step_length, current_error, search_min, search_max
      logical :: finished, is_improved, from_pattern_step
      integer :: i
+     integer, intent(in) :: state_no
      character(len=12) :: fstr
      
      ewrite(3,*) 'reducing step length'
@@ -511,38 +548,38 @@ module saturation_distribution_search_hookejeeves
         if (from_pattern_step) then
            ! ignore pattern_point and return to last base_point
            ewrite(3,*) 'Reached minimum step length, returning to last base point'
-           call set_base_point(state, .FALSE., base_point, step_length, base_point, &
+           call set_base_point(state, state_no, .FALSE., base_point, widths, step_length, base_point, &
                                current_error, search_min, search_max)
         else
            ewrite(3,*) 'Reached minimum step length, one last try'
            ! Abusing file names here!:
            pattern_point=base_point
-           call make_exploration(state, base_point, step_length, is_improved, &
+           call make_exploration(state, state_no, base_point, widths, step_length, is_improved, &
                                  current_error, search_min, search_max)
            if (is_improved) then
-              call set_base_point(state, .TRUE., base_point, step_length, pattern_point, &
+              call set_base_point(state, state_no, .TRUE., base_point, widths, step_length, pattern_point, &
                                   current_error, search_min, search_max)
            else
               ewrite(3,*) 'Failed to improve with minimum step length, finished'
               ewrite(3,*) 'Final base point and RESULT:',base_point
               open(913, file = 'output.data', action="write", position="append")
-              write(fstr,'("(",i4,"f7.2)")') size(base_point)
+!              write(fstr,'("(",i4,"f7.2,2x,",i4,"f5.1)")') size(base_point)
 !              ewrite(3,*) 'fstr: ',fstr
-              write(913,11) 'Result: ',base_point 
-           11 FORMAT((A8),16(F9.4))
+              write(913,11) 'Result: ',base_point, widths 
+           11 FORMAT((A8),32(F9.4,2x))
               close(913)
               return
            endif
         endif
      else
         ewrite(3,*) 'New step length: ', step_length
-        call make_exploration(state, pattern_point, step_length, is_improved, &
+        call make_exploration(state, state_no, pattern_point, widths, step_length, is_improved, &
                               current_error, search_min, search_max)
         if(is_improved) then
-           call set_base_point(state, .TRUE., pattern_point, step_length, base_point, &
+           call set_base_point(state, state_no, .TRUE., pattern_point, widths, step_length, base_point, &
                                current_error, search_min, search_max)
         else
-           call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
+           call reduce_step_length(state, state_no, base_point, pattern_point, widths, step_length, minimum_step_length, &
                                    current_error, finished, search_min, search_max)
         endif
      endif
@@ -573,6 +610,7 @@ module saturation_distribution_search_hookejeeves
      
      maxi1=maxval(curve1q)
      maxi2=maxval(curve2q)
+     !ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
      if ((maxi1>0.0).and.(maxi2>0.0)) then
         ncurve1=curve1q/maxi1
         ncurve2=curve2q/maxi2
@@ -597,5 +635,133 @@ module saturation_distribution_search_hookejeeves
      deallocate(ncurve2)
   
   end subroutine curve_error
-    
+  
+  recursive subroutine improve_width(state, state_no, base_point, widths, step_length, error)
+  
+     type(state_type), dimension(:), intent(inout) :: state
+     real, dimension(:) :: base_point, widths
+     real, allocatable :: widths_in(:)
+     real :: width_step, error, new_error, x_min, x_max, step_length
+     logical :: improved
+     integer :: i
+     integer, intent(in) :: state_no
+     character(len=OPTION_PATH_LEN) :: option_buffer
+     
+     ewrite(3,*) 'trying to improve the widths'
+     width_step = 20.0
+     
+     ! Get all the limits etc relevant - do this fresh each time from flml
+     option_buffer = '/material_phase['//int2str(state_no-1)//']/electrical_properties/Saturation_Distribution_Search/'
+     if (have_option(trim(option_buffer)//'search_criteria_vertical_well')) then
+        call get_option(trim(option_buffer)//'search_criteria_vertical_well/x_min', x_min)
+        call get_option(trim(option_buffer)//'search_criteria_vertical_well/x_max', x_max)
+     elseif (have_option(trim(option_buffer)//'search_criteria_horizontal_well')) then
+        call get_option(trim(option_buffer)//'search_criteria_horizontal_well/x_min', x_min)
+        call get_option(trim(option_buffer)//'search_criteria_horizontal_well/x_max', x_max)
+     endif
+  
+     ! cycle through co-ordinates:
+     allocate(widths_in(size(widths)))
+     widths_in=widths
+     do i=1,size(widths)
+        ! increase by step length
+        widths(i)=widths(i)+width_step
+        widths(i)=max(widths(i), x_min)
+        widths(i)=min(widths(i), x_max)
+        call run_model(state, state_no, base_point, widths, step_length, new_error)
+        if (new_error>=error) then
+           !decrease by step length
+           widths(i)=widths_in(i)-width_step
+           widths(i)=max(widths(i), x_min)
+           widths(i)=min(widths(i), x_max)
+           call run_model(state, state_no, base_point, widths, step_length, new_error)
+           if (new_error>=error) then
+              ! keep original
+              widths(i)=widths_in(i)
+           else
+              ! set coordinate to new value
+              ewrite(3,*) 'Error with width', widths(i), new_error, 'less than previous error', error
+              error=new_error
+              improved=.true.
+           endif
+        else
+           ! set coordinate to new value
+           ewrite(3,*) 'Error with width', widths(i), new_error, 'less than previous error', error
+           error=new_error
+           improved=.true.
+        endif
+     end do
+     deallocate(widths_in)
+     
+  end subroutine improve_width
+  
+  subroutine check_already_used(point, widths, used_list, used, error)
+  
+     real, dimension(:) :: point, widths
+     real, dimension(:,:) :: used_list
+     real :: error
+     logical :: used, points_match, widths_match
+     integer :: i, j
+     
+!     ewrite(3,*) 'size(used_list), size(used_list,1), size(used_list,2)', size(used_list), size(used_list,1), size(used_list,2)
+     ewrite(3,*) "Checking if we've already used this point width combo"
+     
+     do i=1,size(used_list,1)
+        points_match = .true.
+        widths_match = .true.
+        if (used_list(i,1)==0.0) then
+           return
+        else
+!           ewrite(3,*) 'checking points'
+           do j=1,size(point)
+              if (abs(used_list(i,j)-point(j)).gt.0.01) then
+                 points_match=.false.
+                 exit
+!              else
+!                 ewrite(3,*) 'points match'
+              endif
+           end do
+!           ewrite(3,*) 'checking widths'
+           do j=1,size(widths)
+              if (abs(used_list(i,size(point)+j)-widths(j)).gt.0.01) then
+                 widths_match=.false.
+                 exit
+!              else
+!                 ewrite(3,*) 'widths match'
+              endif
+           end do
+           if ((points_match).and.(widths_match)) then
+              used=.true.
+              error=used_list(i,size(used_list,2))
+              exit
+           endif
+        endif
+     end do
+     
+  end subroutine check_already_used
+  
+  subroutine add_to_used_list(point, widths, error, used_list)
+  
+     real, dimension(:) :: point, widths
+     real, dimension(:,:) :: used_list
+     real :: error
+     integer :: i, j
+     
+     ewrite(3,*) 'Adding point, width, error to used_list'
+     
+     do i=1,size(used_list,1)
+        if (used_list(i,1)==0.0) then
+           ! insert new value
+           used_list(i,1:size(point))=point
+           used_list(i,size(point)+1:size(point)+size(widths))=widths
+           used_list(i,size(point)+size(widths)+1)=error
+!           ewrite(3,*) used_list(i,:)
+           return
+!        else
+!           ewrite(3,*) used_list(i,:)
+        endif
+     end do
+
+  end subroutine add_to_used_list
+
 end module saturation_distribution_search_hookejeeves

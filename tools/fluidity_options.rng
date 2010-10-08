@@ -1959,6 +1959,10 @@ to measured data</a:documentation>
                         <a:documentation>The maximum x-coordinate of the test space</a:documentation>
                         <ref name="real"/>
                       </element>
+                      <element name="width">
+                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
                       <element name="y_min">
                         <a:documentation>The minimum y-coordinate of the test space</a:documentation>
                         <ref name="real"/>
@@ -2011,6 +2015,10 @@ probably equal to the location of the borehole</a:documentation>
                       </element>
                       <element name="x_max">
                         <a:documentation>The maximum x-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="width">
+                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
                         <ref name="real"/>
                       </element>
                       <element name="y_min">
