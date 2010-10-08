@@ -1109,10 +1109,8 @@ module zoltan_integration
 
     type(detector_type), pointer :: node, node_to_send
 
-    integer :: row_in_spar_matrix, original_length, remove_det, unn, processor_number, processor_number_a, processor_number_old_mesh, det_found
+    integer :: original_length, remove_det, processor_number, det_found
 
-    type(element_type), pointer :: shape
-   
     ewrite(1,*) "In zoltan_cb_pack_fields"
 
     call allocate(ihash_sparsity) 
@@ -1324,12 +1322,12 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr  
 
     real, dimension(:), allocatable :: rbuf ! easier to read reals 
-    integer :: rhead, i, j, state_no, field_no, loc, ratio, dimen, k
+    integer :: rhead, i, j, state_no, field_no, loc, ratio, dimen
     type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     integer :: old_universal_element_number, new_local_element_number, dets_in_ele, cont_num_det
-    integer :: processor_owner, dataSize, local_max_size
+    integer :: processor_owner, dataSize
 
     type(detector_type), pointer :: node
     type(element_type), pointer :: shape
@@ -1463,7 +1461,6 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer :: p1_import_procs => null()
     integer, save :: dumpno = 0
 
-    type(detector_type), pointer :: node
     integer :: k
 
     type(tensor_field) :: new_metric
@@ -1472,9 +1469,6 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
     integer(zoltan_int) :: p1_num_export_full
     type(vector_field) :: new_positions_m1d
-    type(mesh_type), pointer :: extruded_mesh
-
-    integer :: ind, key, key_val
 
     ewrite(1,*) "In zoltan_drive"
 
@@ -1698,7 +1692,7 @@ module zoltan_integration
       integer, dimension(:), pointer:: det_index_in_list_into_array
 
       type(detector_type), pointer :: node
-      integer :: j, row_in_spar_matrix, ele, count, row, dimen, det_found, dets_in_ele
+      integer :: j, ele, count, row, dimen, det_found, dets_in_ele
       
       ewrite(1,*) 'in transfer_fields'
 
@@ -2689,9 +2683,6 @@ module zoltan_integration
       integer :: i, j, floc, eloc
       integer, dimension(:), allocatable :: sndgln
       integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
-      type(mesh_type) :: pwc_mesh
-      integer, dimension(:), pointer :: eles
-      real :: qual
       integer, dimension(:), allocatable :: interleaved_surface_ids
 
       !call find_mesh_to_adapt(states(1), zz_mesh)
