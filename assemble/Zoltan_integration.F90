@@ -1107,7 +1107,7 @@ module zoltan_integration
     real, dimension(:,:), allocatable :: list_into_array
     integer, dimension(:), pointer:: det_index_in_list_into_array
 
-    integer, dimension(:), allocatable :: old_local_element_number_array, old_universal_element_number_array, processor_number_array
+    integer, dimension(:), allocatable :: old_local_element_number_array, old_universal_element_number_array
 
     type(detector_type), pointer :: node, node_to_send
 
@@ -1136,7 +1136,6 @@ module zoltan_integration
     call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
 
     allocate(old_local_element_number_array(num_ids))
-    allocate(processor_number_array(num_ids))
 
     do i=1,num_ids
  
@@ -1151,11 +1150,10 @@ module zoltan_integration
           
           new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
           processor_number=element_owner(new_positions,new_local_element_number)
-          processor_number_array(i)=processor_number
           
        else
           
-          processor_number_array(i)=-1
+          processor_number=-1
 
        end if
        
@@ -1227,7 +1225,7 @@ module zoltan_integration
              rbuf(rhead) = list_into_array(det_index_in_list_into_array(j),dimen+3)
              rhead = rhead + 1
              
-             if (processor_number_array(i)/=getprocno()) then
+             if (processor_number/=getprocno()) then
                
 !!! Tagging det for removal
                 list_into_array(det_index_in_list_into_array(j),dimen+4)=1.0
@@ -1322,8 +1320,6 @@ module zoltan_integration
     call deallocate(element_detector_list)
 
     deallocate(old_local_element_number_array)
-
-    deallocate(processor_number_array)
 
     ierr = ZOLTAN_OK
 
