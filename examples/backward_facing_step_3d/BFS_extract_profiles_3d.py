@@ -13,7 +13,7 @@ def get_filelist():
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
    
-    list = glob.glob("*.vtu")
+    list = glob.glob("*.pvtu")
     #print 'list before sorting'
     #print list
     list = [l for l in list if 'check' not in l]
@@ -43,7 +43,7 @@ def meanvelo(filelist):
       data = vtktools.vtu(file)    
 
       print "Extracting 3d BFS data:", file
-      reader = vtk.vtkXMLUnstructuredGridReader();
+      reader = vtk.vtkXMLPUnstructuredGridReader();
       reader.SetFileName(file)
       reader.Update()
       data = reader.GetOutput()
@@ -83,10 +83,10 @@ def meanvelo(filelist):
       print "mean x-velocity: ", umean
 
       print 'write output data file'
-      num = int(file.split(".vtu")[0].split('_')[-1])
+      num = int(file.split(".pvtu")[0].split('_')[-1])
 
       nf = open('BFS3d_velox_profiles_'+str(num)+'.dat','w')
-      nf.write('x''    ''z''    ''U_mean''\n')
+      nf.write('x''   ''z''  ''U_mean''\n')
 
       for n in range(len(x)*len(z)):
         nf.write(str(ptsav[n][0])+' '+str(ptsav[n][1])+' '+str(umean[n])+'\n')
