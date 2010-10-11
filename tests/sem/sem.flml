@@ -171,9 +171,9 @@
               <smagorinsky_coefficient>
                 <real_value rank="0">0.1</real_value>
               </smagorinsky_coefficient>
-              <order>
+              <model>
                 <second_order/>
-              </order>
+              </model>
             </les_model>
           </continuous_galerkin>
           <conservative_advection replaces="BETA">
