@@ -711,23 +711,36 @@ contains
     
   end function blockstart
 
-  subroutine allocate_csr_sparsity(sparsity, rows, columns, entries, diag,&
+  subroutine allocate_csr_sparsity(sparsity, rows, columns, entries, nnz, diag,&
        & name, stat)
     type(csr_sparsity), intent(out) :: sparsity
-    !! Rows is the number of rows. Entries is the number of nonzero entries.
-    integer, intent(in) :: rows, columns, entries
+    !! Rows is the number of rows. 
+    integer, intent(in) :: rows, columns
+    !! Entries is the number of nonzero entries. Either 'entries' or 'nnz' is required
+    integer, intent(in), optional :: entries
+    !! nnz number of nonzero entries for each row
+    integer, dimension(:), intent(in), optional :: nnz
     !! Diag can be used to not allocate the diagonal.
     logical, intent(in), optional :: diag
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
 
     logical :: ldiag
-    integer :: lstat, totalmem
+    integer :: lstat, totalmem, lentries
+    integer :: i, k
 
     if(present(diag)) then
        ldiag=diag
     else
        ldiag=.true.
+    end if
+    
+    if(present(entries)) then
+       lentries=entries
+    else if (present(nnz)) then
+       lentries=sum(nnz)
+    else
+       FLAbort("In allocate_csr_sparsity need to provide either entries or nnz argument")
     end if
 
     sparsity%name = name
@@ -739,9 +752,9 @@ contains
     nullify(sparsity%refcount)
     call addref(sparsity)
 
-    allocate(sparsity%findrm(rows+1), sparsity%colm(entries), stat=lstat)
+    allocate(sparsity%findrm(rows+1), sparsity%colm(lentries), stat=lstat)
     if (lstat/=0) goto 42
-    totalmem=rows+1 + entries
+    totalmem=rows+1 + lentries
     
     if (ldiag) then
        allocate(sparsity%centrm(rows), stat=lstat)
@@ -764,6 +777,17 @@ contains
     call register_allocation("csr_sparsity", "integer", &
          totalmem, name=name)
 #endif
+    
+    if (present(nnz)) then
+      ! fill in %findrm from nnz:
+      k=1
+      do i=1, size(nnz)
+        sparsity%findrm(i)=k
+        k=k+nnz(i)
+      end do
+      sparsity%findrm(i)=k
+      assert( k==lentries+1 )
+    end if
 
   end subroutine allocate_csr_sparsity
 
@@ -4257,7 +4281,7 @@ contains
     
     ! just swap n/o rows and cols
     call allocate(sparsity_T, size(sparsity,2), size(sparsity,1), &
-       size(sparsity%colm), diag=have_diag, &
+       entries=size(sparsity%colm), diag=have_diag, &
        name=trim(sparsity%name)//"Transpose")
        
     ! Also swap the row and column halos if present.
@@ -4456,7 +4480,7 @@ contains
     have_diag=associated(sparsityA%centrm) .or. associated(sparsityB%centrm)
     call allocate(sparsityC, size(sparsityA,1), &
        max(size(sparsityA,2), size(sparsityB,2)), &
-       count, diag=have_diag, name=name)
+       entries=count, diag=have_diag, name=name)
     sparsityC%findrm=findrm
     sparsityC%colm=colm(1:count)
     
