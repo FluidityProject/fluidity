@@ -68,7 +68,7 @@ implicit none
           vector_field_addto, vector_field_vaddto_dim, tensor_field_addto, &
           tensor_field_vaddto, tensor_field_vaddto_single, tensor_field_vaddto_dim, &
           vector_field_vaddto_vec, scalar_field_addto_scalar, vector_field_addto_vector, &
-          scalar_field_addto_field, vector_field_addto_field, &
+          scalar_field_addto_field, vector_field_addto_field, vector_field_addto_dim, &
           vector_field_addto_field_dim, tensor_field_addto_field_dim_dim, &
           tensor_field_addto_dim, tensor_field_addto_tensor_field, &
           real_addto_real, vector_field_addto_field_scale_field
@@ -383,6 +383,19 @@ implicit none
     end do
 
   end subroutine vector_field_addto
+  
+  subroutine vector_field_addto_dim(field, dim, node_number, val)
+    !!< Add val to the field%val(node_number) only for the specified dim
+    !!< Does not work for constant fields
+    type(vector_field), intent(inout) :: field
+    integer, intent(in) :: dim, node_number
+    real, intent(in) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    field%val(dim)%ptr(node_number)=field%val(dim)%ptr(node_number)+val
+
+  end subroutine vector_field_addto_dim
   
   subroutine vector_field_vaddto_dim(field, dim, node_numbers, val)
     !!< Add val to dimension dim of the field%val(node_numbers) for a
