@@ -1039,7 +1039,7 @@ module zoltan_integration
 
     end do
    
-    call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
+    call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="ElementDetectorList")
 
     call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 
