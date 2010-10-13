@@ -98,11 +98,13 @@ module implicit_solids
   real, dimension(:,:), allocatable, save :: translation_coordinates
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
-  logical, save :: have_temperature, do_print_multiple_solids_diagnostics, print_drag
+  logical, save :: have_temperature, do_print_multiple_solids_diagnostics
+  logical, save :: do_print_diagnostics, print_drag
+  logical, save :: nltolerance
   integer, dimension(:), allocatable, save :: node_to_particle
 
   private
-  public:: solids
+  public:: solids, implicit_solids_nl_tol
 
 contains
 
@@ -113,8 +115,9 @@ contains
     integer, intent(in) :: its
     type(scalar_field), pointer :: solid, temperature
     integer, save :: itinoi
-    logical, save :: do_print_diagnostics, do_calculate_volume_fraction
+    logical, save :: do_calculate_volume_fraction
     logical, save :: init=.false.
+    logical, save :: nliter_tol_reached=.false.
     integer :: dat_unit, stat
     character(len=PYTHON_FUNC_LEN) :: python_function
     character(len=field_name_len) :: external_mesh_name
@@ -135,6 +138,7 @@ contains
        call get_option("/timestepping/nonlinear_iterations", itinoi)
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
+       nltolerance = have_option("/timestepping/nonlinear_iterations/tolerance")
 
        call get_option("/geometry/dimension", dim)
 
@@ -248,7 +252,7 @@ contains
        call set_source(state)
        call set_absorption_coefficient(state)
 
-       if ((do_print_diagnostics .or. print_drag) .and. its==itinoi) call print_diagnostics(state)
+       if ((do_print_diagnostics .or. print_drag) .and. its==itinoi) call print_diagnostics(state, its, nliter_tol_reached)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -533,9 +537,11 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine print_diagnostics(state)
+  subroutine print_diagnostics(state, its, nliter_tol_reached)
 
     type(state_type), intent(inout) :: state
+    integer, intent(in) :: its
+    logical, intent(in) :: nliter_tol_reached
     type(vector_field), pointer :: velocity, positions, absorption
     type(scalar_field), pointer :: temperature
     type(scalar_field) :: lumped_mass
@@ -596,31 +602,43 @@ contains
        nusselt = nusselt + particle_nusselt(i)
     end do
 
-    ! write files
-    if (GetRank() == 0) then
-       ! file format: time, fx, fy, fz, nusselt
-       open(1453, file="diagnostic_data", position="append")
-       write(1453, *) &
-            current_time, (drag(i), i = 1, positions%dim), nusselt
-       close(1453)
+    ! write files    
+    if (GetRank() == 0 .and. do_print_diagnostics) then
+      ! Add support for tolerance of nonlinear iterations:
+      if (.not. have_option("/timestepping/nonlinear_iterations/tolerance") .or. &
+               (have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached)) then
+        ! file format: time, fx, fy, fz, nusselt
+        open(1453, file="diagnostic_data", position="append")
+        write(1453, *) &
+             current_time, (drag(i), i = 1, positions%dim), nusselt
+        close(1453)
 
-       ! Print out F_d in drag_force
-       if (print_drag) then
-         open(1455, file="drag_force", position="append")
-         write(1455, *) (drag(i), i = 1, positions%dim)
-         close(1455)
-       end if
+        if (do_print_multiple_solids_diagnostics) then
+           ! file format: 
+           ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
+           open(1454, file="particle_diagnostic_data", position="append")
+           write(1454, *) current_time, &
+                (particle_drag(i,:), i = 1, number_of_solids), &
+                (particle_nusselt(i), i = 1, number_of_solids)
+           close(1454)
+        end if
+      end if
+    end if
 
-       if (do_print_multiple_solids_diagnostics) then
-          ! file format: 
-          ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
-          open(1454, file="particle_diagnostic_data", position="append")
-          write(1454, *) current_time, &
-               (particle_drag(i,:), i = 1, number_of_solids), &
-               (particle_nusselt(i), i = 1, number_of_solids)
-          close(1454)
-       end if
-
+    ! Print out F_d in drag_force
+    if (.not. have_option("/timestepping/nonlinear_iterations/tolerance")) then
+      if (GetRank() == 0 .and. print_drag) then
+        open(1455, file="drag_force", position="append")
+        write(1455, *) (drag(i), i = 1, positions%dim)
+        close(1455)
+      end if
+    ! Add support for tolerance of nonlinear iterations:
+    else if(have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached) then
+      if (GetRank() == 0 .and. print_drag) then
+        open(1455, file="drag_force", position="append")
+        write(1455, *) its, (drag(i), i = 1, positions%dim)
+        close(1455)
+      end if
     end if
 
     deallocate(particle_drag, drag, particle_nusselt)
@@ -942,6 +960,27 @@ contains
     end do
 
   end function invert_intersection_map
+
+  !----------------------------------------------------------------------------
+  
+  subroutine implicit_solids_nl_tol(state, its, nliter_tol_reached)
+
+    type(state_type), intent(inout) :: state
+    integer, intent(in) :: its
+    logical, intent(in) :: nliter_tol_reached
+    integer :: locits
+
+    ewrite(2, *) "inside implicit_solids_nl_tol"
+    ! IF tolerance hasn't been reached after specified nonlinear iterations,
+    ! its is actually its+1, thus reducing it by one.
+    locits = its
+    if (.not. nliter_tol_reached) then
+      locits = locits-1
+    end if
+    call print_diagnostics(state, locits, .true.) !call print_diagnostics with .true.
+    ewrite(2, *) "leaving implicit_solids_nl_tol"
+
+  end subroutine implicit_solids_nl_tol
 
   !----------------------------------------------------------------------------
 

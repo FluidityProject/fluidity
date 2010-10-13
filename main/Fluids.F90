@@ -734,6 +734,12 @@ contains
           end if
        end if
 
+       if (have_option("/implicit_solids") .and. have_option("/timestepping/nonlinear_iterations/tolerance")) then
+          if (its-1==nonlinear_iterations .or. (its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
+             call implicit_solids_nl_tol(state(1), its, change < abs(nonlinear_iteration_tolerance))
+          end if
+       end if
+
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then
           ewrite(1,*) 'Entering vertical_ale routine'
           !move the mesh and calculate the grid velocity
