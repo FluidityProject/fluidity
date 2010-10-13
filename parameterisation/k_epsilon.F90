@@ -68,10 +68,6 @@ implicit none
   !  - Wall functions are added to selected boundaries in keps_bcs and wall_functions.
   !  - keps_adapt_options repopulates the fields after an adapt.
   !  - When done, clean-up.
-  !
-  ! TurbulentKineticEnergy and TurbulentDissipation need to have higher priority then other prognostic 
-  ! fields such as temperature, velocity and salinity for this to work.
-  ! Priority is set in preprocessor/Field_Priority_Lists
 
 contains
 
@@ -601,20 +597,20 @@ end subroutine keps_allocate_fields
 
 subroutine keps_bcs(state, field)
 
-    type(state_type)                        :: state
+    type(state_type), intent(inout)            :: state
     type(scalar_field), pointer, intent(inout) :: field   ! k or epsilon
-    type(scalar_field), pointer             :: kk, surface_field   ! always need kk
-    type(vector_field), pointer             :: positions
-    type(scalar_field)                      :: rhs_field
-    integer                                 :: i, j, ele, sele, node
-    integer, dimension(:), pointer          :: surface_elements, surface_node_list
-    character(len=FIELD_NAME_LEN)           :: bc_type, bc_name, wall_fns
-    character(len=OPTION_PATH_LEN)          :: bc_path
-    integer, allocatable, dimension(:)      :: nodes_bdy
-    real, dimension(:), allocatable         :: rhs
+    type(scalar_field), pointer                :: surface_field
+    type(vector_field), pointer                :: positions, velocity
+    type(scalar_field)                         :: rhs_field
+    integer                                    :: i, j, ele, sele, node
+    integer, dimension(:), pointer             :: surface_elements, surface_node_list
+    character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
+    character(len=OPTION_PATH_LEN)             :: bc_path
+    integer, allocatable, dimension(:)         :: nodes_bdy
+    real, dimension(:), allocatable            :: rhs
 
-    kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
     positions => extract_vector_field(state, "Coordinate")
+    velocity  => extract_vector_field(state, "Velocity")
 
     do j = 1, get_boundary_condition_count(field)
 
@@ -631,7 +627,7 @@ subroutine keps_bcs(state, field)
           ewrite(1,*) "Calculating field BC: ", trim(field%name), &
           trim(bc_name), ', ', trim(bc_type)
 
-          call allocate(rhs_field, kk%mesh, name="RHS")
+          call allocate(rhs_field, velocity%mesh, name="RHS")
           call zero(rhs_field)
 
           ! Surface element loop
@@ -644,7 +640,7 @@ subroutine keps_bcs(state, field)
              nodes_bdy =  face_global_nodes(field, sele)
 
              ! Calculate wall function
-             call keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
+             call keps_wall_function(state, field, ele, sele, positions, wall_fns, rhs)
              call addto( rhs_field, nodes_bdy, rhs )
 
              deallocate(rhs); deallocate(nodes_bdy)
@@ -670,9 +666,11 @@ end subroutine keps_bcs
 ! Only used if bc type = k_epsilon for field.                                    !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
+subroutine keps_wall_function(state, field, ele, sele, positions, wall_fns, rhs)
 
-    type(scalar_field), pointer, intent(in)              :: field, kk
+    type(state_type), intent(inout)                      :: state
+    type(scalar_field), pointer, intent(in)              :: field
+    type(scalar_field), pointer                          :: tke
     type(vector_field), pointer, intent(in)              :: positions
     integer, intent(in)                                  :: ele, sele
     character(len=FIELD_NAME_LEN), intent(in)            :: wall_fns
@@ -741,7 +739,9 @@ subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
           end do
 
           ! get k*viscosity at quadrature points
-          fields_sngi = 2.0 * face_val_at_quad(kk, sele) * visc
+          ! Extract kk field here just in case of confusion with field intents:
+          tke => extract_scalar_field(state, "TurbulentKineticEnergy")
+          fields_sngi = 2.0 * face_val_at_quad(tke, sele) * visc
 
           ! Perform rhs surface integration
           rhs = shape_rhs( fshape_field, detwei_bdy * gradn_c * fields_sngi )
