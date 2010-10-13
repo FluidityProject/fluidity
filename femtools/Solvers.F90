@@ -61,10 +61,12 @@ module solvers
 #include "finclude/petscpcdef.h"
 #else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
+#endif
 #endif
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
