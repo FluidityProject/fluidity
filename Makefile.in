@@ -392,7 +392,7 @@ clean: clean-light clean-test python_clean
 
 clean-test:      
 	@echo "    CLEAN tests"
-	@cd tests; ../tools/testharness.py --clean
+	@cd tests; ../tools/testharness.py --clean >/dev/null
 
 test: fltools bin/@FLUIDITY@ serialtest
 
