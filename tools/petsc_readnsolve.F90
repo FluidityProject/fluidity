@@ -64,6 +64,7 @@ implicit none
 #include "finclude/petscisdef.h"
 #else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscmat.h"
 #include "finclude/petscvec.h"
 #include "finclude/petscviewer.h"
@@ -72,6 +73,7 @@ implicit none
 #include "finclude/petscmg.h"
 #include "finclude/petscis.h"
 #include "finclude/petscsys.h"
+#endif
 #endif
   ! options read from command-line (-prns_... options)
   character(len=4096) filename, flml, read_solution, write_solution
