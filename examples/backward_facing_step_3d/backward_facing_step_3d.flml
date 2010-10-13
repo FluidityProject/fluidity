@@ -56,7 +56,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">0</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <max_dump_file_count replaces="DUMSAV">
@@ -186,7 +186,7 @@
             <real_value rank="0">1.e-12</real_value>
           </absolute_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -289,7 +289,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.e-3</real_value>
+                  <real_value rank="0">1.e-2</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -338,7 +338,31 @@
             </tolerance>
           </relative_measure>
         </adaptivity_options>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.e-7</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1.e-12</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </prognostic>
     </vector_field>
     <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
@@ -362,14 +386,11 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">100</integer_value>
+        <integer_value rank="0">50</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
-        <integer_value rank="0">70000</integer_value>
+        <integer_value rank="0">150000</integer_value>
       </maximum_number_of_nodes>
-      <max_node_increase>
-        <real_value rank="0">1.1</real_value>
-      </max_node_increase>
       <enable_gradation>
         <gradation_parameter>
           <real_value rank="0">3.</real_value>
@@ -378,7 +399,7 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.05 0. 0. 0. 0.05 0. 0. 0. 0.05</real_value>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.01 0. 0. 0. 0.01 0. 0. 0. 0.01</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

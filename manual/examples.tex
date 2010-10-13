@@ -536,6 +536,19 @@ down in the geometry. The region directly downstream of the step is
 of particular interest in this problem. An outflow boundary is located at the
 right hand end of the geometry.
 
+Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
+This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
+generate turbulence over the step and resolve its passage downstream. More information on running
+Fluidity in parallel is found in \ref{running_fluidity_in_parallel}.
+
+In practice the example is run in a very similar way to the other examples.
+To run in serial, the example is run in exactly the same way to the other examples, using
+the commands \option{make preprocess}, \option{make run} and \option{make postprocess}.
+To run in parallel with your chosen number of processors (\option{np}), using the command
+\option{make preprocess NPROCS=np} creates a mesh and decomposes it into (\option{np}) parts, and
+the command \option{make run NPROCS=np} runs \fluidity\ as (\option{np}) processes on (\option{np}) processors.
+The command \option{make postprocess NPROCS=np} runs the parallel-specific data processing script.
+
 \begin{figure}
 \centering
 \fig[width=12.0cm]{examples_images/BackwardStep-schematic}
@@ -616,23 +629,21 @@ u(z) =
 \subsection{Results}
 Three snapshots of the velocity vectors from the small benchmark run
 are shown in figure \ref{Fig:Vectors} at times
-5, 25 and 50. A vertical slice through the centre of the domain and a horizontal slice
+5, 25 and 50 seconds. A vertical slice through the centre of the domain and a horizontal slice
 at the level of the step are shown.
 
 
-%\begin{figure}
-%\centering
-%\subfigure{\fig[width=15.0cm]{images/VectorSlice_10.pdf}}
-%\subfigure{\fig[width=15.0cm]{images/VectorSlice_50.pdf}}
-%\subfigure{\fig[width=15.0cm]{images/VectorSlice_100.pdf}}
-%\caption{Snapshots of the velocity fields at times 5, 25 and 50 time units (top to bottom) into the simulation
-%from the smaller benchmark run.
-%A vertical slice through the centre of the domain and a horizontal slice at the height
-%of the step are shown. The evolution of the dynamics can be seen, in particular the onset of fully
-%three-dimensional structures and the reattachment of the velocity with the bottom of the domain approximately
-%8 units downstream of the step.}
-%\label{Fig:Vectors}
-%\end{figure}
+\begin{figure}
+\centering
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-vertplane-5sec}}
+\caption{Snapshots of the velocity fields at times 5, 25 and 50 time units (top to bottom) into the simulation
+from the smaller benchmark run.
+A vertical slice through the centre of the domain and a horizontal slice at the height
+of the step are shown. The evolution of the dynamics can be seen, in particular the onset of fully
+three-dimensional structures and the reattachment of the velocity with the bottom of the domain approximately
+8 units downstream of the step.}
+\label{Fig:Vectors}
+\end{figure}
 
 
 As this is a highly turbulent problem, making quantitative comparisons of

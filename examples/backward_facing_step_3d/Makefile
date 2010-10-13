@@ -1,24 +1,29 @@
-# Enter number of parallel processes:
-NPROCS = 2
+# Default number of processes (serial run):
+NPROCS=1
+# directory locations:
+BIN=../../bin/
+SCRIPTS=../../scripts/
 preprocess: 
 	@echo **********Generating the mesh using gmsh in 3d:
-	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
+	gmsh -3 -clmin 0.2 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle step3d.msh
+	$(SCRIPTS)gmsh2triangle step3d.msh
 ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 else
+# exit if no fltools and print warning
+	@if [ ! -e $(BIN)fldecomp ] ; then echo "You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	../../bin/fldecomp -n $(NPROCS) -f step3d
+	$(BIN)fldecomp -n $(NPROCS) -f step3d
 endif
 
 run:
 ifeq ($(NPROCS),1)
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	../../bin/fluidity -v2 -l backward_facing_step_3d.flml
+	$(BIN)fluidity -v2 -l backward_facing_step_3d.flml
 else
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) ../../bin/fluidity -v2 -l backward_facing_step_3d.flml
+	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l backward_facing_step_3d.flml
 endif
 
 postprocess:
@@ -29,7 +34,7 @@ else
 	./BFS_extract_profiles_3d_parallel.py
 endif
 
-input: preprocess
+input: preprocess NPROCS=2
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
