@@ -36,7 +36,7 @@ extern int projections(int nPoints, double *x, double *y, double *z, string curr
 
 void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
                      double *T, const double *Vx, const double *Vy, const double *Vz, double *salinity,
-                     double *F, double *Q, double *tau_u, double *tau_v, double *Q_solar,
+                     double *F, double *Q, double *tau_u, double *tau_v, double *solar,
                      const int *n, bool rotate, int *bulk_formula ) {
 
     // physical constants
@@ -55,7 +55,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     double *t_2m = new double[NNodes];
     double *q = new double[NNodes];
     double *z_data = new double[NNodes];
-    double *solar = new double[NNodes]; 
+    double *Q_solar = new double[NNodes]; 
     double *thermal = new double[NNodes];
     double *cloud = new double[NNodes];
     double *runoff = new double[NNodes];
@@ -153,6 +153,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         // fix integrated values - assume 6 hours
         //  - ssr
         solar[i] = (values[2] / accumulated_correction);
+
         //  - str
         thermal[i] = (values[3] / accumulated_correction);
     }
@@ -172,7 +173,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         case NCAR:
         default  :
             ncar_forcing_c_fc(&NNodes, speed, t_2m, SST, q, qs, delU_u, delU_v,
-                    ppt, runoff, salinity, solar, thermal, Q_solar, Q, F, tau_u, tau_v);
+                    ppt, runoff, salinity, thermal,  solar, Q_solar, Q, F, tau_u, tau_v);
     }
 
    
@@ -182,7 +183,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] t_2m;
     delete [] q;
     delete [] z_data;
-    delete [] solar; 
+    delete [] Q_solar; 
     delete [] thermal;
     delete [] cloud;
     delete [] runoff;
