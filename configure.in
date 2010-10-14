@@ -618,6 +618,7 @@ fi
 
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
+saved_CC="${CC}"
 saved_F77="${F77}"
 
 ##########################################
@@ -1129,7 +1130,7 @@ if test -d libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     cd libjudy
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/..
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libjudy has failed.])
       exit -1
