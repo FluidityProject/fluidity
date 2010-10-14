@@ -3206,8 +3206,9 @@ contains
               if(have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) // "/galerkin_projection") .and. &
                 & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/galerkin_projection") .and. &
                 & (have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/decompose") .or. &
-                & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/interpolate_boundary")) .and. .not. &
-                & have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) // "/galerkin_projection/honour_strong_boundary_conditions")) then
+                & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/interpolate_boundary")) .and. &
+                & .not. have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) &
+                & // "/galerkin_projection/honour_strong_boundary_conditions")) then
                 ewrite(0, *) "For geostrophic interpolation of field: " // trim(field_name)
                 ewrite(0, *) "Pressure field: " // trim(aux_p_name)
                 ewrite(0, *) "Warning: Conservative potential decompose or boundary_interpolation selected,"

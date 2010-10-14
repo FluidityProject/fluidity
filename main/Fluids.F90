@@ -35,7 +35,7 @@ module fluids_module
   use spud
   use equation_of_state
   use timers
-  use adapt_state_module 
+  use adapt_state_module
   use adapt_state_prescribed_module
   use FLDebug
   use sparse_tools
@@ -60,7 +60,7 @@ module fluids_module
   use qmesh_module
   use checkpoint
   use write_state_module
-  use traffic  
+  use traffic
   use synthetic_bc
   use goals
   use adaptive_timestepping
@@ -113,7 +113,7 @@ contains
 
   SUBROUTINE FLUIDS(filename)
     character(len = *), intent(in) :: filename
-    
+
     INTEGER :: &
          & NTSOL,  &
          & nonlinear_iterations
@@ -121,7 +121,7 @@ contains
     REAL :: &
          & finish_time, &
          & steady_state_tolerance
-         
+
     real:: nonlinear_iteration_tolerance
 
     !     System state wrapper.
@@ -195,27 +195,27 @@ contains
     ! Read state from .flml file
     call populate_state(state)
 
-    ewrite(3,*)'before have_option test' 
+    ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
        call read_pod_basis(POD_state, state)
     end if
-    
+
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
     zoltan_drive_call=.false.
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        call adapt_state_first_timestep(state)
-   
+
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
        call copy_to_stored_values(state,"Old")
        call copy_to_stored_values(state,"Iterated")
        call relax_to_nonlinear(state)
-       
+
        call enforce_discrete_properties(state)
 
        ! Ensure that checkpoints do not adapt at first timestep.
@@ -244,7 +244,7 @@ contains
     call check_old_code_path()
 
     ! set all timestepping options, needs to be before any diagnostics are calculated
-    
+
     call get_option("/timestepping/timestep", dt)
     if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
        call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
@@ -261,7 +261,7 @@ contains
     call get_option("/timestepping/steady_state/tolerance", &
          & steady_state_tolerance, default = -666.01)
 
-    
+
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
@@ -271,12 +271,12 @@ contains
        end if
        call CalculateTopBottomDistance(state(1))
     end if
-    
+
     ! move mesh according to inital free surface:
     !    top/bottom distance needs to be up-to-date before this call, after the movement
     !    they will be updated (inside the call)
     call move_mesh_free_surface(state, initialise=.true.)
-    
+
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -339,7 +339,7 @@ contains
     call calculate_diagnostic_variables(State)
     call calculate_diagnostic_variables_new(state)
     ! This is mostly to ensure that the photosynthetic radiation
-    ! has a non-zero value before the first adapt. 
+    ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
        call calculate_biology_terms(state(1))
     end if
@@ -348,7 +348,7 @@ contains
 
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
-    ! Dump at start  
+    ! Dump at start
     if( &
          ! if this is not a zero timestep simulation (otherwise, there would
          ! be two identical dump files)
@@ -358,14 +358,14 @@ contains
          & ) then
        call write_state(dump_no, state)
     end if
-    
+
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
-    
+
     not_to_move_det_yet=.false.
-    
+
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
         call gls_init(state(1))
@@ -425,11 +425,11 @@ contains
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
        call copy_to_stored_values(state,"Old")
-       if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then 
+       if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
           ! During the nonlinear iterations of a timestep, Coordinate is
           ! evaluated at n+theta, i.e. (1-theta)*OldCoordinate+theta*IteratedCoordinate.
-          ! At the end of the previous timestep however, the most up-to-date Coordinate, 
+          ! At the end of the previous timestep however, the most up-to-date Coordinate,
           ! i.e. IteratedCoordinate, has been copied into Coordinate. This value
           ! is now used as the Coordinate at the beginning of the time step.
           ! For the free surface this is dealt with within move_mesh_free_surface() below
@@ -440,7 +440,7 @@ contains
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
        if(use_sub_state()) call set_boundary_conditions_values(sub_state, shift_time=.true.)
-       
+
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
@@ -449,7 +449,7 @@ contains
 
        ! move the mesh according to a prescribed grid velocity
        ! NOTE: there may be a chicken and egg situation here.  This update
-       ! has to come after the setting of the prescribed fields so that 
+       ! has to come after the setting of the prescribed fields so that
        ! the grid velocity is not advected (in a lagrangian way) with the mesh
        ! after the previous timestep of mesh movement.  However, this means
        ! that other prescribed fields are actually set up according to an old
@@ -492,10 +492,10 @@ contains
           !    and IteratedCoordinate (based on p at the beginning of last iteration of previous timestep, say p^n*)
           !    In subsequent iterations, we have a reasonable approximation of p^{n+1}, so we base
           !    OldCoordinate on p^n* and IteratedCoordinate on p^(n+1)*, the best approximation p^{n+1} thus
-          !    far. Note that OldCoordinate should not be based on p^n (the value of p at the end of the 
+          !    far. Note that OldCoordinate should not be based on p^n (the value of p at the end of the
           !    last iteration of the previous timestep) but on p^n* (the value at the beginning of the last iteration
-          !    of previous timestep).       
-          
+          !    of previous timestep).
+
           if (nonlinear_iterations==1) then
             call move_mesh_free_surface(state)
           else
@@ -513,10 +513,10 @@ contains
           !     Addition for reading solids in - jem  02-04-2008
           if (have_solids) call solid_configuration(state(ss:ss), its, nonlinear_iterations)
 
-          !Explicit ALE ------------   jem 21/07/08         
-          if (use_ale) then 
+          !Explicit ALE ------------   jem 21/07/08
+          if (use_ale) then
              EWRITE(0,'(A)') '----------------------------------------------'
-             EWRITE(0,'(A26,E12.6)') 'Using explicit_ale. time: ',current_time       
+             EWRITE(0,'(A26,E12.6)') 'Using explicit_ale. time: ',current_time
              call explicit_ale(state,fs)
           end if
           !end explicit ale ------------  jem 21/07/08
@@ -588,7 +588,7 @@ contains
                 if(starts_with(trim(field_name_list(it)), "TrafficTracer")) then
                    call traffic_tracer(trim(field_name_list(it)),state(field_state_list(it)),timestep)
                 endif
-                
+
                 sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
                 call calculate_diagnostic_children(state, field_state_list(it), sfield)
 
@@ -644,7 +644,7 @@ contains
                 ! the next timestep. We do NOT want to be twiddling
                 ! diffusivity/viscosity half way through a non-linear iteration
                 call gls_diffusivity(state(1))
-            else 
+            else
                 cycle
             end if
           end if
@@ -670,7 +670,7 @@ contains
           if (have_option("/porous_media")) then
              call porous_media_momentum(state)
           end if
-          
+
           if (have_option("/traffic_model")) then
              call traffic_source(state(1),timestep)
           end if
@@ -684,23 +684,23 @@ contains
              call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
              ewrite(2,*) 'out of solid_drag_calculation'
           end if
-          
+
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
 
           if(use_sub_state()) then
-             call update_subdomain_fields(state,sub_state)     
+             call update_subdomain_fields(state,sub_state)
              call momentum_loop(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
              call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
-          
+
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, current_time + dt, dt, its, change)
-             if(its == 1) chaold = change             
+             if(its == 1) chaold = change
 
              if (have_option("/timestepping/nonlinear_iterations/&
                               &tolerance")) then
@@ -745,7 +745,7 @@ contains
           !move the mesh and calculate the grid velocity
           call movemeshy(state(1))
        end if
-       if (have_option('/mesh_adaptivity/mesh_movement')) then 
+       if (have_option('/mesh_adaptivity/mesh_movement')) then
           ! During the timestep Coordinate is evaluated at n+theta, i.e.
           ! (1-theta)*OldCoordinate+theta*IteratedCoordinate. For writing
           ! the diagnostics we use the end-of-timestep n+1 coordinate however,
@@ -754,7 +754,7 @@ contains
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
        end if
-       
+
        current_time=current_time+DT
 
        ! calculate and write diagnostics before the timestep gets changed
@@ -785,44 +785,44 @@ contains
        end if
 
        if(simulation_completed(current_time)) exit timestep_loop
-       
+
        ! ******************
        ! *** Mesh adapt ***
        ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
-          if(do_adapt_mesh(current_time, timestep)) then  
+          if(do_adapt_mesh(current_time, timestep)) then
 
              call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-             
+
              call adapt_state(state, metric_tensor)
 
              call update_state_post_adapt(state, metric_tensor, dt, sub_state)
-            
+
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(current_time)) then    
+          if(do_adapt_state_prescribed(current_time)) then
 
              call pre_adapt_tasks(sub_state)
-               
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)             
+
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-             
+
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt, sub_state)
-            
+
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
- 
+
           end if
-        
+
        not_to_move_det_yet=.false.
 
        end if
@@ -886,7 +886,7 @@ contains
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
-    
+
 
     ! Delete the transform_elements cache.
     call deallocate_transform_cache
@@ -914,11 +914,11 @@ contains
     end subroutine set_simulation_start_times
 
   end subroutine fluids
- 
+
   subroutine pre_adapt_tasks(sub_state)
 
     type(state_type), dimension(:), pointer :: sub_state
-  
+
     integer :: ss
 
     ! GLS - we need to deallocate all module-level fields or the memory
@@ -932,7 +932,7 @@ contains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_cleanup() ! deallocate everything
     end if
-    
+
     ! deallocate sub-state
     if(use_sub_state()) then
       do ss = 1, size(sub_state)
@@ -942,18 +942,18 @@ contains
     end if
 
   end subroutine pre_adapt_tasks
- 
+
   subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state)
     type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field), intent(out) :: metric_tensor
     real, intent(inout) :: dt
     type(state_type), dimension(:), pointer :: sub_state
-    
+
     ! The adaptivity metric
     if(have_option("/mesh_adaptivity/hr_adaptivity")) then
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
-    
+
     ! Auxilliary fields.
     call allocate_and_insert_auxilliary_fields(state)
     call copy_to_stored_values(state,"Old")
@@ -973,7 +973,7 @@ contains
       call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
       call set_option("/timestepping/timestep", dt)
     end if
-    
+
     ! Ocean boundaries
     if (has_scalar_field(state(1), "DistanceToTop")) then
       if (.not. have_option('/geometry/ocean_boundaries')) then
@@ -983,14 +983,14 @@ contains
       end if
       call CalculateTopBottomDistance(state(1))
     end if
-        
+
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
     ! This is mostly to ensure that the photosynthetic radiation
-    ! has a non-zero value before the next adapt. 
+    ! has a non-zero value before the next adapt.
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
-   
+
     ! GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_adapt_mesh(state(1))
@@ -1000,9 +1000,9 @@ contains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_adapt_mesh(state(1))
     end if
-           
+
   end subroutine update_state_post_adapt
-  
+
   subroutine fluids_module_check_options
     !!< Check fluids specific options
 
@@ -1024,14 +1024,14 @@ contains
     ewrite(2, *) "Finished checking simulation completion options"
 
   end subroutine fluids_module_check_options
-    
+
   subroutine check_old_code_path()
   !!< checks whether any of the phases use the old code path
     character(len=OPTION_PATH_LEN):: option_path
     character(len=FIELD_NAME_LEN):: tmpstring
     logical:: use_advdif
     integer:: i, j, tmpstat
-    
+
     ! first check for a velocity field with legacy options
     do i=1, option_count("/material_phase")
       option_path="/material_phase["//int2str(i-1)//"]/vector_field::Velocity"
@@ -1041,7 +1041,7 @@ contains
           have_option(trim(option_path)//"/prognostic/spatial_discretisation&
                                 &/legacy_discretisation") &
         ) then
-    
+
         ewrite(0,*) "ERROR: You seem to be using legacy_continuous_galerkin or "
         ewrite(0,*) "legacy_discretisation for spatial_discretisation of Velocity."
         ewrite(0,*) "This uses the old code path (navsto) which has been deleted."
@@ -1049,11 +1049,11 @@ contains
         FLExit("The old code path is dead.")
       end if
     end do
-    
+
     do i=1, option_count("/material_phase")
       do j=1, option_count("/material_phase["//int2str(i-1)//"]/scalar_field")
         option_path="/material_phase["//int2str(i-1)//"]/scalar_field["//int2str(j-1)//']'
-        
+
         ! this is a copy from fluids() above:
         call get_option(trim(option_path)//&
               '/prognostic/equation[0]/name', &
@@ -1068,7 +1068,7 @@ contains
         else
           use_advdif=.false.
         end if
-        
+
         if (use_advdif .and. ( &
           have_option(trim(option_path)//&
             & "/prognostic/spatial_discretisation/legacy_continuous_galerkin").or.&
@@ -1077,7 +1077,7 @@ contains
           have_option(trim(option_path)//&
             & "/prognostic/spatial_discretisation/legacy_discretisation") &
           )) then
-            
+
           ewrite(0,*) "Error: You seem to be using legacy_continuous_galerkin,"
           ewrite(0,*) "legacy_mixed_cv_cg or legacy_discretisation for the"
           ewrite(0,*) "spatial discretisation of one of your scalar fields."
@@ -1085,11 +1085,11 @@ contains
           ewrite(0,*) "You should switch to any of the other options."
           FLExit("The old code path is dead.")
         end if
-         
+
       end do
     end do
-    
+
   end subroutine check_old_code_path
-  
+
   end module fluids_module
 

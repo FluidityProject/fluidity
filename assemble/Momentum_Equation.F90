@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    C.Pain@Imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -102,7 +102,7 @@
         ! get the velocity
         u=>extract_vector_field(state(istate), "Velocity", stat)
         ! if there's no velocity then cycle
-        if(stat/=0) cycle  
+        if(stat/=0) cycle
         ! if this is an aliased velocity then cycle
         if(aliased(u)) cycle
         ! if the velocity isn't prognostic then cycle
@@ -166,7 +166,7 @@
       type(csr_matrix) :: schur_auxiliary_matrix
       ! Scaled pressure mass matrix - used for preconditioning full projection solve:
       type(csr_matrix), target :: scaled_pressure_mass_matrix
-      type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity      
+      type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity
       ! compressible pressure gradient operator/left hand matrix of cmc
       type(block_csr_matrix), pointer :: ctp_m
       ! the lumped mass matrix (may vary per component as absorption could be included)
@@ -206,11 +206,11 @@
 
       ! the timestep
       real :: dt
-      
+
       ! with free surface pressures are at integer time levels
       ! and we apply a theta weighting to the pressure gradient term
       ! also the continuity equation is considered at time n+theta
-      ! instead of at the end of the timestep      
+      ! instead of at the end of the timestep
       real :: theta_pg
       ! in this case p_theta=theta*p+(1-theta)*old_p
       type(scalar_field), pointer :: old_p, p_theta
@@ -219,7 +219,7 @@
       ! without a free surface, or with a free surface and theta==1
       ! use_theta_pg .eqv. .false. and p_theta => p
       logical :: use_theta_pg
-      
+
       ! what is the equation type?
       character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
 
@@ -234,17 +234,17 @@
       logical :: pressure_debugging_vtus
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
-      
+
       ! add viscous terms to inverse_masslump for low Re which is only used for pressure correction
       logical :: low_re_p_correction_fix
-      
+
       ! the list of stiff nodes
       ! this is saved because the list is only formed when cmc is assembled, which
       ! isn't necessarily every time this subroutine is called but the list is
       ! still needed to fix the rhs (applying the fix to cmc itself wipes out the
       ! information that would be required to recompile the list)
       type(ilist), save :: stiff_nodes_list
-      
+
       ! increased each call to momentum equation, used as index for pressure debugging vtus
       integer,save :: pdv_count=-1
 
@@ -254,15 +254,15 @@
       integer :: d
       type(scalar_field) :: u_cpt
 
-      !! For Tidal Forcing 
-      type(vector_field), pointer :: position 
-      type(scalar_field) :: tidal_pressure, combined_p 
-      logical, dimension(11) :: which_tide 
-      integer :: node 
+      !! For Tidal Forcing
+      type(vector_field), pointer :: position
+      type(scalar_field) :: tidal_pressure, combined_p
+      logical, dimension(11) :: which_tide
+      integer :: node
       real :: eqtide, long, lat, height, love_number, current_time, gravity_magnitude
-      
+
       ewrite(1,*) 'Entering solve_momentum'
-      
+
       ! get the velocity
       u=>extract_vector_field(state(istate), "Velocity")
       do i = 1, u%dim
@@ -276,7 +276,7 @@
       subcycle=have_option(trim(u%option_path)//&
            "/prognostic/temporal_discretisation/&
            &discontinuous_galerkin/maximum_courant_number_per_subcycle")
-     
+
       x=>extract_vector_field(state(istate), "Coordinate")
 
       ! get some velocity options:
@@ -306,7 +306,7 @@
 
       ! get the pressure
       p=>extract_scalar_field(state(istate), "Pressure", stat)
-      if(stat/=0) then 
+      if(stat/=0) then
         ! allocate a dummy scalar field in case we have no pressure
         allocate(dummypressure)
         call allocate(dummypressure, u%mesh, "DummyPressure", field_type=FIELD_TYPE_CONSTANT)
@@ -327,13 +327,13 @@
         call profiler_tic(p, "assembly")
         ! get the pressure gradient matrix
         ct_m => get_velocity_divergence_matrix(state, get_ct=get_ct_m)
-      
+
         ! get the pressure poisson matrix
         cmc_m => get_pressure_poisson_matrix(state, get_cmc=get_cmc_m)
         call profiler_toc(p, "assembly")
       end if
       ewrite_minmax(p%val)
-            
+
       allocate(dummydensity)
       call allocate(dummydensity, u%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
       call set(dummydensity, 1.0)
@@ -367,7 +367,7 @@
       use_compressible_projection = have_option(trim(p%option_path)//&
                                     "/prognostic/scheme&
                                     &/use_compressible_projection_method")
-      
+
       get_cmc_m = get_cmc_m .or. &
                   have_option(trim(p%option_path)//&
                   "/prognostic/scheme/update_discretised_equation") .or. &
@@ -375,7 +375,7 @@
       get_ct_m = get_ct_m .or. &
                   have_option(trim(p%option_path)//&
                   "/prognostic/scheme/update_discretised_equation")
-                  
+
       pressure_debugging_vtus = have_option(trim(p%option_path)// &
                    "/prognostic/output/debugging_vtus")
       if (pressure_debugging_vtus) then
@@ -393,9 +393,9 @@
         call set_option(trim(p%option_path)//&
           "/prognostic/scheme/poisson_pressure_solution", "never")
       case default
-        FLExit(trim(poisson_scheme)//" is not a legal poisson_pressure_solution") 
+        FLExit(trim(poisson_scheme)//" is not a legal poisson_pressure_solution")
       end select
-      
+
       ! If we are using the reduced model then there is no pressure projection.
       if (reduced_model) get_cmc_m=.false.
 
@@ -444,7 +444,7 @@
             FLAbort("Unknown Matrix Type for Full_Projection")
          end select
       end if
-      
+
       ! low Re fix for pressure correction?
       low_re_p_correction_fix=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
@@ -456,7 +456,7 @@
       ! or using cg (we do this in every case of not having a control volume
       ! option so that prescribed pressures will work as well)
       cg_pressure = (.not.cv_pressure)
-      
+
       call get_option("/timestepping/timestep", dt)
 
       if (has_boundary_condition(u, "free_surface").or.use_compressible_projection) then
@@ -471,11 +471,11 @@
          ! pressures are as usual staggered in time with the velocities
          use_theta_pg=.false.
       end if
-            
+
       if (use_theta_pg) then
         allocate(p_theta)
         call allocate(p_theta, p%mesh, "PressureTheta")
-        
+
         ! p_theta = theta*p + (1-theta)*old_p
         call set(p_theta, p, old_p, theta_pg)
         p_theta%option_path=p%option_path ! use p's solver options
@@ -492,7 +492,7 @@
         p_theta => p
         theta_pg=1.0
       end if
-      
+
       call profiler_tic(u, "assembly")
       ! allocation of big_m
       if(dg) then
@@ -521,10 +521,10 @@
       call allocate(ct_rhs, p_mesh, "DivergenceRHS")
       call zero(ct_rhs)
       call profiler_toc(u, "assembly")
-      
+
       if(has_scalar_field(state(istate), hp_name)) then
         call calculate_hydrostatic_pressure(state(istate))
-      end if      
+      end if
       if(has_vector_field(state(istate), hpg_name)) then
         call calculate_hydrostatic_pressure_gradient(state(istate))
       end if
@@ -561,23 +561,23 @@
               cg_pressure=cg_pressure)
       end if
       call profiler_toc(u, "assembly")
-      
+
       if(has_scalar_field(state(istate), hp_name)) then
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if
       if(has_vector_field(state(istate), hpg_name)) then
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
-      end if      
+      end if
       if(has_scalar_field(state(istate), vbp_name)) then
         call calculate_vertical_balance_pressure(state(istate))
         call subtract_vertical_balance_pressure_gradient(mom_rhs, state(istate))
       end if
-      
+
       call profiler_tic(u, "assembly")
       if (has_boundary_condition(u, "wind_forcing")) then
         call wind_forcing(state(istate), mom_rhs)
       end if
-      
+
       if (has_boundary_condition(u, "drag")) then
         call drag_surface(big_m, mom_rhs, state(istate), density)
       end if
@@ -598,7 +598,7 @@
       ! At the moment cg does its own ct assembly. We might change this in
       ! the future.
       if(cg_pressure.and.dg) then
-        call  assemble_divergence_matrix_cg(CT_m, state(istate), ct_rhs=ct_rhs, & 
+        call  assemble_divergence_matrix_cg(CT_m, state(istate), ct_rhs=ct_rhs, &
              test_mesh=p%mesh, field=u, get_ct=get_ct_m)
       end if
       call profiler_toc(p, "assembly")
@@ -608,8 +608,8 @@
         ! rotates big_m, rhs and the velocity field at strong, surface_aligned dirichlet bcs
         call rotate_momentum_equation(big_m, mom_rhs, u, state(istate))
         if (get_ct_m) call rotate_ct_m(ct_m, u)
-      end if    
-      
+      end if
+
       call apply_dirichlet_conditions(big_m, mom_rhs, u, dt)
       call profiler_toc(u, "assembly")
 
@@ -651,9 +651,9 @@
         call zero(kmk_rhs)
 
         ! Decide whether or not to form kmk stabilization matrix:
-        apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 .and. p_mesh%shape%numbering%family == FAMILY_SIMPLEX .and. &
-              & continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX .and. &
-              & .not. have_option(trim(p%option_path) // &
+        apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 .and. p_mesh%shape%numbering%family == FAMILY_SIMPLEX &
+              & .and. continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX&
+              & .and. .not. have_option(trim(p%option_path) // &
               & "/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term") .and. &
               & .not. cv_pressure .and.&
               & .not. reduced_model)
@@ -663,7 +663,7 @@
                   "/prognostic/scheme/update_discretised_equation") .or. &
                   have_option("/mesh_adaptivity/mesh_movement"))
 
-            
+
         ! Assemble kmk stabilization matrix if required:
         if(assemble_kmk) then
            ewrite(2,*) "Assembling P1-P1 stabilisation"
@@ -718,18 +718,18 @@
               call add_kmk_matrix(state(istate), cmc_m)
             end if
           end if
-          
+
           if(have_option(trim(p%option_path)//"/prognostic/repair_stiff_nodes")) then
             call repair_stiff_nodes(cmc_m, stiff_nodes_list)
           end if
-          
+
         end if
-        
+
         if (has_boundary_condition(u, "free_surface")) then
           call add_free_surface_to_cmc_projection(state(istate), &
               cmc_m, dt, theta_pg, get_cmc=get_cmc_m, rhs=ct_rhs)
         end if
-        
+
         ! do we want to get an initial guess at the pressure?
         if(poisson_p) then
 
@@ -745,33 +745,33 @@
             ! bad.
             call assemble_masslumped_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, inverse_masslump, u, dt, theta_pg)
           end if
-          
+
           if (has_boundary_condition(u, "free_surface")) then
             call add_free_surface_to_poisson_rhs(poisson_rhs, state(istate), dt, theta_pg)
           end if
-          
+
           ! apply strong dirichlet conditions
           call apply_dirichlet_conditions(cmc_m, poisson_rhs, p)
-          
+
           call impose_reference_pressure_node(cmc_m, poisson_rhs, trim(p%option_path))
-          
+
           call profiler_toc(p, "assembly") ! don't include poisson solve
           call petsc_solve(p_theta, cmc_m, poisson_rhs, state(istate))
           call profiler_tic(p, "assembly")
-            
+
           if (has_boundary_condition(u, "free_surface")) then
             ! use this as initial pressure guess, except at the free surface
             ! where we use the prescribed initial condition
             call copy_poisson_solution_to_interior(p_theta, p, old_p, u)
           end if
-          
+
           if (pressure_debugging_vtus) then
              call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
                 sfields=(/ p_theta, p, old_p /))
           end if
-          
+
           ewrite_minmax(p_theta%val)
-          
+
           call deallocate(poisson_rhs)
 
         end if ! poisson pressure solution
@@ -792,7 +792,7 @@
         end if
 
         if(get_scaled_pressure_mass_matrix) then
-           ! Assemble scaled pressure mass matrix which will later be used as a 
+           ! Assemble scaled pressure mass matrix which will later be used as a
            ! preconditioner in the full projection solve:
            ewrite(2,*) "Assembling scaled pressure mass matrix preconditioner"
            scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
@@ -808,9 +808,9 @@
 
       end if ! prognostic pressure
       call profiler_toc(p, "assembly")
-      
+
       if (.not.reduced_model) then
-      
+
           ! allocate the momentum solution vector
           call profiler_tic(u, "assembly")
           call allocate(delta_u, u%dim, u%mesh, "DeltaU")
@@ -828,70 +828,70 @@
             ! despite multiplying pressure by a nonlocal operator
             ! a halo_update isn't necessary as this is just a rhs
             ! contribution
-             if (have_option('/ocean_forcing/tidal_forcing')) then 
-                which_tide=.false. 
+             if (have_option('/ocean_forcing/tidal_forcing')) then
+                which_tide=.false.
                if (have_option('/ocean_forcing/tidal_forcing/all_tidal_compo&
-                    &nents')) then 
-                  which_tide=.true. 
-               else 
+                    &nents')) then
+                  which_tide=.true.
+               else
                   if (have_option('/ocean_forcing/tidal_forcing/M2')) &
-                       & which_tide(1)=.true. 
+                       & which_tide(1)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/S2')) &
-                       & which_tide(2)=.true. 
+                       & which_tide(2)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/N2')) &
-                       & which_tide(3)=.true. 
+                       & which_tide(3)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/K2')) &
-                       & which_tide(4)=.true. 
+                       & which_tide(4)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/K1')) &
-                       & which_tide(5)=.true. 
+                       & which_tide(5)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/O1')) &
-                       & which_tide(6)=.true. 
+                       & which_tide(6)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/P1')) &
-                       & which_tide(7)=.true. 
+                       & which_tide(7)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/Q1')) &
-                       & which_tide(8)=.true. 
+                       & which_tide(8)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/Mf')) &
-                       & which_tide(9)=.true. 
+                       & which_tide(9)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/Mm')) &
-                       & which_tide(10)=.true. 
+                       & which_tide(10)=.true.
                   if (have_option('/ocean_forcing/tidal_forcing/Ssa')) &
-                       & which_tide(11)=.true. 
-               end if 
+                       & which_tide(11)=.true.
+               end if
                if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
-                    & then 
+                    & then
                  call get_option('/ocean_forcing/tidal_forcing/love_number/v&
-                      &alue', love_number) 
-              else 
-                 love_number=1.0 
-              end if 
-              call allocate(tidal_pressure, p_theta%mesh, "TidalPressure") 
-              call allocate(combined_p, p_theta%mesh, "CombinedPressure") 
-              position => extract_vector_field(state, "Coordinate") 
-              call get_option("/timestepping/current_time", current_time) 
+                      &alue', love_number)
+              else
+                 love_number=1.0
+              end if
+              call allocate(tidal_pressure, p_theta%mesh, "TidalPressure")
+              call allocate(combined_p, p_theta%mesh, "CombinedPressure")
+              position => extract_vector_field(state, "Coordinate")
+              call get_option("/timestepping/current_time", current_time)
               call get_option('/physical_parameters/gravity/magnitude',&
-                   & gravity_magnitude) 
-              do node=1,node_count(position) 
-                 if (have_option('/geometry/spherical_earth/')) then 
+                   & gravity_magnitude)
+              do node=1,node_count(position)
+                 if (have_option('/geometry/spherical_earth/')) then
                    call LongitudeLatitude(node_val(position,node), long,&
-                        & lat, height) 
-                else 
+                        & lat, height)
+                else
                    ewrite(-1,*) "Tidal forcing in non spherical geometries&
                         &is yet to be added. Would you like &
                         &to add this functionality?"
                    FLExit('Exiting as code missing')
                 end if
                  eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
-                      &,long*acos(-1.0)/180.0,current_time,1.0) 
-                 eqtide=love_number*eqtide 
-                 call set(tidal_pressure, node, eqtide*gravity_magnitude) 
-              end do 
-              do node=1,node_count(position) 
-                 call set(combined_p, node, node_val(p_theta, node)&
-                      &-node_val(tidal_pressure, node)) 
+                      &,long*acos(-1.0)/180.0,current_time,1.0)
+                 eqtide=love_number*eqtide
+                 call set(tidal_pressure, node, eqtide*gravity_magnitude)
               end do
-              call mult_T(delta_u, ct_m, combined_p) 
-              call deallocate(tidal_pressure) 
-              call deallocate(combined_p) 
+              do node=1,node_count(position)
+                 call set(combined_p, node, node_val(p_theta, node)&
+                      &-node_val(tidal_pressure, node))
+              end do
+              call mult_T(delta_u, ct_m, combined_p)
+              call deallocate(tidal_pressure)
+              call deallocate(combined_p)
              else
                 call mult_T(delta_u, ct_m, p_theta)
              end if
@@ -914,7 +914,7 @@
 
           ! impose any reference nodes on velocity
           call impose_reference_velocity_node(big_m, mom_rhs, trim(u%option_path))
-       
+
           call profiler_toc(u, "assembly")
 
           ! solve for the change in velocity
@@ -961,10 +961,10 @@
             call scale(projec_rhs, -1.0)
             call addto(projec_rhs, ct_rhs)
             ewrite_minmax(projec_rhs%val(:))
-            
+
             if(use_compressible_projection) then
               call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
-              
+
               if(cv_pressure) then
                 call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
                                                         get_cmc_m)
@@ -975,10 +975,10 @@
                 ! developer error... out of sync options input and code
                 FLAbort("Unknown pressure discretisation for compressible projection.")
              end if
-              
+
               ewrite_minmax(compress_projec_rhs%val)
               ewrite_minmax(cmc_m%val)
-              
+
               call addto(projec_rhs, compress_projec_rhs)
 
               call deallocate(compress_projec_rhs)
@@ -990,9 +990,9 @@
             ! "acceleration" dp/dt, by providing dt=1/(dt*theta_pg**2) we get what we want
             call apply_dirichlet_conditions(cmc_m, projec_rhs, p, &
               dt=1.0/(dt*theta_pg**2))
-            
+
             call impose_reference_pressure_node(cmc_m, projec_rhs, trim(p%option_path))
-            
+
             ! allocate the change in pressure field
             call allocate(delta_p, p%mesh, "DeltaP")
             delta_p%option_path = trim(p%option_path)
@@ -1002,12 +1002,12 @@
               call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
            end if
             call profiler_toc(p, "assembly")
-      
+
             ! solve for the change in pressure
             if(full_schur) then
                if(assemble_schur_auxiliary_matrix) then
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
-                       full_projection_preconditioner, state(istate), u%mesh, &                       
+                       full_projection_preconditioner, state(istate), u%mesh, &
                        auxiliary_matrix=schur_auxiliary_matrix)
                else
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
@@ -1028,19 +1028,19 @@
               call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
                   sfields=(/ delta_p, p, old_p, p_theta /), vfields=(/ u /))
            end if
-            
+
             call profiler_tic(p, "assembly")
             if (use_theta_pg) then
               ! we've solved theta_pg**2*dt*dp, in the velocity correction
               ! however we need theta_pg*dt*dp
               call scale(delta_p, 1.0/theta_pg)
            end if
-            
+
             ! add the change in pressure to the pressure
             ! (if .not. use_theta_pg then theta_pg is 1.0)
             call addto(p, delta_p, scale=1.0/(theta_pg*dt))
             ewrite_minmax(p%val)
-            
+
             if(use_compressible_projection) then
               call update_compressible_density(state)
            end if
@@ -1061,7 +1061,7 @@
               FLAbort("Don't know how to correct the velocity.")
            end if
             call profiler_toc(u, "assembly")
-            
+
             call deallocate(kmk_rhs)
             call deallocate(projec_rhs)
             call deallocate(delta_p)
@@ -1084,17 +1084,17 @@
         end if
 
      else ! Reduced model version
-  
+
           ! allocate the change in pressure field
           call allocate(delta_p, p%mesh, "DeltaP")
           delta_p%option_path = trim(p%option_path)
           call zero(delta_p)
-          
+
           call allocate(delta_u, u%dim, u%mesh, "DeltaU")
           delta_u%option_path = trim(u%option_path)
           call zero(delta_u)
 
-          call solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state) 
+          call solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state)
 
           snapmean_velocity=>extract_vector_field(POD_state(1), "SnapmeanVelocity")
           snapmean_pressure=>extract_scalar_field(POD_state(1), "SnapmeanPressure")
@@ -1114,11 +1114,11 @@
 
           call deallocate(delta_p)
           call deallocate(delta_u)
-          
+
        end if ! end of if reduced model
 
 
-      
+
       call profiler_tic(u, "assembly")
       if (have_rotated_bcs(u)) then
         call rotate_velocity_back(u, state(istate))
@@ -1133,7 +1133,7 @@
       end if
 
       call profiler_toc(u, "assembly")
-      
+
       if(dg)then
         if (lump_mass) then
           call deallocate(inverse_masslump)
@@ -1146,7 +1146,7 @@
       if (low_re_p_correction_fix) then
         call deallocate(visc_inverse_masslump)
       end if
-      
+
       if (use_theta_pg) then
         call deallocate(p_theta)
         deallocate(p_theta)
@@ -1174,13 +1174,13 @@
       end if
 
     end subroutine solve_momentum
-      
+
     subroutine momentum_equation_check_options
 
       integer :: i, nmat
       character(len=FIELD_NAME_LEN) :: schur_scheme
       character(len=FIELD_NAME_LEN) :: schur_preconditioner
-      
+
       ewrite(1,*) 'Checking momentum discretisation options'
 
       nmat = option_count("/material_phase")
@@ -1290,17 +1290,17 @@
              &/anisotropic_asymmetric")) then
 
           if(have_option("/material_phase["//int2str(i)//&
-               "]/scalar_field::Pressure/prognostic&                                                                                                                                              
-               &/scheme/use_projection_method")) then
+               "]/scalar_field::Pressure/prognostic"//&
+               &"/scheme/use_projection_method")) then
 
              if(have_option("/material_phase["//int2str(i)//&
-                  "]/scalar_field::Pressure/prognostic&                                                                                                                                            
-                  &/scheme/use_projection_method&                                                                                                                                                  
+                  "]/scalar_field::Pressure/prognostic&
+                  &/scheme/use_projection_method&
                   &/full_schur_complement")) then
 
                 call get_option("/material_phase["//int2str(i)//&
-                     "]/scalar_field::Pressure/prognostic&                                                                                                                                              
-                     &/scheme/use_projection_method&                                                                                                                                                    
+                     "]/scalar_field::Pressure/prognostic&
+                     &/scheme/use_projection_method&
                      &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
 
                 select case(schur_preconditioner)
@@ -1328,7 +1328,7 @@
                               "]/scalar_field::Pressure/prognostic&
                               &/scheme/use_projection_method&
                               &/full_schur_complement")) then
-                              
+
               call get_option("/material_phase["//int2str(i)//&
                             "]/scalar_field::Pressure/prognostic&
                             &/scheme/use_projection_method&
@@ -1337,12 +1337,12 @@
               case("FullMassMatrix")
                 FLExit("Can't do a full schur complement solve with dg velocity and a mass inner matrix.")
               end select
-              
+
             end if
           end if
 
         end if
-        
+
         ! Check options for Low Re Fix:
         if(have_option("/material_phase["//int2str(i)//&
                             "]/scalar_field::Pressure/prognostic&
@@ -1373,5 +1373,5 @@
       ewrite(1,*) 'Finished checking momentum discretisation options'
 
     end subroutine momentum_equation_check_options
-    
+
   end module momentum_equation
