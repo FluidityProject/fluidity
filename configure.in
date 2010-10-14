@@ -117,10 +117,10 @@ fi
 
 if test "$fcompiler" = "ifort" ; then
     if ifort -v 2>&1 |grep 11.0; then 
-	AC_MSG_ERROR(Intel 11.0 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
+      AC_MSG_ERROR(Intel 11.0 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
     fi
     if ifort -v 2>&1 |grep 11.1; then 
-	AC_MSG_ERROR(Intel 11.1 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
+      AC_MSG_WARN(Early versions of intel 11.1 are bugged and cannot be used to compile Fluidity. Make sure you have at least version 11.1.073.)
     fi
     FFLAGS="$FFLAGS -vec-report=0"
     FCFLAGS="$FCFLAGS -vec-report=0"

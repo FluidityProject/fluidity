@@ -449,7 +449,9 @@ ac_ext=F90
 AC_LINK_IFELSE(
         [AC_LANG_PROGRAM([],[[
                         use petsc
+                        integer :: ierr
                         print*, "hello petsc"
+                        call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
                         ]])],
         [
             AC_MSG_NOTICE([PETSc modules are working.])
