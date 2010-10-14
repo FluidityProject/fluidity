@@ -737,8 +737,8 @@ function shape_integrate_surface(integrand, element, dim,face) &
                    fail=.false.
                 end if
 
-                write(test_message, '(4(a,i0),a)') "[",dim,"-simplex &
-                     &surface face,", k, " element degree ",&
+                write(test_message, '(4(a,i0),a)') "[",dim,"-simplex surface face,",&
+                     k, " element degree ",&
                      degree," power ",power," ]"
 
                 call report_test(trim(test_message), fail, .false.,&

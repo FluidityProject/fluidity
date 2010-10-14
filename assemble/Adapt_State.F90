@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    C.Pain@Imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module adapt_state_module
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
   use quadrature
   use elements
   use sparse_tools
@@ -62,7 +62,7 @@ module adapt_state_module
   use project_metric_to_surface_module
   use reserve_state_module
   use sam_integration
-  use tictoc  
+  use tictoc
   use timeloop_utilities
   use fields_halos
   use data_structures
@@ -76,19 +76,19 @@ module adapt_state_module
 #endif
 
   use mesh_files
-  
+
   implicit none
-  
+
   private
-  
+
   public :: adapt_mesh, adapt_state, adapt_state_first_timestep
   public :: insert_metric_for_interpolation, extract_and_remove_metric, sam_options
   public :: adapt_state_module_check_options
-  
+
   interface adapt_state
     module procedure adapt_state_single, adapt_state_multiple
   end interface adapt_state
-  
+
 contains
 
   subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
@@ -234,7 +234,7 @@ contains
       ! mesh_0: incoming unwrapped mesh
       call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
-      call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, & 
+      call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, &
                 & force_preserve_regions=force_preserve_regions, &
                 & lock_faces=lock_faces, allow_boundary_elements=.true.)
       ! mesh_1: first adapted mesh
@@ -276,7 +276,7 @@ contains
         end if
       end do
       deallocate(surface_id)
-        
+
       ! if any nodes on the other periodic are in the elements directly
       ! adjacent move them too
       if (key_count(other_surface_ids)>0) then
@@ -304,14 +304,14 @@ contains
         call insert(nodes_to_move, set2vector(extra_nodes_to_move))
         call deallocate(extra_nodes_to_move)
       end if
-      
+
       ! the new cut now consists of the faces in the elements adjacent
       ! to the nodes to move that are not in "nodes_to_move" itself
       ! the nodes on the cut will in fact not be moved as they will retain
       ! their aliased position in the periodic position field
       call allocate(new_physical_faces)
       call allocate(new_aliased_faces)
-      
+
       do i=1, key_count(nodes_to_move)
         node = fetch(nodes_to_move, i)
         neighbours => row_m_ptr(nelist, node)
@@ -327,7 +327,7 @@ contains
              if (.not. any(has_value(nodes_to_move,face_global_nodes(unwrapped_positions_B, face))) &
                .and. .not. any(has_value(nodes_to_move,ele_nodes(unwrapped_positions_B, ele2))) &
                ) then
-               call insert(new_physical_faces, face)               
+               call insert(new_physical_faces, face)
                ! opposite face becomes aliased
                face = ele_face(unwrapped_positions_B, ele2, ele)
                call insert(new_aliased_faces, face)
@@ -336,7 +336,7 @@ contains
         end do
       end do
       call deallocate(nodes_to_move)
-      
+
       ! don't want to move nodes on the new cut, as they'll retain
       ! their original before-aliasing position
       floc = face_loc(intermediate_positions, 1)
@@ -352,7 +352,7 @@ contains
         end do
       end do
       deallocate(fnodes)
-        
+
       ! now move the nodes in the periodic positions field
       allocate(aliased_positions(intermediate_positions%dim, key_count(periodic_nodes_to_move)))
       allocate(physical_positions(intermediate_positions%dim, key_count(periodic_nodes_to_move)))
@@ -373,7 +373,7 @@ contains
       deallocate(physical_positions)
       deallocate(aliased_positions)
       call deallocate(periodic_nodes_to_move)
-      
+
       ! Step f). Colour those faces on either side of the new cut
 
       ! Choose a new colour that isn't used
@@ -393,7 +393,7 @@ contains
           face_count = face_count + 1
         end if
       end do
-      
+
       allocate(boundary_ids(face_count))
       allocate(element_owners(face_count))
       allocate(sndgln(face_count * floc))
@@ -403,16 +403,16 @@ contains
       do j=1,surface_element_count(intermediate_positions)
         if (.not. (any(surface_element_id(intermediate_positions, j) == physical_colours) .or. &
           & any(surface_element_id(intermediate_positions, j) == aliased_colours))) then
-        
+
           l = l + 1
           boundary_ids(l) = surface_element_id(intermediate_positions, j)
           element_owners(l) = face_ele(intermediate_positions, j)
           sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, j)
         end if
       end do
-        
+
       ! and now fetch the information for the faces we are adding
-      
+
       do j=1, key_count(new_physical_faces)
         l = l + 1
         face = fetch(new_physical_faces, j)
@@ -421,7 +421,7 @@ contains
         sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
       end do
       call deallocate(new_physical_faces)
-      
+
       do j=1, key_count(new_aliased_faces)
         l = l + 1
         face = fetch(new_aliased_faces, j)
@@ -432,7 +432,7 @@ contains
       call deallocate(new_aliased_faces)
 
       assert(l == face_count)
-      
+
       ! deallocate the old faces, and rebuild
       ! mesh_3: first adapted mesh, periodised with moving front nodes moved over
       call vtk_write_fields("mesh", 3, position=intermediate_positions, model=intermediate_positions%mesh)
@@ -450,13 +450,13 @@ contains
       ! Step g). Unwrap again
       ! We need to fiddle with the options tree to mark the aliased and physical surface IDs appropriately
 
-      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)), & 
+      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)), &
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
 
       ! mesh_5: adapted once, moved up, ready to adapt again
       call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 5, unwrapped_positions_A)
-      
+
       call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
       call remap_field(intermediate_metric, unwrapped_metric_A)
 
@@ -772,11 +772,11 @@ contains
     delete_me = delete_me + 1
 
   end subroutine adapt_mesh_periodic
-  
+
   subroutine adapt_mesh(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
     !!< A wrapper to select the appropriate adapt_mesh routine.
     !!< If the input is periodic, then apply the algorithm for adapting periodic meshes.
-    
+
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(inout) :: metric
     type(vector_field), intent(out) :: new_positions
@@ -799,18 +799,18 @@ contains
   end subroutine adapt_mesh
 
   subroutine adapt_state_single(state, metric, initialise_fields)
-   
+
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
-    
+
     type(state_type), dimension(1) :: states
-    
+
     states = (/state/)
     call adapt_state(states, metric, initialise_fields = initialise_fields)
     state = states(1)
-    
+
   end subroutine adapt_state_single
 
   subroutine adapt_state_multiple(states, metric, initialise_fields)
@@ -819,52 +819,52 @@ contains
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
-    
+
     call tictoc_clear(TICTOC_ID_SERIAL_ADAPT)
     call tictoc_clear(TICTOC_ID_DATA_MIGRATION)
     call tictoc_clear(TICTOC_ID_DATA_REMAP)
     call tictoc_clear(TICTOC_ID_ADAPT)
-    
+
     call tic(TICTOC_ID_ADAPT)
-    
+
     call adapt_state_internal(states, metric, initialise_fields = initialise_fields)
-    
+
     call toc(TICTOC_ID_ADAPT)
-       
+
     call tictoc_report(2, TICTOC_ID_SERIAL_ADAPT)
     call tictoc_report(2, TICTOC_ID_DATA_MIGRATION)
     call tictoc_report(2, TICTOC_ID_DATA_REMAP)
     call tictoc_report(2, TICTOC_ID_ADAPT)
-    
+
   end subroutine adapt_state_multiple
-  
+
   subroutine adapt_state_first_timestep(states)
     !!< Subroutine to adapt the supplied states at the simulation start
-    
+
     type(state_type), dimension(:), intent(inout) :: states
-    
+
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
     integer :: adapt_iterations, i
     type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
     real :: dt
-    
+
     ewrite(1, *) "In adapt_state_first_timestep"
-    
+
     call get_option(trim(base_path) // "/number_of_adapts", adapt_iterations)
-    
+
     do i = 1, adapt_iterations
       ewrite(2, "(a,i0,a,i0)") "Performing first timestep adapt ", i, " of ", adapt_iterations
-      
+
       ! Recalculate diagnostics, as error metric formulations may need them
       call allocate_and_insert_auxilliary_fields(states)
       call copy_to_stored_values(states,"Old")
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
-      
+
       call calculate_diagnostic_variables(states)
-    
+
       call enforce_discrete_properties(states)
       if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
         ! doing this here helps metric advection get the right amount of advection
@@ -872,17 +872,17 @@ contains
         call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
         call set_option("/timestepping/timestep", dt)
       end if
-      
+
       ! Form the new metric
       old_mesh => extract_mesh(states(1), "CoordinateMesh")
       call allocate(metric, old_mesh, "ErrorMetric")
       call assemble_metric(states, metric)
-      
+
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
     end do
-    
+
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
       output_positions => extract_vector_field(states(1), "Coordinate")
 
@@ -894,11 +894,11 @@ contains
       end if
 
     end if
-    
+
     ewrite(1, *) "Exiting adapt_state_first_timestep"
-  
+
   end subroutine adapt_state_first_timestep
-      
+
   subroutine adapt_state_internal(states, metric, initialise_fields)
     !!< Adapt the supplied states according to the supplied metric. In parallel,
     !!< additionally re-load-balance with libsam. metric is deallocated by this
@@ -911,7 +911,7 @@ contains
     !! according to the specified initial condition in the options tree, except
     !! if these fields are initialised from_file (checkpointed).
     logical, optional, intent(in) :: initialise_fields
-    
+
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, max_adapt_iteration
     integer, dimension(:), pointer :: node_ownership
@@ -924,11 +924,11 @@ contains
     type(vector_field) :: extruded_positions
     type(tensor_field) :: full_metric
     logical :: vertically_structured_adaptivity
-    
+
     ewrite(1, *) "In adapt_state_internal"
-    
+
     nullify(node_ownership)
-    
+
     max_adapt_iteration = adapt_iterations()
 
     vertically_structured_adaptivity = have_option( &
@@ -949,7 +949,7 @@ contains
       if(max_adapt_iteration > 1) then
         ewrite(2, "(a,i0)") "Performing adapt ", i
       end if
-      
+
       ! Select mesh to adapt. Has to be linear and continuous.
       ! For vertically_structured_adaptivity, this is the horizontal mesh!
       call find_mesh_to_adapt(states(1), old_linear_mesh)
@@ -962,12 +962,12 @@ contains
         old_positions = get_coordinate_field(states(1), old_linear_mesh)
       end if
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
-      
+
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
                                                     old_positions, extruded_positions)
-      
+
       call initialise_boundcount(old_linear_mesh, old_positions)
-     
+
       do j = 1, size(states)
         ! Reference fields to be interpolated in interpolate_states
         ! (if initialise_fields then leave out those fields that can be reinitialised)
@@ -982,13 +982,13 @@ contains
       if(isparallel()) then
         ! Update the fields to be interpolated, just in case
         call halo_update(interpolate_states)
-      end if 
-      
+      end if
+
       ! Before we start allocating any new objects we tag all references to
       ! current objects before the adapt so we can later on check they have all
       ! been deallocated
       call tag_references()
-      
+
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
       if (.not. vertical_only) then
@@ -1002,7 +1002,7 @@ contains
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
-      
+
       if(associated(node_ownership)) then
         call perform_vertically_inhomogenous_step(states, new_positions, old_positions, &
                                                   full_metric, extruded_positions, &
@@ -1018,14 +1018,14 @@ contains
       call restore_reserved_meshes(states)
       ! Next we recreate all derived meshes
       call insert_derived_meshes(states)
-      
+
       if(vertically_structured_adaptivity) then
         call deallocate(metric)
         call deallocate(new_positions)
-        
+
         metric = full_metric
         new_positions = get_coordinate_field(states(1), extract_mesh(states(1), topology_mesh_name))
-        
+
         if(associated(node_ownership)) then
           ! Deallocate the node ownership mapping since it's for the lower dimensional mesh
           deallocate(node_ownership)
@@ -1038,7 +1038,7 @@ contains
         call search_for_detectors(detector_list, new_positions)
       end if
 
-      ! Then reallocate all fields 
+      ! Then reallocate all fields
       call allocate_and_insert_fields(states)
       ! Insert fields from reserve states
       call restore_reserved_fields(states)
@@ -1046,7 +1046,7 @@ contains
       call populate_boundary_conditions(states)
       ! Set their values
       call set_boundary_conditions_values(states)
-      
+
       if(i < max_adapt_iteration .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
@@ -1060,15 +1060,15 @@ contains
       ! reference
       call deallocate(metric)
       ! We're done with the new_positions, so we may drop our reference
-      call deallocate(new_positions) 
-      
+      call deallocate(new_positions)
+
       ! Interpolate fields
       if(associated(node_ownership)) then
         call interpolate(interpolate_states, states, map = node_ownership)
       else
         call interpolate(interpolate_states, states)
       end if
-      
+
       ! Deallocate the old fields used for interpolation, referenced in
       ! interpolate_states
       do j = 1, size(states)
@@ -1079,14 +1079,14 @@ contains
         deallocate(node_ownership)
         nullify(node_ownership)
       end if
-      
+
       if(i < max_adapt_iteration .or. isparallel()) then
         ! If there are remaining adapt iterations, extract the new metric for
         ! the next adapt iteration. If we will be calling sam_drive, always
         ! extract the new metric.
         metric = extract_and_remove_metric(states(1), metric_name)
       end if
-      
+
       if(present_and_true(initialise_fields)) then
         ! Reinitialise the prognostic fields (where possible)
         call initialise_prognostic_fields(states)
@@ -1098,24 +1098,24 @@ contains
         ! options
         call set_prescribed_field_values(states)
       else
-        ! Prescribed fields are recalculated (except those with interpolation 
+        ! Prescribed fields are recalculated (except those with interpolation
         ! options)
         call set_prescribed_field_values(states, exclude_interpolated = .true.)
       end if
-      
+
       ! If strong bc or weak that overwrite then enforce the bc on the fields
       call set_dirichlet_consistent(states)
       ! Insert aliased fields in state
-      call alias_fields(states)      
+      call alias_fields(states)
 
       zoltan_drive_call=.false.
-      
+
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
         ! Re-load-balance using zoltan
         if(vertically_structured_adaptivity) then
           ! if we're doing vertically strucvtured adaptivity then we need to pass zoltan the
-          ! horizontal metric, so let's derive that again but this time off the full metric 
+          ! horizontal metric, so let's derive that again but this time off the full metric
           ! we just interpolated...
           ! first we need the horizontal coordinates (called old_positions here)
           call find_mesh_to_adapt(states(1), old_linear_mesh)
@@ -1126,11 +1126,11 @@ contains
             ! Extract the mesh field to be adapted (takes a reference)
             old_positions = get_coordinate_field(states(1), old_linear_mesh)
           end if
-          
+
           ! now collapse metric to a 2d version (saving the metric as full_metric in the meantime)
           call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
                                                         old_positions)
-          
+
           ! we're done with the horizontal coordinates (out here at least)
           call deallocate(old_positions)
 
@@ -1139,15 +1139,15 @@ contains
           ! decomposed mesh
           call zoltan_drive(states, i, max_adapt_iteration, metric = metric, full_metric = full_metric)
           zoltan_drive_call=.true.
-          
+
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
           call deallocate(metric)
           metric = full_metric
         else
-          
+
           call zoltan_drive(states, i, max_adapt_iteration, metric = metric)
           zoltan_drive_call=.true.
-          
+
         end if
 #else
         ! Re-load-balance using libsam
@@ -1168,10 +1168,10 @@ contains
       else
         ewrite(2, *) "There are reserved meshes, so skipping printing of references."
       end if
- 
+
       call write_adapt_state_debug_output(states, i, max_adapt_iteration, &
-        & initialise_fields = initialise_fields)   
-      
+        & initialise_fields = initialise_fields)
+
       call incrementeventcounter(EVENT_ADAPTIVITY)
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
     end do
@@ -1179,19 +1179,19 @@ contains
     ewrite(1, *) "Exiting adapt_state_internal"
 
   end subroutine adapt_state_internal
-  
+
   subroutine insert_metric_for_interpolation(metric, new_mesh, old_state, new_state, metric_name)
-    !!< Insert the old metric into old_states and a new metric into new_states, 
+    !!< Insert the old metric into old_states and a new metric into new_states,
     !!< for interpolation
-    
+
     type(tensor_field), intent(in) :: metric
     type(mesh_type), intent(in) :: new_mesh
     type(state_type), intent(inout) :: old_state
     type(state_type), intent(inout) :: new_state
     character(len = *), optional, intent(out) :: metric_name
-    
+
     type(tensor_field) :: new_metric
-    
+
     assert(.not. has_tensor_field(old_state, metric%name))
     call insert(old_state, metric, metric%name)
 
@@ -1200,22 +1200,22 @@ contains
     call insert(new_state, new_metric, new_metric%name)
 
     if(present(metric_name)) metric_name = new_metric%name
-    
+
     call deallocate(new_metric)
-    
+
   end subroutine insert_metric_for_interpolation
-  
+
   function extract_and_remove_metric(state, metric_name) result(metric)
     !!< Extract and remove the metric from the supplied state. metric takes
     !!< a reference in this routine.
-    
+
     type(state_type), intent(inout) :: state
     character(len = *), intent(in) :: metric_name
-    
+
     type(tensor_field) :: metric
-    
+
     type(tensor_field), pointer :: metric_ptr
-    
+
     ! Extract the metric
     metric_ptr => extract_tensor_field(state, metric_name)
     metric = metric_ptr
@@ -1227,41 +1227,41 @@ contains
     call incref(metric)
     ! and remove it from state
     call remove_tensor_field(state, metric%name)
-    
+
   end function extract_and_remove_metric
-  
+
   function adapt_iterations()
     !!< Return the number of adapt / re-load-balance iterations
-    
+
     integer :: adapt_iterations
-    
+
     if(isparallel()) then
       adapt_iterations = 3
     else
       adapt_iterations = 1
     end if
-    
+
   end function adapt_iterations
-  
+
   pure function sam_options(adapt_iteration, max_adapt_iteration)
     !!< Return sam options array
-    
+
     integer, intent(in) :: adapt_iteration
     integer, intent(in) :: max_adapt_iteration
-    
+
     integer, dimension(10) :: sam_options
-    
+
     sam_options = 0
-    
+
     ! Target number of partitions - 0 indicates size of MPI_COMM_WORLD
     sam_options(1) = 0
-    
-    ! Graph partitioning options:    
-    !sam_options(2) = 1  ! Clean partitioning to optimise the length of the 
-                         ! interface boundary.    
+
+    ! Graph partitioning options:
+    !sam_options(2) = 1  ! Clean partitioning to optimise the length of the
+                         ! interface boundary.
     if(adapt_iteration < max_adapt_iteration) then
       ! Diffusive method -- fast partitioning, small partition movement
-      ! thus edges are weighed to avoid areas of high activity. 
+      ! thus edges are weighed to avoid areas of high activity.
       ! sam_options(2) = 2  ! Local diffusion
       sam_options(2) = 3  ! Directed diffusion
     else
@@ -1270,7 +1270,7 @@ contains
       ! maximise overlap and therefore the volume of data migration.
       sam_options(2) = 4
     end if
-    
+
     ! Heterogerious options (disabled)
     sam_options(3) = 1
 
@@ -1314,7 +1314,7 @@ contains
     logical :: split_gradation
 
     type(scalar_field) :: edge_lengths
-      
+
     vertically_structured_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
     vertically_inhomogenous_adaptivity = have_option( &
@@ -1328,19 +1328,19 @@ contains
       ! project full mesh metric to horizontal surface mesh metric
       full_metric=metric
       call project_metric_to_surface(full_metric, old_positions, metric)
-      
-      ! include the components of the full_metric that are tangential to the bathymetry 
+
+      ! include the components of the full_metric that are tangential to the bathymetry
       ! in the surface metric
       ! state only required for DistanceToBottom and Coordinate so states(1) is fine
       if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, old_positions, metric)
-      
+
       if(split_gradation) then
         call halo_update(metric)
         ! apply gradation just to the horizontal metric for now
         call apply_horizontal_gradation(states(1), metric, full_metric, old_positions)
         call halo_update(metric)
       end if
-      
+
       ! apply limiting to enforce maximum number of nodes
       call limit_metric(old_positions, metric)
       if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
@@ -1352,14 +1352,14 @@ contains
         adaptcnt=adaptcnt+1
         call deallocate(edge_lengths)
       end if
-      
+
       if (vertically_inhomogenous_adaptivity.and.present(extruded_positions)) then
          ! we need the position field later on for vertical adaptivity
          ! this takes a reference so that it's prevented from the big deallocate in adapt_state
          extruded_positions = get_coordinate_field(states(1), full_metric%mesh)
       end if
     end if
-    
+
   end subroutine prepare_vertically_structured_adaptivity
 
   subroutine perform_vertically_inhomogenous_step(states, new_positions, old_positions, full_metric, extruded_positions, map)
@@ -1376,17 +1376,17 @@ contains
     type(tensor_field) :: gradation_full_metric
 
     logical :: split_gradation
-    
+
     vertically_inhomogenous_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
-     
+
     if (vertically_inhomogenous_adaptivity) then
        ! save the positions that the full_metric is on in case we're doing iterations of the 1d
        ! adaptivity process
        full_metric_positions = extruded_positions
        call incref(full_metric_positions)
        call deallocate(extruded_positions) ! deallocate these to make space for the new extruded positions
-       
+
        split_gradation = have_option( &
        &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
        if(split_gradation) then
@@ -1404,7 +1404,7 @@ contains
        ! extrude with adaptivity, computes new extruded_positions
        call metric_based_extrude(new_positions, old_positions, extruded_positions, &
                                 gradation_full_metric, full_metric_positions, map=map)
-       
+
        ! insert the new positions in state:
        ! give it a generic temporary name, so that it'll be picked up and
        ! adjusted by insert_derived meshes later on:
@@ -1415,13 +1415,13 @@ contains
        ! and everything to do with the old metric and mesh too:
        call deallocate(full_metric_positions)
        call deallocate(gradation_full_metric)
-       
+
     end if
   end subroutine perform_vertically_inhomogenous_step
-  
+
   subroutine write_adapt_state_debug_output(states, adapt_iteration, max_adapt_iteration, initialise_fields)
     !!< Diagnostic output for mesh adaptivity
-  
+
     type(state_type), dimension(:), intent(in) :: states
     !! The current iteration the adapt-re-load-balance loop
     integer, intent(in) :: adapt_iteration
@@ -1430,20 +1430,20 @@ contains
     integer, intent(in) :: max_adapt_iteration
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
-    
+
     character(len = FIELD_NAME_LEN) :: file_name
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/debug"
     integer :: max_output, stat
     type(mesh_type), pointer :: mesh
     type(vector_field) :: positions
-    
+
     integer, save :: cp_no = 0, mesh_dump_no = 0, state_dump_no = 0
-    
+
     if(.not. have_option(base_path)) then
       ! No debug output options
       return
     end if
-    
+
     if(have_option(base_path // "/write_adapted_mesh")) then
       ! Debug mesh output. These are output on every adapt iteration.
 
@@ -1457,44 +1457,44 @@ contains
         call write_halos(file_name, positions%mesh)
       end if
       call deallocate(positions)
-      
+
       mesh_dump_no = mesh_dump_no + 1
     end if
-    
-    if(have_option(base_path // "/write_adapted_state")) then   
+
+    if(have_option(base_path // "/write_adapted_state")) then
       ! Debug vtu output. These are output on every adapt iteration.
 
-      file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
+      file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)
       call vtk_write_state(file_name, state = states, write_region_ids=.true.)
-      
+
       state_dump_no = state_dump_no + 1
     end if
-    
+
     if(adapt_iteration == max_adapt_iteration .and. have_option(base_path // "/checkpoint")) then
       ! Debug checkpointing. These are only output on the final adapt iteration.
-    
+
       if(present_and_true(initialise_fields)) then
         ! If we're adapting with field initialisation rather than interpolation
         ! then we probably don't want to overwrite the field initialisation
         ! options by checkpointing, as any subsequent adapt with field
         ! initialisation will read (and consistently interpolate) the debug
-        ! checkpoint. Applies to first timestep adapts.        
+        ! checkpoint. Applies to first timestep adapts.
         ewrite(1, *) "Adapt checkpoint skipped, as adapt performed with field initialisation"
       else
         ewrite(1, "(a,i0)") "Performing adapt checkpoint ", cp_no
-        
+
         call checkpoint_simulation(states, postfix = "adapt_checkpoint", cp_no = cp_no)
-        
+
         cp_no = cp_no + 1
-        
+
         call get_option(base_path // "/checkpoint/max_checkpoint_count", max_output, stat = stat)
         if(stat == SPUD_NO_ERROR) cp_no = modulo(cp_no, max_output)
       end if
 
     end if
-    
+
   contains
-  
+
     function adapt_state_debug_file_name(base_name, dump_no, adapt_iteration, max_adapt_iteration, add_parallel) result(file_name)
       !!< Form an adapt diagnostic output filename
 
@@ -1508,28 +1508,28 @@ contains
       integer, intent(in) :: max_adapt_iteration
       !! If present and .false., do not convert into a parallel file_name
       logical, optional, intent(in) :: add_parallel
-      
+
       character(len = len_trim(base_name) + 1 + int2str_len(dump_no) + 1 + int2str_len(adapt_iteration) + parallel_filename_len("")) :: file_name
-      
+
       file_name = trim(base_name) // "_" // int2str(dump_no)
       if(max_adapt_iteration > 1) file_name = trim(file_name) // "_" // int2str(adapt_iteration)
       if(.not. present_and_false(add_parallel) .and. isparallel()) file_name = parallel_filename(file_name)
-      
+
     end function adapt_state_debug_file_name
-        
+
   end subroutine write_adapt_state_debug_output
-  
+
   subroutine adapt_state_module_check_options
-  
+
     integer :: max_output, stat
-    
+
     call get_option("/mesh_adaptivity/hr_adaptivity/debug/checkpoint/max_checkpoint_count", max_output, stat = stat)
     if(stat == SPUD_NO_ERROR) then
       if(max_output <= 0) then
         FLExit("Max adaptivity debug checkpoint count must be positive")
       end if
     end if
-  
+
   end subroutine adapt_state_module_check_options
 
 end module adapt_state_module

@@ -1869,8 +1869,8 @@ contains
 
   end function SetContains
 
-  function make_mesh_periodic(positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name, periodic_face_map) &
-       result (positions_out)
+  function make_mesh_periodic(positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name, &
+       periodic_face_map) result (positions_out)
     !!< Produce a mesh based on an old mesh but with periodic boundary conditions
     type(vector_field) :: positions_out
     type(vector_field), target, intent(in) :: positions

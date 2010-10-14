@@ -422,8 +422,7 @@ contains
       else
          ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
              trim(mesh%name)
-         ewrite(0,*) "This probably means the operation you want to do is not&
-              &supported for this mesh"
+         ewrite(0,*) "This probably means the operation you want to do is not supported for this mesh"
          FLExit("No suitable coordinate field found.")         
       end if
     end if
