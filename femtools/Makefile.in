@@ -63,7 +63,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Sparsity_Patterns.o Sparsity_Patterns_Meshes.o State.o Tensors.o \
   Superconvergence.o Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
   ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
-  Diagnostic_Fields.o SampleNetCDF_fortran.o Tidal_Modelling.o \
+  Diagnostic_Fields.o SampleNetCDF_fortran.o \
   AuxilaryOptions.o MeshDiagnostics.o VTK_interfaces.o Surface_Labels.o	\
   ISCopyIndices.o \
   Field_derivatives.o Node_boundary.o Parallel_fields.o \

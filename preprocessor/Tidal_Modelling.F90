@@ -29,12 +29,17 @@
 module Tidal_module
 
 use FLDebug
+use fields
+use state_module
+use spud
+use coordinates
+use sparse_matrices_fields
 
 implicit none
 
 private
 
-public :: find_chi, equilibrium_tide, get_tidal_frequency
+public :: find_chi, equilibrium_tide, get_tidal_frequency, compute_pressure_and_tidal_gradient
 
 contains
 
@@ -256,6 +261,86 @@ contains
       ENDIF
 
     END FUNCTION EQUILIBRIUM_TIDE
+    
+    subroutine compute_pressure_and_tidal_gradient(delta_u, ct_m, p_theta, position)
+      ! computes gradient of pressure and tidal forcing term
+      ! to be added to the momentum rhs
+      type(vector_field), intent(out):: delta_u
+      type(block_csr_matrix), intent(in):: ct_m
+      type(scalar_field), target, intent(in):: p_theta
+      type(vector_field), intent(in):: position
+      
+      type(mesh_type), pointer:: p_mesh
+      type(scalar_field) :: tidal_pressure, combined_p
+      logical, dimension(11) :: which_tide
+      integer :: node
+      real :: eqtide, long, lat, height, love_number, current_time, gravity_magnitude
 
+       p_mesh => p_theta%mesh
+       
+       which_tide=.false.
+       if (have_option('/ocean_forcing/tidal_forcing/all_tidal_components')) then
+          which_tide=.true.
+       else
+          if (have_option('/ocean_forcing/tidal_forcing/M2')) &
+               & which_tide(1)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/S2')) &
+               & which_tide(2)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/N2')) &
+               & which_tide(3)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/K2')) &
+               & which_tide(4)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/K1')) &
+               & which_tide(5)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/O1')) &
+               & which_tide(6)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/P1')) &
+               & which_tide(7)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/Q1')) &
+               & which_tide(8)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/Mf')) &
+               & which_tide(9)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/Mm')) &
+               & which_tide(10)=.true.
+          if (have_option('/ocean_forcing/tidal_forcing/Ssa')) &
+               & which_tide(11)=.true.
+       end if
+       if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
+            & then
+         call get_option('/ocean_forcing/tidal_forcing/love_number/v&
+              &alue', love_number)
+      else
+         love_number=1.0
+      end if
+      call allocate(tidal_pressure, p_mesh, "TidalPressure")
+      call allocate(combined_p, p_mesh, "CombinedPressure")
+      call get_option("/timestepping/current_time", current_time)
+      call get_option('/physical_parameters/gravity/magnitude',&
+           & gravity_magnitude)
+      do node=1,node_count(position)
+         if (have_option('/geometry/spherical_earth/')) then
+           call LongitudeLatitude(node_val(position,node), long,&
+                & lat, height)
+        else
+           ewrite(-1,*) "Tidal forcing in non spherical geometries&
+                &is yet to be added. Would you like &
+                &to add this functionality?"
+           FLExit('Exiting as code missing')
+        end if
+         eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
+              &,long*acos(-1.0)/180.0,current_time,1.0)
+         eqtide=love_number*eqtide
+         call set(tidal_pressure, node, eqtide*gravity_magnitude)
+      end do
+      do node=1,node_count(position)
+         call set(combined_p, node, node_val(p_theta, node)&
+              &-node_val(tidal_pressure, node))
+      end do
+      call mult_T(delta_u, ct_m, combined_p)
+      call deallocate(tidal_pressure)
+      call deallocate(combined_p)
+              
+    end subroutine compute_pressure_and_tidal_gradient
+    
   end module Tidal_module
 
