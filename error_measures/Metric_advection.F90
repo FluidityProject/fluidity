@@ -257,12 +257,9 @@ contains
     if(stat/=0) then
       ! have not specified a number of subcycles but perhaps we're using a 
       ! courant number definition?
-      call get_option(trim(option_path)//"/temporal_discretisation&    
-                    &/maximum_courant_number_per_subcycle", &
+      call get_option(trim(option_path)//"/temporal_discretisation/maximum_courant_number_per_subcycle", &
                       max_sub_cfl)
-      call get_option(trim(option_path)//"/temporal_discretisation&    
-                    &/maximum_courant_number_per_subcycle&
-                      &/courant_number[0]/name", cfl_type)
+      call get_option(trim(option_path)//"/temporal_discretisation/maximum_courant_number_per_subcycle/courant_number[0]/name", cfl_type)
       call allocate(cfl_no, tfield%mesh, "CourantNumber")
       call calculate_diagnostic_variable(state, trim(cfl_type), cfl_no, dt=adapt_dt)
       max_cfl = maxval(cfl_no%val)

@@ -1542,10 +1542,8 @@ implicit none
     dim=position%dim
 
     if (mesh_dim(field)/=mesh_dim(position)) then
-       ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has mesh dimension&
-            & ",mesh_dim(field)
-       ewrite(0,'(a,i0)') "Position field "//trim(position%name)//" has mesh&
-            & dimension ",mesh_dim(position)
+       ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has mesh dimension ",mesh_dim(field)
+       ewrite(0,'(a,i0)') "Position field "//trim(position%name)//" has mesh dimension ",mesh_dim(position)
        FLExit("This is inconsistent")
     end if
 
@@ -3859,7 +3857,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(sub_field,node_val(parent_field,1))
     else
        call set_all(sub_field, node_val(parent_field,node_map))
@@ -3876,7 +3874,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(sub_field,node_val(parent_field,1))
     else
        call set_all(sub_field, node_val(parent_field,node_map))
@@ -3893,7 +3891,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(sub_field,node_val(parent_field,1))
     else
        call set_all(sub_field, node_val(parent_field,node_map))
@@ -3911,7 +3909,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(parent_field,node_val(sub_field,1))
     else
        do inode = 1, size(node_map)
@@ -3930,7 +3928,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(parent_field,node_val(sub_field,1))
     else
        do inode = 1, size(node_map)
@@ -3949,7 +3947,7 @@ implicit none
     assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
-    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then
        call set(parent_field,node_val(sub_field,1))
     else
        do inode = 1, size(node_map)
