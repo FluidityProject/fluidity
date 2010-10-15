@@ -1963,6 +1963,12 @@ to measured data</a:documentation>
                         <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
                         <ref name="real"/>
                       </element>
+                      <optional>
+                        <element name="search_for_width">
+                          <a:documentation>Option to search for the optimum width</a:documentation>
+                          <ref name="comment"/>
+                        </element>
+                      </optional>
                       <element name="y_min">
                         <a:documentation>The minimum y-coordinate of the test space</a:documentation>
                         <ref name="real"/>
@@ -2021,6 +2027,12 @@ probably equal to the location of the borehole</a:documentation>
                         <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
                         <ref name="real"/>
                       </element>
+                      <optional>
+                        <element name="search_for_width">
+                          <a:documentation>Option to search for the optimum width</a:documentation>
+                          <ref name="comment"/>
+                        </element>
+                      </optional>
                       <element name="y_min">
                         <a:documentation>The minimum y-coordinate of the test space,
 usually equal to the initial position of the water front</a:documentation>
