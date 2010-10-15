@@ -1776,8 +1776,8 @@ contains
                               polydegree=courant%mesh%shape%degree, &
                               quaddegree=quaddegree)
 
-        u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape%degree)
-        x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
+        u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
+        x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
 
         allocate(x_ele(x%dim,ele_loc(x,1)), &
                 x_f(x%dim, x_cvshape%ngi), &
@@ -1788,7 +1788,7 @@ contains
         allocate(notvisited(x_cvshape%ngi))
 
         if(move_mesh) then
-          ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
+          ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
           allocate(ug_f(ug%dim, ug_cvshape%ngi))
         end if
 
@@ -1846,8 +1846,8 @@ contains
           end do
         end do
 
-        u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape%degree)
-        x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
+        u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+        x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
 
         allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
                 u_bdy_f(u%dim, u_cvbdyshape%ngi), &
@@ -1857,7 +1857,7 @@ contains
         allocate(courant_bc_type(surface_element_count(courant)))
         
         if(move_mesh) then
-          ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+          ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
           allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
         end if
 
@@ -2112,9 +2112,9 @@ contains
                             polydegree=courant%mesh%shape%degree, &
                             quaddegree=quaddegree)
 
-      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape%degree)
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      t_cvshape=make_cv_element_shape(cvfaces, matdens%mesh%shape%degree)
+      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
+      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+      t_cvshape=make_cv_element_shape(cvfaces, matdens%mesh%shape)
 
       allocate(x_ele(x%dim, ele_loc(x,1)), &
                x_f(x%dim, x_cvshape%ngi), &
@@ -2128,7 +2128,7 @@ contains
       allocate(notvisited(x_cvshape%ngi))
       
       if(move_mesh) then
-        ug_cvshape = make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
+        ug_cvshape = make_cv_element_shape(cvfaces, ug%mesh%shape)
         allocate(ug_f(ug%dim, ug_cvshape%ngi))
       end if
 
@@ -2219,9 +2219,9 @@ contains
         end do
       end do
 
-      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape%degree)
-      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-      t_cvbdyshape=make_cvbdy_element_shape(cvfaces, matdens%mesh%faces%shape%degree)
+      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+      t_cvbdyshape=make_cvbdy_element_shape(cvfaces, matdens%mesh%faces%shape)
 
       allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
               u_bdy_f(u%dim, u_cvbdyshape%ngi), &
@@ -2235,7 +2235,7 @@ contains
                nodes_bdy(face_loc(courant,1)))
                
       if(move_mesh) then
-        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
         allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
       end if
 

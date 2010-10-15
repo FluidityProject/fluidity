@@ -13,11 +13,6 @@
     <mesh name="CoordinateMesh">
       <from_mesh>
         <mesh name="InputMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>

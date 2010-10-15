@@ -192,12 +192,12 @@ contains
                           dimension=tfield%mesh%shape%dim, &
                           polydegree=tfield%mesh%shape%degree, &
                           quaddegree=quaddegree)
-    u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape%degree)
-    x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-    t_cvshape=make_cv_element_shape(cvfaces, tfield%mesh%shape%degree)
-    u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape%degree)
-    x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-    t_cvbdyshape=make_cvbdy_element_shape(cvfaces, tfield%mesh%faces%shape%degree)
+    u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape)
+    x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+    t_cvshape=make_cv_element_shape(cvfaces, tfield%mesh%shape)
+    u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape)
+    x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+    t_cvbdyshape=make_cvbdy_element_shape(cvfaces, tfield%mesh%faces%shape)
     
     ! get the mesh sparsity for the matrices
     mesh_sparsity=>get_csr_sparsity_firstorder(state, tfield%mesh, tfield%mesh)

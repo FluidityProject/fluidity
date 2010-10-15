@@ -329,12 +329,12 @@
       ewrite_minmax(p%val)
 
       allocate(dummydensity)
-      call allocate(dummydensity, u%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+      call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
       call set(dummydensity, 1.0)
       dummydensity%option_path=""
 
       allocate(dummyscalar)
-      call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
+      call allocate(dummyscalar, x%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummyscalar)
       dummyscalar%option_path=""
 

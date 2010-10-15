@@ -360,36 +360,36 @@ contains
                             dimension=mesh_dim(tfield), &
                             polydegree=tfield%mesh%shape%degree, &
                             quaddegree=quaddegree)
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      t_cvshape=make_cv_element_shape(cvfaces, tfield%mesh%shape%degree)
+      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+      t_cvshape=make_cv_element_shape(cvfaces, tfield%mesh%shape)
       if(include_advection) then
-        u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape%degree)
+        u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape)
       else
         u_cvshape=t_cvshape
         call incref(u_cvshape)
       end if
       
-      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
+      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
       if(include_advection) then
-        u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape%degree)
+        u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape)
       else
         u_cvbdyshape=x_cvbdyshape
         call incref(u_cvbdyshape)
       end if
 
       if(include_diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_ELEMENTGRADIENT)) then
-        x_cvshape_full=make_cv_element_shape(cvfaces, x%mesh%shape%degree, &
+        x_cvshape_full=make_cv_element_shape(cvfaces, x%mesh%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
-        t_cvshape_full=make_cv_element_shape(cvfaces, tfield%mesh%shape%degree, &
+        t_cvshape_full=make_cv_element_shape(cvfaces, tfield%mesh%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
-        diff_cvshape_full=make_cv_element_shape(cvfaces, diffusivity%mesh%shape%degree, &
+        diff_cvshape_full=make_cv_element_shape(cvfaces, diffusivity%mesh%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
 
-        x_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree, &
+        x_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
-        t_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, tfield%mesh%shape%degree, &
+        t_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, tfield%mesh%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
-        diff_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, diffusivity%mesh%shape%degree, &
+        diff_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, diffusivity%mesh%shape, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
       else
         x_cvshape_full=x_cvshape
@@ -528,8 +528,8 @@ contains
           ewrite_minmax(ug%val(i)%ptr)
         end do
 
-        ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
-        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+        ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
+        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
 
       else
         ewrite(2,*) "Not moving mesh."
@@ -2313,11 +2313,11 @@ contains
                             dimension=mesh_dim(tfield(1)%ptr), &
                             polydegree=element_degree(tfield(1)%ptr, 1), &
                             quaddegree=quaddegree)
-      u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape%degree)
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      t_cvshape=make_cv_element_shape(cvfaces, element_degree(tfield(1)%ptr, 1))
-      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape%degree)
-      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
+      u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape)
+      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+      t_cvshape=make_cv_element_shape(cvfaces, tfield(1)%ptr%mesh%shape)
+      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape)
+      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
 
       ! find the timestep
       call get_option("/timestepping/timestep", dt)
@@ -2395,8 +2395,8 @@ contains
           ewrite_minmax(ug%val(i)%ptr)
         end do
 
-        ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
-        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+        ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
+        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
 
       else
         ewrite(2,*) "Not moving mesh."

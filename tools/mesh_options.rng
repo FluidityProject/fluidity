@@ -42,9 +42,21 @@ surface or region IDs.</a:documentation>
         <ref name="mesh_choice"/>
         <optional>
           <element name="mesh_shape">
-            <element name="polynomial_degree">
-              <ref name="integer"/>
-            </element>
+            <optional>
+              <element name="polynomial_degree">
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="element_type">
+                <element name="string_value">
+                  <choice>
+                    <value>lagrangian</value>
+                    <value>bubble</value>
+                  </choice>
+                </element>
+              </element>
+            </optional>
           </element>
         </optional>
         <optional>

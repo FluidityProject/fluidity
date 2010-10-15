@@ -343,18 +343,28 @@ contains
 
        ! Interior nodes
        element_len=max(te(element%numbering%degree-3),0)
+       if (element%numbering%type==ELEMENT_BUBBLE) then
+         element_len = element_len + 1
+       end if
        new_nonods=new_nonods+totele*element_len
       case(2)
        faces=0
         
        ! Interior nodes
        element_len=max(tr(element%numbering%degree-2),0)
+       if (element%numbering%type==ELEMENT_BUBBLE) then
+         element_len = element_len + 1
+       end if
        new_nonods=new_nonods+totele*element_len
       case(1)
        faces=0
        
        ! Interior nodes
        element_len=0
+       if (element%numbering%type==ELEMENT_BUBBLE) then
+         element_len = element_len + 1
+       end if
+       new_nonods=new_nonods+totele*element_len
      case default
        FLAbort("Unsupported dimension specified.")
    end select
@@ -625,6 +635,7 @@ contains
     !----------------------------------------------------------------------
 
     allocate (ndglno_pos(element%loc))
+    this_receive_halo_level = 0
 
     ! This is the internal nodes of the elements plus the external faces.
     do ele=1,size(EEList,1)

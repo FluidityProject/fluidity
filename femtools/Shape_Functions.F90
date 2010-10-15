@@ -218,6 +218,24 @@ contains
 
              end select
 
+          case(ELEMENT_BUBBLE)
+             if(i==shape%loc) then
+               
+               ! the last node is the bubble shape function
+               shape%spoly(j,i) = (/1.0, 0.0/)
+               
+             else
+             
+               select case(ele_num%family)
+               case (FAMILY_SIMPLEX)
+                  ! Raw polynomial.
+                  shape%spoly(j,i)&
+                       =lagrange_polynomial(counts(j)/coords, counts(j)/coords, 1.0/degree)
+                       
+               end select
+
+             end if
+
           case(ELEMENT_NONCONFORMING)
              
              shape%spoly(j,i)=nonconforming_polynomial(counts(j))
@@ -332,7 +350,7 @@ contains
     end if
        
    end function nonconforming_polynomial
-
+   
   !------------------------------------------------------------------------
   ! Test procedures
   !------------------------------------------------------------------------
@@ -357,7 +375,7 @@ contains
     do i=1, element%loc
 
        tmpval=integrand(local_coords(i,element))       
-
+       
        do j=1, element%quadrature%ngi
 
           integral=integral+element%quadrature%weight(j)*tmpval*element%n(i,j)
@@ -399,7 +417,7 @@ contains
 
   end function shape_integrate_diff
 
-function shape_integrate_surface(integrand, element, dim,face) &
+  function shape_integrate_surface(integrand, element, dim,face) &
       result (integral)
     !!< Integrate the function derivative of integrand with respect to dim
     !!< over an element using the specified shape functions and quadrature.

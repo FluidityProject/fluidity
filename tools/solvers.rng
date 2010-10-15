@@ -532,6 +532,17 @@ solution to be compared with each iteration</a:documentation>
           </element>
         </optional>
       </element>
+      <optional>
+        <element name="dump_matrix">
+          <a:documentation>Dump the matrix, rhs and solution vector in the PETSc matrixdump format
+after every solve for this field.  This will produce lots of output if
+run for multiple solves.</a:documentation>
+          <attribute name="filename">
+            <data type="string"/>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="galerkin_projection_mass_options">

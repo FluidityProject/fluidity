@@ -49,7 +49,7 @@ implicit none
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
     & deallocate_faces
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
-    & create_surface_mesh
+    & create_surface_mesh, make_fake_mesh_linearnonconforming
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
     & wrap_vector_field, wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
@@ -1007,7 +1007,7 @@ contains
     if (mesh%continuity>=0) then
        ! Make a continuous field.
        if (model%continuity<0) then
-          FLExit("Unable to derive a continuous mesh from discontinuous mesh")
+          FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
        end if
 
        allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
@@ -2147,6 +2147,88 @@ contains
     call deallocate(mesh)
 
   end function make_mesh_periodic
+
+  function make_fake_mesh_linearnonconforming(model, name) result (mesh)
+    !!< Produce a mesh based on a piecewise linear continuous model mesh but 
+    !!< converted to have edge centred nonconforming nodes.
+    type(mesh_type) :: mesh
+
+    type(mesh_type), intent(in) :: model
+    character(len=*), intent(in), optional :: name
+    
+    integer :: number_facets, vertices, n, ele, ele2, face2, local_face2, facet_count
+    integer, dimension(:), pointer :: ele2_nodes, neigh
+    
+    type(element_type) :: shape
+      
+    ewrite(1,*) 'entering make_mesh_linearnonconforming'
+    
+    number_facets = (face_count(model)-surface_element_count(model))/2 &
+                   + surface_element_count(model)
+
+    vertices = model%shape%quadrature%vertices
+    
+    ! create a dummy linear shape function to put into the mesh
+    ! FIXME: I'm Lagrange when I should be NC - do not use for anything other
+    !        than the number of nodes per element
+    shape = make_element_shape(vertices = vertices, dim = mesh_dim(model), &
+                               degree = 1, quad = model%shape%quadrature)
+    
+    call allocate(mesh, nodes=number_facets, elements=element_count(model), &
+                        shape=shape, name=name)
+    call deallocate(shape)
+    
+    ! Transfer the eelist from model to mesh
+    assert(associated(model%adj_lists))
+    if(associated(model%adj_lists%eelist)) then
+      ewrite(2, *) "Transferring element-element list to mesh " // trim(mesh%name)
+      allocate(mesh%adj_lists%eelist)
+      mesh%adj_lists%eelist = model%adj_lists%eelist
+      call incref(mesh%adj_lists%eelist)
+    end if
+    
+    mesh%continuity=-1
+    
+    assert(has_faces(model))
+    mesh%ndglno = -1
+    facet_count = 0
+    do ele = 1, element_count(mesh)
+       ! let's build up the ndglno by looping
+       ! around the faces (and neighbouring elements)
+       ! of this element
+       neigh => ele_neigh(model, ele)
+       do n = 1, size(neigh)
+          ele2 = neigh(n)
+          if((ele2>0).and.(ele2<ele)) then
+            ! already visited this face (and it's internal)
+            ! 1. find the global face number of the face associated with
+            !    the neighbouring model element
+            face2 = ele_face(model, ele2, ele)
+            ! 2. find the local face number of that face
+            local_face2 = local_face_number(model, face2)
+            ! 3. find the global node numbers of the new mesh in
+            !    the neighbouring element (these should exist as
+            !    we've already visited ele2)
+            ele2_nodes => ele_nodes(mesh, ele2)
+            ! 4. now, since we've been adding nodes to mesh consistently 
+            !    with the local face numbering we should be able to retrieve
+            !    the global node number of the node on this face
+            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = ele2_nodes(local_face2)
+          else
+            ! we're adding a new edge so increment
+            facet_count = facet_count + 1
+            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = facet_count
+          end if
+       end do
+    end do
+    assert(facet_count==number_facets)
+    assert(all(mesh%ndglno > 0))
+    
+    call addref(mesh)
+    
+    ewrite(1,*) 'exiting make_mesh_linearnonconforming'
+  
+  end function make_fake_mesh_linearnonconforming
 
   function make_submesh (model, name) &
        result (mesh)

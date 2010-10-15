@@ -33,7 +33,12 @@ mesh_info =
          element mesh_shape {
             element polynomial_degree {
                integer
-            }
+            }?,
+            element element_type {
+              element string_value{
+                 "lagrangian" | "bubble"
+              }
+            }?
          }?,
          element mesh_continuity {
             element string_value{

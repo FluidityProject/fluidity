@@ -48,9 +48,9 @@ module element_numbering
   use FLDebug
   implicit none
 
-  integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, &
-                        ELEMENT_CONTROLVOLUMEBDY_SURFACE=3, ELEMENT_CONTROLVOLUME_SURFACE=4, &
-                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=5
+  integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
+                        ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
+                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6
 
   integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
@@ -74,17 +74,21 @@ module element_numbering
   end type ele_numbering_type
   
   integer, parameter :: TET_MAX_DEGREE=9, TRI_MAX_DEGREE=32
+  integer, parameter :: TRI_BUBBLE_MAX_DEGREE=2
   integer, parameter :: INTERVAL_MAX_DEGREE=32
   integer, parameter :: HEX_MAX_DEGREE=9, QUAD_MAX_DEGREE=9
+  ! bubbles are restricted to prevent co-located nodes
 
   type(ele_numbering_type), dimension(0:TET_MAX_DEGREE), target, save ::&
        & tet_numbering
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering
-  type(ele_numbering_type), target, save ::&
-       & tri_numbering_nc
+  type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
+       & tri_numbering_bubble
+  type(ele_numbering_type), target, save :: tri_numbering_nc
   type(ele_numbering_type), dimension(0:INTERVAL_MAX_DEGREE), target, &
        save :: interval_numbering
+  type(ele_numbering_type), target, save :: interval_numbering_bubble
   type(ele_numbering_type), dimension(0:HEX_MAX_DEGREE), target, save ::&
        & hex_numbering
   type(ele_numbering_type), dimension(0:QUAD_MAX_DEGREE), target, save ::&
@@ -146,10 +150,6 @@ module element_numbering
 
   interface face_local_num
      module procedure face_local_num_int, face_local_num_no_int
-  end interface
-
-  interface element_num
-     module procedure element_num_int, element_num_no_int
   end interface
 
   interface operator(==)
@@ -286,6 +286,51 @@ contains
 !       assert(dimension==2)
 !       assert(degree==1)
 !       ele_num=>tri_numbering_nc
+      
+    case (ELEMENT_BUBBLE)
+
+       select case(dimension)
+       case(1)
+         
+          select case(loc)
+          case(2) 
+             ! Intervals - the only possibility.
+             if (degree/=1) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>interval_numbering_bubble
+                return
+             end if
+          
+          case default
+             ele_num=>null()
+             return
+          end select
+          
+       case(2)
+          
+          select case(loc)
+          case(3)
+             !Triangles.
+             
+             if ((degree==0).or.(degree>TRI_BUBBLE_MAX_DEGREE)) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tri_numbering_bubble(degree)
+                return
+             end if
+             
+          case default
+             ele_num=>null()
+             return
+          end select
+
+      case default
+          ele_num=>null()
+          return
+       end select
 
     case default
        
@@ -304,8 +349,10 @@ contains
 
     call number_tets_lagrange
     call number_triangles_lagrange
+    call number_triangles_bubble
     call number_triangles_nc
     call number_intervals_lagrange
+    call number_intervals_bubble
     call number_point_lagrange
     call number_hexes_lagrange
     call number_quads_lagrange
@@ -478,6 +525,91 @@ contains
     
   end subroutine number_triangles_lagrange
 
+  subroutine number_triangles_bubble
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt
+    integer, dimension(3) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    tri_numbering_bubble%faces=1
+    tri_numbering_bubble%vertices=3
+    tri_numbering_bubble%edges=3
+    tri_numbering_bubble%dimension=2
+    tri_numbering_bubble%boundaries=3
+    tri_numbering_bubble%family=FAMILY_SIMPLEX
+    tri_numbering_bubble%type=ELEMENT_BUBBLE
+
+    degree_loop: do i=1,TRI_BUBBLE_MAX_DEGREE
+       ele=>tri_numbering_bubble(i)
+       ele%degree=i
+
+       ! Allocate mappings:
+       allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
+       allocate(ele%number2count(ele%dimension+1,tr(i+1)+1))
+       allocate(ele%boundary_coord(ele%vertices))
+       allocate(ele%boundary_val(ele%vertices))
+
+       ele%nodes=tr(i+1)+1
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=i*(ele%dimension+1)
+       
+       cnt=0
+
+       number_loop: do
+          
+          cnt=cnt+1
+          
+          ele%count2number(l(1), l(2), l(3))=cnt
+          ele%number2count(:,cnt)=l
+
+          ! If the last index has reached the current degree then we are
+          ! done.          
+          if (l(3)==i*(ele%dimension+1)) exit number_loop
+
+          ! Increment the index counter.
+          l(2)=l(2)+ele%dimension+1
+          
+          do j=2,2
+             ! This comparison implements the decreasing dimension lengths
+             ! as you move up the triangle.
+             if (l(j)>i*(ele%dimension+1)-sum(l(j+1:))) then
+                l(j)=0
+                l(j+1)=l(j+1)+ele%dimension+1
+             end if
+          end do
+
+          l(1)=i*(ele%dimension+1)-sum(l(2:))
+
+
+       end do number_loop
+      
+      ! add in the bubble node
+      l(1) = i
+      l(2) = i
+      l(3) = i
+      cnt=cnt+1
+      ele%count2number(l(1), l(2), l(3))=cnt
+      ele%number2count(:,cnt)=l
+       
+       ! Sanity test
+       if (tr(i+1)+1/=cnt) then
+          ewrite(-1,*) 'degree, nodes, cnt = ', i, tr(i+1)+1, cnt
+          FLAbort("Counting error")
+       end if
+       
+       ! Number edges.
+       forall(j=1:ele%vertices)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In a triangle all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
+    end do degree_loop
+    
+  end subroutine number_triangles_bubble
+
   subroutine number_triangles_nc
     ! Fill the values in in element_numbering.
     integer :: j
@@ -490,9 +622,8 @@ contains
     tri_numbering_nc%type=ELEMENT_NONCONFORMING
     tri_numbering_nc%boundaries=3
     tri_numbering_nc%family=FAMILY_SIMPLEX
-    tri_numbering_nc%type=ELEMENT_LAGRANGIAN
+    tri_numbering_nc%type=ELEMENT_NONCONFORMING
 
-    ! Degree 0 elements are a special case.
     ele=>tri_numbering_nc
     ele%degree=1
     
@@ -524,7 +655,7 @@ contains
     ele%count2number(0,1,0)=2
     ele%count2number(0,0,1)=3
     
-    ! NOTE THAT INVERSE MAPPINGS ARE ONLT DEFINED FOR SHAPE FUNCTIONS.
+    ! NOTE THAT INVERSE MAPPINGS ARE ONLY DEFINED FOR SHAPE FUNCTIONS.
     ele%number2count(:,1)=(/0,1,1/)
     ele%number2count(:,2)=(/1,0,1/)
     ele%number2count(:,3)=(/1,1,0/)
@@ -540,7 +671,7 @@ contains
 
   subroutine number_intervals_lagrange
     ! Fill the values in in element_numbering.
-    integer :: i, cnt
+    integer :: i, j, cnt
     integer, dimension(2) :: l
     type(ele_numbering_type), pointer :: ele
 
@@ -599,15 +730,95 @@ contains
           stop
        end if
        
-       ! Number boundaries (vertices).
-       ele%boundary_coord=1
-       ! Boundaries are at the ends of the interval.
-       ele%boundary_val(1)=0
-       ele%boundary_val(2)=i
+       ! Number edges.
+       forall(j=1:ele%vertices)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In an interval all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
 
     end do degree_loop
     
   end subroutine number_intervals_lagrange
+
+  subroutine number_intervals_bubble
+    ! Fill the values in in element_numbering.
+    integer :: j, cnt
+    integer, dimension(2) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    interval_numbering_bubble%faces=0
+    interval_numbering_bubble%vertices=2
+    interval_numbering_bubble%edges=1
+    interval_numbering_bubble%dimension=1
+    interval_numbering_bubble%boundaries=2
+    interval_numbering_bubble%family=FAMILY_SIMPLEX
+    interval_numbering_bubble%type=ELEMENT_BUBBLE
+
+    ! we cannot exceed the bubble max degree of 1 because
+    ! the count2number map becomes nonunique when two nodes
+    ! are co-located
+     ele=>interval_numbering_bubble
+     ele%degree=1
+
+     ! Allocate mappings:
+     ! we need a lot of blank spaces here to make this
+     ! mapping bijective!
+     allocate(ele%count2number(0:(ele%dimension+1),0:(ele%dimension+1),0:0))
+     allocate(ele%number2count(ele%dimension+1,3))
+     allocate(ele%boundary_coord(ele%vertices))
+     allocate(ele%boundary_val(ele%vertices))
+
+     ele%nodes=3
+     ele%count2number=0
+     ele%number2count=0
+
+     l=0
+     l(1)=ele%dimension+1
+     
+     cnt=0
+
+     number_loop: do
+        ! this loop just takes care of the standard lagrangian element
+        ! nodes (i.e. it intentionally excludes the bubble node)
+        
+        cnt=cnt+1
+        
+        ele%count2number(l(1), l(2), 0)=cnt
+        ele%number2count(:,cnt)=l
+
+        ! If the last index has reached the current degree then we are
+        ! done.          
+        if (l(2)==(ele%dimension+1)) exit number_loop
+
+        ! Increment the index counter.
+        l(2)=l(2)+ele%dimension+1
+        
+        l(1)=ele%dimension+1-l(2)
+
+     end do number_loop
+    
+     ! add in the bubble node
+     l(1) = 1
+     l(2) = 1
+     cnt = cnt +1 
+     ele%count2number(l(1), l(2), 0)=cnt
+     ele%number2count(:,cnt)=l
+     
+     ! Sanity test
+     if (cnt/=3) then
+        ewrite(-1,*) 'Counting error', 1, 3, cnt
+        FLAbort("Counting error.")
+     end if
+     
+     ! Number edges.
+     forall(j=1:ele%vertices)
+        ele%boundary_coord(j)=j
+     end forall
+     ! In an interval all faces occur on planes of zero value for one local coord.
+     ele%boundary_val=0
+    
+  end subroutine number_intervals_bubble
 
   subroutine number_point_lagrange
     !!< The highly complex 1 point 0D element.
@@ -892,8 +1103,16 @@ contains
        end if
 
        ! Calculate the local count coordinate.
-       l=0
-       l(svertex_num)=ele_num%degree
+       select case(ele_num%type)
+       case(ELEMENT_LAGRANGIAN)
+         l=0
+         l(svertex_num)=ele_num%degree
+       case(ELEMENT_BUBBLE)
+         l=0
+         l(svertex_num)=ele_num%degree*(ele_num%dimension+1)
+       case default
+         FLAbort("Unknown element type")
+       end select
 
        ! Look up the node number of the vertex.
        svertex_num=ele_num%count2number(l(1), l(2), l(3))
@@ -939,40 +1158,65 @@ contains
     integer, dimension(4) :: l
     integer :: i, c
 
-    select case (ele_num%family)
-    case (FAMILY_SIMPLEX)
+    select case (ele_num%type)
+    case (ELEMENT_LAGRANGIAN)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
 
-       ! Simplices
-       do i=1,ele_num%vertices
-          l=0
-          l(i)=ele_num%degree
+         ! Simplices
+         do i=1,ele_num%vertices
+           l=0
+           l(i)=ele_num%degree
 
-          ele_num_local_vertices(i)=ele_num%count2number(l(1),l(2),l(3))
-          
-       end do
-       
-    case (FAMILY_CUBE)
-      
-       l=0
-       c=1 ! coordinate counter
-       do i=1, ele_num%vertices
-         ele_num_local_vertices( i )=ele_num%count2number(l(1), l(2), l(3))
-         do c=1, ele_num%vertices
-           if (l(c)==0) then
-             l(c)=1
-             exit
-           else
-             ! switch back to 0, continue with next binary digit
-             l(c)=0
-           end if
+           ele_num_local_vertices(i)=ele_num%count2number(l(1),l(2),l(3))
+            
          end do
-       end do
-       assert(c==ele_num%dimension+1)
-      
+         
+      case (FAMILY_CUBE)
+        
+         l=0
+         c=1 ! coordinate counter
+         do i=1, ele_num%vertices
+           ele_num_local_vertices( i )=ele_num%count2number(l(1), l(2), l(3))
+           do c=1, ele_num%vertices
+             if (l(c)==0) then
+               l(c)=1
+               exit
+             else
+               ! switch back to 0, continue with next binary digit
+               l(c)=0
+             end if
+           end do
+         end do
+         assert(c==ele_num%dimension+1)
+        
+      case default
+
+         FLAbort('Unknown element shape.')
+
+      end select
+
+    case (ELEMENT_BUBBLE)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+
+         ! Simplices
+         do i=1,ele_num%vertices
+           l=0
+           l(i)=ele_num%degree*(ele_num%dimension+1)
+
+           ele_num_local_vertices(i)=ele_num%count2number(l(1),l(2),l(3))
+            
+         end do
+         
+      case default
+
+         FLAbort('Unknown element shape.')
+
+      end select
+
     case default
-
-       FLAbort('Unknown element shape.')
-
+      FLAbort("Unknown element type")
     end select
     
   end function ele_num_local_vertices
@@ -982,7 +1226,7 @@ contains
   !------------------------------------------------------------------------
 
   pure function boundary_num_length(ele_num,interior)
-    !!< Determine the length of the vector returned by face_num.
+    !!< Determine the length of the vector returned by boundary_num.
     type(ele_numbering_type), intent(in) :: ele_num
     logical, intent(in) :: interior
     integer :: boundary_num_length
@@ -1039,9 +1283,10 @@ contains
        else
           face_num_length=(ele_num%degree+1)**2
        end if
+    case default
     ! can't flabort in a pure function, sorry
-    !case default
     !   FLAbort("Unknown element family.")
+       face_num_length=-666
     end select
 
   end function face_num_length
@@ -1197,64 +1442,97 @@ contains
     integer, dimension(4) :: l
     integer :: cnt, i, j, k, inc
     
-    select case (ele_num%family)
-    case (FAMILY_SIMPLEX)
-        l=0
-        l(nodes(1))=ele_num%degree
-        cnt=0
-        number_loop: do
-           ! Skip spurious boundary cases.
-           if (.not.present_and_true(interior) .or. all(&
-                l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
-              cnt=cnt+1
-              
-              edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
-           end if
+    select case (ele_num%type)
+    case (ELEMENT_LAGRANGIAN)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+          l=0
+          l(nodes(1))=ele_num%degree
+          cnt=0
+          number_loop: do
+             ! Skip spurious boundary cases.
+             if (.not.present_and_true(interior) .or. all(&
+                  l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
+                cnt=cnt+1
+                
+                edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
+             end if
 
-           ! Advance the index:
-           l(nodes)=l(nodes)+(/-1,1/)
-           
-           ! Check for completion
-           if (any(l<0)) exit number_loop
+             ! Advance the index:
+             l(nodes)=l(nodes)+(/-1,1/)
+             
+             ! Check for completion
+             if (any(l<0)) exit number_loop
 
-        end do number_loop
-    case (FAMILY_CUBE)
+          end do number_loop
+      case (FAMILY_CUBE)
 
-        l=0
-        k=1 ! bit mask
-        j=0
-        do i=ele_num%dimension, 1, -1
-           ! compute ith 'count' coordinate
-           l(i)=iand(nodes(1)-1, k)/k
-           
-           ! increment to go from node 1 to node 2: 0, -1 or +1
-           inc=iand(nodes(2)-1, k)/k-l(i)
-           ! remember the coordinate in which node 1 and 2 differ:
-           if (inc/=0) j=i
-           k=k*2
-        end do
+          l=0
+          k=1 ! bit mask
+          j=0
+          do i=ele_num%dimension, 1, -1
+             ! compute ith 'count' coordinate
+             l(i)=iand(nodes(1)-1, k)/k
+             
+             ! increment to go from node 1 to node 2: 0, -1 or +1
+             inc=iand(nodes(2)-1, k)/k-l(i)
+             ! remember the coordinate in which node 1 and 2 differ:
+             if (inc/=0) j=i
+             k=k*2
+          end do
+            
+          if (j==0) then
+            FLAbort("The same node appears more than once in edge_local_num.")
+          end if
+            
+          ! instead of between 0 and 1, between 0 and degree
+          l=l*ele_num%degree
+          if (interior) then
+             ! leave out boundary nodes
+             do i=1, ele_num%degree-1
+               l(j)=l(j)+inc
+               edge_local_num(i)=ele_num%count2number(l(1), l(2), l(3))
+             end do
+          else
+             do i=0, ele_num%degree
+               edge_local_num(i+1)=ele_num%count2number(l(1), l(2), l(3))
+               l(j)=l(j)+inc
+             end do
+          end if
           
-        if (j==0) then
-          FLAbort("The same node appears more than once in edge_local_num.")
-        end if
+      case default
+          FLAbort("Unknown element family.")
+      end select
+
+    case (ELEMENT_BUBBLE)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+          l=0
+          l(nodes(1))=ele_num%degree*(ele_num%dimension+1)
+          cnt=0
+          number_loop_b: do
+             ! Skip spurious boundary cases.
+             if (.not.present_and_true(interior) .or. all(&
+                  l(nodes)/=0 .and. l(nodes)/=(ele_num%degree*(ele_num%dimension+1)))) then
+                cnt=cnt+1
+                  
+                edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
+             end if
+
+             ! Advance the index:
+             l(nodes)=l(nodes)+(/-(ele_num%dimension+1),ele_num%dimension+1/)
+               
+             ! Check for completion
+             if (any(l<0)) exit number_loop_b
+
+          end do number_loop_b
           
-        ! instead of between 0 and 1, between 0 and degree
-        l=l*ele_num%degree
-        if (interior) then
-           ! leave out boundary nodes
-           do i=1, ele_num%degree-1
-             l(j)=l(j)+inc
-             edge_local_num(i)=ele_num%count2number(l(1), l(2), l(3))
-           end do
-        else
-           do i=0, ele_num%degree
-             edge_local_num(i+1)=ele_num%count2number(l(1), l(2), l(3))
-             l(j)=l(j)+inc
-           end do
-        end if
-        
+      case default
+          FLAbort("Unknown element family.")
+      end select
+
     case default
-        FLAbort("Unknown element family.")
+      FLAbort("Unknown element type")
     end select
 
   end function edge_local_num
@@ -1353,117 +1631,159 @@ contains
     integer, dimension(4) :: l
     integer :: i, j, k, cnt, j12, j13, inc12, inc13, tmp
     
-    select case (ele_num%family)
-    case (FAMILY_SIMPLEX)
-        l=0
-        l(nodes(1))=ele_num%degree
-        cnt=0
+    select case (ele_num%type)
+    case (ELEMENT_LAGRANGIAN)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+          l=0
+          l(nodes(1))=ele_num%degree
+          cnt=0
 
-        number_loop: do
-           ! Skip spurious boundary cases.
-           if ((.not.interior) .or. all(&
-                l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
-              cnt=cnt+1
-              
-              ! Do the actual numbering.
-              face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
-           end if
+          number_loop: do
+             ! Skip spurious boundary cases.
+             if ((.not.interior) .or. all(&
+                  l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
+                cnt=cnt+1
+                
+                ! Do the actual numbering.
+                face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
+             end if
 
-           ! Advance the index:
-           l(nodes(2))=l(nodes(2))+1
-           
-           if (l(nodes(2))>ele_num%degree-sum(l(nodes(3:)))) then
-              l(nodes(2))=0
-              l(nodes(3))=l(nodes(3))+1
-           end if
+             ! Advance the index:
+             l(nodes(2))=l(nodes(2))+1
+             
+             if (l(nodes(2))>ele_num%degree-sum(l(nodes(3:)))) then
+                l(nodes(2))=0
+                l(nodes(3))=l(nodes(3))+1
+             end if
 
-           l(nodes(1))=ele_num%degree-sum(l(nodes(2:)))
+             l(nodes(1))=ele_num%degree-sum(l(nodes(2:)))
 
-           ! Check for completion
-           if (l(nodes(3))>ele_num%degree) exit number_loop
+             ! Check for completion
+             if (l(nodes(3))>ele_num%degree) exit number_loop
 
-        end do number_loop    
+          end do number_loop    
 
-        ! Sanity test.
-    !    assert(cnt==size(face_local_num_int))
-    case (FAMILY_CUBE)
-        
-        ! this first loop works out the count coordinates
-        ! of the first given node N, using the following formula:
-        !   l(i)=iand( N-1, 2**(3-i) ) / 2**(3-i)
-        ! also it finds out in which count coordinate node1 and node2
-        ! differ and the increment in this coordinate needed to walk 
-        ! from node1 to node2, stored in j12 and inc12 resp.
-        ! same for node1 and node3, stored in j13 and inc13
-        
-        l=0
-        k=1 ! bit mask
-        j12=0
-        j13=0
-        do i=ele_num%dimension, 1, -1
-           ! compute ith 'count' coordinate
-           l(i)=iand(nodes(1)-1, k)/k
-           
-           ! increment to go from node 1 to node 2: 0, -1 or +1
-           tmp=iand(nodes(2)-1, k)/k-l(i)
-           ! remember the coordinate in which node 1 and 2 differ:
-           if (tmp /= 0) then
-             j12=i
-             inc12 = tmp
-           end if
-
-           ! increment to go from node 1 to node 3: 0, -1 or +1
-           tmp=iand(nodes(3)-1, k)/k-l(i)
-           ! remember the coordinate in which node 1 and 3 differ:
-           if (tmp/=0) then
-             j13=i
-             inc13 = tmp
-           end if
-           k=k*2
-        end do
+          ! Sanity test.
+      !    assert(cnt==size(face_local_num_int))
+      case (FAMILY_CUBE)
           
-        if (j12==0 .or. j13==0) then
-          FLAbort("The same node appears more than once in edge_local_num.")
-        end if
+          ! this first loop works out the count coordinates
+          ! of the first given node N, using the following formula:
+          !   l(i)=iand( N-1, 2**(3-i) ) / 2**(3-i)
+          ! also it finds out in which count coordinate node1 and node2
+          ! differ and the increment in this coordinate needed to walk 
+          ! from node1 to node2, stored in j12 and inc12 resp.
+          ! same for node1 and node3, stored in j13 and inc13
           
-        ! Now find the nodes on the face by walking through the count
-        ! numbers, starting at node1 and walking from node1 to node2
-        ! in the inner loop, and from node1 to node3 in the outer loop
+          l=0
+          k=1 ! bit mask
+          j12=0
+          j13=0
+          do i=ele_num%dimension, 1, -1
+             ! compute ith 'count' coordinate
+             l(i)=iand(nodes(1)-1, k)/k
+             
+             ! increment to go from node 1 to node 2: 0, -1 or +1
+             tmp=iand(nodes(2)-1, k)/k-l(i)
+             ! remember the coordinate in which node 1 and 2 differ:
+             if (tmp /= 0) then
+               j12=i
+               inc12 = tmp
+             end if
+
+             ! increment to go from node 1 to node 3: 0, -1 or +1
+             tmp=iand(nodes(3)-1, k)/k-l(i)
+             ! remember the coordinate in which node 1 and 3 differ:
+             if (tmp/=0) then
+               j13=i
+               inc13 = tmp
+             end if
+             k=k*2
+          end do
+            
+          if (j12==0 .or. j13==0) then
+            FLAbort("The same node appears more than once in edge_local_num.")
+          end if
+            
+          ! Now find the nodes on the face by walking through the count
+          ! numbers, starting at node1 and walking from node1 to node2
+          ! in the inner loop, and from node1 to node3 in the outer loop
+          
+          ! instead of between 0 and 1, between 0 and degree
+          l=l*ele_num%degree
+          cnt=0
+          if (interior) then
+             ! leave out boundary nodes
+             do i=1, ele_num%degree-1
+                l(j13)=l(j13)+inc13
+                k=l(j12) ! save original value of node1
+                do j=1, ele_num%degree-1
+                   l(j12)=l(j12)+inc12
+                   cnt=cnt+1
+                   face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
+                end do
+                l(j12)=k
+             end do
+          else
+             do i=0, ele_num%degree
+                k=l(j12) ! save original value of node1
+                do j=0, ele_num%degree
+                   cnt=cnt+1
+                   face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
+                   l(j12)=l(j12)+inc12
+                end do
+                l(j12)=k
+                l(j13)=l(j13)+inc13
+             end do
+          end if
+          
+      case default
         
-        ! instead of between 0 and 1, between 0 and degree
-        l=l*ele_num%degree
-        cnt=0
-        if (interior) then
-           ! leave out boundary nodes
-           do i=1, ele_num%degree-1
-              l(j13)=l(j13)+inc13
-              k=l(j12) ! save original value of node1
-              do j=1, ele_num%degree-1
-                 l(j12)=l(j12)+inc12
-                 cnt=cnt+1
-                 face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
-              end do
-              l(j12)=k
-           end do
-        else
-           do i=0, ele_num%degree
-              k=l(j12) ! save original value of node1
-              do j=0, ele_num%degree
-                 cnt=cnt+1
-                 face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
-                 l(j12)=l(j12)+inc12
-              end do
-              l(j12)=k
-              l(j13)=l(j13)+inc13
-           end do
-        end if
+          FLAbort("Unknown element family.")
+          
+      end select
+    case (ELEMENT_BUBBLE)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+          l=0
+          l(nodes(1))=ele_num%degree*(ele_num%dimension+1)
+          cnt=0
+
+          number_loop_b: do
+             ! Skip spurious boundary cases.
+             if ((.not.interior) .or. all(&
+                  l(nodes)/=0 .and. l(nodes)/=(ele_num%degree*(ele_num%dimension+1)))) then
+                cnt=cnt+1
+                
+                ! Do the actual numbering.
+                face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
+             end if
+
+             ! Advance the index:
+             l(nodes(2))=l(nodes(2))+ele_num%dimension+1
+             
+             if (l(nodes(2))>ele_num%degree*(ele_num%dimension+1)-sum(l(nodes(3:)))) then
+                l(nodes(2))=0
+                l(nodes(3))=l(nodes(3))+ele_num%dimension+1
+             end if
+
+             l(nodes(1))=ele_num%degree*(ele_num%dimension+1)-sum(l(nodes(2:)))
+
+             ! Check for completion
+             if (l(nodes(3))>(ele_num%degree*(ele_num%dimension+1))) exit number_loop_b
+
+          end do number_loop_b    
+
+      case default
         
+          FLAbort("Unknown element family.")
+          
+      end select
     case default
-      
-        FLAbort("Unknown element family.")
-        
+      FLAbort("Unknown element type.")
     end select
-    
+      
   end function face_local_num_int
     
   !-------------------------------------------------
@@ -1535,171 +1855,6 @@ contains
   end function boundary_local_num_int
 
   !------------------------------------------------------------------------
-  ! Element numbering routines.
-  !------------------------------------------------------------------------
-  pure function element_num_size(ele_num, interior)
-    ! Determine the length of the vector returned by element_num.
-    integer :: element_num_size
-    type(ele_numbering_type), intent(in) :: ele_num
-    logical, intent(in) :: interior
-
-    ! Special case: zero degree
-    if (ele_num%degree==0) then
-       element_num_size=1
-       return
-    end if
-
-    if (interior) then
-       element_num_size=te(ele_num%degree-1)
-    else
-       element_num_size=te(ele_num%degree+1)
-    end if
-
-  end function element_num_size
-
-  function element_num_no_int(nodes, element, ele_num,  stat)
-    ! This function exists only to make interior in effect an optional
-    ! argument. 
-    integer, dimension(4), intent(in) :: nodes
-    integer, dimension(:), intent(in) :: element
-    type(ele_numbering_type), intent(in) :: ele_num
-    integer, intent(out), optional :: stat
-
-    integer, dimension(element_num_size(ele_num, interior=.false.)) ::&
-         & element_num_no_int 
-    
-    element_num_no_int = element_num_int(nodes, element, ele_num, .false., stat)
-
-  end function element_num_no_int
-
-  function element_num_int(nodes, element, ele_num, interior, stat)
-    ! Given a 4-vector of vertex node numbers and a 4-vector of node numbers
-    ! defining a tet, return the node numbers of the elements of the tet.
-    !
-    ! The numbers returned are those for the element numbering ele_num and
-    ! they are in the order given by the order in nodes.
-    integer, dimension(4), intent(in) :: nodes
-    integer, dimension(:), intent(in) :: element
-    type(ele_numbering_type), intent(in) :: ele_num
-    logical, intent(in) :: interior
-    integer, intent(out), optional :: stat
-
-    integer, dimension(element_num_size(ele_num,interior)) :: element_num_int
-
-    integer, dimension(4) :: lnodes
-    integer :: i
-
-    if (present(stat)) stat=0
-
-    ! Special case: degree 0 elements have a single node which is interior.
-    if (ele_num%degree==0) then
-       element_num_int=1
-       return
-    end if
-
-    ! Elements with degree<3 have no interior nodes.
-    if (interior.and.ele_num%degree<3) return 
-
-    do i=1,4
-       lnodes(i)=minloc(array=element, dim=1, mask=(element==nodes(i)))
-    end do
-
-    ! Minloc returns 0 if all elements of mask are false.
-    if (any(lnodes==0)) then 
-       if (present(stat)) then
-          stat=1
-          return
-       else
-          FLAbort("Nodes are not part of an element in element_num_int.")
-       end if
-    end if
-
-    element_num_int=element_local_num(lnodes, ele_num, interior)
-    
-  end function element_num_int
-
-  function element_local_num(nodes, ele_num, interior)
-    ! Given a four local vertex node numbers (ie in the range 1-4) 
-    ! return the element numbering in the order given by those vertex
-    ! numbers.
-    !
-    ! The numbers returned are those for the element numbering ele_num and
-    ! they are in the order given by the order in nodes.
-    integer, dimension(4), intent(in) :: nodes
-    type(ele_numbering_type), intent(in) :: ele_num
-    logical, intent(in) :: interior
-
-    integer, dimension(element_num_size(ele_num,interior)) :: element_local_num
-
-    integer, dimension(4) :: l
-    integer :: i, cnt
-    
-    l=0
-    l(nodes(1))=ele_num%degree
-    cnt=0
-    number_loop: do
-       ! Skip spurious boundary cases.
-       if ((.not.interior) .or. all(&
-            l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
-          cnt=cnt+1
-          
-          ! Do the actual numbering.
-          element_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
-       end if
-
-       ! Advance the index:
-       l(nodes(2))=l(nodes(2))+1
-       
-       do i=2,3
-          ! This comparison implements the decreasing dimension lengths
-          ! as you move up the pyramid.
-          if (l(nodes(i))>i-sum(l(nodes(i+1:)))) then
-             l(nodes(i))=0
-             l(nodes(i+1))=l(nodes(i+1))+1
-          end if
-       end do
-
-       l(nodes(1))=ele_num%degree-sum(l(nodes(2:)))
-
-       ! Check for completion
-       if (l(nodes(4))>ele_num%degree) exit number_loop
-
-    end do number_loop    
-
-    ! Sanity test.
-!    assert(cnt==size(element_local_num))
-    
-  end function element_local_num
-
-
-  function local_face_num(nodes) result (face_num)
-    ! Given a triplet of local node numbers, return a local face number. 
-    integer :: face_num
-    integer, dimension(3), intent(in) :: nodes
-    
-    integer :: i
-    logical, dimension(4) :: index_present
-    
-    ! Sanity test input values.
-    if (maxval(nodes)>4.or.minval(nodes)<1) then
-       FLAbort('Illegal node index in local_face_num.')
-    end if
-
-    forall(i=1:4)
-       index_present(i)=any(nodes==i)
-    end forall
-
-    if (count(index_present)/=3) then
-       FLAbort('Nodes do not define a face in local_face_num.')
-    end if
-
-    ! The face index is the index of the opposite vertex (ie the one which
-    ! is not present).
-    face_num=minloc((/1,2,3,4/), 1, .not.index_present)
-    
-  end function local_face_num
-
-  !------------------------------------------------------------------------
   ! Local coordinate calculations.
   !------------------------------------------------------------------------
 
@@ -1734,6 +1889,23 @@ contains
              coords=0.0
           end if
           
+       case default
+          
+          FLAbort('Unknown element family.')
+
+       end select
+       
+    case (ELEMENT_BUBBLE)
+      
+       select case (ele_num%family)
+       case (FAMILY_SIMPLEX)
+
+          if (ele_num%degree>0) then
+             coords=real(ele_num%number2count(:,n))/real(ele_num%degree*(ele_num%dimension+1))
+          else
+             FLAbort('Illegal element degree')
+          end if
+
        case default
           
           FLAbort('Unknown element family.')

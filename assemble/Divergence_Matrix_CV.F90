@@ -142,9 +142,9 @@ contains
       
         x_test=get_coordinate_field(state, test_mesh)
         
-        x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-        test_cvshape=make_cv_element_shape(cvfaces, test_mesh%shape%degree)
-        field_cvshape=make_cv_element_shape(cvfaces, field%mesh%shape%degree)
+        x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+        test_cvshape=make_cv_element_shape(cvfaces, test_mesh%shape)
+        field_cvshape=make_cv_element_shape(cvfaces, field%mesh%shape)
   
         allocate(x_f(x%dim, x_cvshape%ngi), &
                 detwei(x_cvshape%ngi), &
@@ -224,9 +224,9 @@ contains
 
       if(.not.present_and_true(exclude_boundaries)) then
 
-        x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-        test_cvbdyshape=make_cvbdy_element_shape(cvfaces, test_mesh%faces%shape%degree)
-        field_cvbdyshape=make_cvbdy_element_shape(cvfaces, field%mesh%faces%shape%degree)
+        x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+        test_cvbdyshape=make_cvbdy_element_shape(cvfaces, test_mesh%faces%shape)
+        field_cvbdyshape=make_cvbdy_element_shape(cvfaces, field%mesh%faces%shape)
   
         assert(surface_element_count(test_mesh)==surface_element_count(field))
         allocate(field_bc_type(field%dim, surface_element_count(test_mesh)))
@@ -475,9 +475,9 @@ contains
                             polydegree=dens%mesh%shape%degree, &
                             quaddegree=quaddegree)
 
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      dens_cvshape=make_cv_element_shape(cvfaces, dens%mesh%shape%degree)
-      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape%degree)
+      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+      dens_cvshape=make_cv_element_shape(cvfaces, dens%mesh%shape)
+      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
 
       mesh_sparsity=>get_csr_sparsity_firstorder(state, dens%mesh, dens%mesh)
       call allocate(dens_upwind, mesh_sparsity, name="DensityUpwindValues")
@@ -621,9 +621,9 @@ contains
 
       end do element_loop
 
-      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape%degree)
-      dens_cvbdyshape=make_cvbdy_element_shape(cvfaces, dens%mesh%faces%shape%degree)
+      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+      dens_cvbdyshape=make_cvbdy_element_shape(cvfaces, dens%mesh%faces%shape)
 
       allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
                detwei_bdy(x_cvbdyshape%ngi), &
@@ -909,9 +909,9 @@ contains
                             polydegree=p%mesh%shape%degree, &
                             quaddegree=quaddegree)
 
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape%degree)
-      p_cvshape=make_cv_element_shape(cvfaces, p%mesh%shape%degree)
+      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
+      u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
+      p_cvshape=make_cv_element_shape(cvfaces, p%mesh%shape)
 
       allocate(x_ele(x%dim,ele_loc(x,1)), &
                x_f(x%dim, x_cvshape%ngi), &
@@ -1198,9 +1198,9 @@ contains
 
           end do
 
-          x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-          u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape%degree)
-          p_cvbdyshape=make_cvbdy_element_shape(cvfaces, p%mesh%faces%shape%degree)
+          x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+          u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+          p_cvbdyshape=make_cvbdy_element_shape(cvfaces, p%mesh%faces%shape)
 
           allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
                   detwei_bdy(x_cvbdyshape%ngi), &

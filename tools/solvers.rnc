@@ -489,7 +489,14 @@ generic_solver_options =
             element iteration_vtus {
                empty
             }?
-         }
+         },
+         ## Dump the matrix, rhs and solution vector in the PETSc matrixdump format
+         ## after every solve for this field.  This will produce lots of output if
+         ## run for multiple solves.
+         element dump_matrix {
+            attribute filename { xsd:string },
+            empty
+         }?
       }
    )
    

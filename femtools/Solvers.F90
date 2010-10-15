@@ -1232,6 +1232,17 @@ logical, optional, intent(in):: nomatrixdump
     ewrite(2,*) 'MFlops/sec:', (flops2-flops1)/((time2-time1)*1e6)
   end if
   
+  if(have_option(trim(solver_option_path)//'/diagnostics/dump_matrix')) then
+    if(present_and_true(nomatrixdump)) then
+      ewrite(0,*) 'Requested to dump matrix on solve that is hard coded not to'
+      ewrite(0,*) 'dump matrices.  Therefore ignoring the dump_matrix option request.'
+    else
+      call dump_matrix_option(solver_option_path, startfromzero, A, b, &
+                              petsc_numbering, &
+                              x0=x0, vector_x0=vector_x0)
+    end if
+  end if
+  
   ! Check convergence and give warning+matrixdump if needed.
   ! This needs to be done before we copy back the result as
   ! x still contains the initial guess to be used in the matrixdump.
@@ -1445,6 +1456,48 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   end if
   
 end subroutine ConvergenceCheck
+  
+subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
+                              petsc_numbering, &
+                              x0, vector_x0)
+                              
+  !! for new options path to solver options
+  character(len=*), intent(in):: solver_option_path  
+  ! Arguments needed in the matrixdump:
+  logical, intent(in):: startfromzero
+  Mat, intent(in):: A
+  Vec, intent(in):: b
+  type(petsc_numbering_type), intent(in):: petsc_numbering
+  ! initial guess to be written in matrixdump (if startfromzero==.false.)
+  real, optional, dimension(:), intent(in):: x0
+  type(vector_field), optional, intent(in):: vector_x0
+  
+  character(len=FIELD_NAME_LEN) :: filename
+  PetscErrorCode ierr
+  Vec y0
+  !! integer index for the optional dumping of the matrix
+  integer, save :: dump_matrix_index=0
+
+  call get_option(trim(solver_option_path)//'/diagnostics/dump_matrix/filename', filename)
+  
+  dump_matrix_index = dump_matrix_index + 1
+  
+  y0=PetscNumberingCreateVec(petsc_numbering)
+  if (startfromzero) then
+     call VecZeroEntries(y0, ierr)
+  else if (present(x0)) then
+     call array2petsc(x0, petsc_numbering, y0)
+  else if (present(vector_x0)) then
+     call field2petsc(vector_x0, petsc_numbering, y0)
+  else
+     ewrite(0,*) 'Initial guess not provided in dump_matrix_option'
+     ewrite(0,*) 'This is a bug!!!'
+  end if
+
+  call DumpMatrixEquation(trim(filename)//"_"//int2str(dump_matrix_index), y0, A, b)
+  call VecDestroy(y0, ierr)
+ 
+end subroutine dump_matrix_option
 
 subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &

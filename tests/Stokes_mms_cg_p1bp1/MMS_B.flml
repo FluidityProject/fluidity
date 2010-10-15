@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_D</string_value>
+    <string_value lines="1">MMS_B</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,36 +11,25 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="InputMesh">
-      <from_file file_name="MMS_D">
+      <from_file file_name="MMS_B">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
       </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <element_type>
+            <string_value>bubble</string_value>
+          </element_type>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
     </mesh>
     <quadrature>
       <degree replaces="NGI">
@@ -57,13 +46,7 @@
         <real_value rank="0">15.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">1000</integer_value>
-      </checkpoint_period_in_dumps>
-      <checkpoint_at_end/>
-    </checkpointing>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -71,8 +54,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">0.00073714354843638517</real_value>
-      <comment>gives a max cfl number of 0.1</comment>
+      <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time replaces="LTIME">
       <real_value rank="0">10.0</real_value>
@@ -85,20 +67,10 @@
       </tolerance>
     </steady_state>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="NS">
-    <equation_of_state>
-      <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <remove_stabilisation_term replaces="NOFILT"/>
@@ -167,10 +139,24 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+    <scalar_field name="FiniteElementDivergence" rank="0">
+      <diagnostic field_name="Velocity">
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <output/>
         <stat/>
         <convergence>
@@ -187,7 +173,7 @@
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="LinearMomentum"/>
+        <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
@@ -263,6 +249,7 @@
         </boundary_conditions>
         <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
           <prescribed>
+            <mesh name="CoordinateMesh"/>
             <value name="WholeMesh">
               <isotropic>
                 <constant>
@@ -275,6 +262,7 @@
         </tensor_field>
         <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
           <prescribed>
+            <mesh name="CoordinateMesh"/>
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(XX, t):
@@ -346,26 +334,9 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="PressureAnalytical" rank="0">
       <prescribed>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
@@ -384,7 +355,7 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
     <scalar_field name="ScalarAbsoluteDifference" rank="0">
       <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -401,7 +372,7 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
     </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
@@ -420,9 +391,28 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
       </prescribed>
     </vector_field>
     <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+      <diagnostic field_name_b="VelocityRemap" field_name_a="VelocityAnalytical">
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="VelocityRemap" rank="1">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="vector_copy"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
           <include_in_stat/>

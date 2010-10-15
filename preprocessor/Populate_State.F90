@@ -428,7 +428,7 @@ contains
              ! Find out if the new mesh is different from the old mesh and if
              ! so, find out how it differs - in the options check
              ! we've made sure only one of those (or both new_shape and new_cont) are .true.
-             new_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree")
+             new_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
              new_cont=have_option(trim(mesh_path)//"/from_mesh/mesh_continuity")
              extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
              periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
@@ -642,15 +642,33 @@ contains
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option
+    character(len=OPTION_PATH_LEN) :: continuity_option, element_option
     type(quadrature_type):: quad
     type(element_type):: shape
-    integer:: loc, dim, poly_degree, continuity, quad_degree, stat
+    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
+    logical :: new_shape
     
     ! Get new mesh shape information
-    ! degree is the degree of the Lagrange polynomials
-    call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", poly_degree, stat)
-    if(stat==0) then
+    
+    new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
+    if(new_shape) then
+      ! Get new mesh element type
+      call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/element_type", &
+                      element_option, stat)
+      if(stat==0) then
+        if(trim(element_option)=="lagrangian") then
+           new_shape_type=ELEMENT_LAGRANGIAN
+        else if(trim(element_option)=="bubble") then
+           new_shape_type=ELEMENT_BUBBLE
+        end if
+      else
+        new_shape_type=from_mesh%shape%numbering%type
+      end if
+      
+      ! degree is the degree of the Lagrange polynomials (even if you add in a bubble function)
+      call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
+                      poly_degree, default=from_mesh%shape%degree)
+    
       ! loc is the number of vertices of the element
       loc=from_mesh%shape%loc
       ! dim is the dimension
@@ -660,7 +678,7 @@ contains
            & quad_degree)
       quad=make_quadrature(loc, dim, degree=quad_degree, family=get_quad_family())
       ! Make new mesh shape
-      shape=make_element_shape(loc, dim, poly_degree, quad)
+      shape=make_element_shape(loc, dim, poly_degree, quad, type=new_shape_type)
       call deallocate(quad) ! Really just drop a reference.
     else
       shape=from_mesh%shape

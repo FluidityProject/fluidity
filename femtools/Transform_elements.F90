@@ -511,7 +511,7 @@ contains
 
     ! Optimisation checks. Optimisations apply to linear elements.
     x_nonlinear= .not.(lx_shape%degree==1 .and. lx_shape%numbering%family==FAMILY_SIMPLEX)
-    m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX)
+    m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX .and. shape%numbering%type==ELEMENT_LAGRANGIAN)
 
     dim=X%dim
 

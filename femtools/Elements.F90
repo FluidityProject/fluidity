@@ -141,7 +141,7 @@ contains
     end if
 
     select case(ltype)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
 
       allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
           element%spoly(coords,loc), element%dspoly(coords,loc), stat=lstat)

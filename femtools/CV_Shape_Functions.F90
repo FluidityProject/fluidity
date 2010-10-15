@@ -38,12 +38,12 @@ module cv_shape_functions
 
 contains
 
-    function make_cv_element_shape(cvfaces, polydegree, type, stat) result (shape)
+    function make_cv_element_shape(cvfaces, parentshape, type, stat) result (shape)
 
       type(element_type) :: shape
 
       type(cv_faces_type), intent(in) :: cvfaces
-      integer, intent(in) :: polydegree
+      type(element_type), intent(in) :: parentshape
       integer, intent(in), optional :: type
       integer, intent(out), optional :: stat
 
@@ -107,20 +107,19 @@ contains
       select case(ltype)
       case(ELEMENT_CONTROLVOLUME_SURFACE)
 
-        ! create a lagrangian element based on the parent quadrature
+        ! create an element based on the parent quadrature
         ! our final shape function will be almost identical but have a lower dimension of derivatives
         ! evaluated across the faces
         tempshape=make_element_shape(vertices=loc, dim=dim, &
-                                      degree=polydegree, quad=quad, &
-                                      type=ELEMENT_LAGRANGIAN)
+                                      degree=parentshape%degree, quad=quad, &
+                                      type=parentshape%numbering%type)
 
         ! start converting the lagrangian element into a control volume surface element
         ! another useful number
         nodes = tempshape%numbering%nodes
-        ! Get the local numbering of our element as if it
-        ! were a lagrangian element
+        ! Get the local numbering of our element
         ele_num=>find_element_numbering(loc, &
-                  dim, polydegree, type=ELEMENT_LAGRANGIAN)
+                  dim, parentshape%degree, type=parentshape%numbering%type)
   
         if (.not.associated(ele_num)) then
           if (present(stat)) then
@@ -139,7 +138,7 @@ contains
         shape%quadrature=quad
         call incref(quad)
 
-        shape%degree=polydegree
+        shape%degree=parentshape%degree
 
         shape%n = tempshape%n
 
@@ -158,8 +157,8 @@ contains
 
         ! create a lagrangian element based on the parent quadrature
         shape=make_element_shape(vertices=loc, dim=dim, &
-                                      degree=polydegree, quad=quad, &
-                                      type=ELEMENT_LAGRANGIAN)
+                                      degree=parentshape%degree, quad=quad, &
+                                      type=parentshape%numbering%type)
 
       case default
 
@@ -172,12 +171,12 @@ contains
 
     end function make_cv_element_shape
 
-    function make_cvbdy_element_shape(cvfaces, polydegree, type, stat) result (shape)
+    function make_cvbdy_element_shape(cvfaces, parentshape, type, stat) result (shape)
 
       type(element_type) :: shape
 
       type(cv_faces_type), intent(in), target :: cvfaces
-      integer, intent(in) :: polydegree
+      type(element_type), intent(in) :: parentshape
       integer, intent(in), optional :: type
       integer, intent(out), optional :: stat
 
@@ -240,21 +239,20 @@ contains
       select case(ltype)
       case(ELEMENT_CONTROLVOLUME_SURFACE)
 
-        ! create a lagrangian element based on the parent quadrature
+        ! create an element based on the parent quadrature
         ! our final shape function will be almost identical but have a lower dimension of derivatives
         ! evaluated across the faces
         tempshape=make_element_shape(vertices=loc, dim=dim, &
-                                      degree=polydegree, quad=quad, &
-                                      type=ELEMENT_LAGRANGIAN)
+                                      degree=parentshape%degree, quad=quad, &
+                                      type=parentshape%numbering%type)
 
         ! start converting the lagrangian element into a control volume surface element
 
         ! another useful number
         nodes = tempshape%numbering%nodes
-        ! Get the local numbering of our element as if it
-        ! were a lagrangian element
+        ! Get the local numbering of our element
         ele_num=>find_element_numbering(loc, &
-                  dim, polydegree, type=ELEMENT_LAGRANGIAN)
+                  dim, parentshape%degree, type=parentshape%numbering%type)
   
         if (.not.associated(ele_num)) then
           if (present(stat)) then
@@ -273,7 +271,7 @@ contains
         shape%quadrature=quad
         call incref(quad)
 
-        shape%degree=polydegree
+        shape%degree=parentshape%degree
 
         shape%n = tempshape%n
 
@@ -292,8 +290,8 @@ contains
 
         ! create a lagrangian element based on the parent quadrature
         shape=make_element_shape(vertices=loc, dim=dim, &
-                                      degree=polydegree, quad=quad, &
-                                      type=ELEMENT_LAGRANGIAN)
+                                      degree=parentshape%degree, quad=quad, &
+                                      type=parentshape%numbering%type)
 
       case default
 
