@@ -100,6 +100,7 @@ module implicit_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, print_drag
+  logical, save :: do_calculate_volume_fraction
   logical, save :: nltolerance
   integer, dimension(:), allocatable, save :: node_to_particle
 
@@ -115,7 +116,7 @@ contains
     integer, intent(in) :: its
     type(scalar_field), pointer :: solid, temperature
     integer, save :: itinoi
-    logical, save :: do_calculate_volume_fraction
+!    logical, save :: do_calculate_volume_fraction
     logical, save :: init=.false.
     logical, save :: nliter_tol_reached=.false.
     integer :: dat_unit, stat
@@ -252,6 +253,7 @@ contains
        call set_source(state)
        call set_absorption_coefficient(state)
 
+       nliter_tol_reached=.true.
        if ((do_print_diagnostics .or. print_drag) .and. its==itinoi) call print_diagnostics(state, its, nliter_tol_reached)
 
        do_calculate_volume_fraction = .false.
@@ -633,10 +635,12 @@ contains
         close(1455)
       end if
     ! Add support for tolerance of nonlinear iterations:
-    else if(have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached) then
+!    else if(have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached) then
+    else if(have_option("/timestepping/nonlinear_iterations/tolerance")) then
       if (GetRank() == 0 .and. print_drag) then
         open(1455, file="drag_force", position="append")
-        write(1455, *) its, (drag(i), i = 1, positions%dim)
+!        write(1455, *) its, (drag(i), i = 1, positions%dim)
+        write(1455, '(2X, I4, 3X, 3(ES30.16E3, 3X))') its, (drag(i), i = 1, positions%dim)
         close(1455)
       end if
     end if
@@ -970,15 +974,26 @@ contains
     logical, intent(in) :: nliter_tol_reached
     integer :: locits
 
+    ewrite(2, *) "inside implicit_solids"
     ewrite(2, *) "inside implicit_solids_nl_tol"
     ! IF tolerance hasn't been reached after specified nonlinear iterations,
-    ! its is actually its+1, thus reducing it by one.
+    ! 'its' is actually its+1, thus reducing it by one.
     locits = its
-    if (.not. nliter_tol_reached) then
-      locits = locits-1
-    end if
+    !redundant:
+!    if (.not. nliter_tol_reached) then
+!      locits = locits-1
+!    end if
     call print_diagnostics(state, locits, .true.) !call print_diagnostics with .true.
+    
+    ! Set 'do_calculate_volume_fraction' to .true. if the mesh is going to be
+    ! adapted at the next timestep
+    if (do_adapt_mesh(current_time, timestep)) then
+        do_calculate_volume_fraction = .true.
+        call deallocate(solid_local)
+        deallocate(node_to_particle)
+    end if
     ewrite(2, *) "leaving implicit_solids_nl_tol"
+    ewrite(2, *) "leaving implicit_solids"
 
   end subroutine implicit_solids_nl_tol
 
