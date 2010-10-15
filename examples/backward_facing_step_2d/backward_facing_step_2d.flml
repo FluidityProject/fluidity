@@ -59,9 +59,6 @@
         <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <max_dump_file_count replaces="DUMSAV">
-      <integer_value rank="0">200</integer_value>
-    </max_dump_file_count>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -73,14 +70,14 @@
       <real_value rank="0">0.05</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">100.</real_value>
+      <real_value rank="0">50.</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep replaces="TIMAUT">
       <requested_cfl>
-        <real_value rank="0">2.0</real_value>
+        <real_value rank="0">0.5</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -91,9 +88,6 @@
         <real_value rank="0">1.e-6</real_value>
         <infinity_norm/>
       </tolerance>
-      <steady_state_file>
-        <plain_text_output/>
-      </steady_state_file>
     </steady_state>
   </timestepping>
   <material_phase name="Fluid">
@@ -230,7 +224,7 @@
     if (X[1]-h &gt; 1.-y0):
         u = 0.0
     return u</string_value>
-                  <comment>Log profile on upper and lower channel walls. See Le&amp;Moin (1997).</comment>
+                  <comment>Log profile on upper and lower channel walls.</comment>
                 </python>
               </x_component>
               <y_component>
@@ -261,10 +255,16 @@
           </type>
         </boundary_conditions>
         <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">1.e-2</real_value>
+                </constant>
+              </isotropic>
+            </value>
             <output/>
-          </diagnostic>
+          </prescribed>
         </tensor_field>
         <output/>
         <stat>
@@ -285,7 +285,51 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <adaptivity_options>
+          <absolute_measure>
+            <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value shape="2" dim1="dim" rank="1">0.01 0.01</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </vector_field>
+          </absolute_measure>
+        </adaptivity_options>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.e-7</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1.e-12</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </prognostic>
     </vector_field>
     <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
@@ -306,4 +350,33 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity replaces="ADMESH">
+      <period_in_timesteps>
+        <integer_value rank="0">100</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes replaces="MXNODS">
+        <integer_value rank="0">50000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation>
+        <gradation_parameter>
+          <real_value rank="0">3.</real_value>
+        </gradation_parameter>
+      </enable_gradation>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.01 0. 0. 0.01</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.5 0. 0. 0.5</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
 </fluidity_options>
