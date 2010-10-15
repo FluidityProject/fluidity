@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material surface integral pressure check</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v3 -l  2material_column_under_gravity.flml  </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="pressure" language="python">
+import fluidity_tools
+pressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Pressure']['max'][-1]
+    </variable>    
+    <variable name="minpressure" language="python">
+import fluidity_tools
+minpressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Pressure']['min'][-1]
+    </variable>    
+    <variable name="velocity" language="python">
+import fluidity_tools
+velocity = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Velocity%magnitude']['max'][-1]
+    </variable>    
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+   </variables>
+    <pass_tests>  
+    <test name="check maximum pressure is 10.0" language="python">
+   assert abs(pressure-1e+1) &lt; 1e-6
+    </test>    
+    <test name="check pressure range is 10.0" language="python">
+   assert abs(pressure-minpressure-1e+1) &lt; 1e-6
+    </test>    
+    <test name="check maximum speed is zero" language="python">
+   assert abs(velocity) &lt; 1e-6
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
