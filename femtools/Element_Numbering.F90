@@ -73,7 +73,8 @@ module element_numbering
      integer, dimension(:), pointer :: boundary_val
   end type ele_numbering_type
   
-  integer, parameter :: TET_MAX_DEGREE=9, TRI_MAX_DEGREE=32
+  integer, parameter :: TET_MAX_DEGREE=9, TET_BUBBLE_MAX_DEGREE=3
+  integer, parameter :: TRI_MAX_DEGREE=32
   integer, parameter :: TRI_BUBBLE_MAX_DEGREE=2
   integer, parameter :: INTERVAL_MAX_DEGREE=32
   integer, parameter :: HEX_MAX_DEGREE=9, QUAD_MAX_DEGREE=9
@@ -81,6 +82,8 @@ module element_numbering
 
   type(ele_numbering_type), dimension(0:TET_MAX_DEGREE), target, save ::&
        & tet_numbering
+  type(ele_numbering_type), dimension(1:TET_BUBBLE_MAX_DEGREE), target, save ::&
+       & tet_numbering_bubble
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering
   type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
@@ -327,7 +330,26 @@ contains
              return
           end select
 
-      case default
+       case(3)
+          
+          select case(loc)
+          case(4)
+             !Tets.
+             
+             if ((degree==0).or.(degree>TET_BUBBLE_MAX_DEGREE)) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tet_numbering_bubble(degree)
+                return
+             end if
+             
+          case default
+             ele_num=>null()
+             return
+          end select
+
+       case default
           ele_num=>null()
           return
        end select
@@ -348,6 +370,7 @@ contains
     initialised=.true.
 
     call number_tets_lagrange
+    call number_tets_bubble
     call number_triangles_lagrange
     call number_triangles_bubble
     call number_triangles_nc
@@ -443,6 +466,94 @@ contains
 
     
   end subroutine number_tets_lagrange
+
+  subroutine number_tets_bubble
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt
+    integer, dimension(4) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    ! Currently only tets are supported.
+    tet_numbering_bubble%faces=4
+    tet_numbering_bubble%vertices=4
+    tet_numbering_bubble%edges=6
+    tet_numbering_bubble%dimension=3
+    tet_numbering_bubble%boundaries=4
+    tet_numbering_bubble%family=FAMILY_SIMPLEX
+    tet_numbering_bubble%type=ELEMENT_BUBBLE
+
+    degree_loop: do i=1,TET_BUBBLE_MAX_DEGREE
+       ele=>tet_numbering_bubble(i)
+       ele%degree=i
+
+       ! Allocate mappings:
+       allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
+       allocate(ele%number2count(ele%dimension+1,te(i+1)+1))
+       allocate(ele%boundary_coord(ele%faces))
+       allocate(ele%boundary_val(ele%faces))
+
+       ele%nodes=te(i+1)+1
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=i*(ele%dimension+1)
+       
+       cnt=0
+
+       number_loop: do
+          
+          cnt=cnt+1
+          
+          ele%count2number(l(1), l(2), l(3))=cnt
+          ele%number2count(:,cnt)=l
+
+          ! If the last index has reached the current degree then we are
+          ! done.          
+          if (l(4)==i*(ele%dimension+1)) exit number_loop
+
+          ! Increment the index counter.
+          l(2)=l(2)+ele%dimension+1
+          
+          do j=2,3
+             ! This comparison implements the decreasing dimension lengths
+             ! as you move up the pyramid.
+             if (l(j)>i*(ele%dimension+1)-sum(l(j+1:))) then
+                l(j)=0
+                l(j+1)=l(j+1)+ele%dimension+1
+             end if
+          end do
+
+          l(1)=i*(ele%dimension+1)-sum(l(2:))
+
+
+       end do number_loop
+
+       ! add in the bubble node
+       l(1) = i
+       l(2) = i
+       l(3) = i
+       cnt=cnt+1
+       ele%count2number(l(1), l(2), l(3))=cnt
+       ele%number2count(:,cnt)=l
+
+       ! Sanity test
+       if (te(i+1)+1/=cnt) then
+          ewrite(-1,*) 'degree, nodes, cnt = ', i, te(i+1)+1, cnt
+          FLAbort("Counting error")
+       end if
+       
+       ! Number faces.
+       forall(j=1:ele%faces)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In a tet all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
+
+    end do degree_loop
+
+    
+  end subroutine number_tets_bubble
 
   subroutine number_triangles_lagrange
     ! Fill the values in in element_numbering.
