@@ -210,14 +210,13 @@ module zoltan_integration
     character (len = OPTION_PATH_LEN) :: filename    
 
 !   variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality
+    real(zoltan_float) :: quality, min_quality, my_min_quality
 
 !   variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
 
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
-    type(integer_set) :: nelistA, nelistB, intersection
-
+    
     integer :: ele, total_num_edges, my_num_edges
 
     real :: value
@@ -257,94 +256,88 @@ module zoltan_integration
         MPI_COMM_WORLD,err)
     end if
 
-
     head = 1
     
-!   Aim is to assign high edge weights to poor quality elements
-!   so that when we load balance poor quality elements are placed
-!   in the centre of partitions and can be adapted
+    ! Aim is to assign high edge weights to poor quality elements
+    ! so that when we load balance poor quality elements are placed
+    ! in the centre of partitions and can be adapted
 
-!   loop over the nodes you own
+    ! loop over the nodes you own
     do node=1,count
 
-!      find nodes neighbours
+       ! find nodes neighbours
        neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
 
-!      check the number of neighbours matches the number of edges
+       ! check the number of neighbours matches the number of edges
        assert(size(neighbours) == num_edges(node))
 
-!      find global ids for each neighbour
+       ! find global ids for each neighbour
        nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
 
-!      find owning proc for each neighbour
+       ! find owning proc for each neighbour
        nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
 
-!      get elements associated with current node
+       ! get elements associated with current node
        my_nelist => row_m_ptr(zz_nelist, local_ids(node))
 
-!      allocate and setup a set containing the elements associated with current node
-       call allocate(nelistA)
-       call insert(nelistA, my_nelist)
+       my_min_quality = 1.0
 
-!      loop over all neighbouring nodes
+       ! find quality of worst element node is associated with
+       do i=1,size(my_nelist)
+          quality = minval(ele_val(element_quality, my_nelist(i)))
+
+          if (quality .LT. my_min_quality) then
+             my_min_quality = quality
+          end if
+       end do
+
+       ! loop over all neighbouring nodes
        do j=1,size(neighbours)
 
-!         get elements associated with neighbour node
+          min_quality = my_min_quality
+
+          ! get elements associated with neighbour node
           nbor_nelist => row_m_ptr(zz_nelist, neighbours(j))
 
-!         allocate and setup a set containing the elements associated with the neighbouring node
-          call allocate(nelistB)
-          call insert(nelistB, nbor_nelist)
+          ! loop over all the elements of the neighbour node
+          do i=1, size(nbor_nelist)
+             ! determine the quality of the element
+             quality = minval(ele_val(element_quality, nbor_nelist(i)))
 
-!         get intersection of the two nelists
-          call set_intersection(intersection, nelistA, nelistB)
-          call deallocate(nelistB)
-
-          min_quality = 1.0
-
-!         loop over all the elements in the intersection
-          do i=1,key_count(intersection)
-             ele = fetch(intersection, i)
-!            determine the quality of the element
-             quality = node_val(element_quality, ele)
-
-!            store the element quality if it's less (worse) than any previous elements
+             ! store the element quality if it's less (worse) than any previous elements
              if (quality .LT. min_quality) then
                 min_quality = quality
              end if
           end do
 
-         call deallocate(intersection)
-
-!        check if the quality is within the tolerance         
+          ! check if the quality is within the tolerance         
          if (min_quality .GT. quality_tolerance) then
-!           if it is
+            ! if it is
             ewgts(head + j - 1) = 1.0
          else
-!           if it's not
+            ! if it's not
             ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
         end if
       end do
 
-      call deallocate(nelistA)
       value = maxval(ewgts(head:head+size(neighbours)-1))
       head = head + size(neighbours)
    end do
 
    assert(head == sum(num_edges(1:num_obj))+1)
 
-!  calculate the local maximum edge weight
+   ! calculate the local maximum edge weight
    my_max_weight = maxval(ewgts(1:head-1))
 
-!  calculate the local minimum edge weight
+   ! calculate the local minimum edge weight
    min_weight = minval(ewgts(1:head-1))
    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, MPI_COMM_WORLD,err)
-!  calculate the local 90th percentile edge weight   
+   ! calculate the local 90th percentile edge weight   
    ninety_weight = max_weight * 0.90
 
-!  don't want to adjust the weights if all the elements are of a similar quality
+   ! don't want to adjust the weights if all the elements are of a similar quality
     if (min_weight < ninety_weight) then
-!     make the worst 10% of elements uncuttable
+       ! make the worst 10% of elements uncuttable
         do i=1,head-1
             if (ewgts(i) .GT. ninety_weight) then
                 ewgts(i) = total_num_edges + 1
@@ -370,7 +363,6 @@ module zoltan_integration
       end do
       close(666)
     end if
-
    
    ierr = ZOLTAN_OK
  end subroutine zoltan_cb_get_edge_list
