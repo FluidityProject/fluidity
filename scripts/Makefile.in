@@ -29,16 +29,8 @@ SHELL = @SHELL@
 
 FLUIDITY_ROOT=$(DESTDIR)@prefix@
 
-SHELL_SCRIPTS = \
-flcur      flflist   flhelp    flmodel    \
-flflo     flinvstep flgraph    \
-fldraw    flrunfetch \
-flanimate     flgeme    flrecover  \
-flesond    flgo      flfld     interval \
-fl2vtuall mean_flow gmsh2triangle
+SHELL_SCRIPTS = interval mean_flow gmsh2triangle
 
 install:
 	@INSTALL@ $(SHELL_SCRIPTS) $(FLUIDITY_ROOT)/bin/
-	@INSTALL@ fl_render.py $(FLUIDITY_ROOT)/bin/fl_render
-	@INSTALL@ fltoon.py $(FLUIDITY_ROOT)/bin/fltoon
 	@INSTALL@ fl_mayavi_animate.py $(FLUIDITY_ROOT)/bin/fl_mayavi_animate 
