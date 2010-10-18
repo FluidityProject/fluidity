@@ -116,15 +116,16 @@ contains
     RETURN
   END FUNCTION PENTAHEDRON_VOL
 
-  subroutine mesh_stats_mesh(mesh, nodes, elements, surface_elements)
+  subroutine mesh_stats_mesh(mesh, nodes, elements, surface_elements, facets)
     !!< Parallel safe mesh statistics
 
     type(mesh_type), intent(in) :: mesh
     integer, optional, intent(out) :: nodes
     integer, optional, intent(out) :: elements
     integer, optional, intent(out) :: surface_elements
+    integer, optional, intent(out) :: facets
 
-    integer :: i
+    integer :: i, surface_facets
 
     if(present(nodes)) then
       if(isparallel()) then
@@ -165,6 +166,34 @@ contains
         call allsum(surface_elements)
       else
         surface_elements = surface_element_count(mesh)
+      end if
+    end if
+
+    if(present(facets)) then
+      if(isparallel()) then
+        facets = 0
+        do i = 1, face_count(mesh)
+          if(surface_element_owned(mesh, i)) then
+            facets = facets + 1
+          end if
+        end do
+        if(present(surface_elements)) then
+          ! this depends on facets being worked out after surface_elements
+          surface_facets = surface_elements
+        else
+          surface_facets = 0
+          do i = 1, surface_element_count(mesh)
+            if(surface_element_owned(mesh, i)) then
+              surface_facets = surface_facets + 1
+            end if
+          end do
+          call allsum(surface_facets)
+        end if
+        facets = (facets-surface_facets)/2 + surface_facets
+        call allsum(facets)
+      else
+        facets = (face_count(mesh)-surface_element_count(mesh))/2 &
+                   + surface_element_count(mesh)
       end if
     end if
 

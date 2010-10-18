@@ -133,7 +133,8 @@ contains
                field_s%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_s, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
           any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
         end if
       end do
@@ -153,7 +154,8 @@ contains
                field_v%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_v, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
           any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_v)
         end if
       end do
@@ -168,7 +170,8 @@ contains
                field_t%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_t, 1)
-          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1) .and. &
+                              (field_shape%numbering%type==ELEMENT_LAGRANGIAN)
           any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_t)
         end if
       end do

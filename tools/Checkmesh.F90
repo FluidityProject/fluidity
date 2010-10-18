@@ -25,7 +25,7 @@ subroutine checkmesh(filename, filename_len)
 
   character(len = filename_len), intent(in) :: filename
   character(len = real_format_len()) :: rformat
-  integer :: global_ele, global_nodes, global_sele
+  integer :: global_ele, global_nodes, global_sele, global_facets
   type(vector_field) :: positions
 
   rformat = real_format()    
@@ -35,7 +35,7 @@ subroutine checkmesh(filename, filename_len)
   if(isparallel()) call read_halos(filename, positions)
   print "(a)", "Read successful"
 
-  call mesh_stats(positions%mesh, elements = global_ele, nodes = global_nodes, surface_elements = global_sele)
+  call mesh_stats(positions%mesh, elements = global_ele, nodes = global_nodes, surface_elements = global_sele, facets=global_facets)
   
   call print_mesh_statistics(positions)
 
@@ -61,6 +61,7 @@ contains
     print "(a,i0)", "Nodes: ", global_nodes
     print "(a,i0)", "Volume elements: ", global_ele
     print "(a,i0)", "Surface elements: ", global_sele
+    print "(a,i0)", "Facets: ", global_facets
     if(associated(positions%mesh%faces)) then
       if(associated(positions%mesh%faces%boundary_ids)) then
         if(any(positions%mesh%faces%boundary_ids /= 0)) then

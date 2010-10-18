@@ -533,6 +533,7 @@ contains
        l(1) = i
        l(2) = i
        l(3) = i
+       l(4) = i
        cnt=cnt+1
        ele%count2number(l(1), l(2), l(3))=cnt
        ele%number2count(:,cnt)=l

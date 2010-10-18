@@ -103,6 +103,12 @@ module fields_base
       & ele_numbering_family_tensor
   end interface ele_numbering_family
 
+  interface ele_num_type
+    module procedure ele_num_type_shape, ele_num_type_mesh, &
+      & ele_num_type_scalar, ele_num_type_vector, &
+      & ele_num_type_tensor
+  end interface ele_num_type
+
   interface ele_loc
      module procedure ele_loc_scalar, ele_loc_vector, ele_loc_tensor,&
           & ele_loc_mesh
@@ -1248,6 +1254,55 @@ contains
     family = field%mesh%shape%numbering%family
   
   end function ele_numbering_family_tensor
+
+  pure function ele_num_type_shape(shape) result(family)
+    type(element_type), intent(in) :: shape
+    
+    integer :: family
+    
+    family = shape%numbering%type
+  
+  end function ele_num_type_shape
+  
+  pure function ele_num_type_mesh(mesh, ele) result(family)
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: ele
+    
+    integer :: family
+    
+    family = mesh%shape%numbering%type
+  
+  end function ele_num_type_mesh
+  
+  pure function ele_num_type_scalar(field, ele) result(family)
+    type(scalar_field), intent(in) :: field
+    integer, intent(in) :: ele
+    
+    integer :: family
+    
+    family = field%mesh%shape%numbering%type
+  
+  end function ele_num_type_scalar
+  
+  pure function ele_num_type_vector(field, ele) result(family)
+    type(vector_field), intent(in) :: field
+    integer, intent(in) :: ele
+    
+    integer :: family
+    
+    family = field%mesh%shape%numbering%type
+  
+  end function ele_num_type_vector
+  
+  pure function ele_num_type_tensor(field, ele) result(family)
+    type(tensor_field), intent(in) :: field
+    integer, intent(in) :: ele
+    
+    integer :: family
+    
+    family = field%mesh%shape%numbering%type
+  
+  end function ele_num_type_tensor
 
   pure function ele_loc_mesh(mesh, ele_number) result (ele_loc)
     ! Return the number of nodes of element ele_number.
@@ -2956,15 +3011,20 @@ contains
     type(element_type), intent(in) :: shape
     integer :: vert
 
-    select case(shape%numbering%family)
-       
-    case (FAMILY_SIMPLEX)
-      vert = shape%dim
-    case (FAMILY_CUBE)
-      vert = 2**(shape%dim-1)
+    select case(shape%numbering%type)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_BUBBLE)
+      select case(shape%numbering%family)
+      case (FAMILY_SIMPLEX)
+        vert = shape%dim
+      case (FAMILY_CUBE)
+        vert = 2**(shape%dim-1)
+      case default
+        FLAbort("Unknown element family.")
+      end select
     case default
       FLAbort("Unknown element type.")
     end select
+    
   end function face_vertices_shape
 
   function local_coords_interpolation(position_field, ele, position) result(local_coords)
@@ -2987,6 +3047,7 @@ contains
 
     assert(dim == mesh_dim(position_field))
     assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    assert(position_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
 
     local_coords(1:dim) = position
     local_coords(dim+1) = 1.0
@@ -3022,6 +3083,7 @@ contains
 
     assert(size(position, 1) == position_field%dim)
     assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    assert(position_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
 
     call local_coords_matrix(position_field, ele, inversion_matrix)
     local_coords(1:position_field%dim, :) = position
@@ -3175,7 +3237,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX).and.&
+           (ele_num_type(s_field, ele) == ELEMENT_LAGRANGIAN)) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3212,7 +3275,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX).and.&
+           (ele_num_type(v_field, ele) == ELEMENT_LAGRANGIAN)) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3251,7 +3315,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(t_field, ele) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(t_field, ele) == FAMILY_SIMPLEX).and.&
+           (ele_num_type(t_field, ele) == ELEMENT_LAGRANGIAN)) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3292,7 +3357,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
+           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3329,7 +3395,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
+           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3369,7 +3436,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
+           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3406,7 +3474,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
+           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
           n = local_coord
         else
           do i = 1, size(n)
@@ -3448,7 +3517,8 @@ contains
       case(0)
         n = 1.0
       case(1)
-        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
+           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
           n = local_coord
         else
           do i = 1, size(n)
