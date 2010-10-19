@@ -203,16 +203,20 @@ implicit none
 
       real, dimension(source_field%dim) :: evals
       real, dimension(source_field%dim, source_field%dim) :: evecs
-      real :: s, v1, v2, v3
-      integer :: node
+      real, dimension(3) :: v
+
+      real :: s
+      integer :: node, dimen
+
+      v = 0.0
 
       ! Making sure the second invariant gets evaluated over the whole mesh
       do node=1,node_count(s_field)
              call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
-             v1 = evals(1)
-             v2 = evals(2)
-             v3 = evals(3)
-             s = (v1*v2 + v2*v3 + v3*v1)
+             do dimen=1,source_field%dim
+               v(dimen)=evals(dimen)
+             end do
+             s = (v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
              call set(s_field, node, s)
       end do
 
