@@ -143,7 +143,7 @@ module saturation_distribution_search_hookejeeves
      ewrite(3,*) 'setting base point', base_point
      
      ! Set minimum_step_length for now
-     minimum_step_length = 10.0
+     minimum_step_length = 5.0
   
      if (do_PS) then
 !        call write_state(dump_no, state)
