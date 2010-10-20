@@ -105,15 +105,10 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="hypre">
-            <hypre_type name="boomeramg"/>
-          </preconditioner>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0E-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1.e-16</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
@@ -122,16 +117,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="outflow">
-          <surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -143,7 +128,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <no_interpolation/>
       </prognostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
@@ -185,11 +170,8 @@
           <relative_error>
             <real_value rank="0">1.0E-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1.e-12</real_value>
-          </absolute_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -305,31 +287,7 @@
             </vector_field>
           </absolute_measure>
         </adaptivity_options>
-        <galerkin_projection>
-          <continuous>
-            <solver>
-              <iterative_method name="gmres">
-                <restart>
-                  <integer_value rank="0">30</integer_value>
-                </restart>
-              </iterative_method>
-              <preconditioner name="sor"/>
-              <relative_error>
-                <real_value rank="0">1.e-7</real_value>
-              </relative_error>
-              <absolute_error>
-                <real_value rank="0">1.e-12</real_value>
-              </absolute_error>
-              <max_iterations>
-                <integer_value rank="0">1000</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-          </continuous>
-        </galerkin_projection>
+        <consistent_interpolation/>
       </prognostic>
     </vector_field>
     <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
@@ -353,7 +311,7 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">100</integer_value>
+        <integer_value rank="0">20</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">50000</integer_value>
