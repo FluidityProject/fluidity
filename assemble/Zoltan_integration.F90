@@ -2473,11 +2473,14 @@ module zoltan_integration
     end subroutine reconstruct_senlist
 
     subroutine reconstruct_enlist
+      type(csr_sparsity):: eelist
+      type(mesh_type):: temporary_mesh
       type(integer_set), dimension(key_count(new_elements)) :: enlists
-      integer :: i, j, ke, expected_loc, full_elements
+      integer :: i, j, ke, expected_loc, full_elements, connected_elements
       integer :: universal_number, new_local_number
       type(integer_set) :: new_elements_we_actually_have
       type(integer_set), dimension(:), allocatable :: new_enlists
+      integer, dimension(:), pointer:: neigh
       integer :: old_universal_node_number
 
       ewrite(1,*) "In reconstruct_enlist"
@@ -2529,44 +2532,79 @@ module zoltan_integration
       ewrite(2,*) "Found ", key_count(new_elements), " possible new elements."
       ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
 
-      ! And now fill in the non-degenerate ones
-
-      call allocate(new_elements_we_actually_have)
-      call allocate(uen_to_new_local_numbering)
-      new_positions%mesh%elements = full_elements
-      deallocate(new_positions%mesh%ndglno)
-      allocate(new_positions%mesh%ndglno(full_elements * expected_loc))
-#ifdef HAVE_MEMORY_STATS
-      call register_allocation("mesh_type", "integer", full_elements * expected_loc, name=new_positions%mesh%name)
-#endif
-      if(preserve_mesh_regions) then
-        allocate(new_positions%mesh%region_ids(full_elements))
-      end if
+      ! Now we construct a temporary mesh of full elements
+      ! This mesh is temporary because we also want to drop elements that are not connected
+      ! to any other elements
       
-      allocate(new_enlists(full_elements))
-      call allocate(new_enlists)
-      
+      call allocate(temporary_mesh, node_count(new_positions), full_elements, new_positions%mesh%shape, &
+        name="TemporaryZoltanMesh")
       j = 1
       do i=1,key_count(new_elements)
         if (key_count(enlists(i)) == expected_loc) then
-          universal_number = fetch(new_elements, i)
-          call set_ele_nodes(new_positions%mesh, j, set2vector(enlists(i)))
-          call insert(new_elements_we_actually_have, universal_number)
-          call insert(uen_to_new_local_numbering, universal_number, j)
-          if(preserve_mesh_regions) then
-            new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
-          end if
-          do ke = 1, key_count(enlists(i))
-            old_universal_node_number = fetch(new_nodes, fetch(enlists(i), ke))
-            call insert(new_enlists(j), old_universal_node_number)
-          end do
+          call set_ele_nodes(temporary_mesh, j, set2vector(enlists(i)))
           j = j + 1
         end if
       end do
 
+      call add_nelist(temporary_mesh)
+      call extract_lists(temporary_mesh, eelist=eelist)
+      
+      connected_elements=0
+      do i=1, element_count(temporary_mesh)
+        neigh => row_m_ptr(eelist, i)
+        if (any(neigh>0)) connected_elements = connected_elements + 1
+      end do
+        
+      ewrite(2,*) "Of the ", full_elements, " full elements, ", connected_elements, " are connected."
+
+      call allocate(new_elements_we_actually_have)
+      call allocate(uen_to_new_local_numbering)
+      new_positions%mesh%elements = connected_elements
+      deallocate(new_positions%mesh%ndglno)
+      allocate(new_positions%mesh%ndglno(connected_elements * expected_loc))
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", connected_elements * expected_loc, name=new_positions%mesh%name)
+#endif
+      if(preserve_mesh_regions) then
+        allocate(new_positions%mesh%region_ids(connected_elements))
+      end if
+      
+      allocate(new_enlists(connected_elements))
+      call allocate(new_enlists)
+      
+      j = 1 ! index connected full elements
+      k = 1 ! indexes full elements
+      do i=1, key_count(new_elements)
+        if (key_count(enlists(i)) == expected_loc) then
+          ! only for full elements
+          neigh => row_m_ptr(eelist, k)
+          if (any(neigh>0)) then
+            ! of these only the connected elements
+            universal_number = fetch(new_elements, i)
+            call set_ele_nodes(new_positions%mesh, j, set2vector(enlists(i)))
+            call insert(new_elements_we_actually_have, universal_number)
+            call insert(uen_to_new_local_numbering, universal_number, j)
+            if(preserve_mesh_regions) then
+              new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
+            end if
+            do ke = 1, key_count(enlists(i))
+              old_universal_node_number = fetch(new_nodes, fetch(enlists(i), ke))
+              call insert(new_enlists(j), old_universal_node_number)
+            end do
+            j = j + 1
+          end if
+          k = k + 1
+        end if
+      end do
+        
+      assert( k==full_elements+1 )
+      assert( j==connected_elements+1 )
+
       do i=1,size(enlists)
         call deallocate(enlists(i))
       end do
+        
+      call deallocate(temporary_mesh)
       
       ! this needs to be done now with the universal numbers from the old mesh
       ! to ensure that the field remaps don't get scrambled
