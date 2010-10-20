@@ -83,6 +83,23 @@ timestep we need the option \option{at\_first\_timestep} to use a corresponding
 adaptive initial timestep.
 
 \subsection{Results}
+To view the results of this example in paraview, the following steps
+must be taken:
+\begin{itemize}
+\item Open up the series of vtus in the normal way.
+\item Add the \option{Warp (scalar)} filter. Choose a normal direction of $0,1,0$ and click apply.
+\item To visualise the grid points: add the \option{Glyph} filter; Choose \option{Glyph Type} \option{Sphere},
+select the \option{Edit} checkbox next to \option{Set Scale Factor} and choose a value of 0.02; Click apply.
+\end{itemize}
+
+Alternatively the results can be plotted using python. An example python script using pylab and the 
+vtktools python module, which is located in \fluiditysourcepath/python/, is provided with this example.
+
+As can be seen in 
+
+Conservation of the tracer can be inspected using statplot (section ). 
+
+
 \subsection{Exercises}
 
 
@@ -224,196 +241,6 @@ To explore the functionality of \fluidity, the following variations on this exam
 \item Try adding some detectors to visualise the particle trajectories, section \ref{sect:diagnostics_detectors} or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}
 \end{itemize}
 Note to compare Froude numbers and mixing between different runs the remember to copy the images otherwise they will be overwritten.
-
-% \subsection{Lagrangian trajectories illustrated in the lock-exchange}
-% \label{sect:lock_exchange_Lagrangian_trajectories}
-% Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
-% Also, the denser (cooler) fluid is now on the right ($0<x \leq 5\,$m) as opposed to the previous example. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
-% 
-% Figure \ref{fig:lock_exchange_Lagrangian_trajectories} illustrates the Lagrangian trajectories from three particles initially at three different positions in the interface between the fluids.
-% 
-% \begin{figure}[ht]
-%   \centering
-% \begin{minipage}{1\linewidth}
-%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1000vtu}
-%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1000vtu}
-% \end{minipage}\\
-% \begin{minipage}{1\linewidth}
-% \vspace{0.5cm}
-%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1500vtu}
-%   \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1500vtu}
-% \end{minipage}
-%   \caption{Lock-exchange temperature distribution and meshes at two different instants in time}
-%   \label{fig:lock_exchange_Lag_traject_Temp_mesh}
-% \end{figure}
-% 
-% %\vspace*{-1.8cm}
-% 
-% \begin{figure}[ht]
-%   \centering
-% \vspace*{-2.6cm}
-%   \fig[width=0.6\textwidth]{./examples_images/lock_exchange/Lag_paths_lock_exchange_labels}
-% \vspace{-2.8cm}
-%   \caption{An example of Lagrangian trajectories in a lock-exchange. Note that in this test case the denser fluid is on the right as opposed to the lock-exchange test case from Figure \ref{fig:lock_exchange} where the denser fluid is on the left. Here, the denser fluid flows below the lighter from right to left. The particles presented at initially three different positions in the interface between the fluids, follow the vortical structures resulting from the shear instability in the interface.}
-%   \label{fig:lock_exchange_Lagrangian_trajectories}
-% \end{figure}
-% 
-% Note that the results indicated in Figures \ref{fig:lock_exchange_Lag_traject_Temp_mesh} and \ref{fig:lock_exchange_Lagrangian_trajectories} have been calculated with a time step $\Delta t$=0.1 s. This is a large time step for this simulation but has been chosen for this test case since it runs faster and illustrates the Lagrangian trajectories. However, when accuracy is sought, it is recommended to use a smaller time step, i.e., $\Delta t$=0.01 s.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------ADVECTION--------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Advection example}
-\label{sect:advection}
-
-In this problem the advection of a passive tracer by a prescribed velocity field is considered.
-The problem is taken from \cite{hanert2004}, see also \cite{hecht2000}. The problem domain
-is an $L\times L$ box with $L=\km[1000]$. The prescribed velocity field is obtained from the
-Stommel streamfunction
-\begin{equation*}
-\Psi(x,y) = \frac{FL}{\pi \gamma \rho H}\sin\left(\frac{\pi y}{L}\right)\left(p e^{Ax} + q e^{Bx}-1\right),
-\end{equation*}
-\begin{equation*}
-p = 1-q = \frac{1-e^{LB}}{e^{LA}-e^{LB}},\quad
-A=-\frac{\alpha}{2}+\sqrt{\frac{\alpha^2}{4}+\left(\frac{\pi}{L}\right)^2},\quad
-B=-\frac{\alpha}{2}-\sqrt{\frac{\alpha^2}{4}+\left(\frac{\pi}{L}\right)^2}.
-\end{equation*}
-where the magnitude of the wind stress is $F = \Nmm[0.1]$, the frictional
-coefficient is $\gamma = \invs[10^{-6}]$, the density is $\rho = \kgmmm[1000]$, the
-fluid depth is $H=\m[200]$ and $\alpha = \beta/\gamma$ is chosen such that $\alpha^{-1}=\km[100]$.
-
-The initial condition for the passive tracer is given by the Gaussian function:
-\begin{equation}
-s_0(x,y) = 10\exp\left({-\frac{(x-2L/3)^2 + (y-L/3)^2}{(L/50)^2}}\right).
-\label{eqn:guassian}
-\end{equation}
-
-The reference solution at time $t$ used to compare numerical results against
-is constructed as follows.  The ordinary differential equation (ODE) system
-$\dot{\pmb{x}}=\pmb{u}$ is integrated repeatedly from time $t$ to $0$, with
-initial condition given by the node positions on the mesh at time $t$.  This
-yields the departure point, at time $0$, for each node on the current mesh.
-The reference solution is found by evaluating the function
-(\ref{eqn:guassian}) at these departure points.  Integration of the system
-of ODEs for departure points is computed using the SciPy (Scientific tools
-for Python) odeint function, which itself is a wrapper around the LSODE ODE
-solver \cite{hindmarsh1983}.
-
-In this example equation (\ref{PDE}) with $\kappa = 0$ is solved for the evolution of the tracer field until a
-time of $\s[10^7]$ . The time step is taken to be $\s[1000]$ and $\theta=0.5$.
-For the adaptive simulations the mesh is adapted every 20 time steps.
-Linear interpolation is again used to transfer the solution field between adapted meshes.
-
-\subsubsection{Results}
-
-Figure \ref{fig:stommel_fix} shows results at four time levels for three
-different fixed uniform isotropic mesh resolutions. Figures \ref{fig:stommel3}
-and \ref{fig:stommel4} show the corresponding results computed with anisotropic
-adapted meshes. Figure \ref{fig:stommel4} shows the results using a lower interpolation
-error in the construction of the metric and hence has higher resolution. While there
-are some qualitative differences between the results from the highest resolution fixed
-mesh results in figure \ref{fig:stommel_fix} with those shown in figure \ref{fig:stommel3},
-the differences are minimal compared with figure \ref{fig:stommel4}.
-
-For quantitative comparison between the fixed and adapted mesh results figures \ref{fig:Stommel2Errors}
-and \ref{fig:Stommel2_L2_Errors} show the time evolution of the maximum value of the advected field,
-for which the analytical solution preserves a value of ten,
-and the relative \Ltwo norm \cite{hanert2004} of the difference between the numerical and the reference
-solution whose construction is described above. The results from figures \ref{fig:stommel3} and \ref{fig:stommel4}
-correspond to the lowest and middle resolution adaptive results in figures \ref{fig:Stommel2Errors} and
-\ref{fig:Stommel2_L2_Errors}.
-
-
-%\begin{figure}
-%\centering
-%\subfigure{
-%\fig[width=2.95cm,clip]{images/Adapt_C_2}}
-%\subfigure{
-%\fig[width=2.95cm,clip]{images/Adapt_C_10}}
-%\subfigure{
-%\fig[width=2.95cm,clip]{images/Adapt_C_12}}
-%\subfigure{
-%\fig[width=2.95cm,clip]{images/Adapt_C_20}}
-%\caption{Adapted mesh (top) and isolines of the tracer field
-%in the advection through a Stommel gyre simulation (section 3(b)) at
-%(left to right) time levels $1,5,6,10\times 10^6$s. This simulation uses a tighter tolerance in the definition
-%of the metric compared to those results presented in figure \ref{fig:stommel3}.
-%At each time level there are 2397, 10433, 9893, 4303 nodes respectively which were obtained from a metric (\ref{eqn:ME}) with $\epsilon_u=0.05$.
-%The maximum value for the tracer field at each time level is 9.76, 9.50, 9.46, 9.35 respectively.}
-%\label{fig:stommel4}
-%\end{figure}
-
-The fixed mesh results can be seen to diffuse more than the adaptive mesh
-when the tracer is close to the western boundary current, even for the highest resolution mesh
-where over $150\,000$ nodes are used. The adaptive mesh results lose
-some of the initial magnitude in the tracer field at the start of the simulation due to the resolution of the
-initial mesh used before the first adapt, i.e. in the first 20 time steps.
-Improved results would be obtained if a higher resolution initial mesh was used,
-or if the mesh was adapted at the start of the simulation to better represent the initial condition.
-At the end of the simulated time the magnitude of the tracer field for the highest resolution mesh ($157\, 045$ nodes)
-can be seen to have dropped to below that of the middle adaptive resolution simulation, which corresponds to
-figure \ref{fig:stommel4}, i.e. ($4303$ nodes).
-
-%\begin{figure}
-%\centering
-%\fig[width=12.5cm,clip]{images/Stommel2Errors}
-%\caption{Left: Maximum value of the advected field in the fixed isotropic mesh simulations for problem 3(b).
-%The upper, middle and lower lines correspond to the fine
-%($157\,045$ nodes), medium ($39\,490$ nodes) and coarse ($10\,056$ nodes)
-%scale meshes respectively. The maximum value for the medium and coarse resolution at the end of the simulated time
-%are 7.94 and 5.67 respectively. Middle: Maximum value of the advected field in the adaptive mesh simulations;
-%the lines (top-bottom) correspond to the five interpolation errors used, the
-%variation in time of the number of nodes in these simulations is shown in the panel on the right
-%with the upper line corresponding to the lowest interpolation error and the upper line in the middle panel,
-%and so on. The maximum number of nodes used in the highest resolution adaptive simulation is
-%$41\,778$ and occurs at time $5.3\times 10^6$s.}
-%\label{fig:Stommel2Errors}
-%\end{figure}
-
-In the adaptive mesh results the number of nodes used increases as the tracer field
-enters the western boundary current, this is due to the gradients (and curvatures)
-increasing as the tracer field is stretched, the number of nodes then decreases as
-the tracer field leaves the western boundary current region and the simulation becomes
-less computationally demanding. This demonstrates an important capability of adaptive methods,
-the ability to remove resolution where it is no longer required.
-
-The loss in magnitude of the tracer can be seen to be most significant while the
-tracer field is in the western boundary current region, this is due to the resolution
-being comparably lower as the scale of the advected field reduces, hence numerical
-diffusion increases. The effect is lower in the adaptive simulations as the mesh resolution is increased
-more significantly in this area at this time.
-
-These results are consistent with the error plots in figure \ref{fig:Stommel2_L2_Errors}.
-The errors grow more rapidly when the tracer is being advected through the western boundary current.
-This is the case for both fixed and adaptive mesh results, where again the highest fixed resolution
-mesh results match most closely those obtained from the middle adaptive mesh simulation (figure \ref{fig:stommel4}),
-i.e. using over an order of magnitude fewer nodes.
-
-With both the \Ltwo error and the maximum value of the advected field, the fixed mesh results
-actually tend to perform better before and after the tracer is passing through the western boundary current.
-For example, as can be seen from the growth rates of the plotted lines in figures \ref{fig:Stommel2Errors} and \ref{fig:Stommel2_L2_Errors}
- at the start and end of the simulation. The adaptive mesh runs perform better, in terms of
-growth of errors, when the problem becomes more challenging numerically and the model is able to automatically use
-increased anisotropic resolution close to the western boundary.
-
-%\begin{figure}
-%\centering
-%\fig[width=8cm,clip]{images/Stommel2_L2_Errors}
-%\caption{Relative \Ltwo norm of error between the numerical and reference solutions (for problem 3(b))
-%plotted against time using left: fixed uniform mesh and right: adapted meshes.
-%Each line, with decreasing error, corresponds to a mesh with increased number of nodes. The details
-%of the meshes are the same as those described in the caption to figure \ref{fig:Stommel2Errors}.}
-%\label{fig:Stommel2_L2_Errors}
-%\end{figure}
-
-The computational cost of the metric construction and the mesh optimisation procedure are approximately
-equal for this problem. When combined they correspond approximately to the time taken for the model
-to complete 3 time steps for this problem. Hence, the computational overhead of adaptivity can be estimated
-at 15 percent of total run time. The middle adaptive mesh simulation (corresponding to figure \ref{fig:stommel4})
-uses a maximum number of nodes which corresponds closely to the number used by the coarsest fixed mesh simulation.
-However, the adaptive simulation runs approximately 60 percent faster than the fixed mesh simulation.
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------LID DRIVEN CAVITY---------------------------%
