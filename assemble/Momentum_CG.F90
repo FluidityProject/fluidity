@@ -625,15 +625,18 @@
         end if
         
         if (low_re_p_correction_fix) then
+!          ewrite(2,*) "****************************************"
+!          ewrite(2,*) "NOTHING HAPPENS HERE"
           ewrite(2,*) "****************************************"
           ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
-          ewrite(2,*) "Invert it and apply dirichlet conditions!"
-          ! Add viscous terms (stored in visc_inverse_masslump)
-          ! and inverse_masslump and store it in visc_inverse_masslump:
+!          ewrite(2,*) "Invert it and apply dirichlet conditions!"
+!          ! Add viscous terms (stored in visc_inverse_masslump)
+!          ! and inverse_masslump and store it in visc_inverse_masslump:
           ewrite(2,*) "The viscous_terms are:"
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
           end do
+!          ! viscous_terms are already added to the lumped mass matrix
           call addto(visc_inverse_masslump, inverse_masslump)
           ewrite(2,*) "For comparison only:"
           ewrite(2,*) "The orig inverse_masslump is:"
@@ -644,11 +647,11 @@
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
           end do
-          ! invert the visc_inverse_masslump:
+!          ! invert the visc_inverse_masslump:
           call invert(visc_inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
+!          ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-          
+!          
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
@@ -1129,13 +1132,10 @@
       ! Get only the viscous terms
       if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les)) then
         call get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
-         du_t, detwei, viscous_terms)
-        !copy values of viscous_terms to other elements:
-!        do dim = 2, u%dim
-!          viscous_terms(dim, :) = viscous_terms(1,:)
-!        end do
+         du_t, detwei, viscous_terms, visc_masslump, masslump)
         ! Add viscous terms to visc_masslump
-        call addto(visc_masslump, u_ele, viscous_terms)
+!        call addto(masslump, visc_masslump)
+!        call addto(visc_masslump, u_ele, viscous_terms)
         ! At this point, only the viscous_terms are stored in visc_masslump!
       end if
       
@@ -1757,7 +1757,7 @@
     end subroutine add_viscosity_element_cg
     
     subroutine get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
-         du_t, detwei, viscous_terms)
+         du_t, detwei, viscous_terms, visc_inverse_masslump, masslump)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
@@ -1766,14 +1766,16 @@
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: viscous_terms
+      type(vector_field), intent(inout) :: visc_inverse_masslump
+      type(vector_field), intent(inout) :: masslump
     
       integer :: i, dim, dimj, gi
       real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
-!      real, dimension(u%dim, u%dim, ele_loc(u, ele)) :: viscosity_lump
+      integer, dimension(:), pointer :: nodes
       real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: les_tensor_gi
       real, dimension(ele_ngi(u, ele)) :: les_coef_gi
-      
+
       if (have_viscosity) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
       else
@@ -1824,33 +1826,32 @@
           end do
         end if
       end if
-      
-!      ! lump viscosity_mat here
-!      viscosity_lump = sum(viscosity_mat, 4)      
-!
-!      ! Assemble viscous_terms:
-!      do i = 1, ele_loc(u, ele)
-!        do dim = 1, u%dim
-!          viscous_terms(dim, :) = viscosity_lump(dim,dim,:) * oldu_val(dim,:)
-!          ! off block diagonal absorption terms
-!          do dimj = 1, u%dim
-!            if (dim==dimj) cycle ! The dim=dimj terms were done above
-!            viscous_terms(dim, :) = viscosity_lump(dim,dimj,:) * oldu_val(dimj,:)
-!          end do
-!        end do
-!      end do
 
 !old code:
-      do dim = 1, u%dim
-        viscous_terms(dim, :) = matmul(viscosity_mat(dim,dim,:,:), oldu_val(dim,:))
-        ! off block diagonal viscosity terms
-        if(stress_form) then
-          do dimj = 1, u%dim
-            if (dim==dimj) cycle ! already done this
-            viscous_terms(dim, :) = matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
-          end do
+!      do dim = 1, u%dim
+!        viscous_terms(dim, :) = viscosity_mat(dim,dim,:,:)
+!        ! off block diagonal viscosity terms
+!        if(stress_form) then
+!          do dimj = 1, u%dim
+!            if (dim==dimj) cycle ! already done this
+!            viscous_terms(dim, :) = matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
+!          end do
+!        end if
+!      end do
+
+!new code:
+    nodes => ele_nodes(u,ele)
+    do dim = 1, u%dim
+      do i = 1, ele_loc(u,ele)
+!        call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
+!        call addto(visc_inverse_masslump, dim, nodes(i), viscosity_mat(dim,dim,i,i))
+!        call addto(masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
+        if (dt*theta*viscosity_mat(dim,dim,i,i) .LT. 0.01) then
+          viscosity_mat(dim,dim,i,i) = 0.0
         end if
+        call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
       end do
+    end do
 
     end subroutine get_viscous_terms_element_cg
     
