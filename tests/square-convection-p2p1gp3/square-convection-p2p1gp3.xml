@@ -113,7 +113,7 @@ for z, u in final_mid_line_u[1:]:
   if u &gt; max[1]:
     max = (z, u)
 fluidity_tools.compare_variable(max[0], 0.813, 0.03)
-fluidity_tools.compare_variable(max[1], 3.649, 0.001)
+fluidity_tools.compare_variable(max[1], 3.649, 0.01)
     </test>
     <test name = "Mid-line wmax benchmark" language = "python">
 import fluidity_tools

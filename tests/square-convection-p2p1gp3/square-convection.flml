@@ -475,7 +475,7 @@
         </reference_node>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="mg"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
