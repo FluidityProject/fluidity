@@ -42,6 +42,7 @@ module advection_diffusion_DG
   use vector_tools
   use fldebug
   use vtk_interfaces
+  use Coordinates
   use petsc_solve_state_module
   use boundary_conditions
   use boundary_conditions_from_options
@@ -589,7 +590,7 @@ contains
 
     end do
 
-    if (include_diffusion) then
+    if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        ! Form RHS of diffusion equation.
        call mult(delta_T, matrix_diff, T)
        call addto(RHS_diff, delta_T,-1.0)
@@ -684,7 +685,6 @@ contains
     type(scalar_field) :: buoyancy
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
-    real, dimension(:,:), allocatable :: mixing_diffusion_direction
 
     !! Shape function for the auxiliary variable in the second order
     !! operator. 
@@ -878,7 +878,6 @@ contains
       gravity=extract_vector_field(state, "GravityDirection",stat)
       if (stat/=0) FLAbort('Error extracting gravity field.')
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
-      allocate(mixing_diffusion_direction(mesh_dim(T), mesh_dim(T)))
     
       if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
           &by_vertical_diffusion/amplitude")) then    
@@ -889,14 +888,6 @@ contains
       end if
       ! Set direction of mixing diffusion, default is in the y- and z-direction for 2- and 3-d spaces respectively
       ! TODO: Align this direction with gravity local to an element
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-          &by_vertical_diffusion/direction")) then
-        call get_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-            &by_vertical_diffusion/direction", mixing_diffusion_direction) 
-      else
-        mixing_diffusion_direction = 0.0
-        mixing_diffusion_direction(mesh_dim(T),mesh_dim(T)) = 1.0
-      end if
     end if
 
     element_loop: do ELE=1,element_count(T)
@@ -904,13 +895,11 @@ contains
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
-            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
-            & mixing_diffusion_direction) 
+            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
 
     ! Drop any extra field references.
-    deallocate(mixing_diffusion_direction)
     call deallocate(Diffusivity)
     call deallocate(Source)
     call deallocate(Absorption)
@@ -924,8 +913,7 @@ contains
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
-       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude,&
-       & mixing_diffusion_direction) 
+       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -960,8 +948,6 @@ contains
     type(scalar_field), intent(in) :: buoyancy
     type(vector_field), intent(in) :: gravity
     real, intent(in) :: gravity_magnitude
-    real, intent(in) :: mixing_diffusion_amplitude
-    real, dimension(:,:), intent(in) :: mixing_diffusion_direction
 
     ! Bilinear forms.
     real, dimension(ele_loc(T,ele), ele_loc(T,ele)) :: &
@@ -1066,10 +1052,17 @@ contains
     real, dimension(ele_ngi(T,ele)) :: buoyancysample 
     real, dimension(ele_ngi(T,ele)) :: drho_dz
     real, dimension(mesh_dim(T), mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion
+    real, dimension(mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion_diag
     integer, dimension(:), pointer :: enodes
-    real, dimension(X%dim) :: pos
+    real, dimension(X%dim) :: pos, gravity_at_node
     real, dimension(ele_loc(X,ele)) :: rad
     real :: dr
+
+    real, intent(in) :: mixing_diffusion_amplitude
+
+    real, dimension(X%dim, X%dim, ele_loc(T, ele)) :: mixing_diffusion_rhs, mixing_diffusion_loc
+    real, dimension(ele_loc(T, ele), ele_loc(T, ele)) :: t_mass 
+    real, dimension(ele_ngi(T, ele)) :: detwei_rho
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -1141,7 +1134,7 @@ contains
     call transform_to_physical(X,ele,&
          & u_shape , dshape=du_t)
     
-    if (include_diffusion.and..not.primal) then
+    if ((include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion).and..not.primal) then
        ! Transform q derivatives into physical space.
        call transform_to_physical(X,ele,&
             & q_shape , dshape=dq_t)
@@ -1157,12 +1150,77 @@ contains
             & ele_shape(U_mesh, ele), dshape=dug_t)
       end if
     end if
-        
+
+    mixing_diffusion = 0.0
+    mixing_diffusion_loc = 0.0
+    ! Vertical mixing by diffusion
+    ! TODO: Add option to generate optimal coefficient
+    ! k = 1/2 {\Delta t} g ( {\Delta r} )^2 max (d\rho / dr, 0 )
+    ! k = 1/2 dt g dr^2 max(drho/dr, 0 )
+    if (have_buoyancy_adjustment_by_vertical_diffusion) then
+       mixing_diffusion_diag = 0.0
+       assert(ele_ngi(T, ele) == ele_ngi(buoyancy, ele))
+       buoyancysample = ele_val_at_quad(buoyancy, ele)
+       call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho, detwei=detwei_rho)
+
+       grad_rho = ele_grad_at_quad(buoyancy, ele, dt_rho)
+
+       ! Calculate the gradient in the direction of gravity
+       ! TODO: Build on_sphere into ele_val_at_quad?
+       if (on_sphere) then
+          grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
+       else
+          grav_at_quads = ele_val_at_quad(gravity, ele)
+       end if
+       ! Calculate element length parallel to the direction of mixing defined above
+       enodes => ele_nodes(X, ele)
+       do i = 1,size(enodes)
+         pos = node_val(X, enodes(i))
+         gravity_at_node = node_val(gravity, enodes(i))
+         !rad(i) = pos(mesh_dim(T))
+         rad(i) = dot_product(pos, gravity_at_node)
+       end do
+       dr = maxval(rad) - minval(rad)
+       do i = 1, ele_ngi(T,ele)
+          drho_dz(i) = dot_product(grad_rho(i,:), grav_at_quads(:,i))
+          ! Note test to limit mixing to adverse changes in density wrt gravity
+          if (drho_dz(i) > 0.0) drho_dz(i) = 0.0
+          ! Form the coefficient of diffusion to deliver the required mixing
+       end do
+       ! TODO: Calculate dr - per element?  or per Guass point?
+       ! dimension in which gravity lies parallel to
+       if (on_sphere) then
+         mixing_diffusion_diag(mesh_dim(X),:) = - mixing_diffusion_amplitude * dt&
+               &* gravity_magnitude * dr**2 * drho_dz(:)
+         mixing_diffusion=rotate_diagonal_to_sphere_gi(X, ele, mixing_diffusion_diag)
+       else
+         do i = 1, mesh_dim(X)
+           mixing_diffusion(i,i,:) = - mixing_diffusion_amplitude * dt&
+                 &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
+         end do
+       end if
+       
+       !ewrite(3,*) "mixing_density_values", buoyancysample
+       ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
+       ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
+       ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+
+       mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
+       t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
+       call invert(t_mass)
+       do i=1,X%dim
+         do j=1,X%dim
+           mixing_diffusion_loc(i,j,:) = matmul(t_mass,mixing_diffusion_rhs(i,j,:))
+         end do
+       end do
+    end if
+
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
 
-    Diffusivity_ele = ele_val(Diffusivity,ele)
+    Diffusivity_ele = ele_val(Diffusivity, ele) + mixing_diffusion_loc
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -1250,53 +1308,10 @@ contains
 
     ! Diffusion.
     Diffusivity_mat=0.0
-    mixing_diffusion = 0.0
 
-    if (include_diffusion) then
+    if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        if (primal) then
           if(.not.remove_element_integral) then
-             ! Check OK to use counter i here
-             ! Vertical mixing by diffusion
-             ! TODO: Add option to generate optimal coefficient
-             ! k = 1/2 {\Delta t} g ( {\Delta r} )^2 max (d\rho / dr, 0 )
-             ! k = 1/2 dt g dr^2 max(drho/dr, 0 )
-             if (have_buoyancy_adjustment_by_vertical_diffusion) then
-                assert(ele_ngi(T, ele) == ele_ngi(buoyancy, ele))
-                buoyancysample = ele_val_at_quad(buoyancy, ele)
-                call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
-                grad_rho = ele_grad_at_quad(buoyancy, ele, dt_rho)
-
-                ! Calculate the gradient in the direction of gravity
-                ! TODO: Build on_sphere into ele_val_at_quad?
-                !if (on_sphere) then
-                !   grav_at_quads = sphere_inward_normal_at_quad(X, ele)
-                !else
-                   grav_at_quads = ele_val_at_quad(gravity, ele)
-                !end if
-                ! Calculate element length parallel to the direction of mixing defined above
-                enodes => ele_nodes(X, ele)
-                do i = 1,size(enodes)
-                  pos = node_val(X, enodes(i))
-                  rad(i) = pos(mesh_dim(T))
-                end do
-                dr = maxval(rad) - minval(rad)
-                do i = 1, ele_ngi(T,ele)
-                   drho_dz(i) = dot_product(grad_rho(i,:), grav_at_quads(:,i))
-                   ! Note test to limit mixing to adverse changes in density wrt gravity
-                   if (drho_dz(i) > 0.0) drho_dz(i) = 0.0
-                   ! Form the coefficient of diffusion to deliver the required mixing
-                end do
-                ! TODO: Calculate dr - per element?  or per Guass point?
-                ! dimension in which gravity lies parallel to
-                mixing_diffusion(2,2,:) = - mixing_diffusion_amplitude * dt&
-                      &* gravity_magnitude * dr**2 * drho_dz(:)
-
-                !ewrite(3,*) "mixing_density_values", buoyancysample
-                ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-                ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-                ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-                ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
-             end if
 
              Diffusivity_mat(:size(T_ele),:size(T_ele))= &
                   dshape_tensor_dshape(dt_t, ele_val_at_quad(Diffusivity,ele) &
@@ -1346,7 +1361,7 @@ contains
           !get kappa mat for CDG
           if(diffusion_scheme==CDG) then
              kappa_mat = shape_shape_tensor(t_shape,t_shape,detwei, &
-                  & ele_val_at_quad(Diffusivity,ele))
+                  & ele_val_at_quad(Diffusivity,ele) + mixing_diffusion)
           end if
 
        else if (diffusion_scheme/=MASSLUMPED_RT0) then
@@ -1527,7 +1542,7 @@ contains
     ! Construct local diffusivity operator for DG.
     !----------------------------------------------------------------------
 
-    if (dg.and.include_diffusion) then
+    if (dg.and.(include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion)) then
        
        select case(diffusion_scheme)
        case(ARBITRARY_UPWIND)
@@ -1609,7 +1624,7 @@ contains
     !----------------------------------------------------------------------
 
 
-    if (include_diffusion) then
+    if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        call addto(Big_m_diff, local_glno, local_glno,&
             & Diffusivity_mat*theta*dt)
        
@@ -2227,7 +2242,7 @@ contains
 
 
     end if
-    if (include_diffusion) then
+    if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        
        if (continuity(T)<0) then
           ! Boundary term in grad_U.
