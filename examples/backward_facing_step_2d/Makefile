@@ -10,11 +10,11 @@ run:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
-	./reattachment_length_2d.py
+	./postprocessor_2d.py
 
 input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh *.node *.edge *.ele backward_facing_step_2d_*.vtu *.log-0 *.err-0 matrixdump* *.dat *.steady_state velocity_profiles
+	rm -rf *.stat *.msh *.node *.edge *.ele backward_facing_step_2d_*.vtu *.log-0 *.err-0 matrixdump* *.dat *.steady_state velo_profiles.*
 
