@@ -278,41 +278,9 @@ doc:
 	./scripts/f90_extract_docs --dir=doc --project=fluidity */*.F90 --cppflags="$(FCLAGS) -I./include"
 	@cp include/fortran.css doc/
 
-install:
-	@$(MAKE) install_fluidity
-	@$(MAKE) install_tools
-	@$(MAKE) install_python
-
-install_fluidity:
-	@echo "    MKDIR bin"
-	@mkdir -p $(FLUIDITY_ROOT)/bin
-	@echo "        $(PROGRAM)		  --> $(FLUIDITY_ROOT)/bin/@FLUIDITY@"
-	@INSTALL@ $(PROGRAM) $(FLUIDITY_ROOT)/bin/@FLUIDITY@
-	@echo "    MKDIR lib"
-	@mkdir -p $(FLUIDITY_ROOT)/lib
-	@echo "        $(LIB_FLUIDITY)	  --> $(FLUIDITY_ROOT)/lib/lib@FLUIDITY@.a"
-	@INSTALL@ $(LIB_FLUIDITY) $(FLUIDITY_ROOT)/lib/lib@FLUIDITY@.a
-#	mkdir -p $(FLUIDITY_ROOT)/include
-#	@INSTALL@ include/*.h $(FLUIDITY_ROOT)/include/
-ifeq (@ADJOINT@,yes)
-	@echo "        $(LIB_FLADJOINT)	--> $(prefix)/lib/lib@FLADJOINT@.a"
-	@cp lib/$(LIB_FLADJOINT) $(prefix)/lib/lib@FLADJOINT@.a
-	@chmod a+r $(prefix)/lib/lib@FLADJOINT@.a
-endif
-
-install_tools:
-	@mkdir -p $(FLUIDITY_ROOT)/bin
-	@for file in bin/*; do echo "        ./$$file		  --> $(FLUIDITY_ROOT)/bin/$$file"; cp $$file $(FLUIDITY_ROOT)/bin; done
-	@cd scripts; $(MAKE) install DESTDIR=$(DESTDIR)
-
-install_python:
-	@echo "installing python"
-	@cd tools; $(MAKE) install_python DESTDIR=$(DESTDIR)
-
 all:
 	$(MAKE) default
 	$(MAKE) fltools
-	$(MAKE) install
 
 clean-light:
 	@echo "    CLEAN debug"
