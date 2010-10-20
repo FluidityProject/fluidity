@@ -671,9 +671,9 @@ prognostic_velocity_field =
             real
          },
          ## Non-linear relaxation term
-         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
-         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
-         ##  0. < ITHETA < 1.
+         ##  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0 <= ITHETA <= 1
          element relaxation {
             attribute replaces {"ITHETA"},
             real

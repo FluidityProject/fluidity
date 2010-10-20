@@ -816,9 +816,9 @@ suggested value 0.1</a:documentation>
       </element>
       <element name="relaxation">
         <a:documentation>Non-linear relaxation term
- =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
- =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
- 0. &lt; ITHETA &lt; 1.</a:documentation>
+ = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+ = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+ 0 &lt;= ITHETA &lt;= 1</a:documentation>
         <attribute name="replaces">
           <value>ITHETA</value>
         </attribute>
