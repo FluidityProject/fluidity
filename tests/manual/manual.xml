@@ -15,5 +15,7 @@ assert(not(re.search("There were undefined citations.",logfile,re.M)))</test>
     <test name="UndefinedReferences" language="python">import re
 # This is disabled until we get the manual reference clean.
 #assert(not(re.search("There were undefined references.",logfile,re.M)))</test>
+    <test name="MultipleReferences" language="python">import re
+assert(not(re.search("There were multiply-defined labels.",logfile,re.M)))</test>
   </warn_tests>
 </testproblem>
