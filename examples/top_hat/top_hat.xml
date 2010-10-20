@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>tophat
+</name>
+  <owner userid="skramer"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l top_hat_cg.flml;
+fluidity -v2 -l top_hat_dg.flml;
+fluidity -v2 -l top_hat_cv.flml</command_line>
+  </problem_definition>
+  <variables/>
+  <pass_tests/>
+</testproblem>
