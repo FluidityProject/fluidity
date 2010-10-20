@@ -189,6 +189,31 @@ diagnostic/algorithm(internal).</a:documentation>
       </choice>
     </optional>
     <optional>
+      <element name="buoyancy_adjustment">
+        <a:documentation>Buoyancy adjustment / vertical stabilization</a:documentation>
+        <optional>
+          <element name="by_vertical_diffusion">
+            <a:documentation>Vertical mixing by diffusion.
+Stabilises unstable stratifications
+through mixing by diffusion.
+(Convective adjustment).</a:documentation>
+            <optional>
+              <element name="amplitude">
+                <a:documentation>Scaling amplitude of applied diffusion 
+Default is 1.0 </a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="direction">
+                <ref name="input_choice_tensor_field"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
       <element name="tensor_field">
         <a:documentation>Diffusivity for field</a:documentation>
         <attribute name="name">

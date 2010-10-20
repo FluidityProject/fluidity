@@ -4393,6 +4393,17 @@ scalar_field_choice =
                }
             )
          }|
+         ## Buoyancy adjustment (mixing by diffusion) coefficient
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BuoyancyAdjustment" },
+            (element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+            | element aliased { generic_aliased_field })
+         }|
          ## Grid Reynolds number
          element scalar_field {
             attribute rank { "0" },

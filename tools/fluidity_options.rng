@@ -5735,6 +5735,25 @@ for the equation of state of all materials.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>Buoyancy adjustment (mixing by diffusion) coefficient</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>BuoyancyAdjustment</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>Grid Reynolds number</a:documentation>
         <attribute name="rank">
           <value>0</value>
