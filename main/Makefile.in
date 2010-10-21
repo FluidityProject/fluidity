@@ -68,7 +68,7 @@ default: $(OBJS)
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Usage.o: ../include/Usage.h
+Usage.o: ../include/Usage.h ../include/confdefs.h
 mainfl.o: Fluids.o 
 
 clean:
