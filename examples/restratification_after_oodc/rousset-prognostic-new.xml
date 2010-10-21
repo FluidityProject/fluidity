@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>restratification<comment> 3d fixed layered mesh simulation of the restratification following open ocean deep convection.
+</comment></name>
+  <owner userid="fpm08"/>
+  <tags>flml </tags>
+    <problem_definition length="long" nprocs="32">
+    <command_line>mpiexec fluidity -v2 -l rousset-prognostic-new.flml </command_line>
+  </problem_definition>  
+   <variables>
+    <variable name="final_time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("rousset-prognostic.stat")
+final_time = s["ElapsedTime"]["value"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="assert no crash" language="python">
+assert abs(final_time-8.64e6) &lt; 1e5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
