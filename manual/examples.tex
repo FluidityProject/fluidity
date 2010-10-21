@@ -1075,6 +1075,8 @@ This is the final stage of open ocean deep convection, when the dense water colu
 
 \subsection{Configuration}
 
+The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$. The aspect ratio is given by $R=L/H=500$. This is relatively high, and it affects some of the settings that must be used in fluidity.  The initial temperature field is shown in figure \ref{fig:rousset-init}. The temperature is linearly strafified except inside the cylinder in the middle with radius 70km, which is cooler than the surroundings. 
+
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=10cm]{examples_images/restratification_after_oodc/rousset-init.png}
@@ -1082,5 +1084,12 @@ This is the final stage of open ocean deep convection, when the dense water colu
 \label{fig:rousset-init}
 \end{center}
 \end{figure}
+
+\subsection{Mesh}
+
+The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain.
+
+\subsection{}
+
 
 
