@@ -177,7 +177,7 @@ void print_environment(){
 void usage(char *cmd){
   print_version();
   cerr<<"\n\nUsage: "<<cmd<<" [options ...] [simulation-file]\n"
-      <<"\nOptions (NOTE: Long options are not available on AIX.):\n"
+      <<"\nOptions:\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
       <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
       <<" Sets default value for -v to 2.\n"
@@ -317,7 +317,6 @@ void ParseArguments(int argc, char** argv){
     }
     else if(fl_command_line_options.count("xml") == 0)
     {
-      cerr << "ERROR: Unrecognized arguments!" << endl;
       usage(argv[0]);
       exit(-1);
     }
