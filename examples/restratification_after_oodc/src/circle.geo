@@ -1,7 +1,9 @@
 // Gmsh project created on Fri Feb 08 14:43:37 2008
 //radius
-Point(1) = {0.0,0.0,0,5000};
-Point(3) = {250000.0,0.0,0,5000};
+// if you want to use fewer resources, make the resolution bigger
+res = 5000.0;
+Point(1) = {0.0,0.0,0,res};
+Point(3) = {250000.0,0.0,0.0,res};
 Line(1) = {1,3};
 
 
