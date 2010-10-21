@@ -1087,9 +1087,58 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 
 \subsection{Mesh}
 
-The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain.
+The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The quadrature degree is set to four.
 
-\subsection{}
+\subsection{Discretisation}
+
+The velocity is solved for using a discontinuous galerkin discretisation. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature. 
+
+\subsection{Other fluidity options}
+
+There are some other options that are chosen specifically because this is large aspect ratio and rotating. These options may be checked by using the Large Scale Ocean options check (see section \ref{section:large-scale-ocean}).
+
+\subsubsection{Time stepping}
+\begin{itemize}
+\item \option{\ldots/timestepping/nonlinear\_iterations} option is $2$ 
+\item \option{\ldots/material\_phase/equation\_of\_state/subtract\_out\_hydrostatic\_level} is on.
+\end{itemize}
+
+\subsubsection{Velocity options}
+\begin{itemize}
+\item \option{\ldots/equation} is Boussinesq
+\item \option{\ldots/spatial\_discretisation} is discotinuous galerkin
+\item \option{\ldots/spatial\_discretisation/advection} is upwind
+\item \option{\ldots/spatial\_discretisation/advestion/integrate\_advection\_by\_parts} is twice
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/lump\_mass\_matrix} is off
+\item \option{\ldots/spatial\_discretisation/viscosity\_scheme} is compact discontinuous galerkin
+\item \option{\ldots/spatial\_discretisation/advection/conservative\_advection} is set to $0.0$
+\item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson)
+\item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
+\item \option{\ldots/solvers}  gmres 
+\item \option{\ldots/solvers/preconditioner} is sor
+\end{itemize}
+An Absorption field is added under Velocity to allow larger time steps to be taken, otherwise the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on.
+
+
+\subsubsection{Pressure options}
+
+This is continuous galerkin discretisation, with a mesh of polynomial order two.
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation} is Continuous Galerkin
+\item \option{\ldots/solver/vertical\_lumping}  on
+\item \option{\ldots/spatial\_discretisation/remove\_stabilitation\_term} on
+\item \option{\ldots/spatial\_discretisation/integrate\_continuity\_by\_parts}  on
+\item \option{\ldots/scheme/poisson\_pressure\_solution} is only first time step
+\item \option{\ldots/scheme/use\_projection\_method}  on
+\item \option{\ldots/solver} is  cg 
+\item \option{\ldots/solver/preconditioner} is  mg
+\end{itemize}
+
+\subsubsection{Free Surface Field}
+This is a diagnostic field. There is also a free surface boundary condition under Velocity.
+
+\subsection{Results}
+
 
 
 
