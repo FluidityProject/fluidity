@@ -216,7 +216,7 @@ implicit none
              do dimen=1,source_field%dim
                v(dimen)=evals(dimen)
              end do
-             s = (v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
+             s = -(v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
              call set(s_field, node, s)
       end do
 
