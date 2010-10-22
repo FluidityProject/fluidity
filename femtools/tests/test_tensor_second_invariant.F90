@@ -77,7 +77,7 @@ function solution(pos)
 
   x = pos(1); y = pos(2) ; z = pos(3)
 
-  solution = -(((18*(x**2))+(50*(z**2))+6*((x**2)*(z**2))+98)/2)
+  solution = ((9*(x**2))+(25*(z**2))+6*((x**2)*(z**2))+49)
 
 end function solution
 
