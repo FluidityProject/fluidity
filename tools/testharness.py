@@ -34,23 +34,27 @@ class TestHarness:
         # step 1. form a list of all the xml files to be considered.
 
         xml_files = []
-        subdirs = os.listdir(os.curdir)
-        for subdir in subdirs:
-          g = glob.glob1(subdir, "*.xml")
-          for xml_file in g:
-            try:
-              p = etree.parse(os.path.join(subdir, xml_file))
-              x = p.findall("/")[0]
-              if x.tag == "testproblem":
-                xml_files.append(os.path.join(subdir, xml_file))
-            except xml.parsers.expat.ExpatError:
-              print "Warning: %s mal-formed" % xml_file
-              traceback.print_exc()
+        dirnames = ["examples", "tests", "longtests"]
+        rootdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), ".."))
+        testdirs = [ os.path.join( rootdir, x ) for x in dirnames ]
+        for directory in testdirs:
+          subdirs = [ os.path.join(directory, x) for x in os.listdir(directory)]
+          for subdir in subdirs:
+            g = glob.glob1(subdir, "*.xml")
+            for xml_file in g:
+              try:
+                p = etree.parse(os.path.join(subdir, xml_file))
+                x = p.findall("/")[0]
+                if x.tag == "testproblem":
+                  xml_files.append(os.path.join(subdir, xml_file))
+              except xml.parsers.expat.ExpatError:
+                print "Warning: %s mal-formed" % xml_file
+                traceback.print_exc()
 
         # step 2. if the user has specified a particular file, let's use that.
 
         if file != "":
-          for (subdir, xml_file) in [x.split('/') for x in xml_files]:
+          for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
             if xml_file == file:
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
                            verbose=self.verbose, replace=self.modify_command_line())
@@ -116,7 +120,7 @@ class TestHarness:
         else:
           tagged_set = working_set
 
-        for (subdir, xml_file) in [x.split(os.path.sep) for x in tagged_set]:
+        for (subdir, xml_file) in [os.path.split(x) for x in tagged_set]:
           testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
                        verbose=self.verbose, replace=self.modify_command_line())
           self.tests.append((subdir, testprob))
@@ -197,7 +201,6 @@ class TestHarness:
       for t in self.tests:
         os.chdir(t[0])
         t[1].clean()
-        os.chdir(os.pardir)
 
       return
 
@@ -236,7 +239,6 @@ class TestHarness:
                       self.completed_tests += [test]
                       t = None
                       count -= 1
-                  os.chdir(os.pardir)
 
                 if count == 0: break
                 time.sleep(60)                  
@@ -249,7 +251,6 @@ class TestHarness:
             else:
               test.fl_logs(nLogLines = 0)
             self.teststatus += test.test()
-            os.chdir(os.pardir)
             self.completed_tests += [test]
 
         self.passcount = self.teststatus.count('P')
@@ -278,7 +279,6 @@ class TestHarness:
         tests. This is split out so that it can be threaded'''
         
         for (dir, test) in self.threadtests:
-            #os.chdir(dir)
             try:
                 runtime=test.run(dir)
                 if self.length=="short" and runtime>30.0:
@@ -296,8 +296,6 @@ class TestHarness:
                 self.teststatus += ['F']
                 test.pass_status = ['F']
                 self.completed_tests += [test]
-
-            #os.chdir(os.pardir)
 
     def list(self):
       for (subdir, test) in self.tests:
@@ -322,23 +320,11 @@ if __name__ == "__main__":
     parser.add_option("--just-list", action="store_true", dest="justlist")
     (options, args) = parser.parse_args()
 
-    if len(args) > 1: parser.error("Too many arguments.")
-    if len(args) == 1: os.chdir(args[0])
+    if len(args) > 0: parser.error("Too many arguments.")
 
     if options.parallel == "serial":     para = False
     elif options.parallel == "parallel": para = True
     else: parser.error("Specify either serial or parallel.")
-
-    curdir = os.getcwd().split(os.sep)[-1]
-    if curdir != "tests" and curdir != "longtests" and curdir != "examples":
-        try:
-            os.chdir("longtests")
-        except OSError:
-            try:
-              os.chdir("tests")
-            except OSError:
-              print "You must run this in the tests/ directory or the root fluidity directory."
-              sys.exit(1)
 
     os.environ["PATH"] = os.path.abspath(os.path.join(os.pardir, "bin")) + ":" + os.environ["PATH"]
     try:
