@@ -1373,6 +1373,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     ! get meshes
     velocity => extract_vector_field(state, "Velocity")
     positions => extract_vector_field(state, "Coordinate")
+    wind_surface_field => null()
    
     ! grab stresses from velocity field - Surface
     nobcs = get_boundary_condition_count(velocity)
@@ -1382,20 +1383,24 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
             wind_surface_field => extract_surface_field(velocity, i, "WindSurfaceField")
         end if
     end do
-
+            
     if (positions%dim .eq. 3) then
-        do i=1,NNodes_sur
-            temp_vector_2D = node_val(wind_surface_field,i)
-            ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
-            ! u_taus = sqrt(wind_stress/rho0)
-            ! we assume here that the wind stress in diamond is already
-            ! wind_stress/rho0
-            u_taus_squared(i) = sqrt(((temp_vector_2D(1))**2+(temp_vector_2D(2))**2))
-            !  use the Charnock formula to compute the surface roughness
-            z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
-            if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
 
-        end do
+        if (associated(wind_surface_field)) then
+            do i=1,NNodes_sur
+                temp_vector_2D = node_val(wind_surface_field,i)
+                ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
+                ! u_taus = sqrt(wind_stress/rho0)
+                ! we assume here that the wind stress in diamond is already
+                ! wind_stress/rho0
+                u_taus_squared(i) = sqrt(((temp_vector_2D(1))**2+(temp_vector_2D(2))**2))
+                !  use the Charnock formula to compute the surface roughness
+                z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
+                if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
+            end do
+        else
+            z0s = 0.0
+        end if
 
         ! grab values of velocity from bottom surface
         call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
@@ -1425,18 +1430,22 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         end do
 
     else if (positions%dim .eq. 2) then
-        do i=1,NNodes_sur
-            temp_vector_1D = node_val(wind_surface_field,i)
-            ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
-            ! u_taus = sqrt(wind_stress/rho0)
-            ! we assume here that the wind stress in diamond is already
-            ! wind_stress/rho0
-            u_taus_squared(i) = temp_vector_1D(1)
-            !  use the Charnock formula to compute the surface roughness
-            z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
-            if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
+        if (associated(wind_surface_field)) then
+            do i=1,NNodes_sur
+                temp_vector_1D = node_val(wind_surface_field,i)
+                ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
+                ! u_taus = sqrt(wind_stress/rho0)
+                ! we assume here that the wind stress in diamond is already
+                ! wind_stress/rho0
+                u_taus_squared(i) = temp_vector_1D(1)
+                !  use the Charnock formula to compute the surface roughness
+                z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
+                if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
 
-        end do
+            end do
+        else
+            z0s = 0.0
+        end if
 
         ! grab values of velocity from bottom surface
         call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
