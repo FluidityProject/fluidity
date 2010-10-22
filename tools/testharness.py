@@ -34,8 +34,10 @@ class TestHarness:
         # step 1. form a list of all the xml files to be considered.
 
         xml_files = []
-        dirnames = ["examples", "tests", "longtests"]
         rootdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), ".."))
+        dirnames = ["examples", "tests"]
+        if os.path.exists(os.path.join(rootdir, "longtests")):
+          dirnames.append("longtests")
         testdirs = [ os.path.join( rootdir, x ) for x in dirnames ]
         for directory in testdirs:
           subdirs = [ os.path.join(directory, x) for x in os.listdir(directory)]
