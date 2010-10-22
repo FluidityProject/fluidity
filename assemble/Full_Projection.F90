@@ -284,6 +284,7 @@
 
       ! Determine transpose of G_t_incomp to form Gradient Matrix (G):
       call MatCreateTranspose(G_t_incomp,G,ierr)
+      call MatSetOption(G, MAT_USE_INODES, PETSC_FALSE, ierr)
 
       ! Convert Stabilization matrix --> PETSc format if required:
       if(have_auxiliary_matrix) then

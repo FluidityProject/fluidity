@@ -915,6 +915,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     
     call MatCreateMPIAIJ(MPI_COMM_WORLD, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
+    call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
     ! get base for coarse node/cluster numbering
     call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
@@ -923,6 +924,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   else
     call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, &
       PETSC_NULL_INTEGER, dnnz, P, ierr)
+    call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
   end if

@@ -173,7 +173,7 @@ module sparse_tools_petsc
 contains
 
   subroutine allocate_petsc_csr_matrix_from_sparsity(matrix, sparsity, blocks, &
-      name, diagonal)
+      name, diagonal, use_inodes)
     !!< Allocates a petsc_csr_matrix, i.e. a csr_matrix variant
     !!< that directly stores in petsc format. The provided sparsity
     !!< is only used to workout the number of nonzeros per row and may be
@@ -185,6 +185,9 @@ contains
     !! only take diagonal blocks into account when estimating matrix sparsity
     !! does not change the matrix structure otherwise
     logical, optional, intent(in):: diagonal
+    !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
+    !! that's why we default to not use them
+    logical, intent(in), optional:: use_inodes
 
     PetscErrorCode:: ierr
     logical:: ldiagonal
@@ -219,7 +222,7 @@ contains
 
       ! Create serial matrix:
       matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
-        matrix%column_numbering, ldiagonal)
+        matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
     else
     
@@ -236,7 +239,7 @@ contains
         
       ! Create parallel matrix:
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
-        matrix%column_numbering, ldiagonal)
+        matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
     endif
     
@@ -252,7 +255,7 @@ contains
 
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-
+    
     if (associated(sparsity%row_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
@@ -275,7 +278,7 @@ contains
 
   subroutine allocate_petsc_csr_matrix_from_nnz(matrix, rows, columns, &
       dnnz, onnz, blocks, name, halo, row_halo, column_halo, &
-      element_size)
+      element_size, use_inodes)
     !!< Allocates a petsc_csr_matrix, i.e. a csr_matrix variant
     !!< that directly stores in petsc format. For this version the number
     !!< of nonzeros in each row needs to be provided explicitly. This allows
@@ -293,23 +296,26 @@ contains
     integer, dimension(2), intent(in):: blocks
     character(len=*), intent(in) :: name
     type(halo_type), pointer, optional:: halo, row_halo, column_halo
-    !!< If provided, the actual PETSc matrix will employ a block structure
-    !!< where each local block consists of the degrees of freedom 
-    !!< of 'element_size' subsequent indices. Note that these blocks are
-    !!< something entirely different than the blocks of the previous 'blocks'
-    !!< argument, which only refer to dim argument in the set/addto interface
-    !!< i.e. call addto(M, dim1, dim2, i1, i2, val) where
-    !!< 1<=dim1<=blocks(1) and 1<=dim2<=blocks(2).
-    !!< To distinguish the element_size blocks will be referred to as
-    !!< element blocks. They consist of entries that have the same
-    !!< value for (i1-1)/element_size and (i2-1)/element_size (integer division)
-    !!< At the moment entries which have a different dim1 or dim2 are not
-    !!< included in the element block (this might be a future option).
-    !!< If provided the arguments rows and columns change their meaning
-    !!< to be the number of element block rows and columns. The size of dnnz and onnz
-    !!< is still nprows*blocks(1), but they now contain the number of 
-    !!< nonzero element blocks in an element block row.
+    !! If provided, the actual PETSc matrix will employ a block structure
+    !! where each local block consists of the degrees of freedom 
+    !! of 'element_size' subsequent indices. Note that these blocks are
+    !! something entirely different than the blocks of the previous 'blocks'
+    !! argument, which only refer to dim argument in the set/addto interface
+    !! i.e. call addto(M, dim1, dim2, i1, i2, val) where
+    !! 1<=dim1<=blocks(1) and 1<=dim2<=blocks(2).
+    !! To distinguish the element_size blocks will be referred to as
+    !! element blocks. They consist of entries that have the same
+    !! value for (i1-1)/element_size and (i2-1)/element_size (integer division)
+    !! At the moment entries which have a different dim1 or dim2 are not
+    !! included in the element block (this might be a future option).
+    !! If provided the arguments rows and columns change their meaning
+    !! to be the number of element block rows and columns. The size of dnnz and onnz
+    !! is still nprows*blocks(1), but they now contain the number of 
+    !! nonzero element blocks in an element block row.
     integer, intent(in), optional:: element_size
+    !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
+    !! that's why we default to not use them
+    logical, intent(in), optional:: use_inodes
 
     type(halo_type), pointer:: lrow_halo, lcolumn_halo
     PetscErrorCode:: ierr
@@ -432,7 +438,11 @@ contains
 
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-
+    
+    if (.not. present_and_true(use_inodes)) then
+      call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
+    end if
+    
     if (associated(lrow_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
@@ -454,7 +464,7 @@ contains
   end subroutine allocate_petsc_csr_matrix_from_nnz
     
   subroutine allocate_petsc_csr_matrix_from_petsc_matrix(matrix, &
-    M, row_numbering, column_numbering, name)
+    M, row_numbering, column_numbering, name, use_inodes)
     !!< Allocates a petsc_csr_matrix using an already created real petsc matrix
     !!< row_numbering and column_numbering have to be supplied to specify the
     !!< relation between the numbering used inside the petsc matrix and the
@@ -467,6 +477,9 @@ contains
     Mat, intent(in):: M
     type(petsc_numbering_type), intent(in):: row_numbering, column_numbering
     character(len=*), intent(in):: name
+    !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
+    !! that's why we default to not use them
+    logical, intent(in), optional:: use_inodes
     
     PetscErrorCode:: ierr
       
@@ -504,7 +517,11 @@ contains
 
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-    
+
+    if (.not. present_and_true(use_inodes)) then
+      call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
+    end if
+
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(matrix)
@@ -1105,8 +1122,9 @@ contains
     
   end subroutine dump_matrix
     
-  function csr2petsc_csr(matrix) result (A)
+  function csr2petsc_csr(matrix, use_inodes) result (A)
     type(csr_matrix), intent(in):: matrix
+    logical, intent(in), optional:: use_inodes
     type(petsc_csr_matrix):: A
     
     Mat:: M
@@ -1137,7 +1155,7 @@ contains
         matrix%sparsity%column_halo, ghost_nodes=ghost_nodes)
     M=csr2petsc(matrix, row_numbering, column_numbering)
     call allocate(A, M, row_numbering, column_numbering, &
-      name=trim(matrix%name))
+      name=trim(matrix%name), use_inodes=use_inodes)
     call deallocate(row_numbering)
     call deallocate(column_numbering)
     
