@@ -5,7 +5,7 @@ BIN=../../bin/
 SCRIPTS=../../scripts/
 preprocess: 
 	@echo **********Generating the mesh using gmsh in 3d:
-	gmsh -3 -clmin 0.2 -optimize -o step3d.msh src/step3d.geo
+	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle step3d.msh
 ifeq ($(NPROCS),1)
@@ -29,14 +29,14 @@ endif
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
 ifeq ($(NPROCS),1)
-	./BFS_extract_profiles_3d_serial.py
+	./postprocessor_3d_serial.py
 else
-	./BFS_extract_profiles_3d_parallel.py
+	./postprocessor_3d_parallel.py
 endif
 
 input: preprocess NPROCS=2
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.dat *.steady_state *.halo
+	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
 
