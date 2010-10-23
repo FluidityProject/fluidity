@@ -32,6 +32,8 @@ FinalTimeGL78 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-
     </variable>
 
     <variable name="CanutoA_MLD" language="python">
+import sys
+sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
 filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA_*.vtu")
@@ -39,6 +41,8 @@ mld_calc.sort_nicely(filelist)
 CanutoA_MLD = mld_calc.MLD(filelist)
     </variable>
     <variable name="CanutoB_MLD" language="python">
+import sys
+sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
 filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB_*.vtu")
@@ -46,6 +50,8 @@ mld_calc.sort_nicely(filelist)
 CanutoB_MLD = mld_calc.MLD(filelist)
     </variable>
     <variable name="KC94_MLD" language="python">
+import sys
+sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
 filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94_*.vtu")
@@ -53,6 +59,8 @@ mld_calc.sort_nicely(filelist)
 KC94_MLD = mld_calc.MLD(filelist)
     </variable>    
     <variable name="GL78_MLD" language="python">
+import sys
+sys.path.append("gls-Kato_Phillips-mixed_layer_depth")        
 import mld_calc
 import glob
 filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78_*.vtu")

@@ -51,6 +51,8 @@ d = stat_parser("biology_conservation.stat")
 nutrients2=d["water"]["Nutrient"]["integral"][-1]
     </variable>
     <variable name="DifferencePerNode" language="python">
+import sys
+sys.path.append("biology_conservation")        
 import values_per_node
 from numpy import array, zeros
 p1,z1,n1,d1 = values_per_node.values_per_node("biology_conservation_0.vtu")
