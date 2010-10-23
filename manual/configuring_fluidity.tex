@@ -1884,7 +1884,7 @@ should form the error metric and how the error for that field should be calculat
 
 \subsubsection{Interpolation method}
 
-For each prognostic field in the current state, an interoplation type must be set. These can be set by selecting an
+For each prognostic field in the current state, an interpolation type must be set. These can be set by selecting an
 option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
 \begin{itemize}
 \item Consistant interpolation - the default and quick inteprolation method, but is non-conservative and dissipative.
@@ -1893,7 +1893,7 @@ option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolat
 \item Grandy interpolation - Conservative, but highly diffusive. See \citet{grandy1999}.
 \end{itemize}
 
-For some fields, such as Pressure and Velcoity other interoplation methods are available.
+For some fields, such as Pressure and Velocity other interpolation methods are available.
 
 For diagnostic and prescribed fields an inteprolation method is not required. However, if an output dump
 occurs immeadiately following a mesh adapt, diagnostic fields may not have correct values depending
@@ -1908,16 +1908,16 @@ section \ref{Sect:Solve} for more details.
 \subsubsection{Creating an error metric}
 \label{sect:configuring_fluidity_error_metric}
 
-The second step for configuring adaptivity is to set up the fields that are to form the erorr metric used
+The second step for configuring adaptivity is to set up the fields that are to form the error metric used
 to adapt the mesh. For each field that should be considered when forming the metric the option
 \option{\ldots/adaptivity\_options} needs to be enabled. The error bound is set as seperate fields within 
 state, so for Temperature, for example, the acceptable error is stored an a field called 
-TemperatureInteroplationErrorBound. There are two methods available for calculating the error, absolute and relative.
-Both have similar options in which the InteroplationErrorBound field can be set as with any other prescribed field.
+TemperatureInterpolationErrorBound. There are two methods available for calculating the error, absolute and relative.
+Both have similar options in which the InterpolationErrorBound field can be set as with any other prescribed field.
 One can, for example, set a different error metric in different regions on the mesh. This field
 is output as any other field too.
 
-For relative interpolation error bounds a tolerance value also has to be set under 
+For relative interpolation error bounds a tolerance value also has to be set under \newline
 \option{\ldots/adaptivity\_options/relative\_measure/tolerance}. This value prevents division by zero
 and should be set to a small enough number that the field can effecivtly be considered zero at this value.
 

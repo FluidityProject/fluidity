@@ -352,7 +352,8 @@ Accurate experimental results for a wide range of flow regimes exist
 in 2D and 3D
 (e.g. see \cite{armaly1983}) and the problem has several important flow
 characteristics, such as the downstream length at which the flow reattaches
-with the bottom of the domain.
+with the bottom of the domain. Results from \fluidity\ simulations at Reynolds number 150
+are presented here.
 
 
 \subsection{Configuration}
@@ -378,7 +379,7 @@ The command \option{make postprocess NPROCS=np} runs the parallel-specific data 
 
 \begin{figure}
 \centering
-\fig[width=12.0cm]{examples_images/BackwardStep-schematic}
+\fig[width=12.0cm]{examples_images/backward_facing_step/backward_facing_step_3d-schematic}
 \caption{Schematic of the domain for the three-dimensional flow past a backward facing step
 problem.}
 \label{Fig:Schematic3d}
@@ -390,17 +391,17 @@ The base of the domain is located at $z=0$, the inflow plane is given by $x=-10$
 at $x=0$, and the back of the domain in the spanwise direction is given by $y=0$.
 
 \subsubsection{Geometry: 2D}
-%A schematic of the domain is shown in figure \ref{Fig:Schematic2d}.
+A schematic of the domain, showing adaptive mesh refinement, is shown in figure \ref{Fig:Schematic2d}.
 In the 2D case the expansion ratio is 2, and the upper boundary is treated as no-slip,
 consistent with \cite{armaly1983}.
 
-%\begin{figure}
-%\centering
-%\fig[width=12.0cm]{examples_images/backward_facing_step/BackwardStep-schematic.pdf}
-%\caption{Schematic of the domain for the two-dimensional flow past a backward facing step
-%problem.}
-%\label{Fig:Schematic2d}
-%\end{figure}
+\begin{figure}
+\centering
+\fig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
+\caption{Schematic of the domain for the two-dimensional flow past a backward facing step
+problem, showing adaptive mesh refinement.}
+\label{Fig:Schematic2d}
+\end{figure}
 
 
 \subsubsection{Initial and boundary conditions: 3D}
@@ -441,7 +442,7 @@ u=v=w=0.
 \end{equation*}
 
 \subsubsection{Initial and boundary conditions: 2D}
-In the 2D case, the inlet velocity profile is a log profile extending from each wall to the midpoint, with the same parameters:
+In the 2D case, the inlet velocity profile is a log profile extending from each wall to the midpoint, with the same parameters as the 3D example:
 \begin{equation*}
 u(z) =
   \begin{cases}
@@ -453,31 +454,85 @@ u(z) =
 \end{equation*}
 
 
-\subsection{Results}
+\subsection{Results: 2D}
+Three snapshots of the velocity magnitude from the benchmark run at $Re=150$
+are shown in figure \ref{Fig:Vectors} at times 5, 10 and 50 seconds.
+Streamwise velocity profiles at several points downstream of the step are shown
+in figure \ref{Fig:UProfiles}. The reattachment point is clearly between $x/h=2$ and $x/h=4$.
+
+One of the metrics most often considered is the point at which the flow which separates from the step
+reattaches to the bottom of the domain. The length downstream of the step at which this happens
+has been found from laboratory experiments and direct numerical simulations and is considered a
+sensitive measure of the quality of the numerical method. It is typically used to examine the impact
+of turbulence parameterisations but here will be used to examine the use of mesh adaptivity
+as well as the numerical method.
+
+The reattachment length was defined here to be the length
+from the step at which the zero-isosurface of the $x$-component of $\vec{u}$ intersects with
+the bottom boundary. This quantity was computed from $\vec{u}$
+using the VTK library. For the simulation described, the reattachment
+length was approximately 3.6 times the step height, which is consistent with \cite{armaly1983}.
+The precise value for the reattachment length is dependent on exact configuration on the domain and inflow
+conditions, and also strongly on the Reynolds number of the flow.
+
+\begin{figure}
+\centering
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
+\caption{Snapshots of the velocity magnitude at times 5, 10 and 50 time units (top to bottom) into the simulation
+from the smaller benchmark run.
+The evolution of the dynamics to steady state can be seen, in particular the reattachment of the velocity with the bottom of the domain 3.6 step heights downstream of the step.}
+\label{Fig:Vectors}
+\end{figure}
+
+\begin{figure}
+\centering
+\fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
+\caption{Streamwise velocity profiles at $x/h=0, 2, 4 \text{ and } 6$ downstream of the step,
+where $h=1$ is the step height. The converged solution is in red.
+The recirculation region is indicated by the negative velocity in figure (b).
+It is clear that the reattachment point is between $x/h=2$ and $x/h=4$.}
+\label{Fig:UProfiles2d}
+\end{figure}
+
+
+\subsection{Results: 3D}
 Three snapshots of the velocity vectors from the small benchmark run
-are shown in figure \ref{Fig:Vectors} at times
-5, 25 and 50 seconds. A vertical slice through the centre of the domain and a horizontal slice
-at the level of the step are shown.
+are shown in figure \ref{Fig:Vectors} at times 5, 10 and 50 seconds.
+Streamwise velocity profiles at several points downstream of the step are shown in figure
+\ref{Fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain.
+The reattachment point is clearly between $x/h=6$ and $x/h=10$.
+In fact the flow reattaches at $x/h \approx 8.3$, which is consistent with the results of \cite{le1997}.
 
 
 \begin{figure}
 \centering
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-vertplane-5sec}}
-\caption{Snapshots of the velocity fields at times 5, 25 and 50 time units (top to bottom) into the simulation
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-5sec}}
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-10sec}}
+\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-50sec}}
+\caption{Snapshots of the velocity magnitude at times 5, 25 and 50 time units (top to bottom) into the simulation
 from the smaller benchmark run.
-A vertical slice through the centre of the domain and a horizontal slice at the height
-of the step are shown. The evolution of the dynamics can be seen, in particular the onset of fully
-three-dimensional structures and the reattachment of the velocity with the bottom of the domain approximately
-8 units downstream of the step.}
+The evolution of the dynamics to steady state can be seen, in particular the reattachment of the velocity with the bottom of the domain approximately 8 units downstream of the step.}
 \label{Fig:Vectors}
 \end{figure}
 
+\begin{figure}
+\centering
+\fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
+\caption{Streamwise velocity profiles at $x/h=4, 6, 10 \text{ and } 19$ downstream of the step,
+where $h=1$ is the step height. The converged solution is in red.
+The recirculation region is indicated by the negative velocity in figure (b).
+It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
+\label{Fig:UProfiles3d}
+\end{figure}
 
-As this is a highly turbulent problem, making quantitative comparisons of
-individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
-Figure \ref{Fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
-benchmark run and a time
-averaged field. The removal of fluctuating components in the velocity field can be seen.
+
+%As this is a highly turbulent problem, making quantitative comparisons of
+%individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
+%Figure \ref{Fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
+%benchmark run and a time
+%averaged field. The removal of fluctuating components in the velocity field can be seen.
 
 %\begin{figure}
 %\centering
@@ -493,31 +548,16 @@ averaged field. The removal of fluctuating components in the velocity field can 
 
 
 
-One of the metrics most often considered is the point at which the flow which separates from the step
-reattaches to the bottom of the domain. The length downstream of the step at which this happens
-has been found from laboratory experiments and direct numerical simulations and is considered a
-sensitive measure of the quality of the numerical method. It is typically used to examine the impact
-of turbulence parameterisations and here will be used to examine this in addition to the use of mesh
-adaptivity to simulate this problem.
-
-The reattachment length was defined here to be the length
-from the step at which the zero-isosurface of the $x$-component of $\vec{u}$ intersects with
-the bottom boundary. This quantity was computed from $\vec{u}$
-using the VTK library. For the simulation described, the reattachment
-length was approximately 10 times the step height, which is consistent with the value
-given in the literature \cite{le1997}.
-The precise value for the reattachment length is dependent on exact configuration on the domain and inflow
-conditions, and also strongly on the Reynolds number of the flow.
 A more rigorous analysis would involve
 repeating the experiment for a range of Reynolds numbers and comparing the reattachment
-length of multiple model runs. It may be seen that pseudo-supermeshing is an efficient
-method to produce a common mesh suitable for the interpolation of fields from multiple
-meshes, such as is necessary in time-averaging.
+length of multiple model runs.
+%It may be seen that pseudo-supermeshing is an efficient
+%method to produce a common mesh suitable for the interpolation of fields from multiple
+%meshes, such as is necessary in time-averaging.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %----------------------Sphere------------------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 \section{Flow past a sphere: drag calculation}
 \label{sect:flow_past_sphere}

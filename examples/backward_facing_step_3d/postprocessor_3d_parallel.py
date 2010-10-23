@@ -172,13 +172,13 @@ def meanvelo(filelist,xarray,yarray,zarray):
 #########################################################################
 
 ##### Points to generate profiles:
-xarray = numpy.array([0.0, 2.0, 4.0, 6.0])
+xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
 yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
 zarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0])
 
 ##### Call functions defined above
 filelist = get_filelist()
-reattachment_length = reatt_length(filelist, yarray, exclude_initial_results=25)
+reattachment_length = reatt_length(filelist, yarray, exclude_initial_results=30)
 print "\nTime-averaged reattachment length (in step heights): ", reattachment_length
 
 profiles = meanvelo(filelist, xarray, yarray, zarray)
@@ -197,7 +197,7 @@ ax.plot(profiles[0,0,:],zarray, color='green', linestyle="dashed")
 ax.plot(profiles[1,0,:],zarray, color='blue', linestyle="dashed")
 ax.plot(profiles[2,0,:],zarray, color='red', linestyle="dashed")
 pylab.legend(("5secs", "10secs", "50secs"), loc="upper left")
-ax.set_title('(a) x/h = 0', fontsize=16)
+ax.set_title('(a) x/h = 4', fontsize=16)
 ax.grid("True")
 for tick in ax.xaxis.get_major_ticks():
   tick.label1.set_fontsize(size)
@@ -209,7 +209,7 @@ bx.plot(profiles[0,1,:],zarray, color='green', linestyle="dashed")
 bx.plot(profiles[1,1,:],zarray, color='blue', linestyle="dashed")
 bx.plot(profiles[2,1,:],zarray, color='red', linestyle="dashed")
 pylab.legend(("5secs", "10secs", "50secs"), loc="upper left")
-bx.set_title('(b) x/h = 2', fontsize=16)
+bx.set_title('(b) x/h = 6', fontsize=16)
 bx.grid("True")
 for tick in bx.xaxis.get_major_ticks():
   tick.label1.set_fontsize(size)
@@ -220,7 +220,7 @@ cx.plot(profiles[0,2,:],zarray, color='green', linestyle="dashed")
 cx.plot(profiles[1,2,:],zarray, color='blue', linestyle="dashed")
 cx.plot(profiles[2,2,:],zarray, color='red', linestyle="dashed")
 pylab.legend(("5secs", "10secs", "50secs"), loc="upper left")
-cx.set_title('(c) x/h = 4', fontsize=16)
+cx.set_title('(c) x/h = 10', fontsize=16)
 cx.grid("True")
 for tick in cx.xaxis.get_major_ticks():
   tick.label1.set_fontsize(size)
@@ -231,7 +231,7 @@ dx.plot(profiles[0,3,:],zarray, color='green', linestyle="dashed")
 dx.plot(profiles[1,3,:],zarray, color='blue', linestyle="dashed")
 dx.plot(profiles[2,3,:],zarray, color='red', linestyle="dashed")
 pylab.legend(("5secs", "10secs", "50secs"), loc="upper left")
-dx.set_title('(d) x/h = 6', fontsize=16)
+dx.set_title('(d) x/h = 19', fontsize=16)
 dx.grid("True")
 for tick in dx.xaxis.get_major_ticks():
   tick.label1.set_fontsize(size)
