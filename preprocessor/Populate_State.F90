@@ -378,12 +378,12 @@ contains
     type(mesh_type) :: mesh, model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
-    
+
     character(len=FIELD_NAME_LEN) :: mesh_name, model_mesh_name
-    character(len=OPTION_PATH_LEN) :: mesh_path
-    ! logicals to find out if we have certain options
-    logical :: new_shape, new_cont, extrusion, periodic, remove_periodicity
-    integer :: i, j, nmeshes, stat
+    character(len=OPTION_PATH_LEN) :: mesh_path, shape_type, cont
+    logical :: new_cont, extrusion, periodic, remove_periodicity
+    logical :: new_shape_type, new_degree, from_shape, make_new_mesh
+    integer :: from_degree, from_shape_type, from_cont, i, j, nmeshes, stat
     logical :: incomplete, updated, exclude_from_mesh_adaptivity
 
     ! Get number of meshes
@@ -412,6 +412,7 @@ contains
           end if
           
           if(have_option(trim(mesh_path)//"/from_mesh")) then
+             ewrite(0,*) "Entering mesh checking "
              
              ! Get model mesh name
              call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
@@ -428,13 +429,79 @@ contains
              ! Find out if the new mesh is different from the old mesh and if
              ! so, find out how it differs - in the options check
              ! we've made sure only one of those (or both new_shape and new_cont) are .true.
-             new_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
-             new_cont=have_option(trim(mesh_path)//"/from_mesh/mesh_continuity")
+             ! If there are no differences, do not create new mesh.
+             from_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
+
+             ! 1. If mesh shape options are specified, check if they are different to the model mesh.
+             if (from_shape) then
+               ! 1.1. Check polynomial_degree option
+               call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
+                    from_degree, stat)
+               if(stat==0) then
+                 ! Is polynomial_degree the same as model mesh?
+                 if(from_degree==model_mesh%shape%degree) then
+                   new_degree=.false.
+                 else
+                   new_degree=.true.
+                 end if
+               ! If degree is not specified, use the model mesh degree.
+               else
+                 new_degree=.false.
+               end if
+
+               ! 1.2. Check element_type option
+               call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/element_type", &
+                    shape_type, stat)
+               if(stat==0) then
+                 ! Set comparison variable from_shape_type
+                 if(trim(shape_type)=="lagrangian") then
+                   from_shape_type=ELEMENT_LAGRANGIAN
+                 else if(trim(shape_type)=="bubble") then
+                   from_shape_type=ELEMENT_BUBBLE
+                 end if
+                 ! If new_shape_type does not match model mesh shape type, make new mesh.
+                 if(from_shape_type == model_mesh%shape%numbering%type) then
+                   new_shape_type=.false.
+                 else
+                   new_shape_type=.true.
+                 end if
+               ! If no element_type is specified, assume it is the same as model mesh
+               ! and do not create new mesh.
+               else
+                 new_shape_type=.false.
+               end if
+             ! Else if no mesh shape options are set, do not make new mesh.
+             else
+               new_degree=.false.; new_shape_type=.false.
+             end if
+
+             ! 2. If mesh_continuity is specified, check if it is different to the model mesh.
+             call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", cont, stat)
+             if(stat==0) then
+               if(trim(cont)=="discontinuous") then
+                 from_cont=-1
+               else if(trim(cont)=="continuous") then
+                 from_cont=0
+               end if
+               ! 2.1. If continuity is not the same as model mesh, create new mesh.
+               if(from_cont==model_mesh%continuity) then
+                 new_cont=.false.
+               else
+                 new_cont=.true.
+               end if
+             ! If no continuity is specified, assume it is the same as model mesh,
+             ! and do not create a new mesh.
+             else
+               new_cont=.false.
+             end if
+
+             ! 3. If any of the above are true, make new mesh.
+             make_new_mesh = new_shape_type .or. new_degree .or. new_cont
+
              extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
              periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
              exclude_from_mesh_adaptivity=have_option(trim(mesh_path)//"/exclude_from_mesh_adaptivity")
-             
-             
+
              if (periodic) then
                ! there is an options check to guarantee that all periodic bcs have remove_periodicity
                remove_periodicity=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions/remove_periodicity")>0
@@ -501,8 +568,8 @@ contains
                
                call incref(mesh)
                
-             else if (new_cont .or. new_shape) then
-               
+             else if (make_new_mesh) then
+
                mesh = make_mesh_from_options(model_mesh, mesh_path)
                
              else if (periodic) then
