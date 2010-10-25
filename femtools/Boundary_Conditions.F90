@@ -1034,7 +1034,7 @@ contains
     !!< bc types requested
     
     !! field of which boundary conditions are retrieved
-    type(scalar_field), intent(inout):: field
+    type(scalar_field), intent(in), target :: field
     !! list of bc types you want (others are ignored)
     character(len=*), dimension(:), intent(in):: types
     !! A field over the entire surface containing the boundary values
@@ -1056,7 +1056,7 @@ contains
     integer, dimension(:), intent(out), optional:: bc_number_list
     
     type(scalar_field), pointer:: surface_field
-    type(mesh_type), pointer:: surface_mesh
+    type(mesh_type), pointer:: surface_mesh, volume_mesh
     character(len=FIELD_NAME_LEN) bctype
     character(len=1024) name
     integer, dimension(:), pointer:: surface_element_list
@@ -1065,7 +1065,8 @@ contains
     integer, dimension(:), pointer :: neigh
     integer :: l_face_number, ele
 
-    surface_mesh => get_dg_surface_mesh(field%mesh)
+    volume_mesh => field%mesh
+    surface_mesh => get_dg_surface_mesh(volume_mesh)
 
     call allocate(boundary_value, surface_mesh, name=trim(field%name)//"EntireBC")
     call zero(boundary_value)
@@ -1145,7 +1146,7 @@ contains
     !!< bc types requested
     
     !! field of which boundary conditions are retrieved
-    type(vector_field), intent(inout):: field
+    type(vector_field), intent(in), target :: field
     !! list of bc types you want (others are ignored)
     character(len=*), dimension(:), intent(in):: types
     !! A field over the entire surface containing the boundary values
@@ -1168,7 +1169,7 @@ contains
     integer, dimension(:,:), intent(out), optional:: bc_number_list
     
     type(vector_field), pointer:: surface_field
-    type(mesh_type), pointer:: surface_mesh
+    type(mesh_type), pointer:: surface_mesh, volume_mesh
     character(len=FIELD_NAME_LEN) bctype
     integer, dimension(:), pointer:: surface_element_list
     logical, dimension(field%dim):: applies
@@ -1177,7 +1178,8 @@ contains
     integer, dimension(:), pointer :: neigh
     integer :: l_face_number, ele
 
-    surface_mesh => get_dg_surface_mesh(field%mesh)
+    volume_mesh => field%mesh
+    surface_mesh => get_dg_surface_mesh(volume_mesh)
 
     call allocate(boundary_value, field%dim, surface_mesh, &
        name=trim(field%name)//"EntireBC")
