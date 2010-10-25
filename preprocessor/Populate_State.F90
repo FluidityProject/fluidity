@@ -412,7 +412,6 @@ contains
           end if
           
           if(have_option(trim(mesh_path)//"/from_mesh")) then
-             ewrite(0,*) "Entering mesh checking "
              
              ! Get model mesh name
              call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
