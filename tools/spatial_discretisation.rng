@@ -407,6 +407,26 @@ Not for production runs.</a:documentation>
                   <element name="mid-point_scheme">
                     <a:documentation>Option allowing the user to include the neighbouring
 elements "mid-point" in the calculation.</a:documentation>
+                    <element name="beta">
+                      <a:documentation>beta=0.5 -&gt; include mid-point value in the bounds.
+beta=1.0 -&gt; include opposite node value in the bounds.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="extrapolate">
+                        <a:documentation>Create additional values to include in the calculation
+of the bounds by extrapolating along the direction of the
+faces of the element in question.</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="pre_distribute_mass">
+                    <a:documentation>Re-distribute mass prior to the diffusion if nodal
+values within an element are both above and below the 
+provided bounds.</a:documentation>
                     <empty/>
                   </element>
                 </optional>

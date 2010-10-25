@@ -349,6 +349,22 @@ spatial_discretisation_options =
 #                     empty
 #                  }?,
                   element mid-point_scheme {
+                      ## beta=0.5 -> include mid-point value in the bounds.
+                      ## beta=1.0 -> include opposite node value in the bounds.
+                      element beta {
+                         real
+                      },
+                      ## Create additional values to include in the calculation
+                      ## of the bounds by extrapolating along the direction of the
+                      ## faces of the element in question.
+                      element extrapolate {
+                         empty
+                      }?
+                  }?,
+                  ## Re-distribute mass prior to the diffusion if nodal
+                  ## values within an element are both above and below the 
+                  ## provided bounds.
+                  element pre_distribute_mass {
                      empty
                   }?
                }
