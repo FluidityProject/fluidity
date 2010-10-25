@@ -12,17 +12,30 @@
 \subsection{Overview}
 In this test example a very simple one-dimensional problem is 
 studied: the advection of an inital ``top hat'' distribution 
-of a tracer (see figure ???). Since this test runs in a  
+of a tracer (see figure \ref{fig:top_hat_ic}). Since this test runs in a  
 short time, it allows users to play around with various
 settings, e.g. spatial discretisation options, adaptivity 
 and interpolation settings, etc., and quickly see the results
 of their changes. The challenge in this example is get an accurate
 answer while keeping the solution conservative and bounded.
 
+\begin{figure}
+  \centering
+  \subfigure[Initial condition of the top hat tracer.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_ic}} 
+    \label{fig:top_hat_ic}
+  \subfigure[Numerical solution using Continuous Galerkin.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg}} 
+    \label{fig:top_hat_cg} \\
+  \subfigure[Numerical solution using Discontinuous Galerkin.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg}}
+    \label{fig:top_hat_dg}
+  \subfigure[Numerical solution using Control Volumes.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cv}}
+    \label{fig:top_hat_cv}
+  \caption{Initial condition and numerical solutions after $100~s$, for the 1D top hat tracer advection problem.}
+\end{figure}
+
 \subsection{Configuration}
 The domain is the one-dimensional interval $[0,3]$. The initial 
 mesh with $\Delta x=0.025~m$ is created using the ``interval'' 
-script. The initial ``top hat'' distribution (figure ???) is 
+script. The initial ``top hat'' distribution (figure \ref{fig:top_hat_ic}) is 
 prescribed by a python function. The advective velocity is 
 prescribed as a constant of $u=0.01~ms^{-1}$. Output is created
 in the form of a .vtu-file every second of simulation time
@@ -35,17 +48,17 @@ This example provides three basic configurations, corresponding to
 the three main discretisation types of the advection-diffusion equation
 available in fluidity:
 \begin{itemize}
-\item {\bf Continuous Galerkin}, section ???
+\item {\bf Continuous Galerkin (CG)}, section \ref{sect:ND_advection_diffusion_CG}
 This is the most basic finite-element discretisation that is simple 
 and fairly efficient. It is however not very good for advection problems
 of tracers with sharp discontinuities. In the example configuration
 SUPG stabilisation is applied to improve the results.
-\item {\bf Discontinuous Galerkin}, section ???
+\item {\bf Discontinuous Galerkin (DG)}, section \ref{sec:NM_DG_advection}
 This is a popular method for advection problems, in particular 
 for non-smooth tracer solutions. To prevent under and overshoots
 slope limiters may still be necessary near discontinuities, and are
 therefore used in this example.
-\item {\bf Control Volume}
+\item {\bf Control Volume (CV)}
 This is a simple and efficient method, that however in some cases 
 can be fairly diffusive. Its accuracy is determined by the choice 
 of interpolation at the control volume faces - a ``FiniteElement''
@@ -59,7 +72,7 @@ the (interpolation) error bounds set for the tracer field. Since at
 the front and back of the top hat solution the derivatives 
 become very large, this would lead to nearly infinite resolution at these
 discontinuties. A ``MinimumEdgeLength'' therefore needs to be set, to prevent
-such very small elements that would produce very high CFL numbers.
+such very small elements which would produce very high CFL numbers.
 
 This example uses ``adapt\_at\_first\_timestep'', so that a suitably
 adapted mesh is used from the first time step. The initial condition
@@ -69,7 +82,7 @@ from the user provided initial mesh.
 Since we want to exactly conserve the amount of tracer in this example
 a galerkin projection based interpolation scheme is used to interpolate
 between subsequently adapted meshes. To keep the solution bounded the
-``minimally dissipative'' bounding procedure is used.
+``minimally dissipative'' bounding procedure is used (only available for CG and DG).
 
 \subsubsection{Time stepping}
 Although this example uses a stable implicit time integration scheme (Crank Nicolson),
@@ -87,21 +100,64 @@ To view the results of this example in paraview, the following steps
 must be taken:
 \begin{itemize}
 \item Open up the series of vtus in the normal way.
-\item Add the \option{Warp (scalar)} filter. Choose a normal direction of $0,1,0$ and click apply.
-\item To visualise the grid points: add the \option{Glyph} filter; Choose \option{Glyph Type} \option{Sphere},
-select the \option{Edit} checkbox next to \option{Set Scale Factor} and choose a value of 0.02; Click apply.
+\item Add the \texttt{Warp (scalar)} filter. Choose a normal direction of $0,1,0$ and click apply.
+\item To visualise the grid points: add the \texttt{Glyph} filter; Choose \texttt{Glyph Type} \texttt{Sphere},
+select the \texttt{Edit} checkbox next to \texttt{Set Scale Factor} and choose a value of 0.02; Click apply.
 \end{itemize}
 
 Alternatively the results can be plotted using python. An example python script using pylab and the 
-vtktools python module, which is located in \fluiditysourcepath/python/, is provided with this example.
+vtktools python module, is provided with this example. The vtktools module is located in 
+\texttt{\fluiditysourcepath/python/}; this path needs to be added to the \texttt{PYTHONPATH} environment
+variable.
 
-As can be seen in 
+As can be seen in the numerical result using the CG method leads, to over and 
+undershoots in the solution. The DG result seems to encur no noticable bounds
+violation. The Control Volumes solution is perfectly bounded, but rather diffusive. Note that in each of 
+these cases the initial mesh resolution has changed and is still focussed near the jumps in the solution.
 
-Conservation of the tracer can be inspected using statplot (section ). 
+A more precise analysis of the boundedness and conservation properties of the numerical solution, can be
+derived from the data in the .stat file, which can be visualised using the statplot program 
+(section \ref{sect:statplot}). As can be seen in figure \ref{fig:top_hat_cg_conservation} the tracer
+concentration in the CG case is not completely conserved. 
+The CG and CV solutions show perfect conservation (to machine precision). The minimum 
+and maximum (figure \ref{fig:top_hat_dg_max}) tracer concentration of the
+DG solution show the occurence of overshoots with the same frequency as the adapts. This is caused by the
+fact that the Galerkin projection used to interpolate during the mesh adaptation stage is not 
+bounded. The slope limiting applied in the DG advection algorithm however filters these overshoots 
+out again. The Galerkin projection used for CG and CV is combined with a bounding procedure, so 
+that interpolation doesn't add additional bounds violations. In the case of CG however the numerical 
+scheme itself is not bounded.
 
+\begin{figure}
+  \centering
+  \subfigure[Tracer conservation in the Continuous Galerkin solution.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg_conservation}} 
+    \label{fig:top_hat_cg_conservation}
+  \subfigure[Maximum tracer bound in the Discontinuous Galerkin solution.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg_max}} 
+    \label{fig:top_hat_dg_max}
+  \caption{Conservation and bounds checking using statplot.}
+\end{figure}
 
 \subsection{Exercises}
-
+\begin{itemize}
+\item For the Continuous Galerkin example see what the effect is of the SUPG stabilisation by
+changing the option \option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/}
+\option{streamline\_upwind\_petrov\_galerkin} to \option{no\_stabilisation}
+\item Change the resolution of the adapted meshes by changing \\
+\option{adaptivity\_options/absolute\_measure/scalar\_field::InterpolationErrorBound}
+under \option{\ldots/scalar\_field::Tracer/prognostic/} and see what the effect
+of the option
+\option{/mesh\_adaptivity/hr\_adaptivity/enable\_gradation} is.
+\item A conservative and bounded CV advection scheme that is less diffusive can be achieved by changing 
+the following options:
+\begin{itemize}
+\item Change \option{\ldots/limit\_face\_value/limiter::Sweby} to \option{limiter::Ultimate}.
+\item Under \option{\ldots/temporal\_discretisation}, change theta to 0.0.
+\item Under \option{\ldots/temporal\_discretisation/control\_volumes}
+remove \\
+\option{number\_advection\_iterations} and \option{limit\_theta}, and
+add \option{pivot\_theta} with a value of 0.0.
+\end{itemize}
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------THE LOCK-EXCHANGE---------------------------%

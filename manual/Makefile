@@ -33,6 +33,12 @@ IMAGES=geometry_dimension mesh_name \
 ./examples_images/lock_exchange/le_basic_10_T \
 ./examples_images/lock_exchange/le_basic_30_mesh \
 ./examples_images/lock_exchange/le_basic_30_T \
+./examples_images/top_hat/top_hat_ic \
+./examples_images/top_hat/top_hat_cg \
+./examples_images/top_hat/top_hat_dg \
+./examples_images/top_hat/top_hat_cv \
+./examples_images/top_hat/top_hat_cg_conservation \
+./examples_images/top_hat/top_hat_dg_max \
 ./numerical_discretisation_images/bisection_method \
 ./visualisation_and_diagnostics_images/Paraview-opacity \
 ./visualisation_and_diagnostics_images/Paraviewconnectbutton \
@@ -43,7 +49,7 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-filedialogue-timeseries \
 ./visualisation_and_diagnostics_images/Paraview-rescaling-view \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
-./visualisation_and_diagnostics_images/diamond_enable_stat  
+./visualisation_and_diagnostics_images/diamond_enable_stat 
 
 IMAGE_DIRS=examples_images numerical_discretisation_images \
 visualisation_and_diagnostics_images configuring_fluidity_images \
