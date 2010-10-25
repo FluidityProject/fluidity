@@ -439,7 +439,7 @@ contains
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
     
-    if (.not. present_and_true(use_inodes)) then
+    if (.not. (present_and_true(use_inodes) .or. use_element_blocks)) then
       call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
     end if
     
@@ -481,6 +481,7 @@ contains
     !! that's why we default to not use them
     logical, intent(in), optional:: use_inodes
     
+    MatType:: mat_type
     PetscErrorCode:: ierr
       
     matrix%M=M
@@ -519,7 +520,10 @@ contains
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
 
     if (.not. present_and_true(use_inodes)) then
-      call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
+      call MatGetType(matrix%M, mat_type, ierr)
+      if (mat_type==MATSEQAIJ .or. mat_type==MATMPIAIJ) then
+        call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
+      end if
     end if
 
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
