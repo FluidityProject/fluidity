@@ -330,9 +330,9 @@ if __name__ == "__main__":
 
     os.environ["PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "bin")) + ":" + os.environ["PATH"]
     try:
-      os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.pardir, "python")) + ":" + os.environ["PYTHONPATH"]
+      os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
     except KeyError:
-      os.putenv("PYTHONPATH", os.path.abspath(os.path.join(os.pardir, "python")))
+      os.putenv("PYTHONPATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")))
 
     try:
         os.mkdir(os.environ["HOME"] + os.sep + "lock")
