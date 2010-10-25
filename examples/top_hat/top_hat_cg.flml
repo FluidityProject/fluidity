@@ -45,7 +45,7 @@
       <comment>This value is not actually used in this example, as we use the options adaptive_timestep and at_first_timestep - see the comment under adaptive_timestep/requested_cfl.</comment>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">500.0</real_value>
+      <real_value rank="0">100.0</real_value>
     </finish_time>
     <adaptive_timestep replaces="TIMAUT">
       <requested_cfl>

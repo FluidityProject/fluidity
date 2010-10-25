@@ -3,11 +3,15 @@ preprocess:
 	../../scripts/interval --dx=0.025 --reverse 0 3 line
 
 run:
-	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l top_hat_cg_adapt.flml
+	@echo **********Running the Continuous Galerkin version of this example:
+	../../bin/fluidity -v2 -l top_hat_cg.flml
+	@echo **********Running the Discontinuous Galerkin version of this example:
+	../../bin/fluidity -v2 -l top_hat_dg.flml
+	@echo **********Running the Control Volumes version of this example:
+	../../bin/fluidity -v2 -l top_hat_cv.flml
 
 postprocess:
-	@echo **********No preprocessing needed
+	@echo **********No postprocessing needed
 
 input: preprocess
 

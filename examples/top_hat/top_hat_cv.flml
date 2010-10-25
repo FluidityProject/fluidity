@@ -45,7 +45,7 @@
       <comment>This value is not actually used in this example, as we use the options adaptive_timestep and at_first_timestep - see the comment under adaptive_timestep/requested_cfl.</comment>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">500.0</real_value>
+      <real_value rank="0">100.0</real_value>
     </finish_time>
     <adaptive_timestep replaces="TIMAUT">
       <requested_cfl>
@@ -134,6 +134,12 @@
     return 0.0</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Sides">
+          <surface_ids>
+            <integer_value shape="2" rank="1">1 2</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -196,10 +202,10 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
