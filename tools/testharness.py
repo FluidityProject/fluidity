@@ -328,7 +328,7 @@ if __name__ == "__main__":
     elif options.parallel == "parallel": para = True
     else: parser.error("Specify either serial or parallel.")
 
-    os.environ["PATH"] = os.path.abspath(os.path.join(os.pardir, "bin")) + ":" + os.environ["PATH"]
+    os.environ["PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "bin")) + ":" + os.environ["PATH"]
     try:
       os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.pardir, "python")) + ":" + os.environ["PYTHONPATH"]
     except KeyError:
