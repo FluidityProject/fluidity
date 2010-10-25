@@ -822,7 +822,7 @@ contains
     integer, dimension(:), pointer :: neigh, X_neigh
     ! Whether the velocity field is continuous and if it is piecewise constant.
     logical :: dg, p0
-    integer :: i 
+    integer :: i
     logical :: boundary_element, turbine_face
 
     ! What we will be adding to the matrix and RHS - assemble these as we
@@ -985,8 +985,12 @@ contains
     Rho_q=ele_val_at_quad(Rho, ele)
 
     les_tensor_gi=0.0
+    dg_les_loc=0.0
     ! dg les hack
     if (have_dg_les) then
+      ! In most cases (and probably all at the current time) u_cg_shape will
+      ! be the same as the dg shape functions, but it's possible in some future
+      ! scenario that this wont be the case so leave it like this for now.
       u_cg_shape=>ele_shape(u_cg, ele)
       call transform_to_physical(X, ele, &
            u_cg_shape, dshape=du_t_cg, detwei=detwei_cg)
@@ -994,17 +998,19 @@ contains
       les_tensor_gi=les_length_scale_tensor(du_t_cg, ele_shape(u_cg, ele))
       les_coef_gi=les_viscosity_strength(du_t_cg, ele_val(u_nl_cg, ele))
 
-      do gi=1, size(les_coef_gi)
+      do gi=1, ele_ngi(u_cg, ele)
          ! eddy-viscosity on the cg (hence dg) gauss points
          les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
               smagorinsky_coefficient**2
-      end do
+      end do     
+
+      ! **********************************************
 
       ! *** eddy-viscosity on the cg nodes ***
       ! Note :: les_tensor_gi will also be used later in the construction of
       !         Viscosity_mat
 
-      ! Make sure u and viscosity are on the same mesh_adaptivity
+      ! Make sure u and viscosity are on the same mesh
       if (.not.(u%mesh==viscosity%mesh)) then
         FLAbort("DG LES currently requires u and viscosity to be on the same mesh")
       end if
@@ -1406,8 +1412,6 @@ contains
     if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
-          !print *, "u_ele", u_ele
-          !print *, "rho_mat", rho_mat
         inverse_mass_mat=inverse(rho_mat)
         call set(inverse_mass, 1, 1, u_ele, u_ele, inverse_mass_mat)
         if (.not. inverse_mass%equal_diagonal_blocks) then
@@ -1454,7 +1458,7 @@ contains
          !get kappa mat for CDG
           if(viscosity_scheme==CDG) then
              kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
-                  & ele_val_at_quad(Viscosity,ele))
+                  & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
           end if
 
        else
@@ -1582,7 +1586,8 @@ contains
                         & pressure_bc, pressure_bc_type, &
                         & ele2grad_mat, kappa_mat, inverse_mass_mat, &
                         & viscosity, viscosity_mat, &
-                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto)
+                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto, &
+                        & dg_les_loc=dg_les_loc)
            end if
         else
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
@@ -1818,7 +1823,7 @@ contains
        & pressure_bc, pressure_bc_type, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
        & viscosity, viscosity_mat, &
-       & subcycle_m_tensor_addto)
+       & subcycle_m_tensor_addto, dg_les_loc)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
@@ -1913,6 +1918,12 @@ contains
 
     logical :: p0
 
+    ! DG les variables
+    real, dimension(U%dim, U%dim, ele_loc(U, ele)), intent(in), optional :: dg_les_loc
+    type(tensor_field) :: Combined_Viscosity
+    integer :: i
+    integer, dimension(:), pointer :: nodelist
+
     floc = face_loc(u, face)
 
     start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
@@ -1923,7 +1934,21 @@ contains
     if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim, Viscosity%dim, &
             face_ngi(Viscosity,face)) )
-       kappa_gi = face_val_at_quad(Viscosity, face)
+       ! If have_dg_les create a temp viscosity tensor field that includes the
+       ! les viscosities
+       if (have_dg_les) then
+         call allocate(Combined_Viscosity, U%mesh, "CombinedViscosity")
+         call zero(Combined_Viscosity)
+         nodelist => ele_nodes(U, ele)
+         Combined_Viscosity=Viscosity
+         do i=1,size(nodelist)
+           call addto(Combined_Viscosity, nodelist(i),  dg_les_loc(:,:,i))
+         end do
+         kappa_gi = face_val_at_quad(Combined_Viscosity, face)
+         call deallocate(Combined_Viscosity)
+       else
+         kappa_gi = face_val_at_quad(Viscosity, face)
+       end if
     end if
 
     u_face_l=face_local_nodes(U, face)
