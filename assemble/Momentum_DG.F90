@@ -1937,12 +1937,11 @@ contains
        ! If have_dg_les create a temp viscosity tensor field that includes the
        ! les viscosities
        if (have_dg_les) then
-         call allocate(Combined_Viscosity, U%mesh, "CombinedViscosity")
+         call allocate(Combined_Viscosity, U%mesh, "CombinedViscosity", FIELD_TYPE_NORMAL)
          call zero(Combined_Viscosity)
          nodelist => ele_nodes(U, ele)
-         Combined_Viscosity=Viscosity
          do i=1,size(nodelist)
-           call addto(Combined_Viscosity, nodelist(i),  dg_les_loc(:,:,i))
+           call set(Combined_Viscosity, nodelist(i), node_val(Viscosity,nodelist(i))+dg_les_loc(:,:,i))
          end do
          kappa_gi = face_val_at_quad(Combined_Viscosity, face)
          call deallocate(Combined_Viscosity)
