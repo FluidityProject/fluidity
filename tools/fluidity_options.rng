@@ -763,16 +763,17 @@ approximation</a:documentation>
                 </element>
                 <element name="compressible">
                   <a:documentation>Equations of state for compressible applications</a:documentation>
-                  <element name="miegrunneisen">
-                    <a:documentation>Mie-Grunneisen EoS
+                  <choice>
+                    <element name="miegrunneisen">
+                      <a:documentation>Mie-Grunneisen EoS
 
 Used with compressible simulations</a:documentation>
-                    <attribute name="replace">
-                      <value>MKCOMP from solidity_inputs.inp</value>
-                    </attribute>
-                    <optional>
-                      <element name="reference_density">
-                        <a:documentation>reference uncompressed density
+                      <attribute name="replace">
+                        <value>MKCOMP from solidity_inputs.inp</value>
+                      </attribute>
+                      <optional>
+                        <element name="reference_density">
+                          <a:documentation>reference uncompressed density
 
 if activated then either Liquid EoS or
 full Mie-Grunneisen EoS
@@ -780,15 +781,15 @@ full Mie-Grunneisen EoS
  solidity_imputs.inp -&gt; MATEOS
 if not activated then replaces EOS TYPE 2 from
 solidity_inputs.inp -&gt; MATEOS</a:documentation>
-                        <attribute name="replaces">
-                          <value>DENINI for single materials, REFERENCE DENS. from solidity_inputs.inp -&gt; DENINIMAT for multimaterials</value>
-                        </attribute>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="ratio_specific_heats">
-                        <a:documentation>Ratio of specific heats at constant
+                          <attribute name="replaces">
+                            <value>DENINI for single materials, REFERENCE DENS. from solidity_inputs.inp -&gt; DENINIMAT for multimaterials</value>
+                          </attribute>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="ratio_specific_heats">
+                          <a:documentation>Ratio of specific heats at constant
 pressure to that at constant volume
 
 Requires an energy field.
@@ -796,26 +797,48 @@ If activated then a full Mie-Grunneisen EoS
  - replaces EOS TYPE = 3 from solidity_imputs.inp -&gt; MATEOS
 if not activated then either EOS TYPE 1 or 3
 from solidity_inputs.inp -&gt; MATEOS</a:documentation>
-                        <attribute name="replaces">
-                          <value>DENGAM for single materials, DEN GAM from solidity_inputs.inp -&gt; DENGAMMAT for multimaterials</value>
-                        </attribute>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="bulk_sound_speed_squared">
-                        <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+                          <attribute name="replaces">
+                            <value>DENGAM for single materials, DEN GAM from solidity_inputs.inp -&gt; DENGAMMAT for multimaterials</value>
+                          </attribute>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="bulk_sound_speed_squared">
+                          <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
 
 if activated then either full or partial Liquid EoS or full
 Mie-Grunneisen EoS - replaces EOS TYPE = 1, 2 or 3
 from solidity_imputs.inp -&gt; MATEOS</a:documentation>
-                        <attribute name="replaces">
-                          <value>GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -&gt; GASCONMAT for multimaterials</value>
-                        </attribute>
+                          <attribute name="replaces">
+                            <value>GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -&gt; GASCONMAT for multimaterials</value>
+                          </attribute>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                    </element>
+                    <element name="giraldo">
+                      <a:documentation>Giraldo et. al. 2008, J. Comp. Phys.
+
+Used with compressible simulations</a:documentation>
+                      <element name="reference_pressure">
+                        <a:documentation>reference pressure
+
+The pressure at which potential temperature
+equals actual temperature. Normally taken to
+be the surface pressure, 1.0e05.</a:documentation>
                         <ref name="real"/>
                       </element>
-                    </optional>
-                  </element>
+                      <element name="C_P">
+                        <a:documentation>Heat capacity at constant pressure</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="C_V">
+                        <a:documentation>Heat capacity at constant volume</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                  </choice>
                 </element>
               </choice>
             </element>

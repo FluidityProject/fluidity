@@ -283,13 +283,18 @@ contains
                                              pressure, drhodp
 
     !locals
-    integer :: stat, gstat, cstat
-    type(scalar_field), pointer :: pressure_local, energy_local, density_local
+    integer :: stat, gstat, cstat, pstat, tstat
+    type(scalar_field), pointer :: pressure_local, energy_local, density_local, &
+                                   & temperature_local
     character(len=4000) :: thismaterial_phase, eos_path
-    real :: reference_density, ratio_specific_heats
+    real :: reference_density, p_0, ratio_specific_heats, c_p, c_v
     real :: bulk_sound_speed_squared, atmospheric_pressure
-    type(scalar_field) :: drhodp_local, energy_remap, pressure_remap, density_remap
+    real :: drhodp_node, power
+    real, parameter :: R=8.314472
+    type(scalar_field) :: drhodp_local, energy_remap, pressure_remap, density_remap, &
+                          & temperature_remap
     logical :: incompressible
+    integer :: node
 
     ewrite(1,*) 'Entering compressible_eos'
 
@@ -405,12 +410,102 @@ contains
             end if
           end if
         end if
-
-!       elseif(have_option(trim(eos_path)//'/compressible/foam')) then
-      ! perhaps place a new foam eos here?
       
-!       else
-      ! place other compressible eos here
+      else if(have_option(trim(eos_path)//'/compressible/giraldo')) then
+        ! Eq. of state commonly used in atmospheric applications. See
+        ! Giraldo et. al., J. Comp. Phys., vol. 227 (2008), 3849-3877. 
+        ! density= P_0/(R*T)*(P/P_0)^((R+c_v)/c_p)
+
+        call get_option(trim(eos_path)//'/compressible/giraldo/reference_pressure', &
+                        p_0, default=1.0e5)
+        
+        call get_option(trim(eos_path)//'/compressible/giraldo/C_P', &
+                        c_p, stat=gstat)
+        if(gstat/=0) then
+          c_p=5.0
+        end if
+        
+        call get_option(trim(eos_path)//'/compressible/giraldo/C_V', &
+                        c_v, stat=cstat)
+        if(cstat/=0) then
+          c_v=3.0
+        end if
+        
+        incompressible = ((gstat/=0).or.(cstat/=0))
+        if(incompressible) then
+          ewrite(0,*) "Selected compressible eos but not specified either C_P or C_V."
+        end if
+        
+        call zero(drhodp_local)
+        
+        if(.not.incompressible) then
+          pressure_local=>extract_scalar_field(state,'Pressure',stat=pstat)
+          temperature_local=>extract_scalar_field(state,'Temperature',stat=tstat)
+          if ((pstat==0).and.(tstat==0)) then
+            ! drhodp = ((R+c_v)/c_p)*1.0/( R*T) * (P/P_0)^((R+c_v-c_p)/c_p)
+            call allocate(pressure_remap, drhodp_local%mesh, 'RemappedPressure')
+            call remap_field(pressure_local, pressure_remap)
+            call allocate(temperature_remap, drhodp_local%mesh, 'RemappedTemperature')
+            call remap_field(temperature_local, temperature_remap)
+
+            power=(R+c_v-c_p)/c_p
+            do node=1,node_count(drhodp_local)
+              drhodp_node=((c_v+R)/c_p)*1.0/(R*node_val(temperature_remap,node))*(node_val(pressure_remap,node)/p_0)**(power)
+              call set(drhodp_local, node, drhodp_node)
+            end do
+            
+            call deallocate(temperature_remap)
+          else
+            FLExit('No Pressure or temperature in material_phase::'//trim(state%name))
+          endif
+        end if
+
+        if(present(density)) then
+          ! calculate the density
+          ! density may equal density in state depending on how this
+          ! subroutine is called
+          if(incompressible) then
+            ! density = reference_density
+            call set(density, reference_density)
+          else
+            assert(density%mesh==drhodp_local%mesh)            
+              
+            call set(density, pressure_remap)
+            call scale(density, drhodp_local)
+              
+            call deallocate(pressure_remap)
+          end if
+        end if
+
+        if(present(pressure)) then
+          if(incompressible) then
+            ! pressure is unrelated to density in this case
+            call zero(pressure)
+          else
+            ! calculate the pressure using the eos and the calculated (probably prognostic)
+            ! density
+            density_local=>extract_scalar_field(state,'Density',stat=stat)
+            if (stat==0) then
+              assert(pressure%mesh==drhodp_local%mesh)
+              
+              ! pressure = density_local/drhodp_local
+              
+              call allocate(density_remap, drhodp_local%mesh, "RemappedDensity")
+              call remap_field(density_local, density_remap)
+              
+              call set(pressure, drhodp_local)
+              call invert(pressure)
+              call scale(pressure, density_remap)
+              
+              call deallocate(density_remap)
+            else
+              FLExit('No Density in material_phase::'//trim(state%name))
+            end if
+          end if
+        end if
+
+      ! elseif(have_option(trim(eos_path)//'/compressible/foam')) then
+      ! perhaps place a new foam eos here?
 
       end if
 

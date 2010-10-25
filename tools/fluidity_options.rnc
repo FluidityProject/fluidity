@@ -628,7 +628,28 @@ start =
                               attribute replaces { "GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -> GASCONMAT for multimaterials" },
                               real
                            }?
-                        }
+                        }|
+                        ## Giraldo et. al. 2008, J. Comp. Phys.
+                        ##
+                        ## Used with compressible simulations
+                        element giraldo {
+                           ## reference pressure
+                           ##
+                           ## The pressure at which potential temperature
+                           ## equals actual temperature. Normally taken to
+                           ## be the surface pressure, 1.0e05.
+                           element reference_pressure {
+                              real
+                           },
+                           ## Heat capacity at constant pressure
+                           element C_P {
+                              real
+                           },
+                           ## Heat capacity at constant volume
+                           element C_V {
+                              real
+                           }
+                        }   
                      }
                   )
                )
