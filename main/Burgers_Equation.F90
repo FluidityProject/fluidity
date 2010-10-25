@@ -197,9 +197,9 @@
       u => extract_scalar_field(state, "Velocity")
       x => extract_vector_field(state, "Coordinate")
 
-      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations)
-      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta)
-      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta)
+      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
 
       call allocate(nonlinear_velocity, u%mesh, "NonlinearVelocity")
       call zero(nonlinear_velocity)
