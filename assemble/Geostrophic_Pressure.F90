@@ -1559,8 +1559,8 @@ contains
     
     ewrite(1, *) "In velocity_from_coriolis"
     
-    ewrite(-1, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
-    ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
+    ewrite(2, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
+    ewrite(2, *) "Velocity mesh: " // trim(velocity%mesh%name)
     
     cont = continuity(velocity)
     if(present(lump_mass)) then
