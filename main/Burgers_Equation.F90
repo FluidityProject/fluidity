@@ -60,6 +60,8 @@
     !! Matrices
     type(csr_matrix) :: mass_matrix, diffusion_matrix
     character(len = OPTION_PATH_LEN) :: simulation_name
+
+    integer :: stat
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -81,6 +83,10 @@
 
     call get_option('/simulation_name',simulation_name)
     call initialise_diagnostics(trim(simulation_name),state)
+
+    call set_option('/io/dump_format', 'vtk', stat=stat)
+    call set_option('/io/output_mesh/name', 'VelocityMesh', stat=stat)
+    call set_option('/io/dump_period_in_timesteps/constant', 1, stat=stat)
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(state)/=1) then
@@ -377,7 +383,7 @@
       integer, save :: dump_no=0
 
       call write_state(dump_no, state)
-      dump_no = dump_no + 1
+      !dump_no = dump_no + 1
 
     end subroutine output_state
 

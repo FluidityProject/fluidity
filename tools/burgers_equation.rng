@@ -85,12 +85,26 @@ quadrature not the number of surface gauss points</a:documentation>
       </element>
     </element>
   </define>
-  <define name="mesh_choice">
+  <define name="mesh_choice_coordinate">
     <element name="mesh">
       <attribute name="name">
         <value>CoordinateMesh</value>
       </attribute>
     </element>
+  </define>
+  <define name="mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>VelocityMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="mesh_info_fromfile">
     <element name="from_file">
@@ -132,7 +146,7 @@ surface or region IDs.</a:documentation>
   <define name="mesh_info_frommesh">
     <element name="from_mesh">
       <a:documentation>Make mesh from existing mesh. </a:documentation>
-      <ref name="mesh_choice"/>
+      <ref name="mesh_choice_coordinate"/>
       <optional>
         <element name="mesh_shape">
           <optional>
@@ -245,6 +259,9 @@ Recommended to be 0.5.</a:documentation>
           <element name="viscosity">
             <ref name="real"/>
           </element>
+          <element name="stat">
+            <ref name="comment"/>
+          </element>
           <element name="scalar_field">
             <attribute name="name">
               <value>Source</value>
@@ -261,6 +278,26 @@ Recommended to be 0.5.</a:documentation>
           </element>
         </element>
       </element>
+      <zeroOrMore>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <choice>
+            <element name="prescribed">
+              <ref name="mesh_choice"/>
+              <ref name="prescribed_scalar_field"/>
+            </element>
+            <element name="diagnostic">
+              <ref name="mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </choice>
+        </element>
+      </zeroOrMore>
     </element>
   </define>
   <define name="boundary_conditions">
@@ -275,7 +312,7 @@ Recommended to be 0.5.</a:documentation>
       </element>
       <element name="type">
         <attribute name="name">
-          <value>neumann </value>
+          <value>neumann</value>
         </attribute>
         <ref name="input_choice_real"/>
       </element>
@@ -290,11 +327,23 @@ Recommended to be 0.5.</a:documentation>
   <define name="prescribed_scalar_stat_options">
     <empty/>
   </define>
+  <define name="discrete_properties_algorithm_scalar">
+    <empty/>
+  </define>
   <define name="recalculation_options">
     <element name="do_not_recalculate">
       <a:documentation>Prevent this field from being recalculated at every timestep.
 This is cheaper especially if you are enforcing discrete properties on the field.</a:documentation>
       <empty/>
     </element>
+  </define>
+  <define name="diagnostic_scalar_field">
+    <ref name="scalar_python_diagnostic_algorithm"/>
+    <element name="stat">
+      <ref name="comment"/>
+    </element>
+    <optional>
+      <ref name="recalculation_options"/>
+    </optional>
   </define>
 </grammar>
