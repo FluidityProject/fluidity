@@ -822,8 +822,9 @@ integer, optional, dimension(:), intent(out):: cluster
     return
   else if (100*ccnt<99*nrows .and. .not. IsParallel()) then
     ! more than 1% isolated nodes, give a warning
-    ewrite(0,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
-    ewrite(0,*) "Warning: more than 1 perc. isolated nodes"
+    ewrite(2,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
+    ewrite(2,*) "Warning: more than 1 perc. isolated nodes - this may mean mg is not the most suitable preconditioner"
+    ewrite(2,*) "On small meshes with a lot of boundary nodes, this is typically fine though."
   end if
 
   ! Step 1 - Startup aggregation
