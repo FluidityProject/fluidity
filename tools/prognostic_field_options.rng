@@ -190,22 +190,31 @@ diagnostic/algorithm(internal).</a:documentation>
     </optional>
     <optional>
       <element name="buoyancy_adjustment">
-        <a:documentation>Buoyancy adjustment / vertical stabilization</a:documentation>
+        <a:documentation>Buoyancy adjustment (vertical stabilization) schemes.</a:documentation>
         <optional>
           <element name="by_vertical_diffusion">
             <a:documentation>Vertical mixing by diffusion.
-Stabilises unstable stratifications
-through mixing by diffusion.
-(Convective adjustment).</a:documentation>
+Stabilises unstable stratifications through mixing by diffusion.
+
+Note this scheme currently only applies to tracer fields represented in discontinuous spaces.</a:documentation>
             <optional>
               <element name="amplitude">
-                <a:documentation>Scaling amplitude of applied diffusion 
-Default is 1.0 </a:documentation>
+                <a:documentation>Scaling amplitude of the applied diffusion. 
+If left unspecified, the default value of 1.0 is applied.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
             <optional>
               <element name="project_buoyancy_to_continuous_space">
+                <a:documentation>Calculates the rate of change of buoyancy in the direction of gravity
+on the field projected to continuous space - i.e. the buoyancy field is first projected to continous space.
+Without this option, this calculation is performed directly on the discontinuous field.
+
+Note this only make a difference when the buoyancy field is represented in a discontinuous space, and in fact,
+makes no difference to the routines called when this field is represented in a continuous space.
+
+This is one approach to allow the scheme to account for differences with respect to neighbouring
+elements when buoyancy is a discontinuous field.</a:documentation>
                 <empty/>
               </element>
             </optional>
