@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>buoyancy_adjustment_two_element</name>
+  <owner userid="asc"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l mix.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="mix_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('mix.stat')
+mix_stats={}
+mix_stats['density_final_max_deviation']=s['BoussinesqFluid']['Density']['max'][-1] - 0.5
+mix_stats['density_final_min_deviation']=s['BoussinesqFluid']['Density']['min'][-1] - 0.5</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+  </variables>
+  <pass_tests>
+    <test name="final_stratification_min_max_in_bounds" language="python">assert abs(mix_stats['density_final_min_deviation'])&lt;0.0056 and abs(mix_stats['density_final_max_deviation'])&lt;0.0056<comment>Check the buoyancy adjustment scheme has correctly mixed the temperature field.</comment></test>
+    <test name="final_stratification_min_max_correct_side_of_centre" language="python">assert mix_stats['density_final_min_deviation']&lt;0.0 and mix_stats['density_final_max_deviation']&gt;0.0<comment>Check the buoyancy adjustment scheme has correctly mixed the temperature field - min and max are the correct side of the centre value respectively.</comment></test>
+    <test name="final_stratification_min_max_equally_perturbed" language="python">assert abs(abs(mix_stats['density_final_max_deviation']) - abs(mix_stats['density_final_min_deviation']))&lt;1.0E-12<comment>Check the buoyancy adjustment scheme has correctly mixed the temperature field.</comment></test>
+    <test name="solvers_converged" language="python">assert solvers_converged</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
