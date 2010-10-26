@@ -1300,12 +1300,12 @@ contains
        ! TODO: Calculate dr - per element?  or per Guass point?
        ! dimension in which gravity lies parallel to
        if (on_sphere) then
-         mixing_diffusion_diag(mesh_dim(X),:) = - mixing_diffusion_amplitude * dt&
+         mixing_diffusion_diag(mesh_dim(X),:) = mixing_diffusion_amplitude * dt&
                &* gravity_magnitude * dr**2 * drho_dz(:)
          mixing_diffusion=rotate_diagonal_to_sphere_gi(X, ele, mixing_diffusion_diag)
        else
          do i = 1, mesh_dim(X)
-           mixing_diffusion(i,i,:) = - mixing_diffusion_amplitude * dt&
+           mixing_diffusion(i,i,:) = mixing_diffusion_amplitude * dt&
                  &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
          end do
        end if
