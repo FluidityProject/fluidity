@@ -154,8 +154,8 @@ prognostic_scalar_field =
             element amplitude  {
                 real
             }?,
-            element direction  {
-                input_choice_tensor_field 
+            element project_buoyancy_to_continuous_space {
+                empty
             }?
          }?
       }?,

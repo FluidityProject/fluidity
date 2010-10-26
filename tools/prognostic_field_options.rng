@@ -205,8 +205,8 @@ Default is 1.0 </a:documentation>
               </element>
             </optional>
             <optional>
-              <element name="direction">
-                <ref name="input_choice_tensor_field"/>
+              <element name="project_buoyancy_to_continuous_space">
+                <empty/>
               </element>
             </optional>
           </element>

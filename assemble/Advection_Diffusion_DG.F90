@@ -683,6 +683,7 @@ contains
     type(vector_field) :: U_nl_backup
     !! Buoyancy and gravity
     type(scalar_field) :: buoyancy
+    type(scalar_field) :: buoyancy_from_state
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
 
@@ -703,6 +704,8 @@ contains
     !! Integer array of all surface elements indicating bc type
     !! (see below call to get_entire_boundary_condition):
     integer, dimension(:), allocatable :: bc_type
+
+    type(mesh_type), pointer :: mesh_cg
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
@@ -873,8 +876,23 @@ contains
     if (present(diffusion_m)) call zero(diffusion_m)
     if (present(diffusion_RHS)) call zero(diffusion_RHS)
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-      buoyancy=extract_scalar_field(state, "VelocityBuoyancyDensity",stat)
-      if (stat/=0) FLAbort('Error extracting buoyancy field.')
+      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
+          &by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
+        buoyancy_from_state = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
+        if (stat/=0) FLAbort('Error extracting buoyancy field.')
+
+        mesh_cg=>extract_mesh(state, "CoordinateMesh")
+        call allocate(buoyancy, mesh_cg, "BuoyancyProjectedToContinuousSpace")
+        call zero(buoyancy)
+        ! Grab an extra reference to cause the deallocate below to be safe.
+        ! Check this is OK
+        call lumped_mass_galerkin_projection_scalar(state, buoyancy, buoyancy_from_state)
+      else
+        buoyancy = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
+        if (stat/=0) FLAbort('Error extracting buoyancy field.')
+        call incref(buoyancy)
+      end if
+
       gravity=extract_vector_field(state, "GravityDirection",stat)
       if (stat/=0) FLAbort('Error extracting gravity field.')
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
@@ -899,7 +917,10 @@ contains
        
     end do element_loop
 
+
+
     ! Drop any extra field references.
+    if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
     call deallocate(Diffusivity)
     call deallocate(Source)
     call deallocate(Absorption)
@@ -908,6 +929,95 @@ contains
     call deallocate(bc_value)
 
   end subroutine construct_advection_diffusion_dg
+
+  subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), pointer :: positions
+    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(inout) :: projected_field
+    type(scalar_field) :: rhs
+    type(scalar_field) :: mass_lumped, inverse_mass_lumped
+
+    integer :: ele
+ 
+    positions => extract_vector_field(state, "Coordinate")
+
+    ! Assuming they're on the same quadrature
+    assert(ele_ngi(field, 1) == ele_ngi(projected_field, 1))
+
+    call allocate(mass_lumped, field%mesh, name="GalerkinProjectionMassLumped")
+    call zero(mass_lumped)
+     
+    call allocate(rhs, field%mesh, name="GalerkinProjectionRHS")
+    call zero(rhs)
+
+    do ele=1,ele_count(field)
+      call assemble_galerkin_projection(field, projected_field, positions, &
+                                     &  rhs, ele)
+    end do
+
+    call allocate(inverse_mass_lumped, field%mesh, &
+       name="GalerkinProjectionInverseMassLumped")
+    call invert(mass_lumped, inverse_mass_lumped)
+    call set(field, rhs)
+    call scale(field, inverse_mass_lumped)
+    call deallocate(mass_lumped)
+    call deallocate(inverse_mass_lumped)
+    call deallocate(rhs)
+
+    contains
+      ! projected_field <-> field rename
+      subroutine assemble_galerkin_projection(field, projected_field, positions, rhs, ele)
+        type(vector_field), intent(in) :: positions
+        ! Changed to in not inout
+        type(scalar_field), intent(in) :: field
+        type(scalar_field), intent(in) :: projected_field
+        type(scalar_field), intent(inout) :: rhs
+      integer, intent(in) :: ele
+
+        type(element_type), pointer :: field_shape, proj_field_shape
+
+        real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: little_mass
+        real, dimension(ele_ngi(field, ele)) :: detwei
+
+        real, dimension(ele_loc(field, ele)) :: little_rhs
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba_int
+        real, dimension(ele_loc(projected_field, ele)) :: proj_field_val
+
+        integer :: i, j, k
+
+        field_shape => ele_shape(field, ele)
+        proj_field_shape => ele_shape(projected_field, ele)
+
+        call transform_to_physical(positions, ele, detwei=detwei)
+
+        little_mass = shape_shape(field_shape, field_shape, detwei)
+
+        ! And compute the product of the basis functions
+        little_mba = 0
+        do i=1,ele_ngi(field, ele)
+          forall(j=1:ele_loc(field, ele), k=1:ele_loc(projected_field, ele))
+            little_mba_int(j, k) = field_shape%n(j, i) * proj_field_shape%n(k, i)
+          end forall
+          little_mba = little_mba + little_mba_int * detwei(i)
+        end do
+
+        proj_field_val = ele_val(projected_field, ele)
+        little_rhs(:) = matmul(little_mba, proj_field_val(:))
+        ! Replace 2 lines above with:
+        ! little_rhs = matmul(little_mba, ele_val(projected_field, ele))
+
+        call addto(mass_lumped, ele_nodes(field, ele), &
+          sum(little_mass,2))
+        call addto(rhs, ele_nodes(field, ele), little_rhs)
+         
+      end subroutine assemble_galerkin_projection
+         
+   end subroutine lumped_mass_galerkin_projection_scalar
+
+
+
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
