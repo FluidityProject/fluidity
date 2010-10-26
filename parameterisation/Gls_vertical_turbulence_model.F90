@@ -76,6 +76,9 @@ module gls
   integer, dimension(:), pointer, save :: top_surface_element_list, bottom_surface_element_list
   logical, save                        :: calculate_bcs, fix_surface_values, calc_fwall
   real, allocatable, dimension(:)      :: dzb, dzs
+
+  ! Switch for on sphere simulations to rotate the required tensors
+  logical :: on_sphere
   
   ! The following are the public subroutines
   public :: gls_init, gls_cleanup, gls_tke, gls_diffusivity, gls_psi, gls_adapt_mesh, gls_check_options
@@ -107,6 +110,9 @@ subroutine gls_init(state)
 
     ! Allocate the temporary, module-level variables
     call gls_allocate_temps(state)
+
+    ! Check if we're on the sphere
+    on_sphere = have_option('/geometry/spherical_earth/')
    
     ! populate some useful variables
     kappa = 0.41
@@ -327,6 +333,9 @@ subroutine gls_tke(state)
     type(scalar_field), pointer      :: scalar_surface
     type(vector_field), pointer      :: positions
 
+    ! Temporary tensor to hold  rotated values if on the sphere (note: must be a 3x3 mat)
+    real, dimension(3,3) :: K_M_sphere_node
+
     ewrite(1,*) "In gls_tke"
 
     call gls_buoyancy(state)
@@ -357,8 +366,16 @@ subroutine gls_tke(state)
     ! set diffusivity for KK
     call zero(kk_diff)
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
-    call set(kk_diff,kk_diff%dim,kk_diff%dim,K_M,scale=1./sigma_k)
-    call addto(KK_diff,background_diff)
+    if (on_sphere) then
+      do i=1,nNodes
+        K_M_sphere_node=align_with_radial(node_val(positions,i),node_val(K_M,i))
+        K_M_sphere_node=K_M_sphere_node*1./sigma_k
+        call set(kk_diff,i,K_M_sphere_node)
+      end do
+    else
+      call set(kk_diff,kk_diff%dim,kk_diff%dim,K_M,scale=1./sigma_k)
+    end if
+    call addto(KK_diff,background_diff) 
 
     ! boundary conditions
     if (calculate_bcs) then
@@ -405,6 +422,10 @@ subroutine gls_psi(state)
     character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat
     type(scalar_field), pointer      :: scalar_surface
+    type(vector_field), pointer      :: positions
+
+    ! Temporary tensor to hold  rotated values (note: must be a 3x3 mat)
+    real, dimension(3,3) :: psi_sphere_node
 
     ewrite(1,*) "In gls_psi"
 
@@ -412,7 +433,8 @@ subroutine gls_psi(state)
     absorption  => extract_scalar_field(state, "GLSGenericSecondQuantityAbsorption")
     kk => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
-    psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity") 
+    psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity")
+    positions => extract_vector_field(state, "Coordinate")
 
     ! clip at k_min
     do i=1,nNodes
@@ -460,8 +482,16 @@ subroutine gls_psi(state)
     ! Set diffusivity for Psi
     call zero(psi_diff)
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
-    call set(psi_diff,psi_diff%dim,psi_diff%dim,K_M,scale=1./sigma_psi)
-    call addto(psi_diff,background_diff)
+    if (on_sphere) then
+      do i=1,nNodes
+        psi_sphere_node=align_with_radial(node_val(positions,i),node_val(K_M,i))
+        psi_sphere_node=psi_sphere_node*1./sigma_psi
+        call set(psi_diff,i,psi_sphere_node)
+      end do
+    else
+      call set(psi_diff,psi_diff%dim,psi_diff%dim,K_M,scale=1./sigma_psi)
+    end if
+    call addto(psi_diff,background_diff) 
 
     ! boundary conditions
     if (calculate_bcs) then
@@ -511,6 +541,10 @@ subroutine gls_diffusivity(state)
     real                             :: epslim, tke
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     logical                          :: limit_length = .true.
+    type(vector_field), pointer      :: positions
+
+    ! Temporary tensors to hold  rotated values (note: must be a 3x3 mat)
+    real, dimension(3,3) :: eddy_diff_KH_sphere_node, eddy_visc_KM_sphere_node, viscosity_sphere_node
 
     ewrite(1,*) "In gls_diffusivity"
 
@@ -518,7 +552,8 @@ subroutine gls_diffusivity(state)
     psi_state => extract_scalar_field(state, "GLSGenericSecondQuantity")
     eddy_visc_KM  => extract_tensor_field(state, "GLSEddyViscosityKM",stat)
     eddy_diff_KH => extract_tensor_field(state, "GLSEddyDiffusivityKH",stat)
-    viscosity => extract_tensor_field(state, "Viscosity",stat) 
+    viscosity => extract_tensor_field(state, "Viscosity",stat)
+    positions => extract_vector_field(state, "Coordinate")
 
     call allocate(KK,KK_state%mesh,"TKE")
     call allocate(psi,psi_state%mesh,"PSI")
@@ -604,13 +639,22 @@ subroutine gls_diffusivity(state)
     call zero(eddy_diff_KH) ! zero it first as we're using an addto below
     call zero(eddy_visc_KM)
 
-    call set(eddy_diff_KH,eddy_diff_KH%dim,eddy_diff_KH%dim,K_H)     
-    call set(eddy_visc_KM,eddy_visc_KM%dim,eddy_visc_KM%dim,K_M) 
+    if (on_sphere) then
+      do i=1,nNodes
+        eddy_diff_KH_sphere_node=align_with_radial(node_val(positions,i),node_val(K_H,i))
+        eddy_visc_KM_sphere_node=align_with_radial(node_val(positions,i),node_val(K_M,i))
+        call set(eddy_diff_KH,i,eddy_diff_KH_sphere_node)
+        call set(eddy_visc_KM,i,eddy_visc_KM_sphere_node)
+      end do
+    else
+      call set(eddy_diff_KH,eddy_diff_KH%dim,eddy_diff_KH%dim,K_H)
+      call set(eddy_visc_KM,eddy_visc_KM%dim,eddy_visc_KM%dim,K_M)
+    end if
 
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
     call addto(eddy_diff_KH,background_diff)
     background_visc => extract_tensor_field(state, "GLSBackgroundViscosity")
-    call addto(eddy_visc_KM,background_visc)   
+    call addto(eddy_visc_KM,background_visc)
 
     ewrite_minmax(K_H)
     ewrite_minmax(K_M)
@@ -623,8 +667,15 @@ subroutine gls_diffusivity(state)
 
     ! Set viscosity
     call zero(viscosity)
-    call set(viscosity,viscosity%dim,viscosity%dim,K_M)
-    call addto(viscosity,background_visc) 
+    if (on_sphere) then
+      do i=1,nNodes
+        viscosity_sphere_node=align_with_radial(node_val(positions,i),node_val(K_M,i))
+        call set(viscosity,i,viscosity_sphere_node)
+      end do
+    else
+      call set(viscosity,viscosity%dim,viscosity%dim,K_M)
+    end if
+    call addto(viscosity,background_visc)
     
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
@@ -1725,6 +1776,33 @@ function gls_get_normal_element_size(ele, sele, x, u) &
     hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
     h  = hb(1,1) 
 end function gls_get_normal_element_size
+
+
+function align_with_radial(position, scalar) result(rotated_tensor)
+    ! Function to align viscosities/diffusivities in the radial direction when on
+    ! the sphere
+    real, dimension(:), intent(in) :: position
+    real, intent(in) :: scalar
+    real, dimension(size(position),size(position)) :: rotated_tensor
+    real :: rad, phi, theta
+
+    assert(size(position)==3)
+
+    rad=sqrt(sum(position(:)**2))
+    phi=atan2(position(2),position(1))
+    theta=acos(position(3)/rad)
+
+    rotated_tensor(1,1)=scalar*sin(theta)**2*cos(phi)**2
+    rotated_tensor(1,2)=scalar*sin(theta)**2*sin(phi)*cos(phi)
+    rotated_tensor(1,3)=scalar*sin(theta)*cos(theta)*cos(phi)
+    rotated_tensor(2,1)=rotated_tensor(1,2)
+    rotated_tensor(2,2)=scalar*sin(theta)**2*sin(phi)**2
+    rotated_tensor(2,3)=scalar*sin(theta)*cos(theta)*sin(phi)
+    rotated_tensor(3,1)=rotated_tensor(1,3)
+    rotated_tensor(3,2)=rotated_tensor(2,3)
+    rotated_tensor(3,3)=scalar*cos(theta)**2
+
+end function align_with_radial
 
 end module gls
 
