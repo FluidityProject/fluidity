@@ -17,8 +17,8 @@ run:
 	@$(foreach NN,16 32 64 128, \
 		cd driven_cavity-$(NN); \
 		echo **********Running simulation for N = $(NN) mesh.;\
-		echo ../../../bin/fluidity driven_cavity.flml; \
-		../../../bin/fluidity driven_cavity.flml; \
+		echo ../../../bin/fluidity -v2 -l driven_cavity.flml; \
+		../../../bin/fluidity -v2 -l driven_cavity.flml; \
 		cd ..;\
 	) 
 
@@ -29,7 +29,7 @@ postprocess:
 input: preprocess
 
 clean:
-	$(foreach NN,16 32 64 128 256, rm -r driven_cavity-$(NN);)
+	$(foreach NN,16 32 64 128 256, rm -rf driven_cavity-$(NN);)
 	rm -f *.stat
 	rm -f *.d.* *.vtu
 	rm -f *.msh *.geo
