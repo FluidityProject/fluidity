@@ -1111,13 +1111,13 @@ prognostic_pressure_field =
       },
       (
          ## Initial condition for WholeMesh
-         ##
+         ##asc
          ## Only specify one condition if not using mesh regions.
          ## Otherwise select other initial_condition option, specify region_ids
          ## and distinct names.  Then add extra intial conditions for other regions.
          element initial_condition {
             attribute name { "WholeMesh" },
-            input_choice_initial_condition_real
+            input_choice_initial_condition_pressure
          }|
          ## Multiple initial_conditions are allowed if specifying
          ## different values in different
@@ -1127,7 +1127,7 @@ prognostic_pressure_field =
          element initial_condition {
             attribute name { string },
             region_ids?,
-            input_choice_initial_condition_real
+            input_choice_initial_condition_pressure
          }
       )*,
       element boundary_conditions {

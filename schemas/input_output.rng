@@ -220,6 +220,61 @@ be set to use this option.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="input_choice_initial_condition_pressure">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="from_file">
+        <a:documentation>Initialise the field from an existing file (indended
+primarily for use in checkpointing). The file mesh must match
+the mesh of this field  (except for piecewise constant fields 
+which will be remapped back from the discontinuous nodal values). 
+In parallel the process number is
+appended to the filename, e.g. if the file_name attribute is
+set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <ref name="vtu_input_format"/>
+          <ref name="netcdf_input_format"/>
+        </choice>
+        <ref name="comment"/>
+      </element>
+      <element name="free_surface">
+        <a:documentation>Specify an initial free surface height.
+Note this should be specified not only on the surface, but throughout the domain,
+i.e. the same surface value should be applied to all nodes below.</a:documentation>
+        <ref name="input_choice_initial_condition_real"/>
+      </element>
+      <element name="NEMO_data">
+        <a:documentation>Initialize the field from NEMO data. Note that a file path
+under '/ocean_forcing/external_data_boundary_conditions' must
+be set to use this option.</a:documentation>
+        <element name="format">
+          <element name="string_value">
+            <choice>
+              <value>Temperature</value>
+              <value>Salinity</value>
+              <value>Free-surface height</value>
+            </choice>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
   <!-- Choice of input method, e.g. for boundary conditions -->
   <define name="input_choice_real_dim_vector">
     <ref name="input_choice_real_dim_vector_contents"/>

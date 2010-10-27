@@ -78,6 +78,7 @@ contains
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
     character(len=PYTHON_FUNC_LEN) :: func
     real :: current_time
+    real :: gravity_magnitude
     
     real value
     integer nid
@@ -99,9 +100,20 @@ contains
        ! Set initial condition from python function
        call set_from_python_function(field, trim(func), position, current_time)
     else if(have_option(trim(path)//"/generic_function")) then
-       FLExit("Generic functions are obsolete. Please use a Python function")
+       FLExit("Generic functions are obsolete. Please use a Python function.")
     else if(have_option(trim(path)//"/internally_calculated")) then
        continue
+    else if(have_option(trim(path)//"/free_surface")) then
+       call initialise_field(field, trim(path)//"/free_surface", position, time=time)
+       ! Scale the entered freesurface height by the magnitude of gravity to give the pressure initial condition
+       if(have_option("/physical_parameters/gravity")) then
+          call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+          ! Note this is rescale is limited to the region this condition is applied
+          call scale(field, gravity_magnitude)
+       else
+          FLExit("Specifying a free surface initial condition requires gravity to be defined.")
+       end if
+
     else if(have_option(trim(path) // "/from_file")) then
        
        if(is_active_process) then

@@ -385,6 +385,8 @@ contains
     ! *** Start of timestep loop ***
     ! ******************************
 
+!asc    call move_mesh_free_surface(state, initialise=.true.)
+
 
     timestep_loop: do
        timestep = timestep + 1

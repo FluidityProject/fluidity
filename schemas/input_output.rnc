@@ -172,6 +172,55 @@ input_choice_initial_condition_real =
       }
    )
 
+input_choice_initial_condition_pressure =
+   (
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended
+      ## primarily for use in checkpointing). The file mesh must match
+      ## the mesh of this field  (except for piecewise constant fields 
+      ## which will be remapped back from the discontinuous nodal values). 
+      ## In parallel the process number is
+      ## appended to the filename, e.g. if the file_name attribute is
+      ## set to "input.vtu", process 0 reads from "input-0.vtu".
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format|
+            netcdf_input_format
+         ),
+         comment
+      }|
+      ## Specify an initial free surface height.
+      ## Note this should be specified not only on the surface, but throughout the domain,
+      ## i.e. the same surface value should be applied to all nodes below.
+      element free_surface {
+         input_choice_initial_condition_real
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          element format {
+              element string_value {
+                  "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }
+   )
+
 # Choice of input method, e.g. for boundary conditions
 input_choice_real_dim_vector =
    (

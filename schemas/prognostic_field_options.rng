@@ -1399,14 +1399,14 @@ Allows the selection of an arbitrary field.</a:documentation>
       <choice>
         <element name="initial_condition">
           <a:documentation>Initial condition for WholeMesh
-
+asc
 Only specify one condition if not using mesh regions.
 Otherwise select other initial_condition option, specify region_ids
 and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
           <attribute name="name">
             <value>WholeMesh</value>
           </attribute>
-          <ref name="input_choice_initial_condition_real"/>
+          <ref name="input_choice_initial_condition_pressure"/>
         </element>
         <element name="initial_condition">
           <a:documentation>Multiple initial_conditions are allowed if specifying
@@ -1420,7 +1420,7 @@ requires a distinct name for the options dictionary.</a:documentation>
           <optional>
             <ref name="region_ids"/>
           </optional>
-          <ref name="input_choice_initial_condition_real"/>
+          <ref name="input_choice_initial_condition_pressure"/>
         </element>
       </choice>
     </zeroOrMore>
