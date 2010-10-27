@@ -423,7 +423,7 @@ right hand end of the geometry.
 Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
 This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
 generate turbulence over the step and resolve its passage downstream. More information on running
-Fluidity in parallel is found in \ref{running_fluidity_in_parallel}.
+Fluidity in parallel is found in \ref{sect:running_fluidity_in_parallel}.
 
 In practice the example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
@@ -512,19 +512,20 @@ u(z) =
 
 \subsection{Results: 2D}
 Three snapshots of the velocity magnitude from the benchmark run at $Re=150$
-are shown in figure \ref{Fig:Vectors} at times 5, 10 and 50 seconds.
-Streamwise velocity profiles at several points downstream of the step are shown
-in figure \ref{Fig:UProfiles}. The reattachment point is clearly between $x/h=2$ and $x/h=4$.
+are shown in figure \ref{Fig:velo-magnitude-2d} at times 5, 10 and 50 seconds.
+Vertical profiles of $\vec{u}$ at several points downstream of the step are shown
+in figure \ref{Fig:UProfiles2d}. The reattachment point is clearly between $x/h=2$ and $x/h=4$.
 
-One of the metrics most often considered is the point at which the flow which separates from the step
-reattaches to the bottom of the domain. The length downstream of the step at which this happens
+One of the metrics most often considered for this test case is the point at which the
+flow which separates from the step reattaches to the bottom of the domain.
+The length downstream of the step at which this happens
 has been found from laboratory experiments and direct numerical simulations and is considered a
 sensitive measure of the quality of the numerical method. It is typically used to examine the impact
 of turbulence parameterisations but here will be used to examine the use of mesh adaptivity
 as well as the numerical method.
 
-The reattachment length was defined here to be the length
-from the step at which the zero-isosurface of the $x$-component of $\vec{u}$ intersects with
+The reattachment length was defined here to be the length (normalised by step height $h$)
+from the step at which the zero-contour of the $x$-component of $\vec{u}$ intersects with
 the bottom boundary. This quantity was computed from $\vec{u}$
 using the VTK library. For the simulation described, the reattachment
 length was approximately 3.6 times the step height, which is consistent with \cite{armaly1983}.
@@ -536,30 +537,31 @@ conditions, and also strongly on the Reynolds number of the flow.
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
-\caption{Snapshots of the velocity magnitude at times 5, 10 and 50 time units (top to bottom) into the simulation
-from the smaller benchmark run.
-The evolution of the dynamics to steady state can be seen, in particular the reattachment of the velocity with the bottom of the domain 3.6 step heights downstream of the step.}
-\label{Fig:Vectors}
+\caption{Snapshots of the velocity magnitude from the 2D run at times 5, 10 and 50 time units
+(top to bottom) into the simulation from the smaller benchmark run.
+The evolution of the dynamics to steady state can be seen, in particular the downstream movement
+of the streamline reattachment point (indicated by contours of $U=0$).}
+\label{Fig:velo-magnitude-2d}
 \end{figure}
 
 \begin{figure}
 \centering
 \fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
-\caption{Streamwise velocity profiles at $x/h=0, 2, 4 \text{ and } 6$ downstream of the step,
-where $h=1$ is the step height. The converged solution is in red.
-The recirculation region is indicated by the negative velocity in figure (b).
+\caption{Streamwise velocity profiles from the 2D run at $x/h=0, 2, 4 \text{ and } 6$
+downstream of the step, where $h=1$ is the step height. The converged solution is in red.
+The recirculation region is indicated by negative velocity in figure (b).
 It is clear that the reattachment point is between $x/h=2$ and $x/h=4$.}
 \label{Fig:UProfiles2d}
 \end{figure}
 
 
 \subsection{Results: 3D}
-Three snapshots of the velocity vectors from the small benchmark run
-are shown in figure \ref{Fig:Vectors} at times 5, 10 and 50 seconds.
-Streamwise velocity profiles at several points downstream of the step are shown in figure
-\ref{Fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain.
-The reattachment point is clearly between $x/h=6$ and $x/h=10$.
-In fact the flow reattaches at $x/h \approx 8.3$, which is consistent with the results of \cite{le1997}.
+Three snapshots of the velocity vectors are shown in figure \ref{Fig:velo-magnitude-3d}
+at times 5, 10 and 50 seconds.
+Vertical profiles of $\vec{u}$ at several points downstream of the step are shown in figure
+\ref{Fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain
+to obtain quasi-2D data. The reattachment point is clearly between $x/h=6$ and $x/h=10$.
+In fact the flow reattaches at $x/h \approx 8.3$.
 
 
 \begin{figure}
@@ -567,17 +569,18 @@ In fact the flow reattaches at $x/h \approx 8.3$, which is consistent with the r
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-5sec}}
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-10sec}}
 \subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-50sec}}
-\caption{Snapshots of the velocity magnitude at times 5, 25 and 50 time units (top to bottom) into the simulation
-from the smaller benchmark run.
-The evolution of the dynamics to steady state can be seen, in particular the reattachment of the velocity with the bottom of the domain approximately 8 units downstream of the step.}
-\label{Fig:Vectors}
+\caption{From top to bottom: vertical plane cuts through the 3D domain showing
+the velocity magnitude at times 5, 25 and 50 time units.
+The evolution of the dynamics to steady state can be seen, in particular the downstream movement
+of the streamline reattachment point (indicated by contours of $U=0$).}
+\label{Fig:velo-magnitude-3d}
 \end{figure}
 
 \begin{figure}
 \centering
 \fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
-\caption{Streamwise velocity profiles at $x/h=4, 6, 10 \text{ and } 19$ downstream of the step,
-where $h=1$ is the step height. The converged solution is in red.
+\caption{Streamwise velocity profiles from the 3d run at $x/h=4, 6, 10 \text{ and } 19$
+downstream of the step, where $h=1$ is the step height. The converged solution is in red.
 The recirculation region is indicated by the negative velocity in figure (b).
 It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
 \label{Fig:UProfiles3d}
