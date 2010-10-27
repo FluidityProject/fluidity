@@ -1,0 +1,351 @@
+include "spud_base.rnc"
+
+start =
+   (
+      element visualise_elements {
+         ## Model output files are named according to the project
+         ## name, e.g. [simulation_name]_0.vtu. Non-standard
+         ## characters in the project name should be avoided.
+         element project_name {
+            anystring
+         },
+         ## Options dealing with the specification of geometry
+         element geometry {
+            ## Dimension of the problem.
+            ## <b>This can only be set once</b>
+            element dimension {
+               attribute replaces {"NDIM"},
+               element integer_value {
+                  attribute rank {"0"},
+                  ("2")
+               }
+            },
+            ## The shape of elements to visualise
+            element element_vertices {
+               integer
+            },
+            ## The degree of elements to visualise
+            element element_degree {
+               integer
+            },
+            element element_family {
+               element string_value {
+                  # Lines is a hint to the gui about the size of the text box.
+                  # It is not an enforced limit on string length.
+               attribute lines { "1" },
+                  ( "lagrange")
+               },
+               comment
+            },
+            ## Quadrature
+            element quadrature {
+               ## Quadrature degree
+               ## 
+               ## note: this specifies the degree of quadrature not
+               ## the number of gauss points
+               element degree {
+                  attribute replaces {"NGI"},
+                  integer
+               }
+            },
+            ## The degree of elements to visualise
+            element visualisation_degree {
+               integer
+            },
+            element mesh {
+               attribute name { xsd:string },
+               mesh_info,
+               element exclude_from_mesh_adaptivity{empty}?
+            }*
+         },
+         element material_phase {
+            attribute name { xsd:string },
+            scalar_field_choice*,
+            vector_field_choice*
+         }?
+      }
+   )
+
+mesh_info =
+   (
+      ## Read mesh from file.
+      element from_file {
+         (
+            ## Triangle mesh format.
+            ##
+            ## Enter the base name without the .edge .ele, .face or
+            ## .node extensions, and without process numbers.
+            element format {
+              attribute name { "triangle" },
+              # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
+              element string_value {
+                 "triangle"
+              },
+              comment
+            }|
+            ## Read the mesh from a vtu. Note that the mesh will have no surface
+            ## or region IDs.
+            element format {
+              attribute name { "vtu" },
+              comment
+            }|
+            ## CGNS mesh format (not yet implemented)
+            element format {
+               attribute name { "cgns" },
+               # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
+               element string_value {
+                  "cgns"
+               },
+               comment
+            }
+         ),
+         attribute file_name { xsd:string },
+         from_file_mesh_stat_options,
+         comment
+      }|
+      ## Make mesh from existing mesh. The existing mesh cannot itself
+      ## be made from an existing mesh (i.e. it must be read from a
+      ## file).
+      element from_mesh {
+         mesh_choice,
+         element mesh_shape {
+            element polynomial_degree {
+               integer
+            }
+         }?,
+         element mesh_continuity {
+            element string_value{
+               "continuous" | "discontinuous"
+            }
+         }?,
+         ## Make mesh periodic
+         element periodic_boundary_conditions {
+            attribute name { xsd:string },
+            ## List of boundary ids that are aliased to
+            element physical_boundary_ids {
+               integer_vector
+            },
+            ## List of boundary ids that are aliased
+            element  aliased_boundary_ids {
+               integer_vector
+            },
+            ## Python code which takes coordinate of an aliased
+            ## boundary node and returns the coordinate of a physical
+            ## boundary node
+            element coordinate_map {
+               python_code
+            }
+         }*,
+         ## Extrude a horizontal (1D or 2D) mesh in the vertical
+         element extrude {
+            ## Depth over which to extrude
+            ## top will be at z=0
+            ## bottom will be at z=-bottom_depth
+            element bottom_depth {
+               real
+            },
+            ## Constant or function (of z!) to specify the depth of the
+            ## layers.
+            element sizing_function {
+               input_choice_real
+            },
+            ## surface_id to assign to the top of the extruded mesh
+            element top_surface_id {
+               integer
+            }?,
+            ## surface_id to assign to the bottom of the extruded mesh
+            element bottom_surface_id {
+               integer
+            }?
+         }?,
+         derived_mesh_stat_options,
+         comment
+      }
+   )
+
+# Most common mesh choices
+mesh_choice = 
+   (
+      element mesh {
+         attribute name { xsd:string }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }
+   )
+
+from_file_mesh_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         mesh_stat_options_enabled_default
+      }
+   )
+derived_mesh_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         mesh_stat_options_disabled_default
+      }
+   )
+
+# Choice of input method, e.g. for boundary conditions
+input_choice_real =
+   (
+      input_choice_real_contents
+   )
+
+input_choice_real_contents =
+   ## Constant value
+   element constant {
+      real
+   }|
+   ## Python function prescribing real input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X is a tuple of length geometry dimension.
+   element python {
+      python_code
+   }
+
+
+# This is the choice of additional scalar field to be solved for
+scalar_field_choice =
+   (
+# The first is a generic field, used for any user-defined field that
+# FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { xsd:string },
+         ## Field type
+         (
+            element prescribed {
+               velocity_mesh_choice,
+               prescribed_values_scalar_field
+            }|
+            element diagnostic {
+               velocity_mesh_choice
+            }
+         )
+      }   
+   )
+
+
+vector_field_choice =
+   (
+# The first is a generic field, used for any user-defined field that
+# FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+# Prognostic vector fields are not possible (other than velocity and those known fields below).
+      ## Generic field variable (vector)
+      element vector_field {
+         attribute rank { "1" },
+         attribute name { xsd:string },
+         ## Field type
+         (
+            element prescribed {
+               mesh_choice,
+               prescribed_values_vector_field
+            }|
+            element diagnostic {
+               velocity_mesh_choice
+            }
+         )
+         }
+   )
+
+prescribed_values_vector_field =
+   (
+      (
+         ## Value for WholeMesh
+         ##
+         ## Only specify one value if not using mesh regions.
+         ## Otherwise select other value option, specify region_ids
+         ## and distinct names.  Then add extra values for other regions.
+         element value {
+            attribute name { "WholeMesh" },
+            input_choice_real_dim_vector
+         }|
+         ## Multiple values are now allowed if using different value assignments
+         ## in different regions of the mesh (specified by region_ids).
+         ## In this case each value requires a distinct name for the options dictionary.
+         element value {
+            attribute name { string },
+            region_ids,
+            input_choice_real_dim_vector
+         }
+      )+
+   )
+
+
+velocity_mesh_choice =
+   (
+      (
+         element mesh {
+            attribute name { "VelocityMesh" }
+         }|
+         element mesh {
+            attribute name { "PressureMesh" }
+         }|
+         element mesh {
+            attribute name { "CoordinateMesh" }
+         }|
+         element mesh {
+            attribute name { string }
+         }
+      )
+   )
+
+
+prescribed_values_scalar_field =
+   (
+      (
+         ## Value for WholeMesh
+         ## Only specify one value if not using mesh regions.
+         ## Otherwise select other value option, specify region_ids
+         ## and distinct names.  Then add extra values for other regions.
+         element value {
+            attribute name { "WholeMesh" },
+            input_choice_real
+         }|
+         ## Multiple values are now allowed if using different value assignments
+         ## in different regions of the mesh (specified by region_ids).
+         ## In this case each value requires a distinct name for the options dictionary.
+         element value {
+            attribute name { string },
+            region_ids,
+            input_choice_real
+         }
+      )+
+   )
+
+# Choice of input method, e.g. for boundary conditions
+input_choice_real_dim_vector =
+   (
+      input_choice_real_dim_vector_contents
+   )
+
+input_choice_real_dim_vector_contents =
+   ## Constant value
+   element constant {
+      real_dim_vector
+   }|
+   ## Python function prescribing dimensional vector input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X and the return value are tuples of length geometry dimension.
+   element python {
+      python_code
+   }
+      

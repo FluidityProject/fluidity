@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <define name="nu_bar_scheme">
+    <choice>
+      <element name="nu_bar_optimal">
+        <a:documentation>The stabilisation parameter nu_bar is given by:
+
+  nu_bar = nu_scale xi u h
+
+With this scheme the optimal value for xi is chosen, as given by
+equation 2.49 in Donea &amp; Huerta (2003):
+
+  xi = coth(pe) - 1.0 / pe
+
+Note that is potentially expensive - for small (&lt;~10) Peclet numbers this
+involves evaluating hyperbolic tangents at quadrature points.</a:documentation>
+        <ref name="comment"/>
+      </element>
+      <element name="nu_bar_doubly_asymptotic">
+        <a:documentation>The stabilisation parameter nu_bar is given by:
+
+  nu_bar = nu_scale xi u h
+
+With this scheme a near-optimal (but more computationally efficient)
+value for xi is chosen, as given by equation 2.29 in Donea &amp; Huerta
+(2003):
+
+  xi = pe / 3.0 if |pe| &lt;= 3.0
+         sign(pe) otherwise</a:documentation>
+        <ref name="comment"/>
+      </element>
+      <element name="nu_bar_critical_rule">
+        <a:documentation>The stabilisation parameter nu_bar is given by:
+
+  nu_bar = nu_scale xi u h
+
+With this scheme a near-optimal (but more computationally efficient)
+value for xi is chosen, as given by equation 3.3.2 in Brookes and
+Hughes, Computer Methods in Applied Mechanics and Engineering 32 (1982)
+199-259.
+
+  xi = -1 - 1 / pe  if pe &lt; -1
+         0 if -1 &lt;= pe &lt;= 1
+         1 + 1 / pe if pe &gt; 1
+
+This is the approximation for xi used by legacy_continuous_galerkin.</a:documentation>
+        <attribute name="replaces">
+          <value>OPWIND</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="nu_bar_unity">
+        <a:documentation>The stabilisation parameter nu_bar is given by:
+
+  nu_bar = nu_scale xi u h
+
+With this scheme xi is set equal to:
+
+  xi = sign(pe)
+
+This is sub-optimal, but more computationally efficient than other
+approximations for the stabilisation parameter. For simulations with no
+diffusivity, all other approximations for xi are equivalent to this one.</a:documentation>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <define name="nu_scale_0.5">
+    <element name="nu_scale">
+      <a:documentation>nu_bar scale factor. This controls the amount of streamline upwinding.
+
+0.5 - factor given in Donea and Huerta</a:documentation>
+      <attribute name="name">
+        <value>0.5</value>
+      </attribute>
+      <element name="real_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="shape">
+          <value>1</value>
+        </attribute>
+        <value>0.5</value>
+      </element>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="nu_scale_1_over_sqrt_15">
+    <element name="nu_scale">
+      <a:documentation>nu_bar scale factor. This controls the amount of streamline upwinding.
+
+1/sqrt(15) - factor that maximises phase accuracy
+in 1D transient pure advection with SUPG. See Raymond and
+Garder, Monthly weather review 104 (1976)
+1583-1590 and Brookes and Hughes, Computer Methods
+in Applied Mechanics and Engineering 32 (1982)
+199-259.</a:documentation>
+      <attribute name="name">
+        <value>1_over_sqrt_15</value>
+      </attribute>
+      <element name="real_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="shape">
+          <value>1</value>
+        </attribute>
+        <value>0.25819889</value>
+      </element>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="nu_scale_unity">
+    <element name="nu_scale">
+      <a:documentation>nu_bar scale factor. This controls the amount of streamline upwinding.
+
+1.0 - no scale factor</a:documentation>
+      <attribute name="name">
+        <value>unity</value>
+      </attribute>
+      <element name="real_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="shape">
+          <value>1</value>
+        </attribute>
+        <value>1.0</value>
+      </element>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="nu_scale_custom">
+    <element name="nu_scale">
+      <a:documentation>nu_bar scale factor. This controls the amount of streamline upwinding.
+
+Custom scale factor.</a:documentation>
+      <attribute name="name">
+        <value>custom</value>
+      </attribute>
+      <ref name="real"/>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="nu_scale_su">
+    <choice>
+      <ref name="nu_scale_0.5"/>
+      <ref name="nu_scale_unity"/>
+      <ref name="nu_scale_custom"/>
+    </choice>
+  </define>
+  <define name="nu_scale_supg">
+    <choice>
+      <ref name="nu_scale_0.5"/>
+      <ref name="nu_scale_1_over_sqrt_15"/>
+      <ref name="nu_scale_unity"/>
+      <ref name="nu_scale_custom"/>
+    </choice>
+  </define>
+  <define name="no_stabilisation">
+    <element name="no_stabilisation">
+      <a:documentation>No stabilisation</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="su_stabilisation">
+    <element name="streamline_upwind">
+      <a:documentation>Add a simple streamline upwind term to the advection term (if being used).
+
+This implements equation 2.52 in Donea &amp; Huerta (2003):   
+
+  /      nu
+  | ----------- (U_nl\dot grad N_j)(U_nl\dot grad N_i)
+  / ||U_nl||**2</a:documentation>
+      <ref name="nu_bar_scheme"/>
+      <ref name="nu_scale_su"/>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="supg_stabilisation">
+    <element name="streamline_upwind_petrov_galerkin">
+      <a:documentation>SUPG stabilisation, as in equation 2.51 of Donea and
+Huerta (2003). This only acts to stabilise if advection
+is not integrated by parts.
+
+&lt;b&gt;Under testing.&lt;/b&gt;</a:documentation>
+      <attribute name="replaces">
+        <value>DISOTT = 3</value>
+      </attribute>
+      <ref name="nu_bar_scheme"/>
+      <ref name="nu_scale_supg"/>
+    </element>
+  </define>
+  <define name="advection_stabilisation_options">
+    <element name="stabilisation">
+      <a:documentation>Stabilisation options for the galerkin discretisation</a:documentation>
+      <choice>
+        <ref name="no_stabilisation"/>
+        <ref name="su_stabilisation"/>
+        <ref name="supg_stabilisation"/>
+      </choice>
+    </element>
+  </define>
+</grammar>

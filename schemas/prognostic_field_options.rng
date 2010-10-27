@@ -1,0 +1,2322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="prognostic_scalar_field">
+    <ref name="scalar_equation_choice"/>
+    <ref name="spatial_discretisation_options"/>
+    <ref name="temporal_discretisation_options"/>
+    <choice>
+      <element name="solver">
+        <a:documentation>Solver</a:documentation>
+        <ref name="linear_solver_options_asym"/>
+      </element>
+      <element name="explicit">
+        <a:documentation>Assume this field is being solved explicitly and skip the solver.
+
+ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
+
+Assumes lhs matrix only has diagonal lumped mass (times
+density if appropriate for equation)
+and divides the rhs by this.</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+    <oneOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </choice>
+    </oneOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="replaces">
+          <value>boundary, TTPER1 TTPER2 TTPERI</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <optional>
+              <element name="apply_weakly">
+                <a:documentation>Apply the dirichlet bc weakly.  Available
+automatically with discontinuous_galerkin and
+control_volume
+spatial_discretisations.
+If not selected boundary conditions are applied strongly.</a:documentation>
+                <optional>
+                  <element name="boundary_overwrites_initial_condition">
+                    <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>neumann</value>
+            </attribute>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>robin</value>
+            </attribute>
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+          </element>
+          <element name="type">
+            <a:documentation>Prevent the field from fluxing out of the boundary.
+Only applicable to control volume spatial discretisations.</a:documentation>
+            <attribute name="name">
+              <value>zero_flux</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
+            <a:documentation>Add a bulk formulae flux to the scale field. Should
+really be added to Temperature, Salinity, or PhotosyntheticRadation
+fields, or nothing will happen. Do not add another Neumann boundary
+onto the same surface, or you will get an error.</a:documentation>
+            <attribute name="name">
+              <value>bulk_formulae</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
+            <a:documentation>Sediment reentrainment boundary. Any sediment in the correct
+sediment class will be rentrained back into the flow
+depending on the bed shear stress and the parameters of the 
+sediment grain</a:documentation>
+            <attribute name="name">
+              <value>sediment_reentrainment</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
+            <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
+turbulence model. Can be used on TurbulentKineticEnergy (k)
+and/or TurbulentDissipation (epsilon) fields.
+e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
+            <attribute name="name">
+              <value>k_epsilon</value>
+            </attribute>
+            <element name="wall_functions">
+              <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
+              <element name="string_value">
+                <choice>
+                  <value>low_Re</value>
+                  <value>high_Re</value>
+                </choice>
+              </element>
+            </element>
+          </element>
+        </choice>
+      </element>
+    </zeroOrMore>
+    <optional>
+      <choice>
+        <a:documentation>Choice of subgridscale model to apply to this field. 
+Note that the selected parameterisation must be switched 
+on for this material phase.
+
+At this time, do not switch on this option if you are using Mellor-Yamada.</a:documentation>
+        <element name="subgridscale_parameterisation">
+          <attribute name="name">
+            <value>Gent_McWilliams</value>
+          </attribute>
+        </element>
+        <element name="subgridscale_parameterisation">
+          <attribute name="name">
+            <value>GLS</value>
+          </attribute>
+        </element>
+        <element name="subgridscale_parameterisation">
+          <a:documentation>Set the diffusivity to the eddy diffusivity calculated by the
+k-epsilon turbulence model. If using this, set the diffusivity field to
+diagnostic/algorithm(internal).</a:documentation>
+          <attribute name="name">
+            <value>k-epsilon</value>
+          </attribute>
+        </element>
+        <element name="subgridscale_parameterisation">
+          <attribute name="name">
+            <value>prescribed_diffusivity</value>
+          </attribute>
+        </element>
+      </choice>
+    </optional>
+    <optional>
+      <element name="buoyancy_adjustment">
+        <a:documentation>Buoyancy adjustment (vertical stabilization) schemes.</a:documentation>
+        <optional>
+          <element name="by_vertical_diffusion">
+            <a:documentation>Vertical mixing by diffusion.
+Stabilises unstable stratifications through mixing by diffusion.
+
+Note this scheme currently only applies to tracer fields represented in discontinuous spaces.</a:documentation>
+            <optional>
+              <element name="amplitude">
+                <a:documentation>Scaling amplitude of the applied diffusion. 
+If left unspecified, the default value of 1.0 is applied.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="project_buoyancy_to_continuous_space">
+                <a:documentation>Calculates the rate of change of buoyancy in the direction of gravity
+on the field projected to continuous space - i.e. the buoyancy field is first projected to continous space.
+Without this option, this calculation is performed directly on the discontinuous field.
+
+Note this only make a difference when the buoyancy field is represented in a discontinuous space, and in fact,
+makes no difference to the routines called when this field is represented in a continuous space.
+
+This is one approach to allow the scheme to account for differences with respect to neighbouring
+elements when buoyancy is a discontinuous field.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="tensor_field">
+        <a:documentation>Diffusivity for field</a:documentation>
+        <attribute name="name">
+          <value>Diffusivity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_tensor_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <a:documentation>For electrical modelling only - holds electrical conductivity</a:documentation>
+            <choice>
+              <ref name="tensor_python_diagnostic_algorithm"/>
+              <ref name="internal_algorithm"/>
+            </choice>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>source term</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>ZSOT</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <a:documentation>This only works for traffic modelling</a:documentation>
+            <choice>
+              <ref name="scalar_python_diagnostic_algorithm"/>
+              <ref name="internal_algorithm"/>
+            </choice>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>Absorption term</a:documentation>
+        <attribute name="name">
+          <value>Absorption</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>TABSZE TABS TABSCO TABSOR</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <choice>
+              <ref name="scalar_python_diagnostic_algorithm"/>
+              <ref name="internal_algorithm"/>
+            </choice>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>Velocity at which this substance sinks through the water column.
+
+This velocity is in the direction of gravity so if the substance
+floats or swims upwards, this field should be negative.</a:documentation>
+        <attribute name="name">
+          <value>SinkingVelocity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <choice>
+              <ref name="scalar_python_diagnostic_algorithm"/>
+              <ref name="internal_algorithm"/>
+            </choice>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+    <optional>
+      <element name="priority">
+        <a:documentation>Set the priority of this field
+This determines the order in which scalar_fields are solved for:
+ - higher numbers have the highest priority
+ - lower numbers (including negative) have the lowest priority
+ - default if not set is 0</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+  </define>
+  <define name="prognostic_velocity_field">
+    <ref name="velocity_equation_choice"/>
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <choice>
+        <element name="continuous_galerkin">
+          <a:documentation>A new version of continuous galerkin assembly.</a:documentation>
+          <ref name="advection_stabilisation_options"/>
+          <element name="mass_terms">
+            <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
+            <optional>
+              <element name="lump_mass_matrix">
+                <a:documentation>Lump the mass matrix - currently required if solving for pressure
+and not using the schur complement scheme under Pressure</a:documentation>
+                <optional>
+                  <element name="use_submesh">
+                    <a:documentation>Lump on the submesh.
+This only works for simplex meshes and is only
+strictly valid on 2d meshes.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+            <optional>
+              <element name="exclude_mass_terms">
+                <a:documentation>Remove the mass terms from the equation.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="advection_terms">
+            <a:documentation>Discretisation options for the advection terms in the velocity equation.</a:documentation>
+            <optional>
+              <element name="integrate_advection_by_parts">
+                <a:documentation>Integrate the advection terms of the momentum equation by parts.
+This allows for the imposition of weak boundary conditions.
+If activated the element advection matrix takes the form:
+   /                                            /
+ - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
+   /                                            /
+otherwise it takes the standard form:
+   /                                     /
+   | N_A (nu dot grad N_B) rho dV + beta | N_A ( div nu ) N_B rho dV
+   /                                     /
+where beta is set in conservative_advection, N is
+a shape function and nu is the relative nonlinear
+velocity.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="exclude_advection_terms">
+                <a:documentation>Remove the advection terms (u.grad u rho + beta
+div u rho u) from the equation.
+This overrides any other advection term options
+(including conservative_advection below).</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="stress_terms">
+            <a:documentation>Discretisation options for the stress terms in the velocity equation.</a:documentation>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>Use tensor form of the stress terms:
+
+mu u_{i,jj}
+
+This is only valid for incompressible
+simulations as it is basically a simplication
+of full stress form when divergent elements can
+be cancelled out.
+
+Only diaonal components of viscosity
+(i.e. either isotropic or
+diagonal) are physical for isotropic materials.
+
+If components differ from each other
+this must be for numerical reasons (i.e. not
+physical variations in viscosity otherwise
+simplification is not valid).
+
+If activated, the dim x dim (in this example
+3d) discrete stress matrix takes the form:
+
+ /  mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z
+ |   0                                             ...
+ \   0
+
+     0
+ ... mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z   ...
+     0
+
+     0                                                           \
+ ... 0                                                           |
+    mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z   /
+
+which is derived from b_a^T c b_b, where:
+
+ b_a = / N_a,x  \   c = /  mu_xx    0      0    \
+       | N_a,y  |       |    0    mu_yy    0    |
+       \ N_a,z  /       \    0      0    mu_zz  /
+
+where N_a and N_b are shape functions of the
+ath and bth node respectively and mu are the
+components of the viscosity tensor.</a:documentation>
+                <empty/>
+              </element>
+              <element name="stress_form">
+                <a:documentation>Use full stress form of the stress tensor:
+
+2*mu (u_{(i,j)} - 1/3*\delta_{ij}u_{k,k})
+
+This couples the velocity components together.
+It is required if performing a compressible simulation.
+
+If using a viscosity ALL COMPONENTS OF
+VISCOSITY MUST BE SET (i.e. either
+anisotropic_symmetric or
+anisotropic_asymmetric tensors).
+
+If components differ form each other this must
+be for numerical reasons (i.e. not physical
+variations in viscosity as the material is isotropic).
+
+If activated, the dim x dim (in this example
+3d) discrete stress matrix takes the form:
+
+ /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz
+ |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx                       ...
+ \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
+
+     N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xy
+ ... N_a,x*N_b,x*mu_xy + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz   ...
+     N_a,y*N_b,z*mu_yz - 2/3*N_a,z*N_b,y*mu_zy
+
+     N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz                       \
+ ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                       |
+     N_a,x*N_b,x*mu_xz + N_a,y*N_b,y*mu_yz + 4/3*N_a,z*N_b,z*mu_zz   /
+
+which is derived from b_a^T c b_b, where:
+
+ b_a = / N_a,x   0     0   \   c = /  4/3*mu_xx  -2/3*mu_xy -2/3*mu_xz  0    0    0   \
+       |  0    N_a,y   0   |       | -2/3*mu_yx   4/3*mu_yy -2/3*mu_yz  0    0    0   |
+       |   0     0   N_a,z |       | -2/3*mu_zx  -2/3*mu_zy  4/3*mu_zz  0    0    0   |
+       | N_a,y N_a,x   0   |       |     0           0          0     mu_xy  0    0   |
+       | N_a,z   0   N_a,x |       |     0           0          0       0  mu_xz  0   |
+       \   0   N_a,z N_a,y /       \     0           0          0       0    0  mu_yz /
+
+where N_a and N_b are shape functions of the ath and bth node respectively and mu are the components of the viscosity tensor.</a:documentation>
+                <optional>
+                  <element name="legacy_stress_form">
+                    <a:documentation>Use the legacy form of the stress tensor.
+
+This differs from the standard method in how the components 
+of the viscosity tensor are distributed.
+
+If activated, the dim x dim (in this case
+3d) stress matrix takes the form:
+
+ /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz
+ |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy                     ...
+ \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
+
+     N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
+ ... N_a,x*N_b,x*mu_xx + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz ...
+     N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
+
+     N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                     \
+ ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                     |
+     N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 4/3*N_a,z*N_b,z*mu_zz /
+
+where N_a and N_b are shape functions of
+the ath and bth node respectively and mu
+are the components of the viscosity tensor.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </choice>
+          </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>large-eddy simulation</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature sybol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="model">
+                <a:documentation>les options</a:documentation>
+                <choice>
+                  <element name="second_order">
+                    <a:documentation>similar to the original Smag model</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="fourth_order">
+                    <a:documentation>this adds a fourth order operator to tackle the
+dissipation issues of the original Smag model
+
+use this if your turbulence dissipates faster than it should
+
+requires a fine mesh to perform well</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="wale">
+                    <a:documentation>similar to the original WALE model</a:documentation>
+                    <empty/>
+                  </element>
+                </choice>
+              </element>
+            </element>
+          </optional>
+        </element>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
+a discontinuous velocity field for this to work!</a:documentation>
+          <attribute name="replaces">
+            <value>DISOPT</value>
+          </attribute>
+          <optional>
+            <element name="mass_terms">
+              <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
+              <optional>
+                <element name="lump_mass_matrix">
+                  <a:documentation>Lump the mass matrix</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="exclude_mass_terms">
+                  <a:documentation>Remove the mass terms from the equation.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <element name="viscosity_scheme">
+            <choice>
+              <element name="compact_discontinuous_galerkin">
+                <a:documentation>Compact discontinuous Galerkin scheme.
+(Peraire and Persson SIAM J. Sci. Comput. 30, p1806)</a:documentation>
+                <optional>
+                  <element name="penalty_parameter">
+                    <a:documentation>Penalty_parameter
+Add penalty term Int [u][v] dS on element boundaries
+scaled by C_0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="bassi_rebay">
+                <a:documentation>Classical scheme from Bassi and Rebay 
+(JCP 131 267-179 1997)</a:documentation>
+                <empty/>
+              </element>
+              <element name="arbitrary_upwind">
+                <a:documentation>Scheme in which upwinding is applied in
+alternating directions. Devised by C.Pain.</a:documentation>
+                <empty/>
+              </element>
+              <element name="interior_penalty">
+                <a:documentation>Classical interior penalty scheme
+see, e.g., SIAM Journal on Numerical Analysis
+Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+                <element name="penalty_parameter">
+                  <a:documentation>Penalty_parameter
+The penalty term Int [u][v] dS on element boundaries
+is scaled by C = C_0 h**p
+This option specifies the C_0
+There is a theoretical lower bound for 
+stability and hence convergence</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="edge_length_power">
+                  <a:documentation>Penalty_parameter
+The penalty term Int [u][v] dS on element boundaries
+is scaled by C = C_0 h**p
+This option specifies p
+Theoretically p=-1 is required for linear elements</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="edge_length_option">
+                  <a:documentation>Option for how to compute the edge length h</a:documentation>
+                  <choice>
+                    <element name="use_face_integral">
+                      <a:documentation>Use face integral (take sqrt in 3D)</a:documentation>
+                      <empty/>
+                    </element>
+                    <element name="use_element_centres">
+                      <a:documentation>Use difference between element centre 
+and neighbour centre
+Use 2x distance to face centre on boundaries</a:documentation>
+                      <empty/>
+                    </element>
+                  </choice>
+                </element>
+                <optional>
+                  <element name="debug">
+                    <a:documentation>Switch on debugging output</a:documentation>
+                    <element name="gradient_test_bound">
+                      <a:documentation>Bound for testing element gradient matrix</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="remove_element_integral">
+                        <a:documentation>Remove the elemental integral:
+Int grad u.kappa.grad v dV</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_primal_fluxes">
+                        <a:documentation>Remove the primal fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_penalty_fluxes">
+                        <a:documentation>Remove the penalty fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+            </choice>
+          </element>
+          <element name="advection_scheme">
+            <choice>
+              <element name="upwind">
+                <a:documentation>Straightforward upwinding of the nonlinear velocity.</a:documentation>
+                <empty/>
+              </element>
+              <element name="none">
+                <a:documentation>Disable advection</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+            <optional>
+              <element name="project_velocity_to_continuous">
+                <a:documentation>Project the advecting velocity to continuous
+space. This is useful for obtaining bounded
+advection schemes.</a:documentation>
+                <choice>
+                  <element name="mesh">
+                    <a:documentation>The mesh to which the projection should occur.</a:documentation>
+                    <attribute name="name">
+                      <value>CoordinateMesh</value>
+                    </attribute>
+                  </element>
+                  <element name="mesh">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <element name="integrate_advection_by_parts">
+              <a:documentation>Integrate the advection terms of the momentum equation by parts.
+
+Integrating the advection term by parts is
+necessary for a discontinuous
+galerkin discretisation however it is possible to
+select how many times the
+integration by parts is performed.
+Twice is the norm.</a:documentation>
+              <choice>
+                <element name="twice">
+                  <a:documentation>If activated the element advection matrix takes the form:
+   /                                 /
+   | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+   /                                 /
+     /                                         /
+ + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - 1] | N_A_i (nu dot n) N_B_i ds
+     /                                         /
+where beta is set in conservative_advection,
+N is a shape function (uppercase
+subscripts indicate nodes A or B while
+lowercase subscripts indicate inner or outer
+faces i and o respectively), nu is the
+nonlinear velocity and n is the outward
+pointing normal from the element.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="once">
+                  <a:documentation>If activated the element advection matrix takes the form:
+   /                                        /
+ - | (grad N_A dot nu) N_B dV - (1. - beta) | N_A ( div nu ) N_B dV
+   /                                        /
+     /                                   /
+ + I | N_A_i (nu dot n) N_B_o ds + (1-I) | N_A_i (nu dot n) N_B_i ds
+     /                                   /
+where beta is set in conservative_advection,
+N is a shape function (uppercase
+subscripts indicate nodes A or B while
+lowercase subscripts indicate inner or outer
+faces i and o respectively), nu is the
+nonlinear velocity and n is the outward
+pointing normal from the element.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+            <optional>
+              <element name="integrate_conservation_term_by_parts">
+                <a:documentation>If activated the conservation term:
+ /
+ | N_A ( div nu ) N_B dV
+ /
+is integrated_by_parts such that the element
+advection matrix becomes:
+        /                                        /
+ - beta | (grad N_A dot nu) N_B dV + (1. - beta) | N_A (nu dot grad N_B) dV
+        /                                        /
+     /                                                /
+ + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
+     /                                                /                  
+where beta is set in conservative_advection, N is
+a shape function (uppercase
+subscripts indicate nodes A or B while lowercase
+subscripts indicate inner or outer
+faces i and o respectively), nu is the nonlinear
+velocity and n is the outward pointing normal
+from the element.
+This is invariant regardless of whether the main
+advection term is integrated by parts once or
+twice.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>DG large-eddy simulation</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature sybol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+        </element>
+      </choice>
+      <element name="conservative_advection">
+        <a:documentation>Conservative discretisation of momentum equations
+ BETA=1. -- conservative (divergence form)
+ BETA=0. -- non-conservative
+ 0. &lt; BETA &lt; 1.</a:documentation>
+        <attribute name="replaces">
+          <value>BETA</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+    </element>
+    <element name="temporal_discretisation">
+      <a:documentation>Temporal discretisation options</a:documentation>
+      <element name="theta">
+        <a:documentation>Implicit/explicit control (THETA)
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+        <attribute name="replaces">
+          <value>THETA</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+      <element name="relaxation">
+        <a:documentation>Non-linear relaxation term
+ = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+ = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+ 0 &lt;= ITHETA &lt;= 1</a:documentation>
+        <attribute name="replaces">
+          <value>ITHETA</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="discontinuous_galerkin">
+          <element name="maximum_courant_number_per_subcycle">
+            <a:documentation>Use timestep subcycling to solve this equation.
+Specify the maximum courant number per subcycle.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+      </optional>
+    </element>
+    <optional>
+      <element name="reference_node">
+        <a:documentation>&lt;b&gt;ONLY MAKES SENSE WITH STOKES&lt;/b&gt;
+
+Reference node (Node at which all components of velocity = 0.)
+
+Must be less than the total number of nodes.
+If parallel must be less than the total number of nodes of the first processor.
+
+WARNING: This only makes sense if you are solving a Stokes
+equation (i.e. excluding mass and advection terms in the 
+spatial_discretisation above) with all Neumann or periodic boundaries.
+
+
+Note: it is also an option to remove the null-space of the residual vector. This
+option is available under solvers but only removes a single null space so will
+only work if your Stokes velocities are coupled in some way (not generally the 
+case unless using stress form viscosity and/or coriolis).</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <oneOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_vector"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
+          <ref name="input_choice_initial_condition_vector"/>
+        </element>
+      </choice>
+    </oneOrMore>
+    <zeroOrMore>
+      <element name="prescribed_region">
+        <a:documentation>Prescribed different regions of the field</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <ref name="region_ids"/>
+        <ref name="input_choice_initial_condition_vector"/>
+      </element>
+    </zeroOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="replaces">
+          <value>boundary, TMPER1 TMPER2 TMPERI</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <ref name="velocity_boundary_conditions"/>
+      </element>
+    </zeroOrMore>
+    <optional>
+      <element name="tensor_field">
+        <a:documentation>For a Newtonian fluid this is the shear viscosity.
+
+For continuous_galerkin see stress_terms to see how the
+viscosity tensor is dealt with in the momentum equation.</a:documentation>
+        <attribute name="replaces">
+          <value>MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU</value>
+        </attribute>
+        <attribute name="name">
+          <value>Viscosity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_tensor_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <choice>
+              <ref name="internal_algorithm"/>
+              <ref name="bulk_viscosity_algorithm"/>
+              <ref name="tensor_python_diagnostic_algorithm"/>
+            </choice>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>Source</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <choice>
+              <ref name="vector_python_diagnostic_algorithm"/>
+              <ref name="imposed_material_velocity_source_algorithm"/>
+              <ref name="internal_velocity_source_algorithm"/>
+            </choice>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+        <optional>
+          <element name="lump_source">
+            <attribute name="replaces">
+              <value>SLUMP</value>
+            </attribute>
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>Absorption
+
+Note: When in spherical geometry the absorption is now automatically rotated.
+The input values below correspond to setting the diagonal of the absorption matrix
+in the rotated frame of reference. The columns correspond to phi, theta and r 
+respectively.</a:documentation>
+        <attribute name="name">
+          <value>Absorption</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <choice>
+              <ref name="vector_python_diagnostic_algorithm"/>
+              <ref name="imposed_material_velocity_absorption_algorithm"/>
+              <ref name="internal_velocity_absorption_algorithm"/>
+            </choice>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+        <choice>
+          <element name="default_absorption">
+            <a:documentation>Default absorption: no lumping, is fully evaluated before the
+the pressure correction.</a:documentation>
+            <attribute name="replaces">
+              <value>ABSLUM</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="lump_absorption">
+            <a:documentation>Lump the inclusion of absorbtion terms.</a:documentation>
+            <attribute name="replaces">
+              <value>ABSLUM</value>
+            </attribute>
+            <optional>
+              <element name="use_submesh">
+                <a:documentation>Lump on the submesh.
+This only works for simplex meshes and is only
+strictly valid on 2d meshes.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="include_pressure_correction">
+            <a:documentation>Includes the pressure correction to the velocity in the
+absorption term (for theta&gt;0). This makes the absorption
+term more implicit. The absorption term is lumped if and
+only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
+            <empty/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="vertical_stabilization">
+        <a:documentation>Vertical stabilization options
+
+Note: Switching on one of these options will result in all
+absorption terms being included in the pressure correction
+if running a planar simulation.</a:documentation>
+        <optional>
+          <element name="vertical_velocity_relaxation">
+            <a:documentation>A depth dependent absorption term to
+increase stability in shallow regions 
+given by n_grav*g*dt*rho/d</a:documentation>
+            <element name="scale_factor">
+              <a:documentation>This option scales the vertical velocity
+relaxation absorption by the chosen factor.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="implicit_buoyancy">
+            <a:documentation>Implicit buoyancy, calculated via
+theta*g*dt*drho/dr_grav</a:documentation>
+            <optional>
+              <element name="min_gradient">
+                <a:documentation>Use this option to set a 'minimum' drho/dr_grav
+to be used in the implicit buoyancy calculation.
+Note that the default value is zero. </a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="tensor_field">
+        <a:documentation>SurfaceTension</a:documentation>
+        <attribute name="name">
+          <value>SurfaceTension</value>
+        </attribute>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <attribute name="field_name">
+            <value>MaterialVolumeFraction</value>
+          </attribute>
+          <optional>
+            <element name="lump_mass_matrix">
+              <a:documentation>Choose whether the mass matrix is lumped or not for the calculation of the gradient</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="solver">
+              <a:documentation>Solver options are necessary if you're not lumping your mass or if you're field isn't dg</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="integrate_by_parts">
+              <a:documentation>Choose whether the surface tension term in the momentum equation is integrated by parts or not</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <ref name="diagnostic_tensor_field"/>
+        </element>
+      </element>
+    </optional>
+    <ref name="prognostic_vector_output_options"/>
+    <ref name="prognostic_velocity_stat_options"/>
+    <ref name="vector_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="vector_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_vector_field"/>
+    <ref name="interpolation_algorithm_vector"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_vector"/>
+    </optional>
+  </define>
+  <define name="prognostic_pressure_field">
+    <element name="spatial_discretisation">
+      <choice>
+        <element name="continuous_galerkin">
+          <optional>
+            <element name="remove_stabilisation_term">
+              <a:documentation>remove the  fourth order pressure stabilisation term KCMC
+must be removed for multimaterial and free surface calculations</a:documentation>
+              <attribute name="replaces">
+                <value>NOFILT</value>
+              </attribute>
+            </element>
+          </optional>
+          <optional>
+            <element name="integrate_continuity_by_parts">
+              <a:documentation>Integrate the continuity equation by parts.
+
+This allows for the imposition of weak velocity boundary conditions with continuous_galerkin.
+If activated this means that the pressure gradient operator is not integrated by parts.</a:documentation>
+              <attribute name="replaces">
+                <value>PREOPT</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="low_re_p_correction_fix">
+              <a:documentation>** UNDER DEVELOPMENT **
+
+Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
+
+** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <element name="control_volumes">
+          <attribute name="replaces">
+            <value>NCOLOP = X1XXXXX -&gt; INTERF, NOFILT</value>
+          </attribute>
+        </element>
+      </choice>
+    </element>
+    <optional>
+      <element name="reference_node">
+        <a:documentation>Reference node (Node at which pressure = 0.)
+
+Must be less than the total number of nodes.
+If parallel must be less than the total number of nodes of the first processor.
+
+Note - it is also an option to remove the null-space of the residual vector. This
+option is available under solvers.</a:documentation>
+        <attribute name="replaces">
+          <value>NDPSET</value>
+        </attribute>
+        <ref name="integer"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="repair_stiff_nodes">
+        <a:documentation>**UNDER DEVELOPMENT**
+This searches the CMC matrix diagonal looking for nodes that are less than the maximum value time epsilon(0.0) (i.e. nodes that are effectively zero).
+It then zeros that row and column and places a one on the diagonal and a zero on the rhs.
+At a debug level of 2 it also prints out the value and the sum of the row values.
+This is useful as a debugging tool if PETSc complains about zeros on the diagonal (i.e. if you have a stiff node in your mesh) but doesn't necessary produce nice answers at the end.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
+    <optional>
+      <element name="atmospheric_pressure">
+        <a:documentation>Atmospheric pressure
+
+Manual suggests 1.01325E+6</a:documentation>
+        <attribute name="replaces">
+          <value>PATMOS</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+    </optional>
+    <element name="scheme">
+      <a:documentation>scheme</a:documentation>
+      <element name="poisson_pressure_solution">
+        <a:documentation>Use a poisson pressure equation to calculate a first guess at pressure.
+This does not necessarily satisfy continuity.
+  = 1 -- use a poisson guess at every timestep
+  = 0 -- never use a poisson guess
+  =-1 -- use a poisson guess at the first timestep only
+Manual suggests -1</a:documentation>
+        <attribute name="replaces">
+          <value>POISON</value>
+        </attribute>
+        <group>
+          <element name="string_value">
+            <!--
+              Lines is a hint to the gui about the size of the text box.
+              It is not an enforced limit on string length.
+            -->
+            <attribute name="lines">
+              <value>1</value>
+            </attribute>
+            <choice>
+              <value>never</value>
+              <value>only first timestep</value>
+            </choice>
+          </element>
+          <ref name="comment"/>
+        </group>
+      </element>
+      <choice>
+        <element name="use_projection_method">
+          <a:documentation>Use the incompressible projection method to determine
+the pressure and satisfy continuity</a:documentation>
+          <attribute name="replaces">
+            <value>PROJEC</value>
+          </attribute>
+          <optional>
+            <element name="full_schur_complement">
+              <a:documentation>Assemble and use the full schur complement.
+This allows you to not lump the mass matrix if you're using
+cg and to use the full momentum matrix in the projection if
+you so desire.</a:documentation>
+              <choice>
+                <element name="inner_matrix">
+                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+Use the full mass matrix.
+
+Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
+                  <attribute name="name">
+                    <value>FullMassMatrix</value>
+                  </attribute>
+                  <element name="solver">
+                    <ref name="linear_solver_options_sym"/>
+                  </element>
+                </element>
+                <element name="inner_matrix">
+                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+Use the full momentum matrix.
+
+Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
+                  <attribute name="name">
+                    <value>FullMomentumMatrix</value>
+                  </attribute>
+                  <element name="solver">
+                    <ref name="linear_solver_options_asym"/>
+                  </element>
+                </element>
+              </choice>
+              <choice>
+                <element name="preconditioner_matrix">
+                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+For DG, the LumpedSchurComplement is our best approximation to CMC.</a:documentation>
+                  <attribute name="name">
+                    <value>LumpedSchurComplement</value>
+                  </attribute>
+                  <optional>
+                    <element name="lump_on_submesh">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="preconditioner_matrix">
+                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C</a:documentation>
+                  <attribute name="name">
+                    <value>DiagonalSchurComplement</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="preconditioner_matrix">
+                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+Pressure Mass Matrix, scaled with the inverse of viscosity. This is
+shown to be spectrally equivalent to the Schur complement.
+Note that this currently only works with isoviscous and/or isotropic
+viscosity tensors.</a:documentation>
+                  <attribute name="name">
+                    <value>ScaledPressureMassMatrix</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="preconditioner_matrix">
+                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
+                  <attribute name="name">
+                    <value>NoPreconditionerMatrix</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+        </element>
+        <element name="use_compressible_projection_method">
+          <a:documentation>Use the compressible projection method to determine the
+pressure and satisfy continuity and the eos.
+This is only currently compatible with control volume
+pressure spatial discretisations and requires a
+multimaterial eos.</a:documentation>
+          <attribute name="replaces">
+            <value>MKCOMP from solidity_options.inp</value>
+          </attribute>
+          <optional>
+            <choice>
+              <element name="normalisation">
+                <a:documentation>Variable (normally a density) used to normalise
+each materials contribution
+to the C_P^T matrix.  Leave unselected for no normalisation.
+Selects the MaterialDensity field.</a:documentation>
+                <attribute name="name">
+                  <value>MaterialDensity</value>
+                </attribute>
+                <empty/>
+              </element>
+              <element name="normalisation">
+                <a:documentation>Variable (normally a density) used to normalise
+each materials contribution
+to the C_P^T matrix.  Leave unselected for no normalisation.
+Selects the bulk Density field.</a:documentation>
+                <attribute name="name">
+                  <value>Density</value>
+                </attribute>
+                <empty/>
+              </element>
+              <element name="normalisation">
+                <a:documentation>Variable (normally a density) used to normalise
+each materials contribution
+to the C_P^T matrix.  Leave unselected for no normalisation.
+Allows the selection of an arbitrary field.</a:documentation>
+                <attribute name="name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+                <empty/>
+              </element>
+            </choice>
+          </optional>
+        </element>
+      </choice>
+      <optional>
+        <element name="update_discretised_equation">
+          <a:documentation>rediscretise the equations at every timestep and iteration
+(this is useful as a debugging tool but shouldn't be necessary for any application runs)</a:documentation>
+          <attribute name="replaces">
+            <value>CMCHAN</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <zeroOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </choice>
+    </zeroOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="type">
+          <a:documentation>Type</a:documentation>
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <optional>
+            <element name="apply_weakly">
+              <a:documentation>Apply the dirichlet bc weakly.  Available
+automatically with discontinuous_galerkin and
+control_volume spatial_discretisations.
+If not selected boundary conditions are applied strongly.</a:documentation>
+              <optional>
+                <element name="boundary_overwrites_initial_condition">
+                  <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <ref name="input_choice_real_plus_boundary_forcing"/>
+        </element>
+      </element>
+    </zeroOrMore>
+    <ref name="pressure_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="detector_options_disabled_default"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <define name="prognostic_geostrophic_pressure_field">
+    <element name="spatial_discretisation">
+      <element name="geostrophic_pressure_option">
+        <a:documentation>Enables / disables RHS terms in the geopressure solver:
+
+  include_buoyancy - Include both the buoyancy and Coriolis terms on the RHS
+  exclude_buoyancy - Include only the Coriolis term on the RHS
+  exclude_coriolis - Include only the buoyancy term on the RHS</a:documentation>
+        <attribute name="replaces">
+          <value>GEOBAL</value>
+        </attribute>
+        <element name="string_value">
+          <choice>
+            <value>include_buoyancy</value>
+            <value>exclude_buoyancy</value>
+            <value>exclude_coriolis</value>
+          </choice>
+        </element>
+      </element>
+    </element>
+    <optional>
+      <choice>
+        <element name="reference_node">
+          <a:documentation>Sets node 1 in the mesh as a reference node</a:documentation>
+          <attribute name="name">
+            <value>node_1</value>
+          </attribute>
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>1</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="reference_node">
+          <a:documentation>Sets a custom node in the mesh as a reference node</a:documentation>
+          <attribute name="name">
+            <value>custom</value>
+          </attribute>
+          <ref name="integer"/>
+        </element>
+        <element name="zero_coord">
+          <a:documentation>Sets the value of the field to zero at a supplied coordinate.
+This is a post-processing step after the solve, and hence should
+be used with the solver/remove_null_space option.</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
+      </choice>
+    </optional>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <zeroOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </choice>
+    </zeroOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Apply a strong dirichlet boundary condition to GeostrophicPressure.
+If applied, this would normally be a homogeneous bc on the top but
+this only makes sense when excluding coriolis.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="type">
+          <a:documentation>Type</a:documentation>
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real_plus_boundary_forcing"/>
+        </element>
+      </element>
+    </zeroOrMore>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!--
+    Vertical balance pressure field, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_vertical_balance_pressure_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <oneOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Apply a strong dirichlet boundary condition to VerticalBalancePressure.
+This is normally be a homogeneous bc on the top surface.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="type">
+          <a:documentation>Type</a:documentation>
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real_plus_boundary_forcing"/>
+        </element>
+      </element>
+    </oneOrMore>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!--
+    Hydrostatic pressure field, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_hydrostatic_pressure_field">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <choice>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Uses an advancing front technique to integrate
+downwards through the mesh.
+
+Requires a discontinuous mesh!</a:documentation>
+          <empty/>
+        </element>
+        <element name="continuous_galerkin">
+          <a:documentation>Solves a continuous steady state equation.
+
+Requires a continuous mesh and solver options below.</a:documentation>
+          <ref name="advection_stabilisation_options"/>
+          <optional>
+            <element name="do_not_integrate_gradient_by_parts">
+              <a:documentation>By default when the gradient of the HydrostaticPressure is
+subtracted from the rhs of the momentum equation, it is 
+integrated by parts.  This is the most general case as the
+HydrostaticPressure can be discontinuous.
+Use this option to turn off this behaviour, which will
+be valid for a continuous HydrostaticPressure.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
+    <optional>
+      <element name="solver">
+        <a:documentation>Solver
+Only required for continuous_galerkin spatial_discretisations!</a:documentation>
+        <ref name="linear_solver_options_asym"/>
+      </element>
+    </optional>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!-- Hydrostatic pressure gradient field -->
+  <define name="prognostic_hydrostatic_pressure_gradient_field">
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <ref name="prognostic_vector_output_options"/>
+    <ref name="prognostic_velocity_stat_options"/>
+    <ref name="vector_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="vector_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_vector_field"/>
+    <ref name="interpolation_algorithm_vector_full"/>
+  </define>
+  <!--
+    free surface field, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_free_surface_field">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <optional>
+        <element name="free_surface_3D">
+          <a:documentation>Form a full 3D system for the free surface</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^0 (frees3d)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="fourth_order_dissipation">
+          <attribute name="replaces">
+            <value>DISOTT=2^2 (fourthfrees_diss)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="low_order_free_surface">
+          <a:documentation>low order (linear) free surface</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^3 (geo_short)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <choice>
+        <element name="default_free_surface_filter">
+          <a:documentation>Select free surface filter
+
+With PN-PN we need some filter to supress spurious modes.</a:documentation>
+          <empty/>
+        </element>
+        <element name="user_specified_free_surface_filter">
+          <a:documentation>Select free surface filter
+
+With PN-PN we need some filter to supress spurious modes.</a:documentation>
+          <element name="non_linear_filter_coefficient">
+            <a:documentation>Default is to apply 0.01 and for wetting and drying cases 1.0</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+        <element name="switch_off_free_surface_filter">
+          <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^8 (nofsta)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
+      <optional>
+        <element name="wetting_drying">
+          <a:documentation>Apply wetting and drying routines</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^10 (wetdry)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="tidal_forcing">
+          <a:documentation>Tidal forcing options </a:documentation>
+          <optional>
+            <element name="M2">
+              <a:documentation>M2</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^11</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="S2">
+              <a:documentation>S2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="N2">
+              <a:documentation>N2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K2">
+              <a:documentation>K2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K1">
+              <a:documentation>K1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="O1">
+              <a:documentation>O1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="P1">
+              <a:documentation>P1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Q1">
+              <a:documentation>Q1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="all_tidal_components">
+              <a:documentation>Switch on all tidal components</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^5 (tidallcom)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="love_number">
+              <a:documentation>Switches on a Love number of 0.3</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^6 (tlove)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="static_tidal_force">
+              <a:documentation>Use static tidal force for testing</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^7 (statid)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+    <!--
+      atheta, ctheta and fstheta (absorption, coriolis and free surface)
+      need to go in temporal discretisation
+      they are currently hard-coded however
+    -->
+    <element name="temporal_discretisation">
+      <element name="theta">
+        <a:documentation>Implicit/explicitness for the free surface.
+
+Suggested value 1.0 (should be at least bigger than 0.5).
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+        <attribute name="replaces">
+          <value>THETA</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <!-- Maybe this should go under a proper absorption field under free surface? -->
+        <element name="absorption_theta">
+          <a:documentation>Implicit/explicitness for absorption
+=0.  -- explicit (default)
+=0.5 -- Crank-Nicolson
+=1.  -- implicit</a:documentation>
+          <attribute name="replaces">
+            <value>disott=2^4 (IMPABS)</value>
+          </attribute>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <oneOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </choice>
+    </oneOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="replaces">
+          <value>boundary, TTPER1 TTPER2 TTPERI</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <choice>
+              <ref name="input_choice_real_contents"/>
+              <element name="from_file">
+                <oneOrMore>
+                  <element name="tidal">
+                    <attribute name="file_name">
+                      <data type="string" datatypeLibrary=""/>
+                    </attribute>
+                    <attribute name="variable_name_amplitude">
+                      <data type="string" datatypeLibrary=""/>
+                    </attribute>
+                    <attribute name="variable_name_phase">
+                      <data type="string" datatypeLibrary=""/>
+                    </attribute>
+                    <attribute name="name">
+                      <a:documentation>See E.W. Schwiderski - Rev. Geophys. Space
+Phys. Vol. 18 No. 1 pp. 243--268, 1980
+for details of these constituent.</a:documentation>
+                      <choice>
+                        <value>M2</value>
+                        <value>S2</value>
+                        <value>N2</value>
+                        <value>K2</value>
+                        <value>K1</value>
+                        <value>O1</value>
+                        <value>P1</value>
+                        <value>Q1</value>
+                        <value>Mf</value>
+                        <value>Mm</value>
+                        <value>Ssa</value>
+                      </choice>
+                    </attribute>
+                  </element>
+                </oneOrMore>
+              </element>
+              <element name="NEMO_data">
+                <a:documentation>Set the boundary free-surface height from NEMO data.
+A prescribed NEMO pressure scalar field must be set to use this option.
+Set the name of the prescribed NEMO pressure scalar field below.</a:documentation>
+                <attribute name="field_name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+              </element>
+            </choice>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>neumann</value>
+            </attribute>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>robin</value>
+            </attribute>
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+          </element>
+        </choice>
+      </element>
+    </zeroOrMore>
+    <!--
+      no Diffusivity for field
+      no source term
+      no Absorption term
+      no Adaptive timestepping option
+    -->
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!--
+    stream function, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_stream_function_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <!--
+      no Diffusivity for field
+      no source term
+      no Absorption term
+      no Adaptive timestepping option
+    -->
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!--
+    stream function, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_multipath_stream_function_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id:</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <element name="primary_boundary">
+        <a:documentation>The streamfunction will be zero on the primary boundary. There must be exactly one primary boundary.</a:documentation>
+        <empty/>
+      </element>
+      <group>
+        <a:documentation>Type</a:documentation>
+        <element name="type">
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <element name="internally_calculated">
+            <empty/>
+          </element>
+        </element>
+      </group>
+    </element>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="secondary_boundary">
+          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  </a:documentation>
+          <element name="primary_point">
+            <a:documentation>A point on or behind the primary boundary *from* which the flux line should extend. 
+Note: Path should not go through periodic boundary</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+          <element name="secondary_point">
+            <a:documentation>A point on or behind the secondary boundary *to* which the flux line should extend. 
+Note: Path should not go through periodic boundary</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+        </element>
+        <group>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <element name="internally_calculated">
+              <empty/>
+            </element>
+          </element>
+        </group>
+      </element>
+    </zeroOrMore>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <!--
+      no Diffusivity for field
+      no source term
+      no Absorption term
+      no Adaptive timestepping option
+    -->
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <define name="scalar_equation_choice">
+    <choice>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for this field.
+Advection Diffusion is the norm for scalar fields.
+Works for all discretisation types.</a:documentation>
+        <attribute name="name">
+          <value>AdvectionDiffusion</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="equation">
+        <a:documentation>***UNDER TESTING***
+
+Select the equation used to solve for this field.
+Heat Transfer equation - requires the selection of a Density field.
+
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS.
+
+This equation is very similar to a standard advection of temperature equation
+except that a coefficient density field may be spatially and/or temporally
+varying.</a:documentation>
+        <attribute name="name">
+          <value>HeatTransfer</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
+        <a:documentation>***UNDER TESTING***
+
+Select the equation used to solve for this field.
+Conservation of Mass equation - requires the selection of a Density field.
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS</a:documentation>
+        <attribute name="name">
+          <value>ConservationOfMass</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
+        <a:documentation>***UNDER TESTING***
+
+Select the equation used to solve for this field.
+Reduced Conservation of Mass equation - requires the selection of a Density field.
+
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+
+This equation is very similar to a standard conservation of mass equation
+except that the time discretisation uses only a single time level of density.
+This enables consistency between the
+MaterialVolumeFraction (ReducedConservationOfMass) and
+MaterialDensity (Advection) equations in compressible multimaterial simulations.</a:documentation>
+        <attribute name="name">
+          <value>ReducedConservationOfMass</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
+        <a:documentation>***UNDER TESTING***
+
+Select the equation used to solve for this field.
+Internal Energy equation - requires the selection of a Density field.
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+Solve the internal energy equation for this field.
+Requires pressure and velocity fields to be present.
+Uses a nonconservative time discretisation.</a:documentation>
+        <attribute name="name">
+          <value>InternalEnergy</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
+        <a:documentation>Option to solve for electrical potential from
+electrokinetic, electrochemical or electrothermal sources </a:documentation>
+        <attribute name="name">
+          <value>ElectricalPotential</value>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="equation_coefficients">
+    <choice>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Use the MaterialDensity - useful for multimaterial simulations
+Clearly this requires a MaterialDensity field to be present
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <value>MaterialDensity</value>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Use the bulk Density
+Clearly this requires a Density field to be present
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <value>Density</value>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+    </choice>
+  </define>
+  <define name="coefficient_discretisation_options">
+    <element name="discretisation_options">
+      <a:documentation>Provide discretisation options for the coefficient density field.
+
+If not provided then the discretisation options will default to those
+under the field that is named (hence it will generally have to be a prognostic
+field itself).</a:documentation>
+      <element name="spatial_discretisation">
+        <element name="control_volumes">
+          <ref name="spatial_control_volume_options_excluding_none"/>
+        </element>
+      </element>
+      <element name="temporal_discretisation">
+        <element name="theta">
+          <a:documentation>Implicit/explicit control (TTHETA)
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+          <attribute name="replaces">
+            <value>TTHETA, DEFALT (TTHETA = 0.5)</value>
+          </attribute>
+          <ref name="real"/>
+        </element>
+        <element name="control_volumes">
+          <optional>
+            <element name="limit_theta">
+              <a:documentation>Only works if a control volume or coupled_cv spatial discretisation is selected.
+If not active then the theta specified above will be used.
+Otherwise use variable limited theta on individual faces.</a:documentation>
+              <attribute name="replaces">
+                <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="velocity_equation_choice">
+    <choice>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+LinearMomentum is the norm and works for all discretisation types.</a:documentation>
+        <attribute name="name">
+          <value>LinearMomentum</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:documentation>
+        <attribute name="name">
+          <value>Boussinesq</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+Drainage only works for continuous_galerkin and discontinuous_galerkin.</a:documentation>
+        <attribute name="name">
+          <value>Drainage</value>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+</grammar>

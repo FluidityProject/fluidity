@@ -1,0 +1,1943 @@
+include "spud_base.rnc"
+
+include "adaptivity_options.rnc"
+include "diagnostic_algorithms.rnc"
+include "input_output.rnc"
+include "mesh_options.rnc"
+include "physical_parameters.rnc"
+include "prescribed_field_options.rnc"
+include "prognostic_field_options.rnc"
+include "solvers.rnc"
+include "spatial_discretisation.rnc"
+include "stabilisation.rnc"
+include "temporal_discretisation.rnc"
+
+start =
+   (
+      ## The root node of the options dictionary.
+      element shallow_water_options {
+         comment,
+         ## The model type
+         element model {            
+            element string_value {
+               "simple_shallow_water"
+            },
+            comment
+         },
+         ## Model output files are named according to the simulation
+         ## name, e.g. [simulation_name]_0.vtu. Non-standard
+         ## characters in the simulation name should be avoided.
+         element simulation_name {
+            anystring
+         },
+         ## Option problem_type does not change the tree.  It is just used for options checking.
+         element problem_type {
+            element string_value {
+               "fluids"
+            },
+            comment
+         },
+         geometry,
+         ## Input/output options
+         element io {
+            ## Format for dump files. Only vtk for now.
+            element dump_format {
+               element string_value{
+                  "vtk"
+               }
+            },
+            (
+               ## Period between dumps in time units.
+               ##
+               ## Specifies the period between each dump of the solution to disk.
+               ## A value of 0.0 indicates that there would be a dump at every timestep.
+               element dump_period {
+                (
+                     element constant {
+                     attribute replaces {"TIMDUM"},
+                     real
+                   }|
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     attribute replaces {"TIMDUM"},
+                     python_code
+                   }
+                )  
+               }|                 
+               ## Dump period, in timesteps.
+               ## 
+               ## Specifies the number of timesteps between each dump of the solution to disk.
+               ## A value of 0 indicates a dump at every timestep.
+               element dump_period_in_timesteps {
+                 (
+                     element constant {
+                     integer
+                   }|
+                   ## Python function prescribing integer input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     python_code
+                   }
+                )   
+               }
+            ),
+            # every CPUDUM seconds write results to disc.
+            ## This is usually disabled.
+            element cpu_dump_period {
+               attribute replaces {"CPUDUM"},
+               real
+            }?,
+            ## The period between dumps in walltime seconds. This is usually disabled.
+            element wall_time_dump_period {
+               attribute replaces {"WTIDUM"},
+               real
+            }?,
+            (
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "VelocityMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "PressureMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "CoordinateMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { xsd:string }
+               }
+            ),
+            ## Whether to enable dumping of checkpointing output.
+            ##
+            ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options
+            element checkpointing {
+               ## Checkpointing period, in dumps. Non-negative value
+               ## required. A value of zero indicates that checkpoints
+               ## should be created at every dump. If
+               ## /io/max_dumpfile_count is exceeded then earlier
+               ## checkpoints may be overwritten.
+               element checkpoint_period_in_dumps {
+                  integer
+               },
+               ## Enable to force a checkpoint at simulation end.
+               element checkpoint_at_end {
+                  comment
+               }?,
+               comment
+            }?,
+            ## Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled.
+            element detectors {
+               (
+                  ## A single static detector
+                  element static_detector {
+                     attribute name { xsd:string },
+                     (
+                        element location {
+                           real_dim_vector
+                     }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
+                        }
+                     )
+                  }|
+                  ## A single lagrangian detector
+                  element lagrangian_detector {
+                     attribute name { xsd:string },
+                     (
+                     ## This is the initial location of a detector that moves with the fluid velocity.
+                        element location {
+                           real_dim_vector
+                     }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
+                        }
+                     )
+                  }|
+                  ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
+                  element detector_array {
+                     attribute name { xsd:string },
+                     ## The number of detectors prescribed by the python function.
+                     element number_of_detectors {
+                        integer
+                     },
+                     (
+                        ## Create fixed detectors.
+                        element static {
+                           empty
+                        }|
+                        ## Create detectors which move with the fluid velocity.
+                        element lagrangian {
+                           empty
+                        }
+                     ),
+                     (
+                        ## Python function prescribing dimensional vector input. Functions should be of the form:
+                        ##
+                        ##  def val(t):
+                        ##     # Function code
+                        ##     return # Return value
+                        ##
+                        ## The return value must have length number_of_detectors.
+                        ##
+                        ## *** IMPORTANT NOTE ***
+                        ##
+                        ## The t argument is for future use only - currently detector locations are only set at simulation start.
+                        element python {
+                          python_code
+                        }|
+                        ## File containing the detectors positions in binary form
+                        element from_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
+                        }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
+                        }
+                     )
+                  }
+               )*,
+               ## Enable to write detector output in binary format
+               element binary_output {
+                  comment
+               }?
+            }?,
+            ## Options to create even more output in the logs:
+            ##
+            ## Note that the main option to control the log output is given on the command line:
+            ##
+            ## -v0  only output error and warnings
+            ##
+            ## -v1  also give "navigational information", to indicate where in the code we currently are
+            ##
+            ## -v2  also give any additional information (mins and maxes of fields, etc.)
+            ##
+            element log_output {
+               ## Log all allocates and deallocates done for meshes, fields, sparsities and matrices.
+               ##
+               ## NOTE: Requires -v2
+               element memory_diagnostics {
+                  empty
+               }?
+            }?
+         },
+         ## Options dealing with time discretisation
+         element timestepping {
+            ## Current simulation time. At the start of the simulation this
+            ## is the start time.
+            element current_time {
+               attribute replaces {"ACCTIM"},
+               real
+            },
+            ## The time step size. If adaptive time stepping is used
+            ## then this is the initial time step size.
+            element timestep {
+               attribute replaces {"DT"},
+               real
+            },
+            ## Simulation time at which the simulation should end.
+            element finish_time {
+               attribute replaces {"LTIME"},
+               real
+            },
+            ## Timestep after which the simulation should end.
+            element final_timestep {
+               integer
+            }?,
+            ## Maximum CPU time (in seconds) before the simulation terminates
+            element cpu_time_limit {
+               attribute replaces {"CPULIM"},
+               real
+            }?,
+            ## Maximum wall time (secs) taken up before
+            ## simulation terminates writing results to disc.
+            ## 
+            ## This is usually disabled.
+            element wall_time_limit {
+               attribute replaces {"WATIME"},
+               real
+            }?,
+            ## maximum number of non-linear iterations.
+            ## 
+            ## Manual suggests 2
+            element nonlinear_iterations {
+               attribute replaces {"ITINOI"},
+               integer
+            }
+         },
+         simple_physical_parameter_options,
+         ## The material or phase options
+         element material_phase {
+            attribute name { "Fluid" },
+            (
+               ## Velocity vector and momentum options
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "Velocity" },
+                  ## Field type
+                  (
+                     element prognostic {
+                        velocity_mesh_choice,
+                        simple_prognostic_velocity_field
+                     }
+                  )
+               },
+               ## Free surface elevation
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "LayerThickness" },
+                  element prognostic {
+                     pressure_mesh_choice,
+                     prognostic_layerthickness_field
+                  }
+               },                  
+               scalar_field_choice*,
+               vector_field_choice*,
+               tensor_field_choice*
+            )
+         },
+         element mesh_adaptivity {
+           prescribed_adaptivity
+         }?
+      }
+   ) 
+
+# Default child of diagnostic scalar field
+diagnostic_scalar_field =
+   (
+      diagnostic_output_options,
+      diagnostic_scalar_stat_options,
+      diagnostic_detector_options,
+      recalculation_options?,
+      interpolation_algorithm_scalar?
+   )
+   
+# Default child of diagnostic scalar field without adaptivity options
+diagnostic_scalar_field_no_adapt =
+   (
+      diagnostic_output_options,
+      diagnostic_scalar_stat_options,
+      diagnostic_detector_options
+   )
+
+# Default child of diagnostic vector field
+# Currently, this is empty, but in future this might include
+# options that are general to all diagnostic vector fields
+diagnostic_vector_field =
+   (
+      diagnostic_output_options,
+      diagnostic_vector_stat_options, 
+      diagnostic_detector_options,
+      recalculation_options?
+   )
+
+# Default child of diagnostic tensor field
+# Currently, this is empty, but in future this might include
+# options that are general to all diagnostic tensor fields
+diagnostic_tensor_field =
+   (
+      diagnostic_output_options
+   )
+
+velocity_components_choice =
+   (
+      (
+         element align_bc_with_surface {
+            element normal_component {
+               input_choice_real
+            }?,
+            element tangent_component_1 {
+               input_choice_real
+            }?,
+            element tangent_component_2 {
+               input_choice_real
+            }?,
+            rotation_matrix_components,
+            ## this will calculate the determinant of the
+            ## rotation matrix for every boundary node
+            ## and dump a vtu with the node 
+            ## normals and tangenials 1/2
+            element debugging_mode{empty}?
+         }|
+         element align_bc_with_cartesian {
+            element x_component {
+               input_choice_real_bc_component
+            }?,
+            element y_component {
+               input_choice_real_bc_component
+            }?,
+            element z_component {
+               input_choice_real_bc_component
+            }?
+         }
+      )
+   )
+
+# and again for robin b.c.s
+robin_velocity_components_choice =
+   (
+      (
+#         element align_bc_with_surface {
+#            element normal_component {
+#               element order_zero_coefficient {
+#                  input_choice_real
+#               },
+#               element order_one_coefficient {
+#                  input_choice_real
+#               }
+#            }?,
+#            element tangent_component_1 {
+#               element order_zero_coefficient {
+#                  input_choice_real
+#               },
+#               element order_one_coefficient {
+#                  input_choice_real
+#               }
+#            }?,
+#            element tangent_component_2 {
+#               element order_zero_coefficient {
+#                  input_choice_real
+#               },
+#               element order_one_coefficient {
+#                  input_choice_real
+#               }
+#            }?,
+#            rotation_matrix_components
+#         }|
+         element align_bc_with_cartesian {
+            element x_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element y_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?,
+            element z_component {
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }?
+         }
+      )
+   )
+
+velocity_boundary_conditions =
+   (
+      ## A weak no normal flow boundary condition.
+      element type {
+         attribute name { "no_normal_flow" },
+         empty
+      }
+   )
+   
+# Output options for prognostic fields
+prognostic_scalar_output_options =
+   (
+      ## Specify what is written to vtu dump files.
+      element output {
+         ## Exclude this field from dump files.
+         element exclude_from_vtu {
+            empty
+         }?,
+         ## Select this option to also write the values of this field
+         ## on the previous timestep.
+         ## (included under the name: Old<field_name> )
+         element include_previous_time_step {
+            empty
+         }?
+      }
+   )
+
+# Output options for prognostic fields
+prognostic_vector_output_options =
+   (
+      ## Specify what is written to dump files.
+      element output {
+         ## Exclude this field from dump files.
+         element exclude_from_vtu {
+            empty
+         }?,
+         ## Select this option to also write the values of this field
+         ## on the previous timestep.
+         ## (included under the name: Old<field_name> )
+         element include_previous_time_step {
+            empty
+         }?
+      }
+   )
+   
+# Field output options for all other fields
+field_output_options =
+   (
+      ## Specify what is written to dump files.
+      element output {
+         ## Exclude this field from dump files.
+         element exclude_from_vtu {
+            comment
+         }?
+      }
+   )
+field_output_options_disabled =
+   (
+      ## Specify what is written to vtu dump files.
+      element output {
+         (
+            ## Exclude this field from dump files.
+            element exclude_from_vtu {
+               comment
+            }|
+            ## Include this field in dump files.
+            element include_in_vtu {
+               comment
+            }
+         )
+      }
+   )
+   
+diagnostic_output_options = field_output_options
+prescribed_output_options = field_output_options
+
+# Options for inclusion/exclusion of standard field statistics from the .stat
+# file
+include_stat =
+   (
+      ## Include this field in the .stat file (magnitude and components)
+      element include_in_stat {
+         comment
+      }
+   )
+exclude_components_from_stat =
+   (
+      ## Include just the magnitude of this field in the .stat file
+      ## (excluding the components)
+      element exclude_components_from_stat {
+         comment
+      }
+   )
+exclude_stat =
+   (
+      ## Exclude this field from the .stat file.
+      element exclude_from_stat {
+         comment
+      }
+   )
+
+# Diagnostic statistics options for prognostic scalar fields
+prognostic_scalar_stat_options = 
+   (
+      ## Specify what is added to .stat files
+      element stat {
+        prognostic_scalar_stat_options.stat
+      }
+   )
+  
+# Diagnostic statistics for all other scalar fields
+prognostic_scalar_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         exclude_stat?,
+         cv_stats?,
+         surface_integral_stats_scalar*,
+         mixing_stats*
+      }
+   )
+
+diagnostic_scalar_stat_options = prognostic_scalar_stat_options
+prescribed_scalar_stat_options = prognostic_scalar_stat_options
+   
+# Diagnostic statistics options for vector fields, with enabled by default
+vector_field_stat_options_enabled_default = include_stat
+vector_field_stat_options_enabled_default |= exclude_components_from_stat
+vector_field_stat_options_enabled_default |= exclude_stat
+
+# Diagnostic statistics options for vector fields, with enabled by default
+vector_field_stat_options_disabled_default = exclude_stat
+vector_field_stat_options_disabled_default |= exclude_components_from_stat
+vector_field_stat_options_disabled_default |= include_stat
+
+# Diagnostic statistics for prognostic vector fields
+prognostic_velocity_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         (
+            prognostic_velocity_stat_options.stat
+         )
+      }      
+   )
+
+# Diagnostic statistics for all other vector fields
+prognostic_vector_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         vector_field_stat_options_enabled_default,
+         surface_integral_stats_vector*
+      }
+   )
+diagnostic_vector_stat_options = prognostic_vector_stat_options
+prescribed_vector_stat_options = prognostic_vector_stat_options
+
+# Combining of stat elements for vector fields
+prognostic_velocity_stat_options.stat =
+   (
+      vector_field_stat_options_enabled_default,
+      surface_integral_stats_vector*,
+      ## What surface IDs do you want to do the calculation over?
+      element compute_body_forces_on_surfaces {
+         ## Enable to output the pressure and viscous terms separately (as well
+         ## as the total force)
+         element output_terms {
+            comment
+         }?,
+         integer_vector
+      }?,
+      ## Compute the divergence of this field at the Gauss points
+      ## and return its stats.  This is a direct measure of the
+      ## divergence at the gauss points rather than a discrete measure
+      ## at the nodes (provided by several other diagnostic fields).
+      element divergence_stats {
+        empty
+      }?,
+      ## Calculate the error in the conservation of momentum
+      ## IN PROGRESS - Does not include all terms!
+      element calculate_momentum_conservation_error {
+         empty
+      }?
+   )
+
+# Convergence options for prognostic scalar fields
+scalar_convergence_options =
+   (
+      empty
+   )
+
+# Convergence statistics options for prognostic vector fields (velocity)
+vector_convergence_options =
+   (
+      empty
+   )
+
+# Steady state options for prognostic scalar fields
+scalar_steady_state_options =
+   (
+      empty
+   )
+
+# Steady state statistics options for prognostic vector fields (velocity)
+vector_steady_state_options =
+   (
+      empty
+   )
+
+# Options for whether a field is to be included in detector output.
+detector_options_enabled_default = 
+   (
+      ## Specify what is added to detector files
+      element detectors {
+         (
+            ## This field is output at each detector location.
+            element include_in_detectors {
+               comment
+            }|
+            ## This field is not output at detector locations.
+            element exclude_from_detectors {
+               comment
+            }
+         )
+      }
+   )
+   
+# Options for whether a field is to be included in detector output.
+detector_options_disabled_default = 
+   (
+      ## Specify what is added to detector files
+      element detectors {
+         (
+            ## This field is not output at detector locations.
+            element exclude_from_detectors {
+               comment
+            }|
+            ## This field is output at each detector location.
+            element include_in_detectors {
+               comment
+            }
+         )
+      }
+   )
+
+# Detector output defaults on for prognostic and diagnostic fields, 
+# off for prescribed.
+prognostic_detector_options = detector_options_enabled_default
+diagnostic_detector_options = detector_options_enabled_default
+prescribed_detector_options = detector_options_disabled_default
+
+# Most common mesh choices
+mesh_choice = 
+   (
+      element mesh {
+         attribute name { xsd:string }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }
+   )
+
+# Same choices, but with VelocityMesh offered first
+velocity_mesh_choice =
+   (
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
+# Same choices, but with PressureMesh offered first
+pressure_mesh_choice =
+   (
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
+# Same choices, but with CoordinateMesh offered first
+coordinate_mesh_choice =
+   (
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
+# This is the choice of additional scalar field to be solved for
+scalar_field_choice =
+   (
+# The first is a generic field, which may be used for any user-defined field
+# that FLUIDITY knows nothing about, or a generic diagnostic
+      (
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { xsd:string },
+            ## Field type
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  scalar_diagnostic_algorithms,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         
+         ## Prognostic scalar fields below this
+         element ___Prognostic_Fields_Below___ {
+            empty
+         }|
+
+# This is the long list of fields that FLUIDITY knows about
+# -- First is a list of fields that are primarily prognostic,
+#    but can be set to prescribed..
+# -- The list is in order of most frequently used.
+
+         ## Calculate the stream function of 2D incompressible flow. Note 
+         ## that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
+         ## Requires a continuous mesh.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "StreamFunction" },
+            (
+               element prognostic {
+                  mesh_choice,
+                  prognostic_stream_function_field
+               }
+            )
+         }|
+
+         # Insert new prognostic scalar fields here using the template:
+         #        element scalar_field {
+         #            attribute rank { "0" },
+         #            attribute name { "NewFieldName" },
+         #            (
+         #               element prognostic {
+         #                  velocity_mesh_choice,
+         #                  prognostic_scalar_field
+         #               }|
+         #               element prescribed {
+         #                  velocity_mesh_choice,
+         #                  prescribed_scalar_field
+         #               }
+         #            )
+         #        }
+         
+# -- Second is a list of fields that are primarily prescribed.
+# -- The list is in order of most frequently used.
+
+         ## Prescribed scalar fields below this
+         element ___Prescribed_fields_below___ {
+            empty
+         }|
+         
+#
+# Insert new prescribed scalar fields here using the template:
+#        element scalar_field {
+#            attribute rank { "0" },
+#            attribute name { "NewFieldName" },
+#            (
+#               element prescribed {
+#                  velocity_mesh_choice,
+#                  prescribed_scalar_field
+#               }
+#            )
+#        }
+#
+# -- Last is a list of fields that are primarily diagnostic.
+# -- The list is in order of most frequently used.
+#
+
+         ## Diagnostic scalar fields below this
+         element ___Diagnostic_Fields_Below___ {
+            empty
+         }|
+         
+         ## ControlVolumeDivergence:
+         ##
+         ## div field
+         ##
+         ## Divergence of the velocity field where
+         ## the divergence operator is defined using
+         ## the control volume C^T matrix.
+         ## This assumes that the test space is discontinuous
+         ## control volumes.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ControlVolumeDivergence" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name { string },
+                  velocity_mesh_choice,
+                  diagnostic_cv_divergence_scalar_field
+               }
+            )
+         }|
+         ## CFLNumber
+         ##
+         ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics#CFL_Number
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "CFLNumber" },
+            attribute replaces { "IDENT = -601" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## ControlVolumeCFLNumber
+         ##
+         ## Courant Number as defined on a control volume mesh
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ControlVolumeCFLNumber" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## DG_CourantNumber
+         ##
+         ## Courant Number as defined on a DG mesh
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "DG_CourantNumber" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## Velocity divergence:
+         ##
+         ## div velocity
+         ##
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "VelocityDivergence" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## Vorticity for a 2D field:
+         ##
+         ##  du   dv
+         ##  -- - --
+         ##  dy   dx
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Vorticity2D" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|         
+         ## Kinetic energy density:
+         ##
+         ##  1/2 rho_0*|u|^2
+         ##
+         ## where rho_0 is the (reference) density 
+         ##
+         ## Limitations:
+         ##  - The Density, PerturbationDensity, KineticEnergyDensity and Velocity fields must be on the same mesh.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "KineticEnergyDensity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|    
+         ## Local average mesh edge lengths
+         element scalar_field {
+          attribute rank { "0" },
+            attribute name { "MeshEdgeLengths" },
+            (
+              element diagnostic {
+                  internal_algorithm,
+                  element mesh {
+                     attribute name { "CoordinateMesh" }
+                  },
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## Speed:
+         ##
+         ##  |u|
+         ##
+         ## Limitations:
+         ##  - The Speed and Velocity fields must be on the same mesh.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Speed" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## Absolute Difference between two scalar fields.
+         ##
+         ## Both fields must be in this material_phase.
+         ## Assumes both fields are on the same mesh as the AbsoluteDifference field.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "AbsoluteDifference" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name_a { string },
+                  attribute field_name_b { string },
+                  mesh_choice,
+                  diagnostic_scalar_field,
+                  ## Evaluate the absolute difference once the average difference has been removed?
+                  element relative_to_average {
+                    empty
+                  }?,
+                  ## Ignore boundary nodes (i.e. zero them when calculating the difference)
+                  element ignore_boundaries {
+                    empty
+                  }?
+               }
+            )
+         }|
+         ## Absolute Difference between two scalar fields.
+         ##
+         ## Both fields must be in this material_phase.
+         ## Assumes both fields are on the same mesh as the AbsoluteDifference field.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ScalarAbsoluteDifference" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name_a { string },
+                  attribute field_name_b { string },
+                  mesh_choice,
+                  diagnostic_scalar_field,
+                  ## Evaluate the absolute difference once the average difference has been removed?
+                  element relative_to_average {
+                    empty
+                  }?,
+                  ## Ignore boundary nodes (i.e. zero them when calculating the difference)
+                  element ignore_boundaries {
+                    empty
+                  }?
+               }
+            )
+         }
+                  
+# Insert new diagnostic scalar fields here using the template:
+#        element scalar_field {
+#            attribute rank { "0" },
+#            attribute name { "NewFieldName" },
+#            (
+#               element diagnostic {
+#                  internal_algorithm,
+#                  velocity_mesh_choice,
+#                  diagnostic_scalar_field
+#               }
+#            )
+#        }
+      )
+   )
+
+# This is the choice of additional vector field to be solved for
+vector_field_choice =
+   (
+# The first is a generic field, which may be used for any user-defined field
+# that FLUIDITY knows nothing about, or a generic diagnostic
+# Prognostic vector fields are not possible (other than velocity and those known fields below).
+      (
+         ## Generic field variable (vector)
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { xsd:string },
+            ## Field type
+            (
+               element prescribed {
+                  mesh_choice,
+                  prescribed_vector_field
+               }|
+               element diagnostic {
+                  vector_diagnostic_algorithms,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|
+         
+#
+# -- List of fields that are primarily prognostic.
+# -- The list is in order of most frequently used.
+#
+
+         ## Prescribed vector fields below this
+         element ___Prognostic_fields_below___ {
+            empty
+         }|
+         
+#
+# -- List of fields that are primarily prescribed.
+# -- The list is in order of most frequently used.
+#
+
+         ## Prescribed vector fields below this
+         element ___Prescribed_fields_below___ {
+            empty
+         }|
+         
+#
+# Insert new prescribed vector fields here using the template:
+#        element vector_field {
+#            attribute rank { "1" },
+#            attribute name { "NewFieldName" },
+#            (
+#               element prescribed {
+#                  mesh_choice,
+#                  prescribed_vector_field
+#               }
+#            )
+#        }
+#
+# -- Last is a list of fields that are primarily diagnostic.
+# -- The list is in order of most frequently used.
+#
+
+         ## Diagnostic vector fields below this
+         element ___Diagnostic_Fields_Below___ {
+            empty
+         }|
+
+         ## Gradient of a scalar field evaluated using the C gradient
+         ## matrix constructed using finite elements.
+         ## Field must be in this material_phase.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "FiniteElementGradient" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name { string },
+                  mesh_choice,
+                  element integrate_gradient_by_parts {
+                     empty
+                  }?,
+                  diagnostic_gradient_vector_field
+               }
+            )
+         }|
+         ## Relative vorticity field - curl of the velocity field
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "Vorticity" },
+            (
+               element diagnostic {
+                  vorticity_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|        
+         ## Planetary vorticity
+         ##
+         ## Limitations:
+         ##  - Requires geometry dimension of 3.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "PlanetaryVorticity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|
+         ## Absolute vorticity:
+         ##
+         ##   f + curl u
+         ##
+         ## Limitations:
+         ##  - Requires a geometry dimension of 3.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "AbsoluteVorticity" },
+            attribute depends { "Velocity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|         
+         ## Gradient of a scalar field evaluated using the transpose
+         ## of the C^T matrix constructed using control volumes.
+         ## Field must be in this material_phase.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "ControlVolumeDivergenceTransposed" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name { string },
+                  velocity_mesh_choice,
+                  diagnostic_cv_gradient_vector_field
+               }
+            )
+         }|
+         ## Calculate the control volume auxiliary gradient for a particular field.
+         ## The related field must be a scalar field in this material_phase.
+         element vector_field {
+            attribute rank { "0" },
+            attribute name { "ControlVolumeAuxiliaryGradient" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  attribute gradient_of_field { string },
+                  diagnostic_vector_field
+               }
+            )
+         }|
+         ## Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
+         ## The related field must be a scalar field in this material_phase.
+         element vector_field {
+            attribute rank { "0" },
+            attribute name { "DGAuxiliaryGradient" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  attribute gradient_of_field { string },
+                  diagnostic_vector_field
+               }
+            )
+         }|
+         ## Absolute Difference between two vector fields.
+         ##
+         ## Both fields must be in this material_phase.
+         ## Assumes both fields are on the same mesh as the AbsoluteDifference field.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "AbsoluteDifference" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name_a { string },
+                  attribute field_name_b { string },
+                  mesh_choice,
+                  diagnostic_vector_field,
+                  ## Evaluate the absolute difference once the average difference has been removed?
+                  element relative_to_average {
+                    empty
+                  }?
+               }
+            )
+         }|
+         ## Absolute Difference between two vector fields.
+         ##
+         ## Both fields must be in this material_phase.
+         ## Assumes both fields are on the same mesh as the AbsoluteDifference field.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "VectorAbsoluteDifference" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  attribute field_name_a { string },
+                  attribute field_name_b { string },
+                  mesh_choice,
+                  diagnostic_vector_field,
+                  ## Evaluate the absolute difference once the average difference has been removed?
+                  element relative_to_average {
+                    empty
+                  }?
+               }
+            )
+         }|
+         ## Coordinate field remapped to the mesh of your choice.
+         element vector_field {
+             attribute rank { "1" },
+             attribute name { "DiagnosticCoordinate" },
+             (
+                element diagnostic {
+                   internal_algorithm,
+                   mesh_choice,
+                   diagnostic_vector_field
+                }
+             )
+         }|
+         ## Displacement
+         element vector_field {
+             attribute rank { "1" },
+             attribute name { "Displacement" },
+             (
+                element diagnostic {
+                   internal_algorithm,
+                   velocity_mesh_choice,
+                   diagnostic_vector_field
+                }
+             )
+         }|
+         ## Projects the Coriolis term onto the mesh of this diagnostic field.
+         ## Note that multiple projection methods are available (under the
+         ## algorithm option).
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "Coriolis" },
+            (
+               element diagnostic {
+                  coriolis_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }
+
+# Insert new diagnostic vector field here using the template:
+#        element vector_field {
+#            attribute rank { "1" },
+#            attribute name { "NewFieldName" },
+#            (
+#               element diagnostic {
+#                  internal_algorithm,
+#                  mesh_choice,
+#                  diagnostic_vector_field
+#               }
+#            )
+#        }
+      )
+   )  
+
+# This is the choice of additional tensor fields
+tensor_field_choice =
+   (
+# The first is a generic field, which may be used for any user-defined field
+# that FLUIDITY knows nothing about, or a generic diagnostic
+# Prognostic tensor fields are not possible.
+      (
+         ## Generic field variable (tensor)
+         element tensor_field {
+            attribute rank { "2" },
+            attribute name { xsd:string },
+            ## Field type
+            (
+               element prescribed {
+                  mesh_choice,
+                  prescribed_tensor_field
+               }|
+               element diagnostic {
+                  tensor_diagnostic_algorithms,
+                  velocity_mesh_choice,
+                  diagnostic_tensor_field
+               }
+            )
+         }|
+         
+#
+# -- Second is a list of tensor fields that are primarily prescribed.
+# -- The list is in order of most frequently used.
+#
+
+         ## Prescribed scalar fields below this
+         element ___Prescribed_fields_below___ {
+            empty
+         }|
+         
+#
+# Insert new prescribed tensor fields here using the template:
+#        element tensor_field {
+#            attribute rank { "2" },
+#            attribute name { "NewFieldName" },
+#            (
+#               element prescribed {
+#                  mesh_choice,
+#                  prescribed_tensor_field
+#               }
+#            )
+#        }|
+#
+# -- Last is a list of fields that are primarily diagnostic.
+# -- The list is in order of most frequently used.
+#
+
+         ## Diagnostic tensor fields below this
+         element ___Diagnostic_Fields_Below___ {
+            empty
+         }
+
+# Insert new diagnostic tensor field here using the template:
+#        element tensor_field {
+#            attribute name { "NewFieldName" },
+#            (
+#               element diagnostic {
+#                  internal_algorithm,
+#                  mesh_choice,
+#                  diagnostic_tensor_field
+#               }
+#            )
+#        }
+      )
+   )
+
+mixing_stats =
+   (
+      ## Enable to include in the .stat file the fractions of the
+      ## scalar field contained in
+      ## bins specified by the user. This allows mixing of the field to be quantified.
+      ## Replaces and expands upon the old heaviside.dat file
+      element include_mixing_stats{
+         attribute name { xsd:string },
+         attribute replaces { "heaviside.dat file" },
+         (
+            ## Select whether to evaluate the volume fraction over the finite element
+            ## (continuous galerkin) or within the control volume (control_volumes).
+            ##
+            ## NOTE: continuous_galerkin only works with linear tets
+            ##
+            ## NOTE: continuous_galerkin is not fully validated yet
+            element continuous_galerkin {
+               ## if select normalise the volume fractions will be
+               ## divided by the total volume of the domain
+               element normalise {
+                  empty
+               }?
+            }|
+            ## Select whether to evaluate the volume fraction over the finite element
+            ## (continuous galerkin) or within the control volume (control_volumes).
+            element control_volumes {
+               ## if select normalise the volume fractions will be divided by the total volume of the domain  
+               element normalise {
+                  empty
+               }?
+            }
+         ),
+         ## The values of the bounds of the bins 
+         ## e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins 
+         ## and the fraction of the field in each bin with,
+         ## -1.5<=field<0.0, 0.0<=field<1.5, 1.5<=field<2.0, 2.0<=field, 
+         ## will be calculated.  
+         element mixing_bin_bounds { 
+            (
+                 ## list of bin bounds
+                 element constant { 
+                     real_vector
+                 }|
+                 ## Python function prescribing bin bounds. Functions should be of the form:
+                 ##
+                 ##  def val(t):
+                 ##     # Function code
+                 ##     return # Return value that should be an array of reals
+                 ##
+                 ## 
+                 element python {
+                     python_code
+                   }
+              )
+         },
+         ## Define the tolerance beneath the specified bins that should be included.
+         ## Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.
+         element tolerance {
+            real
+         }?
+      }
+   )
+
+cv_stats =
+   (
+      ## Include statistics evaluated on the control volume mesh.
+      element include_cv_stats {
+         empty
+      }
+   )
+
+# Options for inclusion of calculations of surface integrals in the .stat file   
+surface_integral_stats_base.surface_integral =
+   (
+      attribute name { xsd:string },
+      ## Surface IDs defining the surface over which to integrate. If disabled, integrates over the whole surface.
+      element surface_ids {
+         integer_vector
+      }?,
+      ## Enable to normalise the integral by dividing by the surface area
+      element normalise {
+         comment
+      }?
+   )
+surface_integral_stats_scalar =
+   (
+      ## Surface integral calculations. The following integral types are available:
+      ##  value: Integrates the field
+      ##  gradient_normal: Integrates the normal component of the gradient of the field
+      element surface_integral {
+         surface_integral_stats_scalar.surface_integral
+      }
+   )
+surface_integral_stats_scalar.surface_integral = surface_integral_stats_base.surface_integral
+surface_integral_stats_scalar.surface_integral &=
+   (
+      attribute type { "value" | "gradient_normal" }
+   )
+surface_integral_stats_vector =
+   (
+      ## Surface integral calculations. The following integral types are available:
+      ##  normal: Integrates the normal component of the field
+      element surface_integral {
+         surface_integral_stats_vector.surface_integral
+      }
+   )
+surface_integral_stats_vector.surface_integral = surface_integral_stats_base.surface_integral
+surface_integral_stats_vector.surface_integral &=
+   (
+      attribute type { "normal" }
+   )
+
+recalculation_options =
+   (
+      ## Prevent this field from being recalculated at every timestep.
+      ## This is cheaper especially if you are enforcing discrete properties on the field.
+      element do_not_recalculate {
+        empty
+      }
+   )
+
+discrete_properties_algorithm_scalar =
+   (
+      empty
+   )
+
+discrete_properties_algorithm_vector =
+   (
+      empty
+   )
+
+represcribe_before_interpolation =
+    ## Represcribe the field before interpolation.
+    ##
+    ## This means the interpolation will not be conservative from the previous mesh so be careful what you're trying to achieve!
+    element represcribe_before_interpolation {
+      empty
+    } 
+
+geometry = 
+   (
+      ## Options dealing with the specification of geometry
+      element geometry {
+         ## Dimension of the problem.
+         ## <b>This can only be set once</b>
+         element dimension {
+            attribute replaces {"NDIM"},
+            element integer_value {
+               attribute rank {"0"},
+               "2"
+            }
+         },
+         ## The position mesh
+         element mesh {
+            attribute name { "CoordinateMesh" },
+            mesh_info
+         },
+         ## The velocity mesh
+         element mesh {
+            attribute name { "VelocityMesh" },
+            mesh_info
+         }?,
+         ## The pressure mesh
+         element mesh {
+            attribute name { "PressureMesh" },
+            mesh_info
+         }?,
+         element mesh {
+            attribute name { xsd:string },
+            mesh_info,
+            element exclude_from_mesh_adaptivity{empty}?
+         }*,
+         ## Quadrature
+         element quadrature {
+            ## Quadrature degree
+            ## 
+            ## note: this specifies the degree of quadrature,
+            ## not the number of gauss points
+            element degree {
+               attribute replaces {"NGI"},
+               integer
+            },
+            ## Surface quadrature degree
+            ## 
+            ## note: this specifies the degree of surface
+            ## quadrature not the number of surface gauss points
+            element surface_degree {
+               attribute replaces {"SNGI"},
+               integer
+            }?,
+            ## Select which family of quadrature rules to use.
+            ## The default is family_cools.
+            ## family_wandzura allows for degree up to 30
+            ## on triangular meshes.
+            ## family_grundmann_moeller allows for degree up to
+            ## 29 on simplicial meshes in arbitrary dimension.
+            element quadrature_family {
+               element string_value {
+                  ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" ) 
+               }
+            }?
+         },
+         ## This causes the change of variables associated with each element in 
+         ## the mesh to be stored rather than calculated every time it is used. 
+         ## This should speed up computations at a cost of some memory. 
+         ## 
+         ## The cache is automatically regenerated after mesh movement or 
+         ## adaptivity and is automatically disabled for non-linear positions fields.
+         element disable_geometric_data_cache {
+            empty
+         }?
+      }
+   )
+   
+simple_physical_parameter_options =
+   element physical_parameters {
+      simple_gravity_options,
+      coriolis_options
+      }
+
+simple_gravity_options =
+   ## Set a gravity to be included in the buoyancy term.
+   element gravity {
+      ## Acceleration due to gravity. 9.8 m/s^2 on earth.
+      element magnitude {
+         real
+      }
+   }
+   
+simple_prognostic_velocity_field =
+   (
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         (
+            ## Discontinuous galerkin formulation
+            element continuous_galerkin {
+               ## Discretisation options for the mass terms in the velocity equation.
+               element mass_terms {
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                     ## Lump on the submesh.
+                     ## This only works for simplex meshes and is only
+                     ## strictly valid on 2d meshes.
+                     element use_submesh {
+                       empty
+                     }?,
+                     empty
+                  }?
+               }?,
+               ## Discretisation options for the Coriolis terms in the velocity equation.
+               element coriolis_terms {
+                  # Lump the mass matrix.
+                  element lump_mass_matrix {
+                     comment
+                  }?
+               }?,
+               ## Discretisation options for the advection terms.
+               element advection_terms {
+                  ## Remove the advection terms from the equation.
+                  element exclude_advection_terms {
+                     comment
+                  }
+               }
+            }|
+            ## Discontinuous galerkin formulation
+            element discontinuous_galerkin {
+               attribute replaces { "DISOPT" },
+               ## Discretisation options for the mass terms in the velocity equation.
+               element mass_terms{
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                     ## Lump on the submesh.
+                     ## This only works for simplex meshes and is only
+                     ## strictly valid on 2d meshes.
+                     element use_submesh {
+                       empty
+                     }?,
+                     empty
+                  }?
+               }?,
+               ## Discretisation options for the Coriolis terms in the velocity equation.
+               element coriolis_terms {
+                  # Lump the mass matrix.
+                  element lump_mass_matrix {
+                     comment
+                  }?
+               }?,
+               element advection_scheme {
+                  (
+                     ## Disable advection
+                     element none {
+                        empty
+                     }|
+                     ## Straightforward upwinding of the nonlinear velocity.
+                     element upwind {
+                        empty
+                     }
+                  )
+               }
+            }
+         ),
+         ## Conservative discretisation of momentum equations
+         ##  BETA=1. -- conservative (divergence form)
+         ##  BETA=0. -- non-conservative
+         ##  0. < BETA < 1.
+         ##
+         ## Defaults to 1.0 if not supplied.
+         element conservative_advection {
+            attribute replaces {"BETA"},
+            real
+         }?
+      },
+      ## Temporal discretisation options
+      element temporal_discretisation {
+         ## Non-linear relaxation term
+         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0. < ITHETA < 1.
+         ##
+         ## Defaults to 0.5 if not supplied.
+         element relaxation {
+            attribute replaces {"ITHETA"},
+            real
+         }?
+      },
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            simple_input_choice_initial_condition_vector
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            simple_input_choice_initial_condition_vector
+         }
+      )+,
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute replaces { "boundary, TMPER1 TMPER2 TMPERI" },
+         attribute name { "FreeSlip" },
+         ## Enter all external surface IDs here
+         element surface_ids {
+            integer_vector
+         },
+         velocity_boundary_conditions
+      },
+      prognostic_vector_output_options,
+      prognostic_velocity_stat_options,
+      prognostic_detector_options,
+      interpolation_algorithm_vector
+   )
+   
+prognostic_layerthickness_field =
+   (
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         (
+            ## Continuous Galerkin formulation
+            element continuous_galerkin {
+               ## Discretisation options for the mass term in the layer thickness equation.
+               element mass_terms {
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                     ## Lump on the submesh.
+                     ## This only works for simplex meshes and is only
+                     ## strictly valid on 2d meshes.
+                     element use_submesh {
+                       empty
+                     }?,
+                     empty
+                  }?
+               }?,
+               ## Discretisation options for the advection terms.
+               element advection_terms {
+                  ## Remove the advection terms from the equation.
+                  element exclude_advection_terms {
+                     comment
+                  }
+               },
+               comment
+            }
+         )
+      },
+      ## Temporal discretisation options
+      element temporal_discretisation {
+         ## Implicit/explicit control (THETA)
+         ##  =0.  -- explicit
+         ##  =0.5 -- Crank-Nicolson
+         ##  =1.  -- implicit
+         element theta {
+            attribute replaces {"THETA"},
+            real
+         },
+         ## Non-linear relaxation term
+         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0. < ITHETA < 1.
+         ##
+         ## Defaults to 0.5 if not supplied.
+         element relaxation {
+            attribute replaces {"ITHETA"},
+            real
+         }?
+      },
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_real
+         }
+      ),      
+      ## Mean value of thickness to use in wave equation solver
+      ## Will be replaced by a field in due course
+      element mean_layer_thickness {
+         real
+      },
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      interpolation_algorithm_scalar
+   )
+   
+# Choice of input method for initial conditions
+# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+simple_input_choice_initial_condition_vector =
+   (
+      ## Constant value
+      element constant {
+         real_dim_vector
+      }|
+      ## Python function prescribing dimensional vector input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X and the return value are tuples of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          ## Currently, only the velocity vector field may be initialised in this manner.
+          element format {
+              element string_value {
+                  "Velocity"
+              }
+          }
+      }|
+      ## Set balanced velocity from height field
+      element balanced {
+         empty
+      }
+   )  

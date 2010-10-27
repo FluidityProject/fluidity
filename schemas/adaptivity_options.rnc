@@ -1,0 +1,1997 @@
+
+adaptivity_preprocessing =
+      ## Occasionally, it is desirable to apply operations or filters
+      ## to fields before using them for the purposes of adaptivity.
+      element preprocessing {
+        (
+            ## Invert a helmholtz operator to smooth out the field
+            ## before using it to adapt. This can help with noisy
+            ## fields.
+            element helmholtz_smoother {
+                 element smoothing_length_scale {
+                     real_dim_symmetric_tensor
+                 },
+                 element solver {
+                   linear_solver_options_sym
+                 }
+            }
+        )
+      }?
+
+adaptivity_options_prognostic_scalar_field =
+   (
+      element adaptivity_options {
+         (
+            ## When specifying absolute measure
+            ## one specifies the absolute interpolation 
+            ## error in the units of the field that is 
+            ## being adapted, e.g. you can specify
+            ## the error to be 1.3 units 
+            element absolute_measure {
+               attribute replaces { "ADOPTT = 0" },
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADWEIT" },
+                  element prescribed {
+                     prescribed_scalar_field_no_adapt
+                  }
+               },
+               ## By default the interpolation error controlled is the L_inf
+               ## norm. Use this option to specify an alternative L_p norm. See
+               ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+               ## Number 257, January 2007, pp. 179-204.
+               element p_norm {
+                  integer
+               }?
+            }|
+            ##When specifying relative measure
+            ##one specifies the interpolation error
+            ##relative to the field that is
+            ##being adapted, e.g. you can specify
+            ##the error to be 5% (i.e. 0.05)
+            element relative_measure {
+               attribute replaces { "ADOPTT = 1" },
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADADOT" },
+                  element prescribed {
+                     prescribed_scalar_field_no_adapt
+                  }
+               },
+               ## The relative Hessian is calculated according to:
+               ##
+               ##   Q = H / max{ |psi|, psi_min}
+               ##
+               ## where H is the Hessian, psi is the field value and
+               ## psi_min is the tolerance. The tolerance prevents
+               ## division by zero errors.
+               ##
+               ## Source: Fluidity/ICOM manual draft version 1.2
+               element tolerance {
+                  attribute replaces { "ADATOT" },
+                  real
+               }
+            }|
+            ## Adapt using the anisotropic strategy of 
+            ## Formaggia, Perotto, Micheletti.
+            ## Rather than taking two derivatives
+            ## and deriving the anisotropic information,
+            ## this approach computes an anisotropic Zienkiewicz-Zhu
+            ## error estimator for each element. The approach then
+            ## optimises the element orientation and length scales
+            ## to equidistribute the estimated error.
+            element anisotropic_zienkiewicz_zhu {
+              ## Tau is an anisotropic estimate for the H1 seminorm of the
+              ## error. This estimator is efficient and reliable, under the
+              ## caveat that the initial mesh is sufficiently fine so as to
+              ## prevent data oscillation. (Micheletti & Perotto, 2006)
+              ## Typically, tau will be ~= 6-8 * |e|_H1.
+              element tau {
+                real
+              }
+            }
+         ),
+         adaptivity_preprocessing
+      }?
+   )
+
+adaptivity_options_scalar_field.adaptivity_options =
+   (
+      ## When specifying absolute measure
+      ## one specifies the absolute interpolation 
+      ## error in the units of the field that is 
+      ## being adapted, e.g. you can specify
+      ## the error to be 1.3 units 
+      element absolute_measure {
+         attribute replaces { "ADOPTT = 0" },
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InterpolationErrorBound" },
+            attribute replaces { "ADWEIT" },
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }
+         },
+         ## By default the interpolation error controlled is the L_inf
+         ## norm. Use this option to specify an alternative L_p norm. See
+         ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+         ## Number 257, January 2007, pp. 179-204.
+         element p_norm {
+            integer
+         }?
+      }|
+      ## When specifying relative measure
+      ## one specifies the interpolation error
+      ## relative to the field that is
+      ## being adapted, e.g. you can specify
+      ## the error to be 5% (i.e. 0.05)
+      element relative_measure {
+         attribute replaces { "ADOPTT = 1" },
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InterpolationErrorBound" },
+            attribute replaces { "ADADOT" },
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }
+         },
+         ## The relative Hessian is calculated according to:
+         ##
+         ##   Q = H / max{ |psi|, psi_min}
+         ##
+         ## where H is the Hessian, psi is the field value and
+         ## psi_min is the tolerance. The tolerance prevents
+         ## division by zero errors.
+         ##
+         ## Source: Fluidity/ICOM manual draft version 1.2
+         element tolerance {
+            attribute replaces { "ADATOT" },
+            real
+         }
+      }|
+      ## Adapt using the anisotropic strategy of 
+      ## Formaggia, Perotto, Micheletti.
+      ## Rather than taking two derivatives
+      ## and deriving the anisotropic information,
+      ## this approach computes an anisotropic Zienkiewicz-Zhu
+      ## error estimator for each element. The approach then
+      ## optimises the element orientation and length scales
+      ## to equidistribute the estimated error.
+      element anisotropic_zienkiewicz_zhu {
+        ## Tau is an anisotropic estimate for the H1 seminorm of the
+        ## error. This estimator is efficient and reliable, under the
+        ## caveat that the initial mesh is sufficiently fine so as to
+        ## prevent data oscillation. (Micheletti & Perotto, 2006)
+        ## Typically, tau will be ~= 6-8 * |e|_H1.
+        element tau {
+          real
+        }
+      }
+   )
+adaptivity_options_scalar_field =
+   (
+      element adaptivity_options {
+         adaptivity_options_scalar_field.adaptivity_options,
+         adaptivity_preprocessing
+      }?
+   )
+
+adaptivity_options_prognostic_vector_field =
+   (
+      ## Adaptivity weights
+      element adaptivity_options {
+         (
+            ## When specifying absolute measure
+            ## one specifies the absolute interpolation 
+            ## error in the units of the field that is 
+            ## being adapted, e.g. you can specify
+            ## the error to be 1.3 units 
+            element absolute_measure {
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADWEIU ADWEIV ADWEIW" },
+                  element prescribed {
+                     prescribed_vector_field_no_adapt
+                  }
+               },
+               ## By default the interpolation error controlled is the L_inf
+               ## norm. Use this option to specify an alternative L_p norm. See
+               ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+               ## Number 257, January 2007, pp. 179-204.
+               element p_norm {
+                  integer
+               }?
+            }|
+            ## When specifying relative measure
+            ## one specifies the interpolation error
+            ## relative to the field that is
+            ## being adapted, e.g. you can specify
+            ## the error to be 5% (i.e. 0.05)
+            element relative_measure {
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADATOU ADATOV ADATOW" },
+                  element prescribed {
+                     prescribed_vector_field_no_adapt
+                  }
+               },
+               ## The relative Hessian is calculated according to:
+               ##
+               ##   Q = H / max{ |psi|, psi_min}
+               ##
+               ## where H is the Hessian, psi is the field value and
+               ## psi_min is the tolerance. The tolerance prevents
+               ## division by zero errors.
+               ##
+               ## Source: Fluidity/ICOM manual draft version 1.2
+               element tolerance {
+                  real_dim_vector
+               }
+            }
+         ),
+         adaptivity_preprocessing
+      }?
+   )
+
+adaptivity_options_vector_field =
+   (
+      ## Adaptivity weights
+      element adaptivity_options {
+         (
+            ## When specifying absolute measure
+            ## one specifies the absolute interpolation 
+            ## error in the units of the field that is 
+            ## being adapted, e.g. you can specify
+            ## the error to be 1.3 units 
+            element absolute_measure {
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADWEIU ADWEIV ADWEIW" },
+                  element prescribed {
+                     prescribed_vector_field_no_adapt
+                  }
+               },
+               ## By default the interpolation error controlled is the L_inf
+               ## norm. Use this option to specify an alternative L_p norm. See
+               ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+               ## Number 257, January 2007, pp. 179-204.
+               element p_norm {
+                  integer
+               }?
+            }|
+            ## When specifying relative measure
+            ## one specifies the interpolation error
+            ## relative to the field that is
+            ## being adapted, e.g. you can specify
+            ## the error to be 5% (i.e. 0.05)
+            element relative_measure {
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "InterpolationErrorBound" },
+                  attribute replaces { "ADATOU ADATOV ADATOW" },
+                  element prescribed {
+                     prescribed_vector_field_no_adapt
+                  }
+               },
+               ## The relative Hessian is calculated according to:
+               ##
+               ##   Q = H / max{ |psi|, psi_min}
+               ##
+               ## where H is the Hessian, psi is the field value and
+               ## psi_min is the tolerance. The tolerance prevents
+               ## division by zero errors.
+               ##
+               ## Source: Fluidity/ICOM manual draft version 1.2
+               element tolerance {
+                  real_dim_vector
+               }
+            }
+         ),
+         adaptivity_preprocessing
+      }?
+   )
+
+adaptivity_options_prognostic_tensor_field =
+   (
+      ## Adaptivity weights
+      element adaptivity_options {
+         (
+            ## When specifying absolute measure
+            ## one specifies the absolute interpolation 
+            ## error in the units of the field that is 
+            ## being adapted, e.g. you can specify
+            ## the error to be 1.3 units 
+            element absolute_measure {
+               element tensor_field {
+                  attribute rank { "2" },
+                  attribute name { "InterpolationErrorBound" },
+                  element prescribed {
+                     prescribed_values_tensor_field
+                  }
+               },
+               ## By default the interpolation error controlled is the L_inf
+               ## norm. Use this option to specify an alternative L_p norm. See
+               ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+               ## Number 257, January 2007, pp. 179-204.
+               element p_norm {
+                  integer
+               }?
+            }|
+            ## When specifying relative measure
+            ## one specifies the interpolation error
+            ## relative to the field that is
+            ## being adapted, e.g. you can specify
+            ## the error to be 5% (i.e. 0.05)
+            element relative_measure {
+               element tensor_field {
+                  attribute rank { "2" },
+                  attribute name { "InterpolationErrorBound" },
+                  element prescribed {
+                     prescribed_values_tensor_field
+                  }
+               },
+               ## The relative Hessian is calculated according to:
+               ##
+               ##   Q = H / max{ |psi|, psi_min}
+               ##
+               ## where H is the Hessian, psi is the field value and
+               ## psi_min is the tolerance. The tolerance prevents
+               ## division by zero errors.
+               ##
+               ## Source: Fluidity/ICOM manual draft version 1.2
+               element tolerance {
+                  real_dim_tensor
+               }
+            }
+         ),
+         adaptivity_preprocessing
+      }?
+   )
+
+adaptivity_options_tensor_field =
+   (
+      ## Adaptivity weights
+      element adaptivity_options {
+         (
+            ## When specifying absolute measure
+            ## one specifies the absolute interpolation 
+            ## error in the units of the field that is 
+            ## being adapted, e.g. you can specify
+            ## the error to be 1.3 units 
+            element absolute_measure {
+               element tensor_field {
+                  attribute rank { "2" },
+                  attribute name { "InterpolationErrorBound" },
+                  element prescribed {
+                     prescribed_values_tensor_field
+                  }
+               },
+               ## By default the interpolation error controlled is the L_inf
+               ## norm. Use this option to specify an alternative L_p norm. See
+               ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+               ## Number 257, January 2007, pp. 179-204.
+               element p_norm {
+                  integer
+               }?
+            }|
+            ## When specifying relative measure
+            ## one specifies the interpolation error
+            ## relative to the field that is
+            ## being adapted, e.g. you can specify
+            ## the error to be 5% (i.e. 0.05)
+            element relative_measure {
+               element tensor_field {
+                  attribute rank { "2" },
+                  attribute name { "InterpolationErrorBound" },
+                  element prescribed {
+                     prescribed_values_tensor_field
+                  }
+               },
+               ## The relative Hessian is calculated according to:
+               ##
+               ##   Q = H / max{ |psi|, psi_min}
+               ##
+               ## where H is the Hessian, psi is the field value and
+               ## psi_min is the tolerance. The tolerance prevents
+               ## division by zero errors.
+               ##
+               ## Source: Fluidity/ICOM manual draft version 1.2
+               element tolerance {
+                  real_dim_tensor
+               }
+            }
+         ),
+         adaptivity_preprocessing
+      }?
+   )
+
+hr_adaptivity =
+   (
+   ## Anisotropic mesh hr-adaptivity
+      element hr_adaptivity {
+         attribute replaces {"ADMESH"},
+         (
+            ## Time interval (in simulation time) when mesh adaptivity performed.
+            ##
+            ## DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
+            ## THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
+            ## APPEAR AS ZERO OR JUNK
+            ## DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
+            ##
+            ## Usually set to 10-20 times the timestep.
+            element period {
+               attribute replaces {"TIMMES"},
+               real
+            }|
+            ## Adapt period in timesteps.
+            element period_in_timesteps {
+               integer
+            }
+         ),
+         ## Time interval (in cpu time) when mesh adaptivity performed
+         ## Manual suggests disabling this option.
+         element cpu_period {
+            attribute replaces {"CPUMES"},
+            real
+         }?,
+         ## The minimum number of nodes this simulation may use.
+         ## In parallel, by default, this is the global minimum number of nodes.
+         ##
+         ## If the mesh adaptivity algorithm wants to place fewer nodes
+         ## than this, the desired mesh is refined everywhere in space
+         ## until it will exceed this limit. This option should generally
+         ## only be used if a specified node count is being targetted.
+         ## Default value: 0
+         element minimum_number_of_nodes {
+            ## Define minimum_number_of_nodes to be the minimum number of
+            ## nodes per process (rather than the global minimum number of
+            ## nodes).
+            element per_process {
+              comment
+            }?,
+            integer
+         }?,
+         ## The maximum number of nodes this simulation may use.
+         ## In parallel, by default, this is the global maximum number of nodes.
+         ##
+         ## If the mesh adaptivity algorithm wants to place more
+         ## nodes than this, the desired mesh is coarsened
+         ## everywhere in space until it will fit within this limit.
+         ## In general, the error tolerances should be set so that
+         ## this is never reached; it should only be a safety catch.
+         ## A typical value is 100000.
+         ##
+         ## When using vertically_structured_adaptivity this indicates the 
+         ## maximum number of nodes in the horizontal mesh, i.e. the number
+         ## of nodes in the full mesh will be much bigger and depends on the 
+         ## number of layers specified, or if using inhomogenous_vertical_resolution
+         ## on the resolution produced by the vertical adaptivity step.
+         element maximum_number_of_nodes {
+            attribute replaces {"MXNODS"},
+            ## Define maximum_number_of_nodes to be the maximum number of
+            ## nodes per process (rather than the global maximum number of
+            ## nodes).
+            element per_process {
+              comment
+            }?,
+            integer
+         },
+         ## The maximum ratio by which the number of nodes is allowed to
+         ## increase in an adapt. e.g., a value of 1.1 indicates that the
+         ## number of nodes may be increased by at most 10%.
+         element max_node_increase {
+            real
+         }?,
+         ## Enable to lock nodes in the mesh.
+         element node_locking {
+           ## Python function defining nodes to lock. Return 0 for free
+           ## nodes, and non-zero for locked nodes. Functions should be
+           ## of the form:
+           ##
+           ##  def val(x, t):
+           ##     # Function code
+           ##     return # Return value
+           ##
+           ## The return value must be an integer.
+           element python {
+              python_code
+           },
+           comment
+         }?,
+         ## Specifies the minimum element functional value for which elements
+         ## are considered for adaptivity. For the Pain et al 2001 functional,
+         ## ideal tetrahdera have a functional value of 0.0. A functional value
+         ## of 0.5 corresponds to a tetrehedron with: unit edge lengths and
+         ## and in-sphere radius of 0.3, or alternatively unit in-sphere radius,
+         ## five edges of unit length and a single edge of length 2
+         ## (all measured in metric space).
+         ##
+         ## The minimum permitted value is 0.15 - the value supplied to
+         ## libadaptivity is max(abs(user value), 0.15).
+         ##
+         ## Default value if not specified: 0.15
+         element functional_tolerance {
+            attribute replaces {"MESTP1"},
+            real
+         }?,
+         gradation_options_full,
+         ## Metric advection algorithm.
+         ## By advecting the metric with the flow velocity,
+         ## we can push mesh resolution ahead of the flow dynamics,
+         ## rather than always lagging behind.
+         element metric_advection {
+            ## Spatial discretisation options
+            element spatial_discretisation {
+              (
+                  element control_volumes {
+                    standard_control_volume_options
+                  }
+              ),
+              ## Conservative discretisation of field advection equation
+              ##  TBETA=1. -- conservative (divergence form)
+              ##  TBETA=0. -- non-conservative
+              ##  0. < TBETA < 1.
+              element conservative_advection {
+                  attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
+                  real
+              }
+            },
+            element temporal_discretisation {
+              ## Implicit/explicit control (TTHETA)
+              ##  =0.  -- explicit
+              ##  =0.5 -- Crank-Nicolson
+              ##  =1.  -- implicit
+              element theta {
+                attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
+                real
+              },
+              (
+                  ## Use subcycling to advect the metric.
+                  ## 
+                  ## Specify the maximum courant number per subcycle.
+                  element maximum_courant_number_per_subcycle {
+                    real,
+                    field_based_cfl_number_options
+                  }|
+                  ## Use subcycling to advect the metric.
+                  ## 
+                  ## Specify the number of subcycles.
+                  element number_advection_subcycles {
+                    integer
+                  }
+              ),
+              ## Scale the time period over which the metric is
+              ## advected by this factor.
+              ##
+              ## Default is 1.1
+              element scale_advection_time {
+                  real
+              }?,
+              ## Temporal discretisation options for the control volume discretisation
+              element control_volumes {
+                ## Number of iterations within an advection solve.
+                ## This increases the accuracy of the face values and ensures that
+                ## the pivoted solution is cancelled out.
+                ## Defaults to 1 if unselected.
+                element number_advection_iterations {
+                    attribute replaces { "INT(ABS(NDISOT)/10)" },
+                    integer
+                }?,
+                ## If not active then the theta specified above will be used.
+                ## Otherwise use variable limited theta on individual faces.
+                element limit_theta {
+                    attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
+                    empty
+                }?,
+                ## Time discretisation of upwind discretisation off which the
+                ## higher order solution is pivotted.
+                ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+                ##                      best choice if not intentionally modifying
+                ##                      scheme to be explicit)
+                ##  - pivot_theta = 0 - explicit pivot
+                element pivot_theta {
+                    real
+                }?
+              }
+            },
+            (
+              ## Solver
+              element solver {
+                  linear_solver_options_asym
+              }|
+              ## Assume this field is being solved explicitly and skip the solver.
+              ##
+              ## Assumes lhs matrix only has diagonal lumped mass
+              ## and divides the rhs by this.
+              element explicit {
+                  empty
+              }
+            ),
+            ## Debugging output options
+            element output {
+              ## Output vtus of the advected metric and edge lengths at every subcycle
+              element output_subcycle_vtus {
+                empty
+              }?,
+              ## Output vtus of the final metric merged over all the subcycles
+              element output_final_vtus {
+                empty
+              }?
+            }
+         }?,
+         ## Apply geometric constraints to the metric formation.
+         ##
+         ## As specified in (Pain, 2001), the mesh adaptivity
+         ## scheme attempts to formulate an appropriate edge length
+         ## for each direction at each point in space, independent
+         ## of problem, PDE or domain.
+         ##
+         ## This option instructs the error metric formation
+         ## code to inspect the boundaries of the domain
+         ## and to bound the edge lengths requested appropriately.
+         ## This procedure stops the metric from asking for edge lengths
+         ## that are inappropriately large in comparison to the
+         ## resolution required to preserve the geometric accuracy
+         ## of the boundaries.
+         ##
+         ## If you get 'knife elements' near domain boundaries,
+         ## turn this on.
+         element geometric_constraints {
+            empty
+         }?,
+         ## Bounding box factor.
+         ##
+         ## If the length scales specified by the metric are
+         ## unrealistically large, the mesh optimisation
+         ## algorithm can get confused. An example
+         ## would be specifying a length scale in a direction to be an
+         ## order of magnitude greater than the width
+         ## of the domain.
+         ##
+         ## In order to fix this, the edge lengths requested
+         ## are bounded by the bounding box of the domain
+         ## (the smallest cuboid that contains the domain).
+         ## However, it was found that bounding by the bounding
+         ## box impairs the generation of anisotropic elements
+         ## in the mesh optimisation algorithm.
+         ##
+         ## This option is multiplied by the bounding box of the domain
+         ## before it bounds the metric formed from other
+         ## considerations. By default, it is set to 2.0.
+         element bounding_box_factor {
+            real
+         }?,
+         ## Goal-based adaptivity. 
+         ##
+         ## With this option,
+         ## rather than taking the user-specified interpolation
+         ## error bounds as the weights to form the error metric
+         ## from the Hessians of the solution fields,
+         ## the interpolation weight is computed to optimally
+         ## represent the value of some specified functional
+         ## of state. In other words, the mesh is optimised
+         ## for the representation of a particular goal.
+         ##
+         ## This is currently experimental. Activating
+         ## this option induces the code to ignore
+         ## any error bounds associated with the fields
+         ## specified under a material_phase.
+         ##
+         ## For more information on this scheme,
+         ## see (Venditti & Darmofal, 2003), or
+         ## (Power et. al, 2006).
+         ##
+         ## Coding your own goal is also possible
+         ## but currently undocumented. See
+         ## error_measures/Goals.F90
+         ## for examples.
+         element goal_based_adaptivity {
+            (
+               ## Optimise for the representation of
+               ## enstrophy,
+               ##   0.5 * int( |curl(velocity)|**2 ) dV.
+               element enstrophy_goal {
+                  attribute subroutine {"goal_enstrophy"},
+                  attribute dependencies {"Velocity%1 Velocity%2 Velocity%3"}
+               }|
+               ## Optimise for the representation of
+               ## gradients of temperature,
+               ##   int(|grad(temperature)|**2) dV.
+               element temperature_gradient_goal {
+                  attribute subroutine {"goal_temp"},
+                  attribute dependencies {"Temperature"}
+               }|
+               ## Optimise for the contribution of the standard
+               ## Smagorinsky LES tensor.
+               ##
+               ## In effect, this goal minimises
+               ## the contribution of the sub-filter scale
+               ## model -- it applies mesh resolution where
+               ## the sub-grid scale model has an effect.
+               ##
+               ## int( transpose(grad(u)) . kappa . grad(u) ) dV,
+               ## with u ranging over the components of (nonlinear)
+               ## velocity and kappa the LES tensor.
+               element les_goal {
+                  attribute subroutine {"goal_les_velocity"},
+                  attribute dependencies {"NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3"},
+                  ## The number of nonlinear iterations to perform when
+                  ## forming the metric with this goal.
+                  ##
+                  ## Because the LES tensor explicitly depends on mesh sizing,
+                  ## we can form a metric and feed this back into the goal,
+                  ## using the proposed mesh sizing instead of the current mesh.
+                  ## This allows us to simulate adapts without actually incurring
+                  ## the cost of adaptation, for the purposes of converging the metric.
+                  ## The default value is 3.
+                  element nonlinear_iterations {
+                     integer
+                  }?
+               }|
+               ## Optimise for the contribution of the new 4th-order
+               ## LES tensor.
+               ##
+               ## In effect, this goal minimises
+               ## the contribution of the sub-filter scale
+               ## model -- it applies mesh resolution where
+               ## the sub-grid scale model has an effect.
+               ##
+               ## int( transpose(grad(u))   . kappa . grad(u) ) dV -
+               ## int( transpose(grad_h(u)) . kappa . grad_h(u) ) dV
+               ## 
+               ## with u ranging over the components of (nonlinear)
+               ## velocity, kappa the LES tensor,
+               ## grad(.) differentiation of basis functions and
+               ## grad_h(.) the Galerkin projection of the first derivative.
+               element higher_order_les_goal {
+                  attribute subroutine {"goal_les_velocity_4th"},
+                  attribute dependencies {"NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3"},
+                  ## The number of nonlinear iterations to perform when
+                  ## forming the metric with this goal.
+                  ##
+                  ## Because the LES tensor explicitly depends on mesh sizing,
+                  ## we can form a metric and feed this back into the goal,
+                  ## using the proposed mesh sizing instead of the current mesh.
+                  ## This allows us to simulate adapts without actually incurring
+                  ## the cost of adaptation, for the purposes of converging the metric.
+                  ## The default value is 3.
+                  element nonlinear_iterations {
+                     integer
+                  }?
+               }
+            ),
+            (
+               ## The tolerance of the goal specifies the acceptable
+               ## error in the quantity computed. The adaptation scheme
+               ## attempts to adapt the mesh to ensure that the
+               ## goal computed from the primitive solution is 
+               ## within the tolerance specified here.
+               ##
+               ## A relative tolerance specifies that the acceptable error
+               ## in the goal is some fraction of the value as computed
+               ## from the primitive solution. It is generally 
+               ## the easiest to use. This is a unitless percentage.
+               element relative_tolerance {
+                  real
+               }|
+               ## The tolerance of the goal specifies the acceptable
+               ## error in the quantity computed. The adaptation scheme
+               ## attempts to adapt the mesh to ensure that the
+               ## goal computed from the primitive solution is 
+               ## within the tolerance specified here.
+               ##
+               ## An absolute tolerance specifies the acceptable error
+               ## in the goal, in the units of the goal itself.
+               element absolute_tolerance {
+                  real
+               }
+            )
+         }?,
+         ## Mesh size constraints: the minimum edge length bound.
+         element tensor_field {
+           attribute name { "MinimumEdgeLengths" },
+           element anisotropic_symmetric {
+             input_choice_real_dim_symmetric_tensor
+           }
+         },
+         ## Mesh size constraints: the maximum edge length bound.
+         element tensor_field {
+           attribute name { "MaximumEdgeLengths" },
+           element anisotropic_symmetric {
+             input_choice_real_dim_symmetric_tensor
+           }
+         },
+         ## Supply a reference mesh with which to bound the metric
+         element reference_mesh {
+            attribute name { xsd:string },
+            attribute mesh_name { xsd:string },
+            (
+               ## Use this reference mesh as a bound on the minimum edge
+               ## length of the metric
+               element minimum {
+                  comment
+               }|
+               ## Use this reference mesh as a bound on the maximum edge
+               ## length of the metric
+               element maximum {
+                  comment
+               }
+            ),
+            comment
+         }*,
+         ## Maximum aspect ratio in the adapted mesh.
+         element aspect_ratio_bound {
+           real
+         }?,
+               ## Adapt at first timestep
+         element adapt_at_first_timestep {
+            ## Number of adapts done after initialisation but
+            ## before the actual simulation starts
+            element number_of_adapts{integer},
+            ## Write out the first timestep adapted mesh.
+            ## This is useful when needing to re-run simulations
+            ## without waiting for the first timestep adapt
+            element output_adapted_mesh {
+               comment
+            }?
+         }?,
+         ## Enable this option to preserve any regions in your
+         ## mesh (i.e. those specified by region_ids).
+         ## Also, any prescribed fields using region_ids will be
+         ## reinitialised using them on the new mesh.
+         ##
+         ## Therefore this is a required option if you want your
+         ## prescribed region_id fields to survive adapts!
+         ## Obviously this does not apply to initial conditions
+         ## set using region_ids.
+         element preserve_mesh_regions {
+            comment
+         }?,
+         ## Vertically structured adaptivity.
+         ##
+         ## The mesh will be unstructured in the horizontal, but columnar
+         ## in the vertical.
+         ## To enable this, your meshes must be derived by extrusion
+         ## from a lower-dimensional horizontal mesh.
+         ## This will give a columnar, layered mesh.
+         element vertically_structured_adaptivity {
+           ## If this is enabled, the resolution along each column
+           ## will be computed from the error metric.
+           ## This will give a columnar mesh, but not a layered one.
+           element inhomogenous_vertical_resolution {
+              ## Ignore the horizontal adapt, and *only* adapt in the vertical
+              element adapt_in_vertical_only {
+                empty
+              }?
+           }?,
+           ## Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+           ## gradation to the horizontal (and vertical) metric.
+           ## This replaces is the gradation applied to the full metric and uses the gradation
+           ## algorithm specified above.
+           element split_gradation {
+             empty
+           }?,
+           (
+            ## Remove components from each field's metric that aren't aligned either horizontally
+            ## or vertically.  This can help prevent the horizontal metric from becoming
+            ## contaminated by parts of the vertical metric.
+            ##
+            ## NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
+            ## parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
+            ## last dimension.
+            element vertically_align_metric {
+              empty
+            }|
+            ## When separating the horizontal metric from the vertical use the full metric.  This
+            ## can lead to more constrained horizontal resolution due to leakage between the vertical
+            ## and horizontal components.
+            element use_full_metric {
+              empty
+            }
+           ),
+           ## When constructing the horizontal metric incorporate the components of the 
+           ## full metric tangential to the bottom boundary.  For example, this is useful 
+           ## when horizontal contours of a field intersect the bathymetry and this information
+           ## is not automatically incorporated into the horizontal metric leading to
+           ## the contact point being underresolved.
+           ##
+           ## Depends on /geometry/ocean_boundaries.
+           element include_bottom_metric {
+            empty
+           }?
+         }?,
+         ## Zoltan Options
+         ##
+         ## Set up some Zoltan options, including which partitioner to use.
+         ## Only works if you have the --with-zoltan option in your configure.
+         ##
+         ## Note that Zoltan will become the default (replacing Sam at some point)
+         ## and these options are currently here only for development and testing
+         ## purposes. They are subject to change and may not be in the final "release".
+         element zoltan_options {
+            ## Select which partitioner to use. Graph partitioners available are ParMETIS
+            ## and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.
+            element partitioner {
+                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                ## closely as possible the setup used previously by Sam.
+                element metis {
+                    empty
+                }|
+                ## Use the PT-Scotch graph partitioner. 
+                element scotch {
+                    empty
+                }|
+                ## Use the Zoltan PHG partitioner.
+                element zoltan {
+                    ## Select the partitioning method you would like used by Zoltan PHG.
+                    ## Currently hypergraph partitioning is the simplest implementation
+                    ## and can produce non-contiguous partitions for certain problems.
+                    element method {
+                    "graph"|"hypergraph"
+                    }
+                }
+            }?,
+            ## Element quality cut off. 
+            ## Elements with a quality greater than this will be liable to be
+            ## on the parition boundary. Below this, they will be free to be adapted
+            ## and improved. Range is 0 to 1, with default 0.6
+            element element_quality_cutoff {
+                real
+            }?,
+            ## Zoltan Debugging
+            ## 
+            ## Turn on more verbose output for use when debugging Zoltan.
+            element zoltan_debug {
+               ## Turn on graph checking.
+               ## When using ParMETIS or PT-Scotch options for turning on
+               ## graph checking are provided by Zoltan.
+               ## 1 - on process checking,
+               ## 2 - full checking (very slow)
+               element graph_checking {
+                   "1"|"2"
+               }?,
+               ## Print out a dump file of the edge counts.
+               ## Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
+               ## This option dumps the edge count for each owned node.
+               ## Dump is to the current directory, in a file called edge_counts_*.dat
+               ## One dump file is created for each rank.
+               ## Will get overwritten at each adapt.
+               element dump_edge_counts {
+                  empty
+               }?,
+               ## Print out a dump file of the edge weights.
+               ## Edge weights are calculated for each edge in zoltan_cb_get_edge_list.
+               ## Permits a visualisation of how the edge weights are distributed.
+               ## Dump is to the current directory, in a file called edge_weights_*.dat
+               ## One dump file is created for each rank.
+               ## Will get overwritten at each adapt.
+               element dump_edge_weights {
+                  empty
+               }?,
+               ## Print out a dump file of node sizes.
+               ## Zoltan needs to be told how much data is associated with each node when
+               ## doing phase one migration.
+               ## Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called node_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of halo node sizes.
+               ## Zoltan needs to be told how much data is associated with each halo node when
+               ## doing phase two migration.
+               ## Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called halo_node_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_halo_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of field sizes.
+               ## Zoltan needs to be told how much data is associated with the fields for each 
+               ## element when we're transfering fields.
+               ## Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called field_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_field_sizes {
+                  empty
+               }?
+            }?
+         }?,
+         ## Select the adaptivity library used by hr-adaptivity. If disabled,
+         ## the defaults are:
+         ##   In 3D: libadaptivity
+         ##   In 2D: libmba2d
+         ##   In 1D: adaptivity_1d
+         element adaptivity_library {
+            ## libadaptivity. 3D, parallelised.
+            element libadaptivity {
+               ## The number of adaptivity sweeps. Default value: 10
+               element sweeps {
+                  integer
+               }?,
+               ## Enable this option to turn off edge splitting
+               element disable_edge_split {
+                  comment
+               }?,
+               ## Enable this option to turn off edge collapsing
+               element disable_edge_collapse {
+                  comment
+               }?,
+               ## Enable this option to turn off edge/face, face/edge and
+               ## edge/edge swapping
+               element disable_edge_swap {
+                  comment
+               }?,
+               ## Enable this option to turn off node movement, and use
+               ## h-adaptivity only.
+               element disable_node_movement {
+                  comment
+               }?,
+               ## Writes vtus containing the Pain 2001 P0 element functionals
+               ## of the adapted meshes.
+               element write_adapted_quality {
+                  comment
+               }?,
+               comment
+            }|
+            ## libmba2d. 2D. A testing parallel implementation is available.
+            element libmba2d {               
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                 real
+               }?,
+               comment
+            }|
+            ## Re-uses 1D adaptivity code from 2+1D adaptivity. 1D, serial only.
+            element adaptivity_1d {
+               comment
+            }|
+            ## libmba3d. 3D, serial only.
+            element libmba3d {           
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                  real
+               }?,
+               ## Maximum number of mesh optimisations. Default value 10^5.
+               element max_optimisations {
+                  integer
+               }?,
+               comment
+            }
+         }?,
+         ## hr adptivity debugging options
+         element debug {
+            ## Write out error metric at each stage of the processing
+            ## pipeline. This can be very useful in diagnosing why
+            ## adaptivity is doing something you don't expect.
+            element write_metric_stages {
+               comment
+            }?,
+            ## Write out the Coordinate field to a triangle mesh for every
+            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## will be written for every parallel adapt iteration.
+            element write_adapted_mesh {
+               comment
+            }?,
+            ## Write out the system state to a vtu adapt every state adapt.
+            ## In parallel, a vtu will be written for every parallel
+            ## adapt iteration.
+            element write_adapted_state {
+               comment
+            }?,
+            ## Checkpoint the simulation after every adapt. In parallel, a
+            ## checkpoint will be written <b>only</b> after the final adapt
+            ## iteration. Checkpoints are postfixed with "adapt_checkpoint".
+            element checkpoint {
+               ## Number of checkpoints to write before overwriting existing
+               ## checkpoints.
+               element max_checkpoint_count {
+                  integer
+               }?,
+               comment
+            }?,
+            comment
+         }?
+      }
+   )
+      
+prescribed_adaptivity =
+   (
+      ## Mesh adaptivity, with prescribed adapt interval and target meshes.
+      ## <b>Serial only</b>.
+      element prescribed_adaptivity {
+         ## Options relating the the frequency of mesh adaptivity
+         element adapt_interval {
+            ## Python code defining whether to adapt the mesh, evaluated at the
+            ## end of each timestep. Return non-zero to signal a mesh adapt, and
+            ## zero otherwise. Functions should be of the form:
+            ##
+            ##  def val(t):
+            ##    # Function code
+            ##    return # Return value
+            ##
+            ## The return value must be an integer.
+            element python {
+               python_code
+            },
+            comment
+         },
+         ## Options relating to the target meshes
+         element mesh {
+            ## The target mesh. If not reading from file, this must be a mesh
+            ## specified under /geometry.
+            element name {
+               ## Python code defining the target mesh. Functions should be of
+               ## the form:
+               ##
+               ##  def val(t):
+               ##    # Function code
+               ##    return # Return value
+               ##
+               ## The return value must be a string.
+               element python {
+                  python_code
+               },
+               comment
+            },
+            ## Read the mesh from file, rather than extracting it from the
+            ## system state.
+            element from_file {
+               (
+                  ## Input mesh file format.
+                  element format {
+                     "triangle",
+                     comment
+                  }
+               ),
+               comment
+            }?,
+            comment
+         },
+         comment
+      }
+   )
+
+consistent_interpolation =
+   (
+      ## Basis function interpolation.
+      ## The standard algorithm. It is quick
+      ## and bounded, but non-conservative and dissipative.
+      ## All other algorithms require construction of a supermesh.
+      element consistent_interpolation {
+        empty
+      }
+   )   
+pseudo_consistent_interpolation =
+   (
+      ## Basis function pseudo-interpolation, with averaging for nodes on
+      ## element boundaries. This can accept a discontinuous input, but always
+      ## gives a continuous output. It is strong recommended that you <b>use
+      ## interpolation_galerkin</b> instead of this interpolation method.
+      ##
+      ## The distance in ideal space from the boundary where averaging is
+      ## applied is currently hard coded to 1.0e3 * epsilon(0.0).
+      element pseudo_consistent_interpolation {
+         comment
+      }
+   )
+grandy_interpolation =
+   (
+      ## Grandy interpolation. Conservative, but highly diffusive.
+      ## See doi:10.1006/jcph.1998.6125 .
+      element grandy_interpolation {
+        empty
+      }
+   )
+   
+interpolation_algorithm_disabled =
+   (
+      ## Disable interpolation
+      element no_interpolation {
+        comment
+      }
+   )
+
+interpolation_algorithm_scalar =
+    (
+      consistent_interpolation|
+      pseudo_consistent_interpolation|
+      ## Galerkin projection. By default, conservative, non-dissipative and
+      ## non-bounded. The most accurate choice, in the sense of minimising
+      ## the L2 norm of the residual
+      element galerkin_projection {
+        galerkin_projection_scalar
+      }|
+      grandy_interpolation
+    )
+    
+interpolation_algorithm_scalar_full = interpolation_algorithm_scalar
+interpolation_algorithm_scalar_full |= interpolation_algorithm_disabled
+    
+interpolation_algorithm_vector_full = interpolation_algorithm_vector
+interpolation_algorithm_vector_full |= interpolation_algorithm_disabled
+    
+interpolation_algorithm_vector =
+    (
+      consistent_interpolation|
+      pseudo_consistent_interpolation|
+      ## Galerkin projection. By default, conservative, non-dissipative and
+      ## non-bounded. The most accurate choice, in the sense of minimising
+      ## the L2 norm of the residual
+      element galerkin_projection {
+        galerkin_projection_vector
+      }|
+      grandy_interpolation|
+      ## Helmholtz decomposed projection of the Coriolis acceleration. Suitable
+      ## only for Velocity fields. This interpolation happens in three stages:
+      ##
+      ##   1. Computation of Coriolis and its Helmholtz decomposition
+      ##   2. Interpolation of the Helmholtz decomposition
+      ##   3. Formation of Coriolis from the decomposition and inversion for velocity
+      ##
+      ## Notes for balance preserving interpolants:
+      ##
+      ## The spatial discretisation options for the conservative potential
+      ## must match those used for Pressure.
+      ##
+      ## With weak boundary conditions for the conservative potential, if
+      ## no-normal-flow is satisfied on the boundary this must be preserved by
+      ## the interpolation. For 2D domains this can be achieved by using
+      ## consistent interpolation for the conservative potential or, for more
+      ## general interpolants, by performing a further decomposition of the
+      ## conservative potential (see
+      ## geostrophic_interpolation/conservative_potential/decompose).
+      ##
+      ## For shallow-water modelling the interpolants for layer thickness and
+      ## the conservative potential must be identical and degree one
+      ## homogenenous (see
+      ## geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).
+      element geostrophic_interpolation {
+        ## Options relating to the Coriolis acceleration
+        element coriolis {
+           (
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "VelocityMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "PressureMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "CoordinateMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { string }
+               }
+            )?,
+            ## Options relating to the diagnostic solve for the Coriolis
+            ## acceleration from Velocity on the donor mesh.
+            element velocity_to_coriolis {
+               galerkin_projection_mass_options?,
+               ## Lump the RHS term. Requires Velocity and the Coriolis 
+               ## acceleration to be on the same mesh.
+               element lump_rhs {
+                  comment
+               }?,
+               comment
+            },
+            ## Options relating to the diagnostic solve for Velocity from
+            ## the Coriolis acceleration on the target mesh.
+            element coriolis_to_velocity {
+               galerkin_projection_mass_options?,
+               ## Lump the RHS term. Requires Velocity and the Coriolis 
+               ## acceleration to be on the same mesh.
+               element lump_rhs {
+                  comment
+               }?,
+               comment
+            },
+            comment
+        },
+        ## Options relating to the conservative potential component of the
+        ## Helmholtz decomposition
+        element conservative_potential {
+           (
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "PressureMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "VelocityMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "CoordinateMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { string }
+              }
+           ),
+           ## Spatial discretisation options
+           element spatial_discretisation {
+              ## Options relating to the mass matrix
+              element mass {
+                 ## Lump the mass matrix. Required for continuous fields.
+                 element lump_mass {
+                    comment
+                 }?
+              },
+              ## Use a continuous Galerkin discretisation
+              element continuous_galerkin {     
+                 ## Integrate the divergence operator by parts
+                 element integrate_divergence_by_parts {
+                    comment
+                 }?,    
+                 ## Remove the stabilisation term from the projection operator.
+                 ##
+                 ## Automatic when not using P1P1.
+                 element remove_stabilisation_term {
+                    comment
+                 }?,
+                 comment
+              },
+              comment
+           },
+           ## Reference node, at which the solution value is pinned to zero
+           element reference_node {
+             integer
+           }?,
+           ## Solver options for the conservative potential calculation
+           element solver {
+              linear_solver_options_sym
+           },
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                galerkin_projection_honour_strong_bcs,
+                continuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              consistent_interpolation|
+              grandy_interpolation
+           ),
+           (
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { "Pressure" },
+                 geostrophic_interpolation_project_pressure_scale_factor?,
+                 comment
+              }|
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { "LayerThickness" },
+                 geostrophic_interpolation_project_pressure_scale_factor,
+                 comment
+              }|
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { xsd:string },
+                 geostrophic_interpolation_project_pressure_scale_factor?,
+                 comment
+              }       
+           )?,
+           (
+              ## Decompose the conservative potential into a component constant
+              ## on the boundary, and a residual.
+              ## 
+              ## If interpolating Pressure, a similar decomposition is applied
+              ## to the Pressure projection.
+              ##
+              ## This requires the domain to be 2D and simply connected.
+              element decompose {
+                 (
+                    ## Choose a boundary value that minimises the l2 norm of the
+                    ## residual
+                    element l2_minimised_residual {
+                       comment
+                    }|
+                    ## Use the mean boundary value
+                    element boundary_mean {
+                       comment
+                    }
+                    
+                 ),
+                 ## Solver options for the decomposition
+                 element solver {
+                    linear_solver_options_sym
+                 },
+                 comment
+              }|
+              ## Interpolate the boundary values using consistent interpolation and
+              ## use these as a strong Dirichlet boundary condition on the
+              ## conservative potential.
+              ## 
+              ## If interpolating Pressure, a similar boundary condition is applied
+              ## to the Pressure projection.
+              element interpolate_boundary {
+                 comment
+              }
+           )?,
+           comment
+        },
+        ## Options relating to the non-conservative residual component of the
+        ## Helmholz decomposition
+        element residual {
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_discontinuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              consistent_interpolation|
+              pseudo_consistent_interpolation|
+              grandy_interpolation
+           ),
+           ## Enforce divergence free after the projection
+           element enforce_solenoidal {
+             comment
+           }?,
+           comment
+        },
+        ## If enabled, preconditions the Helmholtz decomposition by solving
+        ## for the conservative potential using a geopressure solver. The
+        ## projection equation then becomes:
+        ##   M f = M f_* + C \phi + C_{gp} \phi_{gp},
+        ## where f_* is the coriolis acceleration, f is divergence free, phi is
+        ## the conservative potential, phi_gp is the geopressure conservative
+        ## potential and:
+        ##   C_{gp,ij}^q = \int_Omega N_j \partial_q M_i,
+        ## is the geopressure gradient matrix, where N_i are the velocity shape
+        ## functions and M_i the geopressure conservative potential shape
+        ## functions.
+        element geopressure {
+           (
+              ## The mesh used for the geopressure conservative potential
+              element mesh {
+                 attribute name { string }
+              }
+           ),
+           ## Reference node, at which the solution value is pinned to zero
+           element reference_node {
+             integer
+           }?,
+           ## Solver options for the geopressure conservative potential
+           ## calculation
+           element solver {
+              linear_solver_options_sym
+           },
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              consistent_interpolation|
+              pseudo_consistent_interpolation|
+              grandy_interpolation
+           )
+        }?,
+        ## Options relating to the vertical velocity. Required in 3D.
+        element vertical_velocity {
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_discontinuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              consistent_interpolation|
+              pseudo_consistent_interpolation|
+              grandy_interpolation
+           ),
+           comment
+        }?,
+        ## Debug options
+        element debug {
+           ## If enabled, pre and post interpolation decomposition vtus are
+           ## written
+           element write_debug_vtus {
+              ## Maximum number of debug vtus that will be written before
+              ## over-writing existing vtus
+              element max_vtu_count {
+                 integer
+              }?,
+              comment
+           }?,
+           comment
+        }?,
+        comment
+      }
+    )
+
+geostrophic_interpolation_project_pressure_scale_factor =
+   (
+      ## Scale the pressure field by some factor before interpolation,
+      ## and apply the inverse after interpolation. This should be set
+      ## if the pressure field is divided by some reference value
+      ## e.g., in a shallow water with gravity magnitude g, this should
+      ## take the value g. This enables better initial guesses for the
+      ## decomposition solvers, and means that non degree one
+      ## homonogeneous interpolants can be used for the conservative
+      ## potential and pressure, while still being balance preserving.
+      element scale_factor {
+         real
+      }
+   )
+    
+galerkin_projection_honour_strong_bcs =
+   (
+      ## Honour strong Dirichlet boundary conditions in the Galerkin projection
+      element honour_strong_boundary_conditions {
+        empty
+      }
+   )
+    
+galerkin_projection_vector =
+    (
+      continuous_discontinuous_projection,
+      supermesh_free?,
+      supermesh_conservation?,
+      galerkin_projection_honour_strong_bcs?
+    )
+
+galerkin_projection_scalar =
+    (
+      continuous_discontinuous_projection,
+      supermesh_free?,
+      supermesh_conservation?,
+      galerkin_projection_honour_strong_bcs?
+    )
+
+continuous_projection =
+   (
+      ## Continuous field Galerkin projection.
+      ## If the field you are interpolating is continuous, then
+      ## a linear solver is required to invert the mass matrix.
+      element continuous {
+        (
+          ## Use a bounded Galerkin projection. Conservative, bounded in the
+          ## limit, and minimally dissipative. This algorithm starts with the
+          ## Galerkin projection and dissipates it until it achieves
+          ## boundedness.
+          ## If it does not converge, it may not be exactly bounded.
+          ## Note well: this only works for linear fields.
+          element bounded {
+            attribute name {"Diffuse"},
+            ## The number of dissipation iterations attempted to bound the
+            ## Galerkin projection.
+            element boundedness_iterations {
+              integer,
+              ## Specify the tolerance to which boundedness is to be tested during the iterations.
+              ## Defaults to computer precision if unspecified.
+              element tolerance {
+                real
+              }?
+            },
+            ## If the bounds on this field are known then they can be set here.
+            ## These can either further constrain the limits worked out by the
+            ## lumped version of the projection (i.e. to make sure that errors 
+            ## don't accumulate with succesive interpolations) or if apply_globally
+            ## is set they are just made to be bounded within the bounds globally
+            ## (i.e. anything between those bounds is not smoothed).
+            element bounds {
+              element upper_bound {
+                real,
+                ## If this is set the upper_bound is used everywhere.
+                ## If left unset the upper_bound is only used to constrain
+                ## the smoothed bounds calculated by the code
+                element apply_globally {
+                  empty
+                }?,
+                ## This field is to be considered as being coupled to another field
+                ## such that the sum of the two fields is constrained to be less than
+                ## the upper_bound specified above.
+                ## 
+                ## The relationships between fields are worked out according to their
+                ## priority ordering.
+                ##
+                ## This method is akin to the coupled_cv advection method.
+                element coupled {
+                  empty
+                }?
+              }?,
+              element lower_bound {
+                real,
+                ## If this is set the upper_bound is used everywhere.
+                ## If left unset the upper_bound is only used to constrain
+                ## the smoothed bounds calculated by the code
+                element apply_globally {
+                  empty
+                }?
+              }?
+            }?,
+            ## If, after performing all the boundedness_iterations, the field
+            ## is still not bounded then perform surgery to redistribute the
+            ## deviations to nodes that have less than their bounds.
+            element repair_deviations {
+              ## Specify the tolerance to which boundedness is to be tested during the repair.
+              ## Defaults to computer precision if unspecified.
+              element tolerance {
+                real
+              }?
+            }?
+          }|
+          ## Use a bounded Galerkin projection. Conservative, bounded in the
+          ## limit, and hopefully minimally dissipative. This algorithm starts with the
+          ## Galerkin projection and uses the optimisation library Algencan to bound
+          ## it by minimising a functional within constraints on boundedness and conservation.
+          ## Note well: this only works for linear fields.
+          element bounded {
+            attribute name {"Algencan"},
+            (
+              element functional {
+                attribute name {"L2"},
+                element weight {
+                  real
+                }?
+              }|
+              element functional {
+                attribute name {"LumpedMassL2"},
+                element weight {
+                  real
+                }?
+              }|
+              element functional {
+                attribute name {"IntegralL2"},
+                element weight {
+                  real
+                }?
+              }|
+              element functional {
+                attribute name { string },
+                element weight {
+                  real
+                }?
+              }
+            ),
+            ## If the bounds on this field are known then they can be set here.
+            ## These can either further constrain the limits worked out by the
+            ## lumped version of the projection (i.e. to make sure that errors 
+            ## don't accumulate with succesive interpolations) or if apply_globally
+            ## is set they are just made to be bounded within the bounds globally
+            ## (i.e. anything between those bounds is not smoothed).
+            element bounds {
+              element upper_bound {
+                real,
+                ## If this is set the upper_bound is used everywhere.
+                ## If left unset the upper_bound is only used to constrain
+                ## the smoothed bounds calculated by the code
+                element apply_globally {
+                  empty
+                }?,
+                ## This field is to be considered as being coupled to another field
+                ## such that the sum of the two fields is constrained to be less than
+                ## the upper_bound specified above.
+                ## 
+                ## The relationships between fields are worked out according to their
+                ## priority ordering.
+                ##
+                ## This method is akin to the coupled_cv advection method.
+                element coupled {
+                  empty
+                }?
+              }?,
+              element lower_bound {
+                real,
+                ## If this is set the upper_bound is used everywhere.
+                ## If left unset the upper_bound is only used to constrain
+                ## the smoothed bounds calculated by the code
+                element apply_globally {
+                  empty
+                }?
+              }?
+            }?
+          }
+        )?,
+        (
+          ## Solver options for the linear solve.
+          ## This method requires the inversion of a mass matrix. Note that
+          ## conservation properties are affected by the tolerance of the
+          ## linear solve.
+          element solver {
+            linear_solver_options_sym
+          }|
+          ## Lump the mass matrix on the left hand side of the galerkin projection.
+          ## Hence solver options aren't necessary.
+          ##
+          ## This is much more diffusive than a non-lumped Galerkin projection
+          ## for only a minimal saving in computational cost.
+          element lump_mass_matrix {
+            empty
+          }
+        )
+      }
+   )
+
+continuous_discontinuous_projection =
+    (
+      continuous_projection|
+      ## Discontinuous field Galerkin projection.
+      ## In this case, no linear solver is required to invert the mass matrix.
+      element discontinuous {
+        empty
+      }
+    )
+    
+supermesh_free =
+    ## Enables a supermesh free Galerkin projection. Uses incomplete
+    ## quadrature, and hence is not conservative.
+    element supermesh_free {
+      empty
+    }
+    
+supermesh_conservation =
+      ## Options for checking the supermesh conservation properties
+      element supermesh_conservation {
+        ## Specify the fraction of the original elemental area/volume
+        ## to be used to check the conservation of the supermesh.
+        ##
+        ## Since all fields are supermeshed together the minimum tolerance
+        ## specified over all fields will be used.
+        ##
+        ## Defaults to 0.001 if unspecified.
+        ## i.e. 0.1% of the area/volume of an element in the new mesh may
+        ## be lost without warning or attempts to fix (if compiled with cgal)
+        ## during the construction of the supermesh between the old
+        ## and new meshes.
+        element tolerance {
+          real
+        }?,
+        ## Compute the field integral after the interpolation and print the relative
+        ## mass loss to the logfile (level 2 verbosity).
+        ##
+        ## Note this is a post interpolation step and offers no chance of
+        ## fixing the conservation error (unlike the tolerance above if compiled
+        ## with cgal)
+        element print_field_integral {
+          ## Relative tolerance with which to test the conservation of the field
+          ## integral.  If the conservation fails this tolerance a warning is issued
+          ## (level 0 verbosity) and vtus containing the field are output.
+          element tolerance {
+            real
+          }
+        }?
+      }
+
+mesh_adaptivity_options =
+   element mesh_adaptivity {
+      ## Options involving mesh movement (Lagrangian, ALE methods)
+      ##  Allow a moving mesh.
+      ##  Assigns memory for grid velocities
+      ##  Amends previous timestep`s mass matrix
+      element mesh_movement {
+         attribute replaces { "MVMESH = TRUE, ZERQG, CMCHAN = TRUE" },
+         (
+            ## enable movement of mesh with the free surface
+            element free_surface {
+               (
+                  ## Only move the nodes on the free surface using
+                  ## the surface height calculated at it.
+                  element move_surface_nodes {
+                    empty
+                  }|
+                  ## Move the whole mesh according to the free surface
+                  ## height, scaled linearly by the depth from the surface.
+                  ##
+                  ## Requires the specification of ocean_boundaries under
+                  ## geometry.
+                  element move_whole_mesh {
+                    empty
+                  }
+               ),
+               ## Activates wetting and drying. Note: Works only with theta=1.0 and relaxation=1.0 under temporal discretisation
+               element wetting_and_drying {
+                 ## Specifies the d0 value which is the waterlevel kept in dry areas.
+                 element d0 {
+                      real
+                 },
+                 ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
+                 ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
+                 element dry_absorption {real_dim_vector}?,
+                 ## Use a smooth maximum operator discretisation. This is deprecated and will be removed soon.
+                 element smooth_max_discretisation {real}?
+               }?
+            }|
+            ## Enable movement of mesh by an imposed Grid Velocity.
+            ## Requires a prescribed GridVelocity field (see below).
+            element imposed_grid_velocity {
+               empty
+            }|
+            ## Enable movement of mesh by the Velocity.
+            ## Note that this is only pseudo-lagrangian as the
+            ## Velocity and GridVelocity only match at the beginning of
+            ## the timestep.  Therefore the advection terms are still
+            ## present and evaluated.
+            element pseudo_lagrangian {
+               ## Specify the material phase from which to extract the Velocity
+               ## field.  Defaults to state(1) if unspecified.  Note that this
+               ## doesn't necessarily correspond to the first material_phase
+               ## in a flml file!
+               element velocity_material_phase {
+                 attribute material_phase_name { xsd:string },
+                 empty
+               }?
+            }|
+            ## enable full ale movement of mesh
+            element explicit_ale {
+               element number_of_linesearch_pts {integer},
+               element maximum_iterations {integer},
+               element max_elements_second_level {integer},
+               element functional1_weight {real}, 
+               element functional2_weight {real},
+               element functional3_weight {real}, 
+               element functional4_weight {real},
+               element functional5_weight {real},
+               element minimum_val_functional_change {real},       
+               element minimum_val_functional {real},      
+               element coarse_tolerance {real},
+               element fine_tolerance {real},
+               element gradient_dx {real},  
+               element gradient_dy {real}, 
+               element gradient_dz {real},
+               element move_nodes_in_x {empty}?,
+               element move_nodes_in_y {empty}?,
+               element move_nodes_in_z {empty}?
+            }|
+            ## enable vertical movement of mesh (TBD)
+            element vertical_ale {
+               attribute replaces { "NCOLOP < 0 " },
+               (
+                  ## Functionals
+                  element physical_functionals {
+                     ## move the nodes along an isosurface
+                     ##Please specify a scalar field
+                     element minimise_relative_velocity_dot_grad_density {
+                        attribute replaces { "NCOLOP = -1" },
+                        attribute name { xsd:string }
+                     }|
+                     ## Lock a node to a high curvature region, 
+                     ##Please specify a scalar field
+                     element use_hessian_density {
+                        attribute replaces { "NCOLOP = -2" },
+                        attribute name { xsd:string }
+                     }
+                  },
+                  ##Mesh Quality terms
+                  element mesh_quality_terms {
+                     ##Spring term, default value is 1.0
+                     element spring_term {
+                        real 
+                     }?,
+                     ## Exponential term, default value is 1.0
+                     element exponential_term{
+                        real 
+                     }?
+                  }?,
+                  element block_nodes_in_x {empty}?,
+                  element block_nodes_in_y {empty}?,
+                  element block_nodes_in_z {empty}?
+               )
+            }                  
+         ),
+         ## The velocity of the mesh.
+         element vector_field {
+            attribute name { "GridVelocity" },
+            attribute rank { "1" },
+            (
+               element diagnostic {
+                 internal_algorithm,
+                 element mesh {
+                   attribute name {  "CoordinateMesh" }
+                 },
+                 diagnostic_vector_field
+               }|
+               element prescribed {
+                 element mesh {
+                   attribute name {  "CoordinateMesh" }
+                 },
+                 prescribed_vector_field_no_adapt
+               }|
+               element aliased {
+                 generic_aliased_field
+               }
+            )
+         }               
+      }?,
+      (
+         hr_adaptivity |
+         prescribed_adaptivity
+      )?
+   }
+
+gradation_options_full = disable_gradation
+gradation_options_full |= gradation_options
+
+gradation_options =
+  (
+    ## Gradation constrains the jump
+    ## in desired edge lengths along an edge, i.e.
+    ## it controls how fast the mesh size may change.
+    element enable_gradation {
+        ## The gradation parameter. Must be a real >= 1.0.
+        ##
+        ## The gradation parameter constrains the jump
+        ## in desired edge lengths along an edge, i.e.
+        ## it controls how fast the mesh size may change.
+        ## A constant of 1.0 enforces a mesh of constant
+        ## edge length everywhere. A value of 2.0 would
+        ## allow the element size to double from element
+        ## to element. The default value is 1.5.
+        element gradation_parameter {
+          real
+        }?
+    }|
+    ## Anisotropic gradation algorithm, allowing for
+    ## anisotropic bounds on the gradient of the sizing
+    ## function.
+    element anisotropic_gradation {
+      ## Gamma is the tensor field that contains
+      ## the bounds on the edge length specified by the error metric.
+      element tensor_field {
+        attribute name { "Gamma" },
+        element anisotropic_symmetric {
+          input_choice_real_dim_symmetric_tensor
+        }
+      }
+    }
+  )
+
+disable_gradation = 
+  (
+    ## Gradation constrains the jump
+    ## in desired edge lengths along an edge, i.e.
+    ## it controls how fast the mesh size may change.
+    element disable_gradation {
+        empty
+    }
+  )

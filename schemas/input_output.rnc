@@ -1,0 +1,465 @@
+# Choice of input method, e.g. for boundary conditions
+input_choice_real =
+   (
+      input_choice_real_contents
+   )
+
+input_choice_real_plus_boundary_forcing =
+   (
+      input_choice_real_contents|
+        element from_file {
+           element tidal {
+                attribute file_name { string },
+                attribute variable_name_amplitude { string },
+                attribute variable_name_phase { string },
+                ## See E.W. Schwiderski - Rev. Geophys. Space
+                ## Phys. Vol. 18 No. 1 pp. 243--268, 1980
+                ## for details of these constituent.
+                attribute name {"M2"|"S2"|"N2"|"K2"|"K1"|"O1"|"P1"|"Q1"|"Mf"|"Mm"|"Ssa"}
+           }+
+         }|
+        ## Set the boundary free-surface height from NEMO data.
+        ## A prescribed NEMO pressure scalar field must be set to use this option.
+        ## Set the name of the prescribed NEMO pressure scalar field below.
+        element NEMO_data {
+           attribute field_name { string }
+        }
+   )
+
+input_choice_real_plus_file =
+   (
+      input_choice_real_contents|
+      ## Initialise the field from an existing file (indended primarily for picking up prescribed fields from previously run prognostic simulations). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      ##
+      ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          element format {
+              element string_value {
+                  "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }
+   )
+
+input_choice_real_plus_map =
+   (
+      input_choice_real_contents|
+      ## Set the depth from a bathymetry map
+      element from_map {
+         attribute file_name { xsd:string },
+         ## Restricts the minimum height of the domain to the
+         ## specified value.
+         ## Note that in planar case, this minimum depth corresponds
+         ## to the minimum depth below a top layer at z=0, it does
+         ## not necessarily correspond to the data in a given file.
+         element min_depth {
+           real
+         }?,
+         ## For use with 2D depth maps.
+         ## If you are reading data from a file whose top layer height
+         ## is not equal to zero, set the height of that top layer here.
+         ## Note however that the height of the top layer in the the 
+         ## extruded mesh will still be equal to zero, the given domain
+         ## will in effect have been shifted down.
+         ## This option has no effect when extruding meshes on the surface
+         ## of a sphere.
+         element surface_height {
+           real
+         }?
+      }
+   )
+
+input_choice_real_plus_list =
+   (
+      input_choice_real_contents|
+      ## Manually enter the spacing between each layer
+      element list {
+         real_vector
+      }
+   )
+
+input_choice_real_contents =
+   ## Constant value
+   element constant {
+      real
+   }|
+   ## Python function prescribing real input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X is a tuple of length geometry dimension.
+   element python {
+      python_code
+   }
+
+initial_condition_scalar = 
+   (
+      ## Initial condition for WholeMesh
+      ##
+      ## Only specify one condition if not using mesh regions.
+      ## Otherwise select other initial_condition option, specify region_ids
+      ## and distinct names.  Then add extra intial conditions for other regions.
+      element initial_condition {
+         attribute name { "WholeMesh" },
+         input_choice_initial_condition_real
+      }|
+      ## Multiple initial_conditions are allowed if specifying
+      ## different values in different
+      ## regions of the mesh (defined by region_ids).  In this case
+      ## each initial_condition
+      ## requires a distinct name for the options dictionary.
+      element initial_condition {
+         attribute name { string },
+         region_ids,
+         input_choice_initial_condition_real
+      }
+   )
+
+# Choice of input method for initial conditions
+# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+input_choice_initial_condition_real =
+   (
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended
+      ## primarily for use in checkpointing). The file mesh must match
+      ## the mesh of this field  (except for piecewise constant fields 
+      ## which will be remapped back from the discontinuous nodal values). 
+      ## In parallel the process number is
+      ## appended to the filename, e.g. if the file_name attribute is
+      ## set to "input.vtu", process 0 reads from "input-0.vtu".
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format|
+            netcdf_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          element format {
+              element string_value {
+                  "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }
+   )
+
+# Choice of input method, e.g. for boundary conditions
+input_choice_real_dim_vector =
+   (
+      input_choice_real_dim_vector_contents
+   )
+
+# Choice of input method, e.g. for prescribed fields
+input_choice_real_dim_vector_plus_file =
+   (
+      input_choice_real_dim_vector_contents|
+      ## Initialise the field from an existing file (indended primarily for picking up prescribed fields from previously run prognostic simulations). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      ##
+      ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          ## Currently, only the velocity vector field may be initialised in this manner.
+          element format {
+              element string_value {
+                  "Velocity"
+              }
+          }
+      }
+   )
+
+input_choice_real_dim_vector_contents =
+   ## Constant value
+   element constant {
+      real_dim_vector
+   }|
+   ## Python function prescribing dimensional vector input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X and the return value are tuples of length geometry dimension.
+   element python {
+      python_code
+   }
+
+# Choice of input method, e.g. for boundary conditions
+# this one specifies a vector field of dim minus one
+input_choice_real_dim_minus_one_vector =
+   (
+      ## Constant value
+      element constant {
+         real_dim_minus_one_vector
+      }|
+      ## Python function prescribing dimensional vector input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X and the return value are tuples of length geometry dimension.
+      element python {
+         python_code
+      }
+   )
+
+## Import data from NetCDF CF-1.x file.
+input_choice_netcdf =
+   (
+      element from_file {
+         ## The format of this file should conform to NetCDF CF 1.x
+         ## (http://cf-pcmdi.llnl.gov/)
+         attribute file_name { xsd:string },
+         comment
+      }
+   )
+
+# Choice of input method for initial conditions
+# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+input_choice_initial_condition_vector =
+   (
+      ## Constant value
+      element constant {
+         real_dim_vector
+      }|
+      ## Python function prescribing dimensional vector input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X and the return value are tuples of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          ## Currently, only the velocity vector field may be initialised in this manner.
+          element format {
+              element string_value {
+                  "Velocity"
+              }
+          }
+      }
+   )  
+
+# Choice of input method for initial/boundary conditions
+# version for real symmetric tensor
+input_choice_real_dim_symmetric_tensor =
+   (
+      ## Constant symmetric tensor
+      element constant {
+         real_dim_symmetric_tensor
+      }|
+      ## Python command prescribing symmetric tensor input.
+      ##
+      ## Note that it is for the python function to determine 
+      ## that the results it produces are, in fact, symmetric.
+      ##
+      ## An example that returns the three-dimensional identity:
+      ##
+      ##  def val(X, t):
+      ##    return [[1, 0, 0],
+      ##                [0, 1, 0],
+      ##                [0, 0, 1]]
+      element python {
+         python_code
+      }
+   )
+
+# Choice of input method for initial/boundary conditions
+# version for real tensor
+input_choice_real_dim_tensor =
+   (
+      ## Constant tensor
+      element constant {
+         real_dim_tensor
+      }|
+      ## Python command prescribing tensor input.
+      ##
+      ## An example that returns the three-dimensional identity:
+      ##
+      ##  def val(X, t):
+      ##    return [[1, 0, 0],
+      ##                [0, 1, 0],
+      ##                [0, 0, 1]]
+      element python {
+         python_code
+      }
+   )
+
+input_choice_tensor_field =
+   (
+      (
+         ## An isotropic tensor, i.e.
+         ## one with no directional variation.
+         ## Can be represented as a scalar real.
+         element isotropic {
+            input_choice_real
+         }|
+         ## A diagonal tensor, i.e.
+         ## one with only diagonal nonzero entries.
+         ## Can be represented as a vector real.
+         element diagonal {
+            input_choice_real_dim_vector
+         }|
+         ## A symmetric tensor, i.e.
+         ## A^T = A
+         element anisotropic_symmetric {
+            input_choice_real_dim_symmetric_tensor
+         }|
+         ## A general asymmetric tensor.
+         element anisotropic_asymmetric {
+            input_choice_real_dim_tensor
+         }
+      )
+   )
+
+input_choice_dim_minus_one_tensor_field =
+   (
+      (
+         element isotropic {
+            input_choice_real
+         }|
+         element anisotropic_symmetric {
+            input_choice_real_dim_minus_one_symmetric_tensor
+         }|
+         element anisotropic_asymmetric {
+            input_choice_real_dim_minus_one_tensor
+         }
+      )
+   )
+
+# Choice of input method for initial/boundary conditions
+# version for real symmetric tensor
+input_choice_real_dim_minus_one_symmetric_tensor =
+   (
+      ## Constant symmetric tensor
+      element constant {
+         real_dim_minus_one_symmetric_tensor
+      }
+   )
+
+# Choice of input method for initial/boundary conditions
+# version for real tensor
+input_choice_real_dim_minus_one_tensor =
+   (
+      ## Constant tensor
+      element constant {
+         real_dim_minus_one_tensor
+      }
+   )
+
+
+region_ids = 
+   ( 
+      ## Optional region ids to associate different values
+      ## to different regions of the mesh.
+      ## Leave unselected if you`re not using multiple regions or
+      ## region_ids.
+      ## Currently only works with triangle files created by gmsh2triangle.
+      element region_ids {
+         integer_vector
+      }
+   )
+
+input_choice_real_bc_component = 
+   (
+      input_choice_real|
+      element synthetic_eddy_method {
+         ## use a large number to ensure Gaussian 
+         ## behaviour of the fluctuating component
+         element number_of_eddies {
+           integer
+         },
+         element turbulence_lengthscale {
+            input_choice_real
+         },
+         ## mean profile
+         ##
+         ## usually a function of height,
+         ## for ABL simulations use a log profile
+         element mean_profile {
+            input_choice_real
+         },
+         ## Reynolds stresses profile
+         ##
+         ## usually a function of height,
+         ## assumes that the remaining stresses are negligible 
+         element Re_stresses_profile {
+           input_choice_real
+         }
+      }
+   )
+
+vtu_input_format =
+   (
+      ## vtu input file format.
+      element format {
+         attribute name { "vtu" },
+         ## The field to read from the vtu file. If not supplied, the name of
+         ## the initialised field is used.
+         element field_name {
+            anystring,
+            comment
+         }?,
+         comment
+      }
+   )
+    
+netcdf_input_format =
+   (
+      ## NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)
+      element format {
+         attribute name { "NetCDF - CF 1.x" },
+         comment
+      }
+   )

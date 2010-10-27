@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="mesh_info">
+    <choice>
+      <element name="from_file">
+        <a:documentation>Read mesh from file.</a:documentation>
+        <choice>
+          <element name="format">
+            <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+            <attribute name="name">
+              <value>triangle</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
+surface or region IDs.</a:documentation>
+            <attribute name="name">
+              <value>vtu</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>GMSH mesh format</a:documentation>
+            <attribute name="name">
+              <value>gmsh</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+        </choice>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <ref name="from_file_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+      <element name="from_mesh">
+        <a:documentation>Make mesh from existing mesh. </a:documentation>
+        <ref name="mesh_choice"/>
+        <optional>
+          <element name="mesh_shape">
+            <optional>
+              <element name="polynomial_degree">
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="element_type">
+                <element name="string_value">
+                  <choice>
+                    <value>lagrangian</value>
+                    <value>bubble</value>
+                  </choice>
+                </element>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="periodic_boundary_conditions">
+            <a:documentation>Make mesh periodic</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="physical_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased to</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="aliased_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="coordinate_map">
+              <a:documentation>Python code which takes coordinate of an aliased
+boundary node and returns the coordinate of a physical
+boundary node.
+Note that in adaptive simulations this will be applied to
+arbitrary points in space, not just those on the original aliased
+boundary.</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <optional>
+              <element name="inverse_coordinate_map">
+                <a:documentation>Python code which takes coordinate of a physical
+boundary node and returns the coordinate of an aliased
+boundary node. This is used in adaptive simulations to
+keep the adapted domain inside the bounding box of the
+original domain.</a:documentation>
+                <ref name="python_code"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="remove_periodicity">
+                <a:documentation>&lt;b&gt;Don't turn this on by hand!&lt;/b&gt;
+This option gets set by the periodise tool, to indicate
+that this mesh should have the periodic boundary conditions
+&lt;b&gt;removed&lt;/b&gt;. See the discussion on the wiki about 
+parallel periodic boundary conditions.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </zeroOrMore>
+        <optional>
+          <element name="extrude">
+            <a:documentation>Extrude a horizontal (1D or 2D) mesh in the vertical</a:documentation>
+            <oneOrMore>
+              <choice>
+                <element name="regions">
+                  <a:documentation>Extrusion options for WholeMesh
+
+Only specify one set of parameters if not using mesh regions.
+Otherwise select other regions option, specify region_ids
+and distinct names.  Then add extra regions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="extrusion_options"/>
+                </element>
+                <element name="regions">
+                  <a:documentation>Multiple extrusion options are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each set of options
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="extrusion_options"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <optional>
+              <element name="checkpoint_from_file">
+                <a:documentation>This is an internal option used by checkpointing. The 
+option is switched on automatically in writing a 
+checkpoint, so that when starting from the checkpoint .flml
+fluidity picks up the extruded mesh from file. After the next
+adapt the extrusion is again done as specified in the other
+extrusion options and under the adaptivity options.</a:documentation>
+                <choice>
+                  <element name="format">
+                    <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+                    <attribute name="name">
+                      <value>triangle</value>
+                    </attribute>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="format">
+                    <a:documentation>GMSH mesh format</a:documentation>
+                    <attribute name="name">
+                      <value>gmsh</value>
+                    </attribute>
+                    <ref name="comment"/>
+                  </element>
+                </choice>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <ref name="derived_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <!-- Options for inclusion/exclusion of mesh statistics from the .stat file -->
+  <define name="include_mesh_in_stat">
+    <element name="include_in_stat">
+      <a:documentation>Include this mesh in the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="exclude_mesh_from_stat">
+    <element name="exclude_from_stat">
+      <a:documentation>Exclude this mesh from the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <!-- Diagnostic statistics options for meshed, with enabled by default -->
+  <define name="mesh_stat_options_enabled_default">
+    <choice>
+      <ref name="include_mesh_in_stat"/>
+      <ref name="exclude_mesh_from_stat"/>
+    </choice>
+  </define>
+  <!-- Diagnostic statistics options for meshed, with disabled by default -->
+  <define name="mesh_stat_options_disabled_default">
+    <choice>
+      <ref name="exclude_mesh_from_stat"/>
+      <ref name="include_mesh_in_stat"/>
+    </choice>
+  </define>
+  <define name="from_file_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_enabled_default"/>
+    </element>
+  </define>
+  <define name="derived_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_disabled_default"/>
+    </element>
+  </define>
+  <define name="extrusion_options">
+    <element name="bottom_depth">
+      <a:documentation>Depth over which to extrude
+top will be at z=0
+bottom will be at z=-bottom_depth</a:documentation>
+      <ref name="input_choice_real_plus_map"/>
+    </element>
+    <element name="sizing_function">
+      <a:documentation>Constant or function to specify the depth of the
+layers. The function is a function of all coordinates
+(so in 2+1D: x,y and z) to specify a layer depth that
+varies both in the horizontal as in the vertical.</a:documentation>
+      <ref name="input_choice_real_plus_list"/>
+      <optional>
+        <element name="varies_only_in_z">
+          <a:documentation>If your sizing function only varies in z enable this options.
+Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. </a:documentation>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+    <optional>
+      <element name="minimum_bottom_layer_fraction">
+        <a:documentation>To prevent infinitesimally thin bottom layer if sizing function
+is an integer multiple of total depth, the bottom layer needs
+to have at least this fraction of the layer depth above it. 
+
+Default is 1e-3.</a:documentation>
+        <ref name="real"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="top_surface_id">
+        <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="bottom_surface_id">
+        <a:documentation>surface_id to assign to the bottom of the extruded mesh</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
+  </define>
+</grammar>

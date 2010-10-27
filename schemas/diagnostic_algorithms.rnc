@@ -1,0 +1,1113 @@
+source_field =
+   (
+      attribute source_field_name { xsd:string }
+   )
+scalar_source_field = source_field
+scalar_source_field &=
+   (
+      attribute source_field_type { "scalar" }
+   )
+vector_source_field = source_field
+vector_source_field &=
+   (
+      attribute source_field_type { "vector" }
+   )
+tensor_source_field = source_field
+tensor_source_field &=
+   (
+      attribute source_field_type { "tensor" }
+   )
+component_source_field = source_field
+component_source_field &=
+   (
+      attribute source_field_type { "component" },
+      ## If enabled, uses the component of a vector field as a source field.
+      ## Otherwise, uses a scalar field as a source field.
+      element source_field_component {
+         integer
+      }?
+   )
+source_field_1 =
+   (
+      attribute source_field_1_name { xsd:string }
+   )
+source_field_2 =
+   (
+      attribute source_field_2_name { xsd:string }
+   )
+scalar_source_field_1 = source_field_1
+scalar_source_field_1 &=
+   (
+      attribute source_field_1_type { "scalar" }
+      
+   )
+scalar_source_field_2 = source_field_2
+scalar_source_field_2 &=
+   (
+      attribute source_field_2_type { "scalar" }
+      
+   )
+vector_source_field_1 = source_field_1
+vector_source_field_1 &=
+   (
+      attribute source_field_1_type { "vector" }
+      
+   )
+vector_source_field_2 = source_field_2
+vector_source_field_2 &=
+   (
+      attribute source_field_2_type { "vector" }
+      
+   )
+tensor_source_field_1 = source_field_1
+tensor_source_field_1 &=
+   (
+      attribute source_field_1_type { "tensor" }
+      
+   )
+tensor_source_field_2 = source_field_2
+tensor_source_field_2 &=
+   (
+      attribute source_field_2_type { "tensor" }
+      
+   )
+component_source_field_1 = source_field_1
+component_source_field_1 &=
+   (
+      attribute source_field_1_type { "component" },
+      ## If enabled, uses the component of a vector field as a source field.
+      ## Otherwise, uses a scalar field as a source field.
+      element source_field_1_component {
+         integer
+      }?      
+   )
+component_source_field_2 = source_field_2
+component_source_field_2 &=
+   (
+      attribute source_field_2_type { "component" },
+      ## If enabled, uses the component of a vector field as a source field.
+      ## Otherwise, uses a scalar field as a source field.
+      element source_field_2_component {
+         integer
+      }?      
+   )
+
+internal_algorithm =
+   (
+      ## This diagnostic is internal - i.e. it is calculated somewhere within
+      ## the main code, and is not wrapped by the automatic diagnostics
+      ## wrappers.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+legacy_internal_algorithm =
+   (
+      ## This diagnostic is deprecated - i.e. it has been replaced by an
+      ## equivalent diagnostic algorithm.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" },
+         attribute legacy { "true" }
+      }
+   )
+internal_velocity_source_algorithm =
+   (
+      ## Some code paths (e.g. porous media and the traffic model)
+      ## use their own internal diagnostic source field. Select
+      ## this option to these these internal algorithms.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+internal_velocity_absorption_algorithm =
+   (
+      ## Some code paths (e.g. porous media and the traffic model)
+      ## use their own internal diagnostic absorption field. Select
+      ## this option to these these internal algorithms.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+   
+# Simple equality algorithms
+scalar_copy_algorithm =
+   (
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "scalar_copy" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+extract_scalar_component_algorithm =
+   (
+      ## Extract a component from a vector field as a scalar
+      element algorithm {
+        attribute name { "extract_scalar_component" },
+        attribute material_phase_support { "single" },
+        component_source_field
+      }
+   )
+vector_copy_algorithm =
+   (
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "vector_copy" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+tensor_copy_algorithm =
+   (
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "tensor_copy" },
+         attribute material_phase_support { "single" },
+         tensor_source_field
+      }
+   )
+scalar_galerkin_projection_algorithm =
+   (
+      ## Galerkin projects the source field.
+      element algorithm {
+         attribute name { "scalar_galerkin_projection" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Solver options. Required if projecting onto a continuous mesh.
+         element solver {
+            linear_solver_options_sym
+         }?
+      }
+   )
+vector_galerkin_projection_algorithm =
+   (
+      ## Galerkin projects the source field.
+      element algorithm {
+         attribute name { "vector_galerkin_projection" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Solver options. Required if projecting onto a continuous mesh.
+         element solver {
+            linear_solver_options_sym
+         }?
+      }
+   )
+helmholtz_smoothed_scalar_algorithm =
+   (
+      ## Smooth a scalar field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_smoothed_scalar" },
+         attribute material_phase_support { "single" },
+         component_source_field,
+         ## The characteristic length scale used by the smoother.
+         element smoothing_length_scale {
+             real_dim_symmetric_tensor
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+
+# Binary operators
+scalar_sum_algorithm =
+   (
+      ## Sum of two scalar fields
+      element algorithm {
+         attribute name { "scalar_sum" },
+         attribute material_phase_support { "single" },
+         scalar_source_field_1,
+         scalar_source_field_2
+      }
+   )
+scalar_difference_algorithm =
+   (
+      ## Difference between two scalar fields, field 1 - field 2
+      element algorithm {
+         attribute name { "scalar_difference" },
+         attribute material_phase_support { "single" },
+         scalar_source_field_1,
+         scalar_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
+      }
+   )
+vector_sum_algorithm =
+   (
+      ## Sum of two vector fields
+      element algorithm {
+         attribute name { "vector_sum" },
+         attribute material_phase_support { "single" },
+         vector_source_field_1,
+         vector_source_field_2
+      }
+   )
+vector_difference_algorithm =
+   (
+      ## Difference between two vector fields, field 1 - field 2
+      element algorithm {
+         attribute name { "vector_difference" },
+         attribute material_phase_support { "single" },
+         vector_source_field_1,
+         vector_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
+      }
+   )
+
+# Time aggregated diagnostics
+
+# Temporal maximum diagnostic algorithm. 
+temporalmax_algorithm =
+   (
+      ## temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
+      element algorithm {
+        attribute name { "temporalmax" },
+        attribute material_phase_support { "single" },
+        attribute persistent { "true" },
+        scalar_source_field,
+        ## This sets a spinning up time.
+        element spin_up_time {
+               real
+        }?,
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }?
+      }
+   )
+# Temporal minimum diagnostic algorithm
+temporalmin_algorithm =
+   (
+      ## temporalmin (source field). Calculates the nodewise minimum over time. Note: Does not work with adaptive meshes!
+      element algorithm {
+        attribute name { "temporalmin" },
+        attribute material_phase_support { "single" },
+        attribute persistent { "true" },
+        scalar_source_field,
+        ## This sets a spinning up time.
+        element spin_up_time {
+               real
+        }?,
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }?
+      }
+   )
+
+# Differential operator diagnostic algorithms
+div_algorithm =
+   (
+      ## div (source field)
+      element algorithm {
+         attribute name { "div" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+finite_element_divergence_algorithm =
+   (
+      ## div (source field)
+      ## Divergence of the velocity field where
+      ## the divergence operator is defined using
+      ## the finite element C^T matrix.
+      element algorithm {
+         attribute name { "finite_element_divergence" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         (
+            ## Consistent mass Galerkin projection of divergence. Requires
+            ## solver options.
+            element solver {
+               linear_solver_options_sym
+            }|
+            ## Lumped mass Galerkin projection of divergence
+            element lump_mass {
+               comment
+            }
+         )
+      }
+   )
+finite_element_divergence_transpose_algorithm =
+   (
+      ## Gradient of a scalar field evaluated using the transpose
+      ## of the C^T divergence matrix constructed using finite
+      ## elements.
+      element algorithm {
+         attribute name { "finite_element_divergence_transpose" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Use boundary conditions from this vector field
+         element bc_field {
+            attribute name { xsd:string },
+            comment
+         }?,
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         comment
+      }
+   )
+grad_algorithm =
+   (
+      ## grad (source field)
+      element algorithm {
+        attribute name { "grad" },
+        attribute material_phase_support { "single" },
+        scalar_source_field
+      }
+   )
+perp_algorithm =
+   (
+      ## [curl (z_hat source field). Valid in 2D only.
+      element algorithm {
+         attribute name { "perp" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+curl_2d_algorithm =
+   (
+      ## [curl (source field)]_z. Valid in 2D only.
+      element algorithm {
+         attribute name { "curl_2d" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+vorticity_2d_algorithm =
+   (
+      ## [curl (source field)]_z. Valid in 2D only.
+      element algorithm {
+         attribute name { "curl_2d" },
+         attribute material_phase_support { "single" },
+         attribute source_field_name { "Velocity" },
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+curl_algorithm =
+   (
+      ## curl (source field). Valid in 3D only.
+      element algorithm {
+         attribute name { "curl" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+vorticity_algorithm =
+   (
+      ## curl (source field). Valid in 3D only.
+      element algorithm {
+         attribute name { "curl" },
+         attribute material_phase_support { "single" },
+         attribute source_field_name { "Velocity" },
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+scalar_advection_algorithm =
+   (
+      ## u dot nabla (source field)
+      element algorithm {
+         attribute name { "scalar_advection" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+vector_advection_algorithm =
+   (
+      ## u dot nabla (source field)
+      element algorithm {
+         attribute name { "vector_advection" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+scalar_laplacian_algorithm =
+   (
+      ## nabla^2 (source field). Applies natural boundary conditions on all
+      ## boundaries.
+      element algorithm {
+         attribute name { "scalar_laplacian" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+vector_laplacian_algorithm =
+   (
+      ## nabla^2 (source field). Applies natural boundary conditions on all
+      ## boundaries.
+      element algorithm {
+         attribute name { "vector_laplacian" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+strain_rate_algorithm =
+   (
+      ## algorithm for the strain rate of a vector field
+       element algorithm {
+         attribute name { "strain_rate" },
+         attribute material_phase_support { "single "},
+         vector_source_field
+      }
+   )
+tensor_second_invariant_algorithm =
+   (
+      ## algorithm for the second invariant of a tensor field
+       element algorithm {
+         attribute name { "tensor_second_invariant" },
+         attribute material_phase_support { "single "},
+         tensor_source_field
+      }
+   )
+
+   
+# Surface diagnostics
+grad_normal_algorithm =
+   (
+      ##  /
+      ##  | grad (source field) dot dn
+      ##  /
+      ##
+      ## The output is P0 on the surface. Errors will occur at domain edges -
+      ## this is a limitation of current output formats.
+      element algorithm {
+         attribute name { "grad_normal" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?
+      }
+   )
+
+# Momentum diagnostics
+buoyancy_algorithm =
+   (
+      ## Computes the buoyancy term. Must be on the VelocityBuoyancyDensity mesh.
+      element algorithm {
+         attribute name { "buoyancy" },
+         attribute material_phase_support { "single" }
+      }
+   )
+coriolis_algorithm =
+   (
+      ## Interpolates the Coriolis term onto the mesh of this diagnostic field
+      element algorithm {
+         attribute name { "coriolis" },
+         attribute material_phase_support { "single" },
+         attribute depends { "Velocity" },
+         (
+            ## Consistently interpolate Coriolis onto this mesh
+            element consistent_interpolation {
+               comment
+            }|
+            ## Galerkin project Coriolis onto this mesh
+            element galerkin_projection {
+               galerkin_projection_mass_options,
+               comment
+            }
+         )
+      }
+   )
+scalar_potential_algorithm =
+   (
+      ## Compute the scalar potential phi where:
+      ##   F = nabla phi + nabla x A + H
+      ## with a Neumann boundary condition of nabla phi dot n = F dot n on
+      ## all boundaries.
+      element algorithm {
+         attribute name { "scalar_potential" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Solver reference node
+         element reference_node {
+            integer
+         }?,
+         ## Linear solver options.
+         element solver {
+           linear_solver_options_sym
+        }
+      }
+   )
+projection_scalar_potential_algorithm =
+   (
+      ## Compute the scalar potential phi where:
+      ##   F = nabla phi + nabla x A + H
+      ## using a pressure projection method
+      element algorithm {
+         attribute name { "projection_scalar_potential" },
+         attribute material_phase_support { "single" },
+         vector_source_field_1,
+         ## If enabled, applies geopressure preconditioning using this field
+         element source_field_2_name {
+           attribute source_field_2_type { "scalar" },
+           anystring
+         }?,
+         ## Use boundary conditions from this vector field, instead of the
+         ## source field.
+         element bc_field {
+            attribute name { xsd:string },
+            comment
+         }?,
+         ## Spatial discretisation options
+         element spatial_discretisation {
+            ## Options relating to the mass matrix
+            element mass {
+               ## Lump the mass matrix. Required for continuous fields.
+               element lump_mass {
+                   comment
+               }?
+            },
+            ## Use a continuous Galerkin discretisation
+            element continuous_galerkin {     
+               ## Integrate the divergence operator by parts
+               element integrate_divergence_by_parts {
+                  comment
+               }?,    
+               ## Remove the stabilisation term from the projection operator.
+               ##
+               ## Automatic when not using P1P1.
+               element remove_stabilisation_term {
+                  comment
+               }?,
+               comment
+            }
+         },
+         ## Solver reference node
+         element reference_node {
+            integer
+         }?,
+         ## Linear solver options.
+         element solver {
+           linear_solver_options_sym
+        }
+      }
+   )
+vector_potential_algorithm =
+   (
+      ## Computes the vector potential A where:
+      ##   F = nabla phi + nabla x A + H
+      ## with a strong Dirichlet boundary condition of zero on all boundaries.
+      element algorithm {
+         attribute name { "vector_potential" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+geostrophic_velocity_algorithm =
+   (
+      ## Compute the velocity in geostrophic balance with a pressure field
+      element algorithm {
+         attribute name { "geostrophic_velocity" },
+         attribute material_phase_support { "single" },
+         attribute depends { "Velocity" },
+         scalar_source_field,         
+         ## Options relating to the mass matrix
+         element mass {
+           galerkin_projection_mass_options?
+         },
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         ## Scale the computed geostrophic velocity by some factor. This is
+         ## useful if the pressure field is divided by some reference value
+         ## e.g., in a shallow water with gravity magnitude g, this should
+         ## take the value g.
+         element scale_factor {
+            real
+         }?
+      }
+   )
+bulk_viscosity_algorithm =
+   (
+       ## The average (or bulk) viscosity formed from the MaterialViscosity for
+       ## each material_phase, weighted according to the MaterialVolumeFraction
+       ## fields from each material_phase:
+       ##
+       ##   \bar\nu = \alpha^i\nu^i
+       ##  
+       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+       ## for material i and \nu^i is the viscosity of material i
+       element algorithm {
+          attribute name { "bulk_viscosity" },
+          attribute material_phase_support { "multiple "}
+       }
+   )
+imposed_material_velocity_source_algorithm =
+   (
+       element algorithm {
+          attribute name { "imposed_material_velocity_source" },
+          attribute material_phase_support { "multiple "},
+          attribute depends { "VelocityAbsorption" }
+       }
+   )
+imposed_material_velocity_absorption_algorithm =
+   (
+       element algorithm {
+          attribute name { "imposed_material_velocity_absorption" },
+          attribute material_phase_support { "multiple "},
+          ## Time relaxation factor, defaults to 1 if not selected.
+          element relaxation_factor {
+            real_dim_vector
+          }?
+       }
+   )
+
+# Parallel diagnostics
+node_halo_diagnostic_algorithm =
+   (
+      ## Paints the node halo.
+      element algorithm {
+         attribute name { "node_halo" },
+         attribute material_phase_support { "single" }
+      }
+   )
+universal_numbering_diagnostic_algorithm =
+   (
+      ## The nodal universal numbering.
+      element algorithm {
+         attribute name { "universal_numbering" },
+         attribute material_phase_support { "single" }
+      }
+   )
+element_halo_diagnostic_algorithm =
+   (
+      ## Paints the element halo. Requires a degree 0 mesh.
+      element algorithm {
+         attribute name { "element_halo" },
+         attribute material_phase_support { "single" }
+      }
+   )
+element_ownership_algorithm =
+   (
+      ## The element halo ownership. Requires a degree 0 mesh.
+      element algorithm {
+         attribute name { "element_ownership" },
+         attribute material_phase_support { "single" }
+      }
+   )
+element_universal_numbering_algorithm =
+   (
+      ## The element halo universal numbering. Requires a degree 0 mesh.
+      element algorithm {
+         attribute name { "element_universal_numbering" },
+         attribute material_phase_support { "single" }
+      }
+   )
+
+# Python diagnostics
+scalar_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "scalar_python_diagnostic" },
+         attribute material_phase_support { "single"|"multiple" },
+         python_code,
+         ## Enable to specify dependencies manually. Any field specified here
+         ## will be calculated before this python diagnostic field.
+         ##
+         ## Fields should be a comma delimited list.
+         element depends {
+            anystring
+         }?
+      }
+   )
+vector_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "vector_python_diagnostic" },
+         attribute material_phase_support { "single"|"multiple" },
+         python_code,
+         ## Enable to specify dependencies manually. Any field specified here
+         ## will be calculated before this python diagnostic field.
+         ##
+         ## Fields should be a comma delimited list.
+         element depends {
+            anystring
+         }?
+      }
+   )
+tensor_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "tensor_python_diagnostic" },
+         attribute material_phase_support { "single"|"multiple" },
+         python_code,
+         ## Enable to specify dependencies manually
+         element depends {
+            anystring
+         }?
+      }
+   )
+
+# Adaptivity diagnostics
+scalar_edge_lengths_algorithm =
+   (
+      ## Computes the edge lengths of the Coordinate mesh
+      element algorithm {
+         attribute name { "scalar_edge_lengths" },
+         attribute material_phase_support { "single" }
+      }
+   )
+field_tolerance_algorithm =
+   (
+      ## From a field on a mesh, diagnose the anisotropic
+      ## interpolation weight that would give the mesh back.
+      ## It is computed as:
+      ## \Eps = M^-1 |H|
+      element algorithm {
+         attribute name { "field_tolerance" },
+         attribute material_phase_support { "single" },
+         component_source_field,
+         ## Scale the Hessian to return the L_p norm tolerance, rather than the
+         ## default L_inf norm tolerance. See
+         ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+         ## Number 257, January 2007, pp. 179-204.
+         element p_norm {
+            integer
+         }?
+      }
+   )
+eigenvalues_symmetric_algorithm =
+   (
+      ## Computes the eigenvalues of a given symmetric tensor field. The output
+      ## eigenvalues are sorted from lowest to highest.
+      element algorithm {
+         attribute name { "eigenvalues_symmetric" },
+         attribute material_phase_support { "single" },
+         tensor_source_field
+      }
+   )
+
+# Tidal Harmonic Analysis algorithms
+free_surface_history_algorithm = 
+   (
+      ## Needed for the tidal harmonic algorithm.
+      ## Implemented as a queue data structure.
+      element algorithm {
+         attribute name { "free_surface_history" },
+         attribute material_phase_support { "single" },
+         attribute depends {"FreeSurface" },
+         ## levels: Number of levels which should be saved in the history. Default value: 50
+         element levels { 
+                integer
+         }?,
+         ## stride: number of timelvel skips before saving the next free surface field in the history. Default value: 5
+         element stride { 
+                integer 
+         }?,
+         ## spin_up time: Default value: 0
+         element spin_up_time { 
+                real
+         }?,
+         ## Internal use only
+         element saved_snapshots_times {
+            real_vector
+         }?,
+         ## Internal use only
+         element timestep_counter {
+            integer
+         }?
+      }
+   )
+
+tidal_harmonic_algorithm =
+   (
+      ## Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on in order to calculate the harmonics successfully. 
+      ##
+      ## By setting averageFSLevel to ForceToZero, C0 is set to zero. Recommended is "Calculate"
+      element algorithm {
+       attribute name { "tidal_harmonics" },
+       attribute material_phase_support { "single" },
+       attribute depends {"FreeSurfaceHistory" },
+       attribute target { "Amplitude" | "Phase" },
+       attribute averageFSLevel { "ForceToZero" | "Calculate" },
+       (
+       ## Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. 
+       element constituent {
+        attribute name { "C0" },
+        element real_value {
+         attribute rank { "0" },
+         attribute shape { "1" },
+         "0.0"
+         },
+         comment
+        }|
+        ## M2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "M2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "2.23642934E-05"
+          },
+          comment
+        }|
+        ## S2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "S2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "2.31481315E-05"
+          },
+          comment
+        }|
+        ## N2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "N2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "2.19442836E-05"
+          },
+          comment
+        }|
+        ## K2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "K2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "2.32114752E-05"
+          },
+          comment
+        }|
+        ## K1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "K1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.16057376E-05"
+          },
+          comment
+        }|
+        ## O1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "O1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.07585558E-05"
+          },
+          comment
+        }|
+        ## P1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "P1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.15423939E-05"
+          },
+          comment
+        }|
+        ## Q1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Q1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.03385459E-05"
+          },
+          comment
+        }|
+        ## Mf constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Mf" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "8.47245424E-07"
+          },
+          comment
+        }|
+        ## Mm constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Mm" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "4.20041726E-07"
+          },
+          comment
+        }|
+        ## Ssa constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Ssa" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "6.33754983E-08"
+          },
+          comment
+        }|
+        ## The constituent Residual calculates the residual free surface amplitude after substracting the calculated constituents. The target must be set to Amplitude.
+        element constituent {
+        attribute name { "Residual" },
+        comment
+        }|
+        ## Custom defined frequencies (in 1/s).
+        element constituent {
+          attribute name { "custom"},
+          real
+        }
+        )
+      }
+   )
+
+
+# Misc
+
+# l2norm diagnostic algorithm
+l2norm_algorithm =
+   (
+      ## l2norm (source field). Calculates the nodewise l2norm of a vector field.
+      element algorithm {
+        attribute name { "l2norm" },
+        attribute material_phase_support { "single" },
+        vector_source_field
+      }
+   )
+
+# Mesh
+   
+column_id_algorithm =
+   (
+      ## Convert the column_ids to a field.
+      ##
+      ## The mesh must be directly extruded.
+      element algorithm {
+        attribute name { "column_ids" },
+        attribute material_phase_support { "single" }
+      }
+   )
+
+universal_column_id_algorithm =
+   (
+      ## Convert the universal column_ids to a field.
+      ##
+      ## The mesh must be directly extruded.
+      element algorithm {
+        attribute name { "universal_column_ids" },
+        attribute material_phase_support { "single" }
+      }
+   )
+
+scalar_diagnostic_algorithms = column_id_algorithm
+scalar_diagnostic_algorithms |= universal_column_id_algorithm
+scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
+scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
+scalar_diagnostic_algorithms |= scalar_copy_algorithm
+scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
+scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
+scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
+scalar_diagnostic_algorithms |= temporalmax_algorithm
+scalar_diagnostic_algorithms |= temporalmin_algorithm
+scalar_diagnostic_algorithms |= div_algorithm
+scalar_diagnostic_algorithms |= curl_2d_algorithm
+scalar_diagnostic_algorithms |= finite_element_divergence_algorithm
+scalar_diagnostic_algorithms |= scalar_advection_algorithm
+scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
+scalar_diagnostic_algorithms |= scalar_potential_algorithm
+scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
+scalar_diagnostic_algorithms |= grad_normal_algorithm
+scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
+scalar_diagnostic_algorithms |= universal_numbering_diagnostic_algorithm
+scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
+scalar_diagnostic_algorithms |= element_ownership_algorithm
+scalar_diagnostic_algorithms |= element_universal_numbering_algorithm
+scalar_diagnostic_algorithms |= l2norm_algorithm
+scalar_diagnostic_algorithms |= scalar_sum_algorithm
+scalar_diagnostic_algorithms |= scalar_difference_algorithm
+scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
+
+vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
+vector_diagnostic_algorithms |= vector_copy_algorithm
+vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
+vector_diagnostic_algorithms |= grad_algorithm
+vector_diagnostic_algorithms |= perp_algorithm
+vector_diagnostic_algorithms |= finite_element_divergence_transpose_algorithm
+vector_diagnostic_algorithms |= curl_algorithm
+vector_diagnostic_algorithms |= vector_advection_algorithm
+vector_diagnostic_algorithms |= vector_laplacian_algorithm
+vector_diagnostic_algorithms |= vector_potential_algorithm
+vector_diagnostic_algorithms |= geostrophic_velocity_algorithm
+vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
+vector_diagnostic_algorithms |= vector_sum_algorithm
+vector_diagnostic_algorithms |= vector_difference_algorithm
+
+tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
+tensor_diagnostic_algorithms |= tensor_copy_algorithm
+tensor_diagnostic_algorithms |= field_tolerance_algorithm
+tensor_diagnostic_algorithms |= strain_rate_algorithm

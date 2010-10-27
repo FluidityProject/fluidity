@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <include href="spud_base.rng"/>
+  <start>
+    <element name="visualise_elements">
+      <element name="project_name">
+        <a:documentation>Model output files are named according to the project
+name, e.g. [simulation_name]_0.vtu. Non-standard
+characters in the project name should be avoided.</a:documentation>
+        <ref name="anystring"/>
+      </element>
+      <element name="geometry">
+        <a:documentation>Options dealing with the specification of geometry</a:documentation>
+        <element name="dimension">
+          <a:documentation>Dimension of the problem.
+&lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
+          <attribute name="replaces">
+            <value>NDIM</value>
+          </attribute>
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>2</value>
+          </element>
+        </element>
+        <element name="element_vertices">
+          <a:documentation>The shape of elements to visualise</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <element name="element_degree">
+          <a:documentation>The degree of elements to visualise</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <element name="element_family">
+          <element name="string_value">
+            <!--
+              Lines is a hint to the gui about the size of the text box.
+              It is not an enforced limit on string length.
+            -->
+            <attribute name="lines">
+              <value>1</value>
+            </attribute>
+            <value>lagrange</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="quadrature">
+          <a:documentation>Quadrature</a:documentation>
+          <element name="degree">
+            <a:documentation>Quadrature degree
+
+note: this specifies the degree of quadrature not
+the number of gauss points</a:documentation>
+            <attribute name="replaces">
+              <value>NGI</value>
+            </attribute>
+            <ref name="integer"/>
+          </element>
+        </element>
+        <element name="visualisation_degree">
+          <a:documentation>The degree of elements to visualise</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <zeroOrMore>
+          <element name="mesh">
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="mesh_info"/>
+            <optional>
+              <element name="exclude_from_mesh_adaptivity">
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </zeroOrMore>
+      </element>
+      <optional>
+        <element name="material_phase">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <zeroOrMore>
+            <ref name="scalar_field_choice"/>
+          </zeroOrMore>
+          <zeroOrMore>
+            <ref name="vector_field_choice"/>
+          </zeroOrMore>
+        </element>
+      </optional>
+    </element>
+  </start>
+  <define name="mesh_info">
+    <choice>
+      <element name="from_file">
+        <a:documentation>Read mesh from file.</a:documentation>
+        <choice>
+          <element name="format">
+            <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+            <attribute name="name">
+              <value>triangle</value>
+            </attribute>
+            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
+            <element name="string_value">
+              <value>triangle</value>
+            </element>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no surface
+or region IDs.</a:documentation>
+            <attribute name="name">
+              <value>vtu</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>CGNS mesh format (not yet implemented)</a:documentation>
+            <attribute name="name">
+              <value>cgns</value>
+            </attribute>
+            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
+            <element name="string_value">
+              <value>cgns</value>
+            </element>
+            <ref name="comment"/>
+          </element>
+        </choice>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <ref name="from_file_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+      <element name="from_mesh">
+        <a:documentation>Make mesh from existing mesh. The existing mesh cannot itself
+be made from an existing mesh (i.e. it must be read from a
+file).</a:documentation>
+        <ref name="mesh_choice"/>
+        <optional>
+          <element name="mesh_shape">
+            <element name="polynomial_degree">
+              <ref name="integer"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="periodic_boundary_conditions">
+            <a:documentation>Make mesh periodic</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="physical_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased to</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="aliased_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="coordinate_map">
+              <a:documentation>Python code which takes coordinate of an aliased
+boundary node and returns the coordinate of a physical
+boundary node</a:documentation>
+              <ref name="python_code"/>
+            </element>
+          </element>
+        </zeroOrMore>
+        <optional>
+          <element name="extrude">
+            <a:documentation>Extrude a horizontal (1D or 2D) mesh in the vertical</a:documentation>
+            <element name="bottom_depth">
+              <a:documentation>Depth over which to extrude
+top will be at z=0
+bottom will be at z=-bottom_depth</a:documentation>
+              <ref name="real"/>
+            </element>
+            <element name="sizing_function">
+              <a:documentation>Constant or function (of z!) to specify the depth of the
+layers.</a:documentation>
+              <ref name="input_choice_real"/>
+            </element>
+            <optional>
+              <element name="top_surface_id">
+                <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="bottom_surface_id">
+                <a:documentation>surface_id to assign to the bottom of the extruded mesh</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <ref name="derived_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <!-- Most common mesh choices -->
+  <define name="mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>VelocityMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>PressureMesh</value>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="from_file_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_enabled_default"/>
+    </element>
+  </define>
+  <define name="derived_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_disabled_default"/>
+    </element>
+  </define>
+  <!-- Choice of input method, e.g. for boundary conditions -->
+  <define name="input_choice_real">
+    <ref name="input_choice_real_contents"/>
+  </define>
+  <define name="input_choice_real_contents">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="generic_function">
+        <a:documentation>Generic function prescribing real input</a:documentation>
+        <ref name="anystring"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+    </choice>
+  </define>
+  <!-- This is the choice of additional scalar field to be solved for -->
+  <define name="scalar_field_choice">
+    <!--
+      The first is a generic field, used for any user-defined field that
+      FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+    -->
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <choice>
+        <a:documentation>Field type</a:documentation>
+        <element name="prescribed">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prescribed_values_scalar_field"/>
+        </element>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="vector_field_choice">
+    <!--
+      The first is a generic field, used for any user-defined field that
+      FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+      Prognostic vector fields are not possible (other than velocity and those known fields below).
+    -->
+    <element name="vector_field">
+      <a:documentation>Generic field variable (vector)</a:documentation>
+      <attribute name="rank">
+        <value>1</value>
+      </attribute>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <choice>
+        <a:documentation>Field type</a:documentation>
+        <element name="prescribed">
+          <ref name="mesh_choice"/>
+          <ref name="prescribed_values_vector_field"/>
+        </element>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="prescribed_values_vector_field">
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_real_dim_vector"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_real_dim_vector"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+  <define name="velocity_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>VelocityMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>PressureMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="prescribed_values_scalar_field">
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_real"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+  <!-- Choice of input method, e.g. for boundary conditions -->
+  <define name="input_choice_real_dim_vector">
+    <ref name="input_choice_real_dim_vector_contents"/>
+  </define>
+  <define name="input_choice_real_dim_vector_contents">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_vector"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+    </choice>
+  </define>
+</grammar>

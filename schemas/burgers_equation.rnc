@@ -1,0 +1,279 @@
+include "spud_base.rnc"
+
+include "adaptivity_options.rnc"
+include "diagnostic_algorithms.rnc"
+include "input_output.rnc"
+include "solvers.rnc"
+include "stabilisation.rnc"
+include "reduced_model.rnc"
+include "mesh_options.rnc"
+include "physical_parameters.rnc"
+include "prognostic_field_options.rnc"
+include "prescribed_field_options.rnc"
+include "spatial_discretisation.rnc"
+include "temporal_discretisation.rnc"
+
+start =
+   (
+      ## The root node of the options dictionary.
+      element burgers_equation {
+         comment,
+         ## Model output files are named according to the simulation
+         ## name, e.g. [simulation_name]_0.vtu. Non-standard
+         ## characters in the simulation name should be avoided.
+         element simulation_name {
+            anystring
+         },
+         geometry,
+         timestepping,
+         material_phase
+      }
+   )
+
+geometry = 
+   (
+      ## Options dealing with the specification of geometry
+      element geometry {
+         ## Dimension of the problem.
+         ## <b>This can only be set once</b>
+         element dimension {
+            attribute replaces {"NDIM"},
+            element integer_value {
+               attribute rank {"0"},
+               ("1")
+            }
+         },
+         ## The position mesh
+         element mesh {
+            attribute name { "CoordinateMesh" },
+            mesh_info_fromfile
+         },
+         ## The velocity mesh
+         element mesh {
+            attribute name { "VelocityMesh" },
+            mesh_info_frommesh
+         },
+         ## Quadrature
+         element quadrature {
+            ## Quadrature degree
+            ## 
+            ## note: this specifies the degree of quadrature,
+            ## not the number of gauss points
+            element degree {
+               attribute replaces {"NGI"},
+               integer
+            },
+            ## Surface quadrature degree
+            ## 
+            ## note: this specifies the degree of surface
+            ## quadrature not the number of surface gauss points
+            element surface_degree {
+               attribute replaces {"SNGI"},
+               integer
+            }?
+         }
+      }
+   )
+
+mesh_choice_coordinate = 
+   (
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }
+   )
+
+mesh_choice = 
+   (
+      (
+         element mesh {
+            attribute name { "VelocityMesh" }
+         }|
+         element mesh {
+            attribute name { "CoordinateMesh" }
+         }
+      )
+   )
+
+mesh_info_fromfile =
+   (
+      ## Read mesh from file.
+      element from_file {
+         (
+            ## Triangle mesh format.
+            ##
+            ## Enter the base name without the .edge .ele, .face or
+            ## .node extensions, and without process numbers.
+            element format {
+              attribute name { "triangle" },
+              comment
+            }|
+            ## Read the mesh from a vtu. Note that the mesh will have no 
+            ## surface or region IDs.
+            element format {
+              attribute name { "vtu" },
+              comment
+            }|
+            ## GMSH mesh format
+            element format {
+               attribute name { "gmsh" },
+               comment
+            }
+         ),
+         attribute file_name { xsd:string },
+         from_file_mesh_stat_options,
+         comment
+      }
+   )
+
+mesh_info_frommesh =
+   (
+      ## Make mesh from existing mesh. 
+      element from_mesh {
+         mesh_choice_coordinate,
+         element mesh_shape {
+            element polynomial_degree {
+               integer
+            }?,
+            element element_type {
+              element string_value{
+                 "lagrangian"
+              }
+            }?
+         }?,
+         derived_mesh_stat_options,
+         comment
+      }
+   )
+
+timestepping =
+   (
+         ## Options dealing with time discretisation
+         element timestepping {
+            ## Current simulation time. At the start of the simulation this
+            ## is the start time.
+            element current_time {
+               attribute replaces {"ACCTIM"},
+               real
+            },
+            ## The time step size. If adaptive time stepping is used
+            ## then this is the initial time step size.
+            element timestep {
+               attribute replaces {"DT"},
+               real
+            },
+            ## Simulation time at which the simulation should end.
+            element finish_time {
+               attribute replaces {"LTIME"},
+               real
+            },
+            ## Timestep after which the simulation should end.
+            element final_timestep {
+               integer
+            }?,
+            ## Number of non-linear iterations.
+            ## 
+            ## Manual suggests 2
+            element nonlinear_iterations {
+               attribute replaces {"ITINOI"},
+               integer
+            }?
+         }
+   )
+
+material_phase = 
+   (
+         ## The material phase options
+         element material_phase {
+            attribute name { "Fluid" },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Velocity" },
+               element prognostic {
+                  element mesh {
+                     attribute name { "VelocityMesh" }      
+                  },
+                  ## Options dealing with the temporal discretisation of velocity
+                  element temporal_discretisation {
+                     ## The degree of implicitness in the timestepping. 
+                     ## 0 is fully explicit, 1 is implicit, 0.5 is Crank-Nicolson.
+                     ## Recommended to be 0.5.
+                     element theta { 
+                        real
+                     },
+                     ## The relaxation term in the nonlinear iterations at each timestep
+                     ## 0 means the previous timestep velocity is used to form the advection operator,
+                     ## while 1 means the best guess of the next timestep velocity is used.
+                     ## Recommended to be 0.5.
+                     element relaxation {
+                        real
+                     }
+                  }?,
+                  element solver {
+                     linear_solver_options_asym
+                  },
+                  initial_condition_scalar,
+                  boundary_conditions+,
+                  element viscosity { real },
+                  element stat { comment },
+                  element scalar_field {
+                     attribute name { "Source" },
+                     attribute rank { "0" },
+                     element prescribed {
+                        prescribed_scalar_field_no_adapt,
+                        recalculation_options?
+                     }
+                  }
+               }
+            },
+            element scalar_field {
+              attribute rank { "0" },
+              attribute name { string },
+              (
+                 element prescribed {
+                    mesh_choice,
+                    prescribed_scalar_field
+                 }|
+                 element diagnostic {
+                    mesh_choice,
+                    diagnostic_scalar_field
+                 }
+              )
+            }*
+         }
+   )
+
+boundary_conditions = 
+   (
+         ## Boundary conditions
+         element boundary_conditions {
+            attribute name { string },
+            ## Surface id
+            element surface_ids {
+               integer_vector
+            },
+            element type {
+               attribute name { "neumann" },
+               input_choice_real
+            }
+         }
+   )
+
+prescribed_output_options = empty
+prescribed_detector_options = empty
+prescribed_scalar_stat_options = empty
+discrete_properties_algorithm_scalar = empty
+recalculation_options =                                                                                                                                                                                                                      
+   (
+      ## Prevent this field from being recalculated at every timestep.
+      ## This is cheaper especially if you are enforcing discrete properties on the field.
+      element do_not_recalculate {
+        empty
+      }
+   )
+
+diagnostic_scalar_field =
+   (
+      scalar_python_diagnostic_algorithm,
+      element stat { comment },
+      recalculation_options?
+   )
