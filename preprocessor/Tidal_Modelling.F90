@@ -333,7 +333,6 @@ contains
          call set(tidal_pressure, node, eqtide*gravity_magnitude)
       end do
       do node=1,node_count(position)
-! asc combined_p
          call set(combined_p, node, node_val(p_theta, node)&
               &-node_val(tidal_pressure, node))
       end do
