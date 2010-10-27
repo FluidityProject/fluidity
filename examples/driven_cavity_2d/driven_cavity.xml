@@ -2,7 +2,7 @@
 <testproblem>
   <name>driven_cavity</name>
   <owner userid="piggt01"/>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="long" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   <variables>
