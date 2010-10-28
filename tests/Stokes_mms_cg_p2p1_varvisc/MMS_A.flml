@@ -266,7 +266,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value type="python" lines="20">def val(X,t):
+                  <string_value lines="20" type="python">def val(X,t):
   from math import sin, cos
   A = 0.25;
   nu0 = 0.7;
@@ -292,8 +292,8 @@
    rho = 1.0;
    x = XX[0];
    y = XX[1];
-   Su = 2*((cos(x) + cos(y))*A + nu0)*sin(x)*cos(y) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho - sin(x)*cos(y)
-   Sv = -2*((cos(x) + cos(y))*A + nu0)*sin(y)*cos(x) + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - sin(y)*cos(x)
+   Su = -A*sin(x)*sin(y)**2 + A*sin(x)*cos(x)*cos(y) + 2*((cos(x) + cos(y))*A + nu0)*sin(x)*cos(y) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho - sin(x)*cos(y)
+   Sv = A*sin(x)**2*sin(y) - A*sin(y)*cos(x)*cos(y) - 2*((cos(x) + cos(y))*A + nu0)*sin(y)*cos(x) + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - sin(y)*cos(x)
    return (Su, Sv)</string_value>
                 <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
 v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
@@ -308,16 +308,21 @@ u_y = diff(u,y)
 v_x = diff(v,x)
 v_y = diff(v,y)
 
+nuu_x = nu*u_x
+nuu_y = nu*u_y
+nuv_x = nu*v_x
+nuv_y = nu*v_y
+
+nuu_x_x = diff(nuu_x,x)
+nuu_y_y = diff(nuu_y,y)
+nuv_x_x = diff(nuv_x,x)
+nuv_y_y = diff(nuv_y,y)
+
 p_x = diff(p,x)
 p_y = diff(p,y)
-&#13;
-u_xx = diff(u_x,x)
-u_yy = diff(u_y,y)
-v_xx = diff(v_x,x)
-v_yy = diff(v_y,y)
 
-mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - nu*u_xx - nu*u_yy
-mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu*v_yy</comment>
+mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - nuu_x_x - nuu_y_y
+mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nuv_y_y</comment>
               </python>
             </value>
             <output/>

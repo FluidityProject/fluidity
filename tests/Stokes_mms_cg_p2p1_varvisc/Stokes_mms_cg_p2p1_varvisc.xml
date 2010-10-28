@@ -4,7 +4,7 @@
   <name>p2p1 stokes spatial convergence test</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
   </problem_definition>
   <variables>
@@ -275,17 +275,17 @@ assert(cd_convergence_vel[1][0] &gt; 2.5)
     <test name="cd_convergence_p: L2 order > 1.9" language="python">
 assert(cd_convergence_p[0] &gt; 1.9)
     </test>
-    <test name="checking A finished in less than 0.03" language="python">
-assert(a_finish_time -0.03 &lt; 1.E-10)
+    <test name="checking A finished in less than 5" language="python">
+assert(a_finish_time -5 &lt; 1.E-10)
     </test>
-    <test name="checking B finished in less than 0.03" language="python">
-assert(b_finish_time -0.03 &lt; 1.E-10)
+    <test name="checking B finished in less than 5" language="python">
+assert(b_finish_time -5 &lt; 1.E-10)
     </test>
-    <test name="checking C finished in less than 0.03" language="python">
-assert(c_finish_time -0.03 &lt; 1.E-10)
+    <test name="checking C finished in less than 5" language="python">
+assert(c_finish_time -5 &lt; 1.E-10)
     </test>
-    <test name="checking D finished in less than 0.03" language="python">
-assert(d_finish_time -0.03 &lt; 1.E-10)
+    <test name="checking D finished in less than 5" language="python">
+assert(d_finish_time -5 &lt; 1.E-10)
     </test>
     <test name="checking steady state was reached in A vel" language="python">
 assert(a_final_change_vel &lt; 1.E-3)
