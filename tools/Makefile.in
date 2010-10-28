@@ -170,19 +170,19 @@ $(PSEUDO_SUPERMESH): pseudo_supermesh.o
 	$(LINKER) -o $(PSEUDO_SUPERMESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
 
 $(PSEUDO_SUPERMESH_PARALLEL): pseudo_supermesh_parallel.o
-	$(LINKER) -o $(PSEUDO_SUPERMESH_PARALLEL) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(LINEARLY_INTERPOLATE): linearly_interpolate.o
-	$(LINKER) -o $(LINEARLY_INTERPOLATE) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(LINEARLY_INTERPOLATE_ALL): linearly_interpolate_all.o
-	$(LINKER) -o $(LINEARLY_INTERPOLATE_ALL) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(LINEAR_INTERPOLATION_PARALLEL): linear_interpolation_parallel.o
-	$(LINKER) -o $(LINEAR_INTERPOLATION_PARALLEL) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
-	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FTLE): FTLE.o
 	$(LINKER) -o $(FTLE) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
