@@ -63,7 +63,7 @@ implicit none
   
 contains
 
-  subroutine initialise_scalar_field(field, path, position, time)
+  recursive subroutine initialise_scalar_field(field, path, position, time)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
