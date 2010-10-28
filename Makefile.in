@@ -163,7 +163,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD burgers_equation"
-	@$(EVAL) $(LINKER) -o bin/burgers_equation main/Burgers_Equation.o $(LIBS)
+	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(LIBS)
 
 bin/simple_shallow_water: fluidity_library main/Simple_Shallow_Water.F90
 	@cd main; $(MAKE) Simple_Shallow_Water.o
