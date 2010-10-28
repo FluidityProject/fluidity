@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <burgers_equation>
   <simulation_name>
-    <string_value lines="1">mms_gaussian_A</string_value>
+    <string_value lines="1">mms_gaussian_C</string_value>
   </simulation_name>
   <geometry>
     <dimension replaces="NDIM">
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="mms_A">
+      <from_file file_name="mms_C">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>

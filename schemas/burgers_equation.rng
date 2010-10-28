@@ -210,6 +210,15 @@ Manual suggests 2</a:documentation>
           <ref name="integer"/>
         </element>
       </optional>
+      <optional>
+        <element name="stationary_problem">
+          <a:documentation>Indicate that the problem should be considered time-independent.</a:documentation>
+          <element name="tolerance">
+            <a:documentation>The convergence tolerance, in the L2 norm</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="material_phase">
@@ -252,6 +261,12 @@ Recommended to be 0.5.</a:documentation>
           <element name="solver">
             <ref name="linear_solver_options_asym"/>
           </element>
+          <optional>
+            <element name="remove_advection_term">
+              <a:documentation>If activated, the advection term is removed from the equation.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
           <ref name="initial_condition_scalar"/>
           <oneOrMore>
             <ref name="boundary_conditions"/>
@@ -262,20 +277,22 @@ Recommended to be 0.5.</a:documentation>
           <element name="stat">
             <ref name="comment"/>
           </element>
-          <element name="scalar_field">
-            <attribute name="name">
-              <value>Source</value>
-            </attribute>
-            <attribute name="rank">
-              <value>0</value>
-            </attribute>
-            <element name="prescribed">
-              <ref name="prescribed_scalar_field_no_adapt"/>
-              <optional>
-                <ref name="recalculation_options"/>
-              </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="name">
+                <value>Source</value>
+              </attribute>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+                <optional>
+                  <ref name="recalculation_options"/>
+                </optional>
+              </element>
             </element>
-          </element>
+          </optional>
         </element>
       </element>
       <zeroOrMore>

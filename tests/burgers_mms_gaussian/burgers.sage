@@ -4,7 +4,7 @@ u = 1/sqrt(2*pi) * exp(-x**2 / 2)
 v = 1.0
 
 
-f = diff(u, t) + u * diff(u, x) - v * diff(u, [x, x])
+f = diff(u, t) - v * diff(u, [x, x])
 s = str(f).replace('e^', 'exp').replace('^', '**')
 print s
 

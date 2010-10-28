@@ -62,6 +62,8 @@
     character(len = OPTION_PATH_LEN) :: simulation_name
 
     integer :: stat
+
+    logical :: stationary_problem
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -110,6 +112,7 @@
 
     ! Always output the initial conditions.
     call output_state(state)
+    stationary_problem = have_option("/timestepping/stationary_problem")
 
     timestep=0
     timestep_loop: do 
@@ -126,7 +129,7 @@
        call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep)) exit timestep_loop     
+       if (simulation_completed(current_time, timestep) .or. stationary_problem) exit timestep_loop     
 
        call advance_current_time(current_time, dt)
        call insert_time_in_state(state)
@@ -166,8 +169,6 @@
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
       
-      ! Disgusting and vomitous hack to ensure that time is output in
-      ! vtu files.
       x_mesh => extract_mesh(state, "CoordinateMesh")
       call allocate(aux_sfield, x_mesh, "Time", field_type=FIELD_TYPE_CONSTANT)
       call get_option("/timestepping/current_time", current_time)
@@ -185,6 +186,7 @@
 
       type(scalar_field) :: nonlinear_velocity
       type(scalar_field) :: iterated_velocity
+      type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference
       type(scalar_field) :: rhs
 
       type(csr_matrix) :: advection_matrix
@@ -196,6 +198,9 @@
 
       integer :: nonlinear_iterations, nit
       real :: itheta, theta
+      logical :: stationary_problem
+      real :: tolerance, change
+      integer, parameter :: max_picard_iterations=10000
 
       mass_matrix => extract_csr_matrix(state, "MassMatrix")
       diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
@@ -207,33 +212,60 @@
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
 
+      stationary_problem = have_option("/timestepping/stationary_problem")
+      if (stationary_problem) then
+        ewrite(1,*) "Problem is stationary; resetting timestepping values appropriately"
+        theta = 1.0
+        itheta = 1.0
+        nonlinear_iterations = max_picard_iterations
+        call get_option("/timestepping/stationary_problem/tolerance", tolerance)
+      end if
+
       call allocate(nonlinear_velocity, u%mesh, "NonlinearVelocity")
       call zero(nonlinear_velocity)
       call allocate(iterated_velocity, u%mesh, "IteratedVelocity")
       call set(iterated_velocity, u)
+      call allocate(old_iterated_velocity, u%mesh, "OldIteratedVelocity")
+      call allocate(iterated_velocity_difference, u%mesh, "IteratedVelocityDifference")
 
       call allocate(lhs_matrix, mass_matrix%sparsity, name="LeftHandSide")
       call allocate(advection_matrix, mass_matrix%sparsity, name="AdvectionMatrix")
       call allocate(rhs, u%mesh, "RightHandSide")
 
-      do nit=1,nonlinear_iterations
+      nonlinear_loop: do nit=1,nonlinear_iterations
         call set(nonlinear_velocity, u)
-        call scale(nonlinear_velocity, itheta)
-        call addto(nonlinear_velocity, iterated_velocity, scale=(1.0 - itheta))
+        call scale(nonlinear_velocity, (1.0 - itheta))
+        call addto(nonlinear_velocity, iterated_velocity, scale=itheta)
 
         call assemble_advection_matrix(advection_matrix, x, nonlinear_velocity)
 
-        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
-        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
+        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, stationary_problem)
+        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state, stationary_problem)
 
+        call set(old_iterated_velocity, iterated_velocity)
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
-      end do
+
+        if (stationary_problem) then
+          call set(iterated_velocity_difference, iterated_velocity)
+          call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
+          change = norm2(iterated_velocity_difference, x)
+          ewrite(1,*) "L2 norm of change in velocity: ", change
+          if (change <= tolerance) then
+            exit nonlinear_loop
+          end if
+        end if
+      end do nonlinear_loop
+
+      if (stationary_problem .and. nit >= max_picard_iterations) then
+        ewrite(-1,*) "Warning: failed to converge in ", max_picard_iterations, " iterations"
+      end if
 
       call set(u, iterated_velocity)
-
       call deallocate(nonlinear_velocity)
       call deallocate(iterated_velocity)
+      call deallocate(old_iterated_velocity)
+      call deallocate(iterated_velocity_difference)
       call deallocate(lhs_matrix)
       call deallocate(rhs)
       call deallocate(advection_matrix)
@@ -248,10 +280,11 @@
       integer :: ele
 
       call zero(advection_matrix)
-
-      do ele=1,ele_count(nu)
-        call assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
-      end do
+      if (.not. have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/remove_advection_term")) then
+        do ele=1,ele_count(nu)
+          call assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
+        end do
+      end if
     end subroutine assemble_advection_matrix
 
     subroutine assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
@@ -269,25 +302,29 @@
       call addto(advection_matrix, ele_nodes(nu, ele), ele_nodes(nu, ele), little_advection_matrix)
     end subroutine assemble_advection_matrix_ele
 
-    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
+    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, stationary_problem)
       type(csr_matrix), intent(inout) :: lhs_matrix
       type(csr_matrix), intent(in) :: mass_matrix, advection_matrix, diffusion_matrix
       real, intent(in) :: dt, theta
+      logical, intent(in) :: stationary_problem
 
       call zero(lhs_matrix)
 
-      call addto(lhs_matrix, mass_matrix, 1.0/dt)
+      if (.not. stationary_problem) then
+        call addto(lhs_matrix, mass_matrix, 1.0/dt)
+      end if
       call addto(lhs_matrix, advection_matrix, theta)
       call addto(lhs_matrix, diffusion_matrix, theta)
 
     end subroutine assemble_left_hand_side
 
-    subroutine assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
+    subroutine assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state, stationary_problem)
       type(scalar_field), intent(inout) :: rhs
       type(csr_matrix), intent(in) :: mass_matrix, advection_matrix, diffusion_matrix
       real, intent(in) :: dt, theta
       type(scalar_field), intent(in), pointer :: u
       type(state_type), intent(in) :: state
+      logical, intent(in) :: stationary_problem
 
       type(scalar_field) :: tmp
       type(scalar_field), pointer :: src
@@ -301,9 +338,11 @@
       mesh => u%mesh
       call allocate(tmp, mesh, "TemporaryField")
 
-      call mult(tmp, mass_matrix, u)
-      call scale(tmp, 1.0/dt)
-      call addto(rhs, tmp)
+      if (.not. stationary_problem) then
+        call mult(tmp, mass_matrix, u)
+        call scale(tmp, 1.0/dt)
+        call addto(rhs, tmp)
+      end if
 
       call mult(tmp, advection_matrix, u)
       call scale(tmp, theta - 1.0)

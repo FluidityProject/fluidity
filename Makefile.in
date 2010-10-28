@@ -200,7 +200,7 @@ lib/shared/$(SLIB_FLUIDITY).1: fluidity_library
 gallopede: 
 	@cd gallopede; $(MAKE)
 
-fltools: fluidity_library
+fltools: fluidity_library bin/burgers_equation
 	@$(MAKE) fldecomp
 	@echo "BUILD fluidity tools"
 	@cd tools; $(MAKE)

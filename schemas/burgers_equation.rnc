@@ -176,6 +176,13 @@ timestepping =
             element nonlinear_iterations {
                attribute replaces {"ITINOI"},
                integer
+            }?,
+            ## Indicate that the problem should be considered time-independent.
+            element stationary_problem { 
+               ### The convergence tolerance, in the L2 norm
+               element tolerance {
+                  real
+               }
             }?
          }
    )
@@ -211,6 +218,8 @@ material_phase =
                   element solver {
                      linear_solver_options_asym
                   },
+                  ## If activated, the advection term is removed from the equation.
+                  element remove_advection_term { empty }?,
                   initial_condition_scalar,
                   boundary_conditions+,
                   element viscosity { real },
@@ -222,7 +231,7 @@ material_phase =
                         prescribed_scalar_field_no_adapt,
                         recalculation_options?
                      }
-                  }
+                  }?
                }
             },
             element scalar_field {
