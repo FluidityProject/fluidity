@@ -1,0 +1,480 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">MMS_D</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="MMS_D">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">15.0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">1000</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">10.0</real_value>
+    </finish_time>
+    <steady_state>
+      <tolerance replaces="STEDER">
+        <real_value rank="0">1.E-8</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </steady_state>
+  </timestepping>
+  <material_phase name="NS">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term replaces="NOFILT"/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC">
+            <full_schur_complement>
+              <inner_matrix name="FullMomentumMatrix">
+                <solver>
+                  <iterative_method name="cg"/>
+                  <preconditioner name="sor"/>
+                  <relative_error>
+                    <real_value rank="0">1E-10</real_value>
+                  </relative_error>
+                  <max_iterations>
+                    <integer_value rank="0">10000</integer_value>
+                  </max_iterations>
+                  <start_from_zero/>
+                  <never_ignore_solver_failures/>
+                  <diagnostics>
+                    <monitors/>
+                  </diagnostics>
+                </solver>
+              </inner_matrix>
+              <preconditioner_matrix name="DiagonalSchurComplement"/>
+            </full_schur_complement>
+          </use_projection_method>
+        </scheme>
+        <solver>
+          <iterative_method name="fgmres"/>
+          <preconditioner name="jacobi"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-16</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <remove_null_space/>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+            <stress_terms>
+              <tensor_form/>
+            </stress_terms>
+          </continuous_galerkin>
+          <conservative_advection replaces="BETA">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="THETA">
+            <real_value rank="0">1</real_value>
+          </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">1</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="all_sides">
+          <surface_ids>
+            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <python>
+                  <string_value lines="20" type="python">def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   u = sin(X[0])*cos(X[1])
+   return u</string_value>
+                </python>
+              </x_component>
+              <y_component>
+                <python>
+                  <string_value lines="20" type="python">def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   v = -1.0*cos(X[0])*sin(X[1])
+   return v</string_value>
+                </python>
+              </y_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <python>
+                  <string_value type="python" lines="20">def val(X,t):
+  from math import sin, cos
+  A = 0.25;
+  nu0 = 0.7;
+  nu = nu0 + A*(cos(X[0]) + cos(X[1]));
+  return nu;</string_value>
+                </python>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="python">def val(XX, t):
+   from math import sin,cos
+   nu0 = 0.7;
+   A = 0.25;
+   adv = 0.0;
+   beta = 0.0;
+   mass = 0.0;
+   rho = 1.0;
+   x = XX[0];
+   y = XX[1];
+   Su = 2*((cos(x) + cos(y))*A + nu0)*sin(x)*cos(y) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho - sin(x)*cos(y)
+   Sv = -2*((cos(x) + cos(y))*A + nu0)*sin(y)*cos(x) + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - sin(y)*cos(x)
+   return (Su, Sv)</string_value>
+                <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
+v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
+p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)
+nu(x,y,nu0,A) = nu0 + A*(cos(x) + cos(y))&#13;
+
+u_t = diff(u,t)
+v_t = diff(v,t)
+
+u_x = diff(u,x)&#13;
+u_y = diff(u,y)
+v_x = diff(v,x)
+v_y = diff(v,y)
+
+p_x = diff(p,x)
+p_y = diff(p,y)
+&#13;
+u_xx = diff(u_x,x)
+u_yy = diff(u_y,y)
+v_xx = diff(v_x,x)
+v_yy = diff(v_y,y)
+
+mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - nu*u_xx - nu*u_yy
+mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu*v_yy</comment>
+              </python>
+            </value>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </vector_field>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureAnalytical" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   from math import cos
+   p = cos(X[0])*cos(X[1])
+   return p</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ScalarAbsoluteDifference" rank="0">
+      <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <relative_to_average/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FiniteElementDivergence" rank="0">
+      <diagnostic field_name="Velocity">
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="VelocityAnalytical" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field name="VectorAbsoluteDifference" rank="1">
+      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+  </material_phase>
+</fluidity_options>
