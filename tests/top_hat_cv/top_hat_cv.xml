@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Advected top hat (CV with Sweby limiter)</name>
-  <owner userid="maddison"/>
+  <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
     <command_line>make clean-run; fluidity -v2 -l top_hat_cv.flml</command_line>

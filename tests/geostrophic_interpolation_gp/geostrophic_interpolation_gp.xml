@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Geostrophic interpolation with geopressure preconditioning</name>
-  <owner userid="maddison"/>
+  <owner userid="cjc1"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l balanced.flml</command_line>

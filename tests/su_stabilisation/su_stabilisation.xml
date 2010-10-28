@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>SU stabilisation test</name>
-  <owner userid="maddison"/>
+  <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
     <command_line>make clean-run; rm -f su.log explicit_pe.log; fluidity -v2 top_hat_cg_su.flml > su.log; fluidity -v2 top_hat_cg_explicit_pe.flml > explicit_pe.log</command_line>

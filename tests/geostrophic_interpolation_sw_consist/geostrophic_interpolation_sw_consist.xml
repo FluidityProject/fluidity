@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Balanced shallow water, with adaptivity and consistent interpolation for the geostrophic interpolation potential</name>
-  <owner userid="maddison"/>
+  <owner userid="cjc1"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>make clean-run; shallow_water -v 2 balanced.swml &gt; sw.log</command_line>

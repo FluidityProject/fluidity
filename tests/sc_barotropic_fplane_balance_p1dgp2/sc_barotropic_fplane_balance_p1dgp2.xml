@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Simply connected barotropic f-plane source sink</name>
-  <owner userid="maddison"/>
+  <owner userid="piggt01"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run-debug;

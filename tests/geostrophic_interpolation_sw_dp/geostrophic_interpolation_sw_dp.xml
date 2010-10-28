@@ -3,7 +3,7 @@
 
 <testproblem>
   <name>Balanced shallow water, with adaptivity</name>
-  <owner userid="maddison"/>
+  <owner userid="cjc1"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>shallow_water -v 2 balanced.swml &gt; sw.log</command_line>

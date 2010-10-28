@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Square convection (Adaptive CG-test version)</name>
-  <owner userid="maddison"/>
+  <owner userid="rhodrid"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run-debug; make clean-checkpoint; fluidity -v2 -l square-convection.flml; cd checkpoint; make; fluidity -v2 -l square-convection_50_checkpoint.flml; cd ..</command_line>

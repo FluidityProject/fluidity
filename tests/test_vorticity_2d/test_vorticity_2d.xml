@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>test_vorticity_2d</name>
-  <owner userid="maddison"/>
+  <owner userid="am2008"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; fluidity test_vorticity_2d.flml</command_line>

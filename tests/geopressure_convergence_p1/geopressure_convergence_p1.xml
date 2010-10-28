@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Geopressure convergence test (P1)</name>
-  <owner userid=""/>
+  <owner userid="piggt01"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;

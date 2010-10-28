@@ -3,7 +3,7 @@
 
 <testproblem>
   <name>Binary detectors</name>
-  <owner userid="maddison"/>
+  <owner userid="jhill1"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity  detectors.flml </command_line>

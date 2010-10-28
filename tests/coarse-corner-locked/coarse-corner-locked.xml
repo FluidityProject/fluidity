@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Coarse Corner (locked nodes version)</name>
-  <owner userid="maddison"/>
+  <owner userid="pef"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
     <command_line>make clean-run; fluidity -v2 -l coarse-corner-locked.flml</command_line>

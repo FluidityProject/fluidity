@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Offline adaptivity</name>
-  <owner userid="maddison"/>
+  <owner userid="pef"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run-debug; fladapt -v fladapt fladapt > fladapt.log</command_line>

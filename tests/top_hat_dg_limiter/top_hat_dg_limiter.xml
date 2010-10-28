@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Advected top hat (DG with vertex based slope limiter)</name>
-  <owner userid="maddison"/>
+  <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
     <command_line>make clean-run; fluidity -v2 -l top_hat_dg.flml</command_line>
