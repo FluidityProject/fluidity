@@ -192,7 +192,7 @@ start =
                }?,
                comment
             },
-            ## Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled.
+            ## Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled. When running in serial, although the output is in principle still generated in ascii format if binary_output is not enabled, it is not certain that it is working well. Hence, it is recommended to enable binary_output and work with binary files. 
             element detectors {
                (
                   ## A single static detector
