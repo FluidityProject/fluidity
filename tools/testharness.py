@@ -40,7 +40,6 @@ class TestHarness:
         for directory in testpaths:
           if os.path.exists(os.path.join(rootdir, directory)):
             dirnames.append(directory)
-        print dirnames
         testdirs = [ os.path.join( rootdir, x ) for x in dirnames ]
         for directory in testdirs:
           subdirs = [ os.path.join(directory, x) for x in os.listdir(directory)]
@@ -55,9 +54,6 @@ class TestHarness:
               except xml.parsers.expat.ExpatError:
                 print "Warning: %s mal-formed" % xml_file
                 traceback.print_exc()
-
-        print testdirs
-        print xml_files
 
         # step 2. if the user has specified a particular file, let's use that.
 
