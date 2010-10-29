@@ -4,7 +4,7 @@
   <name>p2p1 stokes spatial convergence test</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
   </problem_definition>
   <variables>
@@ -58,6 +58,26 @@ ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
+    <variable name="ab_convergence_t" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_error = stat("MMS_A.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+b_error = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+b_error_inf = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+
+print a_error
+print b_error
+
+print a_error_inf
+print b_error_inf
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+ab_convergence_t = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -108,6 +128,26 @@ bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
     </variable>
+    <variable name="bc_convergence_t" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_error = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+c_error = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+
+b_error_inf = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+c_error_inf = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+
+print b_error
+print c_error
+
+print b_error_inf
+print c_error_inf
+
+bc_ratio = b_error / c_error
+bc_ratio_inf = b_error_inf / c_error_inf
+bc_convergence_t = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+    </variable>
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -157,6 +197,26 @@ print d_error_inf
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_p = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_t" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+c_error = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+d_error = stat("MMS_D.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1]
+
+c_error_inf = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+d_error_inf = stat("MMS_D.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
+
+print c_error
+print d_error
+
+print c_error_inf
+print d_error_inf
+
+cd_ratio = c_error / d_error
+cd_ratio_inf = c_error_inf / d_error_inf
+cd_convergence_t = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
     </variable>
    <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
@@ -257,6 +317,9 @@ assert(ab_convergence_vel[1][0] &gt; 2.5)
     <test name="ab_convergence_p: L2 order > 1.9" language="python">
 assert(ab_convergence_p[0] &gt; 1.9)
     </test>
+    <test name="ab_convergence_t: L2 order > 2.9" language="python">
+assert(ab_convergence_t[0] &gt; 2.9)
+    </test>
     <test name="bc_convergence_vel_x: L2 order > 2.5" language="python">
 assert(bc_convergence_vel[0][0] &gt; 2.5)
     </test>
@@ -266,26 +329,32 @@ assert(bc_convergence_vel[1][0] &gt; 2.5)
     <test name="bc_convergence_p: L2 order > 1.9" language="python">
 assert(bc_convergence_p[0] &gt; 1.9)
     </test>
+    <test name="bc_convergence_t: L2 order > 2.9" language="python">
+assert(bc_convergence_t[0] &gt; 2.9)
+    </test>
     <test name="cd_convergence_vel_x: L2 order > 2.5" language="python">
 assert(cd_convergence_vel[0][0] &gt; 2.5)
     </test>
     <test name="cd_convergence_vel_y: L2 order > 2.5" language="python">
 assert(cd_convergence_vel[1][0] &gt; 2.5)
     </test>
-    <test name="cd_convergence_p: L2 order > 1.9" language="python">
-assert(cd_convergence_p[0] &gt; 1.9)
+    <test name="cd_convergence_p: L2 order > 1.5" language="python">
+assert(cd_convergence_p[0] &gt; 1.5)
     </test>
-    <test name="checking A finished in less than 5" language="python">
-assert(a_finish_time -5 &lt; 1.E-10)
+    <test name="cd_convergence_t: L2 order > 2.9" language="python">
+assert(cd_convergence_t[0] &gt; 2.9)
     </test>
-    <test name="checking B finished in less than 5" language="python">
-assert(b_finish_time -5 &lt; 1.E-10)
+    <test name="checking A finished in less than 15" language="python">
+assert(a_finish_time -15 &lt; 1.E-10)
     </test>
-    <test name="checking C finished in less than 5" language="python">
-assert(c_finish_time -5 &lt; 1.E-10)
+    <test name="checking B finished in less than 15" language="python">
+assert(b_finish_time -15 &lt; 1.E-10)
     </test>
-    <test name="checking D finished in less than 5" language="python">
-assert(d_finish_time -5 &lt; 1.E-10)
+    <test name="checking C finished in less than 15" language="python">
+assert(c_finish_time -15 &lt; 1.E-10)
+    </test>
+    <test name="checking D finished in less than 15" language="python">
+assert(d_finish_time -15 &lt; 1.E-10)
     </test>
     <test name="checking steady state was reached in A vel" language="python">
 assert(a_final_change_vel &lt; 1.E-3)

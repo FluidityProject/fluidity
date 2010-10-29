@@ -79,7 +79,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">20.0</real_value>
     </finish_time>
     <steady_state>
       <tolerance replaces="STEDER">
@@ -262,29 +262,37 @@
           </type>
         </boundary_conditions>
         <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-  from math import sin, cos
-  A = 0.25;
-  nu0 = 0.7;
-  nu = nu0 + A*(cos(X[0]) + cos(X[1]));
-  return nu;</string_value>
-                </python>
-              </isotropic>
-            </value>
+          <diagnostic>
+            <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+              <string_value type="python" lines="20">from math import exp, log
+from numpy import zeros
+
+Temperature=state.scalar_fields["Temperature"]
+
+b=log(1000)
+deltaT=1.0
+
+dim = 2
+visc = zeros((dim,dim))
+
+for n in range(Temperature.node_count):
+   T = Temperature.node_val(n)
+   nu = exp(b*T/deltaT)
+   for i in range(dim):
+      visc[i,i] = nu
+   field.set(n, visc)</string_value>
+            </algorithm>
             <output/>
-          </prescribed>
+          </diagnostic>
         </tensor_field>
         <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(XX, t):
-   from math import sin,cos
-   nu0 = 0.7;
+   from math import sin,cos,log,exp,pi
+   b=log(1000);
+   deltaT=1.0;
    A = 0.25;
    adv = 0.0;
    beta = 0.0;
@@ -292,13 +300,14 @@
    rho = 1.0;
    x = XX[0];
    y = XX[1];
-   Su = -A*sin(x)*sin(y)**2 + A*sin(x)*cos(x)*cos(y) + 2*((cos(x) + cos(y))*A + nu0)*sin(x)*cos(y) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho - sin(x)*cos(y)
-   Sv = A*sin(x)**2*sin(y) - A*sin(y)*cos(x)*cos(y) - 2*((cos(x) + cos(y))*A + nu0)*sin(y)*cos(x) + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - sin(y)*cos(x)
+   Su = A*b*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*sin(y)*cos(x)*cos(y)/deltaT + (A*cos(x)*cos(y) - 1/pi)*b*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*sin(y)/deltaT + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho + 2*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
+   Sv = A*b*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)**2*sin(y)**2/deltaT + (A*cos(x)*cos(y) - 1/pi)*b*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - 2*exp((A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
    return (Su, Sv)</string_value>
                 <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
 v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
 p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)
-nu(x,y,nu0,A) = nu0 + A*(cos(x) + cos(y))&#13;
+T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - y/pi + A*(cos(x)*sin(y))
+nu(x,y,b,deltaT) = exp(b*T/deltaT)&#13;
 
 u_t = diff(u,t)
 v_t = diff(v,t)
@@ -442,6 +451,178 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+          </continuous_galerkin>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.e-8</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">9</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">7</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.7</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <scalar_field replaces="ZSOT" name="Source" rank="0">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value type="python" lines="20">def val(XX, t):
+   from math import sin,cos,pi
+   nu = 0.7;
+   omega = 0.0;
+   mass = 0.0;
+   adv = 1.0;
+   beta = 0.0;
+   A = 0.25;
+   x = XX[0];
+   y = XX[1];
+   S = 2*A*nu*sin(y)*cos(x) - (A*sin(x)**2*sin(y)*cos(y) + (A*cos(x)*cos(y) - 1/pi)*sin(y)*cos(x))*adv
+   return S</string_value>
+                <comment>T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - y/pi + A*(cos(x)*sin(y))
+T_t = diff(T,t)&#13;
+T_x = diff(T,x)&#13;
+T_y = diff(T,y)
+T_xx = diff(T_x,x)
+T_yy = diff(T_y,y)
+
+u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
+v(x,y,rho,beta,nu,adv,masst) = -cos(x)*sin(y)
+u_x = diff(u,x)&#13;
+u_y = diff(u,y)
+v_x = diff(v,x)&#13;
+v_y = diff(v,y)
+
+S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</comment>
+              </python>
+            </value>
+            <output/>
+            <stat/>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </scalar_field>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="TemperatureAnalytical" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(XX,t):
+  from math import cos, sin, pi
+  A = 0.25;
+  x=XX[0];
+  y=XX[1];
+  T = 1 - y/pi + A*(cos(x)*sin(y))
+  return T</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TemperatureAbsoluteDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="Temperature" source_field_2_name="TemperatureAnalytical" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -481,5 +662,30 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         </steady_state>
       </diagnostic>
     </vector_field>
+    <tensor_field name="ViscosityAnalytical" rank="2">
+      <diagnostic>
+        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">from math import exp, log
+from numpy import zeros
+
+Temperature=state.scalar_fields["TemperatureAnalytical"]
+
+b=log(1000)
+deltaT=1.0
+
+dim = 2
+visc = zeros((dim,dim))
+
+for n in range(Temperature.node_count):
+   T = Temperature.node_val(n)
+   nu = exp(b*T/deltaT)
+   for i in range(dim):
+      visc[i,i] = nu
+   field.set(n, visc)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+      </diagnostic>
+    </tensor_field>
   </material_phase>
 </fluidity_options>
