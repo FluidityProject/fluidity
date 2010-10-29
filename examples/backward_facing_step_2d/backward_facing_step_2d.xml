@@ -10,7 +10,7 @@
   </problem_definition>
   <variables>
     <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat
-finishtime= stat("water_collapse.stat")["ElapsedTime"]["value"][-1]</variable>
+finishtime= stat("backward_facing_step_2d.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="reattachment_length" language="python">
 from postprocessor_2d import reatt_length, get_filelist
 import numpy
