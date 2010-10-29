@@ -437,3 +437,8 @@ unittest: build_unittest
 gcov:
 	@echo "RUN gcov"
 	@scripts/options_test_options_report.sh  .
+
+schema:
+	@echo "Rebuilding schema fluidity_options.rng"
+	@./bin/spud-preprocess schemas/fluidity_options.rnc
+
