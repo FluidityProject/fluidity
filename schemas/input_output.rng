@@ -254,9 +254,11 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
         <ref name="comment"/>
       </element>
       <element name="free_surface">
-        <a:documentation>Specify an initial free surface height.
+        <a:documentation>Specify an initial free-surface height perturbation.
+Note this is a perturbation to the initial supplied mesh along the boundary defined as a free-surface in this material phase.
+Can be used with both a moving or static mesh.
 Note this should be specified not only on the surface, but throughout the domain,
-i.e. the same surface value should be applied to all nodes below.</a:documentation>
+i.e. the same surface value should be applied to all nodes below, with the surface values projected across the mesh in the direction of the gravitational force.</a:documentation>
         <ref name="input_choice_initial_condition_real"/>
       </element>
       <element name="NEMO_data">
