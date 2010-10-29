@@ -29,6 +29,7 @@
 module state_module
   !!< This module provides a wrapper object which allows related groups of
   !!< fields to be passed around together.
+  use global_parameters, only:OPTION_PATH_LEN
   use fields_data_types
   use fields_allocates
   use fields_base
@@ -50,6 +51,13 @@ module state_module
      
      !! name for the state
      character(len=FIELD_NAME_LEN) :: name =""
+
+     !! option path for state
+#ifdef DDEBUG
+     character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
+#else
+     character(len=OPTION_PATH_LEN) :: option_path
+#endif
 
      !! The names used for fields should, where possible, be taken from the
      !! the CGNS SIDS.

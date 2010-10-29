@@ -121,6 +121,7 @@ contains
     allocate(states(1:nstates))
     do i = 1, nstates
        call nullify(states(i))
+       states(i)%option_path = '/material_phase['//int2str(i-1)//']'
     end do
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
