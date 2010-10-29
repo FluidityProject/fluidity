@@ -177,6 +177,7 @@ module state_module
        & block_csr_matrix_count, petsc_csr_matrix_count 
   public set_vector_field_in_state
   public collapse_state, extract_state, collapse_fields_in_state
+  public set_option_path
   public unique_mesh_count, sort_states_by_mesh, halo_update
   public aliased
 
@@ -325,6 +326,15 @@ contains
     state%petsc_csr_matrices=>null()
 
   end subroutine nullify_state
+
+  subroutine set_option_path(state, path)
+    !!< Set the option path in state.
+    type(state_type), intent(inout) :: state
+    character(len=*), intent(in) :: path
+
+    state%option_path = trim(path)
+
+  end subroutine set_option_path
 
   subroutine insert_tensor_field(state, field, name)
     !!< Insert a tensor field into state.
