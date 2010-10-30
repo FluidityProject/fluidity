@@ -369,16 +369,16 @@ assert(c_final_change_vel &lt; 1.E-3)
 assert(d_final_change_vel &lt; 1.E-3)
     </test>
     <test name="checking divergence in A vel" language="python">
-assert(a_div &lt; 1.E-8)
+assert(a_div &lt; 1.E-6)
     </test>
     <test name="checking divergence in B vel" language="python">
-assert(b_div &lt; 1.E-8)
+assert(b_div &lt; 1.E-6)
     </test>
     <test name="checking divergence in C vel" language="python">
-assert(c_div &lt; 1.E-8)
+assert(c_div &lt; 1.E-6)
     </test>
     <test name="checking divergence in D vel" language="python">
-assert(d_div &lt; 1.E-8)
+assert(d_div &lt; 1.E-6)
     </test>
     <test name="checking steady state was reached in A p" language="python">
 assert(a_final_change_p &lt; 1.E-3)
