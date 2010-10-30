@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import vtk
 import glob
 import sys
@@ -80,7 +81,7 @@ def reatt_length(filelist, exclude_initial_results):
     for i in range(len(u)-1):
       ##### Hack to ignore division by zero entries in u.
       ##### All u should be nonzero away from boundary!
-      if((u[i] / u[i+1]) < 0. and not isinf(u[i] / u[i+1])):
+      if((u[i] / u[i+1]) < 0. and not math.isinf(u[i] / u[i+1])):
         ##### interpolate between nodes
         p = pts[i] + (pts[i+1]-pts[i]) * (0.0-u[i]) / (u[i+1]-u[i])
         ##### Ignore spurious corner points
