@@ -32,7 +32,6 @@ def reatt_length(filelist, yarray, exclude_initial_results):
   print "Calculating reattachment point locations using change of x-velocity sign\n"
   print "Processing pvtu files...\n"
   nums=[]; results=[]
-  result=0.
 
   ##### check for no files
   if (len(filelist) == 0):

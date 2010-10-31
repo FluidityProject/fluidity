@@ -8,6 +8,7 @@ import os
 import vtktools
 import numpy
 import pylab
+from math import isinf
 
 def get_filelist():
 
@@ -50,7 +51,6 @@ def reatt_length(filelist, exclude_initial_results):
     nums.sort()
 
   for num in nums:
-    ##### counter for averaging
     file = "backward_facing_step_2d_"+str(num)+".vtu"
 
     print file
@@ -83,7 +83,7 @@ def reatt_length(filelist, exclude_initial_results):
       ##### All u should be nonzero away from boundary!
       if((u[i] / u[i+1]) < 0. and not math.isinf(u[i] / u[i+1])):
         ##### interpolate between nodes
-        p = pts[i] + (pts[i+1]-pts[i]) * (0.0-u[i]) / (u[i+1]-u[i])
+        p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i])
         ##### Ignore spurious corner points
         if(p>0.1):
           points.append(p)
