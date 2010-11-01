@@ -8,6 +8,7 @@ import traceback
 import time
 import glob
 import threading
+import traceback
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
@@ -173,7 +174,13 @@ class TestProblem:
         self.log("Assigning variables:")
         for var in self.variables:
             tmpdict  = {}
-            var.run(tmpdict)
+            try:
+              var.run(tmpdict)
+            except:
+              self.log("failure.")
+              self.pass_status.append('F')
+              return self.pass_status
+
             varsdict[var.name] = tmpdict[var.name]
             self.log("Assigning %s = %s" % (str(var.name), Trim(str(varsdict[var.name]))))
 
@@ -256,7 +263,18 @@ class Variable(TestOrVariable):
             raise Exception
 
     def run_python(self, varsdict):
-        exec self.code in varsdict
+        try:
+            exec self.code in varsdict
+        except:
+            print "Variable computation raised an exception"
+            print "-" * 80
+            for (lineno, line) in enumerate(self.code.split('\n')):
+              print "%3d  %s" % (lineno+1, line)
+            print "-" * 80
+            traceback.print_exc()
+            print "-" * 80
+            raise Exception
+
         if self.name not in varsdict.keys():
             print "self.name == ", self.name
             print "varsdict.keys() == ", varsdict.keys()
