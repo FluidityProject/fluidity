@@ -111,7 +111,8 @@ f.close()
 ### write the .ele file
 f=file(meshname+'.ele','w')
 elements=6*(Nx-1)*(Ny-1)*(Nz-1)
-f.write(`elements`+' 4 0\n')
+f.write(`elements`+' 4 1\n')
+region_id=0 # this doesn't change at the moment
 ele_number=1
 for ix in range(Nx-1):
   for iy in range(Ny-1):
@@ -128,16 +129,16 @@ for ix in range(Nx-1):
       node8=node5+Nx
       node7=node8+1
       # trust us, the following is right:
-      f.write(`ele_number`+' '+`node1`+' '+`node4`+' '+`node3`+' '+`node7`+'\n')
+      f.write(`ele_number`+' '+`node1`+' '+`node4`+' '+`node3`+' '+`node7`+' '+`region_id`+'\n')
       ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node8`+' '+`node5`+'\n')
+      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node8`+' '+`node5`+' '+`region_id`+'\n')
       ele_number += 1
-      f.write(`ele_number`+' '+`node8`+' '+`node3`+' '+`node7`+' '+`node1`+'\n')
+      f.write(`ele_number`+' '+`node8`+' '+`node3`+' '+`node7`+' '+`node1`+' '+`region_id`+'\n')
       ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node4`+' '+`node7`+'\n')
+      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node4`+' '+`node7`+' '+`region_id`+'\n')
       ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node5`+' '+`node6`+'\n')
+      f.write(`ele_number`+' '+`node1`+' '+`node7`+' '+`node5`+' '+`node6`+' '+`region_id`+'\n')
       ele_number += 1
-      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node7`+' '+`node6`+'\n')
+      f.write(`ele_number`+' '+`node1`+' '+`node2`+' '+`node7`+' '+`node6`+' '+`region_id`+'\n')
       ele_number += 1
 f.close()

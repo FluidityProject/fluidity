@@ -303,6 +303,7 @@ contains
     element_shape => ele_shape(s_field, ele)
     positions_shape => ele_shape(positions, ele)
     
+    assert(positions_shape%degree == 1)
     if(associated(element_shape%dn_s)) then
       augmented_shape = element_shape
       call incref(augmented_shape)
@@ -316,7 +317,6 @@ contains
       & ele_val(positions, ele), positions_shape, &
       ! Output variables
       & invj = invj)
-    assert(positions_shape%degree == 1)
     assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
     invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
       

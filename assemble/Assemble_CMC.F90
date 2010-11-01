@@ -160,7 +160,7 @@ contains
       do i = 1, inner_m_diagonal%dim
          ewrite_minmax(inner_m_diagonal%val(i)%ptr)
          if(any(inner_m_diagonal%val(i)%ptr < 0)) then
-            ewrite(0,*) 'Inner_m_diagonal has negative values'
+            ewrite(-1,*) 'Inner_m_diagonal has negative values'
             FLExit("Negative values in the diagonal schur complement preconditioner")
 
          end if

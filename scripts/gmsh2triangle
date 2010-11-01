@@ -48,6 +48,14 @@ while mshfile.readline().strip() !="$Nodes":
     pass
 nodecount=int(mshfile.readline())
 
+if nodecount==0:
+  sys.stderr.write("ERROR: No nodes found in mesh.\n")
+  sys.exit(1)
+
+if nodecount<0:
+  sys.stderr.write("ERROR: Negative number of nodes found in mesh.\n")
+  sys.exit(1)
+
 dim=options.dim
 nodefile=file(basename+".node", 'w')
 nodefile.write(`nodecount`+" "+`dim`+" 0 0\n")
