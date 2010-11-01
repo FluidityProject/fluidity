@@ -265,7 +265,7 @@ contains
     subroutine compute_pressure_and_tidal_gradient(delta_u, ct_m, p_theta, position)
       ! computes gradient of pressure and tidal forcing term
       ! to be added to the momentum rhs
-      type(vector_field), intent(out):: delta_u
+      type(vector_field), intent(inout):: delta_u
       type(block_csr_matrix), intent(in):: ct_m
       type(scalar_field), target, intent(in):: p_theta
       type(vector_field), intent(in):: position
@@ -317,6 +317,7 @@ contains
       call get_option("/timestepping/current_time", current_time)
       call get_option('/physical_parameters/gravity/magnitude',&
            & gravity_magnitude)
+
       do node=1,node_count(position)
          if (have_option('/geometry/spherical_earth/')) then
            call LongitudeLatitude(node_val(position,node), long,&
@@ -332,11 +333,14 @@ contains
          eqtide=love_number*eqtide
          call set(tidal_pressure, node, eqtide*gravity_magnitude)
       end do
+
       do node=1,node_count(position)
          call set(combined_p, node, node_val(p_theta, node)&
               &-node_val(tidal_pressure, node))
       end do
+
       call mult_T(delta_u, ct_m, combined_p)
+
       call deallocate(tidal_pressure)
       call deallocate(combined_p)
               
