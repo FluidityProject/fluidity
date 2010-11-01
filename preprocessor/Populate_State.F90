@@ -2226,7 +2226,7 @@ contains
              call zero(sfield)
              call initialise_field_over_regions(sfield, &
                 trim(sfield%option_path)//'/prognostic/initial_condition', &
-                position)
+                position, phase_path=trim(phase_path))
           end if
        end do
 
@@ -2239,7 +2239,7 @@ contains
              call zero(vfield)
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)//'/prognostic/initial_condition', &
-                position)
+                position, phase_path=trim(phase_path))
           end if
        end do
 

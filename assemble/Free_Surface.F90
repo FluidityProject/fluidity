@@ -40,6 +40,7 @@ use halos
 use eventcounter
 use integer_set_module
 use field_options
+use physics_from_options
 implicit none
 
 private
@@ -129,7 +130,7 @@ contains
       u => extract_vector_field(state, "Velocity")
       
       ! reference density
-      call get_reference_density_from_options(state, u, rho0)
+      call get_reference_density_from_options(rho0, state%option_path)
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
       ! only include the inner product of gravity and surface normal
@@ -335,7 +336,7 @@ contains
     u => extract_vector_field(state, "Velocity")
 
     ! reference density
-    call get_reference_density_from_options(state, u, rho0)
+    call get_reference_density_from_options(rho0, state%option_path)
 
     ! only include the inner product of gravity and surface normal
     ! if the free surface nodes are actually moved (not necessary
@@ -566,7 +567,7 @@ contains
     
     ! eos/fluids/linear/subtract_out_hydr.level is options checked below
     ! so the ref. density should be present
-    call get_reference_density_from_options(state, u, rho0)
+    call get_reference_density_from_options(rho0, state%option_path)
     
     p => extract_scalar_field(state, "Pressure")
     if (.not. p%mesh==positions%mesh) then
@@ -822,7 +823,7 @@ contains
      call get_option('/physical_parameters/gravity/magnitude', g)
 
      u => extract_vector_field(state, "Velocity")
-     call get_reference_density_from_options(state, u, rho0)
+     call get_reference_density_from_options(rho0, state%option_path)
           
      topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
      if (stat==0) then
@@ -887,34 +888,6 @@ contains
     
   end subroutine calculate_diagnostic_free_surface
 
-  subroutine get_reference_density_from_options(state, u, rho0)
-
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(in) :: u
-    real, intent(out) :: rho0
-
-    if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/linear/')) then
-      if (have_option(trim(u%option_path)//"/prognostic/equation::Boussinesq")) then
-        ! for Boussinesq the pressure is actually p/rho0 already so we don't want to divide by
-        ! the reference density again
-        rho0 = 1.0
-      else
-        ! for other equation types the pressure is really the pressure so we do need to
-        ! divide by the real reference density
-        call get_option('/material_phase::'//trim(state%name)// &
-          '/equation_of_state/fluids/linear/reference_density', rho0)
-      end if
-    else if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/ocean_pade_approximation/')) then
-      ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
-      rho0=1.0
-    else 
-      ewrite(-1,*) "Unless using Boussinesq Velocity, you must specify a"
-      ewrite(-1,*) "linear or pade equation of state for the free surface."
-      FLExit("Error retrieving reference density from options.")
-    endif
-
-  end subroutine get_reference_density_from_options
-
  subroutine update_wettingdrying_alpha(state)
   !!< calculates and updates the alpha coefficients for wetting and drying.
   type(state_type), intent(in):: state
@@ -941,7 +914,7 @@ contains
        if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
              scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
              ! Update WettingDryingAlpha
-             call get_reference_density_from_options(state, u, rho0)
+             call get_reference_density_from_options(rho0, state%option_path)
              d0_field => get_wettingdrying_d0(state)
              call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
              call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0offset)

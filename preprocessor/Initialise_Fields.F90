@@ -36,6 +36,7 @@ use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, is_active_process
 use vtk_cache_module
 use climatology
 use nemo_states_module
+use physics_from_options
 
 implicit none
 
@@ -63,7 +64,7 @@ implicit none
   
 contains
 
-  recursive subroutine initialise_scalar_field(field, path, position, time)
+  recursive subroutine initialise_scalar_field(field, path, position, time, phase_path)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
@@ -72,6 +73,7 @@ contains
     type(vector_field), intent(in):: position
     !! if present use this time level, instead of that in the options tree
     real, optional, intent(in):: time
+    character(len=*), intent(in), optional :: phase_path
 
     type(scalar_field), pointer:: read_field
     real :: const
@@ -104,15 +106,9 @@ contains
     else if(have_option(trim(path)//"/internally_calculated")) then
        continue
     else if(have_option(trim(path)//"/free_surface")) then
-       call initialise_field(field, trim(path)//"/free_surface", position, time=time)
+       call initialise_field(field, trim(path)//"/free_surface", position, time=time, phase_path=trim(phase_path))
        ! Scale the entered freesurface height by the magnitude of gravity to give the pressure initial condition
-       if(have_option("/physical_parameters/gravity")) then
-          call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
-          ! Note this is rescale is limited to the region this condition is applied
-          call scale(field, gravity_magnitude)
-       else
-          FLExit("Specifying a free surface initial condition requires gravity to be defined.")
-       end if
+       call convert_free_surface_to_pressure(field, phase_path)
 
     else if(have_option(trim(path) // "/from_file")) then
        
@@ -182,7 +178,7 @@ contains
 
   end subroutine initialise_scalar_field
 
-  subroutine initialise_vector_field(field, path, position, time)
+  subroutine initialise_vector_field(field, path, position, time, phase_path)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
@@ -191,6 +187,7 @@ contains
     type(vector_field), intent(in) :: position
     !! if present use this time level, instead of that in the options tree
     real, optional, intent(in):: time
+    character(len=*), intent(in), optional :: phase_path
 
     type(vector_field), pointer:: read_field
     real, dimension(1:field%dim) :: const
@@ -313,7 +310,7 @@ contains
  
   end subroutine initialise_vector_field
 
-  subroutine initialise_tensor_field(field, path, position, time)
+  subroutine initialise_tensor_field(field, path, position, time, phase_path)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
@@ -323,6 +320,7 @@ contains
     type(vector_field), intent(in) :: position
     !! if present use this time level, instead of that in the options tree
     real, optional, intent(in):: time
+    character(len=*), intent(in), optional :: phase_path
     
     integer :: i
     logical :: is_isotropic, is_diagonal, is_symmetric
@@ -460,7 +458,7 @@ contains
 
   end subroutine initialise_tensor_field
 
-  subroutine initialise_scalar_field_over_regions(field, path, position, time)
+  subroutine initialise_scalar_field_over_regions(field, path, position, time, phase_path)
     !!< Wrapper to initialise_scalar_field for prescribed and prognostic
     !!< fields in case mesh regions are being used
     type(scalar_field), intent(inout) :: field
@@ -469,6 +467,7 @@ contains
     character(len=*), intent(in) :: path
     type(vector_field), intent(in):: position
     real, intent(in), optional :: time
+    character(len=*), intent(in), optional :: phase_path
 
     type(scalar_field) :: tempfield
     integer :: value, nvalues
@@ -481,7 +480,7 @@ contains
        call zero(tempfield)
        call initialise_field(tempfield, &
             trim(path)//'['//int2str(value)//']', &
-            position, time=time)
+            position, time=time, phase_path=trim(phase_path))
        call apply_region_ids(field, tempfield, &
             trim(path)//'['//int2str(value)//']')
     end do
@@ -490,7 +489,7 @@ contains
 
   end subroutine initialise_scalar_field_over_regions
 
-  subroutine initialise_vector_field_over_regions(field, path, position, time)
+  subroutine initialise_vector_field_over_regions(field, path, position, time, phase_path)
     !!< Wrapper to initialise_field for prescribed fields in case
     !!< mesh regions are being used
     type(vector_field), intent(inout) :: field
@@ -499,6 +498,7 @@ contains
     character(len=*), intent(in) :: path
     type(vector_field), intent(in):: position
     real, intent(in), optional :: time
+    character(len=*), intent(in), optional :: phase_path
 
     type(vector_field) :: tempfield
     integer :: value, nvalues
@@ -512,7 +512,7 @@ contains
        call zero(tempfield)
        call initialise_field(tempfield, &
             trim(path)//'['//int2str(value)//']', &
-            position, time=time)
+            position, time=time, phase_path=trim(phase_path))
        call apply_region_ids(field, tempfield, &
             trim(path)//'['//int2str(value)//']')
     end do
@@ -521,7 +521,7 @@ contains
 
   end subroutine initialise_vector_field_over_regions
 
-  subroutine initialise_tensor_field_over_regions(field, path,position, time)
+  subroutine initialise_tensor_field_over_regions(field, path, position, time, phase_path)
     !!< Wrapper to initialise_field for prescribed fields in case
     !!< mesh regions are being used
     type(tensor_field), intent(inout) :: field
@@ -530,6 +530,7 @@ contains
     character(len=*), intent(in) :: path
     type(vector_field), intent(in):: position
     real, intent(in), optional :: time
+    character(len=*), intent(in), optional :: phase_path
     
     type(tensor_field) :: tempfield
     integer :: value, nvalues
@@ -542,7 +543,7 @@ contains
        call zero(tempfield)
        call initialise_field(tempfield, &
             trim(path)//'['//int2str(value)//']', &
-            position, time=time)
+            position, time=time, phase_path=trim(phase_path))
        call apply_region_ids(field, tempfield, &
             trim(path)//'['//int2str(value)//']')
     end do
