@@ -204,7 +204,6 @@ input_choice_initial_condition_pressure =
          comment
       }|
       ## Specify an initial free-surface height perturbation.
-      ## WARNING: Currently only for Boussinesq fluids.
       ## Note this is a perturbation to the initial supplied mesh along the boundary defined as a free-surface in this material phase.
       ## Can be used with both a moving or static mesh.
       ## Note this should be specified not only on the surface, but throughout the domain,
