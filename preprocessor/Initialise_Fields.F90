@@ -173,7 +173,8 @@ contains
     else
        ! This really shouldn't happen (with a valid flml)
        ewrite(-1,*) "Incorrect initial or boundary condition for field ", trim(field%name)
-       FLExit("Incorrect initial or boundary condition for field")
+       ewrite(-1,*) "specified in the options at ", trim(path)
+       FLAbort("Incorrect initial or boundary condition for field")
     end if
 
   end subroutine initialise_scalar_field
