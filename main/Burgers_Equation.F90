@@ -31,6 +31,8 @@
     use fields
     use state_module
     use FLDebug
+    use vtk_interfaces
+    use signal_vars
     use populate_state_module
     use write_state_module
     use timeloop_utilities
@@ -117,6 +119,7 @@
     timestep=0
     timestep_loop: do 
        timestep=timestep+1
+       ewrite(1,*) "Starting timestep, current_time: ", current_time
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
@@ -198,9 +201,9 @@
 
       integer :: nonlinear_iterations, nit
       real :: itheta, theta
-      logical :: stationary_problem
+      logical :: stationary_problem, have_tolerance
       real :: tolerance, change
-      integer, parameter :: max_picard_iterations=10000
+      integer, parameter :: max_picard_iterations=100000
 
       mass_matrix => extract_csr_matrix(state, "MassMatrix")
       diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
@@ -218,7 +221,17 @@
         theta = 1.0
         itheta = 1.0
         nonlinear_iterations = max_picard_iterations
-        call get_option("/timestepping/stationary_problem/tolerance", tolerance)
+      end if
+
+      have_tolerance = have_option("/timestepping/nonlinear_tolerance")
+      if (stationary_problem .and. .not. have_tolerance) then
+        ewrite(-1,*) "You need to specify /timestepping/nonlinear_tolerance for stationary problems."
+        FLExit("You need to specify /timestepping/nonlinear_tolerance for stationary problems.")
+      end if
+
+      if (have_tolerance) then
+        call get_option("/timestepping/nonlinear_tolerance", tolerance)
+        nonlinear_iterations = max_picard_iterations
       end if
 
       call allocate(nonlinear_velocity, u%mesh, "NonlinearVelocity")
@@ -242,23 +255,35 @@
         call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, stationary_problem)
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state, stationary_problem)
 
+        call apply_dirichlet_conditions(lhs_matrix, rhs, u)
+
         call set(old_iterated_velocity, iterated_velocity)
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
 
-        if (stationary_problem) then
-          call set(iterated_velocity_difference, iterated_velocity)
-          call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
-          change = norm2(iterated_velocity_difference, x)
-          ewrite(1,*) "L2 norm of change in velocity: ", change
+        !call vtk_write_fields("nonlinear_iteration", nit, x, u%mesh, sfields=(/iterated_velocity/))
+        call set(iterated_velocity_difference, iterated_velocity)
+        call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
+        change = norm2(iterated_velocity_difference, x)
+        ewrite(1,*) "L2 norm of change in velocity: ", change
+
+        if (have_tolerance) then
           if (change <= tolerance) then
+            ewrite(1,*) "Change in velocity less than convergence tolerance, exiting"
             exit nonlinear_loop
           end if
         end if
+
+        if (sig_hup .or. sig_int) then
+          ewrite(1,*) "Caught signal, exiting"
+          exit nonlinear_loop
+        end if
       end do nonlinear_loop
 
-      if (stationary_problem .and. nit >= max_picard_iterations) then
-        ewrite(-1,*) "Warning: failed to converge in ", max_picard_iterations, " iterations"
+      ewrite(1,*) "Out of the nonlinear loop, number of nonlinear_iterations: ", nit - 1
+
+      if (have_tolerance .and. nit >= max_picard_iterations) then
+        ewrite(1,*) "Warning: failed to converge in ", max_picard_iterations, " iterations"
       end if
 
       call set(u, iterated_velocity)
@@ -379,7 +404,6 @@
       call get_entire_boundary_condition(u, (/"neumann"/), bc_value, bc_type_list)
       do sele=1,surface_element_count(u)
         if (bc_type_list(sele) == 0) then
-          write(0,*) "Warning: surface element with no Neumann boundary condition" 
           cycle
         end if
 

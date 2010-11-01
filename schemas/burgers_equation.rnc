@@ -178,11 +178,11 @@ timestepping =
                integer
             }?,
             ## Indicate that the problem should be considered time-independent.
-            element stationary_problem { 
-               ### The convergence tolerance, in the L2 norm
-               element tolerance {
-                  real
-               }
+            ## If this is activated, you must also activate the convergence tolerance below.
+            element stationary_problem { empty }?,
+            ### The convergence tolerance of the nonlinear iterations, in the L2 norm
+            element nonlinear_tolerance {
+               real
             }?
          }
    )
@@ -261,7 +261,7 @@ boundary_conditions =
                integer_vector
             },
             element type {
-               attribute name { "neumann" },
+               attribute name { "neumann" | "dirichlet" },
                input_choice_real
             }
          }

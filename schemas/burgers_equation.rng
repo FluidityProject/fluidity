@@ -212,11 +212,15 @@ Manual suggests 2</a:documentation>
       </optional>
       <optional>
         <element name="stationary_problem">
-          <a:documentation>Indicate that the problem should be considered time-independent.</a:documentation>
-          <element name="tolerance">
-            <a:documentation>The convergence tolerance, in the L2 norm</a:documentation>
-            <ref name="real"/>
-          </element>
+          <a:documentation>Indicate that the problem should be considered time-independent.
+If this is activated, you must also activate the convergence tolerance below.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="nonlinear_tolerance">
+          <a:documentation>The convergence tolerance of the nonlinear iterations, in the L2 norm</a:documentation>
+          <ref name="real"/>
         </element>
       </optional>
     </element>
@@ -329,7 +333,10 @@ Recommended to be 0.5.</a:documentation>
       </element>
       <element name="type">
         <attribute name="name">
-          <value>neumann</value>
+          <choice>
+            <value>neumann</value>
+            <value>dirichlet</value>
+          </choice>
         </attribute>
         <ref name="input_choice_real"/>
       </element>

@@ -42,11 +42,10 @@
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
-    <stationary_problem>
-      <tolerance>
-        <real_value rank="0">1.0e-16</real_value>
-      </tolerance>
-    </stationary_problem>
+    <stationary_problem/>
+    <nonlinear_tolerance>
+      <real_value rank="0">1.0e-16</real_value>
+    </nonlinear_tolerance>
   </timestepping>
   <material_phase name="Fluid">
     <scalar_field name="Velocity" rank="0">
