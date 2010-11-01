@@ -16,12 +16,12 @@ subroutine test_strain_rate
 
   interface
     function velocity(pos)
-      real, dimension(:) :: pos
-      real, dimension(3) :: velocity
+      real, dimension(:), intent(in) :: pos
+      real, dimension(size(pos)) :: velocity
     end function
     function solution(pos)
-      real, dimension(:) :: pos
-      real, dimension(3,3) :: solution
+      real, dimension(:), intent(in) :: pos
+      real, dimension(size(pos),size(pos)) :: solution
     end function
   end interface
 

@@ -16,11 +16,11 @@ subroutine test_tensor_second_invariant
 
   interface
     function strainrate(pos)
-      real, dimension(:) :: pos
-      real, dimension(3,3) :: strainrate
+      real, dimension(:), intent(in) :: pos
+      real, dimension(size(pos), size(pos)) :: strainrate
     end function
     function solution(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
