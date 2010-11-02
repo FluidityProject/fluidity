@@ -84,7 +84,6 @@ module zoltan_integration
 !   elements with quality greater than this value are ok
 !   those with element quality below it need to be adapted
   real, save :: quality_tolerance
-  integer, save :: zoltan_transfer_fields_count = 0
   integer :: zoltan_iteration
   integer :: zoltan_max_adapt_iteration
  
@@ -256,6 +255,7 @@ module zoltan_integration
         MPI_COMM_WORLD,err)
     end if
 
+
     head = 1
     
     ! Aim is to assign high edge weights to poor quality elements
@@ -363,6 +363,7 @@ module zoltan_integration
       end do
       close(666)
     end if
+
    
    ierr = ZOLTAN_OK
  end subroutine zoltan_cb_get_edge_list
@@ -969,16 +970,8 @@ module zoltan_integration
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: state_no, field_no, sz, i, dets_in_ele
+    integer :: state_no, field_no, sz, i
     character (len = OPTION_PATH_LEN) :: filename
-
-    type(integer_hash_table) :: ihash_sparsity
-    type(csr_sparsity) :: element_detector_list
-    real, dimension(:,:), allocatable :: list_into_array
-    integer, dimension(:), pointer:: det_index_in_list_into_array
-
-    type(detector_type), pointer :: node
-    integer :: old_universal_element_number, old_local_element_number, row, count, ele, dimen
 
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
 
@@ -1005,63 +998,8 @@ module zoltan_integration
       end do
 
     end do
-
-!! Adding the bytes for the detector information that needs to be sent (packed) together with the rest of field information in each element
-
-!! First we find out how many detectors we have in each element.
-
-    dimen=zz_positions%dim
-
-    allocate(list_into_array(detector_list%length,dimen+4))
-
-    call allocate(ihash_sparsity) 
-
-    count=0
-
-    node => detector_list%firstnode
-
-    do i=1, detector_list%length
-
-       ele=node%element
-       if ((.not. has_key(ihash_sparsity, ele)).and.(ele/=-1)) then
-          count=count+1
-          call insert(ihash_sparsity, ele, count)
-       end if
-       node => node%next
-
-    end do
-   
-    call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="ElementDetectorList")
-
-    call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
-
-!! After calling the previous subroutine, the combination of the ihash_sparsity table, the list_into_array array and the element_detector_list sparsity matrix, allows for a given element local number, find out how many detectors the element has and extract the detector information from the appropriate rows in the array: list_into_array
-
-    do i=1,num_ids
-
-       old_universal_element_number = global_ids(i)
-       old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-
-!! If element does not have detectors will not be in ihash_sparsity table. If it has detectors, we find out how many and also add another real_size
-       dets_in_ele=0
-
-       if (has_key(ihash_sparsity, old_local_element_number)) then
-         row=fetch(ihash_sparsity, old_local_element_number)
-         det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
- 
-         dets_in_ele=size(det_index_in_list_into_array)
-
-       end if  
-
-       sizes(i) = sz * real_size + ((dimen+2) * real_size * dets_in_ele) + real_size
-
-    end do
-
-    deallocate(list_into_array)
-
-    call deallocate(ihash_sparsity) 
-
-    call deallocate(element_detector_list)
+    
+    sizes(1:num_ids) = sz * real_size
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
@@ -1071,7 +1009,7 @@ module zoltan_integration
        end do
        close(666)
     end if
-
+    
     ierr = ZOLTAN_OK
 
   end subroutine zoltan_cb_pack_field_sizes
@@ -1088,71 +1026,21 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr
 
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, j, k, state_no, field_no, loc
+    integer :: rhead, i, state_no, field_no, loc
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, old_local_element_number, row, dets_in_ele, count, ele, dimen, dataSize, new_local_element_number
-
-    type(integer_hash_table) :: ihash_sparsity
-    type(csr_sparsity) :: element_detector_list
-    real, dimension(:,:), allocatable :: list_into_array
-    integer, dimension(:), pointer:: det_index_in_list_into_array
-
-    type(detector_type), pointer :: node, node_to_send
-
-    integer :: original_length, remove_det, processor_number, det_found
+    integer :: old_universal_element_number, old_local_element_number, dataSize
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
 
-    call allocate(ihash_sparsity) 
-
-    count=0
-    node => detector_list%firstnode
-
-    do j=1, detector_list%length
-
-       ele=node%element
-       if ((.not. has_key(ihash_sparsity, ele)).and.(ele/=-1)) then
-          count=count+1
-          call insert(ihash_sparsity, ele, count)
-       end if
-       node => node%next
-
-    end do
-
-    call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
-
-    dimen=zz_positions%dim
-    
-    allocate(list_into_array(detector_list%length,dimen+4))
-          
-    !! This subroutine below creates a csr_sparsity matrix called element_detector_list that we use to find out 
-    !! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
-    !! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector. 
-    !! By accessing the array at that/those row indexes we can extract the information (position, id_number, type) of each detector present 
-    !! in the element (each row index corresponds to a detector) to be packed and sent together with the field information
-          
-    call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
-    
     do i=1,num_ids
        
        allocate(rbuf(sizes(i)/real_size))
        
        old_universal_element_number = global_ids(i)
        old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-       
-       if (has_key(uen_to_new_local_numbering, old_universal_element_number)) then
-          
-          new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-          processor_number=element_owner(new_positions,new_local_element_number)
-          
-       else
-          
-          processor_number=-1
 
-       end if
-       
        rhead = 1
        
        do state_no=1,size(source_states)
@@ -1180,49 +1068,6 @@ module zoltan_integration
           
        end do
 
-       dets_in_ele=0
-       
-       rbuf(rhead) = dets_in_ele
-       
-       if (has_key(ihash_sparsity, old_local_element_number)) then
-          
-          row=fetch(ihash_sparsity, old_local_element_number)
-          det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
-          
-          dets_in_ele=size(det_index_in_list_into_array)
-          
-          rbuf(rhead) = dets_in_ele
-          rhead = rhead + 1
-          do j=1, dets_in_ele
-             
-             !det position
-             rbuf(rhead:rhead + (dimen) - 1) = reshape(list_into_array(det_index_in_list_into_array(j),1:dimen), (/dimen/))
-             rhead = rhead + dimen
-             !det id_number
-             rbuf(rhead) = list_into_array(det_index_in_list_into_array(j),dimen+2)
-             rhead = rhead + 1
-             !det type
-             rbuf(rhead) = list_into_array(det_index_in_list_into_array(j),dimen+3)
-             rhead = rhead + 1
-             
-             if (processor_number/=getprocno()) then
-               
-!!! Tagging det for removal
-                list_into_array(det_index_in_list_into_array(j),dimen+4)=1.0
-                
-             end if
-
-          end do
-
-       else
-          rhead = rhead + 1
-       end if
-
-!!! list_into_array(det_index_in_list_into_array(j),dimen+4)=det_needs_to_be_removed, that has been set to 1 when packing above if the element was not owned any more by this proc: processor_number_array(i)/=getprocno()
- 
-!    buf(idx(i):idx(i) + (sizes(i)/real_size) - 1) = transfer(rbuf, buf(idx(i):idx(i) + (sizes(i)/real_size) - 1))
-!     buf(idx(i):idx(i) + (max_size/real_size) - 1) = transfer(rbuf, buf(idx(i):idx(i) + (max_size/real_size) - 1))
-
    ! We have an issue here - buf is an assumed array - we need to let the
    ! compiler know the dimensionality and size before we start copying bits
    ! of memory around into it. Because it's of a different type to rbuf, we
@@ -1239,66 +1084,6 @@ module zoltan_integration
 
     end do
        
-!!! Next: Removing detectors from current detector_list if they are being packed to be sent to another proc. and current proc doesn't own the element anymore in the new mesh.
-
-!!! This happens if processor_number calculated above is different from current proc. or processor_number=-1 which means we could not check who owns the element in the new mesh because old_univ_ele number is not in the new list uen_to_new_local_numbering. In any case even if we don't know who owns it, the fact that is not in the new list for this proc., means this proc does not own it anymore in the new mesh. In this case, it was tagged above as list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0. Whenever this is 1.0 as opposed to 0.0, the detector is being transferred and we should remove it from this list.
-
-    if (detector_list%length/=0) then
-
-       node => detector_list%firstnode
-
-       original_length=detector_list%length
-
-       do k=1, original_length
-
-            remove_det=0
-
-            det_found=0
-
-            if (has_key(ihash_sparsity, node%element)) then
-
-               row=fetch(ihash_sparsity, node%element) 
-
-               det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
-
-               dets_in_ele=size(det_index_in_list_into_array)
-
-               do j=1, dets_in_ele
-
-                  !If there are more than one detector in the element make sure we are accessing the right one
-                  if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
-                      det_found=1
-                      !If the detector in that element is in a new element after the adapt that belongs to another proc.
-                      !then when going over the elements to transfer, it was tagged:, i.e., 
-                      !list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0 
-                      if (list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0) then
-                            remove_det=1 
-                            node_to_send => node
-                            node => node%next
-                            call remove_det_from_current_det_list(detector_list,node_to_send) 
-                      end if
-                  end if
-                  if (det_found==1) exit !(the detector has already been found and deleted if needed)
-               end do
-
-            end if
-
-            if (remove_det/=1) then
-
-               node => node%next
-
-            end if
-      
-       end do
-
-    end if
-
-    deallocate(list_into_array)
-
-    call deallocate(ihash_sparsity) 
-
-    call deallocate(element_detector_list)
-
     ierr = ZOLTAN_OK
 
   end subroutine zoltan_cb_pack_fields
@@ -1314,21 +1099,12 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr  
 
     real, dimension(:), allocatable :: rbuf ! easier to read reals 
-    integer :: rhead, i, j, state_no, field_no, loc, ratio, dimen
+    integer :: rhead, i, state_no, field_no, loc
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, new_local_element_number, dets_in_ele, cont_num_det
-    integer :: processor_owner, dataSize
-
-    type(detector_type), pointer :: node
-    type(element_type), pointer :: shape
-
-    ratio = real_size / integer_size
-
-    cont_num_det=0
-
-    shape=>ele_shape(new_positions,1)
+    integer :: old_universal_element_number, new_local_element_number
+    integer :: dataSize
 
     do i=1,num_ids
        
@@ -1375,49 +1151,6 @@ module zoltan_integration
           
        end do
        
-       dimen=new_positions%dim
-       
-       processor_owner=element_owner(new_positions,new_local_element_number)
-       
-       if ((rbuf(rhead))>0.0) then
-          
-          dets_in_ele=rbuf(rhead)
-          rhead=rhead+1
-          
-          if (processor_owner == getprocno()) then
-             
-             do j=1, dets_in_ele
-                
-                cont_num_det=cont_num_det+1
-                
-                allocate(node)
-                
-                allocate(node%position(dimen))
-                
-                node%position=reshape(rbuf(rhead:rhead + (dimen) - 1) , (/dimen/))
-                rhead = rhead + dimen
-                node%element=new_local_element_number
-                node%id_number=rbuf(rhead)
-                rhead = rhead + 1
-                node%type=rbuf(rhead) 
-                rhead = rhead + 1
-                node%local = .true.
-                node%initial_owner=getprocno()
-                
-                shape=>ele_shape(new_positions,1)
-                
-                allocate(node%local_coords(local_coord_count(shape)))          
-                
-                node%local_coords=local_coords(new_positions,node%element,node%position)
-                node%name=name_of_detector_in_read_order(node%id_number)
-                call insert_det(detector_list,node)
-                
-             end do
-
-          end if
-
-       end if
-
        deallocate(rbuf)
 
     end do
@@ -1452,8 +1185,6 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer :: p1_import_local_ids => null()
     integer(zoltan_int), dimension(:), pointer :: p1_import_procs => null()
     integer, save :: dumpno = 0
-
-    integer :: k
 
     type(tensor_field) :: new_metric
     
@@ -1678,14 +1409,6 @@ module zoltan_integration
       type(vector_field), pointer :: source_vfield, target_vfield
       type(tensor_field), pointer :: source_tfield, target_tfield
 
-      type(integer_hash_table) :: ihash_sparsity
-      type(csr_sparsity) :: element_detector_list
-      real, dimension(:,:), allocatable :: list_into_array
-      integer, dimension(:), pointer:: det_index_in_list_into_array
-
-      type(detector_type), pointer :: node
-      integer :: j, ele, count, row, dimen, det_found, dets_in_ele
-      
       ewrite(1,*) 'in transfer_fields'
 
       do i=1,size(sends)
@@ -1693,29 +1416,6 @@ module zoltan_integration
       end do
       call allocate(self_sends)
 
-      call allocate(ihash_sparsity) 
-
-      count=0
-      node => detector_list%firstnode
-
-      do j=1, detector_list%length
-
-       ele=node%element
-       if ((.not. has_key(ihash_sparsity, ele)).and.(ele/=-1)) then
-          count=count+1
-          call insert(ihash_sparsity, ele, count)
-       end if
-       node => node%next
-
-      end do
-
-      call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
-
-      dimen=zz_positions%dim
-
-      allocate(list_into_array(detector_list%length,dimen+4))
-
-      call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 
       do old_ele=1,ele_count(zz_positions)
         universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
@@ -1815,80 +1515,10 @@ module zoltan_integration
         end do
       end do
 
-      do i=1,key_count(self_sends)
-         old_universal_element_number = fetch(self_sends, i)
-         new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-         old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-
-         dets_in_ele=0
-    
-         if (has_key(ihash_sparsity, old_local_element_number)) then
-
-           row=fetch(ihash_sparsity, old_local_element_number)
-           det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
-
-           dets_in_ele=size(det_index_in_list_into_array)
-
-           do j=1, dets_in_ele
-
-               !det element
-               list_into_array(det_index_in_list_into_array(j),dimen+1)=new_local_element_number
-
-               !list_into_array(i,dim+1)=node%element
-
-           end do
-         end if
-
-      end do
-
-!!! From the element number find out which is the detector, and change node%element=new_local_element_number
-
-      if (detector_list%length/=0) then
-
-          node => detector_list%firstnode
-
-          do k=1, detector_list%length
-
-               det_found=0
-
-               if (has_key(ihash_sparsity, node%element)) then
-
-                  row=fetch(ihash_sparsity, node%element) 
-
-                  det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
-
-                  dets_in_ele=size(det_index_in_list_into_array)
-
-                  do j=1, dets_in_ele
-
-                     !If there are more than one detector in the element make sure we are accessing the right one
-                     if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
-                         det_found=1
-                         node%element=list_into_array(det_index_in_list_into_array(j),dimen+1)
-                     end if
-                     if (det_found==1) exit !(the detector has already been found and element number updated)
-                  end do
-
-               end if
-
-               node => node%next
-         
-          end do
-
-      end if
-
-      zoltan_transfer_fields_count = zoltan_transfer_fields_count+1
-
       call deallocate(self_sends)
       call deallocate(sends)
 
       call halo_update(target_states)
-
-      deallocate(list_into_array)
-
-      call deallocate(ihash_sparsity) 
-
-      call deallocate(element_detector_list)
 
       ewrite(1,*) 'exiting transfer_fields'
 
@@ -2476,7 +2106,7 @@ module zoltan_integration
       type(csr_sparsity):: eelist
       type(mesh_type):: temporary_mesh
       type(integer_set), dimension(key_count(new_elements)) :: enlists
-      integer :: i, j, ke, expected_loc, full_elements, connected_elements
+      integer :: i, j, k, ke, expected_loc, full_elements, connected_elements
       integer :: universal_number, new_local_number
       type(integer_set) :: new_elements_we_actually_have
       type(integer_set), dimension(:), allocatable :: new_enlists
