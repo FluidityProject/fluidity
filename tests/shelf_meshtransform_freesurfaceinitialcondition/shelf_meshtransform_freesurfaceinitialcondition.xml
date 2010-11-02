@@ -10,6 +10,18 @@
   </problem_definition>
   <variables>
     <variable name="tolerance" language="python">tolerance=1.0E-12</variable>
+    <variable name="surface_node_number" language="python">import vtktools
+import math
+
+u=vtktools.vtu("shelf_0.vtu")
+location=u.GetLocations()
+(ilen, jlen) = location.shape
+
+surface_node_number=0
+for i in range(ilen):
+  if location[i,1] &gt; -1.0E3:
+    surface_node_number += 1
+    </variable>
   </variables>
   <pass_tests>
     <test name="mesh_geometry_in_bound_x_lower" language="python">import vtktools
@@ -82,23 +94,15 @@ for i in range(ilen):
       if ( location[i,1] - 1.0E2 ) &gt; tolerance:
         raise Exception("Failure: Surface node out of bounds in the region where the free-surface initial condition is applied.") 
     </test>
-    <test name="surface_node_number" language="python">import vtktools
-import math
-
-u=vtktools.vtu("shelf_0.vtu")
-location=u.GetLocations()
-(ilen, jlen) = location.shape
-
-count=0
-for i in range(ilen):
-  if location[i,1] &gt; -1.0E3:
-    count += 1
-
-if count != 102:
-  raise Exception("Failure: There are not 102 nodes on the surface.") 
+    <test name="surface_node_number_check_within_bound" language="python">import math
+assert ( abs(102 - surface_node_number) ) &lt; 5
     </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests>
+    <warn name="surface_node_number_check_exact" language="python">import math
+assert 102 == surface_node_number
+    </warn>
+  </warn_tests>
 </testproblem>
 
 
