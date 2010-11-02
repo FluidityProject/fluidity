@@ -99,9 +99,9 @@ assert ( abs(102 - surface_node_number) ) &lt; 5
     </test>
   </pass_tests>
   <warn_tests>
-    <warn name="surface_node_number_check_exact" language="python">import math
+    <test name="surface_node_number_check_exact" language="python">import math
 assert 102 == surface_node_number
-    </warn>
+    </test>
   </warn_tests>
 </testproblem>
 
