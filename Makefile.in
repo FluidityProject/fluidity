@@ -243,6 +243,10 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd bathymetry; $(MAKE)
 	@echo "    MAKE ocean_forcing"
 	@cd ocean_forcing; $(MAKE)
+ifeq (@HYPERLIGHT@,yes)
+	@echo "    MAKE hyperlight"
+	@cd hyperlight; $(MAKE)
+endif
 	@echo "    MAKE parameterisation"
 	@cd parameterisation; $(MAKE)
 	@echo "    MAKE sediments"
@@ -330,6 +334,10 @@ clean-light:
 	@echo "    CLEAN ocean_forcing"
 	@cd ocean_forcing;  $(MAKE) clean
 	@cd ocean_forcing/tests;   $(MAKE) clean
+ifeq (@HYPERLIGHT@,yes)
+	@echo "    CLEAN hyperlight"
+	@cd hyperlight; $(MAKE) clean
+endif
 	@echo "    CLEAN adjoint"
 	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN climatology"

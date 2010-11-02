@@ -1442,11 +1442,27 @@ if test "$with_zoltan" != "no" ; then
 	LIBS="$LIBS $ZOLTAN_DEPS"
 fi
 
+AC_ARG_ENABLE(hyperlight,
+[AC_HELP_STRING([--enable-hyperlight],
+[Enable Hyperlight solar irradiance model])])
+
+if test "$enable_hyperlight" = "yes"; then
+  AC_CHECK_FILES([hyperlight/Hyperlight.h hyperlight/Hyperlight.cpp hyperlight/Sky.h hyperlight/Sky.cpp hyperlight/Iop.h hyperlight/Iop.cpp],[
+    echo "#define HAVE_HYPERLIGHT 1" >> include/confdefs.h
+    HYPERLIGHT="yes"
+    AC_SUBST(HYPERLIGHT)
+  ],[
+    AC_MSG_ERROR([Hyperlight was enabled, but no source files found. Please contact Michael Lange (michael.lange@imperial.ac.uk) to get the necessary files for this module.])
+    exit -1
+  ])
+fi
+
 AC_OUTPUT(Makefile
           debug/Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
+          hyperlight/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile
           horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile
