@@ -956,95 +956,95 @@ against previous simulations for regression testing purposes.
            growth of the baroclinic modes and a final dominant mode three wave.}
 \end{figure}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---Open ocean deep convection--------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Open ocean deep convection}
-\label{sect:OODC}
-\subsection{Overview}
-Open-ocean deep convection (OODC) has been recognised as an
-important mixing process for over 25 years, and
-has been studied in the ocean, simulated in the laboratory, and modelled numerically.
-A much-cited study in the field of numerically simulating
-open-ocean deep convection is that of \cite{jones1993} and this is recreated here.
-In their work, a fixed resolution ($240 \times 240 \times
-100$m in $X, Y, Z$) model is used to study the physics and
-characteristic scalings of OODC. Their simulations use a disc
-of cooling in a simple box geometry to investigate the effects of rotation.
-
-Ocean convection is important to the meridional overturning
-circulation. It is a small scale non-hydrostatic process which
-is difficult to capture in general circulation models. Applying
-an unstructured adaptive mesh model to study this process is
-novel, and this approach may produce new insights into the
-simulation and parameterisation of convection in structures and
-unstructured mesh models.
-
-Although OODC itself is a small-scale process, it interacts with
-processes on the basin-scale, both in the preconditioning stage and
-in the sinking and spreading stages. It is therefore important for us
-to be able to represent a large range of scales. Finite elements and adapting
-unstructured meshes are particularly suited for this application, as the
-resolution used can vary in size smoothly over a wide area.
-
-\subsection{Configuration}
-
-\subsubsection{Geometry}
-
-%\begin{figure}
-%\centering
-%\fig[width=8.0cm]{images/oodc-schematic.pdf}
-%\caption{Schematic of the domain for the three-dimensional open ocean deep convection
-%problem.}
-%\label{Fig:Schematic}
-%\end{figure}
-
-
-A schematic of the domain is shown in figure \ref{Fig:Schematic}.
-The domain is 32km square in the horizontal and 2km deep. A cooling disk of radius
-8km is centred at middle of the upper boundary.
-
-
-
-
-\subsubsection{Parameters}
-The thermal expansion coefficient is set to
-$\alpha=2 \times 10^{-4} \,\mathrm{K}^{-1}$ and gravity to $g=9.81 \,\mathrm{m}\,\mathrm{s}^{-2}$.
-
-The eddy viscosity
-and thermal diffusivity were set to the same values as those
-used in \cite{jones1993}: $\kappa_h = 5.0 \mathrm{m}^2\mathrm{s}^{-1}$ and
-$\kappa_v = 0.2 \mathrm{m}^2\mathrm{s}^{-1}$.
-
-
-\subsubsection{Initial and boundary conditions}
-The domain is initialised at rest with a weak temperature stratification
-in the vertical, with a top-to-bottom temperature difference of
-$0.05\,$K.
-This therefore corresponds to a buoyancy frequency ($N$) value
-of $2.2 \times 10^{-4} \,\mathrm{s}^{-1}$.
-
-
-A heat loss of $-800\,\mathrm{W}\,\mathrm{m}^{-2}$ is
-applied as a flux boundary condition. Assuming density $\rho=1000\,\mathrm{Kg}\,\mathrm{m}^{-3}$,
-specific heat capacity $c_p=4\times 10^3\,\mathrm{J}\,\mathrm{Kg}^{-1}\,\mathrm{K}^{-1}$,
-the flux $q=\bmn\cdot\left ( \kaptens_T  \nabla T\right)$
-takes the value $q = 2\times 10^{-4}\,\mathrm{K}\,\mathrm{m}^{-1}\,\mathrm{s}^{-1}$.
-This value is applied in a disk of radius $7750\,\mathrm{m}$ with a linear ramp to zero flux to a radius
-$8000\,\mathrm{m}$. In addition, this forcing is only applied for the first 48 hours of the simulation and
-then switched off, so that the restratification stage of the problem can be considered.
-
-
-
-No-normal flow, free-stress boundary conditions are applied at the upper and lateral
-(spanwise) boundaries.
-
-
-\subsection{Results}
-
-
-
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %---Open ocean deep convection--------------------%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% \section{Open ocean deep convection}
+% \label{sect:OODC}
+% \subsection{Overview}
+% Open-ocean deep convection (OODC) has been recognised as an
+% important mixing process for over 25 years, and
+% has been studied in the ocean, simulated in the laboratory, and modelled numerically.
+% A much-cited study in the field of numerically simulating
+% open-ocean deep convection is that of \cite{jones1993} and this is recreated here.
+% In their work, a fixed resolution ($240 \times 240 \times
+% 100$m in $X, Y, Z$) model is used to study the physics and
+% characteristic scalings of OODC. Their simulations use a disc
+% of cooling in a simple box geometry to investigate the effects of rotation.
+% 
+% Ocean convection is important to the meridional overturning
+% circulation. It is a small scale non-hydrostatic process which
+% is difficult to capture in general circulation models. Applying
+% an unstructured adaptive mesh model to study this process is
+% novel, and this approach may produce new insights into the
+% simulation and parameterisation of convection in structures and
+% unstructured mesh models.
+% 
+% Although OODC itself is a small-scale process, it interacts with
+% processes on the basin-scale, both in the preconditioning stage and
+% in the sinking and spreading stages. It is therefore important for us
+% to be able to represent a large range of scales. Finite elements and adapting
+% unstructured meshes are particularly suited for this application, as the
+% resolution used can vary in size smoothly over a wide area.
+% 
+% \subsection{Configuration}
+% 
+% \subsubsection{Geometry}
+% 
+% %\begin{figure}
+% %\centering
+% %\fig[width=8.0cm]{images/oodc-schematic.pdf}
+% %\caption{Schematic of the domain for the three-dimensional open ocean deep convection
+% %problem.}
+% %\label{Fig:Schematic}
+% %\end{figure}
+% 
+% 
+% A schematic of the domain is shown in figure \ref{Fig:Schematic}.
+% The domain is 32km square in the horizontal and 2km deep. A cooling disk of radius
+% 8km is centred at middle of the upper boundary.
+% 
+% 
+% 
+% 
+% \subsubsection{Parameters}
+% The thermal expansion coefficient is set to
+% $\alpha=2 \times 10^{-4} \,\mathrm{K}^{-1}$ and gravity to $g=9.81 \,\mathrm{m}\,\mathrm{s}^{-2}$.
+% 
+% The eddy viscosity
+% and thermal diffusivity were set to the same values as those
+% used in \cite{jones1993}: $\kappa_h = 5.0 \mathrm{m}^2\mathrm{s}^{-1}$ and
+% $\kappa_v = 0.2 \mathrm{m}^2\mathrm{s}^{-1}$.
+% 
+% 
+% \subsubsection{Initial and boundary conditions}
+% The domain is initialised at rest with a weak temperature stratification
+% in the vertical, with a top-to-bottom temperature difference of
+% $0.05\,$K.
+% This therefore corresponds to a buoyancy frequency ($N$) value
+% of $2.2 \times 10^{-4} \,\mathrm{s}^{-1}$.
+% 
+% 
+% A heat loss of $-800\,\mathrm{W}\,\mathrm{m}^{-2}$ is
+% applied as a flux boundary condition. Assuming density $\rho=1000\,\mathrm{Kg}\,\mathrm{m}^{-3}$,
+% specific heat capacity $c_p=4\times 10^3\,\mathrm{J}\,\mathrm{Kg}^{-1}\,\mathrm{K}^{-1}$,
+% the flux $q=\bmn\cdot\left ( \kaptens_T  \nabla T\right)$
+% takes the value $q = 2\times 10^{-4}\,\mathrm{K}\,\mathrm{m}^{-1}\,\mathrm{s}^{-1}$.
+% This value is applied in a disk of radius $7750\,\mathrm{m}$ with a linear ramp to zero flux to a radius
+% $8000\,\mathrm{m}$. In addition, this forcing is only applied for the first 48 hours of the simulation and
+% then switched off, so that the restratification stage of the problem can be considered.
+% 
+% 
+% 
+% No-normal flow, free-stress boundary conditions are applied at the upper and lateral
+% (spanwise) boundaries.
+% 
+% 
+% \subsection{Results}
+% 
+% 
+% 
 
 \section{Water column collapse}
 
@@ -1166,15 +1166,21 @@ To explore the functionality of \fluidity, the following variations on this exam
 \item Modify the tank geometry
 \end{itemize}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%% Restratification after oodc %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 \section{The restratification following open ocean deep convection}
 
 \subsection{Overview}
 
-This is the final stage of open ocean deep convection, when the dense water column formed during the convective phase mixes with the surrounding fluid.  Baroclinic eddies are thought to be an important mixing mechanism. The example here is taken from \cite{rousset09}. 
+Dense water masses are formed during open ocean deep convection (OODC) in marginal seas and then join the meridional overturning circulation (MOC)  \citep{jones1997}.  A column of dense water is formed during OODC due to intense cooling. When the cooling stops, the dense water mixes with the surroundings. If there was no coriolis force, the water column would slump down rapidly.  The addition of a coriolis force means that the system is baroclinically unstable and eddies are formed. The example here is an idealised model  \citep{rousset09}. 
 
 \subsection{Configuration}
 
-The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$. The aspect ratio is given by $R=L/H=500$. This is relatively high, and it affects some of the settings that must be used in fluidity.  The initial temperature field is shown in figure \ref{fig:rousset-init}. The temperature is linearly strafified except inside the cylinder in the middle with radius 70km, which is cooler than the surroundings. 
+The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$. The aspect ratio is given by $R=L/H=500$. This is relatively high.  The initial temperature field is shown in figure \ref{fig:rousset-init}. The temperature is linearly strafified except inside the cylinder in the middle with radius 70km, which is cooler than the surroundings. 
 
 \begin{figure}[h]
 \begin{center}
@@ -1186,7 +1192,7 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 
 \subsection{Mesh}
 
-The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The quadrature degree is set to four.
+The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The quadrature degree is set to four. The resolution is 5 km in the horizontal and 83 m in the vertical. 
 
 \subsection{Discretisation}
 
@@ -1197,6 +1203,7 @@ The velocity is solved for using a discontinuous galerkin discretisation. A cont
 There are some other options that are chosen specifically because this is large aspect ratio and rotating. These options may be checked by using the Large Scale Ocean options check (see section \ref{section:large-scale-ocean}).
 
 \subsubsection{Time stepping}
+The timestep is 7200 s. 
 \begin{itemize}
 \item \option{\ldots/timestepping/nonlinear\_iterations} option is $2$ 
 \item \option{\ldots/material\_phase/equation\_of\_state/subtract\_out\_hydrostatic\_level} is on.
@@ -1213,6 +1220,7 @@ There are some other options that are chosen specifically because this is large 
 \item \option{\ldots/spatial\_discretisation/advection/conservative\_advection} is set to $0.0$
 \item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson)
 \item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
+\item \option{\ldots/temporal\_discretisation/discontiunous\_galerkin/maximum\_courant\_number\_per\_subcycle} is on and set to 0.1.
 \item \option{\ldots/solvers}  gmres 
 \item \option{\ldots/solvers/preconditioner} is sor
 \end{itemize}
@@ -1238,7 +1246,9 @@ This is a diagnostic field. There is also a free surface boundary condition unde
 
 \subsection{Results}
 
-Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth. 
+Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth. It can be seen that eddies form and mix the fluid. If this is run with a different resolution a different number of eddies may form.
+
+You might want to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
 
 \begin{figure}[h]
