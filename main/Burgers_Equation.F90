@@ -574,25 +574,32 @@
       diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
       sparsity => diffusion_matrix%sparsity
 
-      ! Assemble A again, to compute A.u and A^T
+      ! Assemble A again, to compute A^T
       call allocate(A, sparsity, name="ForwardOperator")
       call set(A, diffusion_matrix)
 
       call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
       call assemble_advection_matrix(advection_matrix, x, u)
       call addto(A, advection_matrix)
-      call deallocate(advection_matrix)
 
       call allocate(Au, u%mesh, "Au")
-      call mult(Au, A, u)
+      ! We also want (the nonlinear part of A) * u
+      ! to subtract off in the formula for G^T later
+      call mult(Au, advection_matrix, u)
+      call deallocate(advection_matrix)
 
       AT = transpose(A, symmetric_sparsity=.true.)
       call deallocate(A)
 
       ! OK! Now to compute G^T.
-!      GT = compute_GT_ISP(sparsity, u, x, Au)
-      call allocate(GT, sparsity, name="ForwardOperatorDerivative")
-      call zero(GT)
+      if (.not. have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/remove_advection_term")) then
+        ewrite(1,*) "Equation is nonlinear, so computing derivatives of nonlinear terms"
+        GT = compute_GT_ISP(sparsity, u, x, Au)
+      else ! equation is linear, so G^T is zero
+        ewrite(1,*) "Equation is linear, so not computing derivatives of nonlinear terms"
+        call allocate(GT, sparsity, name="ForwardOperatorDerivative")
+        call zero(GT)
+      end if
       call deallocate(Au)
 
       call allocate(lhs, sparsity, name="AdjointOperator")
@@ -611,5 +618,102 @@
       call deallocate(rhs)
       call deallocate(lhs)
     end subroutine compute_adjoint
+
+    function compute_GT_ISP(sparsity, u, x, Au) result(GT)
+      type(csr_sparsity), intent(in) :: sparsity
+      type(scalar_field), intent(in), target :: u
+      type(scalar_field), intent(in) :: Au
+      type(vector_field), intent(in) :: x
+
+      type(csr_matrix) :: GT
+      type(csr_matrix) :: advection_matrix
+      
+      type(scalar_field) :: node_colour
+      integer :: no_colours
+      integer :: colour
+
+      type(scalar_field) :: perturbed_u
+      type(scalar_field) :: perturbed_Au
+      real :: h
+
+      integer :: node
+      integer, dimension(:), pointer :: connected_nodes
+
+      type(mesh_type), pointer :: mesh
+      mesh => u%mesh
+
+      call colour_graph(sparsity, mesh, node_colour, no_colours)
+
+      call allocate(GT, sparsity, name="ForwardOperatorDerivative")
+      call allocate(advection_matrix, sparsity, name="PerturbedAdvectionMatrix")
+      call zero(GT)
+
+      call allocate(perturbed_u, mesh, "PerturbedVelocity")
+      call allocate(perturbed_Au, mesh, "PerturbedAu")
+
+      do colour=1,no_colours
+        ! Could be smarter about how to choose h.
+        ! However, since A(.) is linear in u, for this problem the step size
+        ! does not matter as you compute the exact derivative.
+        h = 1.0
+
+        call set(perturbed_u, u)
+
+        ! Select the nodes of the currently-considered colour and perturb them
+        do node=1,node_count(u%mesh)
+          if (node_val(node_colour, node) == float(colour)) then
+            call addto(perturbed_u, node, h)
+          end if
+        end do
+
+        call assemble_advection_matrix(advection_matrix, x, perturbed_u)
+        call mult(perturbed_Au, advection_matrix, u)
+
+        ! Subtract off Au
+        call addto(perturbed_Au, Au, scale=-1.0)
+
+        ! And divide by h
+        call scale(perturbed_Au, 1.0/h)
+
+        ! So now perturbed_Au contains the information for all of the rows of GT associated
+        ! with this node. We need to split it up into the different rows.
+
+        do node=1,node_count(u%mesh)
+          if (node_val(node_colour, node) == float(colour)) then
+            connected_nodes => row_m_ptr(sparsity, node)
+            call set(GT, node, connected_nodes, node_val(perturbed_Au, connected_nodes))
+          end if
+        end do
+      end do
+
+      call deallocate(advection_matrix)
+      call deallocate(perturbed_Au)
+      call deallocate(perturbed_u)
+      call deallocate(node_colour)
+
+    end function compute_GT_ISP
+
+    subroutine colour_graph(sparsity, mesh, node_colour, no_colours)
+      type(csr_sparsity), intent(in) :: sparsity
+      type(mesh_type), intent(inout) :: mesh
+
+      type(scalar_field), intent(out) :: node_colour
+      integer, intent(out) :: no_colours
+
+      integer :: i
+
+      ! Here we cheat. Colouring a 1D mesh is quite easy. 
+      ! We don't actually need to look at the sparsity at all.
+      ! But for more general problems, you need to colour based on the sparsity
+      ! pattern, so I added it to the arguments.
+
+      call allocate(node_colour, mesh, "NodeColouring")
+
+      no_colours = 3
+
+      do i=1,node_count(mesh)
+        call set(node_colour, i, float(mod(i-1, 3) + 1))
+      end do
+    end subroutine colour_graph
 
   end program burgers_equation
