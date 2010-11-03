@@ -1559,6 +1559,29 @@ k-epsilon module. To enable calculation of the boundary conditions on both field
 \option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries}
 option.
 
+\section{Astronomical tidal forcing}
+\label{config:tides}
+\index{tides}
+
+Astronomical tidal forcing can be switched on for 11 different constituents
+under:
+\begin{itemize}
+\item \option{/ocean\_forcing/tidal\_forcing}, 
+\end{itemize}
+(see \citealp{Wells2008} for descriptions of
+the different constituents). These can be switched either
+individually or in combination. In addition, a body tide correction can be stipluated
+under:
+\begin{itemize}
+\item \option{\ldots/tidal\_forcing/love\_number},
+\end{itemize}
+for which the suggested value is 0.3 (assuming 
+Love numbers of $k$=0.3 and $h$=0.61; see section \ref{astronomical}).   
+
+Note that for many cases, specifically those involving open boundaries, it is often
+desirable to combine astronomical tidal forcing with a co-oscillating boundary tide condition
+(see section \ref{Sect:BCs:specialised}).
+
 \section{Ocean biology}
 \index{biology}
 
@@ -1602,29 +1625,6 @@ biology.pznd(state, p)
 \end{example}
 
 The final thing to change is to add absorption coefficients in the photsynthetic radiation field for water and plankton concentration.
-
-\section{Astronomical tidal forcing}
-\label{config:tides}
-\index{tides}
-
-Astronomical tidal forcing can be switched on for 11 different constituents
-under:
-\begin{itemize}
-\item \option{/ocean\_forcing/tidal\_forcing}, 
-\end{itemize}
-(see \citealp{Wells2008} for descriptions of
-the different constituents). These can be switched either
-individually or in combination. In addition, a body tide correction can be stipluated
-under:
-\begin{itemize}
-\item \option{\ldots/tidal\_forcing/love\_number},
-\end{itemize}
-for which the suggested value is 0.3 (assuming 
-Love numbers of $k$=0.3 and $h$=0.61; see section \ref{astronomical}).   
-
-Note that for many cases, specifically those involving open boundaries, it is often
-desirable to combine astronomical tidal forcing with a co-oscillating boundary tide condition
-(see section \ref{Sect:BCs:specialised}).
 
 \section{Sediment model}
 \label{config:sediments}
