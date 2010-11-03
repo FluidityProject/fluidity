@@ -198,6 +198,30 @@ this option to these these internal algorithms.</a:documentation>
         <value>single</value>
       </attribute>
       <ref name="scalar_source_field"/>
+      <optional>
+        <element name="allow_higher_lower_continuous_remap">
+          <a:documentation>When copying the field allow remapping between higher order and lower order continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_unperiodic_periodic_remap">
+          <a:documentation>When copying the field allow remapping between unperiodic and periodic meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_discontinuous_continuous_remap">
+          <a:documentation>When copying the field allow remapping between discontinuous and continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_bubble_lagrange_remap">
+          <a:documentation>When copying the field allow remapping between bubble and lagrange meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="extract_scalar_component_algorithm">
@@ -223,6 +247,30 @@ this option to these these internal algorithms.</a:documentation>
         <value>single</value>
       </attribute>
       <ref name="vector_source_field"/>
+      <optional>
+        <element name="allow_higher_lower_continuous_remap">
+          <a:documentation>When copying the field allow remapping between higher order and lower order continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_unperiodic_periodic_remap">
+          <a:documentation>When copying the field allow remapping between unperiodic and periodic meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_discontinuous_continuous_remap">
+          <a:documentation>When copying the field allow remapping between discontinuous and continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_bubble_lagrange_remap">
+          <a:documentation>When copying the field allow remapping between bubble and lagrange meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="tensor_copy_algorithm">
@@ -236,6 +284,30 @@ this option to these these internal algorithms.</a:documentation>
         <value>single</value>
       </attribute>
       <ref name="tensor_source_field"/>
+      <optional>
+        <element name="allow_higher_lower_continuous_remap">
+          <a:documentation>When copying the field allow remapping between higher order and lower order continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_unperiodic_periodic_remap">
+          <a:documentation>When copying the field allow remapping between unperiodic and periodic meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_discontinuous_continuous_remap">
+          <a:documentation>When copying the field allow remapping between discontinuous and continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_bubble_lagrange_remap">
+          <a:documentation>When copying the field allow remapping between bubble and lagrange meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="scalar_galerkin_projection_algorithm">

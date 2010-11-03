@@ -411,7 +411,9 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
     </vector_field>
     <vector_field name="VelocityRemap" rank="1">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_copy" source_field_name="Velocity"/>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_copy" source_field_name="Velocity">
+          <allow_bubble_lagrange_remap/>
+        </algorithm>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>

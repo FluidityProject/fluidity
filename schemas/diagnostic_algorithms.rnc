@@ -141,7 +141,23 @@ scalar_copy_algorithm =
       element algorithm {
          attribute name { "scalar_copy" },
          attribute material_phase_support { "single" },
-         scalar_source_field
+         scalar_source_field,
+         ## When copying the field allow remapping between higher order and lower order continuous meshes.
+         element allow_higher_lower_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between unperiodic and periodic meshes.
+         element allow_unperiodic_periodic_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between discontinuous and continuous meshes.
+         element allow_discontinuous_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between bubble and lagrange meshes.
+         element allow_bubble_lagrange_remap {
+           empty
+         }?
       }
    )
 extract_scalar_component_algorithm =
@@ -160,7 +176,23 @@ vector_copy_algorithm =
       element algorithm {
          attribute name { "vector_copy" },
          attribute material_phase_support { "single" },
-         vector_source_field
+         vector_source_field,
+         ## When copying the field allow remapping between higher order and lower order continuous meshes.
+         element allow_higher_lower_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between unperiodic and periodic meshes.
+         element allow_unperiodic_periodic_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between discontinuous and continuous meshes.
+         element allow_discontinuous_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between bubble and lagrange meshes.
+         element allow_bubble_lagrange_remap {
+           empty
+         }?
       }
    )
 tensor_copy_algorithm =
@@ -170,7 +202,23 @@ tensor_copy_algorithm =
       element algorithm {
          attribute name { "tensor_copy" },
          attribute material_phase_support { "single" },
-         tensor_source_field
+         tensor_source_field,
+         ## When copying the field allow remapping between higher order and lower order continuous meshes.
+         element allow_higher_lower_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between unperiodic and periodic meshes.
+         element allow_unperiodic_periodic_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between discontinuous and continuous meshes.
+         element allow_discontinuous_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between bubble and lagrange meshes.
+         element allow_bubble_lagrange_remap {
+           empty
+         }?
       }
    )
 scalar_galerkin_projection_algorithm =

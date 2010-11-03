@@ -61,7 +61,8 @@ implicit none
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
-                                REMAP_ERR_UNPERIODIC_PERIODIC      = 3
+                                REMAP_ERR_UNPERIODIC_PERIODIC      = 3, &
+                                REMAP_ERR_BUBBLE_LAGRANGE          = 4
 
   interface addto
      module procedure scalar_field_vaddto, scalar_field_addto, &
@@ -1855,6 +1856,15 @@ implicit none
           end if
         end if
 
+        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
+           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
+          if(present(stat)) then
+            stat = REMAP_ERR_BUBBLE_LAGRANGE
+          else
+            FLAbort("Trying to remap from a bubble to a lagrange scalar field")
+          end if
+        end if
+
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
           do fromloc=1,size(locweight,2)
@@ -1986,6 +1996,15 @@ implicit none
           end if
         end if
         
+        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
+           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
+          if(present(stat)) then
+            stat = REMAP_ERR_BUBBLE_LAGRANGE
+          else
+            FLAbort("Trying to remap from a bubble to a lagrange vector field")
+          end if
+        end if
+
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
           do fromloc=1,size(locweight,2)
@@ -2123,6 +2142,15 @@ implicit none
           end if
         end if
         
+        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
+           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
+          if(present(stat)) then
+            stat = REMAP_ERR_BUBBLE_LAGRANGE
+          else
+            FLAbort("Trying to remap from a bubble to a lagrange tensor field")
+          end if
+        end if
+
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
           do fromloc=1,size(locweight,2)

@@ -58,10 +58,29 @@ contains
     type(scalar_field), intent(inout) :: s_field
     
     type(scalar_field), pointer :: source_field
+    integer :: stat
     
     source_field => scalar_source_field(state, s_field)
     
-    call remap_field(source_field, s_field)
+    call remap_field(source_field, s_field, stat)
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+        FLExit("In the scalar_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+        FLExit("In the scalar_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+        FLExit("In the scalar_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+        FLExit("In the scalar_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+      end if
+    end if
+
     
   end subroutine calculate_scalar_copy
   
@@ -70,10 +89,28 @@ contains
     type(vector_field), intent(inout) :: v_field
     
     type(vector_field), pointer :: source_field
+    integer :: stat
     
     source_field => vector_source_field(state, v_field)
     
-    call remap_field(source_field, v_field)
+    call remap_field(source_field, v_field, stat)
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+        FLExit("In the vector_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+        FLExit("In the vector_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+        FLExit("In the vector_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+        FLExit("In the vector_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+      end if
+    end if
     
   end subroutine calculate_vector_copy
   
@@ -82,10 +119,28 @@ contains
     type(tensor_field), intent(inout) :: t_field
     
     type(tensor_field), pointer :: source_field
+    integer :: stat
     
     source_field => tensor_source_field(state, t_field)
     
-    call remap_field(source_field, t_field)
+    call remap_field(source_field, t_field, stat)
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+        FLExit("In the tensor_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+        FLExit("In the tensor_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+        FLExit("In the tensor_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+        FLExit("In the tensor_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+      end if
+    end if
     
   end subroutine calculate_tensor_copy
 
