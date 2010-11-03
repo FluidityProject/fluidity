@@ -135,18 +135,20 @@ def meanvelo(filelist,x,y):
   profiles = numpy.zeros([files, x.size, y.size], float)
 
   for file in filelist:
-      try:
-        os.stat(file)
-      except:
-        f_log.write("No such file: %s" % files)
-        sys.exit(1)
+    try:
+      os.stat(file)
+    except:
+      f_log.write("No such file: %s" % files)
+      sys.exit(1)
 
-      datafile = vtktools.vtu(file)
-      t = min(datafile.GetScalarField("Time"))
+    ##### Only process these 3 datafiles:
+    vtu_no = float(file.split('_')[-1].split('.')[0])
+    if (vtu_no == 6 or vtu_no == 11 or vtu_no == 33):
 
-      ##### only dump data for certain times
-      while 4.82<t<5.18 or 9.82<t<10.18 or 49.8<t<50.0:
+        datafile = vtktools.vtu(file)
+        t = min(datafile.GetScalarField("Time"))
         print file, ', elapsed time = ', t
+
         ##### Get x-velocity
         uvw = datafile.ProbeData(pts, "Velocity")
         umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))

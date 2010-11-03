@@ -149,13 +149,14 @@ def meanvelo(filelist,xarray,yarray,zarray):
       f_log.write("No such file: %s" % files)
       sys.exit(1)
 
-    datafile = vtktools.vtu(file)
-    t = min(datafile.GetScalarField("Time"))
+    ##### Only process these 3 datafiles:
+    vtu_no = float(file.split('_')[-1].split('.')[0])
+    if (vtu_no == 6 or vtu_no == 11 or vtu_no == 33):
 
-    ##### only dump data for certain times
-    while 4.5<t<5.5 or 9.5<t<10.5 or 49.5<t<50.5:
-
+      datafile = vtktools.vtu(file)
+      t = min(datafile.GetScalarField("Time"))
       print file, ', elapsed time = ', t
+
       ##### Get x-velocity
       uvw = datafile.ProbeData(pts, "Velocity")
       umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
@@ -266,6 +267,7 @@ def main():
     plot_length(reattachment_length)
 
     ##### Call meanvelo function defined above
+
     profiles = meanvelo(filelist, xarray, yarray, zarray)
     numpy.save("velo_profiles_3d_parallel", profiles)
     print "Showing plot of velocity profiles.\nTo continue script, close plot window."
