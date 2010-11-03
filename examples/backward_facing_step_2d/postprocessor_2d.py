@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import math
-import vtk
 import glob
 import sys
 import os
@@ -9,6 +8,7 @@ import vtktools
 import numpy
 import pylab
 from math import isinf
+import re
 
 def get_filelist():
 
@@ -25,14 +25,36 @@ def get_filelist():
 
     return list
 
+#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+    
+def alphanum_key(s):
+    """ Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    """
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+def sort_nicely(l):
+    """ Sort the given list in the way that humans expect.
+    """
+    l.sort(key=alphanum_key)
+##############################################################################
+# There are shorter and more elegant version of the above, but this works
+# on CX1, where this test might be run...
+
+
 ###################################################################
 
 # Reattachment length:
 def reatt_length(filelist, exclude_initial_results):
 
   print "Calculating reattachment point locations using change of x-velocity sign\n"
-  print "Processing pvtu files...\n"
-  nums=[]; results=[]
+  print "Processing output files...\n"
+  nums=[]; results=[]; files = []
 
   ##### check for no files
   if (len(filelist) == 0):
@@ -44,21 +66,16 @@ def reatt_length(filelist, exclude_initial_results):
     except:
       print "No such file: %s" % file
       sys.exit(1)
-    num = int(file.split(".vtu")[0].split('_')[-1])
+    num = int(re.split("\.p?vtu", file)[0].split('_')[-1])
     ##### Exclude data from simulation spin-up time
     if num > exclude_initial_results:
-      nums.append(num)
-    nums.sort()
+       files.append(file)
 
-  for num in nums:
-    file = "backward_facing_step_2d_"+str(num)+".vtu"
+  sort_nicely(files)
 
+  for file in files:
     print file
     ##### Read in data from vtu
-    reader = vtk.vtkXMLUnstructuredGridReader();
-    reader.SetFileName(file)
-    reader.Update()
-    data = reader.GetOutput()
     datafile = vtktools.vtu(file)
 
     ##### points near bottom surface, 0 < x < 20
@@ -124,10 +141,6 @@ def meanvelo(filelist,x,y):
         f_log.write("No such file: %s" % files)
         sys.exit(1)
 
-      reader = vtk.vtkXMLUnstructuredGridReader();
-      reader.SetFileName(file)
-      reader.Update()
-      data = reader.GetOutput()
       datafile = vtktools.vtu(file)
       t = min(datafile.GetScalarField("Time"))
 

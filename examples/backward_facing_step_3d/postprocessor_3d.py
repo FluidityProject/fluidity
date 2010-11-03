@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import vtk
 import glob
 import sys
 import os
@@ -8,13 +7,14 @@ import vtktools
 import numpy
 import pylab
 from math import isinf
+import re
 
 def get_filelist():
 
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
    
-    list = glob.glob("*.pvtu")
+    list = glob.glob("*vtu")
     list = [l for l in list if 'check' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
@@ -24,14 +24,36 @@ def get_filelist():
 
     return list
 
+#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+    
+def alphanum_key(s):
+    """ Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    """
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+def sort_nicely(l):
+    """ Sort the given list in the way that humans expect.
+    """
+    l.sort(key=alphanum_key)
+##############################################################################
+# There are shorter and more elegant version of the above, but this works
+# on CX1, where this test might be run...
+
 ###################################################################
 
 # Reattachment length:
 def reatt_length(filelist, yarray, exclude_initial_results):
 
   print "Calculating reattachment point locations using change of x-velocity sign\n"
-  print "Processing pvtu files...\n"
+  print "Processing output files...\n"
   nums=[]; results=[]
+  files = []
 
   ##### check for no files
   if (len(filelist) == 0):
@@ -43,21 +65,20 @@ def reatt_length(filelist, yarray, exclude_initial_results):
     except:
       print "No such file: %s" % file
       sys.exit(1)
-    num = int(file.split(".pvtu")[0].split('_')[-1])
+    num = int(re.split("\.p?vtu", file)[0].split('_')[-1])
     ##### Exclude data from simulation spin-up time
     if num > exclude_initial_results:
-      nums.append(num)
-    nums.sort()
+        print file
+        files.append(file)
 
-  for num in nums:
-    file = "backward_facing_step_3d_"+str(num)+".pvtu"
+  
+
+  sort_nicely(files)
+
+  for file in files:
 
     print file
     ##### Read in data from vtu
-    reader = vtk.vtkXMLPUnstructuredGridReader();
-    reader.SetFileName(file)
-    reader.Update()
-    data = reader.GetOutput()
     datafile = vtktools.vtu(file)
 
     ##### points near bottom surface, 0 < x < 25
@@ -128,10 +149,6 @@ def meanvelo(filelist,xarray,yarray,zarray):
       f_log.write("No such file: %s" % files)
       sys.exit(1)
 
-    reader = vtk.vtkXMLPUnstructuredGridReader();
-    reader.SetFileName(file)
-    reader.Update()
-    data = reader.GetOutput()
     datafile = vtktools.vtu(file)
     t = min(datafile.GetScalarField("Time"))
 
@@ -174,7 +191,7 @@ def plot_length(reattachment_length):
   pylab.savefig("reattachment_length_3D.pdf")
   return
 
-def plot_meanvelo(profiles):
+def plot_meanvelo(profiles,xarray,yarray,zarray):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle('Evolution of U-velocity profiles downstream of backward facing step', fontsize=30)
@@ -234,25 +251,29 @@ def plot_meanvelo(profiles):
 
 #########################################################################
 
-##### Points to generate profiles:
-xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
-yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
-zarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0])
+def main():
+    ##### Points to generate profiles:
+    xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
+    yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+    zarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0])
 
-##### Call reattachment_length function defined above
-filelist = get_filelist()
-reattachment_length = numpy.array(reatt_length(filelist, yarray, exclude_initial_results=40))
-av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-numpy.save("reattachment_length_3D", reattachment_length)
-print "\nTime-averaged reattachment length (in step heights): ", av_length
-plot_length(reattachment_length)
+    ##### Call reattachment_length function defined above
+    filelist = get_filelist()
+    reattachment_length = numpy.array(reatt_length(filelist, yarray, exclude_initial_results=40))
+    av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
+    numpy.save("reattachment_length_3D", reattachment_length)
+    print "\nTime-averaged reattachment length (in step heights): ", av_length
+    plot_length(reattachment_length)
 
-##### Call meanvelo function defined above
-profiles = meanvelo(filelist, xarray, yarray, zarray)
-numpy.save("velo_profiles_3d_parallel", profiles)
-print "Showing plot of velocity profiles.\nTo continue script, close plot window."
-plot_meanvelo(profiles)
-pylab.show()
+    ##### Call meanvelo function defined above
+    profiles = meanvelo(filelist, xarray, yarray, zarray)
+    numpy.save("velo_profiles_3d_parallel", profiles)
+    print "Showing plot of velocity profiles.\nTo continue script, close plot window."
+    plot_meanvelo(profiles,xarray,yarray,zarray)
+    pylab.show()
 
-print "\nAll done.\n"
+    print "\nAll done.\n"
+
+if __name__ == "__main__":
+    sys.exit(main())
 
