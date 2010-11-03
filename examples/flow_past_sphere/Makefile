@@ -12,6 +12,10 @@ preprocess:
 
 input: preprocess
 
+postprocess:
+	@echo **********No postprocessing needed
+
+
 clean:
 	$(foreach Re,1 10 100 1000, \
 		cd sphere-3D-drag-Re$(Re); \

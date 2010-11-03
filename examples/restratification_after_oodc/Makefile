@@ -7,6 +7,9 @@ preprocess:
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
 	../../bin/fluidity -v2 -l rousset-prognostic-new.flml
+        
+postprocess:
+	@echo **********No postprocessing needed
 
 input: preprocess
 
