@@ -92,7 +92,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="neumann">
+          <type name="dirichlet">
             <constant>
               <real_value rank="0">0.0</real_value>
             </constant>

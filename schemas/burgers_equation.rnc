@@ -234,13 +234,40 @@ material_phase =
                   }?
                }
             },
+            ## The adjoint solution for a given functional
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "AdjointVelocity" },
+               element prognostic {
+                  element mesh {
+                     attribute name { "VelocityMesh" }      
+                  },
+                  element solver {
+                     linear_solver_options_asym
+                  },
+                  initial_condition_scalar,
+                  boundary_conditions+,
+                  element stat { comment },
+                  ## Let J(u) be the functional of interest. Then
+                  ## the source should evaluate the function
+                  ## (\partial J/\partial u)|_u at each point.
+                  element scalar_field {
+                     attribute name { "Source" },
+                     attribute rank { "0" },
+                     element prescribed {
+                        prescribed_scalar_field_no_adapt
+                     }
+                  }
+               }
+            }?,
+            ## Prescribed or diagnostic scalar fields.
             element scalar_field {
               attribute rank { "0" },
               attribute name { string },
               (
                  element prescribed {
                     mesh_choice,
-                    prescribed_scalar_field
+                    prescribed_scalar_field_no_adapt
                  }|
                  element diagnostic {
                     mesh_choice,
@@ -261,7 +288,7 @@ boundary_conditions =
                integer_vector
             },
             element type {
-               attribute name { "neumann" | "dirichlet" },
+               attribute name { "dirichlet" },
                input_choice_real
             }
          }

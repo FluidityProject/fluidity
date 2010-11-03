@@ -122,46 +122,51 @@
 
     timestep=0
     timestep_loop: do 
-       timestep=timestep+1
-       ewrite(1,*) "Starting timestep, current_time: ", current_time
-       ! this may already have been done in populate_state, but now
-       ! we evaluate at the correct "shifted" time level:
-       call set_boundary_conditions_values(state, shift_time=.true.)
-       
-       ! evaluate prescribed fields at time = current_time+dt
-       call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+      timestep=timestep+1
+      ewrite(1,*) "Starting timestep, current_time: ", current_time
+      ! this may already have been done in populate_state, but now
+      ! we evaluate at the correct "shifted" time level:
+      call set_boundary_conditions_values(state, shift_time=.true.)
+      
+      ! evaluate prescribed fields at time = current_time+dt
+      call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
 
-       call execute_timestep(state(1), dt, change=change)
+      call execute_timestep(state(1), dt, change=change)
 
-       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
-       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep)) exit timestep_loop
-       if (stationary_problem) then
-         if (change < tolerance) then
-           exit timestep_loop
-         end if
-       end if
+      if (simulation_completed(current_time, timestep)) exit timestep_loop
+      if (stationary_problem) then
+        if (change < tolerance) then
+          exit timestep_loop
+        end if
+      end if
 
-       call advance_current_time(current_time, dt)
-       call insert_time_in_state(state)
+      call advance_current_time(current_time, dt)
+      call insert_time_in_state(state)
 
-       if (do_write_state(current_time, timestep)) then
-          call output_state(state)
-       end if
+      if (do_write_state(current_time, timestep)) then
+         call output_state(state)
+      end if
 
-       call write_diagnostics(state, current_time, dt, timestep)
+      call write_diagnostics(state, current_time, dt, timestep)
        
     end do timestep_loop
+
+    ! Now compute the adjoint
+    if (has_scalar_field(state(1), "AdjointVelocity")) then
+      ewrite(1,*) "Entering adjoint computation"
+      call compute_adjoint(state(1))
+      call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+    else
+      ewrite(1,*) "No adjoint specified, not entering adjoint computation"
+    end if
 
     ! One last dump
     call output_state(state)
     call write_diagnostics(state, current_time, dt, timestep)
-
-    ! Now compute the adjoint
-    !if (has_scalar_field(state(1), "Adjoint")) then
-    !  call compute_adjoint(state(1))
-    !end if
 
     call deallocate(state)
     call deallocate_transform_cache
@@ -543,5 +548,68 @@
       call addto(diffusion_matrix, ele_nodes(u, ele), ele_nodes(u, ele), little_diffusion_matrix)
 
     end subroutine setup_matrices_ele
+
+    subroutine compute_adjoint(state)
+      type(state_type), intent(inout) :: state
+
+      type(scalar_field), pointer :: adjoint
+      type(scalar_field), pointer :: adjoint_src
+      type(scalar_field), pointer :: u
+      type(vector_field), pointer :: x
+      type(scalar_field) :: Au, rhs
+
+      type(csr_matrix) :: A, AT, GT, lhs, advection_matrix
+      type(csr_matrix), pointer :: diffusion_matrix, mass_matrix
+      type(csr_sparsity), pointer :: sparsity
+
+      if (.not. have_option("/timestepping/steady_state")) then
+        ewrite(-1,*) "Sorry, adjoint computation currently only works for steady state simulations."
+        return
+      end if
+
+      u => extract_scalar_field(state, "Velocity")
+      adjoint  => extract_scalar_field(state, "AdjointVelocity")
+      adjoint_src => extract_scalar_field(state, "AdjointVelocitySource")
+      x => extract_vector_field(state, "Coordinate")
+      diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
+      sparsity => diffusion_matrix%sparsity
+
+      ! Assemble A again, to compute A.u and A^T
+      call allocate(A, sparsity, name="ForwardOperator")
+      call set(A, diffusion_matrix)
+
+      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
+      call assemble_advection_matrix(advection_matrix, x, u)
+      call addto(A, advection_matrix)
+      call deallocate(advection_matrix)
+
+      call allocate(Au, u%mesh, "Au")
+      call mult(Au, A, u)
+
+      AT = transpose(A, symmetric_sparsity=.true.)
+      call deallocate(A)
+
+      ! OK! Now to compute G^T.
+!      GT = compute_GT_ISP(sparsity, u, x, Au)
+      call allocate(GT, sparsity, name="ForwardOperatorDerivative")
+      call zero(GT)
+      call deallocate(Au)
+
+      call allocate(lhs, sparsity, name="AdjointOperator")
+      call set(lhs, AT)
+      call deallocate(AT)
+
+      call addto(lhs, GT)
+      call deallocate(GT)
+
+      mass_matrix => extract_csr_matrix(state, "MassMatrix")
+      call allocate(rhs, u%mesh, "RightHandSide")
+      call mult(rhs, mass_matrix, adjoint_src)
+
+      call apply_dirichlet_conditions(lhs, rhs, adjoint)
+      call petsc_solve(adjoint, lhs, rhs)
+      call deallocate(rhs)
+      call deallocate(lhs)
+    end subroutine compute_adjoint
 
   end program burgers_equation

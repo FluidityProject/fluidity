@@ -297,8 +297,51 @@ Recommended to be 0.5.</a:documentation>
           </optional>
         </element>
       </element>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>The adjoint solution for a given functional</a:documentation>
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>AdjointVelocity</value>
+          </attribute>
+          <element name="prognostic">
+            <element name="mesh">
+              <attribute name="name">
+                <value>VelocityMesh</value>
+              </attribute>
+            </element>
+            <element name="solver">
+              <ref name="linear_solver_options_asym"/>
+            </element>
+            <ref name="initial_condition_scalar"/>
+            <oneOrMore>
+              <ref name="boundary_conditions"/>
+            </oneOrMore>
+            <element name="stat">
+              <ref name="comment"/>
+            </element>
+            <element name="scalar_field">
+              <a:documentation>Let J(u) be the functional of interest. Then
+the source should evaluate the function
+(\partial J/\partial u)|_u at each point.</a:documentation>
+              <attribute name="name">
+                <value>Source</value>
+              </attribute>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+              </element>
+            </element>
+          </element>
+        </element>
+      </optional>
       <zeroOrMore>
         <element name="scalar_field">
+          <a:documentation>Prescribed or diagnostic scalar fields.</a:documentation>
           <attribute name="rank">
             <value>0</value>
           </attribute>
@@ -308,7 +351,7 @@ Recommended to be 0.5.</a:documentation>
           <choice>
             <element name="prescribed">
               <ref name="mesh_choice"/>
-              <ref name="prescribed_scalar_field"/>
+              <ref name="prescribed_scalar_field_no_adapt"/>
             </element>
             <element name="diagnostic">
               <ref name="mesh_choice"/>
@@ -331,10 +374,7 @@ Recommended to be 0.5.</a:documentation>
       </element>
       <element name="type">
         <attribute name="name">
-          <choice>
-            <value>neumann</value>
-            <value>dirichlet</value>
-          </choice>
+          <value>dirichlet</value>
         </attribute>
         <ref name="input_choice_real"/>
       </element>
