@@ -1,13 +1,81 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>tophat
-</name>
+  <name>tophat</name>
   <owner userid="skramer"/>
   <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v2 -l top_hat_cg.flml;
-fluidity -v2 -l top_hat_dg.flml;
+    <command_line>fluidity -v2 -l top_hat_cg.flml &amp;&amp; 
+fluidity -v2 -l top_hat_dg.flml &amp;&amp;
 fluidity -v2 -l top_hat_cv.flml</command_line>
   </problem_definition>
-  <variables/>
-  <pass_tests/>
+  <variables>
+    <variable name="cg_times" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cg.stat")
+cg_times = s["ElapsedTime"]["value"]</variable>
+    <variable name="cg_min_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cg.stat")
+cg_min_ts = s["Fluid"]["Tracer"]["min"]</variable>
+    <variable name="cg_max_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cg.stat")
+cg_max_ts = s["Fluid"]["Tracer"]["max"]</variable>
+    <variable name="cg_t_integrals" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cg.stat")
+cg_t_integrals = s["Fluid"]["Tracer"]["integral"]</variable>
+    <variable name="dg_times" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_dg.stat")
+dg_times = s["ElapsedTime"]["value"]</variable>
+    <variable name="dg_min_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_dg.stat")
+dg_min_ts = s["Fluid"]["Tracer"]["min"]</variable>
+    <variable name="dg_max_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_dg.stat")
+dg_max_ts = s["Fluid"]["Tracer"]["max"]</variable>
+    <variable name="dg_t_integrals" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_dg.stat")
+dg_t_integrals = s["Fluid"]["Tracer"]["integral"]</variable>
+    <variable name="cv_times" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cv.stat")
+cv_times = s["ElapsedTime"]["value"]</variable>
+    <variable name="cv_min_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cv.stat")
+cv_min_ts = s["Fluid"]["Tracer"]["min"]</variable>
+    <variable name="cv_max_ts" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cv.stat")
+cv_max_ts = s["Fluid"]["Tracer"]["max"]</variable>
+    <variable name="cv_t_integrals" language="python">import fluidity_tools
+s = fluidity_tools.stat_parser("top_hat_cv.stat")
+cv_t_integrals = s["Fluid"]["Tracer"]["integral"]</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+  </variables>
+  <pass_tests>
+    <test name="CG simulation completed" language="python">assert(cg_times[-1] &gt; 80.0)</test>
+    <test name="CG Bounded (15%)" language="python">min_t = min(cg_min_ts)
+max_t = max(cg_max_ts)
+print "Min T = ", min_t
+print "Max T = ", max_t
+assert(min_t &gt; -0.15)
+assert(max_t &lt; 1.15)</test>
+    <test name="CG Conservative" language="python">import fluidity_tools
+fluidity_tools.compare_variables(cg_t_integrals[1:], [cg_t_integrals[0] for i in range(len(cg_t_integrals) - 1)], 2.0e-4)</test>
+    <test name="DG simulation completed" language="python">assert(dg_times[-1] &gt; 80.0)</test>
+    <test name="DG Bounded (5%)" language="python">min_t = min(dg_min_ts)
+max_t = max(dg_max_ts)
+print "Min T = ", min_t
+print "Max T = ", max_t
+assert(min_t &gt; -0.05)
+assert(max_t &lt; 1.05)</test>
+    <test name="DG Conservative" language="python">import fluidity_tools
+fluidity_tools.compare_variables(dg_t_integrals[1:], [dg_t_integrals[0] for i in range(len(dg_t_integrals) - 1)], 1.0e-9)</test>
+    <test name="CV simulation completed" language="python">assert(cv_times[-1] &gt; 80.0)</test>
+    <test name="CV Bounded (1%)" language="python">min_t = min(cv_min_ts)
+max_t = max(cv_max_ts)
+print "Min T = ", min_t
+print "Max T = ", max_t
+assert(min_t &gt; -0.01)
+assert(max_t &lt; 1.01)</test>
+    <test name="CV Conservative" language="python">import fluidity_tools
+fluidity_tools.compare_variables(cv_t_integrals[1:], [cv_t_integrals[0] for i in range(len(cv_t_integrals) - 1)], 1.0e-8)</test>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+  </pass_tests>
 </testproblem>

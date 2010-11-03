@@ -205,7 +205,7 @@
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
