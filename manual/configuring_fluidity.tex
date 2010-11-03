@@ -1458,8 +1458,23 @@ A surface roughness needs to be specified which is the thickness of laminar subl
 When running free surface simulations the surface elevation at the boundary is specified by applying a pressure Dirichlet condition. Since the free surface elevation is often measured data, there are some special possibilities to specify a pressure Dirichlet condition: 
 
 \option{\ldots/from\_file} allows the specification of a single file
-containing something useful. This option is available on the Pressure, Free
-Surface
+containing something useful. This option is available on the Pressure (Free
+Surface) field. Tidal boundary conditions can be applied by setting this option
+and referencing a relevant NetCDF file containing appropriate amplitude and phase data for the desired
+tidal constituent(s). The file is referenced under:
+\begin{itemize}
+\item \option{\ldots/tidal/file\_name},
+\end{itemize}
+with the amplitude and phase names (as specified in the NetCDF file) set under:
+\begin{itemize}
+\item \option{\ldots/tidal/variable\_name\_amplitude},
+\item \option{\ldots/tidal/variable\_name\_phase}
+\end{itemize}
+respectively. Finally, the constituet should be selected from the list under:
+\begin{itemize}
+\item \option{\ldots/tidal/name}.
+\end{itemize}
+A separate tidal boundary consition needs to be set for each constituent.
 
 \index{boundary conditions!NEMO data}
 \option{\ldots/NEMO\_data} will set the field according to a specified NEMO
@@ -1587,6 +1602,29 @@ biology.pznd(state, p)
 \end{example}
 
 The final thing to change is to add absorption coefficients in the photsynthetic radiation field for water and plankton concentration.
+
+\section{Astronomical tidal forcing}
+\label{config:tides}
+\index{tides}
+
+Astronomical tidal forcing can be switched on for 11 different constituents
+under:
+\begin{itemize}
+\item \option{/ocean\_forcing/tidal\_forcing}, 
+\end{itemize}
+(see \citealp{Wells2008} for descriptions of
+the different constituents). These can be switched either
+individually or in combination. In addition, a body tide correction can be stipluated
+under:
+\begin{itemize}
+\item \option{\ldots/tidal\_forcing/love\_number},
+\end{itemize}
+for which the suggested value is 0.3 (assuming 
+Love numbers of $k$=0.3 and $h$=0.61; see section \ref{astronomical}).   
+
+Note that for many cases, specifically those involving open boundaries, it is often
+desirable to combine astronomical tidal forcing with a co-oscillating boundary tide condition
+(see section \ref{Sect:BCs:specialised}).
 
 \section{Sediment model}
 \label{config:sediments}

@@ -266,6 +266,26 @@ and $S_0$ is a reference ocean salinity, which is the current sea surface salini
 These fluxes are then applied as upper-surface Neumann boundary conditions on
 the appropriate fields.
 
+\subsubsection{Co-oscillating boundary tides}
+\label{sec:boundary_tide}
+
+Co-oscillating tides are forced as cosine waves of specified phase and amplitude along designated boundaries:
+\begin{equation}
+h=\sum_{i}A_{i}\cos(\sigma_{i} t -\phi_{i})
++\sum_{j}A_{j}\cos(\sigma_{j} t -\phi_{j})
++\sum_{k}A_{k}\cos(\sigma_{k} t -\phi_{k}),
+\label{eq:co-oscillating-tide}
+\end{equation}
+where $h$ is the free surface height (m), $A$ is the amplitude of the tidal 
+constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constituent 
+(radians) \citep{Wells2008}. 
+ 
+The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude 
+and phase applied across the entire length of the boundary, or it can be variable as delimited via an 
+interpolation of different amplitudes and phases at a series of points spread along the boundary \citep{Wells2008}.
+
+
+
 \subsection{Approximations}
 
 \subsubsection{Incompressibility} \label{sect:incompressibility}
@@ -650,3 +670,58 @@ $\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal v
 \frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec z},
 \end{equation}
 where $\vec z=(0,0,1)$ is the vertical standard basis vector.
+
+\subsection{Astronomical tides}\label{Sect:AST}
+\index{astronomical tides}
+\label{astronomical}
+The astronomical tidal potential is calculated at each node of the finite element mesh using the 
+multi-constituent equilibrium theory of tides equation:
+  \begin{eqnarray}
+\eta_{eq}\left(\lambda,\theta,t\right)&=&\sin^{2}\theta\sum_{i}A_{i}\cos\left(\sigma_{i}t+\chi_{i}+2\lambda\right)\nonumber\\
+&+&\sin2\theta\sum_{j}A_{j}\cos\left(\sigma_{j}t+\chi_{j}+\lambda\right)\\
+&+&\left(3\sin^{2}\theta-2\right)\sum_{k}A_{k}\cos\left(\sigma_{k}t+\chi_{k}\right)\nonumber,
+\label{eq:multi-constituent-eq_theory}
+  \end{eqnarray}
+where $\eta_{eq}$ is the equilibrium tidal potential (m), $\lambda$ is the east longitude (radians), $\theta$ is the colatitude
+$[(\pi/2)-{\text{latitude}}]$, $\chi$ is the astronomical argument (radians), $\sigma$
+is the frequency of the tidal constituent (s$^{\text{-1}}$), $t$ is universal standard
+time (s) and $A$ is the equilibrium amplitude of the tidal constituent (m). Subscript
+$i$ represents the semidiurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
+the diurnal constituents (\eg K$_{\text{1}}$) and subscript $k$ the long period
+constituents (\eg M$_{\text{f}}$; \citealp{Wells2008}).   
+The overall forcing 
+is applied as the product of the gradient of the resulting equilibrium tidal potential and the acceleration due 
+to gravity (g) \citep{Mellor1996, Kantha2000, Wells2007}.
+The multi-constituent equilibrium theory of tides is flexible in that it enables astronomical tides to be forced as 
+individual constituents 
+(e.g. M$_{2}$ or S$_{2}$) or as a combination of different constituents (e.g. M$_{2}$ + S$_{2}$) \citep{Wells2008}.
+
+As there is no interest in calculating the tide for an exact date, the astronomical argument 
+is typically excluded from the multi-constituent theory of tides equation for ICOM applications meaning that all satellites 
+start at 0$^{\circ}$ latitude \citep{Wells2008}.
+
+The astonomical tidal potential can be modified to account for the deformation of the solid earth
+(the body tide) if desired. The multi-constituent equilibrium theory of tides equation includes the effects of the
+solid earth deformation, adding this to the overall free surface height. 
+This is fine
+when validating model results against measurements that record the overall elevation of the 
+Earth's oceans (e.g. satellite altimeter readings and surface tide gauges). If however, the model
+is validated against measurements that do not include the effects of the Earth's body tide
+such as with pelagic pressure gauges, then a correction to the equilibrium tidal potential
+is required. This can be applied as: 
+\begin{equation}
+\eta=(1+k-h)\eta_{eq},
+\label{eq:body-tide}
+\end{equation}    
+where $\eta$ is the corrected tidal potential, $\eta_{eq}$ is the uncorrected equilibrium tidal potential
+and $k$ (0.3) and $h$ (0.61) are Love numbers (after \citealp{Love1909}).
+Both $k$ and $h$ are dimensionless measures of the elastic behavior of the solid Earth. $k$ accounts for the enhancement to the
+Earth's gravitational potential brought about by the re-distribution of the Earth's mass whereas $h$
+is a correction for the physical distortion to the Earth's surface \citep{Pugh1987}.
+
+The exact values of $k$ and $h$ vary for different tidal constituents and the numbers shown are given
+for the semidiurnal M$_{\text{2}}$ constituent. Typical variations to $k$ and $h$ are less than 0.01 which
+corresponds to a $<$1\% change to the equilibrium tidal potential.
+These errors are sufficiently small that the stated values are a suitable approximation to
+use in body tide corrections to the majority of tidal constituents. 
+

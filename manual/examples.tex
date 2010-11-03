@@ -1154,10 +1154,10 @@ Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 
 You might want to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \begin{center}
 \subfigure [0 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0001.png}}
-\subfigure [5 days]{\includegraphics [width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0002.png}}
+\subfigure [5 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0002.png}}
 \subfigure [10 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0003.png}}
 \subfigure [15 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0004.png}}
 \subfigure [20 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0005.png}}
@@ -1170,4 +1170,128 @@ You might want to try spinning up before you run this problem.  First run to a s
 \end{center}
 \end{figure}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---Tides in the Mediterranean Sea--------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Tides in the Mediterranean Sea}
+\label{sect:Med}
+
+\subsection{Overview}
+
+Tidal modelling is a widely used method for validating free surface implementations \citep{Shum1997}. The Mediterranean Sea
+is a good example as it requires both astronomical and co-oscillating boundary tide forcing to obtain
+an accurate solution \citep{Tsimplis1995, Wells2008}. An abundance of available tide gauge data recording the 
+harmonic constants for both the amplitude and phase of a wide variety of different tidal constituets
+facilitates comparisons between ICOM and real-world data. 
+ 
+
+\subsection{Configuration}
+
+The domain extends from 8$^\circ$W to 40$^\circ$E and from 28$^\circ$N to 48$^\circ$N with an open boundary adjacent to the Atlantic
+Ocean in the west. The fixed mesh was generated using gmsh with shoreline data taken from the intermediate resolution $gshhs$
+dataset (see \url{http://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html}). The single-element deep tetrahedal elements were then
+extruded in the vertical to fit a 3 arc-minute resolution bathymetric profile subsampled from the 1 arc-minute GEBCO dataset     
+(see \url{http://www.gebco.net/}). A minimum depth of 3 m  is set to prevent wetting-and-drying related numerical instabilities.
+
+The model is is driven by both astronomical and co-oscillating boundary tide forcing (see sections \ref{astronomical} and \ref{sec:boundary_tide})
+for the four main tidal constituents; M$_{\text{2}}$, S$_{\text{2}}$, K$_{\text{1}}$ and O$_{\text{1}}$ (see \citealp{Schwiderski1980,Wells2008}).
+Boundary tide data is sourced from the highly accurate FES2004 model \citep{Lyard2006} which is read in from a NetCDF file (see section\ref{Sect:BCs:specialised}). 
+Frictional drag is applied as a surface-integral boundary condition to the bottom and sides and is based on a quadratic friction law 
+of the form $-C_{D}|u|u$, where $C_{D}$ is the drag coefficient, $u$ is the velocity vector 
+(ms$^{\text{-1}}$) and $|u|$ is the magnitude of the velocity vector ($|u|=\sqrt{u_{c}^{2}+v_{c}^{2}+w_{c}^{2}}$ where $u_{c}$ is the $x$ component of 
+velocity (ms$^{\text{-1}}$), 
+$v_{c}$ is the $y$ component of velocity (ms$^{\text{-1}}$) and $w_{c}$ is the 
+$z$ component of velocity (ms$^{\text{-1}}$) respectively). 
+The $C_{D}$ is set 0.0025, a value considered suitable for the majority of numerical ocean tidal models \citep{Wells2008}. 
+
+The model outputs the harmonic constants for the amplitude and phase of each constituent as calculated from a time series using the least-squares
+method. The timestep is 200 entries in length with data recorded every 5 timesteps after an initial spin up period of 20 hours (simulated time). 
+The timestep itself is 5 minutes. The total runtime is 200 hours (simulated time).
+
+
+\subsection{Results}
+
+The harmonic amplitudes are presented as plotted scalar fields and compared with a high-resolution 2D model of \citet{Tsimplis1995} in
+Figure \ref{amp}. The model results are similar to those of \citet{Tsimplis1995} and generally predict the correct patterns. 
+The semidiurnal consitieunts give very similar results due to their similar frequencies (Figure \ref{amp}A - D). The amphidromic
+systems are correctly located in the Sicilian Channel bewtween Sicily and Libya     
+and in the northern Adriatic. The degenerate amphidromes are also accurately positioned near the Balearic Islands and in bewteen
+Crete and Libya. The model also captures the amplification of the tidal amplitudes in both the Gulf of gables and the northern Adriatic, 
+a phenomena primarilly due to resonance of the wave in these regions.
+
+The amplitudes for the diurnal constituents show a similarly good match with the results of \citet{Tsimplis1995} (Figure \ref{amp}E - H).
+The lowest amplitudes occur in the eastern part of the basin and there is pronounced amplification in the Adriatic Sea caused by this region
+acting as a quarter-wave oscillator with the diurnal frequency \citep{Wells2008}. The degenerate amphidrome
+along the Libyan coast (around the Gulf of Sirte) is correctly predicted.   
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\textwidth]{./examples_images/tides_in_the_Mediterranean_Sea/amp.pdf}
+\caption{Plots of the tidal harmonic amplitudes in the Mediterranean Sea from ICOM and the high resolution
+model of \citet{Tsimplis1995}.}
+\label{amp}
+\end{figure}
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\textwidth]{./examples_images/tides_in_the_Mediterranean_Sea/phase.pdf}
+\caption{Plots of the tidal harmonic phases in the Mediterranean Sea from ICOM and the high resolution
+model of \citet{Tsimplis1995}. } 
+\label{phase}
+\end{figure}
+
+The phases as predicted by ICOM and by \citet{Tsimplis1995} are presented in Figure \ref{phase}. These show
+a general agreement with the amphidromic systems shown to be rotating in an anti-clockwise direction; a feature
+brought about by Coriolis force deflecting the tidal wave to the right in the Northern Hemisphere.
+ICOM appears to slightly overpredict the wave speed in all cases; a result that could be attributed to any number of eatures including the
+bathymetric/mesh reolution and/or an insufficntly low drag coefficient. Another possible source of error is that the
+phase of the boundary tide and the natural mode of oscillation of the basin might not be synchronised; something that
+\citet{Tsimplis1995} adjusted repeatedly until they achieved their best results.
+ 
+The harmonic amplitudes are compared with data from 62 tide gauges (Figure \ref{gauge}; \citealp{Tsimplis1995,Wells2008}).
+The RMS differences for ICOM are typically 2-3 times those of \citet{Tsimplis1995}    
+with the largest errors being for the diurnal constituents (Table \ref{rms}). Despite these discrepencies, the
+magnitudes of the RMS differences indicate a good match with the tide gauges, even in a strongly microtidal environment 
+such as the Mediterranean Sea. 
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{./examples_images/tides_in_the_Mediterranean_Sea/gauges.pdf}
+\caption{Locations of 62 tide gauges in the Mediterranean Sea. Modified from \citet{Wells2008} with data originally taken from 
+\citet{Tsimplis1995}. }
+\label{gauge}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l c c}
+\hline
+\bf{Tidal Constituent} & \multicolumn{2}{c}{\bf{RMS Differences}} \\
+\cline{2-3}
+& \bf{\citet{Tsimplis1995}} & \bf{ICOM} \\
+\hline
+M$_{\text{2}}$ &1.37 & 3.8\\
+S$_{\text{2}}$ &0.68 & 2.4\\
+K$_{\text{1}}$ &0.82 & 1.5\\
+O$_{\text{1}}$ &0.34 & 1.3\\
+\hline
+\end{tabular}
+\caption{RMS differences between modelled harmonic amplitudes and real-world data from 62 tide gauges.
+Data is presented from \citet{Tsimplis1995} and ICOM. }
+\label{rms}
+\end{table}
+
+The quality of the match is further highlighted in scatter diagrams plotting 
+the harmonic amplitudes from ICOM at each gauge location against the tide gauge data (Figure \ref{plots}).
+These reveal how although ICOM tends to marginally overpredict the amplitude there is a strong
+positive correlation closely delineating $y=x$. 
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{./examples_images/tides_in_the_Mediterranean_Sea/plots}
+\caption{Scatter diagrams plotting harmonic amplitudes from ICOM at each gauge location against tide gauge data.} 
+\label{plots}
+\end{figure}
 
