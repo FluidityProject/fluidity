@@ -269,14 +269,18 @@ contains
       type(block_csr_matrix), intent(in):: ct_m
       type(scalar_field), target, intent(in):: p_theta
       type(vector_field), intent(in):: position
-      
+
+      logical :: on_sphere      
       type(mesh_type), pointer:: p_mesh
       type(scalar_field) :: tidal_pressure, combined_p
+      type(vector_field) :: pressure_coordinate
       logical, dimension(11) :: which_tide
-      integer :: node
+      integer :: node, stat
       real :: eqtide, long, lat, height, love_number, current_time, gravity_magnitude
 
        p_mesh => p_theta%mesh
+
+       on_sphere = have_option('/geometry/spherical_earth/')    
        
        which_tide=.false.
        if (have_option('/ocean_forcing/tidal_forcing/all_tidal_components')) then
@@ -312,29 +316,36 @@ contains
       else
          love_number=1.0
       end if
+
+      ! Get node positions on the pressure mesh (this remap is a bit naughty)
+      call allocate(pressure_coordinate, position%dim, p_mesh, name="PressureCoordinate")
+      call zero(pressure_coordinate)
+      call remap_field(position, pressure_coordinate, stat=stat)
+
       call allocate(tidal_pressure, p_mesh, "TidalPressure")
       call allocate(combined_p, p_mesh, "CombinedPressure")
+      call zero(tidal_pressure); call zero(combined_p)
       call get_option("/timestepping/current_time", current_time)
       call get_option('/physical_parameters/gravity/magnitude',&
            & gravity_magnitude)
 
-      do node=1,node_count(position)
-         if (have_option('/geometry/spherical_earth/')) then
-           call LongitudeLatitude(node_val(position,node), long,&
-                & lat, height)
+      do node=1,node_count(pressure_coordinate)
+        if (on_sphere) then
+          call LongitudeLatitude(node_val(pressure_coordinate,node), long,&
+               & lat, height)
         else
            ewrite(-1,*) "Tidal forcing in non spherical geometries&
                 &is yet to be added. Would you like &
                 &to add this functionality?"
            FLExit('Exiting as code missing')
         end if
-         eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
-              &,long*acos(-1.0)/180.0,current_time,1.0)
-         eqtide=love_number*eqtide
-         call set(tidal_pressure, node, eqtide*gravity_magnitude)
+        eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
+               &,long*acos(-1.0)/180.0,current_time,1.0)
+        eqtide=love_number*eqtide
+        call set(tidal_pressure, node, eqtide*gravity_magnitude)
       end do
 
-      do node=1,node_count(position)
+      do node=1,node_count(pressure_coordinate)
          call set(combined_p, node, node_val(p_theta, node)&
               &-node_val(tidal_pressure, node))
       end do
@@ -343,6 +354,7 @@ contains
 
       call deallocate(tidal_pressure)
       call deallocate(combined_p)
+      call deallocate(pressure_coordinate)
               
     end subroutine compute_pressure_and_tidal_gradient
     

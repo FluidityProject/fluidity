@@ -1235,12 +1235,14 @@ contains
       end if
     end if
 
-    absorption_gi = ele_val_at_quad(Abs, ele)
-    if (on_sphere.and.have_absorption) then ! Rotate the absorption
-      tensor_absorption_gi=rotate_diagonal_to_sphere_gi(X, ele, absorption_gi)
-    end if
-
     if(have_absorption.or.have_vertical_stabilization.or.have_wd_abs) then
+
+      tensor_absorption_gi=0.0
+      absorption_gi = ele_val_at_quad(Abs, ele)
+      if (on_sphere.and.have_absorption) then ! Rotate the absorption
+        tensor_absorption_gi=rotate_diagonal_to_sphere_gi(X, ele, absorption_gi)
+      end if
+
       vvr_abs_diag=0.0
       vvr_abs=0.0
       ib_abs=0.0
@@ -1313,15 +1315,13 @@ contains
         absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
       end if
 
-    end if
+      ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
+      ! the absorption cannot be used in the pressure correction. 
+      if (on_sphere) then
 
-    ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
-    ! the absorption cannot be used in the pressure correction. 
-    if (on_sphere) then
+        Abs_mat_sphere = shape_shape_tensor(U_shape, U_shape, detwei*rho_q, tensor_absorption_gi)
 
-      Abs_mat_sphere = shape_shape_tensor(U_shape, U_shape, detwei*rho_q, tensor_absorption_gi)
-
-      if(lump_abs) then
+        if(lump_abs) then
 
           Abs_lump_sphere = sum(Abs_mat_sphere, 4)
           do i = 1, ele_loc(U, ele)
@@ -1341,70 +1341,69 @@ contains
             end do
           end do
 
-      else
+        else
 
-        do dim = 1, u%dim
-          do dim2 = 1, u%dim
-            big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
-              & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
-          end do
-          if (acceleration) then
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), u_val(dim,:))
-            ! off block diagonal absorption terms
+          do dim = 1, u%dim
             do dim2 = 1, u%dim
-              if (dim==dim2) cycle ! The dim=dim2 terms were done above
-              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+              big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
+                & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
             end do
-          end if
-        end do
-        Abs_lump_sphere = 0.0
-
-      end if
-
-    else
-
-      Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
-
-      if(lump_abs) then
-        
-        abs_lump = sum(Abs_mat, 3)
-        do dim = 1, u%dim
-          big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
-          if(acceleration) then
-            rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
-          end if
-          if (present(inverse_masslump) .and. pressure_corrected_absorption) then
-            assert(lump_mass)
-            if(have_mass) then
-              call set( inverse_masslump, dim, u_ele, &
-                1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
-            else
-              call set( inverse_masslump, dim, u_ele, &
-                1.0/(dt*theta*abs_lump(dim,:)) )            
+            if (acceleration) then
+              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), u_val(dim,:))
+              ! off block diagonal absorption terms
+              do dim2 = 1, u%dim
+                if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+              end do
             end if
-          end if          
-        end do
+          end do
+          Abs_lump_sphere = 0.0
+        end if
 
       else
-      
-        do dim = 1, u%dim
-          big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
-            & dt*theta*Abs_mat(dim,:,:)
-          if(acceleration) then
-            rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
-          end if
-          if (present(inverse_mass) .and. pressure_corrected_absorption) then
-            assert(.not. lump_mass)
-            if(have_mass) then
-              call set(inverse_mass, dim, dim, u_ele, u_ele, &
-                inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
-            else
-              call set(inverse_mass, dim, dim, u_ele, u_ele, &
-                inverse(dt*theta*Abs_mat(dim,:,:)))            
+
+        Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
+        if(lump_abs) then        
+          abs_lump = sum(Abs_mat, 3)
+          do dim = 1, u%dim
+            big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
+            if(acceleration) then
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
             end if
-          end if
-        end do
-        
+            if (present(inverse_masslump) .and. pressure_corrected_absorption) then
+              assert(lump_mass)
+              if(have_mass) then
+                call set( inverse_masslump, dim, u_ele, &
+                  1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
+              else
+                call set( inverse_masslump, dim, u_ele, &
+                  1.0/(dt*theta*abs_lump(dim,:)) )            
+              end if
+            end if          
+          end do
+
+        else
+      
+          do dim = 1, u%dim
+            big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
+              & dt*theta*Abs_mat(dim,:,:)
+            if(acceleration) then
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+            end if
+            if (present(inverse_mass) .and. pressure_corrected_absorption) then
+              assert(.not. lump_mass)
+              if(have_mass) then
+                call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                  inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
+              else
+                call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                  inverse(dt*theta*Abs_mat(dim,:,:)))            
+              end if
+            end if
+          end do       
+
+        end if
+
       end if
 
     end if
