@@ -2,6 +2,31 @@
 \label{chap:examples}
 \section{Introduction}
 \label{sect:examples_introduction}
+This chapter describes several example problems that cover the various aspects of the functionality
+of \fluidity. The input files for these examples can be found in separate directories
+under \\ \texttt{\fluiditysourcepath/examples/}. Each directory contains a \texttt{Makefile},
+that implements the following commands. The examples are run by giving these 3 commands in order.
+
+\hspace{0.05\textwidth}
+\begin{minipage}{0.9\textwidth}
+\texttt{make preprocess}
+
+Runs any preprocessing steps that are needed for this example, e.g. mesh generation and
+parallel decomposition.
+\ \\
+
+\texttt{make run}
+
+Runs the actual example. Some examples run a series with different mesh resolution
+(\texttt{driven\_cavity\_2d}, \texttt{rotating\_channel}) or Reynold's number
+(\texttt{flow\_past\_sphere}).
+\ \\
+
+\texttt{make postprocess}
+
+Runs any postprocessing step that may need to be done after running fluidity. For example, in some
+examples plots are created and put in the directory.
+\end{minipage}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------One-dimensional advection-------------------%
