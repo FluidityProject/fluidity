@@ -1225,9 +1225,21 @@ For more information on the development of UltraC in \fluidity\ see \citet{wilso
 
 \paragraph{PotentialUltraC}
 
-One side effect of using a total variation bounded scheme, as in UltraC, is that small isolated regions of field that are already easily within the minimum and maximum bounds are advected at spurious velocities.  This can be solved by either switching to HyperC or modifying the flux in the vicinity of these regions.  PotentialUltraC implements these options.  More details of this scheme can be found in \citep{wilson_phdthesis_2009}.
+One side effect of using a total variation bounded scheme, as in UltraC, is that small isolated regions of field that are already easily within the minimum and maximum bounds are advected at spurious velocities.  This can be solved by either switching to HyperC or modifying the flux in the vicinity of these regions.  PotentialUltraC implements these options.  More details of this scheme can be found in \citet{wilson_phdthesis_2009}.
 
 \paragraph{Coupled Limiting}
+
+Under some circumstances it becomes necessary to limit the face values of a field based not only on the boundedness of the field itself but based on the boundedness of other fields as well.  This is implemented in \fluidity\ as a coupled control volume spatial discretisation.  This allows the user to select any of the above face value schemes, which are then limited to ensure that both the field and the sum of the field with the other related fields is in some sense bounded.  This is particularly useful for multiple material simulations where the volume fractions must not only remain individually bounded between $0$ and $1$ but their sum must also be similarly bounded.
+
+Limiting based on a summation of fields requires the user to specify a priority ordering describing the order in which the individual fields should be advected and summed.  Hence we now consider a field $c^I$, where $I$ indicates the priority of the field from $1$ (highest priority) to the number of related fields, $N$ (lowest priority).  We then introduce the variables:
+\begin{equation}
+c^{\sum_{I}} = \sum_{i=1}^I c^i
+\end{equation}
+and
+\begin{equation}
+c^{\sum_{I-1}} = \sum_{i=1}^{I-1} c^i
+\end{equation}
+along with their related normalised versions.  Using these variable and the total variation bounded (TVB) definition of boundedness introduced in UltraC it is possible to check whether the current field face value, $c_{f}^I$ (and its normalised equivalent $\bar{c}_{f}^I$), falls within a region on the normalised variable diagram in which the summation up to the current field, $c^{\sum_{I}}$, is itself bounded, in a TVB sense (see Figure \ref{fig:coupledlimiter}).
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1237,7 +1249,13 @@ One side effect of using a total variation bounded scheme, as in UltraC, is that
 \end{center}
 \end{figure}
 
+The coupled limiter described in Figure \ref{fig:coupledlimiter} uses information from the previous summation of fields, $c^{\sum_{I-1}}$, to asses whether the addition of the current field will make the new summation, $c^{\sum_I}$ unbounded.  Hence on the highest priority field no additional restrictions will be imposed beyond ensuring that the field itself is TVB and the coupled limiter is simplified significantly.  Subsequent fields are increasingly restricted by the constraints of previously advected fields, however only in control volumes that have values greater than zero for more than one field.  If the initial state of a field or any of the higher priority fields already breaks the boundedness criterion then the coupled limiter is unable to guarantee boundedness of the sum.
+
+Further details of the coupled control volume algorithm can be found in \citet{wilson_phdthesis_2009}.
+
 \subsubsection{Control Volume diffusion}
+
+
 
 \section{The time loop}
 \label{sect:ND_time_loop}
