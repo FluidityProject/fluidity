@@ -1145,19 +1145,40 @@ As noted above, several of the face value schemes above result in unstable, unbo
 \end{center}
 \end{figure}
 
-Once an upwind value is available 
+Once an upwind value, $c_{u_k}$,  is available it is possible to estimate whether the chosen face value, $c_{f_k}$, will cause the solution to become unbounded.  \fluidity\ uses a normalised variable diagram \citep[NVD, ][]{waterson_design_2007, wilson_phdthesis_2009}  based scheme to attempt to enforce a total variation diminishing \citep[TVD, ][]{leveque_finite-volume_2002} definition of boundedness.  First, a normalised donor value:
+\begin{equation}
+\bar{c}_{c_k} = \frac{c_{c_k}-c_{u_k}}{c_{d_k}-c_{u_k}}
+\end{equation}
+and a normalised face value:
+\begin{equation}
+\bar{c}_{f_k} = \frac{c_{f_k}-c_{u_k}}{c_{d_k}-c_{u_k}}
+\end{equation}
+are defined.  These are then used to define the axes of the NVD.  This has the advantage of dealing with multiple configurations in a single coordinate system \citep[NVD, ][]{waterson_design_2007, wilson_phdthesis_2009}.
+
+Many face value limiting schemes can be implemented on the NVD \citep{leonard_ultimate_1991}.  \fluidity\ provides two options: the Sweby \citep{sweby_high_1984} and ULTIMATE \citep{leonard_ultimate_1991} limiters (see Figure \ref{fig:limiters}).
 
 \begin{figure}[tbp]
 \begin{center}
 \xfig{numerical_discretisation_images/swebynvd} \\ \vspace{0.5cm}
 \xfig{numerical_discretisation_images/ultimatenvd}
 \caption{The Sweby (a) and ULTIMATE (b) limiters (shaded regions) represented on a normalised variable diagram (NVD).  For comparison the trapezoidal face value scheme is plotted as a dashed line in both diagrams.}
-\label{fig:swebylimiter}
+\label{fig:limiters}
 \end{center}
 \end{figure}
 
+\subparagraph{Sweby Limiter}
+
+The Sweby limiter \citep{sweby_high_1984} defines a region on the NVD (shaded grey in Figure \ref{fig:limiters}(a)) that is considered bounded.  Any combination of normalised face and donor values falling within this region is left unchanged.  Values falling outside this area are `limited' along lines of constant normalised donor value back onto the top or bottom of the stable region, or if they fall outside the range $0<\bar{c}_{c_k}<1$, back to first order upwinding (represented by the diagonal line on a NVD).
+
+As an example the trapezoidal face value scheme is plotted as a dashed line in Figure \ref{fig:limiters}(a).  It only crosses the Sweby limiter region for a small range of normalised donor values and it is only across this range that the face value will not be limited.  Outside of this range the trapezoidal face value scheme is considered unstable and must be limited.  This is akin to saying that the trapezoidal face value scheme may only be used in regions where the solution is sufficiently smooth.  In particular, outside the range $0<\bar{c}_{c_k}<1$, the solution is already locally unbounded (in a TVD sense) and hence only first order upwinding may be used to restore local boundedness.
+
+\subparagraph{ULTIMATE Limiter}
+
+An alternative definition of the sufficiently smooth region of the NVD is provided by the ULTIMATE limiter \citep[see Figure \ref{fig:limiters}(b), ][]{leonard_ultimate_1991}.  This works using the same principals as the Sweby limiter however the region defined as being stable now incorporates an upper bound that depends on the Courant number at the control volume face to the donor value, $\gamma_{c_f}$.  Hence the region expands and contracts depending on the Courant number, collapsing back entirely to first order upwinding once a Courant number of one is attained.  It is therefore principally designed for explicit advection.  In fact for explicit advection, with the correct control volume based definition of the Courant number, this limiter exactly defines the total variation bounded region, guaranteeing boundedness in that sense \citep{leonard_ultimate_1991, desprs_contact_2001}.
 
 \paragraph{HyperC}
+
+
 
 \begin{figure}[tbp]
 \begin{center}
