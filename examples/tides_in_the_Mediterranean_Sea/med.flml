@@ -1,0 +1,784 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">med</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="BaseMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="BaseMesh"/>
+        <mesh_continuity>
+          <string_value>continuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="BaseMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="med">
+        <format name="triangle"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="BaseMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <regions name="WholeMesh">
+            <bottom_depth>
+              <from_map file_name="globesampled.grd">
+                <min_depth>
+                  <real_value rank="0">3.0</real_value>
+                </min_depth>
+              </from_map>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">10000.0</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">307</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">308</integer_value>
+            </bottom_surface_id>
+          </regions>
+        </extrude>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+      <surface_degree replaces="SNGI">
+        <integer_value rank="0">3</integer_value>
+      </surface_degree>
+    </quadrature>
+    <spherical_earth replaces="ISPHERE">
+      <linear_mapping replaces="ISPHERE=1"/>
+    </spherical_earth>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">307</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">308</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">72000.0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">100</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+      <time_units date="seconds since 1987-01-05 00:00.0"/>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">300.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">720000.0</real_value>
+    </finish_time>
+    <cpu_time_limit replaces="CPULIM">
+      <real_value rank="0">255600.0</real_value>
+    </cpu_time_limit>
+    <wall_time_limit replaces="WATIME">
+      <real_value rank="0">255600.0</real_value>
+    </wall_time_limit>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">9.81</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <python>
+              <string_value lines="20" type="python">def val(X, t):
+
+  a = X[0]
+  b = X[1]
+  c = X[2]
+  
+  x_component = -(a/((a**2+b**2+c**2)**0.5)) 
+  y_component = -(b/((a**2+b**2+c**2)**0.5))
+  z_component = -(c/((a**2+b**2+c**2)**0.5))
+  
+  return [x_component, y_component, z_component]</string_value>
+            </python>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+    <coriolis>
+      <on_sphere>
+        <omega>
+          <real_value rank="0">7.27220522e-5</real_value>
+        </omega>
+      </on_sphere>
+    </coriolis>
+  </physical_parameters>
+  <material_phase name="Fields">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <subgridscale_parameterisations/>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term replaces="NOFILT"/>
+            <integrate_continuity_by_parts replaces="PREOPT"/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">only first timestep</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC"/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="mg">
+            <vertical_lumping/>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.0e-8</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">0.0</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1700</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="BoundaryTide">
+          <surface_ids>
+            <integer_value shape="1" rank="1">384</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <from_file>
+              <tidal file_name="med.nc" variable_name_amplitude="M2amp" name="M2" variable_name_phase="M2phase"/>
+              <tidal file_name="med.nc" variable_name_amplitude="S2amp" name="S2" variable_name_phase="S2phase"/>
+              <tidal file_name="med.nc" variable_name_amplitude="K1amp" name="K1" variable_name_phase="K1phase"/>
+              <tidal file_name="med.nc" variable_name_amplitude="O1amp" name="O1" variable_name_phase="O1phase"/>
+            </from_file>
+          </type>
+        </boundary_conditions>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
+            <advection_terms>
+              <integrate_advection_by_parts/>
+            </advection_terms>
+            <stress_terms>
+              <tensor_form/>
+            </stress_terms>
+            <les_model>
+              <smagorinsky_coefficient>
+                <real_value rank="0">1.0</real_value>
+              </smagorinsky_coefficient>
+              <model>
+                <second_order/>
+              </model>
+            </les_model>
+          </continuous_galerkin>
+          <conservative_advection replaces="BETA">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="THETA">
+            <real_value rank="0">1.0</real_value>
+          </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">1.0</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-8</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">0.0</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="drag_on_bottom_and_sides">
+          <surface_ids>
+            <integer_value shape="3" rank="1">308 385 388</integer_value>
+          </surface_ids>
+          <type name="drag">
+            <constant>
+              <real_value rank="0">0.0025</real_value>
+            </constant>
+            <quadratic_drag/>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSurface">
+          <surface_ids>
+            <integer_value shape="1" rank="1">307</integer_value>
+          </surface_ids>
+          <type name="free_surface"/>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="NoNormalFlow">
+          <surface_ids>
+            <integer_value shape="3" rank="1">308 385 388</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <python>
+                  <string_value lines="20" type="python">def val(X, t):
+    a = X[0]
+    b = X[1]
+    c = X[2]
+    from math import sqrt, sin, cos, atan2, acos
+    r=sqrt(a**2+b**2+c**2)
+    A1=2000.0
+    A2=A1
+    A3=1.0
+    phi=atan2(b,a)
+    theta=acos(c/r)
+    T11=A1*sin(phi)**2+A2*cos(theta)**2*cos(phi)**2+A3*sin(theta)**2*cos(phi)**2
+    T12=-A1*sin(phi)*cos(phi)+A2*cos(theta)**2*sin(phi)*cos(phi)+A3*sin(theta)**2*sin(phi)*cos(phi)
+    T13=-A2*sin(theta)*cos(theta)*cos(phi)+A3*sin(theta)*cos(theta)*cos(phi)
+    T21=T12
+    T22=A1*cos(phi)**2+A2*cos(theta)**2*sin(phi)**2+A3*sin(theta)**2*sin(phi)**2
+    T23=-A2*sin(theta)*cos(theta)*sin(phi)+A3*sin(theta)*cos(theta)*sin(phi)
+    T31=T13
+    T32=T23
+    T33=A2*sin(theta)**2+A3*cos(theta)**2
+ 
+    return [[T11, T12, T13],
+           [T21, T22, T23],
+           [T31, T32, T33]]</string_value>
+                </python>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="FreeSurface" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FreeSurfaceHistory">
+      <diagnostic>
+        <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
+          <levels>
+            <integer_value rank="0">200</integer_value>
+          </levels>
+          <stride>
+            <integer_value rank="0">5</integer_value>
+          </stride>
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="M2amp" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+          <constituent name="M2">
+            <real_value shape="1" rank="0">2.23642934E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="S2amp" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+          <constituent name="S2">
+            <real_value shape="1" rank="0">2.31481315E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="K1amp" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+          <constituent name="K1">
+            <real_value shape="1" rank="0">1.16057376E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="O1amp" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+          <constituent name="O1">
+            <real_value shape="1" rank="0">1.07585558E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="M2phase" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+          <constituent name="M2">
+            <real_value shape="1" rank="0">2.23642934E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="S2phase" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+          <constituent name="S2">
+            <real_value shape="1" rank="0">2.31481315E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="K1phase" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+          <constituent name="K1">
+            <real_value shape="1" rank="0">1.16057376E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="O1phase" rank="0">
+      <diagnostic>
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+          <constituent name="O1">
+            <real_value shape="1" rank="0">1.07585558E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Frees_max" rank="0">
+      <diagnostic>
+        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax" persistent="true">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Frees_min" rank="0">
+      <diagnostic>
+        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmin" persistent="true">
+          <spin_up_time>
+            <real_value rank="0">72000.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Tidal_Range" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Frees_max" source_field_2_name="Frees_min" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <vector_field name="BedShearStress" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <density>
+          <real_value rank="0">1023.0</real_value>
+        </density>
+        <drag_coefficient>
+          <real_value rank="0">0.0025</real_value>
+        </drag_coefficient>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="MaxBedShearStress" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+      </diagnostic>
+      <spin_up_time>
+        <real_value rank="0">72000.0</real_value>
+      </spin_up_time>
+    </vector_field>
+  </material_phase>
+  <ocean_forcing>
+    <tidal_forcing>
+      <M2 replaces="DISOTT=2^11"/>
+      <S2/>
+      <K1/>
+      <O1/>
+    </tidal_forcing>
+  </ocean_forcing>
+</fluidity_options>
