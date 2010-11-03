@@ -6,7 +6,7 @@ preprocess:
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l rousset-prognostic-new.flml
+	../../bin/fluidity -v2 -l restratification_after_oodc.flml
         
 postprocess:
 	@echo **********No postprocessing needed

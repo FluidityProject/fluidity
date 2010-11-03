@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">rousset-prognostic</string_value>
+    <string_value lines="1">restratification_after_oodc</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">large_scale_ocean_options</string_value>

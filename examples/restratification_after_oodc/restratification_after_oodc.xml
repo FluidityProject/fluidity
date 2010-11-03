@@ -7,12 +7,12 @@
   <owner userid="fpm08"/>
   <tags>flml </tags>
     <problem_definition length="long" nprocs="32">
-    <command_line>mpiexec fluidity -v2 -l rousset-prognostic-new.flml </command_line>
+    <command_line>mpiexec fluidity -v2 -l restratification_after_oodc.flml </command_line>
   </problem_definition>  
    <variables>
     <variable name="final_time" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("rousset-prognostic.stat")
+s = stat_parser("restratification_after_oodc.stat")
 final_time = s["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
