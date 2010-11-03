@@ -1109,7 +1109,7 @@ and the question becomes, how do we represent the flux $\widehat{\vec{n}\cdot\ve
 
 In the following paragraphs we will refer to the donor or central value, $c_{c_k}$, and the downwind value, $c_{d_k}$.  These are associated with facet $k$ of the control volume dual mesh and are defined depending on the direction of the flux across that facet.  If the flow across facet $k$ is exiting volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k>0$, then the donor value, $c_{c_k}$ is the value in the volume, $c_v$ and the downwind value, $c_{d_k}$ is the value in the volume that the flux is entering.  Similarly if the flow is entering the volume $v$, i.e. $\vec{n}\cdot\vec{u}|_k<0$, then the donor value, $c_{c_k}$, is the value from the neighbouring control volume while the downwind value, $c_{d_k}$, is the value in the volume, $c_v$.  By default only first order quadrature is performed on the control volume facets, however if higher order control volume facet quadrature is selected then $k$ refers to each quadrature point on the facet.
 
-\paragraph{First Order Upwinding}
+\paragraph{First Order Upwinding} \label{sec:cv_fou}
 
 In this case, the value of $c$ at each quadrature point on each facet is taken to be the donor value, $c_{c_k}$.  Then \eqref{eq:adv_cv} becomes:
 \begin{equation}
@@ -1131,7 +1131,7 @@ In this case, the value of $c$ at each quadrature point of the facet is interpol
 
 In this case, the value of $c$ at each quadrature point of the facet is set to the downwind value, $c_{d_k}$.  First order downwinding is unconditionally unstable and is intended for demonstration purposes only.
 
-\paragraph{Face Value Limiting}
+\paragraph{Face Value Limiting} \label{sec:cvlimiting}
 
 As noted above, several of the face value schemes above result in unstable, unbounded advective fluxes.  To compensate for this it is possible to limit the face value in an attempt to maintain boundedness.  This requires an estimate of the upwind flux entering the control volume so we introduce a new value, $c_{u_k}$, for the value upwind of the donor volume, $c_{c_k}$.  On a fully unstructured mesh this value is not directly available so instead it must be estimated.  For cube meshes the default behaviour is to estimate the upwind value from the minimum or maximum of the surrounding nodes depending on the gradient between the donor and downwind values.  On simplex meshes \fluidity\ defaults to more accurate schemes that project the value at the upwind position based on all the nodes in the parent element immediately upwind of the donor node (see Figure \ref{fig:unstructupwindnode}(a)).  As this value is not necessarily bounded itself it is also possible to bound it so that it falls within the values of the upwind element.  Additionally, on a boundary it is possible to reflect the upwind value back into the domain (see Figure \ref{fig:unstructupwindnode}(b)), which may be more appropriate.
 
@@ -1365,7 +1365,7 @@ following form:
 \end{equation}
 in which $M$ is the mass matrix, $\mat{A}(\vec{u})$ is the advection
 operator, $\mat{K}$ is the diffusion operator and $\dvec{r}$ is the
-right-hand side vector containing boundary and source terms. For continuous
+right-hand side vector containing boundary, source and absorption terms. For continuous
 Galerkin, the matrices take the following form:
 \begin{equation}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
@@ -1391,7 +1391,7 @@ matrix equation for the unknown vector $\cnew$:
 Fluidity actually uses a somewhat different rearrangement of the equations
 however this is an implementation detail which has no impact for the user.
 
-\subsection{Advection subcycling}
+\subsection{Discontinuous Galerkin}
 \index{time!advection subcycling}
 
 The slope limiters used with the discontinuous Galerkin formulation only
@@ -1428,6 +1428,18 @@ multiplies and a vector addition.
 
 If a slope limiter is employed, the slope limiter is applied to
 $\dvec{c}_{\mathrm{new}}$ after each subtimestep.
+
+\subsection{Control Volumes}
+
+Advection subcycling based upon a CFL criterion or a fixed number of subcycles is also available for control volume discretisations, although in this case the $\theta$ value is applied globally so no advection diffusion splitting takes place.  This is generally applied to explicit discretisations of the advection equation.
+
+When face value limiting (see section \ref{sec:cvlimiting}) is used in more implicit control volume discretisations a non-linearity is introduced by the requirement to `test' a face value, $c_{f_k}$, against an upwind value value, $c_{u_k}$, which must be estimated.  This restricts any such high order or limited face values to the right hand side of the equation, which severely limits the timestep that can be used.  To overcome this a lower order implicit pivot face value is introduced and the face value in equation \ref{eq:adv_diff_cv} is replaced by:
+\begin{equation}
+c_{f_k} = \theta_p c_{f_k}^{LO n+1} + \theta \tilde{c}_{f_k}^{HO} + \theta c_{f_k}^{HO n} - \theta_p \tilde{c}_{f_k}^{LO}
+\end{equation}
+where $c_{f_k}^{LO}$ is the low order face value and $\tilde{c}_{f_k}^{HO}$ and $\tilde{c}_{f_k}^{LO}$ are the current best estimates, based on the most recent solution, of the high order and low order face values respectively \citep[see ][ for further details]{leveque_finite-volume_2002}.
+
+In \fluidity\ the low order pivot value uses first order upwinding (see section \ref{sec:cv_fou}) and the pivot implicitness factor, $\theta_p$, defaults to $1$.  This implicit pivot is then used to overcome the timestep restriction and an extra advection iteration loop is introduced to update the values of $\tilde{c}_{f_k}^{HO}$ and $\tilde{c}_{f_k}^{LO}$.  If this converges, then after a number of iterations $c_{f_k}^{LO n+1} \approx \tilde{c}_{f_k}^{LO}$ and $c_{f_k} \approx \theta c_{f_k}^{HO n+1} + \theta c_{f_k}^{HO n}$.  Hence an implicit high order face value is achieved.  If the iteration does not converge, either due to too few advection iterations being selected or as a result of non-convergent behaviour in the face value limiter, then $c_{f_k}$ is just a linear combination of low order and high order face values.  This still results in a valid face value, although as is generally the case for implicit advection methods, it is not possible to guarantee the boundedness of this scheme.
 
 \section{Momentum Equation}
 \index{momentum equation!discretised}
@@ -1686,10 +1698,6 @@ have the following property\citep{cotter2009}:
 That is, the discretised pressure equation \eqref{eqn:pressure_correction}
 is the same as that would be obtained from a direct $P_{n+1}$
 discretisation of the continuous pressure poisson equation.
-
-\subsection{Consistent solve CG/DG/FV}
-
-\section{Compressible equations}
 
 \section{Balance pressure}
 \label{Sect:balance_pressure}
