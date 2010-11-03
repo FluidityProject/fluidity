@@ -358,7 +358,9 @@ def val(X, t):
               <limit_face_value>
                 <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
                   <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
-                    <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                    <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000">
+                      <store_upwind_quadrature replaces="ABS(NDISOT) &gt;= 1000"/>
+                    </store_upwind_elements>
                   </project_upwind_value_from_point>
                 </limiter>
               </limit_face_value>
