@@ -28,11 +28,7 @@ endif
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-ifeq ($(NPROCS),1)
-	./postprocessor_3d_serial.py
-else
-	./postprocessor_3d_parallel.py
-endif
+	./postprocessor_3d.py
 
 input: preprocess NPROCS=2
 
