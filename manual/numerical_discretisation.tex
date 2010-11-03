@@ -1119,15 +1119,15 @@ In this case, the value of $c$ at each quadrature point on each facet is taken t
 \end{equation}
 First order upwinding is stable in the sense of boundedness, assuming an appropriate temporal discretisation is selected, it is however very diffusive so normally a higher order but less stable face value scheme is selected.
 
-\paragraph{Trapezoidal}
+\paragraph{Trapezoidal} \label{sec:trap}
 
 In this case, the average of the donor and downwind values, $\frac{c_{c_k}+c_{d_k}}{2}$, is taken as the value of $c$ at each facet.  This is generally unstable regardless of the temporal discretisation chosen so requires limiting (see below).
 
-\paragraph{Finite Element Interpolation}
+\paragraph{Finite Element Interpolation} \label{sec:cvfe}
 
 In this case, the value of $c$ at each quadrature point of the facet is interpolated using the finite element basis functions on the parent mesh.  This is possible as the nodes of both the dual and parent meshes are co-located.  Like the trapezoidal face value this method is also generally unstable so normally requires limiting (see below).
 
-\paragraph{First Order Downwinding}
+\paragraph{First Order Downwinding} \label{sec:fod}
 
 In this case, the value of $c$ at each quadrature point of the facet is set to the downwind value, $c_{d_k}$.  First order downwinding is unconditionally unstable and is intended for demonstration purposes only.
 
@@ -1176,7 +1176,7 @@ As an example the trapezoidal face value scheme is plotted as a dashed line in F
 
 An alternative definition of the sufficiently smooth region of the NVD is provided by the ULTIMATE limiter \citep[see Figure \ref{fig:limiters}(b), ][]{leonard_ultimate_1991}.  This works using the same principals as the Sweby limiter however the region defined as being stable now incorporates an upper bound that depends on the Courant number at the control volume face to the donor value, $\gamma_{c_f}$.  Hence the region expands and contracts depending on the Courant number, collapsing back entirely to first order upwinding once a Courant number of one is attained.  It is therefore principally designed for explicit advection.  In fact for explicit advection, with the correct control volume based definition of the Courant number, this limiter exactly defines the total variation bounded region, guaranteeing boundedness in that sense \citep{leonard_ultimate_1991, desprs_contact_2001}.
 
-\paragraph{HyperC}
+\paragraph{HyperC} \label{sec:hyperc}
 
 HyperC uses the same principals as the ULTIMATE limiter but instead of limiting other face value schemes using it, HyperC uses the NVD as a face value scheme directly \citep{leonard_ultimate_1991}.  Given a donor, downwind and upwind value (and hence a normalised donor value) it simply uses the upper boundary of the TVD zone to calculate the normalised face value (and hence a face value, see Figure \ref{fig:hyperc}).  For explicit advection, with the correct definition of the control volume based Courant number,  $\gamma_{c_f}$, this scheme aims to produces a minimally diffusive advection scheme.  It is however, only intended for the advection of step-like functions as it results in distortion and staircasing of smoother functions. \citet{wilson_phdthesis_2009} discusses the implementation of HyperC in \fluidity\ and its extension to multiple dimensions.
 
@@ -1188,7 +1188,7 @@ HyperC uses the same principals as the ULTIMATE limiter but instead of limiting 
 \end{center}
 \end{figure}
 
-\paragraph{UltraC}
+\paragraph{UltraC} \label{sec:ultrac}
 
 Like HyperC, UltraC uses the NVD to define a face value directly.  The difference is that is uses a total variation bounded (TVB) rather than a total variation diminishing (TVD) definition of boundedness.  As with HyperC this aims to minimise numerical diffusion while advecting step-like functions but will distort smoother fields.
 
@@ -1223,11 +1223,11 @@ which allows a modified normalised variable diagram to be defined.  In this case
 
 For more information on the development of UltraC in \fluidity\ see \citet{wilson_phdthesis_2009}.
 
-\paragraph{PotentialUltraC}
+\paragraph{PotentialUltraC} \label{sec:potultrac}
 
 One side effect of using a total variation bounded scheme, as in UltraC, is that small isolated regions of field that are already easily within the minimum and maximum bounds are advected at spurious velocities.  This can be solved by either switching to HyperC or modifying the flux in the vicinity of these regions.  PotentialUltraC implements these options.  More details of this scheme can be found in \citet{wilson_phdthesis_2009}.
 
-\paragraph{Coupled Limiting}
+\paragraph{Coupled Limiting} \label{sec:coupledlimiter}
 
 Under some circumstances it becomes necessary to limit the face values of a field based not only on the boundedness of the field itself but based on the boundedness of other fields as well.  This is implemented in \fluidity\ as a coupled control volume spatial discretisation.  This allows the user to select any of the above face value schemes, which are then limited to ensure that both the field and the sum of the field with the other related fields is in some sense bounded.  This is particularly useful for multiple material simulations where the volume fractions must not only remain individually bounded between $0$ and $1$ but their sum must also be similarly bounded.
 
@@ -1261,11 +1261,11 @@ In the case where diffusion, $\tensor{\mu}$, is not zero we need to discretise t
 \end{equation}
 in equation \ref{eq:adv_diff_cv}.  As with discontinuous Galerkin methods this is complicated by the fact that $\grad c$ is now defined on the boundary of the volume.  \fluidity\ offers three strategies for dealing with this with control volumes - element based gradients, equal order Bassi-Rebay and staggered mesh Bassi-Rebay discretisations.
 
-\paragraph{Element Gradient}
+\paragraph{Element Gradient} \label{sec:cvegdiff}
 
 As previously discussed the control volume boundaries intersect the parent elements at points where the parent basis functions are continuous.  The element gradient control volume diffusion scheme uses this fact to estimate the field gradients on the control volume boundaries using the parent element basis functions.  This is possible because the nodes of the parent finite element mesh and its control volume dual mesh are co-located (see Figure \ref{fig:cornerunstruct}).  This scheme is somewhat similar to standard finite volume diffusion schemes on structured meshes described in \citet{ciarlet_handbook_2000}.
 
-\paragraph{Bassi-Rebay}
+\paragraph{Bassi-Rebay} \label{sec:cvbrdiff}
 
 The Bassi-Rebay discretisation \citep{bassi1997} method was discussed in section \ref{BassiRebay} for discontinuous Galerkin discretisations.  It introduces an auxilliary variable and equation for the gradient.  As in DG, this equation can be directly solved and implicitly reinserted into the control volume equation.  However this has the disadvantage over the element gradient scheme that the sparsity structure is extended resulting in a larger matrix and more computationally expensive solves.  It may also produce spurious modes in the solution.
 
@@ -1429,7 +1429,7 @@ multiplies and a vector addition.
 If a slope limiter is employed, the slope limiter is applied to
 $\dvec{c}_{\mathrm{new}}$ after each subtimestep.
 
-\subsection{Control Volumes}
+\subsection{Control Volumes} \label{sec:cvtemp}
 
 Advection subcycling based upon a CFL criterion or a fixed number of subcycles is also available for control volume discretisations, although in this case the $\theta$ value is applied globally so no advection diffusion splitting takes place.  This is generally applied to explicit discretisations of the advection equation.
 
