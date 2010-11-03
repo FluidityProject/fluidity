@@ -291,22 +291,25 @@ for n in range(Temperature.node_count):
               <python>
                 <string_value lines="20" type="python">def val(XX, t):
    from math import sin,cos,log,exp,pi
+   from numpy import arctanh
    b=log(1000);
    deltaT=1.0;
    A = 0.25;
+   B = 1.9
    adv = 0.0;
    beta = 0.0;
    mass = 0.0;
    rho = 1.0;
    x = XX[0];
    y = XX[1];
-   Su = -A*b*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*sin(y)*cos(x)*cos(y)/deltaT - (A*cos(x)*cos(y) - 1/pi)*b*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*sin(y)/deltaT + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho + 2*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
-   Sv = -A*b*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(x)**2*sin(y)**2/deltaT - (A*cos(x)*cos(y) - 1/pi)*b*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - 2*exp(-(A*sin(y)*cos(x) - y/pi + 1)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
+   Su = 1.0/2.0*A*B*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(x)*cos(y)/(((x/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*deltaT*arctanh(0.500000000000000*B)) + 1.0/2.0*(A*B*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*arctanh(0.500000000000000*B)) - B/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*pi*arctanh(0.500000000000000*B)))*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(x)*sin(y)/deltaT + (sin(x)*sin(y)**2.0*cos(x) + sin(x)*cos(x)*cos(y)**2.0)*adv*rho + 2.0*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
+   Sv = 1.0/2.0*A*B*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(x)*sin(y)/(((x/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*deltaT*arctanh(0.500000000000000*B)) + 1.0/2.0*(A*B*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*arctanh(0.500000000000000*B)) - B/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*pi*arctanh(0.500000000000000*B)))*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2.0*sin(y)*cos(y) + sin(y)*cos(x)**2.0*cos(y))*adv*rho - 2.0*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
    return (Su, Sv)</string_value>
                 <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
 v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
 p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)
-T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - y/pi + A*(cos(x)*sin(y))
+phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2
+T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))
 nu(x,y,b,deltaT) = exp(-b*T/deltaT)&#13;
 
 u_t = diff(u,t)
@@ -535,17 +538,20 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
               <python>
                 <string_value lines="20" type="python">def val(XX, t):
    from math import sin,cos,pi
+   from numpy import arctanh
    nu = 0.7;
    omega = 0.0;
    mass = 0.0;
    adv = 1.0;
    beta = 0.0;
    A = 0.25;
+   B = 1.9;
    x = XX[0];
    y = XX[1];
-   S = 2*A*nu*sin(y)*cos(x) - (A*sin(x)**2*sin(y)*cos(y) + (A*cos(x)*cos(y) - 1/pi)*sin(y)*cos(x))*adv
+   S = 0.5*(A*B*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(x)*cos(y)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) + (A*B*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*pi*arctanh(0.5*B)))*sin(y)*cos(x))*adv - 1.0/4*(2.0*(2.0*y/pi - 1.0)*A*B**3*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - 2.0*(2.0*x/pi - 1.0)*A*B**3*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - 2.0*(2.0*y/pi - 1.0)*B**3/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi**2.0*arctanh(0.5*B)))*nu
    return S</string_value>
-                <comment>T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - y/pi + A*(cos(x)*sin(y))
+                <comment>phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2
+T(x,y,t,nu,mass,adv,beta,pi,A,B) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))
 T_t = diff(T,t)&#13;
 T_x = diff(T,x)&#13;
 T_y = diff(T,y)
@@ -590,10 +596,14 @@ S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</co
           <python>
             <string_value lines="20" type="python">def val(XX,t):
   from math import cos, sin, pi
+  from numpy import arctanh
   A = 0.25;
+  B = 1.9;
   x=XX[0];
   y=XX[1];
-  T = 1 - y/pi + A*(cos(x)*sin(y))
+  phi_x=(arctanh((x/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0
+  phi_y=(arctanh((y/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0
+  T = 1 - phi_y/pi + A*(cos(phi_x)*sin(phi_y))
   return T</string_value>
           </python>
         </value>
