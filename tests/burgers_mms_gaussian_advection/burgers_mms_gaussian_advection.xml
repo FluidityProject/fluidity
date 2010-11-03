@@ -4,7 +4,7 @@
   <name>Burgers Equation MMS</name>
   <owner userid="pef"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
   </problem_definition>
   <variables>
@@ -36,11 +36,7 @@ from math import log
 c_error = stat("mms_gaussian_C.stat")["Fluid"]["Error"]["l2norm"][-1]
 d_error = stat("mms_gaussian_D.stat")["Fluid"]["Error"]["l2norm"][-1]
 
-print "c_error: ", c_error
-print "d_error: ", d_error
-
 cd_ratio = c_error / d_error
-print "cd_ratio: ", cd_ratio
 cd_error = [log(cd_ratio, 2)]
     </variable>
     <variable name="de_error" language="python">

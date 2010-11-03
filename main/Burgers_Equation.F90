@@ -66,6 +66,7 @@
     integer :: stat
 
     logical :: stationary_problem
+    real :: change, tolerance
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -114,7 +115,10 @@
 
     ! Always output the initial conditions.
     call output_state(state)
-    stationary_problem = have_option("/timestepping/stationary_problem")
+    stationary_problem = have_option("/timestepping/steady_state")
+    if (stationary_problem) then
+      call get_option("/timestepping/steady_state/tolerance", tolerance)
+    end if
 
     timestep=0
     timestep_loop: do 
@@ -127,12 +131,17 @@
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
 
-       call execute_timestep(state(1), dt)
+       call execute_timestep(state(1), dt, change=change)
 
        call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep) .or. stationary_problem) exit timestep_loop     
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
+       if (stationary_problem) then
+         if (change < tolerance) then
+           exit timestep_loop
+         end if
+       end if
 
        call advance_current_time(current_time, dt)
        call insert_time_in_state(state)
@@ -148,6 +157,11 @@
     ! One last dump
     call output_state(state)
     call write_diagnostics(state, current_time, dt, timestep)
+
+    ! Now compute the adjoint
+    !if (has_scalar_field(state(1), "Adjoint")) then
+    !  call compute_adjoint(state(1))
+    !end if
 
     call deallocate(state)
     call deallocate_transform_cache
@@ -182,10 +196,11 @@
     
     end subroutine insert_time_in_state
 
-    subroutine execute_timestep(state, dt)
+    subroutine execute_timestep(state, dt, change)
       implicit none
       type(state_type), intent(inout) :: state
       real, intent(in) :: dt
+      real, intent(out), optional :: change
 
       type(scalar_field) :: nonlinear_velocity
       type(scalar_field) :: iterated_velocity
@@ -201,9 +216,7 @@
 
       integer :: nonlinear_iterations, nit
       real :: itheta, theta
-      logical :: stationary_problem, have_tolerance
-      real :: tolerance, change
-      integer, parameter :: max_picard_iterations=100000
+      real :: nonlin_change
 
       mass_matrix => extract_csr_matrix(state, "MassMatrix")
       diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
@@ -212,27 +225,13 @@
       x => extract_vector_field(state, "Coordinate")
 
       call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
+      if (have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/remove_advection_term")) then
+        ewrite(1,*) "No advection term, setting nonlinear iterations to 1"
+        nonlinear_iterations = 1
+      end if
+
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
-
-      stationary_problem = have_option("/timestepping/stationary_problem")
-      if (stationary_problem) then
-        ewrite(1,*) "Problem is stationary; resetting timestepping values appropriately"
-        theta = 1.0
-        itheta = 1.0
-        nonlinear_iterations = max_picard_iterations
-      end if
-
-      have_tolerance = have_option("/timestepping/nonlinear_tolerance")
-      if (stationary_problem .and. .not. have_tolerance) then
-        ewrite(-1,*) "You need to specify /timestepping/nonlinear_tolerance for stationary problems."
-        FLExit("You need to specify /timestepping/nonlinear_tolerance for stationary problems.")
-      end if
-
-      if (have_tolerance) then
-        call get_option("/timestepping/nonlinear_tolerance", tolerance)
-        nonlinear_iterations = max_picard_iterations
-      end if
 
       call allocate(nonlinear_velocity, u%mesh, "NonlinearVelocity")
       call zero(nonlinear_velocity)
@@ -252,8 +251,8 @@
 
         call assemble_advection_matrix(advection_matrix, x, nonlinear_velocity)
 
-        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, stationary_problem)
-        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state, stationary_problem)
+        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
+        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
 
         call apply_dirichlet_conditions(lhs_matrix, rhs, u)
 
@@ -264,15 +263,8 @@
         !call vtk_write_fields("nonlinear_iteration", nit, x, u%mesh, sfields=(/iterated_velocity/))
         call set(iterated_velocity_difference, iterated_velocity)
         call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
-        change = norm2(iterated_velocity_difference, x)
-        ewrite(1,*) "L2 norm of change in velocity: ", change
-
-        if (have_tolerance) then
-          if (change <= tolerance) then
-            ewrite(1,*) "Change in velocity less than convergence tolerance, exiting"
-            exit nonlinear_loop
-          end if
-        end if
+        nonlin_change = norm2(iterated_velocity_difference, x)
+        ewrite(1,*) "L2 norm of change in velocity: ", nonlin_change
 
         if (sig_hup .or. sig_int) then
           ewrite(1,*) "Caught signal, exiting"
@@ -282,8 +274,11 @@
 
       ewrite(1,*) "Out of the nonlinear loop, number of nonlinear_iterations: ", nit - 1
 
-      if (have_tolerance .and. nit >= max_picard_iterations) then
-        ewrite(1,*) "Warning: failed to converge in ", max_picard_iterations, " iterations"
+      if (present(change)) then
+        call set(iterated_velocity_difference, u)
+        call addto(iterated_velocity_difference, iterated_velocity, scale=-1.0)
+        change = norm2(iterated_velocity_difference, x)
+        ewrite(1,*) "L2 norm of change over timestep: ", change
       end if
 
       call set(u, iterated_velocity)
@@ -327,29 +322,25 @@
       call addto(advection_matrix, ele_nodes(nu, ele), ele_nodes(nu, ele), little_advection_matrix)
     end subroutine assemble_advection_matrix_ele
 
-    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, stationary_problem)
+    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
       type(csr_matrix), intent(inout) :: lhs_matrix
       type(csr_matrix), intent(in) :: mass_matrix, advection_matrix, diffusion_matrix
       real, intent(in) :: dt, theta
-      logical, intent(in) :: stationary_problem
 
       call zero(lhs_matrix)
 
-      if (.not. stationary_problem) then
-        call addto(lhs_matrix, mass_matrix, 1.0/dt)
-      end if
+      call addto(lhs_matrix, mass_matrix, 1.0/dt)
       call addto(lhs_matrix, advection_matrix, theta)
       call addto(lhs_matrix, diffusion_matrix, theta)
 
     end subroutine assemble_left_hand_side
 
-    subroutine assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state, stationary_problem)
+    subroutine assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
       type(scalar_field), intent(inout) :: rhs
       type(csr_matrix), intent(in) :: mass_matrix, advection_matrix, diffusion_matrix
       real, intent(in) :: dt, theta
       type(scalar_field), intent(in), pointer :: u
       type(state_type), intent(in) :: state
-      logical, intent(in) :: stationary_problem
 
       type(scalar_field) :: tmp
       type(scalar_field), pointer :: src
@@ -363,11 +354,9 @@
       mesh => u%mesh
       call allocate(tmp, mesh, "TemporaryField")
 
-      if (.not. stationary_problem) then
-        call mult(tmp, mass_matrix, u)
-        call scale(tmp, 1.0/dt)
-        call addto(rhs, tmp)
-      end if
+      call mult(tmp, mass_matrix, u)
+      call scale(tmp, 1.0/dt)
+      call addto(rhs, tmp)
 
       call mult(tmp, advection_matrix, u)
       call scale(tmp, theta - 1.0)

@@ -34,23 +34,29 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">0.1</real_value>
+      <real_value rank="0">10.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">100.0</real_value>
+      <real_value rank="0">10000.0</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">2</integer_value>
-    </nonlinear_iterations>
-    <stationary_problem/>
-    <nonlinear_tolerance>
-      <real_value rank="0">1.0e-16</real_value>
-    </nonlinear_tolerance>
+    <steady_state>
+      <tolerance>
+        <real_value rank="0">1.0e-16</real_value>
+      </tolerance>
+    </steady_state>
   </timestepping>
   <material_phase name="Fluid">
     <scalar_field name="Velocity" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1.0</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">1.0</real_value>
+          </relaxation>
+        </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -59,8 +65,11 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-12</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
@@ -118,6 +127,7 @@
   return 1.0/sqrt(2*pi) * exp(-x**2 / 2)</string_value>
           </python>
         </value>
+        <do_not_recalculate/>
       </prescribed>
     </scalar_field>
     <scalar_field name="Error" rank="0">

@@ -178,12 +178,12 @@ timestepping =
                integer
             }?,
             ## Indicate that the problem should be considered time-independent.
-            ## If this is activated, you must also activate the convergence tolerance below.
-            element stationary_problem { empty }?,
-            ### The convergence tolerance of the nonlinear iterations, in the L2 norm
-            element nonlinear_tolerance {
-               real
-            }?
+            ## The model will pseudo-timestep to convergence, and exit from the
+            ## timestepping loop when the steady state tolerance has been reached.
+            element steady_state {
+               ### The convergence tolerance, in the L2 norm
+               element tolerance { real }
+            }?               
          }
    )
 

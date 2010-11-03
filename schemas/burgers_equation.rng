@@ -211,16 +211,14 @@ Manual suggests 2</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="stationary_problem">
+        <element name="steady_state">
           <a:documentation>Indicate that the problem should be considered time-independent.
-If this is activated, you must also activate the convergence tolerance below.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="nonlinear_tolerance">
-          <a:documentation>The convergence tolerance of the nonlinear iterations, in the L2 norm</a:documentation>
-          <ref name="real"/>
+The model will pseudo-timestep to convergence, and exit from the
+timestepping loop when the steady state tolerance has been reached.</a:documentation>
+          <element name="tolerance">
+            <a:documentation>The convergence tolerance, in the L2 norm</a:documentation>
+            <ref name="real"/>
+          </element>
         </element>
       </optional>
     </element>
