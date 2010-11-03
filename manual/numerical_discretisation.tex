@@ -1178,7 +1178,7 @@ An alternative definition of the sufficiently smooth region of the NVD is provid
 
 \paragraph{HyperC}
 
-HyperC uses the same principals as the ULTIMATE limiter but instead of limiting other face value schemes using it, HyperC uses the NVD as a face value scheme directly.  Given a donor, downwind and upwind value (and hence a normalised donor value) it simply uses the upper boundary of the TVD zone to calculate the normalised face value (and hence a face value, see Figure \ref{fig:hyperc}).  For explicit advection, with the correct definition of the control volume based Courant number,  $\gamma_{c_f}$, this scheme aims to produces a minimally diffusive advection scheme.  It is however, only intended for the advection of step-like functions as it results in distortion and staircasing of smoother functions.
+HyperC uses the same principals as the ULTIMATE limiter but instead of limiting other face value schemes using it, HyperC uses the NVD as a face value scheme directly \citep{leonard_ultimate_1991}.  Given a donor, downwind and upwind value (and hence a normalised donor value) it simply uses the upper boundary of the TVD zone to calculate the normalised face value (and hence a face value, see Figure \ref{fig:hyperc}).  For explicit advection, with the correct definition of the control volume based Courant number,  $\gamma_{c_f}$, this scheme aims to produces a minimally diffusive advection scheme.  It is however, only intended for the advection of step-like functions as it results in distortion and staircasing of smoother functions.
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1190,7 +1190,7 @@ HyperC uses the same principals as the ULTIMATE limiter but instead of limiting 
 
 \paragraph{UltraC}
 
-
+Like HyperC, UltraC uses the NVD to define a face value directly.  The difference is that is uses a total variation bounded (TVB) rather than a total variation diminishing (TVD) definition of boundedness.  As with HyperC this aims to minimise numerical diffusion while advecting step-like functions but will distort smoother fields.
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1200,6 +1200,26 @@ HyperC uses the same principals as the ULTIMATE limiter but instead of limiting 
 \label{fig:ultrac}
 \end{center}
 \end{figure}
+
+UltraC can be represented on an NVD (see Figure \ref{fig:ultrac}(a)), where it is obvious that the bounded range has been extended beyond TVD range used by HyperC, $0<\bar{c}_{c_k}<1$ (shown as a dotted line in Figure \ref{fig:ultrac}(a)).  Instead it is now dependent on two new values: a target upwind value, $c_{tu}$, and a target downwind value, $c_{td}$ and their equivalent normalised versions:
+\begin{equation}
+\bar{c}_{tu_k} = \frac{c_{tu_k}-c_{u_k}}{c_{d_k}-c_{u_k}}
+\end{equation}
+and a normalised face value:
+\begin{equation}
+\bar{c}_{td_k} = \frac{c_{td_k}-c_{u_k}}{c_{d_k}-c_{u_k}}
+\end{equation}
+respectively.  These are defined based on user prescribed target maximum and target minimum values depending on the local slope of the solution.  These maximum and minimum values describe the range of values in which any solution is bounded.
+
+The target upwind and downwind values can also be used to modify the definition of the normalised donor and face values:
+\begin{equation}
+\check{c}_{c_k} = \frac{c_{c_k}-c_{tu_k}}{c_{td_k}-c_{tu_k}}
+\end{equation}
+and a normalised face value:
+\begin{equation}
+\check{c}_{f_k} = \frac{c_{f_k}-c_{tu_k}}{c_{td_k}-c_{tu_k}}
+\end{equation}
+which allows a modified normalised variable diagram to be defined.  In this case UltraC looks superficially like HyperC (see Figure \ref{fig:ultrac}(b)).
 
 \paragraph{PotentialUltraC}
 
