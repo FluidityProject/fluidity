@@ -261,56 +261,56 @@ d_div = max(max(abs(stat("MMS_D.stat")["NS"]["FiniteElementDivergence"]["max"]))
     <variable name="a_final_change_vel" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_A_1.pvtu")
+vtu = vtktools.vtu("MMS_A_1.vtu")
 dt = stat("MMS_A.stat")["dt"]["value"][-1]
 a_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
     </variable>
     <variable name="b_final_change_vel" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_B_1.pvtu")
+vtu = vtktools.vtu("MMS_B_1.vtu")
 dt = stat("MMS_B.stat")["dt"]["value"][-1]
 b_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
     </variable>
     <variable name="c_final_change_vel" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_C_1.pvtu")
+vtu = vtktools.vtu("MMS_C_1.vtu")
 dt = stat("MMS_C.stat")["dt"]["value"][-1]
 c_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
     </variable>
     <variable name="d_final_change_vel" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_D_1.pvtu")
+vtu = vtktools.vtu("MMS_D_1.vtu")
 dt = stat("MMS_D.stat")["dt"]["value"][-1]
 d_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
     </variable>
     <variable name="a_final_change_p" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_A_1.pvtu")
+vtu = vtktools.vtu("MMS_A_1.vtu")
 dt = stat("MMS_A.stat")["dt"]["value"][-1]
 a_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
     </variable>
     <variable name="b_final_change_p" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_B_1.pvtu")
+vtu = vtktools.vtu("MMS_B_1.vtu")
 dt = stat("MMS_B.stat")["dt"]["value"][-1]
 b_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
     </variable>
     <variable name="c_final_change_p" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_C_1.pvtu")
+vtu = vtktools.vtu("MMS_C_1.vtu")
 dt = stat("MMS_C.stat")["dt"]["value"][-1]
 c_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
     </variable>
     <variable name="d_final_change_p" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
-vtu = vtktools.vtu("MMS_D_1.pvtu")
+vtu = vtktools.vtu("MMS_D_1.vtu")
 dt = stat("MMS_D.stat")["dt"]["value"][-1]
 d_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
     </variable>
