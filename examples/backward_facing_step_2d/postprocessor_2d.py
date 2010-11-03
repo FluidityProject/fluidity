@@ -132,7 +132,7 @@ def meanvelo(filelist,x,y):
       t = min(datafile.GetScalarField("Time"))
 
       ##### only dump data for certain times
-      while 4.8<t<5.2 or 9.8<t<10.2 or 49.8<t<50.0:
+      while 4.82<t<5.18 or 9.82<t<10.18 or 49.8<t<50.0:
         print file, ', elapsed time = ', t
         ##### Get x-velocity
         uvw = datafile.ProbeData(pts, "Velocity")
@@ -161,7 +161,7 @@ def plot_length(reattachment_length):
   pylab.savefig("reattachment_length_2D.pdf")
   return
 
-def plot_meanvelo(profiles):
+def plot_meanvelo(profiles,xarray,yarray):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle('Evolution of U-velocity profiles downstream of backward facing step', fontsize=30)
@@ -222,24 +222,30 @@ def plot_meanvelo(profiles):
 
 #########################################################################
 
-##### Call reattachment_length function defined above
-filelist = get_filelist()
+def main():
+    ##### Call reattachment_length function defined above
+    filelist = get_filelist()
 
-reattachment_length = numpy.array(reatt_length(filelist, exclude_initial_results=130))
-av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-numpy.save("reattachment_length_2D", reattachment_length)
-print "\nTime-averaged reattachment length (in step heights): ", av_length
-plot_length(reattachment_length)
+    reattachment_length = numpy.array(reatt_length(filelist, exclude_initial_results=130))
+    av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
+    numpy.save("reattachment_length_2D", reattachment_length)
+    print "\nTime-averaged reattachment length (in step heights): ", av_length
+    plot_length(reattachment_length)
 
-##### Points to generate profiles:
-xarray = numpy.array([0.0, 2.0, 4.0, 6.0])
-yarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])
+    ##### Points to generate profiles:
+    xarray = numpy.array([0.0, 2.0, 4.0, 6.0])
+    yarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])
 
-##### Call meanvelo function defined above
-profiles = meanvelo(filelist, xarray, yarray)
-numpy.save("velo_profiles_2d", profiles)
-plot_meanvelo(profiles)
-pylab.show()
+    ##### Call meanvelo function defined above
+    profiles = meanvelo(filelist, xarray, yarray)
+    numpy.save("velo_profiles_2d", profiles)
+    plot_meanvelo(profiles,xarray,yarray)
+    pylab.show()
 
-print "\nAll done.\n"
+    print "\nAll done.\n"
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
 

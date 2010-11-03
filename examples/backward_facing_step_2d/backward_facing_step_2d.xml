@@ -1,10 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>backward facing step 2D example<comment>Runs a 2D backward facing step problem with geometry defined as in Armaly et al, 1983. Experimental and theoretical investigation of backward-facing step flow, Journal of Fluid Mechanics.
-</comment></name>
+    <name>backward facing step 2D example</name>
+    <comment>Runs a 2D backward facing step problem with geometry defined as in Armaly et al, 1983. Experimental and theoretical investigation of backward-facing step flow, Journal of Fluid Mechanics.
+</comment>
   <owner userid="jbull"/>
-  <tags>flml 2dadapt<comment>- uses flml
-- uses 2d adaptivity</comment></tags>
+  <tags>flml 2dadapt</tags>
+  <comment>- uses flml- uses 2d adaptivity</comment>
   <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec fluidity -v2 -l backward_facing_step_2d.flml</command_line>
   </problem_definition>
@@ -16,14 +17,14 @@ from postprocessor_2d import reatt_length, get_filelist
 import numpy
 exclude_initial_results = 130
 filelist = get_filelist()
-reattachment_length = reatt_length(filelist, exclude_initial_results)
+reattachment_length = numpy.array(reatt_length(filelist, exclude_initial_results))
     </variable>
   </variables>
   <pass_tests>
     <test name="finish_time" language="python">assert finishtime &gt; 40.0</test>
     <test name="Reattachment length does not change by more than 10%" language="python">
-print ( ( max(reattachment_length) - min(reattachment_length) ) / min(reattachment_length) )
-assert( ( max(reattachment_length) - min(reattachment_length) ) / min(reattachment_length) &lt; 0.1)
+print ( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) )
+assert( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) &lt; 0.1)
     </test>
   </pass_tests>
   <warn_tests/>
