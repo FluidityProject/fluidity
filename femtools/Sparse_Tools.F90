@@ -4330,15 +4330,17 @@ contains
     
     if (have_diag) then
       do row=1, size(sparsity,1)
-        sparsity_T%centrm(i)=csr_sparsity_pos(sparsity_T, row, row)
+        sparsity_T%centrm(row)=csr_sparsity_pos(sparsity_T, row, row)
       end do      
     end if
     
   end function csr_sparsity_transpose
   
-  function csr_transpose(A) result (AT)
+  function csr_transpose(A, symmetric_sparsity) result (AT)
   !!< Provides the transpose of the given matrix
     type(csr_matrix), intent(in):: A
+    ! If the sparsity is symmetric, don't create a new one
+    logical, intent(in), optional :: symmetric_sparsity
     type(csr_matrix) AT
       
     type(csr_sparsity):: sparsity
@@ -4347,8 +4349,12 @@ contains
     real, dimension(:), pointer:: vals
     integer row, j, col
     
-    sparsity=transpose(A%sparsity)
-    call allocate(AT, sparsity)
+    if (present_and_true(symmetric_sparsity)) then
+      call allocate(AT, A%sparsity, name=trim(A%name) // "Transpose")
+    else
+      sparsity=transpose(A%sparsity)
+      call allocate(AT, sparsity, name=trim(A%name) // "Transpose")
+    end if
     
     ! we use the same insertion procedure as above in csr_sparsity_transpose
     ! rowlen is used to count the number of inserted entries thus far per row
@@ -4360,9 +4366,9 @@ contains
       do j=1, size(cols)
          col=cols(j)
          if (col>0) then
-           AT%val(sparsity%findrm(col)+rowlen(col))=vals(j)
+           AT%val(AT%sparsity%findrm(col)+rowlen(col))=vals(j)
            ! check that this is indeed the right column:
-           assert(AT%sparsity%colm(sparsity%findrm(col)+rowlen(col))==row)
+           assert(AT%sparsity%colm(AT%sparsity%findrm(col)+rowlen(col))==row)
            rowlen(col)=rowlen(col)+1
          end if
       end do
