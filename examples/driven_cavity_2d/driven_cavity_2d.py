@@ -62,14 +62,14 @@ def plot_results(NN, error):
 
     legend(("error1","error2","error3","error4","error5","error6","error7","error8","2nd order"))
 
-    savefig('driven_cavity_error_plot.png')
+    savefig('driven_cavity_2d_error_plot.png')
 
 
 def retrieve_results(NN):
     '''retrieve_results(NN)
 
     For each NN in the input sequence, retrieve the various errors
-    from the simulation results in appropriate driven_cavity-NN
+    from the simulation results in appropriate driven_cavity_2d-NN
     directory.
 
     The columns of the results are the: Erturk et al 2005 u and v errors, 
@@ -109,7 +109,7 @@ def retrieve_results(NN):
 
 def erturk_u(NN):
 #Erturk et al 2005. Table VI
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -161,7 +161,7 @@ def erturk_u(NN):
 
 def erturk_v(NN):
 #Erturk et al 2005. Table VII
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -212,7 +212,7 @@ def erturk_v(NN):
 
 def botella_u(NN):
 #Botella and Peyret (1998) Table 9. NB.our velocity at the lid is reverse theirs therefore minus signs in u below
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -257,7 +257,7 @@ def botella_u(NN):
 
 def botella_v(NN):
 #Botella and Peyret (1998) Table 10. 
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -303,7 +303,7 @@ def botella_v(NN):
 
 def botella_p1(NN):
 #Botella and Peyret (1998) Table 9. 
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -353,7 +353,7 @@ def botella_p1(NN):
 
 def botella_p2(NN):
 #Botella and Peyret (1998) Table 10. 
-  filelist_not_sorted = glob.glob('driven_cavity-%d/*.vtu'%NN)
+  filelist_not_sorted = glob.glob('driven_cavity_2d-%d/*.vtu'%NN)
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
@@ -404,7 +404,7 @@ def botella_p2(NN):
 
 def bruneau_ke(NN):
 #Bruneau and Saad 2006. Table 7. 
-  vel_l2_norm = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['Velocity%magnitude']['l2norm'][-1]
+  vel_l2_norm = stat_parser('driven_cavity_2d-%d/driven_cavity_2d.stat'%NN)['Fluid']['Velocity%magnitude']['l2norm'][-1]
   kinetic_energy = 0.5*vel_l2_norm**2
   kinetic_energy_error = abs( kinetic_energy - 0.044503 )
   print "botella_ke_error:", kinetic_energy_error
@@ -412,7 +412,7 @@ def bruneau_ke(NN):
 
 def bruneau_sf(NN):
 #Bruneau and Saad 2006. Table 2. 
-  streamfunction_min = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
+  streamfunction_min = stat_parser('driven_cavity_2d-%d/driven_cavity_2d.stat'%NN)['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
   streamfunction_min_error = abs( streamfunction_min - -0.11892 )
   print "streamfunction_min_error:", streamfunction_min_error
   return streamfunction_min_error

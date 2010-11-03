@@ -18,6 +18,6 @@ except:
 
 sys.path.append(".")
 
-import driven_cavity
+import driven_cavity_2d
 
-driven_cavity.generate_meshfile("driven_cavity",NN)
+driven_cavity_2d.generate_meshfile("driven_cavity_2d",NN)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import pylab
-import driven_cavity
+import driven_cavity_2d
 import sys
 import numpy
 
@@ -20,9 +20,9 @@ if len(NN)==0:
     usage()
     sys.exit(1)
 
-error=driven_cavity.retrieve_results(NN)
+error=driven_cavity_2d.retrieve_results(NN)
 
-driven_cavity.plot_results(NN,error)
+driven_cavity_2d.plot_results(NN,error)
 
 pylab.show()
 

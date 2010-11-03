@@ -1,16 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>driven_cavity</name>
+  <name>driven_cavity_2d</name>
   <owner userid="piggt01"/>
   <problem_definition length="long" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   <variables>
     <variable name="convergence" language="python">import numpy
-import driven_cavity
+import driven_cavity_2d
 NN=numpy.array([ 16, 32, 64, 128 ])
 
-error=driven_cavity.retrieve_results(NN)
+error=driven_cavity_2d.retrieve_results(NN)
 
 convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(NN[1:]/NN[:-1]).T*numpy.matrix([1,1,1,1,1,1,1,1]))
 
