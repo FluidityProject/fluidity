@@ -1178,7 +1178,7 @@ An alternative definition of the sufficiently smooth region of the NVD is provid
 
 \paragraph{HyperC}
 
-HyperC uses the same principals as the ULTIMATE limiter but instead of limiting other face value schemes using it, HyperC uses the NVD as a face value scheme directly \citep{leonard_ultimate_1991}.  Given a donor, downwind and upwind value (and hence a normalised donor value) it simply uses the upper boundary of the TVD zone to calculate the normalised face value (and hence a face value, see Figure \ref{fig:hyperc}).  For explicit advection, with the correct definition of the control volume based Courant number,  $\gamma_{c_f}$, this scheme aims to produces a minimally diffusive advection scheme.  It is however, only intended for the advection of step-like functions as it results in distortion and staircasing of smoother functions.
+HyperC uses the same principals as the ULTIMATE limiter but instead of limiting other face value schemes using it, HyperC uses the NVD as a face value scheme directly \citep{leonard_ultimate_1991}.  Given a donor, downwind and upwind value (and hence a normalised donor value) it simply uses the upper boundary of the TVD zone to calculate the normalised face value (and hence a face value, see Figure \ref{fig:hyperc}).  For explicit advection, with the correct definition of the control volume based Courant number,  $\gamma_{c_f}$, this scheme aims to produces a minimally diffusive advection scheme.  It is however, only intended for the advection of step-like functions as it results in distortion and staircasing of smoother functions. \citet{wilson_phdthesis_2009} discusses the implementation of HyperC in \fluidity\ and its extension to multiple dimensions.
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1221,7 +1221,11 @@ and a normalised face value:
 \end{equation}
 which allows a modified normalised variable diagram to be defined.  In this case UltraC looks superficially like HyperC (see Figure \ref{fig:ultrac}(b)).
 
+For more information on the development of UltraC in \fluidity\ see \citet{wilson_phdthesis_2009}.
+
 \paragraph{PotentialUltraC}
+
+One side effect of using a total variation bounded scheme, as in UltraC, is that small isolated regions of field that are already easily within the minimum and maximum bounds are advected at spurious velocities.  This can be solved by either switching to HyperC or modifying the flux in the vicinity of these regions.  PotentialUltraC implements these options.  More details of this scheme can be found in \citep{wilson_phdthesis_2009}.
 
 \paragraph{Coupled Limiting}
 
