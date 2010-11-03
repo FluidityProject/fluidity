@@ -1255,7 +1255,21 @@ Further details of the coupled control volume algorithm can be found in \citet{w
 
 \subsubsection{Control Volume diffusion}
 
+In the case where diffusion, $\tensor{\mu}$, is not zero we need to discretise the term:
+\begin{equation}
+-\int_{\partial v}\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+\end{equation}
+in equation \ref{eq:adv_diff_cv}.  As with discontinuous Galerkin methods this is complicated by the fact that $\grad c$ is now defined on the boundary of the volume.  \fluidity\ offers three strategies for dealing with this with control volumes - element based gradients, equal order Bassi-Rebay and staggered mesh Bassi-Rebay discretisations.
 
+\paragraph{Element Gradient}
+
+As previously discussed the control volume boundaries intersect the parent elements at points where the parent basis functions are continuous.  The element gradient control volume diffusion scheme uses this fact to estimate the field gradients on the control volume boundaries using the parent element basis functions.  This is possible because the nodes of the parent finite element mesh and its control volume dual mesh are co-located (see Figure \ref{fig:cornerunstruct}).  This scheme is somewhat similar to standard finite volume diffusion schemes on structured meshes described in \citet{ciarlet_handbook_2000}.
+
+\paragraph{Bassi-Rebay}
+
+The Bassi-Rebay discretisation \citep{bassi1997} method was discussed in section \ref{BassiRebay} for discontinuous Galerkin discretisations.  It introduces an auxilliary variable and equation for the gradient.  As in DG, this equation can be directly solved and implicitly reinserted into the control volume equation.  However this has the disadvantage over the element gradient scheme that the sparsity structure is extended resulting in a larger matrix and more computationally expensive solves.  It may also produce spurious modes in the solution.
+
+Both disadvantages of the simplest Bassi-Rebay discretisation may be overcome for fields, $c$, represented on piecewise linear parent finite element meshes by selecting a piecewise constant (element centred) representation of the diffusivity.  This results in the auxilliary equation for the gradient being solved for on the elements rather than at the nodes.  This can still be implicitly inserted into the equation but results in the same first order sparsity structure as the element gradient scheme.  Additionally the use of staggered finite/control volume meshes stabilises the equation and helps eliminate spurious modes.
 
 \section{The time loop}
 \label{sect:ND_time_loop}
