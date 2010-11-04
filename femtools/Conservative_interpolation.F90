@@ -45,8 +45,13 @@ module conservative_interpolation_module
     module procedure grandy_projection_scalars, grandy_projection_multiple_states
   end interface
 
+  interface interpolation_galerkin_femdem
+    module procedure interpolation_galerkin_scalars, interpolation_galerkin_single_state_femdem, &
+                     interpolation_galerkin_multiple_states_femdem
+  end interface
 
-  public :: interpolation_galerkin, grandy_projection
+
+  public :: interpolation_galerkin, grandy_projection, interpolation_galerkin_femdem 
   
   private
   
@@ -58,7 +63,7 @@ module conservative_interpolation_module
 
   subroutine galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
                                             field_counts, old_fields, old_position, new_fields, new_position, &
-                                            map_BA, inversion_matrices_A, supermesh_shape, femdem, solid)
+                                            map_BA, inversion_matrices_A, supermesh_shape)
   
     integer, intent(in) :: ele_B
     real, dimension(:,:,:), intent(inout) :: little_mass_matrix
@@ -78,10 +83,6 @@ module conservative_interpolation_module
     type(ilist), dimension(:), intent(in) :: map_BA
     real, dimension(:, :, :) :: inversion_matrices_A
     type(element_type), intent(inout) :: supermesh_shape
-
-    type(scalar_field), intent(inout) :: solid
-    logical, intent(in) :: femdem
-    integer, dimension(:), pointer :: ele_B_nodes
    
     real, dimension(ele_loc(new_position, ele_B), ele_loc(new_position, ele_B)) :: inversion_matrix_B, inversion_matrix_A
     real, dimension(ele_ngi(new_position, ele_B)) :: detwei_B
@@ -139,7 +140,7 @@ module conservative_interpolation_module
 
     vol_B = sum(detwei_B)
     vols_C = 0.0
-      
+
     ! loop over the intersecting elements
     do while (associated(llnode))
       ele_A = llnode%value
@@ -161,7 +162,7 @@ module conservative_interpolation_module
         dump_idx = dump_idx + 1
       end if
 #endif
-      
+
       ! Loop over the supermesh elements, evaluate the basis functions at the
       ! quadrature points and integrate.
       do ele_C=1,ele_count(intersection)
@@ -247,40 +248,253 @@ module conservative_interpolation_module
             end do
           end if
         end do
-
       end do
-
-      ! calculate volume fraction for femdem this is true
-      ! only the SECOND time we call this from ImplicitSolids
-      if (femdem) then
-         ele_B_nodes => ele_nodes(new_position, ele_B)
-         do loc = 1, size(ele_B_nodes)
-            call addto(solid, ele_B_nodes(loc), vols_C / vol_B)
-         end do
-      end if
 
       llnode => llnode%next
       call deallocate(intersection)
     end do
 
-    if (.not.femdem) then
-       ! Check for supermeshing failures.
-       if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
+    ! Check for supermeshing failures.
+    if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
 #ifdef DOUBLEP
-            & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
+         & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
 #else
-          & abs(vol_B - vols_C) > 100.0 * epsilon(0.0)) then
+       & abs(vol_B - vols_C) > 100.0 * epsilon(0.0)) then
 #endif
-          ewrite(0,*) 'sum(detwei_B) = ', vol_B, ', all sum(detwei_C) = ', vols_C
-          stat = 1
-       else
-          stat = 0
-       end if
+       ewrite(0,*) 'sum(detwei_B) = ', vol_B, ', all sum(detwei_C) = ', vols_C
+       stat = 1
+    else
+       stat = 0
     end if
 
   end subroutine galerkin_projection_inner_loop
 
-  subroutine interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA, force_bounded, solid)
+  subroutine galerkin_projection_inner_loop_femdem(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+                                                   field_counts, old_fields, old_position, new_fields, new_position, &
+                                                   inversion_matrices_A, supermesh_shape, femdem_out, solid)
+
+    integer, intent(in) :: ele_B
+    real, dimension(:,:,:), intent(inout) :: little_mass_matrix
+    real, dimension(:), intent(out) :: detJ
+    real, dimension(:,:,:), intent(inout) :: local_rhs
+    real, intent(in) :: conservation_tolerance
+    integer, intent(out) :: stat
+
+    integer, dimension(:), intent(in) :: field_counts
+    logical, intent(in) :: femdem_out
+
+    type(scalar_field), dimension(:,:), intent(in) :: old_fields
+    type(vector_field), intent(in) :: old_position
+
+    type(scalar_field), dimension(:,:), intent(inout) :: new_fields
+    type(vector_field), intent(in) :: new_position
+    real, dimension(:, :, :) :: inversion_matrices_A
+    type(element_type), intent(inout) :: supermesh_shape
+
+    type(scalar_field), intent(inout) :: solid
+    integer, dimension(:), pointer :: ele_B_nodes
+
+    real, dimension(ele_loc(new_position, ele_B), ele_loc(new_position, ele_B)) :: inversion_matrix_B, inversion_matrix_A
+    real, dimension(ele_ngi(new_position, ele_B)) :: detwei_B
+    real, dimension(supermesh_shape%ngi) :: detwei_C
+
+    real :: vol_B, vols_C, vols_Cc, all_vols_C
+    integer :: ele_A, ele_C, nloc, dim, j, k, l, n, loc, field, mesh, mesh_count, nintersections
+    type(vector_field) :: intersection
+    type(element_type), pointer :: B_shape
+
+    real, dimension(new_position%dim+1, supermesh_shape%ngi) :: pos_at_quad_B, pos_at_quad_A, tmp_pos_at_quad
+    real, dimension(size(local_rhs, 3), supermesh_shape%ngi) :: basis_at_quad_B, basis_at_quad_A
+    real, dimension(size(local_rhs, 3),size(local_rhs, 3)) :: mat, mat_int
+
+    real, dimension(new_position%dim, supermesh_shape%ngi) :: intersection_val_at_quad
+    real, dimension(new_position%dim, new_position%dim, ele_ngi(new_position, 1)) :: invJ
+    real, dimension(new_position%dim, ele_loc(new_position, ele_B)) :: pos_B
+
+    type(plane_type), dimension(4) :: planes_B
+    type(tet_type) :: tet_A, tet_B
+    integer :: lstat
+
+    real, dimension(size(local_rhs, 3)) :: tmp_local_rhs, tmp_ele_val
+
+    all_vols_C = 0.
+
+    local_rhs = 0.0
+
+    mesh_count = size(field_counts)
+    dim = mesh_dim(new_position)
+
+    if (dim == 3) then
+      tet_B%V = ele_val(new_position, ele_B)
+      planes_B = get_planes(tet_B)
+    else
+      pos_B = ele_val(new_position, ele_B)
+    end if
+
+    ! First thing: assemble and invert the inversion matrix.
+    call local_coords_matrix(new_position, ele_B, inversion_matrix_B)
+    inversion_matrix_B = transpose(inversion_matrix_B)
+
+    ! Second thing: assemble the mass matrix of B on the left.
+    call compute_inverse_jacobian(ele_val(new_position, ele_B), ele_shape(new_position, ele_B), invJ=invJ, detJ=detJ, detwei=detwei_B)
+
+    do mesh = 1, mesh_count
+      if(field_counts(mesh)>0) then
+        B_shape => ele_shape(new_fields(mesh,1),1)
+          nloc = B_shape%loc
+          little_mass_matrix(mesh, :nloc, :nloc) = shape_shape(B_shape, B_shape, detwei_B)
+      end if
+    end do
+
+    vol_B = sum(detwei_B)
+    vols_C = 0.0
+
+    call rtree_intersection_finder_find(new_position, ele_B)
+    call rtree_intersection_finder_query_output(nintersections)
+
+    ! loop over the intersecting elements
+    do n = 1, nintersections
+
+      call rtree_intersection_finder_get_output(ele_A, n)
+
+      ! but we only need that mapping for this ele_B now, so just compute it now
+      if (dim == 3 .and. (intersector_exactness .eqv. .false.)) then
+        tet_A%V = ele_val(old_position, ele_A)
+        call intersect_tets(tet_A, planes_B, supermesh_shape, stat=lstat, output=intersection)
+        if (lstat == 1) cycle
+      else
+        intersection = intersect_elements(old_position, ele_A, pos_B, supermesh_shape)
+      end if
+
+#ifdef DUMP_SUPERMESH_INTERSECTIONS
+      if (ele_count(intersection) /= 0) then
+        call vtk_write_fields("intersection", dump_idx, intersection, intersection%mesh)
+        dump_idx = dump_idx + 1
+      end if
+#endif
+
+      vols_Cc=0. ! inside the nintersection loop
+
+      ! Loop over the supermesh elements, evaluate the basis functions at the
+      ! quadrature points and integrate.
+      do ele_C=1,ele_count(intersection)
+        intersection_val_at_quad = ele_val_at_quad(intersection, ele_C)
+        ! Compute the local coordinates in ele_B of the quadrature points of ele_C:
+        tmp_pos_at_quad(1:dim, :) = intersection_val_at_quad
+        tmp_pos_at_quad(dim+1, :) = 1.0
+#ifdef INLINE_MATMUL
+        forall (j=1:dim+1)
+          forall (k=1:supermesh_shape%ngi)
+            pos_at_quad_B(j, k) = sum(inversion_matrix_B(:, j) * tmp_pos_at_quad(:, k))
+          end forall
+        end forall
+#else
+        pos_at_quad_B = matmul(inversion_matrix_B, tmp_pos_at_quad)
+#endif
+
+        ! Compute the local coordinates in ele_A of the quadrature points of ele_C:
+        tmp_pos_at_quad(1:dim, :) = intersection_val_at_quad
+        tmp_pos_at_quad(dim+1, :) = 1.0
+#ifdef INLINE_MATMUL
+        inversion_matrix_A = transpose(inversion_matrices_A(:, :, ele_A))
+        forall (j=1:dim+1)
+          forall (k=1:supermesh_shape%ngi)
+            pos_at_quad_A(j, k) = sum(inversion_matrix_A(:, j) * tmp_pos_at_quad(:, k))
+          end forall
+        end forall
+#else
+        pos_at_quad_A = matmul(inversion_matrices_A(:, :, ele_A), tmp_pos_at_quad)
+#endif
+
+        call transform_to_physical(intersection, ele_C, detwei_C)
+
+        vols_C = vols_C + sum(detwei_C)
+        vols_Cc = vols_Cc + sum(detwei_C)
+
+        do mesh = 1, mesh_count
+          if(field_counts(mesh)>0) then
+            B_shape => ele_shape(new_fields(mesh,1),1)
+            nloc = B_shape%loc
+            ! This is an inlined eval_shape, optimised for P0 and P1
+            ! Evaluate the basis functions at the local coordinates
+            basis_at_quad_A = 0.0
+            basis_at_quad_B = 0.0
+            if (element_degree(new_fields(mesh,1),ele_B)==0) then
+              basis_at_quad_A(:nloc,:) = 1.0
+              basis_at_quad_B(:nloc,:) = 1.0
+            elseif (element_degree(new_fields(mesh,1),ele_B)==1) then
+              basis_at_quad_A(:nloc,:) = pos_at_quad_A 
+              basis_at_quad_B(:nloc,:) = pos_at_quad_B 
+            else
+              do loc=1,nloc
+                do j=1,ele_ngi(intersection, ele_C)
+                  basis_at_quad_A(loc, j) = eval_shape(B_shape, loc, pos_at_quad_A(:, j))
+                  basis_at_quad_B(loc, j) = eval_shape(B_shape, loc, pos_at_quad_B(:, j))
+                end do
+              end do
+            end if
+
+            ! Combined outer_product and tensormul_3_1 to see if it is faster.
+            ! This is sort of like a mixed shape_shape.
+            ! Here we assemble a little local part of the mixed mass matrix.
+            mat = 0.0
+            mat_int = 0.0
+            do j=1,ele_ngi(intersection, ele_C)
+              forall (k=1:nloc,l=1:nloc)
+                mat(k, l) = mat(k, l) + detwei_C(j) * basis_at_quad_B(k, j) * basis_at_quad_A(l, j)
+              end forall
+            end do
+
+            ! And now we apply that to the field to give the RHS contribution to the Galerkin
+            ! projection.
+            do field=1,field_counts(mesh)
+#ifdef INLINE_MATMUL
+              tmp_ele_val(:nloc) = ele_val(old_fields(mesh,field), ele_A)
+              forall (j=1:nloc)
+                tmp_local_rhs(j) = sum(mat(j, :nloc) * tmp_ele_val(:nloc))
+              end forall
+              local_rhs(mesh,field,:nloc) = local_rhs(mesh,field,:nloc) + tmp_local_rhs(:nloc)
+#else
+              local_rhs(mesh,field,:nloc) = local_rhs(mesh,field,:nloc) +&
+                                    matmul(mat(:nloc,:nloc), ele_val(old_fields(mesh,field), ele_A))
+#endif
+            end do
+          end if
+        end do
+
+      end do  ! intersection loop, i.e. ele_C loop
+
+      all_vols_C = all_vols_C + vols_Cc
+
+      call deallocate(intersection)
+
+   end do ! nintersection loop, i.e. ele_A loop 
+
+   if (.not.femdem_out) then
+     ele_B_nodes => ele_nodes(new_position, ele_B)
+     do loc = 1, size(ele_B_nodes)
+       call addto(solid, ele_B_nodes(loc), all_vols_C / vol_B)
+     end do
+   end if
+
+   if (femdem_out) then
+     ! Check for supermeshing failures.
+     if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
+#ifdef DOUBLEP
+       & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
+#else
+       & abs(vol_B - vols_C) > 100.0 * epsilon(0.0)) then
+#endif
+       ewrite(0,*) 'sum(detwei_B) = ', vol_B, ', all sum(detwei_C) = ', vols_C
+       stat = 1
+     else
+       stat = 0
+     end if
+   end if
+
+  end subroutine galerkin_projection_inner_loop_femdem
+
+  subroutine interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA, force_bounded, solid, femdem_out)
     type(state_type), dimension(:), intent(in) :: old_fields_state
     type(vector_field), intent(in) :: old_position
 
@@ -288,7 +502,6 @@ module conservative_interpolation_module
     type(vector_field), intent(in) :: new_position
     type(ilist), dimension(:), intent(in), optional, target :: map_BA
     logical, intent(in), optional :: force_bounded
-    type(scalar_field), intent(inout), optional :: solid
 
     integer :: ele_B
     integer :: ele_A
@@ -359,7 +572,11 @@ module conservative_interpolation_module
     logical, dimension(:, :), allocatable :: force_bc
     integer :: bc
 
-    logical :: femdem
+    ! femdem
+    logical :: femdem_in
+    logical, intent(in), optional :: femdem_out
+    integer :: ntests
+    type(scalar_field), intent(inout), optional :: solid
 
     ewrite(1, *) "In interpolation_galerkin_scalars"
 
@@ -508,10 +725,18 @@ module conservative_interpolation_module
     supermesh_quad = make_quadrature(vertices=ele_loc(new_position, 1), dim=dim, degree=max(max_degree+max_degree, 1))
     supermesh_shape = make_element_shape(vertices=ele_loc(new_position, 1), dim=dim, degree=1, quad=supermesh_quad)
 
+    ! figure out if this is a femdem interpolation
+    femdem_in = .false.
+    if (present(solid)) then
+       call zero(solid)
+       femdem_in = .true.
+    end if
+    if (femdem_in .or. present_and_true(femdem_out)) call rtree_intersection_finder_set_input(old_position)
+
     call intersector_set_dimension(dim)
     if (present(map_BA)) then
       lmap_BA => map_BA
-    else
+    else if (.not.(femdem_in .or. present_and_true(femdem_out))) then
       allocate(lmap_BA(ele_count(new_position)))
       lmap_BA = intersection_finder(new_position, old_position)
     end if
@@ -525,120 +750,223 @@ module conservative_interpolation_module
     dump_idx = 0
 #endif
 
-    femdem = .false.
-    if (present(solid)) femdem = .true.
-
     ewrite(1, *) "Entering supermeshing loop"
-    do ele_B=1,ele_count(new_position)
-    
-      call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
-                                            field_counts, old_fields, old_position, new_fields, new_position, &
-                                            lmap_BA, inversion_matrices_A, supermesh_shape, femdem, solid)
 
-      if (.not.femdem) then
-         if (stat /= 0) then
-            ! Uhoh! We haven't found all the mass for ele_B :-/
-            ! The intersector has missed something (almost certainly due to
-            ! finite precision arithmetic). Geometry is hard!
-            ! So let's go all arbitrary precision on its ass.
-            ! Data, Warp 0!
+    if (femdem_in .or. present_and_true(femdem_out)) then
+      ewrite(1, *) "   ...for femdem"
+      do ele_B=1,ele_count(new_position)
+
+        call galerkin_projection_inner_loop_femdem(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+                                                     field_counts, old_fields, old_position, new_fields, new_position, &
+                                                     inversion_matrices_A, supermesh_shape, present_and_true(femdem_out), solid)
+
+        if (stat /= 0) then
+          ! Uhoh! We haven't found all the mass for ele_B :-/
+          ! The intersector has missed something (almost certainly due to
+          ! finite precision arithmetic). Geometry is hard!
+          ! So let's go all arbitrary precision on its ass.
+          ! Data, Warp 0!
 #ifdef HAVE_CGAL
-            ewrite(0,*) "Using CGAL to try to fix conservation error"
-            call intersector_set_exactness(.true.)
-            call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
-                 field_counts, old_fields, old_position, new_fields, new_position, &
-                 lmap_BA, inversion_matrices_A, supermesh_shape)
-            if(stat/=0) then
-               ewrite(0,*) "Sorry, CGAL failed to fix conservation error."
-            end if
-            call intersector_set_exactness(.false.)
+          ewrite(0,*) "Using CGAL to try to fix conservation error"
+          call intersector_set_exactness(.true.)
+          call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+               field_counts, old_fields, old_position, new_fields, new_position, &
+               lmap_BA, inversion_matrices_A, supermesh_shape)
+          if(stat/=0) then
+             ewrite(0,*) "Sorry, CGAL failed to fix conservation error."
+          end if
+          call intersector_set_exactness(.false.)
 #else
-            ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
-            ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
+          ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
+          ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
 #endif
-         end if
-      end if
+        end if
 
-      do mesh = 1, mesh_count
-        if(field_counts(mesh)>0) then
-          nloc = ele_loc(new_fields(mesh,1),1)
-          ele_nodes_B => ele_nodes(new_fields(mesh,1), ele_B)
-          if(dg(mesh)) then
-            little_rhs = 0.0
-            do field=1,field_counts(mesh)
-              little_rhs(:nloc, field) = local_rhs(mesh,field,:nloc)
-            end do
-
-            if (any(force_bc(mesh,1:field_counts(mesh)))) then
-              little_inverse_mass_matrix_copy=little_inverse_mass_matrix
-            end if
-            
-            if (new_positions_simplicial) then
+        do mesh = 1, mesh_count
+          if(field_counts(mesh)>0) then
+            nloc = ele_loc(new_fields(mesh,1),1)
+            ele_nodes_B => ele_nodes(new_fields(mesh,1), ele_B)
+            if(dg(mesh)) then
+              little_rhs = 0.0
               do field=1,field_counts(mesh)
-                if (force_bc(mesh,field)) then
-                  if (any(has_value(bc_nodes(mesh,field), ele_nodes_B))) then
-                    local_rhs(mesh, field, :nloc)=local_rhs(mesh, field, :nloc)-matmul( little_mass_matrix(mesh,:nloc,:nloc)*abs(detJ(1)), ele_val(new_fields(mesh,field), ele_B) )
-                    little_inverse_mass_matrix = little_inverse_mass_matrix_copy
-                    do j=1, nloc
-                      if (has_value(bc_nodes(mesh,field), ele_nodes_B(j))) then
-                        little_inverse_mass_matrix(mesh, j,:)=0.0
-                        little_inverse_mass_matrix(mesh, :,j)=0.0
-                        little_inverse_mass_matrix(mesh, j,j)=1.0
-                        local_rhs(mesh, field, j)=node_val(new_fields(mesh,field), ele_nodes_B(j))
-                      end if
-                    end do
-                  end if
-                end if
-#ifdef INLINE_MATMUL
-                forall (j=1:nloc)
-                  little_rhs(j, field) = sum(little_inverse_mass_matrix(mesh, j, :nloc) * local_rhs(mesh, field, :nloc))
-                end forall
-                little_rhs(:nloc, field) = little_rhs(:nloc, field) / abs(detJ(1))
-#else
-                little_rhs(:nloc, field) = matmul(little_inverse_mass_matrix(mesh, :nloc, :nloc) / abs(detJ(1)), little_rhs(:nloc, field))
-#endif
+                little_rhs(:nloc, field) = local_rhs(mesh,field,:nloc)
               end do
-            else
-              call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
-            end if
-            
-            if (any(force_bc(mesh,1:field_counts(mesh)))) then
-              little_inverse_mass_matrix=little_inverse_mass_matrix_copy
-            end if
 
-            do field = 1, field_counts(mesh)
-              call set(new_fields(mesh,field), ele_nodes_B, little_rhs(:nloc, field))
-            end do
-          
-          else
+              if (any(force_bc(mesh,1:field_counts(mesh)))) then
+                little_inverse_mass_matrix_copy=little_inverse_mass_matrix
+              end if
+            
+              if (new_positions_simplicial) then
+                do field=1,field_counts(mesh)
+                  if (force_bc(mesh,field)) then
+                    if (any(has_value(bc_nodes(mesh,field), ele_nodes_B))) then
+                      local_rhs(mesh, field, :nloc)=local_rhs(mesh, field, :nloc)-matmul( little_mass_matrix(mesh,:nloc,:nloc)*abs(detJ(1)), ele_val(new_fields(mesh,field), ele_B) )
+                      little_inverse_mass_matrix = little_inverse_mass_matrix_copy
+                      do j=1, nloc
+                        if (has_value(bc_nodes(mesh,field), ele_nodes_B(j))) then
+                          little_inverse_mass_matrix(mesh, j,:)=0.0
+                          little_inverse_mass_matrix(mesh, :,j)=0.0
+                          little_inverse_mass_matrix(mesh, j,j)=1.0
+                          local_rhs(mesh, field, j)=node_val(new_fields(mesh,field), ele_nodes_B(j))
+                        end if
+                      end do
+                    end if
+                  end if
+#ifdef INLINE_MATMUL
+                  forall (j=1:nloc)
+                    little_rhs(j, field) = sum(little_inverse_mass_matrix(mesh, j, :nloc) * local_rhs(mesh, field, :nloc))
+                  end forall
+                  little_rhs(:nloc, field) = little_rhs(:nloc, field) / abs(detJ(1))
+#else
+                  little_rhs(:nloc, field) = matmul(little_inverse_mass_matrix(mesh, :nloc, :nloc) / abs(detJ(1)), little_rhs(:nloc, field))
+#endif
+                end do
+              else
+                call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
+              end if
+            
+              if (any(force_bc(mesh,1:field_counts(mesh)))) then
+                little_inverse_mass_matrix=little_inverse_mass_matrix_copy
+              end if
+
+              do field = 1, field_counts(mesh)
+                call set(new_fields(mesh,field), ele_nodes_B, little_rhs(:nloc, field))
+              end do
+
+            else
     
-            do field=1,field_counts(mesh)
-              call addto(rhs(mesh,field), ele_nodes_B, local_rhs(mesh,field,:nloc))
-            end do
+              do field=1,field_counts(mesh)
+                call addto(rhs(mesh,field), ele_nodes_B, local_rhs(mesh,field,:nloc))
+              end do
           
-            if(.not.all(lumped(mesh,1:field_counts(mesh)))) then
-              call addto(M_B(mesh), ele_nodes_B, ele_nodes_B, little_mass_matrix(mesh,:nloc,:nloc))
-            end if
+              if(.not.all(lumped(mesh,1:field_counts(mesh)))) then
+                call addto(M_B(mesh), ele_nodes_B, ele_nodes_B, little_mass_matrix(mesh,:nloc,:nloc))
+              end if
           
-            if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
-              call addto(M_B_L(mesh), ele_nodes_B, sum(little_mass_matrix(mesh,:nloc,:nloc), 2))
+              if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
+                call addto(M_B_L(mesh), ele_nodes_B, sum(little_mass_matrix(mesh,:nloc,:nloc), 2))
+              end if
             end if
           end if
-        end if
-        
+
+        end do
+
       end do
 
-    end do
-    ewrite(1, *) "Supermeshing complete"
+      ewrite(1, *) "Supermeshing complete"
 
 
-    if (.not. present(map_BA)) then
+    else ! not femdem
+
       do ele_B=1,ele_count(new_position)
-        call deallocate(lmap_BA(ele_B))
-      end do
-      deallocate(lmap_BA)
-    end if
 
+        call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+                                              field_counts, old_fields, old_position, new_fields, new_position, &
+                                              lmap_BA, inversion_matrices_A, supermesh_shape)
+
+        if (stat /= 0) then
+          ! Uhoh! We haven't found all the mass for ele_B :-/
+          ! The intersector has missed something (almost certainly due to
+          ! finite precision arithmetic). Geometry is hard!
+          ! So let's go all arbitrary precision on its ass.
+          ! Data, Warp 0!
+#ifdef HAVE_CGAL
+          ewrite(0,*) "Using CGAL to try to fix conservation error"
+          call intersector_set_exactness(.true.)
+          call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+               field_counts, old_fields, old_position, new_fields, new_position, &
+               lmap_BA, inversion_matrices_A, supermesh_shape)
+          if(stat/=0) then
+            ewrite(0,*) "Sorry, CGAL failed to fix conservation error."
+          end if
+          call intersector_set_exactness(.false.)
+#else
+          ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
+          ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
+#endif
+        end if
+
+        do mesh = 1, mesh_count
+          if(field_counts(mesh)>0) then
+            nloc = ele_loc(new_fields(mesh,1),1)
+            ele_nodes_B => ele_nodes(new_fields(mesh,1), ele_B)
+            if(dg(mesh)) then
+              little_rhs = 0.0
+              do field=1,field_counts(mesh)
+                little_rhs(:nloc, field) = local_rhs(mesh,field,:nloc)
+              end do
+
+              if (any(force_bc(mesh,1:field_counts(mesh)))) then
+                little_inverse_mass_matrix_copy=little_inverse_mass_matrix
+              end if
+
+              if (new_positions_simplicial) then
+                do field=1,field_counts(mesh)
+                  if (force_bc(mesh,field)) then
+                    if (any(has_value(bc_nodes(mesh,field), ele_nodes_B))) then
+                      local_rhs(mesh, field, :nloc)=local_rhs(mesh, field, :nloc)-matmul( little_mass_matrix(mesh,:nloc,:nloc)*abs(detJ(1)), ele_val(new_fields(mesh,field), ele_B) )
+                      little_inverse_mass_matrix = little_inverse_mass_matrix_copy
+                      do j=1, nloc
+                        if (has_value(bc_nodes(mesh,field), ele_nodes_B(j))) then
+                          little_inverse_mass_matrix(mesh, j,:)=0.0
+                          little_inverse_mass_matrix(mesh, :,j)=0.0
+                          little_inverse_mass_matrix(mesh, j,j)=1.0
+                          local_rhs(mesh, field, j)=node_val(new_fields(mesh,field), ele_nodes_B(j))
+                        end if
+                      end do
+                    end if
+                  end if
+#ifdef INLINE_MATMUL
+                  forall (j=1:nloc)
+                    little_rhs(j, field) = sum(little_inverse_mass_matrix(mesh, j, :nloc) * local_rhs(mesh, field, :nloc))
+                  end forall
+                  little_rhs(:nloc, field) = little_rhs(:nloc, field) / abs(detJ(1))
+#else
+                  little_rhs(:nloc, field) = matmul(little_inverse_mass_matrix(mesh, :nloc, :nloc) / abs(detJ(1)), little_rhs(:nloc, field))
+#endif
+                end do
+              else
+                call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
+              end if
+
+              if (any(force_bc(mesh,1:field_counts(mesh)))) then
+                little_inverse_mass_matrix=little_inverse_mass_matrix_copy
+              end if
+
+              do field = 1, field_counts(mesh)
+                call set(new_fields(mesh,field), ele_nodes_B, little_rhs(:nloc, field))
+              end do
+
+            else
+
+              do field=1,field_counts(mesh)
+                call addto(rhs(mesh,field), ele_nodes_B, local_rhs(mesh,field,:nloc))
+              end do
+
+              if(.not.all(lumped(mesh,1:field_counts(mesh)))) then
+                call addto(M_B(mesh), ele_nodes_B, ele_nodes_B, little_mass_matrix(mesh,:nloc,:nloc))
+              end if
+
+              if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
+                call addto(M_B_L(mesh), ele_nodes_B, sum(little_mass_matrix(mesh,:nloc,:nloc), 2))
+              end if
+            end if
+          end if
+
+        end do
+
+      end do
+
+      ewrite(1, *) "Supermeshing complete"
+
+      if (.not. present(map_BA)) then
+        do ele_B=1,ele_count(new_position)
+          call deallocate(lmap_BA(ele_B))
+        end do
+        deallocate(lmap_BA)
+      end if
+
+    end if
 
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then
@@ -906,30 +1234,29 @@ module conservative_interpolation_module
     deallocate(little_rhs)
 
     call finalise_tet_intersector
+    call rtree_intersection_finder_reset(ntests)
 
     ewrite(1, *) "Exiting interpolation_galerkin_scalars"
     
   end subroutine interpolation_galerkin_scalars
 
-  subroutine interpolation_galerkin_single_state(old_state, new_state, map_BA, field)
+  subroutine interpolation_galerkin_single_state(old_state, new_state, map_BA)
     type(state_type), intent(inout) :: old_state, new_state
     type(ilist), dimension(:), intent(in), optional :: map_BA
-    type(scalar_field), intent(inout), optional :: field
 
     type(state_type), dimension(1) :: old_states, new_states
     
     old_states = (/old_state/)
     new_states = (/new_state/)
-    call interpolation_galerkin(old_states, new_states, map_BA=map_BA, field=field)
+    call interpolation_galerkin(old_states, new_states, map_BA=map_BA)
     old_state = old_states(1)
     new_state = new_states(1)
     
   end subroutine interpolation_galerkin_single_state
 
-  subroutine interpolation_galerkin_multiple_states(old_states, new_states, map_BA, field)
+  subroutine interpolation_galerkin_multiple_states(old_states, new_states, map_BA)
     type(state_type), dimension(:), intent(inout) :: old_states, new_states
     type(ilist), dimension(:), intent(in), optional :: map_BA
-    type(scalar_field), intent(inout), optional :: field
 
     type(state_type), dimension(size(old_states)) :: old_fields_state, new_fields_state
     type(vector_field), pointer :: old_position, new_position
@@ -944,7 +1271,7 @@ module conservative_interpolation_module
     old_position => extract_vector_field(old_states(1), "Coordinate")
     new_position => extract_vector_field(new_states(1), "Coordinate")
 
-    call interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA=map_BA, solid=field)
+    call interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA=map_BA)
 
     do i = 1, size(old_fields_state)
       call deallocate(old_fields_state(i))
@@ -954,6 +1281,50 @@ module conservative_interpolation_module
     ewrite(1, *) "Exiting interpolation_galerkin_multiple_states"
 
   end subroutine interpolation_galerkin_multiple_states
+
+  subroutine interpolation_galerkin_single_state_femdem(old_state, new_state, field, femdem_out)
+    type(state_type), intent(inout) :: old_state, new_state
+    type(scalar_field), intent(inout), optional :: field
+    logical, intent(in), optional :: femdem_out
+
+    type(state_type), dimension(1) :: old_states, new_states
+    
+    old_states = (/old_state/)
+    new_states = (/new_state/)
+    call interpolation_galerkin_femdem(old_states, new_states, field=field, femdem_out=femdem_out)
+    old_state = old_states(1)
+    new_state = new_states(1)
+    
+  end subroutine interpolation_galerkin_single_state_femdem
+
+  subroutine interpolation_galerkin_multiple_states_femdem(old_states, new_states, field, femdem_out)
+    type(state_type), dimension(:), intent(inout) :: old_states, new_states
+    type(scalar_field), intent(inout), optional :: field
+    logical, intent(in), optional :: femdem_out
+
+    type(state_type), dimension(size(old_states)) :: old_fields_state, new_fields_state
+    type(vector_field), pointer :: old_position, new_position
+    integer :: i
+
+    ewrite(1, *) "In interpolation_galerkin_multiple_states_femdem"
+
+    call collapse_fields_in_state(old_states, old_fields_state)
+    call collapse_fields_in_state(new_states, new_fields_state)
+    call derive_collapsed_bcs(new_states, new_fields_state, bctype = "dirichlet")
+
+    old_position => extract_vector_field(old_states(1), "Coordinate")
+    new_position => extract_vector_field(new_states(1), "Coordinate")
+
+    call interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, solid=field, femdem_out=femdem_out)
+
+    do i = 1, size(old_fields_state)
+      call deallocate(old_fields_state(i))
+      call deallocate(new_fields_state(i))
+    end do
+
+    ewrite(1, *) "Exiting interpolation_galerkin_multiple_states_femdem"
+
+  end subroutine interpolation_galerkin_multiple_states_femdem
 
   subroutine grandy_projection_multiple_states(old_states, new_states, map_BA)
     type(state_type), dimension(:), intent(inout) :: old_states, new_states

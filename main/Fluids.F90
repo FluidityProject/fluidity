@@ -750,7 +750,7 @@ contains
 
        if (have_option("/implicit_solids") .and. have_option("/timestepping/nonlinear_iterations/tolerance")) then
           if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-             call implicit_solids_nl_tol(state(1), its, change < abs(nonlinear_iteration_tolerance))
+             call implicit_solids_nonlinear_iteration_converged(state(1), its)
           end if
        end if
 

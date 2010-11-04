@@ -1000,7 +1000,7 @@ contains
 
       do gi=1, ele_ngi(u_cg, ele)
          ! eddy-viscosity on the cg (hence dg) gauss points
-         les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
+         les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
               smagorinsky_coefficient**2
       end do     
 

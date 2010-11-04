@@ -150,6 +150,12 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
+      <<"FEMDEM support\t\t\t"
+#ifdef USING_FEMDEM
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
       <<"Hyperlight support\t\t"
 #ifdef HAVE_HYPERLIGHT
       <<"yes\n"

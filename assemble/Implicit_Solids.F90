@@ -92,7 +92,7 @@ module implicit_solids
   type(vector_field), target, save :: fl_pos_solid_vel
   type(vector_field), save :: ext_pos_bulk_vel
 
-  type(scalar_field), save :: solid_local
+  type(scalar_field), save :: solid_local, old_solid_local
   type(vector_field), save :: external_positions
   real, save :: beta, source_intensity
   real, dimension(:,:), allocatable, save :: translation_coordinates
@@ -101,125 +101,40 @@ module implicit_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, print_drag
   logical, save :: do_calculate_volume_fraction
-  logical, save :: nltolerance
   integer, dimension(:), allocatable, save :: node_to_particle
 
   private
-  public:: solids, implicit_solids_nl_tol
+  public:: solids, implicit_solids_nonlinear_iteration_converged
 
 contains
 
   subroutine solids(state, its)
 
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer :: positions
     integer, intent(in) :: its
-    type(scalar_field), pointer :: solid, temperature
-    integer, save :: itinoi
-!    logical, save :: do_calculate_volume_fraction
+    type(scalar_field), pointer :: solid, old_solid
+    integer, save :: dim, itinoi
     logical, save :: init=.false.
-    logical, save :: nliter_tol_reached=.false.
-    integer :: dat_unit, stat
-    character(len=PYTHON_FUNC_LEN) :: python_function
-    character(len=field_name_len) :: external_mesh_name
-    integer :: i, quad_degree
-    integer, save :: dim
+    integer :: i
 
     ewrite(2, *) "inside implicit_solids"
 
     solid => extract_scalar_field(state, "SolidConcentration")
-    call zero(solid)
 
     if (.not. init) then
+
+       call get_option("/geometry/dimension", dim)
+       call get_option("/timestepping/nonlinear_iterations", itinoi)
 
        call get_option("/implicit_solids/beta", beta, default=1.)
        call get_option("/implicit_solids/source_intensity", &
             source_intensity, default=0.)
 
-       call get_option("/timestepping/nonlinear_iterations", itinoi)
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
-       nltolerance = have_option("/timestepping/nonlinear_iterations/tolerance")
-
-       call get_option("/geometry/dimension", dim)
 
        if (one_way_coupling) then
-
-          ! check for mutiple solids and get translation coordinates
-          number_of_solids = 1
-          multiple_solids = &
-               have_option("/implicit_solids/one_way_coupling/multiple_solids")
-          if (multiple_solids) call get_option( &
-               "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
-               number_of_solids)
-
-          allocate(translation_coordinates(dim, number_of_solids))
-          if (multiple_solids) then
-             call get_option(&
-                  "/implicit_solids/one_way_coupling/multiple_solids/python", &
-                  python_function)
-             call set_detector_coords_from_python(translation_coordinates, &
-                  number_of_solids, python_function, current_time)
-          else
-             translation_coordinates = 0.
-          end if
-
-          ! get external mesh and compare meshes dimensions
-          call get_option("/implicit_solids/one_way_coupling/mesh/file_name", &
-               external_mesh_name)
-
-          call get_option("/geometry/quadrature/degree", quad_degree)
-
-          external_positions = &
-               read_triangle_serial(trim(external_mesh_name), &
-               quad_degree=quad_degree)
-
-          positions => extract_vector_field(state, "Coordinate")
-
-          assert(positions%dim >= 2)
-          assert(positions%dim == external_positions%dim)
-
-          temperature => extract_scalar_field(state, "Temperature", stat)
-          have_temperature = stat == 0
-
-          ! check temperature related options
-          if (have_temperature .and. &
-               .not. have_option("/implicit_solids/source_intensity")) then
-             ewrite(-1, *) "WARNING: Implicit solids are not emitting!"
-          end if
-          if (.not. have_temperature .and. &
-               have_option("/implicit_solids/source_intensity")) then
-             FLExit("You need to use a Temperature field if you want to &
-                  have emitting solids.")
-          end if
-
-          ! figure out if we want to print out diagnostics and initialise files
-          do_print_diagnostics = &
-               have_option("/implicit_solids/one_way_coupling/print_diagnostics")
-          do_print_multiple_solids_diagnostics = &
-               have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
-          ! figure out if we want to print out the drag force
-          print_drag = have_option("/implicit_solids/one_way_coupling/print_drag")
-
-          ! initialise diagnostics (and drag force) data file
-          if (GetRank() == 0 .and. do_print_diagnostics) then
-             dat_unit = free_unit()
-             open(dat_unit, file="diagnostic_data", status="replace")
-             close(dat_unit)
-             
-             if (do_print_multiple_solids_diagnostics) then
-                dat_unit = free_unit()
-                open(dat_unit, file="particle_diagnostic_data", status="replace")
-                close(dat_unit)
-             end if
-          end if
-          ! drag_force file
-          if (GetRank() == 0 .and. print_drag) then
-             dat_unit = free_unit()
-             open(dat_unit, file="drag_force", status="replace")
-             close(dat_unit)
-          end if
-
+          call one_way_initialise(state)
        else if (two_way_coupling)  then
           call femdem_two_way_initialise(state)
        else
@@ -234,7 +149,6 @@ contains
     if (one_way_coupling) then
 
        if (do_calculate_volume_fraction) then
-
           call allocate(solid_local, solid%mesh, "SolidConcentration")
           call zero(solid_local)
 
@@ -253,8 +167,8 @@ contains
        call set_source(state)
        call set_absorption_coefficient(state)
 
-       nliter_tol_reached=.true.
-       if ((do_print_diagnostics .or. print_drag) .and. its==itinoi) call print_diagnostics(state, its, nliter_tol_reached)
+       if (do_print_diagnostics .and. its==itinoi) &
+            call print_diagnostics_one_way(state, its)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -265,18 +179,31 @@ contains
 
     else if (two_way_coupling) then
 
-       ! in two-way coupling this logical is true after an adapt
-       ! but the volume fraction is updated every time step
+       old_solid => extract_scalar_field(state, "OldSolidConcentration")
+
+       ! this logical is true after an adapt but the volume
+       ! fraction is updated-calculated EVERY time step
        if (do_calculate_volume_fraction) then
-          call allocate(solid_local, &
-               solid%mesh, "SolidConcentration")
-          call allocate(fl_pos_solid_vel, dim, &
-               solid%mesh, "SolidVelocity")
+          call allocate(solid_local, solid%mesh, "SolidConcentration")
+          ! set the local field to the interpolated field after an adapt
+          call set(solid_local, solid)
+
+          call allocate(old_solid_local, solid%mesh, "OldSolidConcentration")
+          ! set the local field to the interpolated field after an adapt
+          call set(old_solid_local, old_solid)
+
+          call allocate(fl_pos_solid_vel, dim, solid%mesh, "SolidVelocity")
+          call zero(fl_pos_solid_vel)
        end if
 
        if (its == 1) then
+
+          ! store previous time step volume fraction
+          call set(old_solid_local, solid_local)
+
           ! interpolate the fluid velocity from
           ! the fluidity mesh to the femdem mesh
+          call zero(ext_pos_fluid_vel)
           call femdem_interpolation(state, "out")
 
           ! update          : 1. external_positions
@@ -294,21 +221,31 @@ contains
           call zero(solid_local)
           call femdem_interpolation(state, "in")
 
-          ! prevent singularities and make
-          ! sure concentration is positive
+          ! bound solid to [0, 1]
           call bound_concentration()
 
        end if
 
-       call set(solid, solid_local)
-       ewrite_minmax(solid)
+       ! previous time step volume fraction
+       call set(old_solid, old_solid_local)
+       ! at the first time step there is no previous time
+       ! step, so assume it's the same as the current
+       if (timestep==1) call set(old_solid, solid_local)
 
+       ! current time step volume fraction
+       call set(solid, solid_local)
+
+       ! set source and absorption
        call set_source(state)
        call set_absorption_coefficient(state)
+
+       ! print the total solid drag force
+       if (its==1) call print_diagnostics_femdem(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
+          call deallocate(old_solid_local)
           call deallocate(fl_pos_solid_vel)
           do_calculate_volume_fraction = .true.
        end if
@@ -320,11 +257,12 @@ contains
   end subroutine solids
 
   !----------------------------------------------------------------------------
+  !----------------------------------------------------------------------------
 
   subroutine calculate_volume_fraction(state, solid_number)
 
     type(state_type), intent(inout) :: state
-    integer, intent(in), optional :: solid_number
+    integer, intent(in) :: solid_number
     type(vector_field), pointer :: positions
     type(vector_field) :: external_positions_local
     integer :: ele_A, ele_B, ele_C
@@ -422,19 +360,16 @@ contains
           ele_A_nodes => ele_nodes(positions, ele_A)
           do k = 1, size(ele_A_nodes)
              call addto(solid_local, ele_A_nodes(k), vol/ele_A_vol)
-
-             node_to_particle( ele_A_nodes(k) ) = solid_number 
-
+             node_to_particle(ele_A_nodes(k)) = solid_number 
           end do
 
           call deallocate(intersection)
 
-       end do
+       end do ! ele_A, j, nintersections
 
-    end do
+    end do ! ele_B, ele_count(external_positions)
 
-    ! prevent singularities and make
-    ! sure concentration is positive
+    ! bound solid to [0, 1]
     call bound_concentration()
 
     call finalise_tet_intersector
@@ -539,11 +474,10 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine print_diagnostics(state, its, nliter_tol_reached)
+  subroutine print_diagnostics_one_way(state, its)
 
     type(state_type), intent(inout) :: state
     integer, intent(in) :: its
-    logical, intent(in) :: nliter_tol_reached
     type(vector_field), pointer :: velocity, positions, absorption
     type(scalar_field), pointer :: temperature
     type(scalar_field) :: lumped_mass
@@ -592,6 +526,7 @@ contains
     do i = 1, number_of_solids
        call allsumv(particle_drag(i, :))
     end do
+
     call allsumv(particle_nusselt)
 
     do i = 1, positions%dim
@@ -605,44 +540,29 @@ contains
     end do
 
     ! write files    
-    if (GetRank() == 0 .and. do_print_diagnostics) then
-      ! Add support for tolerance of nonlinear iterations:
-      if (.not. have_option("/timestepping/nonlinear_iterations/tolerance") .or. &
-               (have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached)) then
-        ! file format: time, fx, fy, fz, nusselt
-        open(1453, file="diagnostic_data", position="append")
-        write(1453, *) &
-             current_time, (drag(i), i = 1, positions%dim), nusselt
-        close(1453)
+    if (GetRank() == 0) then
+       ! file format: time, fx, fy, fz, nusselt
+       open(1453, file="diagnostic_data", position="append")
+       write(1453, *) &
+            current_time, (drag(i), i = 1, positions%dim), nusselt
+       close(1453)
 
-        if (do_print_multiple_solids_diagnostics) then
-           ! file format: 
-           ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
-           open(1454, file="particle_diagnostic_data", position="append")
-           write(1454, *) current_time, &
-                (particle_drag(i,:), i = 1, number_of_solids), &
-                (particle_nusselt(i), i = 1, number_of_solids)
-           close(1454)
-        end if
-      end if
-    end if
+       if (do_print_multiple_solids_diagnostics) then
+          ! file format: 
+          ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
+          open(1454, file="particle_diagnostic_data", position="append")
+          write(1454, *) current_time, &
+               (particle_drag(i,:), i = 1, number_of_solids), &
+               (particle_nusselt(i), i = 1, number_of_solids)
+          close(1454)
+       end if
 
-    ! Print out F_d in drag_force
-    if (.not. have_option("/timestepping/nonlinear_iterations/tolerance")) then
-      if (GetRank() == 0 .and. print_drag) then
-        open(1455, file="drag_force", position="append")
-        write(1455, *) (drag(i), i = 1, positions%dim)
-        close(1455)
-      end if
-    ! Add support for tolerance of nonlinear iterations:
-!    else if(have_option("/timestepping/nonlinear_iterations/tolerance") .and. nliter_tol_reached) then
-    else if(have_option("/timestepping/nonlinear_iterations/tolerance")) then
-      if (GetRank() == 0 .and. print_drag) then
-        open(1455, file="drag_force", position="append")
-!        write(1455, *) its, (drag(i), i = 1, positions%dim)
-        write(1455, '(2X, I4, 3X, 3(ES30.16E3, 3X))') its, (drag(i), i = 1, positions%dim)
-        close(1455)
-      end if
+       ! Print out F_d in drag_force
+       if (print_drag) then
+          open(1455, file="drag_force", position="append")
+          write(1455, '(2X, I4, 3X, 3(ES30.16E3, 3X))') its, (drag(i), i = 1, positions%dim)
+          close(1455)
+       end if
     end if
 
     deallocate(particle_drag, drag, particle_nusselt)
@@ -650,13 +570,153 @@ contains
 
     ewrite(2, *) "leaving print_diagnostics"
 
-  end subroutine print_diagnostics
+  end subroutine print_diagnostics_one_way
+
+  !----------------------------------------------------------------------------
+
+  subroutine print_diagnostics_femdem(state)
+
+    type(state_type), intent(in) :: state
+    integer :: i, j
+    real, dimension(:), allocatable :: drag
+    type(scalar_field) :: lumped_mass
+    type(vector_field), pointer :: solid_velocity, velocity, positions, absorption
+    type(scalar_field), pointer :: solid
+    real :: rho_f
+
+    ! Calculate the total drag force of the solids...
+    !       /
+    ! F_D = | \sigma_f ( u_s - ( \hat{u_s} + \hat{u_f} ) dV,
+    !       /
+    ! where \sigma_f = \alpha_s rho_f / dt and \hat{u_k} = \alpha_k u_k
+
+    velocity => extract_vector_field(state, "Velocity")
+    solid_velocity => extract_vector_field(state, "SolidVelocity")
+    solid => extract_scalar_field(state, "SolidConcentration")
+    absorption => extract_vector_field(state, "VelocityAbsorption")
+    positions => extract_vector_field(state, "Coordinate")
+
+    call get_option("/material_phase::"//trim(state%name)// &
+         "/equation_of_state/fluids/linear/reference_density", rho_f)
+
+    call allocate(lumped_mass, positions%mesh, "LumpedMass")
+    call compute_lumped_mass(positions, lumped_mass)
+
+    allocate(drag(positions%dim))
+
+    drag = 0.
+    do i = 1, nowned_nodes(positions)
+       do j = 1, positions%dim
+          drag(j) = drag(j) + &
+               node_val(absorption, j, i) * rho_f * &
+               ( (1.-node_val(solid, i)) * node_val(fl_pos_solid_vel, j, i) - &
+               node_val(velocity, j, i) ) * node_val(lumped_mass, i)
+       end do
+    end do
+
+    call allsumv(drag)
+
+    ewrite(2, *) "fluids drag:", drag
+
+    deallocate(drag)
+    call deallocate(lumped_mass)
+
+  end subroutine print_diagnostics_femdem
+
+  !----------------------------------------------------------------------------
+
+  subroutine one_way_initialise(state)
+
+    type(state_type), intent(in) :: state
+    type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: temperature
+    integer :: dat_unit, stat, quad_degree
+    character(len=FIELD_NAME_LEN) :: external_mesh_name
+    character(len=PYTHON_FUNC_LEN) :: python_function
+
+    ! check for mutiple solids and get translation coordinates
+    number_of_solids = 1
+    multiple_solids = &
+         have_option("/implicit_solids/one_way_coupling/multiple_solids")
+    if (multiple_solids) call get_option( &
+         "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
+         number_of_solids)
+
+    positions => extract_vector_field(state, "Coordinate")
+
+    allocate(translation_coordinates(positions%dim, number_of_solids))
+    if (multiple_solids) then
+       call get_option(&
+            "/implicit_solids/one_way_coupling/multiple_solids/python", &
+            python_function)
+       call set_detector_coords_from_python(translation_coordinates, &
+            number_of_solids, python_function, current_time)
+    else
+       translation_coordinates = 0.
+    end if
+
+    ! get external mesh and compare meshes dimensions
+    call get_option("/implicit_solids/one_way_coupling/mesh/file_name", &
+         external_mesh_name)
+
+    call get_option("/geometry/quadrature/degree", quad_degree)
+
+    external_positions = &
+         read_triangle_serial(trim(external_mesh_name), &
+         quad_degree=quad_degree)
+
+    assert(positions%dim >= 2)
+    assert(positions%dim == external_positions%dim)
+
+    temperature => extract_scalar_field(state, "Temperature", stat)
+    have_temperature = stat == 0
+
+    ! check temperature related options
+    if (have_temperature .and. &
+         .not. have_option("/implicit_solids/source_intensity")) then
+       ewrite(-1, *) "WARNING: Implicit solids are not emitting!"
+    end if
+    if (.not. have_temperature .and. &
+         have_option("/implicit_solids/source_intensity")) then
+       FLExit("You need to use a Temperature field if you want to &
+            have emitting solids.")
+    end if
+
+    ! figure out if we want to print out diagnostics and initialise files
+    do_print_diagnostics = &
+         have_option("/implicit_solids/one_way_coupling/print_diagnostics")
+    do_print_multiple_solids_diagnostics = &
+         have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+    ! figure out if we want to print out the drag force
+    print_drag = have_option("/implicit_solids/one_way_coupling/print_drag")
+
+    ! initialise diagnostics (and drag force) data file
+    if (GetRank() == 0 .and. do_print_diagnostics) then
+       dat_unit = free_unit()
+       open(dat_unit, file="diagnostic_data", status="replace")
+       close(dat_unit)
+
+       if (do_print_multiple_solids_diagnostics) then
+          dat_unit = free_unit()
+          open(dat_unit, file="particle_diagnostic_data", status="replace")
+          close(dat_unit)
+       end if
+    end if
+
+    ! drag_force file
+    if (GetRank() == 0 .and. print_drag) then
+       dat_unit = free_unit()
+       open(dat_unit, file="drag_force", status="replace")
+       close(dat_unit)
+    end if
+
+  end subroutine one_way_initialise
 
   !----------------------------------------------------------------------------
 
   subroutine femdem_two_way_initialise(state)
 
-    character(len=field_name_len) :: external_mesh_name
+    character(len=FIELD_NAME_LEN) :: external_mesh_name
     type(vector_field), pointer :: positions
     type(state_type) :: state
     integer :: quad_degree
@@ -682,7 +742,7 @@ contains
 
     ! femdem only supports tets
     loc = 4
-    sloc = 3
+    sloc= 3
 
 #ifdef USING_FEMDEM
     call y3d_allocate_femdem(trim(external_mesh_name)//char(0), &
@@ -712,11 +772,9 @@ contains
     call allocate(external_positions, dim, mesh, name="Coordinate")
 
     ! initialise solid mesh coordinates
-    do i = 1, nodes
-          external_positions%val(1)%ptr(i) = xs(i)
-          external_positions%val(2)%ptr(i) = ys(i)
-          external_positions%val(3)%ptr(i) = zs(i)
-    end do
+    external_positions%val(1)%ptr(:) = xs
+    external_positions%val(2)%ptr(:) = ys
+    external_positions%val(3)%ptr(:) = zs
 
     do i = 1, elements
        external_positions%mesh%ndglno((i-1)*loc+1:i*loc) = &
@@ -750,7 +808,8 @@ contains
 
     external_positions%dim=3
 
-    ! this is the solid velocity on the solid mesh
+    ! this is the solid velocity 
+    ! on the solid mesh
     call allocate(ext_pos_solid_vel, external_positions%dim, &
          external_positions%mesh, name="SolidVelocity")
     call zero(ext_pos_solid_vel)
@@ -761,7 +820,11 @@ contains
          external_positions%mesh, name="Velocity")
     call zero(ext_pos_fluid_vel)
 
-    ! this is the bulk velocity on the solid mesh
+    ! this is the interpolated bulk velocity 
+    ! on the solid mesh
+    ! that is u = \hat{u_f} + \hat{u_s}, 
+    ! where \hat{u_k} = \alpha_k u_k
+    ! and the velocity we are solving for is \hat{u_f}
     call allocate(ext_pos_bulk_vel, external_positions%dim, &
          external_positions%mesh, name="BulkVelocity")
     call zero(ext_pos_bulk_vel)
@@ -783,7 +846,7 @@ contains
 
     type(state_type) :: state
     real, save :: rho
-    character(len=field_name_len), save :: external_mesh_name
+    character(len=FIELD_NAME_LEN), save :: external_mesh_name
     logical, save :: init=.false.
     integer :: i
 
@@ -820,17 +883,16 @@ contains
 
   subroutine femdem_interpolation(state, operation)
  
-    character(len = *), intent(in) :: operation
+    character(len=*), intent(in) :: operation
     type(state_type) :: state
     type(state_type) :: alg_ext, alg_fl
 
     type(mesh_type), pointer :: fl_mesh
     type(vector_field) :: fl_positions
-    type(vector_field), pointer :: field_ext, field_fl
-    type(ilist), dimension(:), allocatable, save :: map_BA, map_AB 
+    type(vector_field), pointer :: field_ext, field_fl, solid_velocity
 
-    integer :: stat
-    character(len = OPTION_PATH_LEN) :: &
+!    integer :: stat
+    character(len=OPTION_PATH_LEN) :: &
          path = "/tmp/galerkin_projection/continuous"
 
     ! this subroutine interpolates velocities
@@ -850,25 +912,29 @@ contains
     call insert(alg_fl, fl_mesh, "Mesh")
     call insert(alg_fl, fl_positions, "Coordinate")
 
+!    call set_solver_options(path, &
+!            ksptype = "cg", &
+!            pctype = "hypre", &
+!            rtol = 1.e-20, &
+!            atol = 0., &
+!            max_its = 10000)
+!
+!    call add_option( &
+!         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+!    call set_option( &
+!         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+
     call set_solver_options(path, &
             ksptype = "cg", &
-            pctype = "hypre", &
-            rtol = 1.e-10, &
-            atol = 1.e-10, &
+            pctype = "mg", &
+            rtol = 1.e-20, &
+            atol = 0., &
             max_its = 10000)
 
-    call add_option( &
-         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
-    call set_option( &
-         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
-
-    ! always use bounded Galerkin projection and use 50 iterations
-    call add_option(trim(path)//"/bounded[0]/boundedness_iterations", stat)
-    call set_option(trim(path)//"/bounded[0]/boundedness_iterations", 50)
+    path = "/tmp"
 
     if (operation == "in") then
 
-       path = "/tmp"
        fl_pos_solid_vel%option_path = path
 
        ! this is the solid velocity on the fluidity mesh
@@ -883,7 +949,6 @@ contains
 
     else if (operation == "out") then
 
-       path = "/tmp"
        ext_pos_fluid_vel%option_path = path
 
        ! this is the fluid velocity on the solid mesh
@@ -901,14 +966,10 @@ contains
     ! perform interpolations
     if (operation == "in") then
   
-       allocate(map_AB(ele_count(fl_positions)))
-       map_AB = invert_intersection_map(map_BA, fl_positions)
-
        ! interpolate the solid velocity from
        ! the solid mesh to the fluidity mesh
-       call interpolation_galerkin(alg_ext, alg_fl, map_AB, field=solid_local)
-
-       deallocate(map_BA, map_AB)
+       call interpolation_galerkin_femdem(alg_ext, alg_fl, field=solid_local)
+       ! this is:                           old     new
 
        ewrite_minmax(ext_pos_solid_vel%val(1)%ptr)
        ewrite_minmax(ext_pos_solid_vel%val(2)%ptr)
@@ -918,14 +979,15 @@ contains
        ewrite_minmax(field_fl%val(2)%ptr)
        ewrite_minmax(field_fl%val(3)%ptr)
 
-    else if (operation == "out") then
+       solid_velocity => extract_vector_field(state, "SolidVelocity")
+       call set(solid_velocity, field_fl)
 
-       allocate(map_BA(ele_count(external_positions)))
-       map_BA = intersection_finder(external_positions, fl_positions)
+    else if (operation == "out") then
 
        ! interpolate the fluid velocity from
        ! the fluid mesh to the solid mesh
-       call interpolation_galerkin(alg_fl, alg_ext, map_BA)
+       call interpolation_galerkin_femdem(alg_fl, alg_ext, femdem_out=.true.)
+       ! this is:                          old      new
 
        ewrite_minmax(field_fl%val(1)%ptr)
        ewrite_minmax(field_fl%val(2)%ptr)
@@ -946,57 +1008,28 @@ contains
 
   !----------------------------------------------------------------------------
 
-  function invert_intersection_map(map_BA, positions) result(map_AB)
-
-    type(vector_field), intent(in) :: positions
-    type(ilist), dimension(:), intent(in) :: map_BA
-    type(ilist), dimension(ele_count(positions)) :: map_AB
-
-    type(inode), pointer :: node
-    integer :: i, j
-
-    do i = 1, size(map_BA)
-       node => map_BA(i)%firstnode
-       do j = 1, map_BA(i)%length
-          call insert(map_AB(node%value), i)
-          node => node%next
-       end do
-    end do
-
-  end function invert_intersection_map
-
-  !----------------------------------------------------------------------------
-  
-  subroutine implicit_solids_nl_tol(state, its, nliter_tol_reached)
+  subroutine implicit_solids_nonlinear_iteration_converged(state, its)
 
     type(state_type), intent(inout) :: state
     integer, intent(in) :: its
-    logical, intent(in) :: nliter_tol_reached
-    integer :: locits
 
-    ewrite(2, *) "inside implicit_solids"
-    ewrite(2, *) "inside implicit_solids_nl_tol"
-    ! IF tolerance hasn't been reached after specified nonlinear iterations,
-    ! 'its' is actually its+1, thus reducing it by one.
-    locits = its
-    !redundant:
-!    if (.not. nliter_tol_reached) then
-!      locits = locits-1
-!    end if
-    call print_diagnostics(state, locits, .true.) !call print_diagnostics with .true.
-    
-    ! Set 'do_calculate_volume_fraction' to .true. if the mesh is going to be
-    ! adapted at the next timestep
+    if (one_way_coupling) call print_diagnostics_one_way(state, its)
+
     if (do_adapt_mesh(current_time, timestep)) then
+       if (one_way_coupling) then
+          call deallocate(solid_local)
+          deallocate(node_to_particle)
+       else if (two_way_coupling) then
+          call deallocate(solid_local)
+          call deallocate(old_solid_local)
+          call deallocate(fl_pos_solid_vel)
+       end if
         do_calculate_volume_fraction = .true.
-        call deallocate(solid_local)
-        deallocate(node_to_particle)
     end if
-    ewrite(2, *) "leaving implicit_solids_nl_tol"
-    ewrite(2, *) "leaving implicit_solids"
 
-  end subroutine implicit_solids_nl_tol
+  end subroutine implicit_solids_nonlinear_iteration_converged
 
+  !----------------------------------------------------------------------------
   !----------------------------------------------------------------------------
 
 end module implicit_solids

@@ -41,7 +41,7 @@
     use sparse_matrices_fields
     use field_options
     use halos
-    use global_parameters, only: FIELD_NAME_LEN
+    use global_parameters, only: FIELD_NAME_LEN, timestep
     use elements
     use transform_elements, only: transform_to_physical
     use coriolis_module
@@ -128,6 +128,9 @@
     
     ! LES coefficients
     real :: smagorinsky_coefficient
+
+    ! femdem
+    logical :: have_femdem
 
   contains
 
@@ -221,6 +224,9 @@
       type(scalar_field) :: alpha_u_field
       logical :: have_wd_abs
       real, dimension(u%dim) :: abs_wd_const
+
+      !! femdem
+      type(scalar_field), pointer :: solid, old_solid
 
       ewrite(1,*) 'entering construct_momentum_cg'
     
@@ -504,16 +510,24 @@
         call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
         call zero(visc_inverse_masslump)
       end if
-      
+
+      ! femdem
+      have_femdem = have_option("/implicit_solids/two_way_coupling")
+      if (have_femdem) then
+        solid => extract_scalar_field(state, "SolidConcentration")
+        old_solid => extract_scalar_field(state, "OldSolidConcentration")
+      end if
+
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
-         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
+         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               gp, surfacetension, &
+              solid, old_solid, &
               assemble_ct_matrix, cg_pressure, on_sphere, depth=depth, have_wd_abs=have_wd_abs, &
               alpha_u_field=alpha_u_field, Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
       end do element_loop
@@ -928,13 +942,14 @@
     end subroutine construct_momentum_surface_element_cg
 
 
-    subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
+    subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, ct_rhs, &
                                             mass, masslump, visc_masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             gp, surfacetension, &
+                                            solid, old_solid, &
                                             assemble_ct_matrix, cg_pressure, on_sphere, depth, have_wd_abs, &
                                             alpha_u_field, Abs_wd, vvr_sf, ib_min_grad)
 
@@ -945,6 +960,7 @@
       integer, intent(in) :: ele
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
+      type(scalar_field), intent(inout) :: ct_rhs
       type(block_csr_matrix), pointer :: ct_m
       type(petsc_csr_matrix), intent(inout) :: mass
       ! above we supply inverse_masslump, but we start assembling the non-inverted
@@ -960,6 +976,7 @@
       type(tensor_field), intent(in) :: surfacetension
       type(tensor_field), intent(in) :: grad_u
       type(scalar_field), optional, intent(in) :: depth
+      type(scalar_field), intent(in) :: solid, old_solid
 
       logical, intent(in) :: assemble_ct_matrix, cg_pressure, on_sphere
 
@@ -990,6 +1007,7 @@
       ! What we will be adding to the matrix and RHS - assemble these as we
       ! go, so that we only do the calculations we really need
       real, dimension(u%dim, ele_loc(u, ele)) :: big_m_diag_addto, rhs_addto
+      real, dimension(ele_loc(p, ele)) :: ct_rhs_addto
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: big_m_tensor_addto
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
       integer :: dim
@@ -1006,6 +1024,7 @@
       big_m_diag_addto = 0.0
       big_m_tensor_addto = 0.0
       rhs_addto = 0.0
+      ct_rhs_addto = 0.0
       ! we always want things added to the diagonal blocks
       ! but we must check if we have_coriolis to add things to the others
       if(have_coriolis.or.(have_viscosity.and.stress_form)) then
@@ -1097,7 +1116,7 @@
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, solid, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -1149,6 +1168,11 @@
         call add_geostrophic_pressure_element_cg(ele, test_function, x, u, gp, detwei, rhs_addto)
       end if
 
+      if(have_femdem) then
+        test_function = p_shape
+        call add_femdem_ct_rhs_element_cg(ele, test_function, x, detwei, solid, old_solid, ct_rhs_addto)
+      end if
+
       ! Step 4: Insertion
 
       ! add lumped terms to the diagonal of the matrix
@@ -1157,6 +1181,8 @@
       call addto(big_m, u_ele, u_ele, big_m_tensor_addto, block_mask=block_mask)
       ! add to the rhs
       call addto(rhs, u_ele, rhs_addto)
+      ! add to the ct_rhs
+      call addto(ct_rhs, p_ele, ct_rhs_addto)
       
       if(assemble_ct_matrix.and.cg_pressure) then
         call addto(ct_m, p_ele, u_ele, spread(grad_p_u_mat, 1, 1))
@@ -1275,10 +1301,11 @@
       
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, solid, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
+      type(scalar_field), intent(in) :: solid
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: nu
       type(vector_field), pointer :: ug
@@ -1292,7 +1319,7 @@
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
     
       integer :: dim
-      real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
+      real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi, solid_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: advection_mat
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
@@ -1306,7 +1333,19 @@
         relu_gi = relu_gi - ele_val_at_quad(ug, ele)
       end if
       div_relu_gi = ele_div_at_quad(nu, ele, du_t)
-            
+
+!      unfortunately, this doesn't work so comment it out for now...
+!      if (have_femdem) then
+!        ! use u_f to advect, this is: \widehat{\u_f}/\alpha_f
+!        ! \alpa_f is 0 in the solid so we need to clip it
+!        solid_gi = max (1. - ele_val_at_quad(solid, ele), 1.e-1)
+!        relu_gi = ele_val_at_quad(nu, ele) / spread(solid_gi, 1, u%dim)
+!        if(move_mesh) then
+!           relu_gi = relu_gi - ele_val_at_quad(ug, ele) / spread(solid_gi, 1, u%dim)
+!        end if
+!        div_relu_gi = ele_div_at_quad_femdem(nu, solid, ele, du_t)
+!      end if
+
       if(integrate_advection_by_parts) then
         ! element advection matrix
         !    /                                            /
@@ -1907,7 +1946,24 @@
       rhs_addto = rhs_addto - shape_vector_rhs(test_function, transpose(ele_grad_at_quad(gp, ele, dgp_t)), detwei)
       
     end subroutine add_geostrophic_pressure_element_cg
-    
+
+    subroutine add_femdem_ct_rhs_element_cg(ele, test_function, x, detwei, solid, old_solid, ct_rhs_addto)
+      integer, intent(in) :: ele
+      type(element_type), intent(in) :: test_function
+      type(vector_field), intent(in) :: x
+      type(scalar_field), intent(in) :: solid, old_solid
+      real, dimension(ele_ngi(x, ele)), intent(in) :: detwei
+      real, dimension(ele_loc(x, ele)), intent(inout) :: ct_rhs_addto
+      
+      real, dimension(ele_loc(x, ele)) :: ds, mat
+      
+      mat = shape_rhs(test_function, detwei)
+      ds = ele_val(solid, ele) - ele_val(old_solid, ele)
+
+      ct_rhs_addto = ct_rhs_addto + mat*ds/dt
+      
+    end subroutine add_femdem_ct_rhs_element_cg
+
     function stiffness_matrix(dshape1, tensor, dshape2, detwei, legacy) result (matrix)
       !!< Calculates the stiffness matrix.
       !!< 
