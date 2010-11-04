@@ -8243,25 +8243,7 @@ This option is generally only useful for testing. </a:documentation>
             </element>
           </choice>
           <optional>
-            <element name="scalar_field">
-              <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>PhotosyntheticRadiation</value>
-              </attribute>
-              <choice>
-                <element name="prognostic">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="prognostic_photosynthetic_radiation"/>
-                </element>
-                <element name="prescribed">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="prescribed_scalar_field"/>
-                </element>
-              </choice>
-            </element>
+            <ref name="hyperlight"/>
           </optional>
         </element>
         <element name="six_component">
@@ -8413,6 +8395,48 @@ This determines the order in which scalar_fields are solved for:
         <ref name="integer"/>
       </element>
     </optional>
+  </define>
+  <define name="hyperlight">
+    <element name="hyperlight">
+      <a:documentation>Hyperlight solar irradiance model, which 
+computes a fast approximation to the Radiative Transfer Equation.
+NOTE: This module requires fluidity to be compiled with the 
+--enable-hyperlight flag.</a:documentation>
+      <element name="scalar_field">
+        <a:documentation>Input: chlorophyll concentration</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ChlorophyllConcentration</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prescribed_scalar_field"/>
+        </element>
+      </element>
+      <element name="cdom">
+        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="bf_chl">
+        <a:documentation>BFchl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="scalar_field">
+        <a:documentation/>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>IrradianceTemplate</value>
+        </attribute>
+        <group>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prescribed_scalar_field"/>
+        </group>
+      </element>
+    </element>
   </define>
   <define name="recalculation_options">
     <element name="do_not_recalculate">

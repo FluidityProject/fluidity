@@ -6411,22 +6411,8 @@ biology =
                element disable_biology {
                   empty
                }
-             ),
-            ## Photosynthetically Active Radiation (PAR)
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "PhotosyntheticRadiation" },
-               (
-                  element prognostic {
-                     velocity_mesh_choice,
-                     prognostic_photosynthetic_radiation
-                  }|
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_scalar_field
-                  }
-               )
-            }?
+            ),
+            hyperlight?
          }|
          ## 6 component biology model, which models Nitrates, Ammonium, 
          ## Phytoplankton, Zooplankton, Detritus and Chlorophyll.
@@ -6559,6 +6545,44 @@ prognostic_photosynthetic_radiation =
       element priority {
          integer
       }?
+   )
+
+hyperlight = 
+   (
+      ## Hyperlight solar irradiance model, which 
+      ## computes a fast approximation to the Radiative Transfer Equation.
+      ## NOTE: This module requires fluidity to be compiled with the 
+      ## --enable-hyperlight flag.
+      element hyperlight {
+         ## Input: chlorophyll concentration
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ChlorophyllConcentration" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }
+            )
+         },
+         ## F, the ratio for correlated CDOM
+         element cdom {
+            real
+         },
+         ## BFchl, the backscatter fraction for chlorophyll-bearing particles
+         element bf_chl {
+            real
+         },
+         ## 
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "IrradianceTemplate" },
+            (
+               velocity_mesh_choice,
+               prescribed_scalar_field              
+            )
+         }
+      }
    )
 
 recalculation_options =

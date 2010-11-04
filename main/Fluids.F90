@@ -97,6 +97,9 @@ module fluids_module
   use reduced_model_runtime
   use implicit_solids
   use sediment
+#ifdef HAVE_HYPERLIGHT
+  use hyperlight
+#endif
 
   implicit none
 
@@ -184,6 +187,17 @@ contains
         call sediment_init()
     end if
 
+    ! Initialise Hyperlight
+#ifdef HAVE_HYPERLIGHT
+    if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
+        call hyperlight_init()
+    end if
+#else
+    if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
+        ewrite(-1,*) "Hyperlight module was selected, but not compiled."
+        FLExit("Please re-compile fluidity with the --enable-hyperlight option.")
+    end if
+#endif
 
     if (have_option("/geometry/disable_geometric_data_cache")) then
        ewrite(1,*) "Disabling geometric data cache"

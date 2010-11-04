@@ -150,6 +150,12 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
+      <<"Hyperlight support\t\t"
+#ifdef HAVE_HYPERLIGHT
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
       ;
   stream.flush();
   return;
