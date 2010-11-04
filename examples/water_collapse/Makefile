@@ -1,6 +1,8 @@
 preprocess: 
 	@echo **********Generating the mesh using gmsh in 2d:
-	gmsh -2 -bin 2dtank.geo -o 2dtank.msh
+	gmsh -2 2dtank.geo
+	@echo **********Converting the gmsh mesh to triangle format:
+	../../scripts/gmsh2triangle -2 2dtank.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
@@ -14,4 +16,4 @@ input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.pdf *.png *.stat *.msh adapted_mesh_*.vtu water_collapse_*.vtu *checkpoint* *convergence* *.log-0 *.err-0 matrixdump* *.detectors water_depths.npy
+	rm -rf *.pdf *.png *.stat *.msh *.node *.edge *.ele adapted_mesh_*.vtu water_collapse_*.vtu *checkpoint* *convergence* *.log-0 *.err-0 matrixdump* *.detectors water_depths.npy
