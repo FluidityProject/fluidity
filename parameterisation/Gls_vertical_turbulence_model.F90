@@ -41,6 +41,7 @@ module gls
   use boundary_conditions
   use Coordinates
   use FLDebug
+  use fefields
 
   implicit none
 
@@ -106,7 +107,6 @@ subroutine gls_init(state)
     integer                        :: stat
     character(len=FIELD_NAME_LEN)  :: gls_option, gls_stability_function
     type(scalar_field), pointer    :: s_cur
-    integer                        :: tke_pri, psi_pri
 
     ! Allocate the temporary, module-level variables
     call gls_allocate_temps(state)
@@ -140,7 +140,7 @@ subroutine gls_init(state)
         cPsi3_plus = 1.0 
         cPsi3_minus = 2.53
         psi_min = 1.e-8
-        calc_fwall = .false.
+        calc_fwall = .true.
         call set( Fwall, 1.0 )  
     case ("k-epsilon")
         gls_p = 3.0
@@ -359,6 +359,7 @@ subroutine gls_tke(state)
             call set(source,i, prod)
             call set(absorption,i, (diss-buoyan)/node_val(KK,i))
         end if
+        !write(*,*) node_val(K_M,i), node_val(K_H,i), node_val(MM2,i),node_val(NN2,i)
         call set(P, i, prod)
         call set(B, i, buoyan)
     enddo
@@ -436,6 +437,7 @@ subroutine gls_psi(state)
     psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
 
+    ewrite(2,*) "In gls_psi: setting up"
     ! clip at k_min
     do i=1,nNodes
         call set(KK,i, max(node_val(KK,i),k_min))
@@ -455,6 +457,8 @@ subroutine gls_psi(state)
         ! this is only needed such that Fwall is not NAN after an adapt
         call set( Fwall, 1.0 )
     end if
+
+    ewrite(2,*) "In gls_psi: computing RHS"
     ! compute RHS
     do i=1,nNodes
 
@@ -479,6 +483,7 @@ subroutine gls_psi(state)
         end if
     end do
 
+    ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
     call zero(psi_diff)
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
@@ -493,6 +498,7 @@ subroutine gls_psi(state)
     end if
     call addto(psi_diff,background_diff) 
 
+    ewrite(2,*) "In gls_psi: setting BCs"
     ! boundary conditions
     if (calculate_bcs) then
         call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/", bc_type)
@@ -506,6 +512,7 @@ subroutine gls_psi(state)
     end if
 
 
+    ewrite(2,*) "In gls_psi: tearing down"
     ! Psi is now ready for solving (see Fluids.F90)
     ewrite_minmax(source%val(:))
     ewrite_minmax(absorption%val(:))
@@ -541,7 +548,9 @@ subroutine gls_diffusivity(state)
     real                             :: epslim, tke
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     logical                          :: limit_length = .true.
-    type(vector_field), pointer      :: positions
+    type(vector_field), pointer      :: positions, velocity
+    type(scalar_field)               :: remaped_K_M
+    type(tensor_field)               :: remaped_background_visc
 
     ! Temporary tensors to hold  rotated values (note: must be a 3x3 mat)
     real, dimension(3,3) :: eddy_diff_KH_sphere_node, eddy_visc_KM_sphere_node, viscosity_sphere_node
@@ -554,6 +563,8 @@ subroutine gls_diffusivity(state)
     eddy_diff_KH => extract_tensor_field(state, "GLSEddyDiffusivityKH",stat)
     viscosity => extract_tensor_field(state, "Viscosity",stat)
     positions => extract_vector_field(state, "Coordinate")
+    velocity => extract_vector_field(state, "Velocity")
+
 
     call allocate(KK,KK_state%mesh,"TKE")
     call allocate(psi,psi_state%mesh,"PSI")
@@ -666,16 +677,27 @@ subroutine gls_diffusivity(state)
     ewrite_minmax(psi) 
 
     ! Set viscosity
+    call allocate(remaped_K_M,velocity%mesh,name="remaped_Km")
+    call allocate(remaped_background_visc,velocity%mesh,name="remaped_viscosity")
+    if (K_M%mesh%continuity /= viscosity%mesh%continuity) then
+        ! remap
+        call remap_field(K_M,remaped_K_M)
+        call remap_field(background_visc,remaped_background_visc)
+    else
+        ! copy
+        call set(remaped_K_M,K_M)
+        call set(remaped_background_visc,background_visc)
+    end if
     call zero(viscosity)
     if (on_sphere) then
       do i=1,nNodes
-        viscosity_sphere_node=align_with_radial(node_val(positions,i),node_val(K_M,i))
+        viscosity_sphere_node=align_with_radial(node_val(positions,i),node_val(remaped_K_M,i))
         call set(viscosity,i,viscosity_sphere_node)
       end do
     else
-      call set(viscosity,viscosity%dim,viscosity%dim,K_M)
+      call set(viscosity,viscosity%dim,viscosity%dim,remaped_K_M)
     end if
-    call addto(viscosity,background_visc)
+    call addto(viscosity,remaped_background_visc)
     
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
@@ -685,6 +707,8 @@ subroutine gls_diffusivity(state)
     call deallocate(kk)
     call deallocate(psi)
     call deallocate(kk_copy)
+    call deallocate(remaped_background_visc)
+    call deallocate(remaped_K_M)
     
 end subroutine gls_diffusivity
 
@@ -1037,30 +1061,38 @@ subroutine gls_buoyancy(state)
     gravity => extract_vector_field(state, "GravityDirection")
 
     ! now allocate our temp fields
-    call allocate(pert_rho_averaged, velocity%mesh, "pert_rho_averaged")   
+    call allocate(pert_rho_averaged, pert_rho%mesh, "pert_rho_averaged")   
     call allocate(NU_averaged, velocity%mesh, "NU_averaged")    
     call allocate(NV_averaged, velocity%mesh, "NV_averaged")
 
-
     ! Small smoothing filter to iron out any big wiggles that might 
     ! be spurious unstable strat
-    call allocate(inverse_lumpedmass, velocity%mesh, "InverseLumpedMass")
-    mass => get_mass_matrix(state, velocity%mesh)
-    lumpedmass => get_lumped_mass(state, velocity%mesh)
+    call allocate(inverse_lumpedmass, pert_rho%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, pert_rho%mesh)
+    lumpedmass => get_lumped_mass(state, pert_rho%mesh)
     call invert(lumpedmass, inverse_lumpedmass)
     call mult( pert_rho_averaged, mass, pert_rho)
     call scale(pert_rho_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
-    call mult( NU_averaged, mass, extract_scalar_field(velocity, 1) )
-    call scale(NU_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
-    call mult( NV_averaged, mass, extract_scalar_field(velocity, 2) )
-    call scale(NV_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    call deallocate(inverse_lumpedmass)
+
+    call allocate(inverse_lumpedmass, velocity%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, velocity%mesh)
+    lumpedmass => get_lumped_mass(state, velocity%mesh) 
+    call invert(lumpedmass, inverse_lumpedmass)
+    !call mult( NU_averaged, mass, extract_scalar_field(velocity, 1) )
+    !call scale(NU_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    !call mult( NV_averaged, mass, extract_scalar_field(velocity, 2) )
+    !call scale(NV_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    call set(NU_averaged, extract_scalar_field(velocity, 1))
+    call set(NV_averaged, extract_scalar_field(velocity, 2))
+
     call get_option("/physical_parameters/gravity/magnitude", g)
     on_sphere = have_option('/geometry/spherical_earth/')
     dim = mesh_dim(NN2)
-    NN2_shape => ele_shape(NN2, ele)
-    MM2_shape => ele_shape(MM2, ele)
-    velocity_shape => ele_shape(velocity, ele)
-    theta_shape => ele_shape(pert_rho_averaged, ele)
+    NN2_shape => ele_shape(NN2, 1)
+    MM2_shape => ele_shape(MM2, 1)
+    velocity_shape => ele_shape(velocity, 1)
+    theta_shape => ele_shape(pert_rho_averaged, 1)
     
     call zero(NN2)
     call zero(MM2)
@@ -1113,14 +1145,10 @@ subroutine gls_buoyancy(state)
           
         element_nodes => ele_nodes(NN2, ele)
         
-        !call addto(NN2, element_nodes, &
-        !  & shape_rhs(NN2_shape, -detwei * g * grad_theta_gi(:,dim)*grav_at_quads(:,:)) &
-        !  & )
         call addto(NN2, element_nodes, &
           ! already in the right direction due to multipling by grav_at_quads
           & shape_rhs(NN2_shape, detwei * g * drho_dz) &
           & )
-
 
         call addto(MM2, element_nodes, &
           & shape_rhs(MM2_shape,detwei * shear) &
@@ -1139,12 +1167,13 @@ subroutine gls_buoyancy(state)
     end do element_loop
   
     ! Solve
+    lumpedmass => get_lumped_mass(state, NN2%mesh)
     NN2%val = NN2%val / lumpedmass%val
+    lumpedmass => get_lumped_mass(state, MM2%mesh)
     MM2%val = MM2%val / lumpedmass%val
 
- 
-    call deallocate(pert_rho_averaged)
     call deallocate(inverse_lumpedmass)
+    call deallocate(pert_rho_averaged)
     call deallocate(NU_averaged)    
     call deallocate(NV_averaged)
 
@@ -1314,7 +1343,9 @@ subroutine gls_psi_bc(state, bc_type)
     real, allocatable, dimension(:)  :: z0s, z0b, u_taus_squared, u_taub_squared
     type(scalar_field), pointer      :: kk, kkOld
     real                             :: value
- 
+
+
+    ewrite(2,*) "In gls_psi_bc: setting up"
     ! grab hold of some essential field
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     positions => extract_vector_field(state, "Coordinate") 
@@ -1326,6 +1357,7 @@ subroutine gls_psi_bc(state, bc_type)
     allocate(u_taus_squared(NNodes_sur))
     allocate(u_taub_squared(NNodes_bot))
 
+    ewrite(2,*) "In gls_psi_bc: friction"
     ! get friction
     call gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_squared)
     
@@ -1333,6 +1365,7 @@ subroutine gls_psi_bc(state, bc_type)
     call remap_field_to_surface(kk, top_surface_kk_values, top_surface_element_list)
     call remap_field_to_surface(kk, bottom_surface_kk_values, bottom_surface_element_list)
 
+    ewrite(2,*) "In gls_psi_bc: setting values"
     select case(bc_type)
     case("neumann")
         if (fix_surface_values) then
@@ -1411,19 +1444,23 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     real                                 :: charnock_val=1400.
     character(len=OPTION_PATH_LEN)       :: bctype
     type(vector_field), pointer          :: wind_surface_field, positions, velocity
-    type(vector_field)                   :: bottom_velocity
+    type(scalar_field), pointer          :: tke
+    type(vector_field)                   :: bottom_velocity, surface_forcing, cont_vel, surface_pos
     type(mesh_type)                      :: ocean_mesh
     real                                 :: u_taub, z0s_min
     real, dimension(1)                   :: temp_vector_1D ! Obviously, not really a vector, but lets keep the names consistant
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
+    logical                              :: surface_allocated
 
     MaxIter = 10
     z0s_min = 0.003
-   
+    surface_allocated = .false.
+  
     ! get meshes
     velocity => extract_vector_field(state, "Velocity")
     positions => extract_vector_field(state, "Coordinate")
+    tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     wind_surface_field => null()
    
     ! grab stresses from velocity field - Surface
@@ -1432,18 +1469,60 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         call get_boundary_condition(velocity, i, type=bctype)
         if (bctype=='wind_forcing') then
             wind_surface_field => extract_surface_field(velocity, i, "WindSurfaceField")
+            call create_surface_mesh(ocean_mesh, top_surface_nodes, tke%mesh, &
+                                     top_surface_element_list, 'OceanTop')
+            call allocate(surface_forcing, wind_surface_field%dim, ocean_mesh, name="surface_velocity")
+            call allocate(surface_pos, positions%dim, ocean_mesh, name="surface_positions")
+            call deallocate(ocean_mesh)
+            call remap_field_to_surface(positions, surface_pos, top_surface_element_list)
+
+            if (tke%mesh%continuity == velocity%mesh%continuity) then
+                call set(surface_forcing,wind_surface_field)
+            else
+                ! remap onto same mesh as TKE
+                call project_field(wind_surface_field, surface_forcing, surface_pos)
+            end if
+
+            surface_allocated = .true.
+            call deallocate(surface_pos)
+            exit
+
         end if
     end do
+
+    ! sort out bottom surface velocity
+    call create_surface_mesh(ocean_mesh, bottom_surface_nodes, tke%mesh, &
+                             bottom_surface_element_list, 'OceanBottom')
+    call allocate(bottom_velocity, velocity%dim, ocean_mesh, name="bottom_velocity")
+    call allocate(cont_vel, velocity%dim, tke%mesh, name="ContVel")
+    call deallocate(ocean_mesh)
+    ! Do we need to project or copy?
+    if (velocity%mesh%continuity == tke%mesh%continuity) then
+        call set(cont_vel,velocity)
+    else            
+        ! remap onto same mesh as TKE
+        call project_field(velocity, cont_vel, positions)
+    end if
+
+    call remap_field_to_surface(cont_vel, bottom_velocity, &
+                                bottom_surface_element_list)
+    call deallocate(cont_vel)
+    ! we now have a bottom velocity surface and a top surface
+    ! with the wind stress on (note easier to to zero the output array
+    ! below than set wind_forcing to zero and work through all the calcs
+
             
+    ! work out the friction in either 3 or 2 dimensions.
     if (positions%dim .eq. 3) then
 
-        if (associated(wind_surface_field)) then
+        if (surface_allocated) then
             do i=1,NNodes_sur
-                temp_vector_2D = node_val(wind_surface_field,i)
+                temp_vector_2D = node_val(surface_forcing,i)
                 ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
-                ! u_taus = sqrt(wind_stress/rho0)
+                ! Note that u_taus = sqrt(wind_stress/rho0)
                 ! we assume here that the wind stress in diamond is already
-                ! wind_stress/rho0
+                ! wind_stress/rho0, hence here:
+                ! u_taus = sqrt(wind_stress)
                 u_taus_squared(i) = sqrt(((temp_vector_2D(1))**2+(temp_vector_2D(2))**2))
                 !  use the Charnock formula to compute the surface roughness
                 z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
@@ -1452,12 +1531,6 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         else
             z0s = 0.0
         end if
-
-        ! grab values of velocity from bottom surface
-        call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
-        call allocate(bottom_velocity, velocity%dim, ocean_mesh, name="bottom_velocity")
-        call remap_field_to_surface(velocity, bottom_velocity, &
-                                    bottom_surface_element_list)
 
         do i=1,NNodes_bot
             temp_vector_3D = node_val(bottom_velocity,i)
@@ -1481,13 +1554,9 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         end do
 
     else if (positions%dim .eq. 2) then
-        if (associated(wind_surface_field)) then
+        if (surface_allocated) then
             do i=1,NNodes_sur
-                temp_vector_1D = node_val(wind_surface_field,i)
-                ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
-                ! u_taus = sqrt(wind_stress/rho0)
-                ! we assume here that the wind stress in diamond is already
-                ! wind_stress/rho0
+                temp_vector_1D = node_val(surface_forcing,i)
                 u_taus_squared(i) = temp_vector_1D(1)
                 !  use the Charnock formula to compute the surface roughness
                 z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
@@ -1498,16 +1567,9 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
             z0s = 0.0
         end if
 
-        ! grab values of velocity from bottom surface
-        call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
-        call allocate(bottom_velocity, velocity%dim, ocean_mesh, name="bottom_velocity")
-        call remap_field_to_surface(velocity, bottom_velocity, &
-                                    bottom_surface_element_list)
-
         do i=1,NNodes_bot
             temp_vector_2D = node_val(bottom_velocity,i)
             u_taub = sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2)
-
 
             !  iterate bottom roughness length MaxItz0b times
             do ii=1,MaxIter
@@ -1531,8 +1593,11 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
 
 
     call deallocate(bottom_velocity)
-    call deallocate(ocean_mesh)
-  return
+    if (surface_allocated) then
+        call deallocate(surface_forcing)
+    end if
+        
+    return
 
 end subroutine gls_friction
 
@@ -1620,6 +1685,7 @@ subroutine gls_calculate_dz(state)
     type(state_type), intent(in)     :: state
 
     type(vector_field), pointer      :: positions, velocity
+    type(scalar_field), pointer      :: tke
     integer                          :: i, j, nele, ele, sele
     real                             :: node_dz, h
     type(patch_type)                 :: current_patch
@@ -1627,11 +1693,12 @@ subroutine gls_calculate_dz(state)
 
     positions => extract_vector_field(state, "Coordinate")
     velocity => extract_vector_field(state, "Velocity")
+    tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
 
     ! for each node in the surface, get the elements and find the dz
     ! average out for this (i.e. add and divide by nodes per element)
     ! Top surface
-    call create_surface_mesh(sur_mesh, top_surface_nodes, velocity%mesh, top_surface_element_list, 'Top') 
+    call create_surface_mesh(sur_mesh, top_surface_nodes, tke%mesh, top_surface_element_list, 'Top') 
 
     do i=1,NNodes_sur
         current_patch = get_patch_ele(sur_mesh,i)
@@ -1652,7 +1719,7 @@ subroutine gls_calculate_dz(state)
     call deallocate(sur_mesh)
  
     ! Bottom surface
-    call create_surface_mesh(sur_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'Bottom') 
+    call create_surface_mesh(sur_mesh, bottom_surface_nodes, tke%mesh, bottom_surface_element_list, 'Bottom') 
 
     do i=1,NNodes_bot
         current_patch = get_patch_ele(sur_mesh,i)
@@ -1705,25 +1772,25 @@ end subroutine gls_calc_wall_function
 subroutine gls_allocate_temps(state)
 
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer    :: vectorField
+    type(scalar_field), pointer    :: tkeField
 
-    vectorField => extract_vector_field(state,"Velocity")
+    tkeField => extract_scalar_field(state,"GLSTurbulentKineticEnergy")
 
     ! allocate some space for the fields we need for calculations, but are optional in the model
     ! we're going to allocate these on the velocity mesh as we need one of these...
-    call allocate(ll,         vectorField%mesh, "LengthScale")    
-    call allocate(NN2,        vectorField%mesh, "BuoyancyFrequency")
-    call allocate(MM2,        vectorField%mesh, "VelocityShear")  
-    call allocate(B,          vectorField%mesh, "BuoyancyFrequency")
-    call allocate(P,          vectorField%mesh, "ShearProduction")  
-    call allocate(S_H,        vectorField%mesh, "StabilityH")    
-    call allocate(S_M,        vectorField%mesh, "StabilityM")    
-    call allocate(K_H,        vectorField%mesh, "EddyDiff")    
-    call allocate(K_M,        vectorField%mesh, "EddyVisc")        
-    call allocate(eps,        vectorField%mesh, "GLS_TKE_Dissipation") 
-    call allocate(Fwall,      vectorField%mesh, "GLS_WallFunction") 
-    call allocate(density,    vectorField%mesh, "Density")
-    call allocate(tke_old,    vectorField%mesh, "Old_TKE")
+    call allocate(ll,         tkeField%mesh, "LengthScale")    
+    call allocate(NN2,        tkeField%mesh, "BuoyancyFrequency")
+    call allocate(MM2,        tkeField%mesh, "VelocityShear")  
+    call allocate(B,          tkeField%mesh, "BuoyancyFrequency")
+    call allocate(P,          tkeField%mesh, "ShearProduction")  
+    call allocate(S_H,        tkeField%mesh, "StabilityH")    
+    call allocate(S_M,        tkeField%mesh, "StabilityM")    
+    call allocate(K_H,        tkeField%mesh, "EddyDiff")    
+    call allocate(K_M,        tkeField%mesh, "EddyVisc")        
+    call allocate(eps,        tkeField%mesh, "GLS_TKE_Dissipation") 
+    call allocate(Fwall,      tkeField%mesh, "GLS_WallFunction") 
+    call allocate(density,    tkeField%mesh, "Density")
+    call allocate(tke_old,    tkeField%mesh, "Old_TKE")
 
     call set(ll,0.)
     call set(NN2,0.)
@@ -1739,7 +1806,7 @@ subroutine gls_allocate_temps(state)
     call set(density,0.)
     call set(tke_old,0.)
 
-    nNodes = node_count(vectorField)
+    nNodes = node_count(tkeField)
 
 end subroutine gls_allocate_temps
 
