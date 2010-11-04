@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
-import math
 import glob
 import sys
 import os
 import vtktools
 import numpy
 import pylab
-from math import isinf
-import re
 
 def get_filelist():
 
@@ -98,7 +95,7 @@ def reatt_length(filelist, exclude_initial_results):
     for i in range(len(u)-1):
       ##### Hack to ignore division by zero entries in u.
       ##### All u should be nonzero away from boundary!
-      if((u[i] / u[i+1]) < 0. and not math.isinf(u[i] / u[i+1])):
+      if((u[i] / u[i+1]) < 0. and not numpy.isinf(u[i] / u[i+1])):
         ##### interpolate between nodes
         p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i])
         ##### Ignore spurious corner points
