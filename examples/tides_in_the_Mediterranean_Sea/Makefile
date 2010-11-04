@@ -1,4 +1,4 @@
-nprocs=4
+nprocs=64
 preprocess: 
 #	gmsh -2 med.geo
 	../../scripts/gmsh2triangle med.msh
