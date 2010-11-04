@@ -681,7 +681,7 @@ function must be the inverse of the original \option{coordinate\_map}.
 The final compulsory element in the top level of the options tree is
 \option{/material\_phase}.  A \option{/material\_phase} element groups all
 of the fields which pertain to one phase or one material. See
-Chapter~\ref{chap:model_physics} for an explanation of the distinction
+section~\ref{sec:config_multimatph} for an explanation of the distinction
 between a phase and material in this context.
 
 When configuring ocean problems (or single material/single phase fluids
@@ -903,7 +903,7 @@ several options to control the face value and how diffusion is implemented.
 
 The face value (\option{face\_value}) can be set to one of:
 \begin{description}
-\item[First Order Upwind] - see section \ref{sec:cv_fou}
+\item[FirstOrderUpwind] - see section \ref{sec:cv_fou}.  Note that first order upwinding does not require nonlinear advection iterations as the low order pivot solution uses first order upwinding itself.  However in this case it is necessary that the implictness factor, $\theta$, is the same as the pivot implicitness factor, $\theta_p$ (see sections \ref{sec:cvtemp} and \ref{sect:configuring_fluidity_temporal_discretisation}).
 \item[Trapezoidal] - see section \ref{sec:trap}, should be used with the suboptions describing a face value limiter (see section \ref{sec:cvlimiting}) active
 \item[FiniteElement] - see section \ref{sec:cvfe}, should be used with the suboptions describing a face value limiter (see section \ref{sec:cvlimiting}) active
 \item[FirstOrderDownwinding] - see section \ref{sec:fod}, intended for demonstration purposes only, not recommended for general use (unconditionally unstable)
@@ -919,7 +919,7 @@ For the diffusion scheme (\option{diffusion\_scheme}) one can choose either:
 \item[BassiRebay] - works in two configurations equal order field and diffusivity or, for fields on a linear parent mesh, with a piecewise constant (element centred) diffusivity (staggered finite volumes), see section \ref{sec:cvbrdiff}
 \end{description}
 
-For steady state problems the mass terms may be disabled using \option{\ldots/mass\_terms/exclude\_mass\_terms}.  Note that this also requires the suitable setting of the temporal discretisation options.
+For steady state problems the mass terms may be disabled using \option{\ldots/mass\_terms/exclude\_mass\_terms}.  Note that this also requires the suitable setting of the temporal discretisation options ($\theta=1$).
 
 \subsubsection{Coupled CV}\label{Sect:CoupledCVs}
 
@@ -1895,38 +1895,7 @@ If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}
 \option{\ldots/reference\_node::node\_1}
 \end{itemize}
 
-\section{Compressible fluid model}
-\index{compressible fluid model}
-
-Enabling \option{\ldots/material\_phase/equation\_of\_state/compressible} allows the compressible equations described in sections 
-\ref{Sect:compressible_conservative} and \ref{Sect:compressible_nonconservative} to be solved. At the moment there is one available option for the required 
-compressible equation of state: Mie-Grunneisen (see section \ref{Sect:Multi-material compressible EOS}).
-
-This section contains advice for running a compressible simulation, by describing the necessary options to set up the problem. The options required for prognostic fields are:
-
-\subsection{Pressure options}
-\begin{itemize}
-\item The value for the atmospheric pressure can be added by switching on \option{\\\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
-\item A Poisson pressure equation should not be used to calculate a first guess, therefore \\* \option{\ldots/scheme/poisson\_pressure\_solution} should be set to $never$.
-\item \option{\ldots/scheme/use\_compressible\_projection\_method} shuold be selected, so the calculated pressure satisfies the continuity equation and the EOS.
-\end{itemize}
-
-\subsection{Density options}
-\option{\ldots/prognostic/equation} and \option{\ldots/prognostic/solver} do not need to be enabled. If the equation type is not turned on, the density will make 
-use of the pressure solve, so no solver options are needed either. By having an equation type turned on, the density is not only incorporated into the pressure solve 
-but also an Advection-Diffusion equation is solved (and solver options need to be specified).
-
-\subsection{Velocity options}
-\begin{itemize}
-\item \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
-\item For a Continuous Galerkin discretisation in order to couple the velocity components together \\* \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/\\stress\_form} is required.
-\end{itemize}
-
-\subsection{Restrictions: discretisation options and element pairs}
-Either Continuous Galerkin or Control Volumes can be used as discretisation options for pressure and density (both fields need to have the same option). Nevertheless, 
-when using Control Volumes pressure and density have to be the same order of parent mesh.
-
-\section{Mesh adaptivity}
+\section{Mesh adaptivity} \label{sec:config_adapt}
 
 The configuration on mesh adaptivity occurs in two places: under \option{mesh\_adaptivity} where 
 the overall adaptive settings are configured, and on a per-field basis where both the interpolation
@@ -1940,7 +1909,7 @@ is the interpolation method that should be used to transfer the values of a fiel
 Second, in order to form the error metic by which the mesh is adapted, the user must set which fields
 should form the error metric and how the error for that field should be calculated.
 
-\subsubsection{Interpolation method}
+\subsubsection{Interpolation method} \label{sec:config_adapt_interp}
 
 For each prognostic field in the current state, an interpolation type must be set. These can be set by selecting an
 option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
@@ -1959,9 +1928,24 @@ on the method by which they are calculated. In these instances, it is worth sett
 for these fields which will ensure that the values are set correctly before an output dump occurs.
 
 The Galerkin projection also requires some further settings depending on the mesh type. For discontinuous
-meshes there are no other required settings. For continuous meshes a solver is required in order
+meshes there are no other required settings.  For continuous meshes a solver is required in order
 to perform the supermesh projection. The solver settings are configured as with any other solver, see
 section \ref{Sect:Solve} for more details.
+
+With piecewise linear continuous fields additional options are available to bound the result following a Galerkin projection:\\
+\option{\ldots/galerkin\_projection/continuous/bounded::Diffuse}\\
+and\\
+\option{\ldots/galerkin\_projection/continuous/bounded::Algencan}\\
+The latter uses the algencan optimisation library to bound the field and requires \fluidity\ to be configured with \lstinline[language=bash]+--enable-algencan+.  The \option{Diffuse} bounding algorithm is internal to \fluidity\ and the most frequently used.
+
+To use the \option{Diffuse} bounding algorithm \citep{farrell2009a} the number of iterations the algorithm is allowed to take must be specified.  Additionally an optional tolerance can be specified to terminate this iteration loop early.  Furthermore if the bounds on the field are known in advance then these can be specified through:\\
+\option{\ldots/bounded::Diffuse/bounds/upper\_bound}\\
+and\\
+\option{\ldots/bounded::Diffuse/bounds/lower\_bound}.\\
+If the diffusion bounding algorithm fails to locally redistribute the unboundedness then a conservative but non-local redistribution can be activated using:\\
+\option{\ldots/bounded::Diffuse/repair\_deviations}\\
+again with an optional tolerance:\\
+\option{\ldots/bounded::Diffuse/repair\_deviations/tolerance}.
 
 \subsubsection{Creating an error metric}
 \label{sect:configuring_fluidity_error_metric}
@@ -2001,3 +1985,102 @@ In addition to these mandatory settings, there are a number of other configurati
 
 \subsubsection{Metric advection}
 \label{sect:configuring_fluidity_metric_advection}
+
+
+
+\section{Multiple material/phase models} \label{sec:config_multimatph}
+
+This section contains advice on setting up simulations with multiple material\_phase options.  This enables related fields to be grouped together into related materials or phases.  For example a prognostic scalar field in one material\_phase will be advected using the Velocity from that material\_phase while a prognostic scalar field in another material\_phase will be advected according to the Velocity in its material\_phase.
+
+We refer to two typical scenarios: a \emph{multiple material} model and a \emph{multiple phase} model. A multiple phase model is one in which the Velocity field in each material\_phase is in some way independent of the velocities in the other material\_phases.  This means that scalar fields (for example phase volume fractions) in each material\_phase are advected independently.  A multiple material model is one in which the Velocity field is shared between all material\_phases so that all scalar fields are advected similarly.
+
+\subsection{Multiple phase models}
+
+It is not currently possible to model problems with multiple prognostic velocity fields although the options system has been designed with this in mind for the future.
+
+\subsection{Multiple material models}
+
+Models with a single prognostic velocity field that is shared between material\_phases (using the \option{aliased} field type) are referred to as multiple material models.  These are generally used to describe systems of nearly immiscible materials with different material properties contained within the same domain.  This section focusses on this type of multiple material\_phase simulation.
+
+In a multiple material simulation each material\_phase requires:
+\begin{itemize}
+\item an equation of state
+\item a MaterialVolumeFraction scalar field
+\end{itemize}
+
+The equation of state provides the density properties of the material described in the current material\_phase.  For incompressible simulations a linear equation of state is used, which only requires a reference density:\\
+\option{\ldots/equation\_of\_state/fluids/linear/reference\_density}\\
+to be set.  For Boussinesq multimaterial simulations, where a material's density depends on temperature and/or salinity, then the same dependencies exist between the equation of state and these fields as in single material simulations.  For example a Temperature field must be present in the material\_phase where it is needed (although it may be aliased between material\_phases).  If the \option{subtract\_out\_hydrostatic\_level} option is selected, it must only be select in a single material\_phase.  Fully compressible multimaterial simulations are not supported.
+
+The MaterialVolumeFraction field describes the location of the material, varying from $1$ in regions where the cells are entirely the current material to $0$ where none of this material is present.  As the materials are generally treated as being nearly immiscible, the prognostic MaterialVolumeFraction field should be discretised using a control volume spatial discretisation with one of the face value schemes designed for advecting step functions:
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::HyperC}
+\item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::UltraC}
+\item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::PotentialUltraC}
+\end{itemize}
+as described in sections \ref{sec:hyperc}--\ref{sec:potultrac}.  These schemes are only guaranteed to be bounded for explicit advection so the implicitness factor, $\theta$:\\
+\option{\ldots/temporal\_discretisation/theta}\\
+and the pivot implicitness factor, $\theta_p$:\\
+\option{\ldots/temporal\_discretisation/control\_volumes/pivot\_theta}\\
+should be set to zero and, for high Courant number flows, advection subcycling should be used:\\
+\option{\ldots/temporal\_discretisation/control\_volumes/maximum\_courant\_number\_per\_subcycle}\\
+or\\
+\option{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_subcycles}.
+
+For an $N$ material problem, $N$ material\_phases are required and hence $N$ MaterialVolumeFractions, $c^i, i =1, \ldots, N$, and $N$ equations of state.  However, only $N-1$ of the MaterialVolumeFraction fields, $c^i, i =1, \ldots, N-1$, need be prognostic.  The final volume fraction field, $c^N$, should always be set to \option{diagnostic}, as it can be recovered using the internal algorithm:
+\begin{equation} \label{eq:config_diagvfrac}
+c^N = 1 - \sum_{i=1}^{N-1}c^i\textrm{.}
+\end{equation}
+So, for example, in the case when $N=2$ there need only be a single prognostic MaterialVolumeFraction field and a single diagnostic MaterialVolumeFraction field.  In this case it makes no difference which material\_phase contains the prognostic volume fraction and which contains the diagnostic field.  In more complicated scenarios with $N>2$ a coupled control volume discretisation (see section \ref{sec:coupledlimiter}) becomes necessary to ensure that not only each of the $N-1$ prognostic MaterialVolumeFractions remain bounded but also that their sum, $\sum_{i=1}^{N-1}c^i$, is bounded.  This ensures, through equation \ref{eq:config_diagvfrac}, that the final diagnostic MaterialVolumeFraction is also bounded.  As discussed in section \ref{sec:coupledlimiter} this process requires a priority ordering for the fields, which must be specified at:\\
+\option{\ldots/scalar\_field::MaterialVolumeFraction/prognostic/priority}.\\
+The diagnostic field is always treated as the lowest priority volume fraction so in this case the choice of priority ordering and diagnostic field may affect the results if the interfaces between the materials are in the vicinity of one another.  Priority ordering and coupled limiting do not affect the advection process if the material interfaces are separated from each other.
+
+If adaptive remeshing is being used then the bounded and minimally dissipative behaviour of the above advection must be preserved through the interpolation between successive meshes.  As discussed in section \ref{sec:config_adapt} several interpolation algorithms are available.  We discuss them again here in terms of their suitability for multiple material modelling.  Consistent interpolation on piecewise linear parent meshes guarantees boundedness of the interpolated volume fraction field and of the sum of the volume fractions.  However it tends to introduce excessive amounts of numerical diffusion and it is not conservative.  Galerkin projection guarantees conservation of the field and is not excessively dissipative.  However it does not guarantee boundedness.
+
+To ensure minimal dissipation, conservation and boundedness it is necessary to use a bounding algorithm following the Galerkin projection.  The \option{Diffuse} bounding algorithm (see section \ref{sec:config_adapt_interp}) is generally used.  This redistributes unbounded values in the field locally, guaranteeing boundedness of each volume fraction individually.  It does not however guarantee boundedness of the sum of the volume fractions and this must be enforced by coupling each MaterialVolumeFraction field together through the interpolation with the option:\\
+\option{\ldots/bounded::Diffuse/bounds/upper\_bound/coupled}\\
+under all $N-1$ prognostic MaterialVolumeFractions.  As with coupled control volume advection this uses the priority numbering of the fields to determine the order in which they are bounded.  The local bounds enforced on successive fields are then modified to ensure boundedness of their sum.  This redistribution of materials during the bounding procedure introduces some relative movement between materials, which, by equation \ref{eq:config_diagvfrac}, is filled in by the diagnostic MaterialVolumeFraction.  Despite this problem bounded Galerkin projection is recommended to transfer field data during mesh adaptivity.
+
+The advected (and interpolated) volume fractions describe volume averaged the locations of the materials.  In combination with the equation of state they can therefore be used to define global bulk values for the density using:
+\begin{equation}
+\rho = \sum_{i=1}^N\rho^ic^i
+\end{equation}
+where $\rho$ is the bulk density and $\rho^i$ are the individual material densities, given by their respective equations of state.  This bulk density can be seen in the diagnostic Density field in whichever material\_phase has the prognostic Velocity field in it.
+
+In addition to the density the volume fractions may be used to specify a bulk Viscosity that varies between the materials according to:
+\begin{equation}
+\tensor{\mu} = \sum_{i=1}^N\tensor{\mu}^ic^i
+\end{equation}
+where $\tensor{\mu}$ is the bulk viscosity and $\tensor{\mu}^i$ is the individual material's viscosity.  To use this it is necessary to activate a MaterialViscosity field in every material\_phase with a nonzero viscosity.  Additionally the Viscosity field underneath the prognostic Velocity must be activated and set to the \option{bulk\_viscosity} diagnostic algorithm.
+
+
+\section{Compressible fluid model}
+\index{compressible fluid model}
+
+Enabling \option{\ldots/material\_phase/equation\_of\_state/compressible} allows the compressible equations described in sections 
+\ref{Sect:compressible_conservative} and \ref{Sect:compressible_nonconservative} to be solved. At the moment there is one available option for the required 
+compressible equation of state: Mie-Grunneisen (see section \ref{Sect:Multi-material compressible EOS}).  Compressible functionality is not yet fully supported and this is intended as a stub upon which further developments will be described.
+
+This section contains advice for running a compressible simulation, by describing the necessary options to set up the problem. The options required for prognostic fields are:
+
+\subsection{Pressure options}
+\begin{itemize}
+\item The value for the atmospheric pressure can be added by switching on \option{\\\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
+\item A Poisson pressure equation should not be used to calculate a first guess, therefore \\* \option{\ldots/scheme/poisson\_pressure\_solution} should be set to $never$.
+\item \option{\ldots/scheme/use\_compressible\_projection\_method} shuold be selected, so the calculated pressure satisfies the continuity equation and the EOS.
+\end{itemize}
+
+\subsection{Density options}
+\option{\ldots/prognostic/equation} and \option{\ldots/prognostic/solver} do not need to be enabled. If the equation type is not turned on, the density will make 
+use of the pressure solve, so no solver options are needed either. By having an equation type turned on, the density is not only incorporated into the pressure solve 
+but also an Advection-Diffusion equation is solved (and solver options need to be specified).
+
+\subsection{Velocity options}
+\begin{itemize}
+\item for continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
+\item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/\\stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
+\end{itemize}
+
+\subsection{Restrictions: discretisation options and element pairs}
+Either continuous Galerkin or control volumes can be used as discretisation options for pressure and density (both fields need to have the same option). When using control volumes pressure and density have to be on the same order of parent mesh.
+
