@@ -493,7 +493,7 @@ test\_pressure\_solve designed to test the pressure solvers on large aspect rati
 
 \subsubsection{unifiedmesh}
 \label{sect:unifiedmesh}
-unifiedmesh dumps the supermesh constructed from two input meshes to discontinuous triangle mesh files and a vtu file. It is run from the command line:
+unifiedmesh dumps the supermesh constructed from two input meshes (see \citet{farrell2009a,farrell2010a}) to discontinuous triangle mesh files and a vtu file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 unifiedmesh <triangle-file-1> <triangle-file-2> <output-file-name>
 \end{lstlisting} 
@@ -505,7 +505,7 @@ No file names should have extenstions and both the triangle mesh files and the v
 \label{sect:vertical_integration}
 
 The vertical\_integration tool computes the Galerkin projection of the vertical
-integral of some field onto a specified target surface mesh, via supermeshing (see section \ref{sec:supermeshing})
+integral of some field onto a specified target surface mesh, via supermeshing (see \citet{farrell2009a,farrell2010a})
 of the source mesh with a vertical extrusion of the target mesh. This can be used to
 compute vertically integrated quantities for arbitrary unstructured meshes (with
 no columnar vertical structure).
