@@ -656,7 +656,7 @@ assert(O1RMS &lt; 1.6)
 print O1RMS
 assert(O1RMS &gt; 0.1)   
     </test> 
- </_passtests>
+ </pass_tests>
  <warn_tests>
  </warn_tests>
 </testproblem>    
