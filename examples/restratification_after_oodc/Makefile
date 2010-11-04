@@ -2,7 +2,7 @@ preprocess:
 	cp src/circle.geo .
 	gmsh -2 circle.geo 
 	../../scripts/gmsh2triangle --2d circle.msh; 
-	../../bin/fldecomp -n 8  circle;
+	../../bin/fldecomp -n 32 circle;
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
