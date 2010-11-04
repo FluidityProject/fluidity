@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+from optparse import OptionParser
+import sys
+
+#####################################################################
+# Script starts here.
+optparser=OptionParser(usage='usage: %prog [options] <NN>',
+                       add_help_option=True,
+                       description="""Generate the mesh files for a given resolution.""")
+
+(options, argv) = optparser.parse_args()
+
+try:
+    NN=int(argv[0])
+except:
+    optparser.print_help()
+    sys.exit(1)
+
+sys.path.append(".")
+
+import driven_cavity
+
+driven_cavity.generate_meshfile("driven_cavity",NN)
