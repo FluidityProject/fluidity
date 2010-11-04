@@ -13,7 +13,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="channel_2d">
-        <format name="gmsh"/>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
