@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import pylab
-import channel_viscous
+import channel_tools
 import sys
 import numpy
 
@@ -23,9 +23,9 @@ if len(layers)==0:
 
 dx=1./layers
 
-error=channel_viscous.retrieve_results(layers)
+error=channel_tools.retrieve_results(layers)
 
-channel_viscous.plot_results(dx,error)
+channel_tools.plot_results(dx,error)
 
 pylab.show()
 

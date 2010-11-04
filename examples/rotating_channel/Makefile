@@ -5,7 +5,7 @@ preprocess:
 		install -d channel-$(layers); \
 		cd channel-$(layers); \
 		ln -s ../channel.flml .;\
-		ln -s ../channel_viscous.py .;\
+		ln -s ../channel_tools.py .;\
 		ln -s ../generate_mesh .;\
 		echo **********Generating mesh for $(layers) layer simulation.;\
 		./generate_mesh $(layers); \

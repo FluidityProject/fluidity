@@ -19,6 +19,6 @@ except:
 
 sys.path.append(".")
 
-import channel_viscous
+import channel_tools
 
-channel_viscous.generate_meshfile("channel",layers)
+channel_tools.generate_meshfile("channel",layers)

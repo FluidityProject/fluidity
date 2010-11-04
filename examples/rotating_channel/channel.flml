@@ -218,9 +218,9 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import channel_viscous
+            <string_value lines="20" type="python">import channel_tools
 global sol
-sol=channel_viscous.solution(channel_viscous.forcing)
+sol=channel_tools.solution(channel_tools.forcing)
         
 def val(X,t):
         return (sol(X), 0.0)</string_value>
@@ -263,8 +263,8 @@ def val(X,t):
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X,t):
-        import channel_viscous
-        return channel_viscous.forcing(X)</string_value>
+        import channel_tools
+        return channel_tools.forcing(X)</string_value>
               </python>
             </value>
             <output/>
@@ -330,10 +330,10 @@ for n in range(field.node_count):
           <python>
             <string_value lines="20" type="python">import sys
 sys.path.append(".")
-import channel_viscous
+import channel_tools
 
 global sol
-sol=channel_viscous.solution(channel_viscous.forcing)
+sol=channel_tools.solution(channel_tools.forcing)
 
 def val(X,t):
 	return sol(X)</string_value>
@@ -354,10 +354,10 @@ def val(X,t):
           <python>
             <string_value lines="20" type="python">import sys
 sys.path.append(".")
-import channel_viscous
+import channel_tools
 
 global sol
-sol=channel_viscous.pressure_solution(channel_viscous.forcing)
+sol=channel_tools.pressure_solution(channel_tools.forcing)
 
 def val(X,t):
 	return sol(X)</string_value>

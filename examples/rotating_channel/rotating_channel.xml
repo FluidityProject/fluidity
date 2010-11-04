@@ -7,10 +7,10 @@
   </problem_definition>
   <variables>
     <variable name="convergence" language="python">import numpy
-import channel_viscous
+import channel_tools
 layers=numpy.array([ 4, 8, 16, 32, 64])
 
-error=channel_viscous.retrieve_results(layers)
+error=channel_tools.retrieve_results(layers)
 
 convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(layers[1:]/layers[:-1]).T*numpy.matrix([1,1]))</variable>
   </variables>
