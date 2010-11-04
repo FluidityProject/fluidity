@@ -26,12 +26,12 @@ assert(numpy.all(convergence[:,2]&gt;1.9))</test>
     <test name="Quantity4ConvergesToSecondOrder" language="python">import numpy
 assert(numpy.all(convergence[:,3]&gt;1.9))</test>
     <test name="Quantity5ConvergesToSecondOrder" language="python">import numpy
-assert(numpy.all(convergence[:,0]&gt;1.9))</test>
+assert(numpy.all(convergence[:,4]&gt;1.9))</test>
     <test name="Quantity6ConvergesToSecondOrder" language="python">import numpy
-assert(numpy.all(convergence[:,1]&gt;1.9))</test>
+assert(numpy.all(convergence[:,5]&gt;1.9))</test>
     <test name="Quantity7ConvergesToSecondOrder" language="python">import numpy
-assert(numpy.all(convergence[:,2]&gt;1.9))</test>
+assert(numpy.all(convergence[:,6]&gt;1.9))</test>
     <test name="Quantity8ConvergesToSecondOrder" language="python">import numpy
-assert(numpy.all(convergence[:,3]&gt;1.9))</test>
+assert(numpy.all(convergence[:,7]&gt;1.9))</test>
   </pass_tests>
 </testproblem>
