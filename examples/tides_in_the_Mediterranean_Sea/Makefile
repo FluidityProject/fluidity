@@ -29,3 +29,5 @@ postprocess:
 
 clean:
 	rm -rf  *gmt* *.ele *.node *.edge Med-GEBCO-5m-gauges-fes2004-O1-102 *med_* *.halo *.pvtu *.vtu *.stat *.log-* *.err-* *check* *Check* *matrixdump*
+
+input: clean preprocess
