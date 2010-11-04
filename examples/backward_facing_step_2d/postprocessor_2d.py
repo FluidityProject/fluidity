@@ -6,6 +6,7 @@ import os
 import vtktools
 import numpy
 import pylab
+import re
 
 def get_filelist():
 
