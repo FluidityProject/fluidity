@@ -40,7 +40,8 @@ verbose = options.verbose
 
 index = int(argv[1])
 
-filelist = glob.glob(base_filename+"_checkpoint_*[0-9].vtu")+glob.glob(base_filename+"_checkpoint_*[0-9].pvtu")
+filelist = glob.glob(base_filename+"_checkpoint_*[0-9].vtu")+glob.glob(base_filename+"_checkpoint_*[0-9]/"+base_filename+"_checkpoint_*[0-9].vtu")+glob.glob(base_filename+"_checkpoint_*[0-9].pvtu")
+
 for i in range(len(filelist)):
   if filelist[i][-4:]==".vtu":
     filesplit  = filelist[i].split(".vtu")[0].split(base_filename+"_checkpoint_")[-1].split("_")
@@ -56,7 +57,10 @@ for i in range(len(filelist)):
     # parallel vtus
     elif(len(filesplit)==2):
       newindex = index + int(filesplit[0])
-      newfilename = base_filename+"_"+str(newindex)+"_"+filesplit[1]+".vtu"
+      checkpoint_directory = filelist[i].split('/')
+      if len(checkpoint_directory)>1: checkpoint_directory = checkpoint_directory[0]+'/'
+      else: checkpoint_directory = './'
+      newfilename = checkpoint_directory+base_filename+"_"+str(newindex)+"_"+filesplit[1]+".vtu"
       if(os.path.exists(newfilename)):
         if(verbose): print "backing up", newfilename, "to", newfilename+".bak"
         shutil.move(newfilename, newfilename+".bak")
@@ -68,6 +72,25 @@ for i in range(len(filelist)):
     if(len(filesplit)==1):
       newindex = index + int(filesplit[0])
       newfilename = base_filename+"_"+str(newindex)+".pvtu"
+      # if in format where all vtus live in a directory assocaited with a pvtu move that directory
+      # also set directory name so when rewriting pvtu can add correct directory name
+      checkpoint_directory = '.'
+      if(os.path.exists(filelist[i].split('.pvtu')[0])):
+        if(os.path.exists(base_filename+"_"+str(newindex))):
+          if(verbose): print "backing up", base_filename+"_"+str(newindex)+"/*.vtu", "to", base_filename+"_"+str(newindex)+"/*.vtu.bak"
+          for f in glob.glob(base_filename+"_"+str(newindex)+"/*.vtu"): shutil.move(f, f+".bak")
+          if(verbose): print "moving", filelist[i].split('.pvtu')[0]+"/*.vtu", "to", base_filename+"_"+str(newindex)+"/*.vtu"
+          for f in glob.glob(filelist[i].split('.pvtu')[0]+"/*.vtu"):  shutil.move(f, base_filename+"_"+str(newindex)+'/'+f.split('/')[1])
+        else:
+          os.mkdir(base_filename+"_"+str(newindex))
+          if(verbose): print "moving", filelist[i].split('.pvtu')[0]+"/*.vtu", "to", base_filename+"_"+str(newindex)+"/*.vtu"
+          for f in glob.glob(filelist[i].split('.pvtu')[0]+"/*.vtu"):  shutil.move(f, base_filename+"_"+str(newindex)+'/'+f.split('/')[1])
+        try:
+          if(verbose): print "removing directory", filelist[i].split('.pvtu')[0]
+          os.rmdir(filelist[i].split('.pvtu')[0])
+        except OSError:
+          if(verbose): print filelist[i].split('.pvtu')[0], "not removed, directory may not be empty"
+        checkpoint_directory = base_filename+"_"+str(newindex)
       if(os.path.exists(newfilename)):
         if(verbose): print "backing up", newfilename, "to", newfilename+".bak"
         shutil.move(newfilename, newfilename+".bak")
@@ -82,7 +105,7 @@ for i in range(len(filelist)):
         if(lineindex!=-1):
           processorsplit = lines[line][lineindex:].split(".vtu")[0].split(base_filename+"_checkpoint_")[-1].split("_")
           if(len(processorsplit)==2):
-            newline = lines[line][:lineindex]+base_filename+"_"+str(newindex)+"_"+str(processorsplit[-1])+".vtu"+lines[line][lineindex:].split(".vtu")[-1]
+            newline = lines[line][:lineindex]+checkpoint_directory+'/'+base_filename+"_"+str(newindex)+"_"+str(processorsplit[-1])+".vtu"+lines[line][lineindex:].split(".vtu")[-1]
             lines[line] = newline
       pvtufile = file(newfilename,'w')
       pvtufile.writelines(lines)
