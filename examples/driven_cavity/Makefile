@@ -26,7 +26,7 @@ postprocess:
 	@echo **********Plotting convergence data.
 	./plot_data 16 32 64 128
 
-input: preprocess
+input: clean preprocess
 
 clean:
 	$(foreach NN,16 32 64 128, rm -rf driven_cavity-$(NN);)

@@ -12,7 +12,7 @@ postprocess:
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
 	./postprocessor_2d.py
 
-input: preprocess
+input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

@@ -10,7 +10,7 @@ preprocess:
 	../../../bin/fldecomp -n 8 -f unit_sphere; \
 	cd ..; \
 
-input: preprocess
+input: clean preprocess
 
 postprocess:
 	@echo **********No postprocessing needed

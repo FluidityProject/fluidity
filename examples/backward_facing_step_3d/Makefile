@@ -30,7 +30,7 @@ postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
 	./postprocessor_3d.py
 
-input: preprocess
+input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

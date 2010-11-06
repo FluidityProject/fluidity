@@ -13,7 +13,7 @@ run:
 postprocess:
 	@echo **********No postprocessing needed
 
-input: preprocess
+input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

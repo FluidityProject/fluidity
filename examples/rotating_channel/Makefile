@@ -26,7 +26,7 @@ postprocess:
 	@echo **********Plotting convergence data.
 	./plot_data 4 8 16 32 64
 
-input: preprocess
+input: clean preprocess
 
 clean:
 	$(foreach layers,4 8 16 32 64, rm -r channel-$(layers);)
