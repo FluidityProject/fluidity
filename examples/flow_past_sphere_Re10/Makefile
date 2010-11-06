@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l flow_past_sphere.flml
+	../../bin/fluidity -v2 -l flow_past_sphere_Re10.flml
 
 postprocess:
 	@echo **********No postprocessing needed

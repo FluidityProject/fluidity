@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">sphere-3D-drag-Re10</string_value>
+    <string_value lines="1">flow_past_sphere_Re1</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -57,17 +57,17 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">20.0</real_value>
+      <real_value rank="0">10.0</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep replaces="TIMAUT">
       <requested_cfl>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">0.2</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -124,7 +124,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value rank="0">0.05</real_value>
+                    <real_value rank="0">0.1</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -272,7 +272,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">.1 0 0 0 .1 0 0 0 .1</real_value>
+                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1 0 0 0 1 0 0 0 1</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
@@ -312,7 +312,7 @@
     if (X[0]&lt;-3):
        return [1e10,1e10,1e10]
     else:
-       return [0.05,0.05,0.05]</string_value>
+       return [0.1,0.1,0.1]</string_value>
                     <comment>Do this so we don't adapt to the Dirichlet BC on velocity that is set before the first time step.</comment>
                   </python>
                 </value>
@@ -369,7 +369,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value rank="0">0.05</real_value>
+                    <real_value rank="0">0.1</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -387,7 +387,7 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">20</integer_value>
+        <integer_value rank="0">50</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">250000</integer_value>

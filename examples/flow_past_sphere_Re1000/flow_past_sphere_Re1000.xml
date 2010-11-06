@@ -3,16 +3,16 @@
 
 <!-- Drag calculation in 3D flow past sphere at Reynolds number 1000 -->
 <testproblem>
-  <name>sphere-3d-drag-Re1000</name>
+  <name>flow_past_sphere_Re1000</name>
   <owner userid="piggt01"/>
   <tags>flml</tags>
   <problem_definition length="long" nprocs="8">
-    <command_line>mpiexec fluidity -v1 -l sphere-3D-drag-Re1000.flml</command_line>
+    <command_line>mpiexec fluidity -v1 -l flow_past_sphere_Re1000.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="time_average_xforce" language="python">
 import fluidity_tools
-s = fluidity_tools.stat_parser("sphere-3D-drag-Re1000.stat")
+s = fluidity_tools.stat_parser("flow_past_sphere_Re1000.stat")
 print s["0"]["Velocity"]["force%1"][-20:]
 time_average_xforce = sum(s["0"]["Velocity"]["force%1"][-20:])/20
 print time_average_xforce

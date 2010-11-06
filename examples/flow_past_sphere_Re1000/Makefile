@@ -20,10 +20,10 @@ endif
 run:
 ifeq ($(NPROCS),1)
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	$(BIN)fluidity -v2 -l flow_past_sphere.flml
+	$(BIN)fluidity -v2 -l flow_past_sphere_Re1000.flml
 else
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l flow_past_sphere.flml
+	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l flow_past_sphere_Re1000.flml
 endif
 
 postprocess:
