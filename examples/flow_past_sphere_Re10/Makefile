@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle ./src/unit_sphere.msh
+	../../scripts/gmsh2triangle unit_sphere.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:

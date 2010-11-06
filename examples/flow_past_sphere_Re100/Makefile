@@ -6,7 +6,7 @@ SCRIPTS=../../scripts/
 
 preprocess:
 	@echo **********Converting the gmsh mesh to triangle format:
-	$(SCRIPTS)gmsh2triangle ./src/unit_sphere.msh
+	$(SCRIPTS)gmsh2triangle unit_sphere.msh
 ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 else
