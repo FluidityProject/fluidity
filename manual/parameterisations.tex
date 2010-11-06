@@ -26,72 +26,88 @@ quantities (vertical shear) as, along
 with a buoyancy term that parameterises the kinematic eddy diffusivity, $K_H$:
 
 \begin{equation}
-\overline{u'w'} = -K_M\frac{\partial u}{\partial z},\quad
-\overline{v'w'} = -K_M\frac{\partial v}{\partial z},\quad
-\overline{w'\rho'} = -K_H\frac{\partial\rho}{\partial z},
+\overline{u'w'} = -\nu_M\frac{\partial u}{\partial z},\quad
+\overline{v'w'} = -\nu_M\frac{\partial v}{\partial z},\quad
+\overline{w'\rho'} = -\nu_H\frac{\partial\rho}{\partial z},
 \end{equation}
 with
 \begin{equation}
-K_M = \sqrt{k}lS_M+\nu_M^0, \quad
-K_H = \sqrt{k}lS_H+\nu_H^0,
+\nu_M = \sqrt{k}lS_{M}+\nu_M^0, \quad
+\nu_H = \sqrt{k}lS_{H}+\nu_H^0,
 \label{eq:diff}
 \end{equation}
-where $u$ and $v$ are the horizontal components of Reynolds-averaged velocity along the $x$- and $y$-axes, $w$ is
-the vertical velocity along the vertical $z$-axis, positive upwards and $u'$, $v'$ and $w'$ are the components
-of the turbulent fluctuations about mean velocity. $\nu_H^0$ is a background diffusivity, $\nu_M^0$
-is a background viscosity, $S_M$ and $S_H$ are so-called \emph{stability functions},
-$k$ is the turbulent kinetic energy, and $l$ is a length-scale.
+Here, we follow the notation of \citet{umlauf2003}, where $u$ and $v$ are the 
+horizontal components of the Reynolds-averaged velocity along the $x$- and $y$-axes, 
+$w$ is the vertical velocity along the vertical $z$-axis, positive upwards, and 
+$u'$, $v'$ and $w'$ are the components of the turbulent fluctuations about the 
+mean velocity. $\nu_H^0$ is the background diffusivity, $\nu_M^0$ is the background viscosity, 
+$S_{M}$ and $S_{H}$ are often referred to as stability functions, $k$ is the turbulent kinetic energy,
+and $l$ is a length-scale. When using GLS the values of $\nu_M$ and $\nu_H$ become the 
+vertical components of the tensors $\tautens$ and $\kaptens_T$ 
+in equation \ref{boussinesq} respectively. Other tracer fields, such as 
+salinity use the same diffusivity as temperature, i.e. $\kaptens_T = \kaptens_S$.
 
-The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations,
-for the transport of turbulent kinetic energy (TKE, $k$) and a generic second quantity, $\Psi$. The TKE equation is:
+The generic length scale turbulence closure model \citep{umlauf2003} is based
+on two equations, for the transport of turbulent kinetic energy (TKE) and a
+generic second quantity, $\Psi$. The TKE equation is:
 \begin{equation}
-\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon,
-\label{tke_one}
-\end{equation}
-\index{Schmidt number}
-where $\sigma_k$ is the turbulence Schmidt number for $k$, $P$ and $B$ represent production by shear and buoyancy as:
-\begin{equation}
-P=-\langle u'w'\rangle\frac{\partial u}{\partial z}-\langle v'w' \rangle\frac{\partial v}{\partial z}=K_MM^2, \quad M^2=\left(\frac{\partial U}{\partial z}\right)^2 + \left(\frac{\partial V}{\partial z}\right)^2,
-\end{equation}
-\begin{equation}
-B=-\frac{g}{\rho_0}\langle\rho'w'\rangle=-K_HN^2, \;\;\; N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z},
-\end{equation}
-where $N$ is the buoyancy frequency. The dissipation is modelled as:
-\begin{equation}
-\epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}},
-\end{equation}
-where $c_\mu^0$ is the stability coefficient based on experimental data for unstratified channel flow with a
-log-layer solution. It takes on a specific value when used with a stability function and other model
-parameters.
-
-The second equation is
-\begin{equation}
-\frac{\partial \Psi}{\partial t} + U_i\frac{\partial \Psi}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\Psi}\frac{\partial \Psi}{\partial z}\right) + \frac{\Psi}{k}(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}}).
-\label{psi_one}
+\frac{\partial k}{\partial t} + \bmu_i\frac{\partial k}{\partial x_i} =
+\frac{\partial}{\partial z}\left(\frac{\nu_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon,
+\label{eq:tke_one}
 \end{equation}
 
-The parameter $\sigma_\Psi$ is the Schmidt number for $\Psi$ and $c_i$ are constants based on experimental data. The value of $c_3$ depends on if the flow is stably stratified (in which case $c_3=c_3^-$) or unstable ($c_3=c_3^+$). Here,
+\noindent 
+where $\sigma_k$ is the turbulence Schmidt number for $k$, $u_i$ are the
+velocity components ($u$, $v$ and $w$ in the $x$, $y$ and $z$ directions 
+respectively), and $P$ and $B$ represent production by shear and buoyancy
+which are defined as:
+\begin{equation}
+P=-\overline{u'w'}\frac{\partial u}{\partial z}-\overline{v'w'}
+\frac{\partial v}{\partial z}=\nu_MM^2, \quad M^2=
+\left(\frac{\partial u}{\partial z}\right)^2 + \left(\frac{\partial v}{\partial z}\right)^2,
+\end{equation}
+\begin{equation}
+B=-\frac{g}{\rho_0}\overline{\rho'w'}=-\nu_HN^2, \quad N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z}
+\end{equation}
+
+Here $N$ is the buoyancy frequency; $u$ and $v$ are the horizontal velocity 
+components. The dissipation is modelled using a rate of dissipation term:
+\begin{equation}
+\epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}}
+\end{equation}
+where $c_\mu^0$ is a model constant used to make $\Psi$ identifiable with any of the transitional
+models, e.g. $kl$, $\epsilon$, and $\omega$, by adopting the values shown in Table \ref{tab:glsparams} \citep{umlauf2003}.
+The second equation is:
+\begin{equation}
+\frac{\partial \Psi}{\partial t} + \bmu_i\frac{\partial \Psi}{\partial x_i} =
+\frac{\partial}{\partial z}\left(\frac{\nu_M}{\sigma_\Psi}\frac{\partial \Psi}{\partial z}\right) +
+\frac{\Psi}{k}(c_1P + c_3B - c_2\epsilon),
+\label{eq:psi_one}
+\end{equation}
+\noindent
+The parameter $\sigma_\Psi$ is the Schmidt number for $\Psi$ and $c_i$ are
+constants based on experimental data. The value of $c_3$ depends on whether the flow
+is stably stratified (in which case $c_3=c_3^-$) or unstable ($c_3=c_3^+$).
+Here,
 \begin{equation}
 \Psi=\left(c_\mu^0\right)^pk^ml^n,
 \end{equation}
 and
 \begin{equation}
-l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}.
+l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1},
 \end{equation}
 
-The equation for $l$ can be derived from previous equations.
-
-Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$,
-and $F_{\mathrm{wall}}$ one can recover the exact formulation of four GLS models incorporated into
-\fluidity; the three standard GLS models,
-$k-\epsilon$, $k-kl$, $k-\omega$, and the additional model based on \citet{umlauf2003},
-the \emph{gen} model. Table \ref{tab:glsparams} shows the values of the pertinent parameters for each model.
+By choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$,
+$c_1$, $c_2$, $c_3$, and $c_\mu^0$ one can recover the
+exact formulation of three standard GLS models, $k-\epsilon$, $k-kl$,
+$k-\omega$, and an additional model based on \citet{umlauf2003}, the \emph{gen}
+model (see Table \ref{tab:glsparams} for values).
 
 \begin{table}[b]
 \begin{center}
 \begin{tabular}{lllll}\hline
 Model: & $k-kl$   & $k-\epsilon$                  & $k-\omega$                       & \emph{gen}       \\
-$\Psi=$& $k^1l^1$ & $\left(c_\mu^0\right)^3k^{\frac{3}{2}}l^1$ & $\left(c_\mu^0\right)^{-1}k^{\frac{1}{2}}l^1$ & $\left(c_\mu^0\right)^2k^1l^{\frac{2}{3}}$  \\ \hline
+$\Psi=$& $k^1l^1$ & $\left(c_\mu^0\right)^3k^\frac{3}{2}l^1$ & $\left(c_\mu^0\right)^{-1}k^\frac{1}{2}l^1$ & $\left(c_\mu^0\right)^2k^1l^\frac{2}{3}$  \\ \hline
 $p$                   & 0.0            & 3.0          & -1.0         & 2.0          \\
 $m$                   & 1.0            & 1.5          &  0.5         & 1.0          \\
 $n$                   & 1.0            & -1.0         & -1.0         & -0.67        \\
@@ -102,13 +118,11 @@ $c_2$                 & 0.5            & 1.92         & 0.833        & 1.22     
 $c_3^+$               & 1.0            & 1.0          & 1.0          & 1.0          \\
 $k_{\mathrm{min}}$    & $5.0\times10^{-6}$    & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  \\
 $\Psi_{\mathrm{min}}$ & $1.0\times10^{-8}$    & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ \\
-\hline
 \end{tabular}
 \end{center}
 \caption{Generic length scale parameters}
 \label{tab:glsparams}
 \end{table}
-
 
 \subsection{Stability functions}
 
@@ -134,7 +148,7 @@ $\alpha_M$ and a function of $\alpha_N$, allowing elimination of $\alpha_M$ in t
 \begin{equation*}
 S_M(\alpha_M,\alpha_N)\alpha_M - S_N(\alpha_M,\alpha_N)\alpha_N=1
 \end{equation*}
-elementing some of the terms. A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative.
+eliminating some of the terms. A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative.
 
 The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on
 the model parameters chosen and can be related to traditional stability functions \citep{umlauf2005}.
@@ -142,7 +156,60 @@ the model parameters chosen and can be related to traditional stability function
 \fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}, each of which can be used in conjunction with any of the four
 GLS models implemented.
 
+\subsection{Boundary conditions}
 
+The boundary conditions for the two GLS equations can be either of Dirichlet or Neumann
+type. For the turbulent kinetic energy, the Dirichlet condition can be written as:
+\begin{equation}
+k=\frac{\left(u^*\right)^2}{\left(c_\mu^0\right)^2},
+\end{equation}
+where $u^*$ is the friction velocity. However, as the viscous sublayer is not
+resolved, the Dirichlet condition can be unstable unless the resolution at the
+boundary is very high \citep{Burchard1999}. It is therefore advisable to use
+the Neumann condition:
+\begin{equation}
+\frac{\nu_M}{\sigma_k}\frac{\partial k}{\partial z} = 0.
+\end{equation}
+
+Similarly for the generic quantity, $\Psi$, the Dirichlet condition is written
+as:
+\begin{equation}
+\Psi=\left(c_\mu^0\right)^{p}l^nk^m
+\end{equation}
+
+Using the a wall-proximity term \citep[cf.][]{kantha1994} to force the model toward a log-law
+behaviour near the surface, we can use $l=\kappa\left( h + h_0 \right)$ to give:
+\begin{equation}
+\Psi=\left(c_\mu^0\right)^{p}\kappa^nk^m\left(h+h_0\right)^n
+\end{equation}
+where $h$ is the distance from the boundary surface in the direction of $z$ and $h_0$
+is the width of the log-layer. Here we set this to be half the element size in the $z$ direction.
+
+Calculating the corresponding Neumann  conditions by differentiating with respect to $z$, yields:
+\begin{equation}
+\label{psi-flux-bc}
+\frac{\nu_M}{\sigma_\Psi}\frac{\partial\Psi}{\partial z} =
+\frac{-n\left( c_\mu^0 \right)^{p+1}\kappa^{n+1}}{\sigma_\Psi}
+k^{m+\frac{1}{2}}\left( h+h_0\right).
+\end{equation}
+
+Note that it is also an option to express the Neumann condition above in terms
+of the fiction velocity, $u^*$. Previous work has shown this causes numerical
+difficulties in the case of stress-free surface boundary layers \citep{burchard1999},
+however, we found that this tends to stabilise problems where the surface is not
+stress free and where an adaptive mesh is used.
+
+The boundary conditions above only apply to the two prognostic variables,
+$k$ and $\Psi$, however, we found that mesh changes that occurred during
+mesh adaptivity could cause oscillations in the solution in the top few elements.
+Previous implementations of the GLS model do not solve the prognostic
+values on the upper and lower surfaces, instead solving on the interior portions
+of the domain only, one grid point in from the surfaces \citep{warner2005, umlauf2003}.
+Implementing this method in \fluidity\ would create an ill-posed problem, so
+instead an option to impose an effective Dirichlet ``boundary condition'' on 
+the non-prognostic quantities, $l$, $\nu_M$ and $\nu_H$, as well as use $u^*$ in 
+equation \eqref{psi-flux-bc}  is available, which prevents oscillations in $k$ 
+and $\Psi$ when using adaptivity, whilst not creating an ill-posed problem.
 
 \section{Standard $k-\epsilon$ Turbulence Model}\label{Sect:kepsilon}
 \index{viscosity!eddy}
@@ -153,7 +220,7 @@ GLS models implemented.
 
 Available under \option{\ldots/subgridscale\_parameterisations/k-epsilon}.
 
-The widely-used $k-\epsilon$ turbulence model has been implemented in Fluidity based on the description given in
+The widely-used $k-\epsilon$ turbulence model has been implemented in \fluidity\ based on the description given in
 \citet{mathieu2000}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
 Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry.
 The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in which the velocity is decomposed into quasi-steady (moving average) and fluctuating (turbulent) components:
@@ -254,7 +321,7 @@ Large-eddy simulation filters the velocity field into resolved and sub-filter-sc
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ) \right ],
 \end{equation}
 
-Two LES models are available in Fluidity.
+Two LES models are available in \fluidity.
 
 \subsection{Second-Order Dissipation}
 

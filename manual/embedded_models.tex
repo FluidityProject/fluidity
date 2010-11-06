@@ -213,4 +213,45 @@ vertical component of the advecting velocity.
 
 \section{Sediments}
 
+\fluidity/ is capable of simulating an unlimited number of sediment concentration classes.
+Each class has a separate grain size, density and settling velocity. The sediment behaves
+as any other tracer field, except it is subject to a settling velocity:
+
+\begin{equation}\label{eq:sediment_conc}
+\ppt{S_m} + \nabla\cdot(\bmu S_m) = \nabla\cdot(\kaptens\nabla S_m) - \sigma S_m
+\end{equation}
+
+The advection in the vertical direction is then modified with a downwards sinking 
+velocity $u_{\mathrm{sink}}$. 
+
+\subsection{Deposition and erosion}
+
+A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
+fluxes through this surface it is removed from the system and stored in a separate 
+field: the SedimentFlux field. Each sediment class has an equivalent Flux field.
+
+Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
+sediment class has a separate shear stress, which can be input or calculated depending
+on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition
+on the deposition/erosion surface.
+
+\begin{equation}\label{eq:sediment_erosion_rate}
+E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
+\end{equation}
+
+\noindent
+where $E_{0m}$ is the bed erodibility constant (kgm$^{-1}$s${-1}$) for sediment class $m$,
+$\tau_{sf}$ is the bed-shear stress, $\varphi$ is the bed porosity (typically 0.3)
+and $\tau_{cm}$ is the critical shear stress
+for sediment class $m$. The critical shear stress can be input by the user or 
+automatically calculated using:
+
+\begin{equation}\label{eq:sediment_erosion_rate}
+\tau_{cm} = 0.041\left(s-1\right)\rho gD
+\end{equation}
+
+\noindent
+where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the sediment
+diameter (mm). The SedimentFlux field effectively mixes the deposited sediment, so order of deposition
+is not preserved.
 
