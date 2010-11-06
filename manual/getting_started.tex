@@ -3,7 +3,7 @@
 \section{Introduction}
 This first chapter gives a brief guide to setting-up, running and visualising
 simulations. It is assumed that you have access to a system running Linux or
-UNIX with all the Fluidity supporting libraries installed; if not, you may wish
+UNIX with all the \fluidity\ supporting libraries installed; if not, you may wish
 to reference appendix \ref{chap:external} which contains detailed information
 for your systems administrator to help setting up a Linux workstation. 
 
@@ -34,9 +34,8 @@ solution. Indeed, even if you receive a copy of \fluidity\ as a pre-compiled
 binary, the licence (LGPL) under which \fluidity\ is distributed requires that
 the original source code is also made available.
 
-\fluidity\ is a very actively developed code. Thus, obtaining the source code to
-\fluidity\ requires that you obtain the latest copy, for which a tool called
-subversion is used. If you are not familiar with subversion you may be
+\fluidity\ is a very actively developed code. The code is distributed
+via Subversion (SVN). If you are not familiar with subversion you may be
 familiar with CVS (Concurrent Versions System) and in that case transitioning
 to using subversion should be a painless process as the syntax is virtually
 identical.
@@ -45,11 +44,11 @@ identical.
 \label{sect:subversion}\index{subversion|primary}\index{svn|see{subversion}}
 
 For experienced subversion users, the relevant information that you need to
-obtain a copy of fluidity is that it is available from
+obtain a copy of \fluidity\ is that it is available from
 \lstinline[language=Bash]+http://amcg.ese.ic.ac.uk/svn/fluidity/trunk+ .
 For inexperienced users, please read on to learn how to obtain a copy of \fluidity.
 
-As a fluidity user you need only be aware of two modes of operation that
+As a \fluidity\ user you need only be aware of two modes of operation that
 subversion has. The first is checking out a copy of the source code from the
 central repository, the second is updating your copy of the code to reflect
 changes that have been made to the central repository. Think of the repository
@@ -67,10 +66,32 @@ developer who commits changes back into \fluidity\ please contact an existing
 \index{subversion}
 \label{sect:subversion_checkout_current}
 
-To check out a copy of \fluidity\ from the central source code repository you
-will need the following command, which is given here in entirety but will be
-broken down in the subsequent discussion so you can better understand it:
+There are three repositories of \fluidity: release, stable and trunk. The release version
+is aimed at general users of \fluidity. It is the least frequently updated, does not 
+contain the all of latest features, but is very well tested. The manual and other 
+resources are also set up to support this version. Expect updates to this to be once or twice per year. 
+The stable tag is well tested and has passed all available tests. It will contain 
+most of the latest features and expect it to be updated every 2-3 weeks. The manual
+may not be completely up-to-date and there may be bugs and errors. The trunk is the latest, cutting-edge
+version and is used by developers. This is updated very frequently; expect updates
+to this several times per day and this version may not pass all tests.
 
+To check out a copy of \fluidity\ you can use one of the following three
+commands for the release, stable and trunk versions respectively, which 
+are given here in entirety but will be broken down in the subsequent 
+discussion so you can better understand it:
+
+Release:
+\begin{lstlisting}[language=Bash]
+svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/release-4.0 fluidity/
+\end{lstlisting}
+
+Stable:
+\begin{lstlisting}[language=Bash]
+svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/stable-trunk fluidity/
+\end{lstlisting}
+
+Trunk:
 \begin{lstlisting}[language=Bash]
 svn co http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/ fluidity/
 \end{lstlisting}
@@ -128,13 +149,13 @@ Checked out revision 11816.
 \end{lstlisting}
 
 The revision number you get will differ from the one quoted here, and is a
-specific version (the latest, at the point of checking out) of the \fluidity
+specific version (the latest, at the point of checking out) of the \fluidity\
 code.
 
 \subsubsection{Checking out an older copy of \fluidity}
 \label{sect:subversion_checkout_old}
 
-There may be occasions when you want to retrieve a version of fluidity which
+There may be occasions when you want to retrieve a version of \fluidity\ which
 isn't the latest one. Perhaps there is active development ongoing and you want
 to avoid the possibility of checking out a version which has not been fully
 tested, or perhaps you want to retrieve a particular version for the purposes
@@ -148,7 +169,7 @@ argument \lstinline[language=Bash]+-r 11816+ to give:
 svn co -r 11816 http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/ fluidity/
 \end{lstlisting}
 
-Alternatively, you may either want or be told to check out a specific \fluidity
+Alternatively, you may either want or be told to check out a specific \fluidity\
 tag. A tag is a useful method of identifying a particular \fluidity\ revision
 using an easy to remember name, and potentially making further specifications 
 of exactly what will be checked out. For example, you may be asked to check out
@@ -162,28 +183,15 @@ like:
 svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/benchmark-9.10/ fluidity/
 \end{lstlisting}
 
-A tag that will be interest to users is the \lstinline[language=Bash]+stable-trunk+
-which contains the version of the code to pass all available tests. This can be obtained
-(and subsequently kept up-to-date) by checking out the source with the command:
-\begin{lstlisting}[language=Bash]
-svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/stable-trunk fluidity/
-\end{lstlisting}
-
-A normal \lstinline[language=Bash]+svn up+ (see section \ref{sect:subversion_updating})
-will keep this directory up-to-date
-with the stable version of \fluidity. Note that this version will not have all
-the functionality that the most-up-to-date version has.
-
-
 \subsubsection{Updating your copy of \fluidity}
 \index{subversion}
 \label{sect:subversion_updating}
 
 If you are interested in keeping up to date with the latest developments in
-fluidity you will probably want to update your local copy of the \fluidity\ code
+\fluidity\ you will probably want to update your local copy of the \fluidity\ code
 to reflect changes made to the central source code repository. To do this,
 change directory so that you are in the directory which you checked out
-fluidity to (in the above case, a directory called
+\fluidity\ to (in the above case, a directory called
 \lstinline[language=Bash]+fluidity/+) and then run svn's update command, which
 is abbreviated to \lstinline[language=Bash]+up+ as per:
 
@@ -257,6 +265,23 @@ Revision: 11816
 
 with the relevant information.
 
+To get information on what files have been modified in your
+local copy use the the following:
+\begin{lstlisting}[language=Bash]
+svn status -q
+\end{lstlisting}
+
+Note the \lstinline[language=Bash]+-q+ will not list files that are in the directory
+but not in the repository - configuring and compiling produce a lot of files!
+
+To get specific information on the difference between a local file and
+the central repository use the following:
+\begin{lstlisting}[language=Bash]
+svn diff a_dir/a_file
+\end{lstlisting}
+
+See http://svnbook.red-bean.com/ for more information.
+
 \section{Building \fluidity}
 \label{sect:building_fluidity}
 
@@ -306,29 +331,6 @@ all on the same configuration command line, separated by spaces. For example:
 \begin{lstlisting}[language=Bash]
 ./configure --prefix=/data/fluidity --enable-debugging
 \end{lstlisting}
-
-\subsubsection{Changing the install location}
-\label{sect:configure_change_install_location}
-
-By default if you run the install stage of the fluidity build (detailed in the
-following section of the manual), \fluidity\ will be installed into a set of
-directories under the system \lstinline[language=Bash]+/usr/local+ directory.
-As a normal UNIX user you are unlikely to have write access to this location,
-and unless you intend to make your \fluidity\ build available to all users of
-your computer you almost certainly do not want to install to the default
-location.
-
-To change the location into which \fluidity\ will be installed, use the
-\lstinline[language=Bash]+--prefix+ configuration option. For example, to
-install files into a directory \lstinline[language=Bash]+/data/fluidity+,
-configure fluidity with:
-
-\begin{lstlisting}[language=Bash]
-./configure --prefix=/data/fluidity
-\end{lstlisting}
-
-If the directory does not exist it will be created, and sub-directories for
-binaries, libraries, etc. will be automatically generated.
 
 \subsubsection{Enabling and disabling features}
 \label{sect:configure_enable_disable_features}
@@ -421,7 +423,7 @@ main \fluidity\ program, section \ref{sect:fltools}, run:
 make fltools
 \end{lstlisting}
 
-If this is the first time you have run fluidity on your computer and you want
+If this is the first time you have run \fluidity\ on your computer and you want
 to check that it has built correctly, you can run the included suite of test
 problems at three levels. The shortest tests test individual units of code for
 correctness and can be run with:
@@ -448,16 +450,6 @@ Note that even on the most modern systems
 \lstinline[language=Bash]+make mediumtest+ may take on the order of an hour and
 on slower systems may take on the order of many hours to complete.
 
-Once you have a known-good build of \fluidity\ you may want to install it
-somewhere other than inside the source check out directory. Assuming you
-provided an install prefix at configuration time, running:
-
-\begin{lstlisting}[language=Bash]
-make install
-\end{lstlisting}
-
-will install all the run-time \fluidity\ files into the directory you requested
-at configure-time.
 
 \section{Running \fluidity}
 \label{sect:running_fluidity}
@@ -585,7 +577,7 @@ Note that installing Diamond on a system-wide basis will require superuser privi
 \section{Working with the output}
 \label{sect:working_with_output}
 
-Once \fluidity\ has been built and run, result files will be generated, that will need visualisaing
+Once \fluidity\ has been built and run, result files will be generated, that will need visualising
 and post-processing. These data are stored in VTK files, one per output dump. 
 How these files can be visualised and post-processed is covered in detail in chapter
 \ref{chap:visualisation_and_diagnostics}.
