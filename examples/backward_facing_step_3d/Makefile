@@ -12,7 +12,7 @@ ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 else
 # exit if no fltools and print warning
-	@if [ ! -e $(BIN)fldecomp ] ; then echo "You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
+	@if [ ! -e $(BIN)fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
 	$(BIN)fldecomp -n $(NPROCS) -f step3d
 endif
