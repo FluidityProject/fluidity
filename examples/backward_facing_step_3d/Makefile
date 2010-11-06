@@ -1,5 +1,5 @@
 # Default number of processes (serial run):
-NPROCS=1
+NPROCS=8
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
