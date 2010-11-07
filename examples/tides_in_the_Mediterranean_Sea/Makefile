@@ -8,7 +8,7 @@ preprocess:
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle med.msh
 	@echo **********Modifying mesh nodal file using sed:
-	sed < med.node 's/[0-9]*/2/2' > med2.node
+	sed '1s/3/2/2' < med.node > med2.node
 	@echo **********Replacing mesh with modified version:
 	mv med2.node med.node
 ifeq ($(NPROCS),1)
