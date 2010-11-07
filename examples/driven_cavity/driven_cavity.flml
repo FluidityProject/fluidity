@@ -67,7 +67,7 @@
     </nonlinear_iterations>
     <steady_state>
       <tolerance replaces="STEDER">
-        <real_value rank="0">1.0e-6</real_value>
+        <real_value rank="0">1.0e-7</real_value>
         <infinity_norm/>
       </tolerance>
       <steady_state_file>
