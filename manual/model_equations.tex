@@ -335,6 +335,7 @@ As with the scalar equations discussed previously in section \ref{Sect:MP-Advdif
 \subsubsection{Prescribed Dirichlet condition for momentum --- no-slip as a special case}\label{sect:bc_vector_dirichlet}
 \index{boundary conditions!Dirichlet}
 \index{momentum equation}
+
 This condition for momentum is set by simply prescribing all three components of
 velocity. For example, we might specify an inflow boundary where the normal component
 of velocity is non-zero, but the two tangential directions are zero. A special case is
@@ -344,7 +345,8 @@ where all three components are zero and this is referred to as no-slip.
 \index{boundary conditions!prescribed stress}
 \index{traction force}
 \index{momentum equation}
-As for the scalar equation, applying Green's theorem to the stress term and the pressure
+
+As with the scalar equation (see section \ref{sect:bc_scalar_neumann}), applying Green's theorem to the stress term and the pressure
 gradient in \eqref{mtm} results in a surface integral of the form
 \begin{equation}\label{StressBC}
 \tautens\cdot\bmn - p\bmn = \bmT,\quad \textrm{on}\quad \partial\Omega,
@@ -613,11 +615,11 @@ term $p'/\rho_0$ is termed the perturbation pressure.
 \subsubsection{Bulk parameterisations for oceans}
 \index{boundary conditions!bulk parameterisations}
 
-In order to simulate real-world ocean scenarios, momentum, freshwater and heat fluxes 
-must be applied to the upper surface. We have implemented the bulk formulae of \citet{large2004},
+In order to simulate real-world ocean scenarios, realistic boundary conditions for the momentum, freshwater and heat fluxes 
+must be applied to the upper ocean surface. \fluidity can apply such boundary conditions in the form of the bulk formulae of \citet{large2004},
 COARE 3.0 \citep{fairall2003} and \citet{kara2005} in combination with the ERA-40 reanalysis data \citep{Uppala2005}.
 
-There are three surface kinematic fluxes calculated: heat -- $\langle w\theta \rangle$,
+Three surface kinematic fluxes calculated: heat -- $\langle w\theta \rangle$,
 salt -- $\langle ws \rangle$, and momentum -- $\langle wu \rangle$ and $\langle wv \rangle$,
 which can be related to the surface fluxes of heat $Q$, the
 freshwater $F$, and the momentum $\overrightarrow\tau=\left(\tau_u,\tau_v\right)$, via:
@@ -637,7 +639,7 @@ the appropriate fields.
 \index{boundary conditions!boundary tides}
 \label{sec:boundary_tide}
 
-Co-oscillating tides are forced as cosine waves of specified phase and amplitude along designated boundaries:
+Boundary tides can be applied to open ocean domain boundaries through setting a Dirichlet condition on the non-hydrostatic part of the pressure. Co-oscillating tides are forced as cosine waves of specified phase and amplitude along designated boundaries:
 \begin{equation}
 h=\sum_{i}A_{i}\cos(\sigma_{i} t -\phi_{i})
 +\sum_{j}A_{j}\cos(\sigma_{j} t -\phi_{j})
@@ -651,10 +653,13 @@ constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constitue
 The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude 
 and phase applied across the entire length of the boundary, or it can be variable as delimited via an 
 interpolation of different amplitudes and phases at a series of points spread along the boundary \citep{Wells2008}.
+Within \fluidity co-oscillating boundary tides be applied through the \eg the FES2004 data set (see \ref{sect:tides_in_the_med}).
 
-\subsection{Astronomical tides}\label{Sect:AST}
+\subsubsection{Astronomical tides}\label{Sect:AST}
 \index{body forces!astronomical tides}
 \label{astronomical}
+
+Astronomical forcing can also be applied to a fluid as a body force\footnote{Note that use of the word body force in this context should not be confused with the application of a body force through the options tree discussed later in \ref{chap:configuration}. The astronomical forcing is applied separately.}. 
 The astronomical tidal potential is calculated at each node of the finite element mesh using the 
 multi-constituent equilibrium theory of tides equation:
   \begin{eqnarray}
