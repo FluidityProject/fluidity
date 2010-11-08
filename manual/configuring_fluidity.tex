@@ -128,7 +128,13 @@ in use.
 The quadrature degree is specified by setting \option{/geometry/quadrature/degree}.
 
 \subsubsection{Spherical Earth}
-To be written...
+\index{spherical earth}
+
+Enabling \option{/geometry/spherical\_earth} informs \fluidity that your simulation is being carried out in an Earth like geometry, that is, a three dimensional geometry with gravity pointing towards the centre of the coordinate system. This has implications for various options and terms such as wind forcing (see section \ref{Sect:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{Sect:Source}).
+
+If this option is checked, wind forcing and \eg momentum forcing from bulk formulae (see \ref{Sect:bulk_formulae}) will automatically be rotated and applied in the direction tangential to the Earth's surface. It will also result in absorption terms set through the options tree being rotated and applied in the longitudinal, latitudinal and radial directions respectively. Additionally, in many terms such as the buoyancy density, the direction of gravity is hard coded and calculated at explicitly at Gauss points when this option is enabled. Thus, if enabling this option, the direction of gravity specified in the options tree (see \ref{Sect:Gravity}) must be set via a python function representing the inward normal to the sphere. Note however that the viscosity and diffusion operators are currently not rotated automatically and thus the user must carry such rotations out themselves. And example in which the viscosity is rotated is giving in section \ref{sect:tides_in_the_med}.
+
+Under \option{/geometry/spherical\_earth} the user must select \option{linear\_mapping} or \option{superparametric\_mapping}. The former results in cords between nodes being approximated as linear segments whilst the latter gives a better approximation to the Earth's shape through approximating cords with a higher order polynomial. The order of the polynomial is given by the degree of the mesh on which gravity is located.   
 
 \subsubsection{Ocean Boundaries}\label{sec:ocean_boundaries}
 \index{boundary conditions!ocean}
@@ -408,7 +414,7 @@ It is possible to run fludity until it converges to a steady state; this is some
 \subsection{Physical parameters}
 These options control global physical quantities.
 
-\subsubsection{Gravity}
+\subsubsection{Gravity}\label{Sect:Gravity}
 \index{gravity}
 The importance of buoyancy is discussed in section \ref{sect:buoyancy}. This
 requires a gravitational field to be set and involves both its magnitude
@@ -1403,7 +1409,7 @@ conditions:
 for two constants $\alpha$ and $\beta$. In \fluidity\ these correspond to the \option{\ldots/order\_zero\_coefficient}
 and the \option{\ldots/order\_one\_coefficient} respectively.
 
-\subsubsection{Bulk formulae}
+\subsubsection{Bulk formulae}\label{Sect:bulk_formulae}
 
 These boundary conditions can be used on:
 \begin{itemize}
@@ -1435,7 +1441,7 @@ recommended you activate a diagnostic Free Surface field also.
 
 Applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set. A Manning-Strickler drag can be used by activating \option{\ldots/quadratic\_drag/manning\_strickler}
 
-\subsubsection{Wind forcing}
+\subsubsection{Wind forcing}\label{Sect:wind_forcing}
 \index{boundary conditions!wind stress}
 \index{wind forcing}
 

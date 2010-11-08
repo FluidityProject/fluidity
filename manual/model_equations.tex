@@ -324,7 +324,9 @@ where $\beta$ is the saline contraction coefficient (not to be confused with the
 \subsubsection{Pade equation of state for ocean modeling}\label{Sect:PadeDescription}
 \index{equation of state!Pade approximation}
 
-Within \fluidity it is also possible to relate the density of sea water to the in situ (? I need to check the code) temperature and salinity through the Pad{\'e} approximation to the equation of state. This approximation offers an accurate and computationally efficient method for calculating the density of seawater and is described by \citet{mcdougall2003}.
+Within \fluidity it is also possible to relate the density of sea water to the in situ temperature and salinity through the Pad{\'e} approximation to the equation of state. This approximation offers an accurate and computationally efficient method for calculating the density of seawater and is described by \citet{mcdougall2003}.
+
+% The Pade approx may not actually be coded for the in situ temp, this needs to be checked.
 
 \subsection{Momentum boundary conditions} \label{Sect:BCs-mom}
 
@@ -398,7 +400,7 @@ $\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\t
 
 \section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
 
-In certain scenarios it is desirable to simplify the equations of sections \ref{Sect:MP-AdvdifEqn} and \ref {Sect:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
+In certain scenarios it is desirable to simplify the equations of sections \ref{Sect:MP-AdvdifEqn} and \ref {Sect:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
 
 \subsection{Equations in a moving reference frame}\label{sect:coriolis}
 \index{Coriolis}
@@ -523,18 +525,19 @@ where $V$ is the control volume, $S$ is the surface of the control volume and $\
 \subsection{The Boussinesq approximation} \label{sect:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
-For many problems, one is able to assume that density does not vary greatly about a mean reference state. The Boussinesq approximation involves two steps. The first makes use of this assumption in \eqref{mass_conservation_2}, yielding \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
+
+For many problems, one is able to assume that density does not vary greatly about a mean reference state. Such an approximation, namely, the Boussinesq approximation, involves two steps. The first makes use of \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
-where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in cases where the vertical $\bmk$ unit vector always points in the direction of gravity).
+where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems where gravity points in the $-z$ direction and $\bmg = -g\vec r$ on the sphere).
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sect:typical_ICOM_equations}
 \index{Boussinesq!equations}
 \index{momentum equation}
 \index{continuity equation}
-Combining the various steps above yields the three-dimensional
-non-hydrostatic Boussinesq equations, as follows
+
+Applying the approximations outlined in section \ref{sect:boussinesq_approximation} to (\ref{viscous_fluids_1}) and (\ref{mass_conservation_2}), along with scalar transport equations for salinity and temperature (see (\ref{eq:general_scalar_eqn})) and an appropriate equation of state (see section \ref{sect:equation_of_state}), the three-dimensional non-hydrostatic Boussinesq equations can be written as
 
 \begin{subeqnarray}
 \frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
@@ -545,17 +548,15 @@ non-hydrostatic Boussinesq equations, as follows
 \nabla . \left ( \kaptens_T  \nabla T\right),\slabel{heat}\\
 \frac{\pp S}{\pp t} + \bmu\cdot\nabla  S  &=&
 \nabla . \left ( \kaptens_S  \nabla S\right),\slabel{salt}\\
-\rho' &=& -\alpha(T-T_0)+\beta (S-S_0).\slabel{state}
+f(p,\rho',T,\ldots)&=&0,\slabel{state}
 \label{boussinesq}
 \end{subeqnarray}
 
-Here, $\bmu$ is the three-dimensional velocity vector,
-$p$ is the perturbation pressure, $g$ is the magnitude of the acceleration due to gravity vector $\bmg$,
+where $p$ is the perturbation pressure (see section \ref{sect:hydrostacy} below),
 $\rho'=(\rho-\rho_0)/\rho_0$ is the perturbation density,
-$T$ is the temperature and $S$ is salinity. $\eta$ is the free surface height, whose evolution is described in a section below.
+$T$ is the temperature, $S$ is salinity, $\eta$ is the free surface height and
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
-diffusivity tensors respectively. $\alpha$ is the thermal expansion coefficient
-and $\beta$ is the saline contraction coefficient.
+diffusivity tensors respectively.
 The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms such as the astronomical tidal forcing.
 
 \subsubsection{Buoyancy and density}\label{sect:buoyancy}
@@ -569,7 +570,7 @@ and is of magnitude $b=\rho g$. The simplest form of the vertical momentum equat
 \end{equation}
 The buoyancy force leads to flow in the presence of variations in either the density field or free surface of the domain.
 
-\subsubsection{Hydrostacy}
+\subsubsection{Hydrostacy}\label{sect:hydrostacy}
 \index{pressure!hydrostatic}
 If the fluid is in a state of rest then LHS of \eqref{eq:vertmom} is zero giving
 \begin{equation}\label{eq:hydrostatic_balance}
@@ -653,7 +654,7 @@ constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constitue
 The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude 
 and phase applied across the entire length of the boundary, or it can be variable as delimited via an 
 interpolation of different amplitudes and phases at a series of points spread along the boundary \citep{Wells2008}.
-Within \fluidity co-oscillating boundary tides be applied through the \eg the FES2004 data set (see \ref{sect:tides_in_the_med}).
+Within \fluidity, co-oscillating boundary tides can be applied through \eg the FES2004 data set (see \ref{sect:tides_in_the_med}).
 
 \subsubsection{Astronomical tides}\label{Sect:AST}
 \index{body forces!astronomical tides}
