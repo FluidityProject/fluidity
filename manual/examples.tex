@@ -145,7 +145,7 @@ between subsequently adapted meshes. To keep the solution bounded the
 ``minimally dissipative'' bounding procedure is used (only available for CG and DG).
 
 \subsubsection{Time stepping}
-Although this example uses a stable implicit time integration scheme (Crank Nicolson),
+Although this example uses a stable implicit time integration scheme (Crank-Nicolson),
 it is generally desirable for advection problems to control the CFL number. This is done
 via the adaptive time stepping scheme which dynamically changes the time 
 step based on a desired CFL number - set to 0.5 in the example configurations. Because the 
@@ -434,16 +434,16 @@ metrics are described in the text.}
 \subsection{Exercises}
 \begin{enumerate}
 \item Examine the way that the $u=1$ lid condition is applied in the flml file. Why has it not been set as simply a constant?
-Try changing it to a constant and see what happens to the errors that you achieve. [Hint: some people consider to "regularised" 
-lid-driven cavity problem, try finding some papers that discuss this, try updating the boundary condition so it matches the 
-regularised problem and compare to benchmark data if you can find it].
-\item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the python which computes
+Try changing it to a constant and see what happens to the errors that you achieve. [Hint: some people consider the "regularised" 
+lid-driven cavity problem. Try finding some papers that discuss this, and update the boundary condition so it matches the 
+regularised problem. Compare to benchmark data if you can find it].
+\item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the post-processing script which computes
 the errors for a higher Reynolds number.
-\item Try switching on mesh adaptivity (you will need to ensure that you have compiled your \fluidity executable with 2D-adaptivity enabled. 
+\item Try switching on mesh adaptivity (you will need to ensure that you have configured your \fluidity\ executable with \texttt{--enable-2d-adaptivity}). 
 Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
 differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
 sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
-error for the same number of nodes compared to the fixed mesh [Hint: it may be easier to achieve this at higher Reynolds numbers].
+error for the same number of nodes compared to the fixed mesh (hint: it may be easier to achieve this at higher Reynolds numbers)?.
 \end{enumerate}
 
 
@@ -701,9 +701,9 @@ $Re\in [1,1000]$ are considered. The problem is run for a long enough
 period that the low Reynolds number simulations reach steady state, and the
 higher Reynolds number runs long enough that a wake develops behind the
 sphere and boundary layers on the sphere are formed.  This is deemed
-sufficient for the purposes of this test which is not an in-depth
-investigation of the physics of this problem, nor an investigation of the optimal
-set of numerical options to use. 
+sufficient for the purposes of this test; the example is to demonstrate
+how such a problem would be set up, not conduct an in-depth 
+investigation of the physics of this problem.
 
 Here an unstructured
 tetrahedral mesh is used along with mesh adaptivity. 
@@ -767,7 +767,7 @@ a correlation (to a large amount of laboratory data) taken from \citet{brown2003
 C_D = \frac{24}{Re}\left(1+0.15Re^{0.681}\right) + \frac{0.407}{1+\frac{8710}{Re}}.
 \label{eqn:sphere_drag_corr}
 \end{equation}
-Good agreement can be seen at the range of Reynolds numbers tested in this exercise.
+Excellent agreement can be seen at the range of Reynolds numbers tested in this exercise.
 
 
 \begin{figure}
@@ -786,7 +786,7 @@ for $Re=1,10,100,1000$.}
 via \eqref{eqn:drag_coeff}. Write a Python function to do this conversion and the error from the correlation \eqref{eqn:sphere_drag_corr}.
 \item Try varying some of the discretisation and adaptivity parameters to see what the impact on the accuracy of the
 calculated drag is.
-\item Try changing the shape of the object, e.g. benchmark data is also available for flow past a cylinder.
+\item Try changing the shape of the object, e.g. benchmark data is also available for flow past a cylinder \citep{schafer1996}.
 \end{enumerate}
 
 
