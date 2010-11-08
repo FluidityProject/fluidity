@@ -789,6 +789,9 @@ if test "$enable_mpi" != "no"
     fi
 fi
 
+AC_ARG_ENABLE(petsc-fortran-modules,
+    [AC_HELP_STRING([--disable-petsc-fortran-modules],
+    [By default fluidity tries to use fortran modules provided with petsc. Use --disable-petsc-fortran-modules if these are known to be not functional (e.g. compiled with different compiler version)])])
 ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERR(["PETSc not found"])])
 ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"

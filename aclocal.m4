@@ -425,7 +425,7 @@ CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
 
 # Horrible hacks needed for cx1
-# Somehow /apps/intel/ict/mpi/3.1.038/lib64/apps/intel/ict/mpi/3.1.038/lib/64 gets given as 
+# Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
 # maybe the directory got moved after building petsc? Anyhow next time we
 # request a new petsc package on cx1, this hack can be removed - and we
 # can check if the new packages passes the test without any hacks.
@@ -445,22 +445,26 @@ AC_LANG(Fortran)
 # F90 (capital F) to invoke preprocessing
 # it's only 20 years ago now!
 ac_ext=F90
-# now try if the petsc fortran modules work:
-AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([],[[
-                        use petsc
-                        integer :: ierr
-                        print*, "hello petsc"
-                        call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-                        ]])],
-        [
-            AC_MSG_NOTICE([PETSc modules are working.])
-            AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
-        ],
-        [
-            AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
-            unset HAVE_PETSC_MODULES
-        ])
+if test "$enable_petsc_fortran_modules" != "no" ; then
+  # now try if the petsc fortran modules work:
+  AC_LINK_IFELSE(
+          [AC_LANG_PROGRAM([],[[
+                          use petsc
+                          integer :: ierr
+                          print*, "hello petsc"
+                          call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+                          ]])],
+          [
+              AC_MSG_NOTICE([PETSc modules are working.])
+              AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
+          ],
+          [
+              AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
+              unset HAVE_PETSC_MODULES
+          ])
+else
+  unset HAVE_PETSC_MODULES
+fi
 
 # now try a more realistic program, it's a stripped down
 # petsc tutorial - using the headers in the same way as we do in the code
