@@ -110,7 +110,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the magnitude of the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
 \item[PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
-\item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocitya nd $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
+\item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
 \item[***RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
 \item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
 \item[Speed:]Speed: $|\vec{u}|$ 
@@ -239,7 +239,8 @@ assert(t.node_count == field.node_count)
 
 for i in range(field.node_count):
         tMinusT0 = t.node_val(i) * deltaT
-        diagVisc = 1.620e-2 * (1.0 - 2.79e-2 * tMinusT0 + 6.73e-4 * tMinusT0 * tMinusT0)
+        diagVisc = 1.620e-2 * (1.0 - 2.79e-2 * tMinusT0 + 6.73e-4 \
+            * tMinusT0 * tMinusT0)
         visc = numpy.zeros((3, 3))
         for j in range(3):
                 visc[j][j] = diagVisc

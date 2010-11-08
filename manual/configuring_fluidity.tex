@@ -187,7 +187,7 @@ Limits the number of dumps by overwriting the previous dumps after the number sp
 
 \subsubsection{Convergence}
 
-You can check certain fields for convergence during nonlinear iterations.  To do this switch on \option{/timestepping \\ /nonlinear\_iterations} and \option{/timestepping/nonlinear\_iterations/tolerance} and switch on the convergence option under the fields that you want to check for convergence. 
+You can check certain fields for convergence during nonlinear iterations.  To do this switch on \option{/timestepping/nonlinear\_iterations} and \option{/timestepping/nonlinear\_iterations/tolerance} and switch on the convergence option under the fields that you want to check for convergence. 
 
 It is possible to enable the creation of a convergence file, giving details of the convergence of each field over the global nonlinear iteration loop. The .convergence file is in the same format as the .stat file. In order to do this, switch on 
 \option{/io/convergence}  and \option{/io/convergence/convergence\_file}.  You still need the options in the above paragraph.
@@ -392,7 +392,7 @@ stability. Unless there are reasons for doing this, set this value to 2.
 This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
 Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
 \option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
-here. \fluidity\ will increase the timestep if the CFL number if less than this value and decrease
+here. \fluidity\ will increase the timestep if the CFL number is less than this value and decrease
 it if the CFL is greater than this. The \option{\ldots/minimum\_timestep} and 
 \option{\ldots/maximim\_timestep} options limit the timestep. The option 
 \option{\ldots/increase\_tolerance} determines
@@ -650,12 +650,12 @@ specified in the triangle file), given a pseudo 2D mesh on a spherical
 shell, \fluidity\ can perform and extrusion in the radial direction. To
 perform such an extrusion simply enable the options as noted above and
 additionally check the \option{/geometry/spherical\_earth option}. With this
-option enabled fluidity will then perform the specified extrusion towards
+option enabled \fluidity\ will then perform the specified extrusion towards
 the centre of the sphere.
 
 Extrusions on the sphere can be performed such that the `depth' of the extrusion
 conforms to bathymetic data. To extrude according
-to bathymetry \fluidity must be provided with a netCDF data file containing
+to bathymetry \fluidity\ must be provided with a netCDF data file containing
 three columns of data giving the longitude, latitude and depth
 of each point respectively. The name and location of this data file must then be
 entered under \option{\ldots/extrude/regions/bottom\_depth/from\_map}.
@@ -724,7 +724,7 @@ calculated. \fluidity\ recognises three such categories:
   equation. In a typical fluids simulation, the velocity and pressure are
   prognostic and are calculated by solving some variant of the Navier-Stokes
   equations. Similarly, tracers such as temperature and salinity are usually
-  the result of solving and advection-diffusion equation. Prognostic fields
+  the result of solving an advection-diffusion equation. Prognostic fields
   typically have specified initial and boundary conditions and it will be
   necessary to specify spatial and temporal discretisation options. If an
   implicit timestepping scheme is in use (and it almost always is in
@@ -1118,7 +1118,7 @@ The requirement for a suitable preconditioner is described in Section \ref{ND_Pr
 
 \subsubsection{Direct Solve}
 
-Note that the option to solve a system exactly is available in FLUIDITY. For this, \option{solver \\ /iterative\_method::preonly} must be selected (preonly: preconditioner only) and the preconditioner must be set to \option{solver/preconditioner::LU}. A full LU decomposition of the system is then carried out.
+Note that the option to solve a system exactly is available in FLUIDITY. For this, \option{solver/iterative\_method::preonly} must be selected (preonly: preconditioner only) and the preconditioner must be set to \option{solver/preconditioner::LU}. A full LU decomposition of the system is then carried out.
 
 \subsection{Relative Error}
 \index{linear solvers!convergence criteria}
@@ -1722,7 +1722,7 @@ These settings may be recommended, but this section is not intended to be a list
 
 \subsubsection{Meshes}
 
-The quadrature degree is usually four in these case.
+The quadrature degree is usually four in these cases.
 
 \subsubsection{Velocity options}
 
@@ -1824,16 +1824,16 @@ A Crank-Nicolson temporal discretisation with a non-linear relaxation is recomme
 
 If using P1-P1, the following are recommended for the spatial discretisation:
 \begin{itemize}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/\\stabilisation/no\_stabilisation}, cf. \ref{Sect:ND_advective_stabilisation_CG}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/\\mass\_terms/lump\_mass\_matrix}, cf. \ref{Sect:ND_cg_mass_lumping}
+\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}, cf. \ref{Sect:ND_advective_stabilisation_CG}
+\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}, cf. \ref{Sect:ND_cg_mass_lumping}
 \item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), \ref{Sect:Spatial discretisations}
 \end{itemize}
 
 If using P1DG-P2, the following are recommended for the spatial discretisation:
 \begin{itemize}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/\\compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/\\upwind}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/\\integrate\_advection\_by\_parts/twice}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
 \item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), \ref{Sect:Spatial discretisations}
 \end{itemize}
 
@@ -1845,11 +1845,11 @@ The mesh used should be the \option{CoordinateMesh} and the equation type \optio
 For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options, cf. \ref{Sect:CVs}:
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
-\item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/\\face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
 \end{itemize}
 To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts). To do this activate the option:
 \begin{itemize}
-\item{\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/\\limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}}
+\item{\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}}
 \end{itemize}
 An Element Gradient diffusion scheme is also generally recommended, selected under \option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
 
@@ -1880,7 +1880,7 @@ slope limiter. These options are selected with:
 For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
 \begin{itemize}
 \item{\option{\ldots/temporal\_discretisation/theta} set to 0.5}
-\item{\option{\ldots/temporal\_discretisation/discontinuous\_galerkin/\\maximum\_courant\_number\_per\_subcycle} set to an appropriate value.}
+\item{\option{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.}
 \end{itemize}
 
 
@@ -1904,7 +1904,7 @@ method is set and if that field should be considered when creating the error met
 
 \subsection{Field settings}
 
-For each field present in the simulation there are upto two options that should be set. The first
+For each field present in the simulation there are up to two options that should be set. The first
 is the interpolation method that should be used to transfer the values of a field from the old to the new mesh.
 Second, in order to form the error metic by which the mesh is adapted, the user must set which fields
 should form the error metric and how the error for that field should be calculated.
@@ -1914,8 +1914,8 @@ should form the error metric and how the error for that field should be calculat
 For each prognostic field in the current state, an interpolation type must be set. These can be set by selecting an
 option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
 \begin{itemize}
-\item Consistant interpolation - the default and quick inteprolation method, but is non-conservative and dissipative.
-\item Pseudo-consistant interpolation - not recommended at present.
+\item Consistent interpolation - the default and quick inteprolation method, but is non-conservative and dissipative.
+\item Pseudo-consistent interpolation - not recommended at present.
 \item Galerkin interpolation - Conservative and non-dissipative, but requires the construction of a supermesh \citep{farrell2009a,farrell2010a}
 \item Grandy interpolation - Conservative, but highly diffusive. See \citet{grandy1999}.
 \end{itemize}
@@ -2065,7 +2065,7 @@ This section contains advice for running a compressible simulation, by describin
 
 \subsection{Pressure options}
 \begin{itemize}
-\item The value for the atmospheric pressure can be added by switching on \option{\\\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
+\item The value for the atmospheric pressure can be added by switching on \option{\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
 \item A Poisson pressure equation should not be used to calculate a first guess, therefore \\* \option{\ldots/scheme/poisson\_pressure\_solution} should be set to $never$.
 \item \option{\ldots/scheme/use\_compressible\_projection\_method} shuold be selected, so the calculated pressure satisfies the continuity equation and the EOS.
 \end{itemize}
@@ -2078,7 +2078,7 @@ but also an Advection-Diffusion equation is solved (and solver options need to b
 \subsection{Velocity options}
 \begin{itemize}
 \item for continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
-\item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/\\stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
+\item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
 \end{itemize}
 
 \subsection{Restrictions: discretisation options and element pairs}

@@ -6,6 +6,7 @@
 \usepackage{fancyhdr}
 \usepackage{subeqnarray}
 \usepackage{ifthen}
+%\usepackage[allowmove]{url}
 \usepackage[hyperindex,pagebackref=true]{hyperref}
 \usepackage{supertabular}
 \usepackage{moreverb}
@@ -91,7 +92,9 @@
   }
 }
 
-\newcommand{\option}[1]{\texttt{#1}}
+\usepackage{xstring}
+\noexpandarg
+\newcommand{\option}[1]{\texttt{\protect\StrSubstitute{#1}{/}{\slash}}}
 
 \lstloadlanguages{[LaTeX]TeX,Python,bash,[gnu]Make,XML}
 
@@ -115,6 +118,11 @@
 %set a few paragraph parameters
 %\setlength{\parskip}{1.1ex plus 0.3ex minus 0.1ex}
 %\setlength{\parindent}{0.0pt}
+
+% Needed to fix line breaking for options
+\sloppy
+%\pretolerance=150
+%\tolerance=300
 
 \pagestyle{fancy}
 \fancyfoot{} % No footers.
