@@ -64,6 +64,8 @@ adaptivity mesh_generation configuring_fluidity external_libraries trouble_shoot
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
+VERSION = $(shell svnversion .|tr -d M )
+
 fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \
 	$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
@@ -71,6 +73,15 @@ fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .pdf, $(IMAGES))  \
 	$(addsuffix .eps, $(EPS_IMAGES))  \
 	bibliography.bib
+	echo $(VERSION) >version.tex
+	pdflatex -shell-escape $<
+	makeindex -s index.ist $(basename $<)
+	if fgrep "Rerun to" fluidity_manual.log; then $(MAKE) --assume-new $< $@;fi
+ifndef NOBIBTEX
+	if fgrep "There were undefined"  fluidity_manual.log;\
+	then bibtex fluidity_manual; \
+	$(MAKE) NOBIBTEX=true --assume-new $< $@;fi
+endif
 
 fluidity_manual.html: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \
