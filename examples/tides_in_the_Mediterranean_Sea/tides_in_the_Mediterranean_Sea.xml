@@ -643,7 +643,7 @@ assert(S2RMS &gt; 0.1)
     </test>
     <test name="check RMS difference for K1 amp not too big" language="python">
 print K1RMS
-assert(K1RMS &lt; 1.6)
+assert(K1RMS &lt; 1.8)
     </test>
     <test name="check RMS difference for K1 amp not 0" language="python">
 print K1RMS
