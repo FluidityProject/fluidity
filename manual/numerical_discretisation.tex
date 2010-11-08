@@ -1480,7 +1480,7 @@ to use a different set of test/trial functions for pressure
 and velocity --- a so-called mixed element discretisation. From this section
 on, we will use the notation $\bmphi_i$ for the velocity
 basis functions and $\psi_i$ for the pressure basis functions.
-See section \ref{later} for a discussion of suitable element-pairs.
+%% See section \ref{later} for a discussion of suitable element-pairs.
 
 The pressure gradient matrix is then simply given by
 \begin{equation}
@@ -1533,6 +1533,7 @@ the continuity equation, integrated by parts, is given by
 \begin{equation*}
   \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\bmphi_j u_j -
     \int_\dOmega \psi_i\bmphi_j\cdot\vec n u_j = 0.
+  \label{continuity_byparts}
 \end{equation*}
 Similar to the advection equation, Dirichlet boundary conditions for the
 normal component of the velocity can be implemented by replacing
@@ -1600,8 +1601,8 @@ one is used to solve for a preliminary $\dvec{u}_*^{n+1}$:
 \end{equation}
 where we use an initial guess pressure $\dvec p_*$, that may
 be obtained from the previous time step (denoted by
-$\dvec p^{n-\tfrac 12}$) or an initial
-pressure poission solve as in section \ref{}. The second variation
+$\dvec p^{n-\tfrac 12}$). % or an initial pressure poission solve as in section \ref{}. 
+The second variation
 describes the momentum equation that will be satisfied by
 $\dvec{u}^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
@@ -1802,7 +1803,9 @@ and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This 
   \forall \psi_i.
 \end{equation}
 
-Following the spatial and temporal discretisation described in ??, the matrix form of the continuity equation now includes the free surface boundary term (compare with ??):
+Following the spatial and temporal discretisation described in section \ref{Sect:ND_pressure_equation}, 
+the matrix form of the continuity equation now includes the free surface boundary term (compare with 
+\eqref{discrete_incompressible_continuity}):
 \begin{equation}
 \theta C^T u^{n+1} + (1-\theta) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
 \end{equation}
@@ -1811,12 +1814,9 @@ Repeating the steps from section \ref{Sect:pressure_correction}, the pressure co
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2}\right)\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
 
-
-Moving of free surface nodes.
-
 \section{Linear solvers} \label{ND_Linear_solvers}
 \index{linear solvers}
-The discretised equations (such as \eqref{bla,foo}) form
+The discretised equations (such as \eqref{eq:cg_adv_diff_mat} or \eqref{eq:momentum_equation}) form
 a linear system of equations that can be written
 in the following general form:
 \begin{equation*}
