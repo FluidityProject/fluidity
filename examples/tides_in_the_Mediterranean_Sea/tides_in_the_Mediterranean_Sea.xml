@@ -159,6 +159,7 @@ M2_tide_guage_data_range =  array([
 [11.0]
 ])
 from math import sqrt
+ampcm=M2amp*100
 ampdiff=ampcm-M2_tide_guage_data_range
 ampdiff2=ampdiff**2
 a = sum(sum(ampdiff2))/62
