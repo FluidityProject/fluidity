@@ -8,7 +8,7 @@
 !    Department of Earth Science and Engineering
 !    Imperial College London
 !
-!    C.Pain@Imperial.ac.uk
+!    amcgsoftware@imperial.ac.uk
 !    
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
@@ -26,16 +26,16 @@
 !    USA
 #include "fdebug.h"
 SUBROUTINE READDATA_INI(U,V,W,D3,NONODS,NPHASE)
-   use FLDebug	
+   use FLDebug    
   IMPLICIT NONE  
-INTEGER	::NONODS,NPHASE
-REAL	::U(NONODS*NPHASE),V(NONODS*NPHASE),W(NONODS*NPHASE)
-LOGICAL	::D3
-INTEGER	::II
-	DO II=1,NONODS*NPHASE
-	  U(II) = 1.0
-	  V(II) = 0.0
-	  IF(D3) W(II) = 0.0
-	ENDDO
+INTEGER    ::NONODS,NPHASE
+REAL    ::U(NONODS*NPHASE),V(NONODS*NPHASE),W(NONODS*NPHASE)
+LOGICAL    ::D3
+INTEGER    ::II
+    DO II=1,NONODS*NPHASE
+      U(II) = 1.0
+      V(II) = 0.0
+      IF(D3) W(II) = 0.0
+    ENDDO
 
 END SUBROUTINE READDATA_INI

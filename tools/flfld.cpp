@@ -8,7 +8,7 @@
     Department of Earth Science and Engineering
     Imperial College London
 
-    C.Pain@Imperial.ac.uk
+    amcgsoftware@imperial.ac.uk
     
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -87,7 +87,7 @@ void fl_fldopen_fc(char *ffile, int *ffile_len, int *err){
   return;
 }
 void fl_fldread_fc(char *fld1, int *fld1_len, char *fld2, int *fld2_len,
-		 int *values, int *nvalues, int *err){
+    int *values, int *nvalues, int *err){
   string line;
   vector<string> tokens;
   
@@ -107,16 +107,16 @@ void fl_fldread_fc(char *fld1, int *fld1_len, char *fld2, int *fld2_len,
       
       // If this is a blank line then move to the next one
       if( tcnt < 1) 
-	continue;
+  continue;
 
       // Skip if this is a comment
       if( (tokens[0][0] == '#') || (tokens[0][0] == '@') )
-	continue;
+  continue;
       
       // Quit if this is a foobar line
       if( tcnt < 3 ){
-	*err = -2;
-	return;
+  *err = -2;
+  return;
       }
       
       // Sort out the line
@@ -131,7 +131,7 @@ void fl_fldread_fc(char *fld1, int *fld1_len, char *fld2, int *fld2_len,
       *nvalues = tcnt - 2;
       unsigned vcnt = 0;
       for(unsigned i=2; i<tcnt; i++)
-	values[vcnt++] = atoi( tokens[i].c_str() );
+  values[vcnt++] = atoi( tokens[i].c_str() );
       
       // We have what we want so lets get out of here.
       break;

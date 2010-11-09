@@ -8,7 +8,7 @@
 !    Department of Earth Science and Engineering
 !    Imperial College London
 !
-!    C.Pain@Imperial.ac.uk
+!    amcgsoftware@imperial.ac.uk
 !    
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
@@ -25,35 +25,35 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-	SUBROUTINE READDATA_ADJUVW(U,V,W,NONODS,NPHASE,D3,ITSTIME,DIRNAME)
-	   use FLDebug
+    SUBROUTINE READDATA_ADJUVW(U,V,W,NONODS,NPHASE,D3,ITSTIME,DIRNAME)
+       use FLDebug
         IMPLICIT NONE
-	INTEGER ::NONODS,NPHASE
-	REAL    ::U(NONODS*NPHASE),V(NONODS*NPHASE),W(NONODS*NPHASE)
-	LOGICAL ::D3
-	INTEGER ::ITSTIME
-	CHARACTER(40) DIRNAME
-	
-	CHARACTER(40) FILENAME_NONL,FILENAME
-	INTEGER ::I,K1,K2
+    INTEGER ::NONODS,NPHASE
+    REAL    ::U(NONODS*NPHASE),V(NONODS*NPHASE),W(NONODS*NPHASE)
+    LOGICAL ::D3
+    INTEGER ::ITSTIME
+    CHARACTER(40) DIRNAME
+    
+    CHARACTER(40) FILENAME_NONL,FILENAME
+    INTEGER ::I,K1,K2
 
-	WRITE(FILENAME_ADJUVW, 10) ITSTIME
-10 	FORMAT('/adjuvw_data',I5.5)
+    WRITE(FILENAME_ADJUVW, 10) ITSTIME
+10     FORMAT('/adjuvw_data',I5.5)
 
-	ewrite(3,*) DIRNAME
-	ewrite(3,*) FILENAME_ADJUVW
-	K1 = index( DIRNAME, ' ' ) - 1
-	K2 = index( FILENAME_ADJUVW, ' ' ) - 1
-	FILENAME=DIRNAME(1:K1) // FILENAME_ADJUVW(1:K2)
-	ewrite(3,*) FILENAME
- 	OPEN(3,FILE = FILENAME,STATUS='OLD')
+    ewrite(3,*) DIRNAME
+    ewrite(3,*) FILENAME_ADJUVW
+    K1 = index( DIRNAME, ' ' ) - 1
+    K2 = index( FILENAME_ADJUVW, ' ' ) - 1
+    FILENAME=DIRNAME(1:K1) // FILENAME_ADJUVW(1:K2)
+    ewrite(3,*) FILENAME
+     OPEN(3,FILE = FILENAME,STATUS='OLD')
 
-	READ(3,*) (U(I),I=1,NONODS*NPHASE)
-	READ(3,*) (V(I),I=1,NONODS*NPHASE)
+    READ(3,*) (U(I),I=1,NONODS*NPHASE)
+    READ(3,*) (V(I),I=1,NONODS*NPHASE)
 
-	IF(D3) THEN
-	  READ(3,*) (W(I),I=1,NONODS*NPHASE)
-	ENDIF
+    IF(D3) THEN
+      READ(3,*) (W(I),I=1,NONODS*NPHASE)
+    ENDIF
 
-	CLOSE(3)
+    CLOSE(3)
         END SUBROUTINE READDATA_ADJUVW

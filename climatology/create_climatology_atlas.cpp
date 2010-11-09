@@ -8,7 +8,7 @@
     Department of Earth Science and Engineering
     Imperial College London
 
-    C.Pain@Imperial.ac.uk
+    C.Pain@imperial.ac.uk
     
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -185,34 +185,34 @@ int killworth_correction(deque< deque< vector<float> > >& variable, float &max_v
   for(size_t k=0;k<nlevels;k++){
     for(size_t j=0; j<(size_t)jdim0; j++){
       for(size_t i=0; i<(size_t)idim0; i++){
-		if(fabs(variable[0][k][j*idim0+i]-land_val)>1.0){
-		  for(size_t m=0;m<variable.size();m++)
-			d[m] = variable[m][k][j*idim0+i];
-		  
-		  kilworth_correction(A, d);
-		  
-		  for(size_t m=0;m<variable.size();m++){
-			if(d[m]>1000.0){
-			  cout<<"A="<<endl;
-			  for(size_t ii=0;ii<(size_t)n;ii++){
-				for(size_t jj=0;jj<(size_t)n;jj++)
-				  cout<<A[ii*n+jj]<<" ";
-				cout<<endl;
-			  }
-			  cout<<"d = ";
-			  for(size_t m=0;m<variable.size();m++)
-				cout<<variable[m][k][j*idim0+i]<<" ";
-			  cout<<endl;
-			  cout<<"d' = ";
-			  for(size_t m=0;m<variable.size();m++)
-				cout<<d[m]<<" ";
-			  cout<<endl;
-			}
-			max_v = max(max_v, (float)d[m]);
-			min_v = min(min_v, (float)d[m]);
-			variable[m][k][j*idim0+i] = d[m];
-		  }
-		}
+    if(fabs(variable[0][k][j*idim0+i]-land_val)>1.0){
+      for(size_t m=0;m<variable.size();m++)
+        d[m] = variable[m][k][j*idim0+i];
+      
+      kilworth_correction(A, d);
+      
+      for(size_t m=0;m<variable.size();m++){
+      if(d[m]>1000.0){
+        cout<<"A="<<endl;
+        for(size_t ii=0;ii<(size_t)n;ii++){
+        for(size_t jj=0;jj<(size_t)n;jj++)
+          cout<<A[ii*n+jj]<<" ";
+        cout<<endl;
+        }
+        cout<<"d = ";
+        for(size_t m=0;m<variable.size();m++)
+        cout<<variable[m][k][j*idim0+i]<<" ";
+        cout<<endl;
+        cout<<"d' = ";
+        for(size_t m=0;m<variable.size();m++)
+        cout<<d[m]<<" ";
+        cout<<endl;
+      }
+      max_v = max(max_v, (float)d[m]);
+      min_v = min(min_v, (float)d[m]);
+      variable[m][k][j*idim0+i] = d[m];
+      }
+    }
       }
     }
   }
@@ -223,62 +223,62 @@ int killworth_correction(deque< deque< vector<float> > >& variable, float &max_v
 int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int iterations){
   // Iterate through time
   for(deque< deque< vector<float> > >::iterator tdat=dat.begin(); tdat!=dat.end(); tdat++){
-	// Iterate through levels
+  // Iterate through levels
     for(size_t k=0;k<tdat->size();k++){
-	  
-	  // Find which points are null
-	  vector<bool> null_points(idim0*jdim0, false);
-	  for(size_t j=0; j<(size_t)jdim0; j++){
-		for(size_t i=0; i<(size_t)idim0; i++){
+    
+    // Find which points are null
+    vector<bool> null_points(idim0*jdim0, false);
+    for(size_t j=0; j<(size_t)jdim0; j++){
+    for(size_t i=0; i<(size_t)idim0; i++){
           if(fabs((*tdat)[k][j*idim0+i]-land_val)<1.0){
-			null_points[j*idim0+i] = true;
-			(*tdat)[k][j*idim0+i] = minv;
+      null_points[j*idim0+i] = true;
+      (*tdat)[k][j*idim0+i] = minv;
           }
-		}
+    }
       }
-	  
-	  // Start diffusing
-	  for(size_t its=0;its<iterations;its++){
-		for(size_t j=0; j<(size_t)jdim0; j++){ 
- 		  for(size_t i=0; i<(size_t)idim0; i++){
-			if(null_points[j*idim0+i]){
-			  float sum=(*tdat)[k][j*idim0+i];
-			  int npts=1;
-			  
-			  if(j>0){
-				sum+=(*tdat)[k][(j-1)*idim0+i];
-				npts++;
-			  }
+    
+    // Start diffusing
+    for(size_t its=0;its<iterations;its++){
+    for(size_t j=0; j<(size_t)jdim0; j++){ 
+       for(size_t i=0; i<(size_t)idim0; i++){
+      if(null_points[j*idim0+i]){
+        float sum=(*tdat)[k][j*idim0+i];
+        int npts=1;
+        
+        if(j>0){
+        sum+=(*tdat)[k][(j-1)*idim0+i];
+        npts++;
+        }
 
- 			  if(j+1<jdim0){
-				sum+=(*tdat)[k][(j+1)*idim0+i];
-				npts++;
-			  }
+         if(j+1<jdim0){
+        sum+=(*tdat)[k][(j+1)*idim0+i];
+        npts++;
+        }
 
-			  sum+=(*tdat)[k][j*idim0+(i+idim0-1)%idim0];
-			  npts++;
+        sum+=(*tdat)[k][j*idim0+(i+idim0-1)%idim0];
+        npts++;
 
-			  sum+=(*tdat)[k][j*idim0+(i+1)%idim0];
-			  npts++;
-			  
-			  if(k>0){
-				sum+=(*tdat)[k-1][j*idim0+i];
-				npts++;
-			  }
+        sum+=(*tdat)[k][j*idim0+(i+1)%idim0];
+        npts++;
+        
+        if(k>0){
+        sum+=(*tdat)[k-1][j*idim0+i];
+        npts++;
+        }
 
-			  (*tdat)[k][j*idim0+i] = sum/npts;
-			}
-		  }
-		}
-	  }
-	}
+        (*tdat)[k][j*idim0+i] = sum/npts;
+      }
+      }
+    }
+    }
+  }
   }
 
   return 0;
 }
 
 int write_netcdf_variable(int ncid, const int* dimids, const char* name, const char* long_name, const char *units,
-			  deque< deque< vector<float> > >& variable){
+        deque< deque< vector<float> > >& variable){
 #ifdef HAVE_NETCDF
 
   float max_v, min_v;
@@ -320,14 +320,14 @@ int write_netcdf_variable(int ncid, const int* dimids, const char* name, const c
     for(size_t k=0;k<variable[m].size();k++){
       start[1] = k;
       for(size_t j=0; j<(size_t)jdim0; j++)
-		for(size_t i=0; i<(size_t)idim0; i++){
-		  // After applying a diffusion filter we need to ensure the
-		  // values are still within bounds.
-		  float v = min(max_v, variable[m][k][j*idim0+i]);
-		  v = max(v, min_v);
-		  
-		  frame[j*idim0+i] = lround((v - add_offset)/scale_factor);
-		}
+    for(size_t i=0; i<(size_t)idim0; i++){
+      // After applying a diffusion filter we need to ensure the
+      // values are still within bounds.
+      float v = min(max_v, variable[m][k][j*idim0+i]);
+      v = max(v, min_v);
+      
+      frame[j*idim0+i] = lround((v - add_offset)/scale_factor);
+    }
       ncvarput(ncid, varid, start, count, &(frame[0]));
     }
   }
@@ -460,9 +460,9 @@ int main(){
     for(size_t k=0; k<24; k++){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
-	for(size_t i=0; i<(size_t)idim0; i++){
-	  fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
-	}
+  for(size_t i=0; i<(size_t)idim0; i++){
+    fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+  }
     }
     fclose(fp);
   }
@@ -489,9 +489,9 @@ int main(){
     for(size_t k=0; k<24; k++){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
-	for(size_t i=0; i<(size_t)idim0; i++){
-	  fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
-	}
+  for(size_t i=0; i<(size_t)idim0; i++){
+    fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+  }
     }
     fclose(fp);
   }
@@ -526,13 +526,13 @@ int main(){
     for(size_t k=0; k<33; k++){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
-	for(size_t i=0; i<(size_t)idim0; i++){
-	  float v;
-	  fscanf(fp, "%f", &v);
-	  if(k>=24){
-	    dat[m][k-24][j*idim0+i] = v;
-	  }
-	}
+  for(size_t i=0; i<(size_t)idim0; i++){
+    float v;
+    fscanf(fp, "%f", &v);
+    if(k>=24){
+      dat[m][k-24][j*idim0+i] = v;
+    }
+  }
     }
     fclose(fp);
   }
@@ -558,13 +558,13 @@ int main(){
     for(size_t k=0; k<33; k++){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
-	for(size_t i=0; i<(size_t)idim0; i++){
-	  float v;
-	  fscanf(fp, "%f", &v);
-	  if(k>=24){
-	    dat[m][k-24][j*idim0+i] = v;
-	  }
-	}
+  for(size_t i=0; i<(size_t)idim0; i++){
+    float v;
+    fscanf(fp, "%f", &v);
+    if(k>=24){
+      dat[m][k-24][j*idim0+i] = v;
+    }
+  }
     }
     fclose(fp);
   }

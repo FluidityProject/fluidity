@@ -8,7 +8,7 @@
 !    Department of Earth Science and Engineering
 !    Imperial College London
 !
-!    C.Pain@Imperial.ac.uk
+!    amcgsoftware@imperial.ac.uk
 !    
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@ SUBROUTINE FORWARDDATA_D(DU,BCU2,DV,BCV2,DW,BCW2,   &
   REAL    ::DU(NOBCU),DV(NOBCV),DW(NOBCW)
   LOGICAL ::D3
   INTEGER ::NOCVA
-  REAL	  ::D(NOCVA)
+  REAL      ::D(NOCVA)
   INTEGER ::ITSTIME,MAXREC
   INTEGER ::MRECORD(MAXREC)
 

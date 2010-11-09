@@ -8,7 +8,7 @@
 !    Department of Earth Science and Engineering
 !    Imperial College London
 !
-!    C.Pain@Imperial.ac.uk
+!    amcgsoftware@imperial.ac.uk
 !    
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
@@ -25,35 +25,35 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-	SUBROUTINE READDATA_NONL(NU,NV,NW,NONODS,NPHASE,D3,ITSTIME,DIRNAME)
-	   use FLDebug
+    SUBROUTINE READDATA_NONL(NU,NV,NW,NONODS,NPHASE,D3,ITSTIME,DIRNAME)
+       use FLDebug
         IMPLICIT NONE
-	INTEGER ::NONODS,NPHASE
-	REAL    ::NU(NONODS*NPHASE),NV(NONODS*NPHASE),NW(NONODS*NPHASE)
-	LOGICAL ::D3
-	INTEGER ::ITSTIME
-	CHARACTER(40) DIRNAME
-	
-	CHARACTER(40) FILENAME_NONL,FILENAME
-	INTEGER ::I,K1,K2
+    INTEGER ::NONODS,NPHASE
+    REAL    ::NU(NONODS*NPHASE),NV(NONODS*NPHASE),NW(NONODS*NPHASE)
+    LOGICAL ::D3
+    INTEGER ::ITSTIME
+    CHARACTER(40) DIRNAME
+    
+    CHARACTER(40) FILENAME_NONL,FILENAME
+    INTEGER ::I,K1,K2
 
-	WRITE(FILENAME_NONL, 10) ITSTIME
-10 	FORMAT('/nonlinear_data',I5.5)
+    WRITE(FILENAME_NONL, 10) ITSTIME
+10     FORMAT('/nonlinear_data',I5.5)
 
-	ewrite(3,*) DIRNAME
-	ewrite(3,*) FILENAME_NONL
-	K1 = index( DIRNAME, ' ' ) - 1
-	K2 = index( FILENAME_NONL, ' ' ) - 1
-	FILENAME=DIRNAME(1:K1) // FILENAME_NONL(1:K2)
-	ewrite(3,*) FILENAME
- 	OPEN(3,FILE = FILENAME,STATUS='OLD')
+    ewrite(3,*) DIRNAME
+    ewrite(3,*) FILENAME_NONL
+    K1 = index( DIRNAME, ' ' ) - 1
+    K2 = index( FILENAME_NONL, ' ' ) - 1
+    FILENAME=DIRNAME(1:K1) // FILENAME_NONL(1:K2)
+    ewrite(3,*) FILENAME
+     OPEN(3,FILE = FILENAME,STATUS='OLD')
 
-	READ(3,*) (NU(I),I=1,NONODS*NPHASE)
-	READ(3,*) (NV(I),I=1,NONODS*NPHASE)
+    READ(3,*) (NU(I),I=1,NONODS*NPHASE)
+    READ(3,*) (NV(I),I=1,NONODS*NPHASE)
 
-	IF(D3) THEN
-	  READ(3,*) (NW(I),I=1,NONODS*NPHASE)
-	ENDIF
+    IF(D3) THEN
+      READ(3,*) (NW(I),I=1,NONODS*NPHASE)
+    ENDIF
 
-	CLOSE(3)
+    CLOSE(3)
         END SUBROUTINE READDATA_NONL

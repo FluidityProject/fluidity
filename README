@@ -12,9 +12,11 @@ Double percision: dfluidity,      libdfluidity.a
 Please read the INSTALL file for details detailed configuration and
 installation instructions.
 
-FLUIDITY is the property of Dr Christopher C. Pain
-<c.pain@ic.ac.uk>. See the file COPYRIGHT for a description of the
-copyright.
+FLUIDITY is the property of Dr Christopher C. Pain of the Applied 
+Modelling and Computation Group at Imperial College,
+<amcgsoftware@imperial.ac.uk>.
+
+See the file COPYRIGHT for a description of the copyright.
 
 For more details see:
 http://amcg.ese.ic.ac.uk
