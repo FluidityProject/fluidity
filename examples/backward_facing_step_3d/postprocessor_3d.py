@@ -6,7 +6,6 @@ import os
 import vtktools
 import numpy
 import pylab
-from math import isinf
 import re
 
 def get_filelist():
@@ -104,7 +103,7 @@ def reatt_length(filelist, yarray, exclude_initial_results):
       for i in range(len(u[:,0])-1):
         ##### Hack to ignore division by zero entries in u.
         ##### All u should be nonzero away from boundary!
-        if((u[i,j] / u[i+1,j]) < 0. and not isinf(u[i,j] / u[i+1,j])):
+        if((u[i,j] / u[i+1,j]) < 0. and not numpy.isinf(u[i,j] / u[i+1,j])):
           ##### interpolate between nodes
           p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
           ##### Ignore spurious corner points
