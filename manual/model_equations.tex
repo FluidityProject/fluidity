@@ -7,11 +7,11 @@ This chapter covers the fluid and associated field equations modeled by {\fluidi
 \begin{center}
 \begin{tabular}{lccc}
 \hline
-problem & underlying equations & boundary conditions & other conditions\\
+problem & underlying equations & boundary conditions & other considerations\\
 \hline
 scalar advection & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-adv} & \ref{sect:bc_scalar_dirichlet}, \ref{sect:bc_scalar_neumann}, \ref{sect:bc_scalar_robin} & × \\
 scalar advection-diffusion & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-diff} & × & ×\\
-momentum equation & \ref{Sect:MP-MomEqn} & \ref{sect:bc_vector_dirichlet}, \ref{sect:bc_vector_stress}, \ref{sect:bc_vector_traction} & \ref{sect:equation_of_state} \\
+momentum equation & \ref{Sect:MP-MomEqn} & \ref{sect:bc_vector_dirichlet}, \ref{sect:bc_vector_stress}, \ref{sect:bc_vector_traction}, \ref{Sect:FS} & \ref{sect:eqn_extensions} \\
 \hline
 \end{tabular}
 \end{center}
@@ -35,7 +35,7 @@ The advection term in \eqref{eq:general_scalar_eqn}, given by
 \begin{equation}\label{eq:scalar_advection}
 \nabla\cdot(\bmu c) = \bmu\cdot\nabla c + (\nabla\cdot\bmu)c,
 \end{equation}
-expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
+expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ (see section \ref{sect:equation_of_state}) resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
 reasons why the discrete velocity field is not exactly divergence free, in which case this term may
 be included in the discretisation. {\fluidity} deals with the advection term in the form
 \begin{equation}\label{eq:fluidity_scalar_advection}
@@ -186,7 +186,7 @@ By adding $-\tautens$ to the previously introduced \textit{momentum flux density
  \tensor{\Pi}=p\mathbf{I}+\rho\bmu\bmu-\tautens=-\sigtens+\rho\bmu\bmu,
 \end{equation}
 
-where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{Sect:Rheology}. Thus, the most general form of the momentum equation of a compressible viscous fluid may be written as
+where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{sect:equation_of_state}. Thus, the most general form of the momentum equation of a compressible viscous fluid may be written as
 
 \begin{equation}\label{viscous_fluids_1}
  \rho\left(\frac{\partial\bmu}{\partial{t}}+\bmu\cdot\nabla\bmu\right)=-\nabla\cdot\sigtens+\rho\bmF,
@@ -522,15 +522,63 @@ Applying this law to a control volume\footnote{The concept of a control volume a
 \end{equation}
 where $V$ is the control volume, $S$ is the surface of the control volume and $\vec n$ is the unit normal to the surface of the control volume and $\vec F$ is a volume force per unit mass. Physically, \ref{LinMom} states that the sum of all forces applied on the control volume is equal to the sum of the rate of change of momentum inside the control volume and the net flux of momentum through the control surface. More details regarding the derivation and properties of this equation can be found in \citet{batchelor1967}.
 
+\subsection{Buoyancy and Hydrostacy}\label{sect:hydrostacy}
+\index{density}
+\index{buoyancy}
+\index{pressure!hydrostatic}
+
+For fluids upon which gravity is acting the buoyancy force should be considered
+when a free surface is present or when the fluid contains variations in density. The buoyancy force is given by $\vec{b}=-\rho\bmg$
+and, in the absence of viscosity, a simple form of the vertical momentum equation can be written as
+\begin{equation}\label{eq:vertmom}
+\DDt[t]{w} = -\ppx[z]{p} + b,
+\end{equation}
+where $b=\rho g$ is the magnitude of the buoyancy force.
+
+\index{density!reference}
+\index{pressure!perturbation}
+
+If the fluid is in a state of rest, the left hand side of \eqref{eq:vertmom} is zero giving
+\begin{equation}\label{eq:hydrostatic_balance}
+\ppx[z]{p} = b.
+\end{equation}
+This is known as hydrostatic balance. It states that the pressure at point
+is equal to the weight of water above that point, plus any pressure loading on the surface of the
+domain (\eg atmospheric pressure or ice load which is here termed $p_a$):
+\begin{equation*}
+p(\bmx) = p_a + \int_z b.
+\end{equation*}
+If vertical accelerations are negligible then \eqref{eq:hydrostatic_balance} is
+often a good approximation to \eqref{eq:vertmom}. Under this assumption it is natural
+to define pressure in terms of a background pressure that is
+only dependent on depth and a perturbation to this:
+\begin{equation*}
+p=p_0(z,t)+p'(\bmx,t),
+\end{equation*}
+where $p_0(z,t)$ balances the constant $\rho_0$ part of buoyancy and may be written
+\begin{equation*}
+p_0(z,t) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
+\end{equation*}
+where $\eta\equiv\eta(\vec x)$ is the free surface height. If a free surface is present an
+additional term of the form
+\begin{equation*}
+-\rho_0g\nabla\eta,
+\end{equation*}
+must therefore be included in the horizontal momentum equations.
+
 \subsection{The Boussinesq approximation} \label{sect:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
 
-For many problems, one is able to assume that density does not vary greatly about a mean reference state. Such an approximation, namely, the Boussinesq approximation, involves two steps. The first makes use of \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
+Under certain conditions, one is able to assume that density does not vary greatly about a mean reference density, that is, the density at a position $\vec x$ can be wriiten as
+\begin{equation}
+\rho(\bmx,t) = \rho_0 + \rho'(\bmx,t),
+\end{equation}
+where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq approximation, involves two steps. The first makes use of \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
-where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems where gravity points in the $-z$ direction and $\bmg = -g\vec r$ on the sphere).
+where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sect:typical_ICOM_equations}
 \index{Boussinesq!equations}
@@ -541,75 +589,24 @@ Applying the approximations outlined in section \ref{sect:boussinesq_approximati
 
 \begin{subeqnarray}
 \frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
-&=& - \nabla p - g\nabla\eta + \rho' \bmg + \nabla\cdot \tautens + \bmF,
+&=& - \nabla p' - g\nabla\eta + \rho' \bmg + \nabla\cdot \tautens + \bmF,
 \slabel{mtm}\\
 \nabla\cdot {\bmu}&=&0,\slabel{conty}\\
 \frac{\pp T}{\pp t} + \bmu\cdot\nabla  T  &=&
 \nabla . \left ( \kaptens_T  \nabla T\right),\slabel{heat}\\
 \frac{\pp S}{\pp t} + \bmu\cdot\nabla  S  &=&
 \nabla . \left ( \kaptens_S  \nabla S\right),\slabel{salt}\\
-f(p,\rho',T,\ldots)&=&0,\slabel{state}
+f(p,\rho,T,\ldots)&=&0,\slabel{state}
 \label{boussinesq}
 \end{subeqnarray}
 
-where $p$ is the perturbation pressure (see section \ref{sect:hydrostacy} below),
-$\rho'=(\rho-\rho_0)/\rho_0$ is the perturbation density,
+where $p'$ is the perturbation pressure (see section \ref{sect:hydrostacy}),
+$\rho=\rho_0+\rho'$ where $\rho'(=(\rho-\rho_0)/\rho_0)$ is the perturbation density,
 $T$ is the temperature, $S$ is salinity, $\eta$ is the free surface height and
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
 diffusivity tensors respectively.
-The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms such as the astronomical tidal forcing.
-
-\subsubsection{Buoyancy and density}\label{sect:buoyancy}
-\index{density}
-\index{buoyancy}
-For fluids upon which gravity is acting the buoyancy force should be considered
-when a free surface is present or when the fluid contains variations in density. The buoyancy force is $\vec{b}=-\rho\bmg$
-and is of magnitude $b=\rho g$. The simplest form of the vertical momentum equation can be written
-\begin{equation}\label{eq:vertmom}
-\DDt[t]{w} = -\ppx[z]{p} + b.
-\end{equation}
-The buoyancy force leads to flow in the presence of variations in either the density field or free surface of the domain.
-
-\subsubsection{Hydrostacy}\label{sect:hydrostacy}
-\index{pressure!hydrostatic}
-If the fluid is in a state of rest then LHS of \eqref{eq:vertmom} is zero giving
-\begin{equation}\label{eq:hydrostatic_balance}
-\ppx[z]{p} = b.
-\end{equation}
-This relation is known as hydrostatic balance. It states that the pressure at point
-is equal to the weight or water above, plus any pressure loading on the surface of the
-domain (\eg atmospheric pressure or ice load which we term $p_a$):
-\begin{equation*}
-p(\bmx) = p_a + \int_z b.
-\end{equation*}
-If vertical accelerations are negligible then \eqref{eq:hydrostatic_balance} is
-often a good approximation to \eqref{eq:vertmom}.
-
-\index{density!reference}
-\index{pressure!perturbation}
-Recall that in the Boussinesq approximation we assume 
-\begin{equation*}
-\rho = \rho_0 + \rho'(\bmx,t),\quad \rho'\ll\rho_0,
-\end{equation*}
-and that $\rho'$ is assumed not to count in all terms but the buoyancy force. 
-It is natural now to define pressure in terms of a background pressure that is
-only dependent on depth and a perturbation to this:
-\begin{equation*}
-p=p_0(z,t)+p'(\bmx,t),
-\end{equation*}
-where $p_0(z,t)$ balances the constant $\rho_0$ part of buoyancy and may be written
-\begin{equation*}
-p_0(z,t) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
-\end{equation*}
-where $\eta\equiv\eta(x,y)$ is the free surface height. Therefore in
-the case of a free surface an extra term of the form
-\begin{equation*}
--\rho_0g\nabla\eta,
-\end{equation*}
-must be included in the horizontal momentum equations. 
-Note that in analogy to the perturbation density ($\rho'/\rho_0 = (\rho-\rho_0)/\rho_0$), the
-term $p'/\rho_0$ is termed the perturbation pressure.
-
+The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms such as the astronomical tidal forcing. A discussion
+regarding the validity of the Boussinesq approximation is given in \cite{Gray1975}
 
 \subsection{Supplementary boundary conditions and body forces}
 
