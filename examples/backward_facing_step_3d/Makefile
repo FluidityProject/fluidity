@@ -1,5 +1,5 @@
 # Default number of processes (serial run):
-NPROCS=8
+NPROCS=1
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
@@ -8,8 +8,12 @@ preprocess:
 	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle step3d.msh
+ifneq ($(NPROCS),8)
+	@echo **********WARNING: This simulation is best run on 8 processors
+endif
 ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 else
 # exit if no fltools and print warning
 	@if [ ! -e $(BIN)fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
@@ -18,7 +22,11 @@ else
 endif
 
 run:
+ifneq ($(NPROCS),8)
+	@echo **********WARNING: This simulation is best run on 8 processors
+endif
 ifeq ($(NPROCS),1)
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
 	$(BIN)fluidity -v2 -l backward_facing_step_3d.flml
 else

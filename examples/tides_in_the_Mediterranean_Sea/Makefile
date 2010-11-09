@@ -1,5 +1,4 @@
-# Default number of processes (64 processors):
-NPROCS=64
+NPROCS=1
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
@@ -11,16 +10,23 @@ preprocess:
 	sed '1s/3/2/2' < med.node > med2.node
 	@echo **********Replacing mesh with modified version:
 	mv med2.node med.node
+ifneq ($(NPROCS),64)
+	@echo **********WARNING: This simulation is best run on 64 processors
+endif
 ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
-else
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
+else 
 	@if [ ! -e ../../bin/fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
 	../../bin/fldecomp -n $(NPROCS) -s med 
 endif
-
 run:
+ifneq ($(NPROCS),64)
+	@echo **********WARNING: This simulation is best run on 64 processors
+endif
 ifeq ($(NPROCS),1)
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
 	$(BIN)fluidity -v2 -l med.flml
 else
