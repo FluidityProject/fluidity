@@ -1,9 +1,8 @@
-# Default number of processes (serial run):
-NPROCS=1
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
 preprocess: 
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Generating the mesh using gmsh in 3d:
 	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
@@ -38,7 +37,8 @@ postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
 	./postprocessor_3d.py
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess NPROCS=8
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

@@ -1,9 +1,9 @@
-NPROCS=1
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
 
-preprocess: 
+preprocess:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle med.msh
 	@echo **********Modifying mesh nodal file using sed:
@@ -22,6 +22,9 @@ else
 	../../bin/fldecomp -n $(NPROCS) -s med 
 endif
 run:
+ifndef ($(NPROCS))
+	@echo **********ERROR: Please define NPROCS to set the number of processors to use
+endif
 ifneq ($(NPROCS),64)
 	@echo **********WARNING: This simulation is best run on 64 processors
 endif
@@ -44,4 +47,6 @@ clean:
 	@echo **********Cleaning the output from previous fluidity runs:
 	rm -rf  *gmt* *.ele *.node *.edge Med-GEBCO-5m-gauges-fes2004-O1-102 *med_* *.halo *.pvtu *.vtu *.stat *.log-* *.err-* *check* *Check* *matrixdump*
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess NPROCS=64
+

@@ -5,6 +5,7 @@ BIN=../../bin/
 SCRIPTS=../../scripts/
 
 preprocess:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle unit_sphere.msh
 ifneq ($(NPROCS),8)
@@ -36,7 +37,8 @@ endif
 postprocess:
 	@echo **********No postprocessing needed
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess NPROCS=8
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

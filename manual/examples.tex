@@ -30,28 +30,31 @@ examples plots are created and put in the directory.
 
 \begin{table}
 \centering
-\begin{tabular}{llcl}
-  example section & example directory & \hspace{-1cm}n/o procs. & run time \\
+\begin{tabular}{|l|l|c|l|}
+  \hline
+  Example section & Example directory & N. procs. & Run time \\
   \hline
   \ref{sect:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
   \ref{sect:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 3.5 hr. \\
   \ref{sect:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 3 hr. \\
   \ref{sect:backward_facing_step} Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
                        & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
-  \ref{sect:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphere/} & 8 & ?? \\
+  \ref{sect:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
   \ref{sect:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
   \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
-  \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 12 hr. \\
-  \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr.
+  \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 18 hr. \\
+  \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
 the indicated, default number of processes. The times are rough estimates and may vary between 
 different systems.} \label{tab:example_runtimes}
 \end{table}
 
-For an overview of the estimated run time - using the default number of processors - for each
+For an overview of the estimated run time - using the recommended number of processors - for each
 example, see table \ref{tab:example_runtimes}
-Some examples (\texttt{backward\_facing\_step\_3d}, \texttt{restratification\_after\_oodc}
+Some examples (\texttt{backward\_facing\_step\_3d}, \texttt{restratification\_after\_oodc}, 
+\texttt{flow\_past\_sphereRe100}, \texttt{flow\_past\_sphereRe1000},
 and \texttt{tides\_in\_the\_Mediterranean\_Sea})
 are set up to run in parallel. These can also be run with a different number 
 of processes by changing \texttt{NPROCS}, e.g. to run with 8 processors:
@@ -62,6 +65,7 @@ or run in serial with:
 
 \hspace{0.05\textwidth}\texttt{make run NPROCS=1}
 
+If \texttt{NPROCS} is not supplied an error will occur.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------One-dimensional advection-------------------%

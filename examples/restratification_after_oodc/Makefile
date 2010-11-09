@@ -1,10 +1,9 @@
-# Default number of processes:
-NPROCS=1
 # directory locations:
 BIN=../../bin/
 SCRIPTS=../../scripts/
 
 preprocess:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Copying circle.geo to the current directory:
 	cp src/circle.geo .
 	@echo **********Generating the mesh using gmsh in 2d:
@@ -40,7 +39,8 @@ endif
 postprocess:
 	@echo **********No postprocessing needed
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess NPROCS=8
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
