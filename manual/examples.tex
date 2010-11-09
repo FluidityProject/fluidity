@@ -1145,11 +1145,15 @@ To explore the functionality of \fluidity, the following variations on this exam
 
 \subsection{Overview}
 
-Dense water masses are formed during open ocean deep convection (OODC) in marginal seas and then join the meridional overturning circulation (MOC)  \citep{jones1997}.  A column of dense water is formed during OODC due to intense cooling. When the cooling stops, the dense water mixes with the surroundings. If there was no coriolis force, the water column would slump down rapidly.  The addition of a coriolis force means that the system is baroclinically unstable and eddies are formed. The example here is an idealised model  \citep{rousset09}. 
+During Open Ocean Deep Convection (OODC), cold water is mixed up to the surface via vigorous convection, forming a column of dense water tens of kilometres across known as a convection chimney. This happens in particular sites of the ocean, including the Labrador Sea, the Mediterranean Sea and the Weddell Sea.  In the North Atlantic, the convection typically happens in winter and is triggered by intense cooling at the surface. The convection is important to the formation of North Atlantic Deep Water, which joins the southward part of the Atlantic Meridional Overturning Circulation (AMOC).
+
+It is thought that OODC could be affected by future climate change. If ice caps melt or the hydrological cycle intensifies due to climate change then there would be an influx of fresh water at the surface of the ocean in the North Atlantic convection sites. This could lead to less NADW forming and a slowing of the AMOC.  
+
+This example is an idealised model of the restratification phase of OODC. During restratification the water column formed during OODC mixes back with the surroundings, forming baroclinic eddies due to the coriolis force. The setup is taken from  \cite{rousset09}. 
 
 \subsection{Configuration}
 
-The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$. The aspect ratio is given by $R=L/H=500$. This is relatively high.  The initial temperature field is shown in figure \ref{fig:rousset-init}. The temperature is linearly strafified except inside the cylinder in the middle with radius 70km, which is cooler than the surroundings. 
+The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$. The aspect ratio is given by $R=L/H=500$, which is relatively high.  The initial temperature field is shown in figure \ref{fig:rousset-init}. The temperature is linearly stratified except inside the cylinder in the middle with radius 70km, which is cooler than the surroundings. 
 
 \begin{figure}[h]
 \begin{center}
@@ -1159,66 +1163,19 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 \end{center}
 \end{figure}
 
-\subsection{Mesh}
 
-The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The finished mesh has nodes which are aligned in columns in the vertical. The elements are unstructured tetrahedra. The columnar ararangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create significant errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The quadrature degree is set to four. The resolution is 5 km in the horizontal and 83 m in the vertical. 
-
-\subsection{Discretisation}
-
-The velocity is solved for using a discontinuous galerkin discretisation. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature. 
-
-\subsection{Other fluidity options}
-
-There are some other options that are chosen specifically because this is large aspect ratio and rotating. These options may be checked by using the Large Scale Ocean options check (see section \ref{section:large-scale-ocean}).
-
-\subsubsection{Time stepping}
-The timestep is 7200 s. 
-\begin{itemize}
-\item \option{\ldots/timestepping/nonlinear\_iterations} option is $2$ 
-\item \option{\ldots/material\_phase/equation\_of\_state/subtract\_out\_hydrostatic\_level} is on.
-\end{itemize}
-
-\subsubsection{Velocity options}
-\begin{itemize}
-\item \option{\ldots/equation} is Boussinesq
-\item \option{\ldots/spatial\_discretisation} is discotinuous galerkin
-\item \option{\ldots/spatial\_discretisation/advection} is upwind
-\item \option{\ldots/spatial\_discretisation/advestion/integrate\_advection\_by\_parts} is twice
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/lump\_mass\_matrix} is off
-\item \option{\ldots/spatial\_discretisation/viscosity\_scheme} is compact discontinuous galerkin
-\item \option{\ldots/spatial\_discretisation/advection/conservative\_advection} is set to $0.0$
-\item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson)
-\item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
-\item \option{\ldots/temporal\_discretisation/discontiunous\_galerkin/maximum\_courant\_number\_per\_subcycle} is on and set to 0.1.
-\item \option{\ldots/solvers}  gmres 
-\item \option{\ldots/solvers/preconditioner} is sor
-\end{itemize}
-An Absorption field is added under Velocity to allow larger time steps to be taken, otherwise the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on.
+The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
 
 
-\subsubsection{Pressure options}
+The velocity is solved for using a discontinuous galerkin discretisation to make the results more accurate. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature.  This discretisation is sometimes referred to as p1dgp2. For this discretisation, the quadrature degree has to be set to 4.   To make it more stable, subcycling is switched on under velocity with a maximum courant number per subcycle of 0.1. There is a diagnostic free surface field which requires a free surface boundary condition under Velocity.
 
-This is continuous galerkin discretisation, with a mesh of polynomial order two.
-\begin{itemize}
-\item \option{\ldots/spatial\_discretisation} is Continuous Galerkin
-\item \option{\ldots/solver/vertical\_lumping}  on
-\item \option{\ldots/spatial\_discretisation/remove\_stabilitation\_term} on
-\item \option{\ldots/spatial\_discretisation/integrate\_continuity\_by\_parts}  on
-\item \option{\ldots/scheme/poisson\_pressure\_solution} is only first time step
-\item \option{\ldots/scheme/use\_projection\_method}  on
-\item \option{\ldots/solver} is  cg 
-\item \option{\ldots/solver/preconditioner} is  mg
-\end{itemize}
-
-\subsubsection{Free Surface Field}
-This is a diagnostic field. There is also a free surface boundary condition under Velocity.
+The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger that would otherwise be expected because  an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
 
 \subsection{Results}
 
-Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth. It can be seen that eddies form and mix the fluid. If this is run with a different resolution a different number of eddies may form.
+Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth at 5 day intervals. As the column mixes with the surroundings, eddies are seen to form. If this is run with a different resolution a different number of eddies may form. If the resolution is too coarse then no eddies will form at all.
 
-You might want to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
-
+You might wish to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
 \begin{figure}[h!]
 \begin{center}
