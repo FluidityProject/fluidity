@@ -63,7 +63,7 @@ module hadapt_extrude_radially
 
     logical, dimension(node_count(shell_mesh)) :: column_visited
 
-    write(*,*) 'In extrude_radially'
+    ewrite(1,*) 'In extrude_radially'
 
     !! We assume that for the extrusion operation,
     !! the layer configuration is independent of phi and theta.
