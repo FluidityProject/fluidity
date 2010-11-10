@@ -39,7 +39,6 @@ IMAGES=geometry_dimension mesh_name \
 ./examples_images/top_hat/top_hat_cv \
 ./examples_images/top_hat/top_hat_cg_conservation \
 ./examples_images/top_hat/top_hat_dg_max \
-./numerical_discretisation_images/bisection_method \
 ./visualisation_and_diagnostics_images/Paraview-opacity \
 ./visualisation_and_diagnostics_images/Paraviewconnectbutton \
 ./visualisation_and_diagnostics_images/Paraviewchooseserver \
@@ -117,7 +116,8 @@ PSFILES=$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
 	$(addsuffix /*.pstex_t, $(IMAGE_DIRS)) \
 	$(addsuffix /*.log, $(IMAGE_DIRS)) \
 	$(addsuffix /*.dvi, $(IMAGE_DIRS)) \
-	$(addsuffix /*.aux, $(IMAGE_DIRS))
+	$(addsuffix /*.aux, $(IMAGE_DIRS)) \
+	fluidity_manual.pdf
 
 %.ps: %.dvi
 	dvips -o $@ $^ 
@@ -159,8 +159,9 @@ endif
 # We don't rm *.ps because that might clobber image files. Instead, put any
 # ps files which should go in $(PSFILES)
 clean: htclean_fluidity_manual
-	rm -r $(TARGETS) $(PSFILES) *.dvi *.aux *.log *.bbl *.blg *.toc *.lof \
+	rm -r $(TARGETS) $(PSFILES) *.dvi *.aux *.log *.bbl *.blg *.brf *.toc *.lof \
 *.idx *.ind *.ilg *.out *.pdftex *_tex.pdf *.pdftex_t *.pstex *.pstex_t \
+version.tex fluidity_manual-fig* tmp.inputs \
 fluidity_manual*.png cmsy*.png $(addsuffix .png, $(XFIG_IMAGES)) 2>/dev/null||true
 
 htclean_%:
