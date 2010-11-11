@@ -1,5 +1,9 @@
 \chapter{Numerical discretisation}\label{chap:numerical_discretisation}
 \section{Introduction \& some definitions}\label{Sect:ND_Intro}
+This chapter covers the numerical discretisation of the model equations
+given in the previous chapter as they are assembled and solved 
+in \fluidity. For a more general introduction into finite element theory
+we refer to a.o. \cite{elman2005} and \cite{gresho1988}.
 
 In this chapter we define the domain we are solving over as $\Omega$. The boundary to
 $\Omega$ is defined as $\dOmega$
@@ -22,8 +26,8 @@ and between elements in the interior.
 The advection-diffusion equation for a scalar tracer $c$,
 is given in conservative form by
 \begin{equation}\label{eq:advdif}
-  \ppt{c} + \div\left(\vec{u} c\right) - \div\tensor{\mu}\cdot\grad c = 0
-\end{equation}.
+  \ppt{c} + \div\left(\vec{u} c\right) - \div\tensor{\mu}\cdot\grad c = 0.
+\end{equation}
 
 We now define a partition of the boundary such that
 $\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
@@ -36,9 +40,12 @@ $\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions o
 \subsection{Continuous Galerkin discretisation}
 \label{sect:ND_advection_diffusion_CG}
 
-In the continuous Galerkin (sometimes we may use the shorthand CG, which should not be confused with conjugate gradients) method,
+The Continuous Galerkin method (often abbreviated to CG, 
+not to be confused with Conjugate Gradients) method,
+is a widely used finite element method in which 
 the solution fields are constrained to be
-continuous between elements. The fields are only assumed to be $C^0$
+continuous between elements. 
+The fields are only assumed to be $C^0$
 continuous, that is to say there is no assumption that the gradient of a
 field is continuous over element boundaries.
 
@@ -1441,7 +1448,7 @@ where $c_{f_k}^{LO}$ is the low order face value and $\tilde{c}_{f_k}^{HO}$ and 
 
 In \fluidity\ the low order pivot value uses first order upwinding (see section \ref{sec:cv_fou}) and the pivot implicitness factor, $\theta_p$, defaults to $1$.  This implicit pivot is then used to overcome the timestep restriction and an extra advection iteration loop is introduced to update the values of $\tilde{c}_{f_k}^{HO}$ and $\tilde{c}_{f_k}^{LO}$.  If this converges, then after a number of iterations $c_{f_k}^{LO n+1} \approx \tilde{c}_{f_k}^{LO}$ and $c_{f_k} \approx \theta c_{f_k}^{HO n+1} + \theta c_{f_k}^{HO n}$.  Hence an implicit high order face value is achieved.  If the iteration does not converge, either due to too few advection iterations being selected or as a result of non-convergent behaviour in the face value limiter, then $c_{f_k}$ is just a linear combination of low order and high order face values.  This still results in a valid face value, although as is generally the case for implicit advection methods, it is not possible to guarantee the boundedness of this scheme.
 
-\section{Momentum Equation}
+\section{Momentum equation}
 \index{momentum equation!discretised}
 
 \label{Sect:ND_momentum_equation}
@@ -1699,6 +1706,65 @@ have the following property\citep{cotter2009}:
 That is, the discretised pressure equation \eqref{eqn:pressure_correction}
 is the same as that would be obtained from a direct $P_{n+1}$
 discretisation of the continuous pressure poisson equation.
+
+\section{Velocity and pressure element pairs}
+\label{Sect:balance_pressure}
+As we have seen, various methods are available in \fluidity for the discretisation of
+velocity and pressure. The momentum equation can be discretised
+using continuous or discontinuous Galerkin for velocity, with arbitrary degree
+polynomials $\PN$. For pressure the continuous Galerkin (again with arbitrary degree $\PN$)
+and control volume (here denoted by $P_{1\text{CV}}$) are available. Not every available 
+pair of velocity and pressure elements is suitable however.
+
+An important criteria for selecting a suitable element pair, 
+is based on the LBB stability condition. For a precise definition and 
+detailed discussion of this condition, see \cite{gresho1988}. Element pairs 
+that do not satisfy this condition suffer from spurious pressure modes. All equal order element pairs
+$\PNN$ (same order $N$ for velocity and pressure), including the popular $\Poo$, suffer from this problem.
+A common workaround is to add
+a stabilisation term to the pressure equation. This however introduces a numerical error in 
+the continuity equation - i.e. equation \eqref{continuity_byparts} is not strictly adhered to. 
+The fact that the discrete velocity is no longer divergence free may 
+also have repercussions for the solution of the advection-diffusion equations.
+
+Another consideration for choosing the right element pair is based 
+on an analysis of the
+dominant terms in the momentum equation. For instance, for ocean applications the 
+so called geostrophic balance between Coriolis, buoyancy and the pressure gradient
+is very important. For a balance between Coriolis and pressure gradient it is necessary
+that pressure itself is discretised in a higher order polynomial space than velocity, so that its
+gradient can match the Coriolis term. Another approach is to separate out this balance in an
+additional balance solve as discussed in the next section. If the viscous term is dominant in 
+the momentum equation, a higher order velocity discretisation than pressure may be 
+desirable. For instance in Stokes problems the $\Ptwo-\Pone$ element pair is popular.
+
+The following table gives an overview of element pairs available in \fluidity.
+\begin{center}
+\begin{tabular}{lp{0.8\textwidth}}
+$\Poo$ & Because of its simplicity this element pair in which pressure and velocity are
+both piecewise linear, is very popular. It does however have a number of disadvantages. Because it
+is not stable, a stabilisation of the pressure equation is usually required. Also in problems where
+buoyancy or Coriolis are dominant terms, an additional balance solve may be required (see next section).\\
+$\PoDGPt$ & This is element pair ($P_{1\mathrm{DG}}$ for velocity and $P2$ for pressure),
+is highly recommended for large scale ocean applications of \fluidity. It is
+LBB stable and can represent the discrete geostrophic balance exactly. See \cite{cotter2009} for more 
+information on the use of this element pair in ocean applications. One of the advantages of choosing
+a discontinuous element pair is that the mass matrix can be inverted locally, so that the mass matrix
+does not have to be lumped, as explained in section \ref{Sect:ND_cg_mass_lumping}. \\
+$\Pzo$ & The $\PoDGPt$ pair can be extended to a family of velocity, pressure pairs $P_{N+1\text{DG}}P_N$.
+The $\Pzo$ pair can therefore be seen as a lower order version of $\PoDGPt$, which is less accurate
+but also cheaper to compute. Unfortunately it is known that for $P0$ velocity, the viscosity schemes 
+available in fluidity only really give an accurate answer for structured meshes. \\
+$P0P_{1\text{CV}}$ & This is similar to the $\Pzo$ pair but with a $P_{1\text{CV}}$ discretisation 
+for pressure. This has the advantage that in the advection equation for $P_{1CV}$ tracers, the 
+advective velocity will be exactly divergence free, as the continuity equation 
+is tested with $P_{1\text{CV}}$ test functions. This is therefore the element pair of choice
+for multimaterial runs. \\
+$P2P1$ & This is a well known, stable element pair (also known as Taylor Hood. It does require 
+a special mass lumping procedure. It is often used in problems with a dominant viscosity term (e.g. 
+pure Stokes problems).
+\end{tabular}
+\end{center}
 
 \section{Balance pressure}
 \label{Sect:balance_pressure}
