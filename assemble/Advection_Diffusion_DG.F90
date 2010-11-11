@@ -576,7 +576,7 @@ contains
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
        ! dT = dT + RHS
-       !call addto(delta_T, RHS, -1.0)
+       call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
        

@@ -1977,6 +1977,8 @@ contains
        end if
        ! no normal flow b.c. is set for the 1st (normal) component
        if (velocity_bc_type(1,face)==3) then
+          ! No normal flow is implemented here by switching off the
+          ! advection boundary integral.
           no_normal_flow=.true.
        end if
        have_pressure_bc = pressure_bc_type(face) > 0
@@ -1993,7 +1995,7 @@ contains
     ! Construct bilinear forms.
     !----------------------------------------------------------------------
 
-    if(have_advection) then
+    if(have_advection.and..not.no_normal_flow) then
       ! Advecting velocity at quadrature points.
        u_f_q = face_val_at_quad(U_nl, face)
        u_f2_q = face_val_at_quad(U_nl, face_2)
