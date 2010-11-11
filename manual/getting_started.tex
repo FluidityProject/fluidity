@@ -426,6 +426,19 @@ all on the same configuration command line, separated by spaces. For example:
 ./configure --prefix=/data/fluidity --enable-debugging
 \end{lstlisting}
 
+Note that there is one key option NOT enabled by default which users running
+the \fluidity\ examples will need to enable to make all examples work. This is 
+\lstinline[language=Bash]+--enable-2d-adaptivity+ , which cannot be turned on
+as a default as it makes use of external code that is not license-compatible
+with all other \fluidity\ codes. Hence, it is a reasonable default state for
+you to run:
+
+\begin{lstlisting}[language=Bash]
+./configure --enable-2d-adaptivity
+\end{lstlisting}
+
+We'll go on now to discussing enabling and disabling features.
+
 \subsubsection{Enabling and disabling features}
 \label{sect:configure_enable_disable_features}
 
@@ -511,6 +524,17 @@ make
 which will generate \fluidity\ and Diamond programs in the
 \lstinline[language=Bash]+bin/+ directory and a set of libraries in the
 \lstinline[language=Bash]+lib/+ directory. 
+
+If you have a modern, powerful computer then you can speed this process up
+significantly by parallelising the make, running:
+
+\begin{lstlisting}[language=Bash]
+make -j
+\end{lstlisting}
+
+Note that this is very resource-intensive and whilst most modern workstations
+should be equal to the task it should not be run on shared machines (ie, login
+nodes of compute clusters) or systems with smaller quantities of memory.
 
 If you want to build the extended set of \fluidity\ tools which supplement the
 main \fluidity\ program, section \ref{sect:fltools}, run:
