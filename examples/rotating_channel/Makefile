@@ -29,7 +29,7 @@ postprocess:
 input: clean preprocess
 
 clean:
-	$(foreach layers,4 8 16 32 64, rm -r channel-$(layers);)
+	$(foreach layers,4 8 16 32 64, rm -rf channel-$(layers);)
 	rm -f *.stat
 	rm -f *.d.* *.vtu
 	rm -f *.msh *.geo
