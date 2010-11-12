@@ -1931,15 +1931,15 @@ start =
                            element print_diagnostics { empty }?
                       }?,
                       ## Calculate diagnostic variables associated with the solids.
-                      element print_diagnostics { empty }?,
-                      ## ONLY print out the drag force (obsolete, will be removed in future)
-                      element print_drag { empty }?
+                      element print_diagnostics { empty }?
                  }|
                  element two_way_coupling{
                       ## The solid mesh.
                       ##
                       ## Y3D FEMDEM mesh format only supported.
-                      element mesh{ attribute file_name {xsd:string} }
+                      element mesh{ attribute file_name {xsd:string} },
+                      ## Calculate diagnostic variables associated with the solids.
+                      element print_diagnostics { empty }?
                  }
               )
          }?
@@ -3952,6 +3952,22 @@ scalar_field_choice =
                }
             )
          }|
+         ## This is field should only be used with FEMDEM and adapt_at_first_timestep.
+         ## It is used for adapting the mesh at the first time step
+         ## and then it is removed from the state.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "FirstAdaptDummy" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
 #
 # Insert new prescribed scalar fields here using the template:
 #        element scalar_field {
@@ -4224,20 +4240,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SolidConcentration" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "OldSolidConcentration" },
             (
                element diagnostic {
                   internal_algorithm,

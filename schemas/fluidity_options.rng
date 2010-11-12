@@ -2734,12 +2734,6 @@ The t argument is for future use only - currently solid locations are only set a
                   <empty/>
                 </element>
               </optional>
-              <optional>
-                <element name="print_drag">
-                  <a:documentation>ONLY print out the drag force (obsolete, will be removed in future)</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
             </element>
             <element name="two_way_coupling">
               <element name="mesh">
@@ -2750,6 +2744,12 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
                   <data type="string"/>
                 </attribute>
               </element>
+              <optional>
+                <element name="print_diagnostics">
+                  <a:documentation>Calculate diagnostic variables associated with the solids.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </choice>
         </element>
@@ -5196,6 +5196,26 @@ and electrochemical problems
           </element>
         </choice>
       </element>
+      <element name="scalar_field">
+        <a:documentation>This is field should only be used with FEMDEM and adapt_at_first_timestep.
+It is used for adapting the mesh at the first time step
+and then it is removed from the state.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>FirstAdaptDummy</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
       <!--
         
         Insert new prescribed scalar fields here using the template:
@@ -5528,24 +5548,6 @@ Adapting to this field is not recommended</a:documentation>
         </attribute>
         <attribute name="name">
           <value>SolidConcentration</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>OldSolidConcentration</value>
         </attribute>
         <choice>
           <element name="diagnostic">

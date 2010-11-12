@@ -1334,16 +1334,15 @@
       end if
       div_relu_gi = ele_div_at_quad(nu, ele, du_t)
 
-!      unfortunately, this doesn't work so comment it out for now...
 !      if (have_femdem) then
-!        ! use u_f to advect, this is: \widehat{\u_f}/\alpha_f
-!        ! \alpa_f is 0 in the solid so we need to clip it
-!        solid_gi = max (1. - ele_val_at_quad(solid, ele), 1.e-1)
-!        relu_gi = ele_val_at_quad(nu, ele) / spread(solid_gi, 1, u%dim)
-!        if(move_mesh) then
-!           relu_gi = relu_gi - ele_val_at_quad(ug, ele) / spread(solid_gi, 1, u%dim)
-!        end if
-!        div_relu_gi = ele_div_at_quad_femdem(nu, solid, ele, du_t)
+!         ! use u_f to advect, this is: \widehat{\u_f}/\alpha_f
+!         ! \alpa_f is 0 in the solid so we need to clip it
+!         solid_gi = max (1. - ele_val_at_quad(solid, ele), 1.e-3)
+!         relu_gi = ele_val_at_quad(nu, ele) / spread(solid_gi, 1, u%dim)
+!         if(move_mesh) then
+!            relu_gi = relu_gi - ele_val_at_quad(ug, ele) / spread(solid_gi, 1, u%dim)
+!         end if
+!         div_relu_gi = ele_div_at_quad_femdem(nu, solid, ele, du_t)
 !      end if
 
       if(integrate_advection_by_parts) then

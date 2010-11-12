@@ -235,6 +235,9 @@ contains
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
             "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
+
+       ! Remove dummy field used by implicit_solids
+       if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
@@ -750,7 +753,7 @@ contains
 
        if (have_option("/implicit_solids") .and. have_option("/timestepping/nonlinear_iterations/tolerance")) then
           if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-             call implicit_solids_nonlinear_iteration_converged(state(1), its)
+             call implicit_solids_nonlinear_iteration_converged(state(1))
           end if
        end if
 

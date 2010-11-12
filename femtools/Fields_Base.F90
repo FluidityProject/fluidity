@@ -2429,7 +2429,7 @@ contains
     quad_div=0.0
 
     do i=1,field%dim
-       quad_div=quad_div+matmul(ele_val(field, i, ele_number)/max(1.-ele_val(solid, ele_number), 1.e-1),dn(:,:,i))
+       quad_div=quad_div+matmul(ele_val(field, i, ele_number)/max(1.-ele_val(solid, ele_number), 1.e-3),dn(:,:,i))
     end do
     
   end function ele_div_at_quad_femdem

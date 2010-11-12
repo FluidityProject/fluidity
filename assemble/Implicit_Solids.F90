@@ -99,12 +99,11 @@ module implicit_solids
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
-  logical, save :: do_print_diagnostics, print_drag
-  logical, save :: do_calculate_volume_fraction
+  logical, save :: do_print_diagnostics, do_calculate_volume_fraction
   integer, dimension(:), allocatable, save :: node_to_particle
 
   private
-  public:: solids, implicit_solids_nonlinear_iteration_converged
+  public:: solids, implicit_solids_nonlinear_iteration_converged, remove_dummy_field
 
 contains
 
@@ -168,7 +167,7 @@ contains
        call set_absorption_coefficient(state)
 
        if (do_print_diagnostics .and. its==itinoi) &
-            call print_diagnostics_one_way(state, its)
+            call print_diagnostics_one_way(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -189,8 +188,7 @@ contains
           call set(solid_local, solid)
 
           call allocate(old_solid_local, solid%mesh, "OldSolidConcentration")
-          ! set the local field to the interpolated field after an adapt
-          call set(old_solid_local, old_solid)
+          call zero(old_solid_local)
 
           call allocate(fl_pos_solid_vel, dim, solid%mesh, "SolidVelocity")
           call zero(fl_pos_solid_vel)
@@ -240,7 +238,7 @@ contains
        call set_absorption_coefficient(state)
 
        ! print the total solid drag force
-       if (its==1) call print_diagnostics_femdem(state)
+       if (do_print_diagnostics .and. its==1) call print_diagnostics_femdem(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -474,10 +472,9 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine print_diagnostics_one_way(state, its)
+  subroutine print_diagnostics_one_way(state)
 
-    type(state_type), intent(inout) :: state
-    integer, intent(in) :: its
+    type(state_type), intent(in) :: state
     type(vector_field), pointer :: velocity, positions, absorption
     type(scalar_field), pointer :: temperature
     type(scalar_field) :: lumped_mass
@@ -485,6 +482,7 @@ contains
     real, dimension(:,:), allocatable :: particle_drag
     real :: nusselt
     integer :: i, j, particle, stat
+    character(len=FIELD_NAME_LEN) :: FMT1, FMT2
 
     ewrite(2, *) "inside print_diagnostics"
 
@@ -539,11 +537,16 @@ contains
        nusselt = nusselt + particle_nusselt(i)
     end do
 
-    ! write files    
+    ! write files
+
+    FMT1 = "(F10.5, 1X, "//int2str(positions%dim+1)//"(F12.5, 1X))"
+    FMT2 = "(F10.5, 1X, " &
+         //int2str((positions%dim+1)*number_of_solids)//"(F12.5, 1X))"
+
     if (GetRank() == 0) then
        ! file format: time, fx, fy, fz, nusselt
        open(1453, file="diagnostic_data", position="append")
-       write(1453, *) &
+       write(1453, FMT1, advance="no") &
             current_time, (drag(i), i = 1, positions%dim), nusselt
        close(1453)
 
@@ -551,17 +554,10 @@ contains
           ! file format: 
           ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
           open(1454, file="particle_diagnostic_data", position="append")
-          write(1454, *) current_time, &
+          write(1454, FMT2, advance="no") current_time, &
                (particle_drag(i,:), i = 1, number_of_solids), &
                (particle_nusselt(i), i = 1, number_of_solids)
           close(1454)
-       end if
-
-       ! Print out F_d in drag_force
-       if (print_drag) then
-          open(1455, file="drag_force", position="append")
-          write(1455, '(2X, I4, 3X, 3(ES30.16E3, 3X))') its, (drag(i), i = 1, positions%dim)
-          close(1455)
        end if
     end if
 
@@ -687,8 +683,6 @@ contains
          have_option("/implicit_solids/one_way_coupling/print_diagnostics")
     do_print_multiple_solids_diagnostics = &
          have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
-    ! figure out if we want to print out the drag force
-    print_drag = have_option("/implicit_solids/one_way_coupling/print_drag")
 
     ! initialise diagnostics (and drag force) data file
     if (GetRank() == 0 .and. do_print_diagnostics) then
@@ -703,22 +697,15 @@ contains
        end if
     end if
 
-    ! drag_force file
-    if (GetRank() == 0 .and. print_drag) then
-       dat_unit = free_unit()
-       open(dat_unit, file="drag_force", status="replace")
-       close(dat_unit)
-    end if
-
   end subroutine one_way_initialise
 
   !----------------------------------------------------------------------------
 
   subroutine femdem_two_way_initialise(state)
 
+    type(state_type), intent(in) :: state
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     type(vector_field), pointer :: positions
-    type(state_type) :: state
     integer :: quad_degree
     type(mesh_type) :: mesh
 
@@ -832,6 +819,10 @@ contains
     assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
     assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_vel))
 
+    ! figure out if we want to print out diagnostics
+    do_print_diagnostics = &
+         have_option("/implicit_solids/two_way_coupling/print_diagnostics")
+
 #ifdef USING_FEMDEM
     deallocate(ele1, ele2, ele3, ele4)
     deallocate(face1, face2, face3)
@@ -839,6 +830,39 @@ contains
 #endif
 
   end subroutine femdem_two_way_initialise
+
+  !----------------------------------------------------------------------------
+
+  subroutine remove_dummy_field(state)
+
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: dummy
+    logical :: have_dummy
+    integer :: stat
+
+    ! remove dummy field used for
+    ! adapt_at_first_timestep
+    dummy => extract_scalar_field(state, "FirstAdaptDummy", stat)
+    have_dummy = stat == 0
+
+    if (have_dummy) then
+       call remove_scalar_field(state, "FirstAdaptDummy")
+       call remove_scalar_field(state, "FirstAdaptDummyInterpolationErrorBound")
+
+       call remove_scalar_field(state, "OldFirstAdaptDummy")
+       call remove_scalar_field(state, "OldFirstAdaptDummyInterpolationErrorBound")
+
+       call remove_scalar_field(state, "IteratedFirstAdaptDummy")
+       call remove_scalar_field(state, "IteratedFirstAdaptDummyInterpolationErrorBound")
+
+       call delete_option('/material_phase[0]/scalar_field::FirstAdaptDummy')
+    else
+       ewrite(-1, *) "You should be using a FirstAdaptDummy field &
+            & with adapt_at_first_timestep."
+    end if
+
+  end subroutine remove_dummy_field
 
   !----------------------------------------------------------------------------
 
@@ -858,16 +882,15 @@ contains
        init=.true.
     end if
 
-#ifdef USING_FEMDEM
-    ! in  :: ext_pos_bulk_vel
-    ! out :: updated external_positions and ext_pos_solid_vel
-
     call zero(ext_pos_bulk_vel)
     do i = 1, external_positions%dim
        ext_pos_bulk_vel%val(i)%ptr(:) = &
        ext_pos_fluid_vel%val(i)%ptr(:) + ext_pos_solid_vel%val(i)%ptr(:)
-     end do
+    end do
 
+#ifdef USING_FEMDEM
+    ! in  :: ext_pos_bulk_vel
+    ! out :: updated external_positions and ext_pos_solid_vel
     call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho, &
          external_positions%val(1)%ptr, external_positions%val(2)%ptr, &
          external_positions%val(3)%ptr, &
@@ -980,7 +1003,7 @@ contains
        ewrite_minmax(field_fl%val(3)%ptr)
 
        solid_velocity => extract_vector_field(state, "SolidVelocity")
-       call set(solid_velocity, field_fl)
+       call set(solid_velocity, fl_pos_solid_vel)
 
     else if (operation == "out") then
 
@@ -1008,12 +1031,11 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_nonlinear_iteration_converged(state, its)
+  subroutine implicit_solids_nonlinear_iteration_converged(state)
 
-    type(state_type), intent(inout) :: state
-    integer, intent(in) :: its
+    type(state_type), intent(in) :: state
 
-    if (one_way_coupling) call print_diagnostics_one_way(state, its)
+    if (one_way_coupling) call print_diagnostics_one_way(state)
 
     if (do_adapt_mesh(current_time, timestep)) then
        if (one_way_coupling) then
