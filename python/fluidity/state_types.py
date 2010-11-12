@@ -297,7 +297,8 @@ class Transform:
     if(dim == ldim):
       if(dim==1):
         for gi in range(element.ngi):
-          J[0,0] = numpy.dot(X[1,:],element.dn[:,gi,1])  # Still wrong probably!
+          J = numpy.zeros([dim, ldim])
+          J[0,0] = numpy.dot(X[0,:],element.dn[:,gi,0])  # Still wrong probably!
           self.detwei[gi] = abs(J[0,0])*element.quadrature.weights[gi]
           # The Jacobian is the transpose of the J that was calculated
           self.set_J(numpy.transpose(J),gi)
@@ -315,7 +316,7 @@ class Transform:
       # 1-dim element embedded in 'dim'-dimensional space:
       if(ldim==1):
         for gi in range(element.ngi):
-          J[:,1] = X*element.dn[:,gi,1]
+          J[:,0] = X*element.dn[:,gi,0]
           self.detwei[gi] = element.quadrature.weights[gi]
           self.set_J(numpy.transpose(J),gi)
 
