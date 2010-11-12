@@ -84,7 +84,8 @@ module diagnostic_variables
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det, &
-       & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime
+       & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
+       & uninitialise_diagnostics
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
 
@@ -111,6 +112,9 @@ module diagnostic_variables
   interface insert_det
      module procedure detector_list_insert
   end interface
+
+  ! Idempotency variable
+  logical, save :: initialised=.false.
 
   !! Output unit for diagnostics file.
   !! (assumed non-opened as long these are 0)
@@ -436,9 +440,6 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    ! Idempotency variable
-    logical, save :: initialised=.false.
-
     integer :: column, i, j, phase, stat
     integer, dimension(2) :: shape_option
     integer :: no_mixing_bins
@@ -743,6 +744,16 @@ contains
     ewrite(1, *) "Exiting initialise_diagnostics"
 
   end subroutine initialise_diagnostics
+
+  subroutine uninitialise_diagnostics
+  ! Undo all of the initialise_diagnostics business.
+  ! Necessary for adjoints, for a start ...
+  ! Make sure to call close_diagnostic_files before re-initialising
+    initialised = .false.
+    deallocate(mesh_list)
+    deallocate(sfield_list)
+    deallocate(vfield_list)
+  end subroutine uninitialise_diagnostics
 
   subroutine initialise_constant_diagnostics(unit, binary_format)
     !!< Output constant values in the header of the stat file.
