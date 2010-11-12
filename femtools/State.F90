@@ -78,7 +78,7 @@ module state_module
   end type state_type
 
   interface deallocate
-     module procedure deallocate_state, deallocate_state_vector
+     module procedure deallocate_state, deallocate_state_vector, deallocate_state_rank_2
   end interface
 
   interface nullify
@@ -303,6 +303,17 @@ contains
     end do
   
   end subroutine deallocate_state_vector
+
+  subroutine deallocate_state_rank_2(state)
+    type(state_type), dimension(:,:), intent(inout) :: state
+    integer :: i, j
+
+    do i=1,size(state, 1)
+      do j=1,size(state, 2)
+        call deallocate(state(i,j))
+      end do
+    end do
+  end subroutine deallocate_state_rank_2
 
   elemental subroutine nullify_state(state)
     !!< Nullify all the pointers in state. This should not be necessary but
