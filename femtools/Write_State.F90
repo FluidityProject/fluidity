@@ -374,6 +374,8 @@ contains
     type(scalar_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
+
+    integer :: stat
     
     if (field_name=='Time') then
       field => extract_scalar_field(state(istate), field_name)
@@ -397,13 +399,25 @@ contains
       ! fields without option paths
       if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
-        field => extract_scalar_field(state(istate), field_name(4:))
+        field => extract_scalar_field(state(istate), field_name(4:), stat=stat)
+        if (stat /= 0) then
+          include_scalar_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
-        field => extract_scalar_field(state(istate), field_name(10:))
+        field => extract_scalar_field(state(istate), field_name(10:), stat=stat)
+        if (stat /= 0) then
+          include_scalar_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
-        field => extract_scalar_field(state(istate), field_name(9:))
+        field => extract_scalar_field(state(istate), field_name(9:), stat=stat)
+        if (stat /= 0) then
+          include_scalar_field_in_vtu = .false.
+          return
+        end if
       else
         include_scalar_field_in_vtu=.false.
         return
@@ -454,6 +468,8 @@ contains
     type(vector_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
+
+    integer :: stat
     
     if (.not. has_vector_field(state(istate), field_name)) then
       ! not even in state, so no
@@ -482,13 +498,25 @@ contains
         return
       else if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
-        field => extract_vector_field(state(istate), field_name(4:))
+        field => extract_vector_field(state(istate), field_name(4:), stat=stat)
+        if (stat /= 0) then
+          include_vector_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
-        field => extract_vector_field(state(istate), field_name(10:))
+        field => extract_vector_field(state(istate), field_name(10:), stat=stat)
+        if (stat /= 0) then
+          include_vector_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
-        field => extract_vector_field(state(istate), field_name(9:))
+        field => extract_vector_field(state(istate), field_name(9:), stat=stat)
+        if (stat /= 0) then
+          include_vector_field_in_vtu = .false.
+          return
+        end if
       else
         include_vector_field_in_vtu=.false.
         return
@@ -540,6 +568,8 @@ contains
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
+    integer :: stat
+
     if (.not. has_tensor_field(state(istate), field_name)) then
       ! not even in state, so no
       include_tensor_field_in_vtu=.false.
@@ -555,13 +585,25 @@ contains
       ! fields without option paths
       if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
-        field => extract_tensor_field(state(istate), field_name(4:))
+        field => extract_tensor_field(state(istate), field_name(4:), stat=stat)
+        if (stat /= 0) then
+          include_tensor_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
-        field => extract_tensor_field(state(istate), field_name(10:))
+        field => extract_tensor_field(state(istate), field_name(10:), stat=stat)
+        if (stat /= 0) then
+          include_tensor_field_in_vtu = .false.
+          return
+        end if
       else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
-        field => extract_tensor_field(state(istate), field_name(9:))
+        field => extract_tensor_field(state(istate), field_name(9:), stat=stat)
+        if (stat /= 0) then
+          include_tensor_field_in_vtu = .false.
+          return
+        end if
       else
         include_tensor_field_in_vtu=.false.
         return
