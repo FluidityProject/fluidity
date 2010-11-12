@@ -196,8 +196,23 @@ module embed_python
     end subroutine real_vector_from_python
   end interface real_vector_from_python
 
+  interface integer_vector_from_python
+    module procedure integer_vector_from_python_interface
+
+    subroutine integer_vector_from_python(function, function_len, t, result,&
+         & result_len, stat) bind(c)
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in) :: function_len
+      character(kind=c_char,len = 1), intent(in) :: function
+      real(kind=c_double), intent(in) :: t
+      type(c_ptr), intent(out) :: result
+      integer(c_int), intent(out) :: result_len, stat
+    end subroutine integer_vector_from_python
+  end interface integer_vector_from_python
+
   interface
-     subroutine free_real_vector(vector) bind(c)
+     subroutine free_c_vector(vector) bind(c)
       use :: iso_c_binding
       implicit none
       type(c_ptr) :: vector
@@ -239,7 +254,7 @@ module embed_python
     & set_vector_field_from_python, set_tensor_field_from_python, &
     & set_particle_sfield_from_python, set_particle_vfield_from_python, &
     & set_detectors_from_python, real_from_python, real_vector_from_python, &
-    & integer_from_python, string_from_python
+    & integer_from_python, string_from_python, integer_vector_from_python
 
 contains
 
@@ -492,9 +507,48 @@ contains
 
     result=tmp_result
 
-    call free_real_vector(c_result)
+    call free_c_vector(c_result)
 
   end subroutine real_vector_from_python_interface  
+
+  subroutine integer_vector_from_python_interface(function, current_time,  result, stat)
+    character(len = *), intent(in) :: function
+    real, intent(in) :: current_time
+    integer, dimension(:), pointer, intent(out) :: result
+    integer, optional, intent(out) :: stat
+
+    
+    type(c_ptr) :: c_result
+    integer(kind=c_int) :: c_result_len
+    integer, dimension(:), pointer :: tmp_result
+    integer(kind=c_int) :: lstat
+
+    if(present(stat)) stat = 0
+
+    call real_vector_from_python(function, &
+         int(len_trim(function), kind=c_int), &
+         real(current_time, kind=c_double), c_result, c_result_len, lstat)
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = lstat
+        return
+      else
+        ewrite(-1, *) "Python error, Python string was:"
+        ewrite(-1, *) trim(function)
+        FLExit("Dying!")
+      end if
+    end if
+
+    call c_f_pointer(c_result, tmp_result, (/c_result_len/))
+
+    allocate(result(c_result_len))
+
+    result=tmp_result
+
+    call free_c_vector(c_result)
+
+  end subroutine integer_vector_from_python_interface  
 
   subroutine integer_from_python_sp(function, function_len, t, result, stat)
     integer, intent(in) :: function_len
