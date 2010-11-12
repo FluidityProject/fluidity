@@ -41,8 +41,10 @@ subroutine test_surface_integrals_2d
   integer :: i
   real :: integral
   real, dimension(:), allocatable :: pos
+  type(element_type) :: derived_shape
+  type(mesh_type) :: derived_mesh
   type(scalar_field) :: test_s_field
-  type(vector_field) :: mesh_field, test_v_field
+  type(vector_field) :: mesh_field, test_v_field, derived_mesh_field
   
   mesh_field = read_triangle_files("data/square-cavity-2d", quad_degree = 4)
   assert(mesh_dim(mesh_field) == 2)
@@ -219,8 +221,38 @@ subroutine test_surface_integrals_2d
 
   call deallocate(test_v_field)
   
+  call deallocate(mesh_field)
+  
+  mesh_field = read_triangle_files("data/square", quad_degree = 6)
+  
+  derived_shape = make_element_shape(mesh_field%mesh%shape, degree = 2)
+  derived_mesh = make_mesh(mesh_field%mesh, derived_shape)
+  call deallocate(derived_shape)
+  
+  call allocate(test_s_field, derived_mesh)
+  call allocate(derived_mesh_field, 2, derived_mesh)
+  call deallocate(derived_mesh)
+  call remap_field(mesh_field, derived_mesh_field)
+  
+  do i = 1, node_count(derived_mesh_field)
+    pos = node_val(derived_mesh_field, i)
+    call set(test_s_field, i, pos(1)**2*pos(2))
+  end do
+    
+  integral = gradient_normal_surface_integral(test_s_field, mesh_field, surface_ids = (/2/)) ! Top
+  call report_test("[Gradient of cubic scalar on quadratic mesh]", integral .fne. 0.25, .false., "Incorrect integral")
+  
+  integral = gradient_normal_surface_integral(test_s_field, mesh_field, surface_ids = (/4/)) ! Side
+  call report_test("[Gradient of cubic scalar on quadratic mesh]", integral .fne. 1.25, .false., "Incorrect integral")
+  
+  integral = gradient_normal_surface_integral(test_s_field, mesh_field, surface_ids = (/6/)) ! Internal
+  call report_test("[Gradient of cubic scalar on quadratic mesh]", integral .fne. -0.5, .false., "Incorrect integral")
+  
+  call deallocate(derived_mesh_field)
+  call deallocate(mesh_field)
+  call deallocate(test_s_field)  
+  
   deallocate(pos)
   
-  call deallocate(mesh_field)
 
 end subroutine test_surface_integrals_2d
