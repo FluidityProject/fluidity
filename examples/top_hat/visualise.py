@@ -10,7 +10,7 @@ to your PYTHONPATH environment variable, e.g.:
   sys.exit(1)
   
 # open one of the vtus output by fluidity
-vt=vtktools.vtu("top_hat_cg_100.vtu")
+vt=vtktools.vtu(sys.argv[1])
 # returns an array containing the 3-d locations of the nodes in the mesh
 # of these only the first coordinate is used in 1D, i.e xyz[:,0]
 xyz=vt.GetLocations()

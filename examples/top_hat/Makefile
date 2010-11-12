@@ -11,7 +11,10 @@ run:
 	../../bin/fluidity -v2 -l top_hat_cv.flml
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling visualise.py
+	python visualise.py top_hat_cg_100.vtu
+	python visualise.py top_hat_cv_100.vtu
+	python visualise.py top_hat_dg_100.vtu
 
 input: clean preprocess
 
