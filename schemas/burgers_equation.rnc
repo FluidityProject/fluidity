@@ -25,8 +25,10 @@ start =
             anystring
          },
          geometry,
+         io,
          timestepping,
-         material_phase
+         material_phase,
+         adjoint_options?
       }
    )
 
@@ -224,6 +226,7 @@ material_phase =
                   boundary_conditions+,
                   element viscosity { real },
                   element stat { comment },
+                  adjoint_storage,
                   element scalar_field {
                      attribute name { "Source" },
                      attribute rank { "0" },
@@ -234,32 +237,6 @@ material_phase =
                   }?
                }
             },
-            ## The adjoint solution for a given functional
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "AdjointVelocity" },
-               element prognostic {
-                  element mesh {
-                     attribute name { "VelocityMesh" }      
-                  },
-                  element solver {
-                     linear_solver_options_asym
-                  },
-                  initial_condition_scalar,
-                  boundary_conditions+,
-                  element stat { comment },
-                  ## Let J(u) be the functional of interest. Then
-                  ## the source should evaluate the function
-                  ## (\partial J/\partial u)|_u at each point.
-                  element scalar_field {
-                     attribute name { "Source" },
-                     attribute rank { "0" },
-                     element prescribed {
-                        prescribed_scalar_field_no_adapt
-                     }
-                  }
-               }
-            }?,
             ## Prescribed or diagnostic scalar fields.
             element scalar_field {
               attribute rank { "0" },
@@ -267,11 +244,14 @@ material_phase =
               (
                  element prescribed {
                     mesh_choice,
-                    prescribed_scalar_field_no_adapt
+                    prescribed_scalar_field_no_adapt,
+                    recalculation_options?,
+                    adjoint_storage
                  }|
                  element diagnostic {
                     mesh_choice,
-                    diagnostic_scalar_field
+                    diagnostic_scalar_field,
+                    adjoint_storage
                  }
               )
             }*
@@ -313,3 +293,79 @@ diagnostic_scalar_field =
       element stat { comment },
       recalculation_options?
    )
+
+adjoint_storage =
+   (
+      ## Informs the model whether the field should be computed only in the
+      ## forward model, the adjoint model, or in both.
+      ## If /adjoint is not enabled, this has no effect whatsoever.
+      element adjoint_storage {
+         (
+            ## Include the field in both the forward and adjoint states.
+            element include_in_both {
+               empty
+            }|
+            ## Include the field only in the forward state.
+            element only_in_forward {
+               empty
+            }|
+            ## Include the field only in the adjoint state.
+            element only_in_adjoint {
+               empty
+            }
+         )
+      }
+   )
+
+adjoint_options =
+   ## Turn on the solution of the adjoint problem.
+   ## To compute the adjoint you must either specify code for the functional
+   ## or for its derivative. If the derivative is not specified, then
+   ## the independent set perturbation method will be used to approximate
+   ## its derivative. 
+   element adjoint {
+      ## The functional to be computed.
+      ## If the derivative is not specified, then the independent set perturbation
+      ## method will be employed to approximate its derivative.
+      ## FIXME: needs more documentation
+      element functional {
+        ## Python code for the functional
+        element algorithm {
+           attribute name { "functional" },
+           python_code
+        }
+      }?,
+      ## The derivative of the functional. If this is specified, then
+      ## the derivative can be computed exactly and more efficiently than
+      ## if the independent set perturbation method is employed to approximate it.
+      element functional_derivative {
+        ## Python code for the functional derivative
+        element algorithm {
+           attribute name { "functional_derivative" },
+           python_code
+        }
+      }?
+   }
+
+io =
+   ## Options to do with I/O
+   element io {
+     ## Dump format
+     element dump_format { "vtk" },
+     ## Dump period, in timesteps. Defaults to 1
+     element dump_period_in_timesteps { 
+       element constant { integer }
+     }?,
+     (
+        ## The mesh on to which all the fields will be
+        ## interpolated for VTK output.
+        element output_mesh {
+           attribute name { "VelocityMesh" }
+        }|
+        ## The mesh on to which all the fields will be
+        ## interpolated for VTK output.
+        element output_mesh {
+           attribute name { xsd:string }
+        }
+     )
+  } 

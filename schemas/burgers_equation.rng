@@ -24,8 +24,12 @@ characters in the simulation name should be avoided.</a:documentation>
         <ref name="anystring"/>
       </element>
       <ref name="geometry"/>
+      <ref name="io"/>
       <ref name="timestepping"/>
       <ref name="material_phase"/>
+      <optional>
+        <ref name="adjoint_options"/>
+      </optional>
     </element>
   </start>
   <define name="geometry">
@@ -279,6 +283,7 @@ Recommended to be 0.5.</a:documentation>
           <element name="stat">
             <ref name="comment"/>
           </element>
+          <ref name="adjoint_storage"/>
           <optional>
             <element name="scalar_field">
               <attribute name="name">
@@ -297,48 +302,6 @@ Recommended to be 0.5.</a:documentation>
           </optional>
         </element>
       </element>
-      <optional>
-        <element name="scalar_field">
-          <a:documentation>The adjoint solution for a given functional</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>AdjointVelocity</value>
-          </attribute>
-          <element name="prognostic">
-            <element name="mesh">
-              <attribute name="name">
-                <value>VelocityMesh</value>
-              </attribute>
-            </element>
-            <element name="solver">
-              <ref name="linear_solver_options_asym"/>
-            </element>
-            <ref name="initial_condition_scalar"/>
-            <oneOrMore>
-              <ref name="boundary_conditions"/>
-            </oneOrMore>
-            <element name="stat">
-              <ref name="comment"/>
-            </element>
-            <element name="scalar_field">
-              <a:documentation>Let J(u) be the functional of interest. Then
-the source should evaluate the function
-(\partial J/\partial u)|_u at each point.</a:documentation>
-              <attribute name="name">
-                <value>Source</value>
-              </attribute>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="prescribed_scalar_field_no_adapt"/>
-              </element>
-            </element>
-          </element>
-        </element>
-      </optional>
       <zeroOrMore>
         <element name="scalar_field">
           <a:documentation>Prescribed or diagnostic scalar fields.</a:documentation>
@@ -352,10 +315,15 @@ the source should evaluate the function
             <element name="prescribed">
               <ref name="mesh_choice"/>
               <ref name="prescribed_scalar_field_no_adapt"/>
+              <optional>
+                <ref name="recalculation_options"/>
+              </optional>
+              <ref name="adjoint_storage"/>
             </element>
             <element name="diagnostic">
               <ref name="mesh_choice"/>
               <ref name="diagnostic_scalar_field"/>
+              <ref name="adjoint_storage"/>
             </element>
           </choice>
         </element>
@@ -407,5 +375,97 @@ This is cheaper especially if you are enforcing discrete properties on the field
     <optional>
       <ref name="recalculation_options"/>
     </optional>
+  </define>
+  <define name="adjoint_storage">
+    <element name="adjoint_storage">
+      <a:documentation>Informs the model whether the field should be computed only in the
+forward model, the adjoint model, or in both.
+If /adjoint is not enabled, this has no effect whatsoever.</a:documentation>
+      <choice>
+        <element name="include_in_both">
+          <a:documentation>Include the field in both the forward and adjoint states.</a:documentation>
+          <empty/>
+        </element>
+        <element name="only_in_forward">
+          <a:documentation>Include the field only in the forward state.</a:documentation>
+          <empty/>
+        </element>
+        <element name="only_in_adjoint">
+          <a:documentation>Include the field only in the adjoint state.</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="adjoint_options">
+    <element name="adjoint">
+      <a:documentation>Turn on the solution of the adjoint problem.
+To compute the adjoint you must either specify code for the functional
+or for its derivative. If the derivative is not specified, then
+the independent set perturbation method will be used to approximate
+its derivative. </a:documentation>
+      <optional>
+        <element name="functional">
+          <a:documentation>The functional to be computed.
+If the derivative is not specified, then the independent set perturbation
+method will be employed to approximate its derivative.
+FIXME: needs more documentation</a:documentation>
+          <element name="algorithm">
+            <a:documentation>Python code for the functional</a:documentation>
+            <attribute name="name">
+              <value>functional</value>
+            </attribute>
+            <ref name="python_code"/>
+          </element>
+        </element>
+      </optional>
+      <optional>
+        <element name="functional_derivative">
+          <a:documentation>The derivative of the functional. If this is specified, then
+the derivative can be computed exactly and more efficiently than
+if the independent set perturbation method is employed to approximate it.</a:documentation>
+          <element name="algorithm">
+            <a:documentation>Python code for the functional derivative</a:documentation>
+            <attribute name="name">
+              <value>functional_derivative</value>
+            </attribute>
+            <ref name="python_code"/>
+          </element>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="io">
+    <element name="io">
+      <a:documentation>Options to do with I/O</a:documentation>
+      <element name="dump_format">
+        <a:documentation>Dump format</a:documentation>
+        <value>vtk</value>
+      </element>
+      <optional>
+        <element name="dump_period_in_timesteps">
+          <a:documentation>Dump period, in timesteps. Defaults to 1</a:documentation>
+          <element name="constant">
+            <ref name="integer"/>
+          </element>
+        </element>
+      </optional>
+      <choice>
+        <element name="output_mesh">
+          <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+        </element>
+        <element name="output_mesh">
+          <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </choice>
+    </element>
   </define>
 </grammar>

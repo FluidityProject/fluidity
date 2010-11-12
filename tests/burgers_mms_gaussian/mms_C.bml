@@ -29,6 +29,10 @@
       </degree>
     </quadrature>
   </geometry>
+  <io>
+    <dump_format>vtk</dump_format>
+    <output_mesh name="VelocityMesh"/>
+  </io>
   <timestepping>
     <current_time replaces="ACCTIM">
       <real_value rank="0">0.0</real_value>
@@ -102,6 +106,9 @@
           <real_value rank="0">1.0</real_value>
         </viscosity>
         <stat/>
+        <adjoint_storage>
+          <include_in_both/>
+        </adjoint_storage>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -128,6 +135,9 @@
           </python>
         </value>
         <do_not_recalculate/>
+        <adjoint_storage>
+          <include_in_both/>
+        </adjoint_storage>
       </prescribed>
     </scalar_field>
     <scalar_field name="Error" rank="0">
@@ -143,6 +153,9 @@ for i in range(field.node_count):
   field.set(i, soln.node_val(i) + constant - exact.node_val(i))</string_value>
         </algorithm>
         <stat/>
+        <adjoint_storage>
+          <include_in_both/>
+        </adjoint_storage>
       </diagnostic>
     </scalar_field>
   </material_phase>

@@ -12,8 +12,8 @@
 from fluidity_tools import stat_parser as stat
 from math import log
 
-a_error = stat("mms_adjoint_A.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-b_error = stat("mms_adjoint_B.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+a_error = stat("mms_adjoint_A_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+b_error = stat("mms_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
 
 ab_ratio = a_error / b_error
 ab_error = [log(ab_ratio, 2)]
@@ -22,8 +22,8 @@ ab_error = [log(ab_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-b_error = stat("mms_adjoint_B.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-c_error = stat("mms_adjoint_C.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+b_error = stat("mms_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+c_error = stat("mms_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
 
 bc_ratio = b_error / c_error
 bc_error = [log(bc_ratio, 2)]
@@ -32,8 +32,8 @@ bc_error = [log(bc_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-c_error = stat("mms_adjoint_C.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-d_error = stat("mms_adjoint_D.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+c_error = stat("mms_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+d_error = stat("mms_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
 
 cd_ratio = c_error / d_error
 cd_error = [log(cd_ratio, 2)]
@@ -42,8 +42,8 @@ cd_error = [log(cd_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-d_error = stat("mms_adjoint_D.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-e_error = stat("mms_adjoint_E.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+d_error = stat("mms_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+e_error = stat("mms_adjoint_E_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
 
 de_ratio = d_error / e_error
 de_error = [log(de_ratio, 2)]
