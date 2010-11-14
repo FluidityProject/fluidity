@@ -30,7 +30,7 @@
 #include <map>
 #include <sstream>
 #include <stdlib.h>
-
+#include <stdio.h>
 #include "confdefs.h"
 
 #include "c++debug.h"
