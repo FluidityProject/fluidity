@@ -1244,12 +1244,12 @@ module zoltan_integration
     ! deal with reconstructing new mesh, positions, etc. for processes who are only exporting
     call deal_with_exporters
     ! for halo nodes those nodes depend on
-    call zoltan_migration_phase_two
+    call zoltan_migration_phase_two(zz)
     call deallocate_my_lists
 
     call reconstruct_enlist
     call reconstruct_senlist
-    call reconstruct_halo
+    call reconstruct_halo(zz)
     
     if(migrate_extruded_mesh) then
       new_positions_m1d = new_positions ! save a reference to the horizontal mesh you've just load balanced
@@ -1281,12 +1281,12 @@ module zoltan_integration
 
       call deal_with_exporters
       ! for halo nodes those nodes depend on
-      call zoltan_migration_phase_two
+      call zoltan_migration_phase_two(zz)
       call deallocate_my_lists
 
       call reconstruct_enlist
       call reconstruct_senlist
-      call reconstruct_halo
+      call reconstruct_halo(zz)
 
       deallocate(universal_columns)
       call deallocate(universal_to_new_local_numbering_m1d)
@@ -1626,157 +1626,6 @@ module zoltan_integration
         
     end subroutine initialise_transfer
 
-    subroutine reconstruct_halo
-      ! At this point, the receives sets have been populated with all
-      ! the universal node numbers we need to receive from each process.
-      ! So, we are going to use zoltan to invert this to compute
-      ! the send list for each process too.
-      ! Then we will allocate the l2n halo and set it.
-      ! Then we will chop it down to form the l1n halo, the l1e halo, and the
-      ! l2e halo. 
-      ! Supply the peeps with jeeps, brick apiece, capiche?
-
-      integer :: num_import, num_export
-      integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs
-      integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
-      integer :: ierr, i, head
-      type(integer_set), dimension(size(receives)) :: sends
-      integer, dimension(size(receives)) :: nreceives, nsends
-      integer, dimension(ele_count(new_positions)) :: ele_renumber_permutation
-      integer, dimension(node_count(new_positions)) :: node_renumber_permutation
-      integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
-      integer :: universal_node_number, old_new_local_node_number, new_new_local_node_number
-      
-      integer, dimension(ele_count(new_positions)) :: old_new_region_ids
-      
-      ewrite(1,*) "In reconstruct_halo"
-
-      num_import = 0
-      do i=1,size(receives)
-        nreceives(i) = key_count(receives(i))
-        num_import = num_import + nreceives(i)
-      end do
-
-      allocate(import_global_ids(num_import))
-      allocate(import_local_ids(num_import))
-      allocate(import_procs(num_import))
-
-      import_local_ids = 666
-      head = 1
-      do i=1,size(receives)
-        import_global_ids(head:head + nreceives(i) - 1) = set2vector(receives(i))
-        import_procs(head:head + nreceives(i) - 1) = i - 1
-        head = head + nreceives(i)
-      end do
-
-      export_global_ids => null()
-      export_local_ids => null()
-      export_procs => null()
-      export_to_part => null()
-
-      ierr = Zoltan_Compute_Destinations(zz, &
-       & num_import, import_global_ids, import_local_ids, import_procs, &
-       & num_export, export_global_ids, export_local_ids, export_procs)
-      assert(ierr == ZOLTAN_OK)
-
-      ! Now we know the sends too! Thanks, Zoltan!
-
-      deallocate(import_global_ids)
-      deallocate(import_local_ids)
-      deallocate(import_procs)
-
-      ! Now create the sends sets .. easier than pulling it straight out of Zoltan's data structures
-      ! as Zoltan does NOT explicitly guarantee that the sends are organised such that export_procs looks
-      ! like 
-      ! [ sends to process 0 | sends to process 1 | sends to process 2 ... ]
-      ! If such a guarantee were available, then it would be just as easy to use that, but there
-      ! is no such guarantee given in the documentation ...
-      ! Is an appetite for destruction, slap a murder rap on this production
-
-      do i=1,size(sends)
-        call allocate(sends(i))
-      end do
-
-      do i=1,num_export
-        call insert(sends(export_procs(i)+1), export_global_ids(i))
-      end do
-
-      do i=1,size(sends)
-        nsends(i) = key_count(sends(i))
-      end do
-
-      ! Allocate the halo and such
-      ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
-
-      allocate(new_positions%mesh%halos(2))
-      call allocate(new_positions%mesh%halos(2), &
-                    nsends = nsends, &
-                    nreceives = nreceives, &
-                    name = halo_name(zz_halo), &
-                    communicator = halo_communicator(zz_halo), &
-                    nowned_nodes = key_count(new_nodes) - num_import, &
-                    data_type = halo_data_type(zz_halo))
-
-      do i=1,size(receives)
-        call set_halo_sends(new_positions%mesh%halos(2), i, fetch(universal_to_new_local_numbering, set2vector(sends(i))))
-        call set_halo_receives(new_positions%mesh%halos(2), i, fetch(universal_to_new_local_numbering, set2vector(receives(i))))
-      end do
-
-      ! Now derive all the other halos ...
-      ! And me teevee's always off, cause I see something truly black then
-      
-      call derive_l1_from_l2_halo(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-      call renumber_positions_trailing_receives(new_positions, permutation=node_renumber_permutation)
-      assert(has_ownership(new_positions%mesh%halos(2)))
-      assert(has_ownership(new_positions%mesh%halos(1)))
-      allocate(new_positions%mesh%element_halos(2))
-      call derive_element_halo_from_node_halo(new_positions%mesh, create_caches = .false.)
-      call renumber_positions_elements_trailing_receives(new_positions, permutation=ele_renumber_permutation)
-      assert(has_ownership(new_positions%mesh%halos(2)))
-      assert(has_ownership(new_positions%mesh%halos(1)))
-
-      if(preserve_mesh_regions) then
-        old_new_region_ids = new_positions%mesh%region_ids
-      end if
-
-      ! The previous routine has renumbered all the local elements to put the element halos in
-      ! trailing receives status. However, we need the universal element number -> local element number
-      ! later in the field transfer. So we need to update our records now.
-      do i=1,ele_count(new_positions)
-        universal_element_number = fetch(new_elements, i)
-        old_new_local_element_number = i
-        new_new_local_element_number = ele_renumber_permutation(old_new_local_element_number)
-        call insert(uen_to_new_local_numbering, universal_element_number, new_new_local_element_number)
-        if(preserve_mesh_regions) then
-          new_positions%mesh%region_ids(new_new_local_element_number) = old_new_region_ids(old_new_local_element_number)
-        end if
-      end do
-      ! We're also going to need the universal to new local numbering for 2+1d adaptivity
-      do i=1,node_count(new_positions)
-        universal_node_number = fetch(new_nodes, i)
-        old_new_local_node_number = i
-        new_new_local_node_number = node_renumber_permutation(old_new_local_node_number)
-        call insert(universal_to_new_local_numbering, universal_node_number, new_new_local_node_number)
-      end do
-
-      do i=1,halo_count(new_positions)
-        assert(halo_verifies(new_positions%mesh%halos(i), new_positions))
-      end do
-
-      ! Now cleanup
-      ! Leave your 9's at home and bring your skills to the battle
-
-      ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
-      assert(ierr == ZOLTAN_OK)
-
-      do i=1,size(sends)
-        call deallocate(sends(i))
-      end do
-
-      ewrite(1,*) "Exiting reconstruct_halo"
-
-    end subroutine reconstruct_halo
-    
     subroutine dump_linear_mesh
       type(scalar_field) :: sends, receives, unn
       integer :: i, proc
@@ -1810,328 +1659,6 @@ module zoltan_integration
       call deallocate(receives)
       call deallocate(unn)
     end subroutine dump_linear_mesh
-
-    subroutine reconstruct_senlist
-      type(integer_set), dimension(key_count(new_surface_elements)) :: senlists
-      integer :: i, j, expected_loc, full_elements
-      integer :: universal_number, new_local_number
-      type(integer_hash_table) :: universal_surface_element_to_local_numbering
-      integer, dimension(:), allocatable, target :: sndgln, surface_ids, element_owners
-      type(csr_sparsity), pointer :: nnlist
-
-      logical, dimension(key_count(new_surface_elements)) :: keep_surface_element
-      integer :: universal_element_number
-
-      ewrite(1,*) "In reconstruct_senlist"
-
-      ! new_surface_elements currently contains the universal numbers of surface elements
-      ! we don't fully have and won't be in the final mesh.
-      ! So universal_surface_element_to_local_numbering here is just temporary.
-      call invert_set(new_surface_elements, universal_surface_element_to_local_numbering)
-
-      do i=1,key_count(new_surface_elements)
-        call allocate(senlists(i))
-      end do
-
-      ! Invert the snelists to give the senlists
-
-      do i=1,key_count(new_nodes)
-        do j=1,key_count(new_snelist(i))
-          universal_number = fetch(new_snelist(i), j)
-          new_local_number = fetch(universal_surface_element_to_local_numbering, universal_number)
-          call insert(senlists(new_local_number), i)
-        end do
-      end do
-
-      call deallocate(universal_surface_element_to_local_numbering)
-
-      ! Now, some of these will be degenerate, because the halo nodes will refer
-      ! to elements we don't know about. We can tell these apart because they
-      ! are incomplete.
-
-      full_elements = 0
-      ! For mixed meshes, this should taken from the loc of the positions mesh
-      ! However, it's constant for now
-      expected_loc = face_loc(zz_mesh, 1)
-
-      ! First, count how many we have
-      nnlist => extract_nnlist(new_positions%mesh)
-      do i=1,key_count(new_surface_elements)
-        j = key_count(senlists(i))
-        assert(j <= expected_loc)
-        if (j == expected_loc) then
-          ! We also need to check if we have the parent volume element --
-          ! it's possible to get all the information for a face, without having the
-          ! corresponding element!
-          universal_number = fetch(new_surface_elements, i)
-          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
-          keep_surface_element(i) = has_key(uen_to_new_local_numbering, universal_element_number)
-          if (keep_surface_element(i)) full_elements = full_elements + 1
-        else
-          keep_surface_element(i) = .false.
-!          write(0,*) "Surface element ", fetch(new_surface_elements, i), " is degenerate. Dropping .."
-!          write(0,*) "Local nodes: ", set2vector(senlists(i))
-        end if 
-      end do
-
-      ewrite(2,*) "Found ", key_count(new_surface_elements), " possible new surface elements."
-      ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
-
-      ! And now fill in the non-degenerate ones
-
-      allocate(sndgln(full_elements * expected_loc))
-      allocate(surface_ids(full_elements))
-      allocate(element_owners(full_elements))
-
-      j = 1
-      do i=1,key_count(new_surface_elements)
-        if (keep_surface_element(i)) then
-          universal_number = fetch(new_surface_elements, i)
-          sndgln( (j-1)*expected_loc+1 : j*expected_loc ) = set2vector(senlists(i))
-          surface_ids(j) = fetch(universal_surface_number_to_surface_id, universal_number)
-          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
-          element_owners(j) = fetch(uen_to_new_local_numbering, universal_element_number)
-          j = j + 1
-        end if
-      end do
-      assert(j == full_elements + 1)
-
-      call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners)
-
-      do i=1,size(senlists)
-        call deallocate(senlists(i))
-      end do
-
-      ! New elements is no longer valid, as we have lost the degenerate elements
-      call deallocate(new_surface_elements)
-      call deallocate(universal_surface_number_to_surface_id)
-      call deallocate(universal_surface_number_to_element_owner)
-      call deallocate(new_snelist)
-      deallocate(new_snelist)
-
-      deallocate(sndgln)
-      deallocate(surface_ids)
-      deallocate(element_owners)
-
-      call deinterleave_surface_ids(new_positions%mesh, max_coplanar_id)
-
-      ! Bingo! Our mesh has an senlist.
-      ewrite(1,*) "Exiting reconstruct_senlist"
-    end subroutine reconstruct_senlist
-
-    subroutine reconstruct_enlist
-      type(csr_sparsity):: eelist
-      type(mesh_type):: temporary_mesh
-      type(integer_set), dimension(key_count(new_elements)) :: enlists
-      integer :: i, j, k, ke, expected_loc, full_elements, connected_elements
-      integer :: universal_number, new_local_number
-      type(integer_set) :: new_elements_we_actually_have
-      type(integer_set), dimension(:), allocatable :: new_enlists
-      integer, dimension(:), pointer:: neigh
-      integer :: old_universal_node_number
-
-      ewrite(1,*) "In reconstruct_enlist"
-
-      ! new_elements currently contains the universal numbers of elements
-      ! we don't fully have and won't be in the final mesh.
-      ! So uen_to_new_local_numbering here is just temporary -- we will
-      ! construct the proper version later.
-      call invert_set(new_elements, uen_to_new_local_numbering)
-
-      do i=1,key_count(new_elements)
-        call allocate(enlists(i))
-      end do
-
-      ! Invert the nelists to give the enlists
-
-      do i=1,key_count(new_nodes)
-        do j=1,key_count(new_nelist(i))
-          universal_number = fetch(new_nelist(i), j)
-          new_local_number = fetch(uen_to_new_local_numbering, universal_number)
-          call insert(enlists(new_local_number), i)
-        end do
-      end do
-
-      call deallocate(new_nelist)
-      deallocate(new_nelist)
-
-      call deallocate(uen_to_new_local_numbering)
-
-      ! Now, some of these will be degenerate, because the halo nodes will refer
-      ! to elements we don't know about. We can tell these apart because they
-      ! are incomplete.
-
-      full_elements = 0
-      ! For mixed meshes, this should be the loc of the positions mesh
-      ! note we know the universal number -- fetch(new_elements, i)
-      ! However, it's constant for now
-      expected_loc = zz_mesh%shape%loc
-
-      ! First, count how many we have
-      do i=1,key_count(new_elements)
-        if (key_count(enlists(i)) == expected_loc) then
-          full_elements = full_elements + 1
-!        else
-!          write(0,*) "Element ", fetch(new_elements, i), " is degenerate. Dropping .."
-        end if 
-      end do
-
-      ewrite(2,*) "Found ", key_count(new_elements), " possible new elements."
-      ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
-
-      ! Now we construct a temporary mesh of full elements
-      ! This mesh is temporary because we also want to drop elements that are not connected
-      ! to any other elements
-      
-      call allocate(temporary_mesh, node_count(new_positions), full_elements, new_positions%mesh%shape, &
-        name="TemporaryZoltanMesh")
-      j = 1
-      do i=1,key_count(new_elements)
-        if (key_count(enlists(i)) == expected_loc) then
-          call set_ele_nodes(temporary_mesh, j, set2vector(enlists(i)))
-          j = j + 1
-        end if
-      end do
-
-      call add_nelist(temporary_mesh)
-      call extract_lists(temporary_mesh, eelist=eelist)
-      
-      connected_elements=0
-      do i=1, element_count(temporary_mesh)
-        neigh => row_m_ptr(eelist, i)
-        if (any(neigh>0)) connected_elements = connected_elements + 1
-      end do
-        
-      ewrite(2,*) "Of the ", full_elements, " full elements, ", connected_elements, " are connected."
-
-      call allocate(new_elements_we_actually_have)
-      call allocate(uen_to_new_local_numbering)
-      new_positions%mesh%elements = connected_elements
-      deallocate(new_positions%mesh%ndglno)
-      allocate(new_positions%mesh%ndglno(connected_elements * expected_loc))
-#ifdef HAVE_MEMORY_STATS
-      call register_allocation("mesh_type", "integer", connected_elements * expected_loc, name=new_positions%mesh%name)
-#endif
-      if(preserve_mesh_regions) then
-        allocate(new_positions%mesh%region_ids(connected_elements))
-      end if
-      
-      allocate(new_enlists(connected_elements))
-      call allocate(new_enlists)
-      
-      j = 1 ! index connected full elements
-      k = 1 ! indexes full elements
-      do i=1, key_count(new_elements)
-        if (key_count(enlists(i)) == expected_loc) then
-          ! only for full elements
-          neigh => row_m_ptr(eelist, k)
-          if (any(neigh>0)) then
-            ! of these only the connected elements
-            universal_number = fetch(new_elements, i)
-            call set_ele_nodes(new_positions%mesh, j, set2vector(enlists(i)))
-            call insert(new_elements_we_actually_have, universal_number)
-            call insert(uen_to_new_local_numbering, universal_number, j)
-            if(preserve_mesh_regions) then
-              new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
-            end if
-            do ke = 1, key_count(enlists(i))
-              old_universal_node_number = fetch(new_nodes, fetch(enlists(i), ke))
-              call insert(new_enlists(j), old_universal_node_number)
-            end do
-            j = j + 1
-          end if
-          k = k + 1
-        end if
-      end do
-        
-      assert( k==full_elements+1 )
-      assert( j==connected_elements+1 )
-
-      do i=1,size(enlists)
-        call deallocate(enlists(i))
-      end do
-        
-      call deallocate(temporary_mesh)
-      
-      ! this needs to be done now with the universal numbers from the old mesh
-      ! to ensure that the field remaps don't get scrambled
-      call reorder_element_numbering(new_positions, use_unns=new_enlists)
-      
-      do i=1,size(new_enlists)
-        call deallocate(new_enlists(i))
-      end do
-      deallocate(new_enlists)
-      
-      
-      ! New elements is no longer valid, as we have lost the degenerate elements
-      call deallocate(new_elements)
-      new_elements = new_elements_we_actually_have
-      
-      call deallocate(universal_element_number_to_region_id)
-
-      ! Bingo! Our mesh has an enlist.
-      ewrite(1,*) "Exiting reconstruct_enlist"
-    end subroutine reconstruct_enlist
-
-    subroutine zoltan_migration_phase_two
-      integer(zoltan_int) :: ierr
-      integer(zoltan_int), dimension(:), pointer :: import_to_part, export_to_part, export_procs
-      integer(zoltan_int), dimension(:), pointer :: export_global_ids, export_local_ids, import_local_ids
-      integer(zoltan_int) :: num_export
-
-      ! Register the new callback functions for packing and unpacking
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_halo_node_sizes); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_halo_nodes); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_halo_nodes); assert(ierr == ZOLTAN_OK)
-
-      import_to_part => null()
-      export_to_part => null()
-      export_global_ids => null()
-      export_local_ids => null()
-      export_procs => null()
-      num_export = -1
-
-      if (.not. associated(my_import_procs)) then
-        ! We have nothing else to receive, but we still need to take part in
-        ! the communication. Set num_import to 0
-        my_num_import = 0
-        allocate(my_import_global_ids(0))
-        allocate(my_import_procs(0))
-      end if
-      ewrite(1,*) "In zoltan_migration_phase_two; objects to import: ", my_num_import
-
-      ! We should be able to do:
-      ! import_local_ids => null()
-      ! from my reading of the Zoltan docs. But it actually doesn't appear to be the case.
-      allocate(import_local_ids(my_num_import))
-      if (my_num_import > 0) then
-        import_local_ids = 666
-      end if
-
-      assert(associated(my_import_global_ids))
-      assert(associated(import_local_ids))
-      assert(associated(my_import_procs))
-      assert(all(my_import_procs >= 0))
-      assert(all(my_import_procs < getnprocs()))
-      ierr = Zoltan_Compute_Destinations(zz, my_num_import, my_import_global_ids, import_local_ids, my_import_procs, &
-       & num_export, export_global_ids, export_local_ids, export_procs)
-      assert(ierr == ZOLTAN_OK)
-      ewrite(1,*) "In zoltan_migration_phase_two; objects to export: ", num_export
-
-      ierr = Zoltan_Migrate(zz, my_num_import, my_import_global_ids, import_local_ids, my_import_procs, &
-       & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
-      assert(ierr == ZOLTAN_OK)
-
-      ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
-      assert(ierr == ZOLTAN_OK)
-
-      deallocate(import_local_ids)
-    end subroutine zoltan_migration_phase_two
-
-    subroutine deallocate_my_lists
-      deallocate(my_import_global_ids)
-      deallocate(my_import_procs)
-    end subroutine deallocate_my_lists
 
     subroutine dump_suggested_owner
       integer :: rank, i
@@ -2783,6 +2310,484 @@ module zoltan_integration
     call deallocate(universal_number_to_old_owner)
 
   end subroutine deal_with_exporters
+
+  subroutine zoltan_migration_phase_two(zz)
+    type(zoltan_struct), pointer, intent(in) :: zz    
+
+    integer(zoltan_int) :: ierr
+    integer(zoltan_int), dimension(:), pointer :: import_to_part, export_to_part, export_procs
+    integer(zoltan_int), dimension(:), pointer :: export_global_ids, export_local_ids, import_local_ids
+    integer(zoltan_int) :: num_export
+
+    ! Register the new callback functions for packing and unpacking
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_halo_node_sizes); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_halo_nodes); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_halo_nodes); assert(ierr == ZOLTAN_OK)
+
+    import_to_part => null()
+    export_to_part => null()
+    export_global_ids => null()
+    export_local_ids => null()
+    export_procs => null()
+    num_export = -1
+
+    if (.not. associated(my_import_procs)) then
+       ! We have nothing else to receive, but we still need to take part in
+       ! the communication. Set num_import to 0
+       my_num_import = 0
+       allocate(my_import_global_ids(0))
+       allocate(my_import_procs(0))
+    end if
+    ewrite(1,*) "In zoltan_migration_phase_two; objects to import: ", my_num_import
+    
+    ! We should be able to do:
+    ! import_local_ids => null()
+    ! from my reading of the Zoltan docs. But it actually doesn't appear to be the case.
+    allocate(import_local_ids(my_num_import))
+    if (my_num_import > 0) then
+       import_local_ids = 666
+    end if
+
+    assert(associated(my_import_global_ids))
+    assert(associated(import_local_ids))
+    assert(associated(my_import_procs))
+    assert(all(my_import_procs >= 0))
+    assert(all(my_import_procs < getnprocs()))
+    ierr = Zoltan_Compute_Destinations(zz, my_num_import, my_import_global_ids, import_local_ids, my_import_procs, &
+         & num_export, export_global_ids, export_local_ids, export_procs)
+    assert(ierr == ZOLTAN_OK)
+    ewrite(1,*) "In zoltan_migration_phase_two; objects to export: ", num_export
+
+    ierr = Zoltan_Migrate(zz, my_num_import, my_import_global_ids, import_local_ids, my_import_procs, &
+         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
+    assert(ierr == ZOLTAN_OK)
+
+    ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
+    assert(ierr == ZOLTAN_OK)
+    
+    deallocate(import_local_ids)
+  end subroutine zoltan_migration_phase_two
+
+  subroutine deallocate_my_lists
+    deallocate(my_import_global_ids)
+    deallocate(my_import_procs)
+  end subroutine deallocate_my_lists
+
+  subroutine reconstruct_enlist
+    type(csr_sparsity):: eelist
+    type(mesh_type):: temporary_mesh
+    type(integer_set), dimension(key_count(new_elements)) :: enlists
+    integer :: i, j, k, ke, expected_loc, full_elements, connected_elements
+    integer :: universal_number, new_local_number
+    type(integer_set) :: new_elements_we_actually_have
+    type(integer_set), dimension(:), allocatable :: new_enlists
+    integer, dimension(:), pointer:: neigh
+    integer :: old_universal_node_number
+    
+    ewrite(1,*) "In reconstruct_enlist"
+    
+    ! new_elements currently contains the universal numbers of elements
+    ! we don't fully have and won't be in the final mesh.
+    ! So uen_to_new_local_numbering here is just temporary -- we will
+    ! construct the proper version later.
+    call invert_set(new_elements, uen_to_new_local_numbering)
+    
+    do i=1,key_count(new_elements)
+       call allocate(enlists(i))
+    end do
+    
+    ! Invert the nelists to give the enlists
+    
+    do i=1,key_count(new_nodes)
+       do j=1,key_count(new_nelist(i))
+          universal_number = fetch(new_nelist(i), j)
+          new_local_number = fetch(uen_to_new_local_numbering, universal_number)
+          call insert(enlists(new_local_number), i)
+       end do
+    end do
+
+    call deallocate(new_nelist)
+    deallocate(new_nelist)
+
+    call deallocate(uen_to_new_local_numbering)
+    
+    ! Now, some of these will be degenerate, because the halo nodes will refer
+    ! to elements we don't know about. We can tell these apart because they
+    ! are incomplete.
+    
+    full_elements = 0
+    ! For mixed meshes, this should be the loc of the positions mesh
+    ! note we know the universal number -- fetch(new_elements, i)
+    ! However, it's constant for now
+    expected_loc = zz_mesh%shape%loc
+    
+    ! First, count how many we have
+    do i=1,key_count(new_elements)
+       if (key_count(enlists(i)) == expected_loc) then
+          full_elements = full_elements + 1
+          !        else
+          !          write(0,*) "Element ", fetch(new_elements, i), " is degenerate. Dropping .."
+       end if
+    end do
+
+    ewrite(2,*) "Found ", key_count(new_elements), " possible new elements."
+    ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
+
+    ! Now we construct a temporary mesh of full elements
+    ! This mesh is temporary because we also want to drop elements that are not connected
+    ! to any other elements
+      
+    call allocate(temporary_mesh, node_count(new_positions), full_elements, new_positions%mesh%shape, &
+         name="TemporaryZoltanMesh")
+    j = 1
+    do i=1,key_count(new_elements)
+       if (key_count(enlists(i)) == expected_loc) then
+          call set_ele_nodes(temporary_mesh, j, set2vector(enlists(i)))
+          j = j + 1
+       end if
+    end do
+    
+    call add_nelist(temporary_mesh)
+    call extract_lists(temporary_mesh, eelist=eelist)
+    
+    connected_elements=0
+    do i=1, element_count(temporary_mesh)
+       neigh => row_m_ptr(eelist, i)
+       if (any(neigh>0)) connected_elements = connected_elements + 1
+    end do
+    
+    ewrite(2,*) "Of the ", full_elements, " full elements, ", connected_elements, " are connected."
+    
+    call allocate(new_elements_we_actually_have)
+    call allocate(uen_to_new_local_numbering)
+    new_positions%mesh%elements = connected_elements
+    deallocate(new_positions%mesh%ndglno)
+    allocate(new_positions%mesh%ndglno(connected_elements * expected_loc))
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", connected_elements * expected_loc, name=new_positions%mesh%name)
+#endif
+    if(preserve_mesh_regions) then
+       allocate(new_positions%mesh%region_ids(connected_elements))
+    end if
+      
+    allocate(new_enlists(connected_elements))
+    call allocate(new_enlists)
+    
+    j = 1 ! index connected full elements
+    k = 1 ! indexes full elements
+    do i=1, key_count(new_elements)
+       if (key_count(enlists(i)) == expected_loc) then
+          ! only for full elements
+          neigh => row_m_ptr(eelist, k)
+          if (any(neigh>0)) then
+             ! of these only the connected elements
+             universal_number = fetch(new_elements, i)
+             call set_ele_nodes(new_positions%mesh, j, set2vector(enlists(i)))
+             call insert(new_elements_we_actually_have, universal_number)
+             call insert(uen_to_new_local_numbering, universal_number, j)
+             if(preserve_mesh_regions) then
+                new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
+             end if
+             do ke = 1, key_count(enlists(i))
+                old_universal_node_number = fetch(new_nodes, fetch(enlists(i), ke))
+                call insert(new_enlists(j), old_universal_node_number)
+             end do
+             j = j + 1
+          end if
+          k = k + 1
+       end if
+    end do
+        
+    assert( k==full_elements+1 )
+    assert( j==connected_elements+1 )
+
+    do i=1,size(enlists)
+       call deallocate(enlists(i))
+    end do
+        
+    call deallocate(temporary_mesh)
+    
+    ! this needs to be done now with the universal numbers from the old mesh
+    ! to ensure that the field remaps don't get scrambled
+    call reorder_element_numbering(new_positions, use_unns=new_enlists)
+    
+    do i=1,size(new_enlists)
+       call deallocate(new_enlists(i))
+    end do
+    deallocate(new_enlists)
+    
+      
+    ! New elements is no longer valid, as we have lost the degenerate elements
+    call deallocate(new_elements)
+    new_elements = new_elements_we_actually_have
+    
+    call deallocate(universal_element_number_to_region_id)
+    
+    ! Bingo! Our mesh has an enlist.
+    ewrite(1,*) "Exiting reconstruct_enlist"
+  end subroutine reconstruct_enlist
+    
+  subroutine reconstruct_senlist
+    type(integer_set), dimension(key_count(new_surface_elements)) :: senlists
+    integer :: i, j, expected_loc, full_elements
+    integer :: universal_number, new_local_number
+    type(integer_hash_table) :: universal_surface_element_to_local_numbering
+    integer, dimension(:), allocatable, target :: sndgln, surface_ids, element_owners
+    type(csr_sparsity), pointer :: nnlist
+    
+    logical, dimension(key_count(new_surface_elements)) :: keep_surface_element
+    integer :: universal_element_number
+    
+    ewrite(1,*) "In reconstruct_senlist"
+    
+    ! new_surface_elements currently contains the universal numbers of surface elements
+    ! we don't fully have and won't be in the final mesh.
+    ! So universal_surface_element_to_local_numbering here is just temporary.
+    call invert_set(new_surface_elements, universal_surface_element_to_local_numbering)
+    
+    do i=1,key_count(new_surface_elements)
+       call allocate(senlists(i))
+    end do
+    
+    ! Invert the snelists to give the senlists
+    
+    do i=1,key_count(new_nodes)
+       do j=1,key_count(new_snelist(i))
+          universal_number = fetch(new_snelist(i), j)
+          new_local_number = fetch(universal_surface_element_to_local_numbering, universal_number)
+          call insert(senlists(new_local_number), i)
+       end do
+    end do
+    
+    call deallocate(universal_surface_element_to_local_numbering)
+    
+    ! Now, some of these will be degenerate, because the halo nodes will refer
+    ! to elements we don't know about. We can tell these apart because they
+    ! are incomplete.
+    
+    full_elements = 0
+    ! For mixed meshes, this should taken from the loc of the positions mesh
+    ! However, it's constant for now
+    expected_loc = face_loc(zz_mesh, 1)
+    
+    ! First, count how many we have
+    nnlist => extract_nnlist(new_positions%mesh)
+    do i=1,key_count(new_surface_elements)
+       j = key_count(senlists(i))
+       assert(j <= expected_loc)
+       if (j == expected_loc) then
+          ! We also need to check if we have the parent volume element --
+          ! it's possible to get all the information for a face, without having the
+          ! corresponding element!
+          universal_number = fetch(new_surface_elements, i)
+          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
+          keep_surface_element(i) = has_key(uen_to_new_local_numbering, universal_element_number)
+          if (keep_surface_element(i)) full_elements = full_elements + 1
+       else
+          keep_surface_element(i) = .false.
+          ! write(0,*) "Surface element ", fetch(new_surface_elements, i), " is degenerate. Dropping .."
+          ! write(0,*) "Local nodes: ", set2vector(senlists(i))
+       end if
+    end do
+
+    ewrite(2,*) "Found ", key_count(new_surface_elements), " possible new surface elements."
+    ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
+
+    ! And now fill in the non-degenerate ones
+    
+    allocate(sndgln(full_elements * expected_loc))
+    allocate(surface_ids(full_elements))
+    allocate(element_owners(full_elements))
+    
+    j = 1
+    do i=1,key_count(new_surface_elements)
+       if (keep_surface_element(i)) then
+          universal_number = fetch(new_surface_elements, i)
+          sndgln( (j-1)*expected_loc+1 : j*expected_loc ) = set2vector(senlists(i))
+          surface_ids(j) = fetch(universal_surface_number_to_surface_id, universal_number)
+          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
+          element_owners(j) = fetch(uen_to_new_local_numbering, universal_element_number)
+          j = j + 1
+       end if
+    end do
+    assert(j == full_elements + 1)
+
+    call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners)
+    
+    do i=1,size(senlists)
+       call deallocate(senlists(i))
+    end do
+    
+    ! New elements is no longer valid, as we have lost the degenerate elements
+    call deallocate(new_surface_elements)
+    call deallocate(universal_surface_number_to_surface_id)
+    call deallocate(universal_surface_number_to_element_owner)
+    call deallocate(new_snelist)
+    deallocate(new_snelist)
+    
+    deallocate(sndgln)
+    deallocate(surface_ids)
+    deallocate(element_owners)
+    
+    call deinterleave_surface_ids(new_positions%mesh, max_coplanar_id)
+    
+    ! Bingo! Our mesh has an senlist.
+    ewrite(1,*) "Exiting reconstruct_senlist"
+  end subroutine reconstruct_senlist
+
+  subroutine reconstruct_halo(zz)
+    ! At this point, the receives sets have been populated with all
+    ! the universal node numbers we need to receive from each process.
+    ! So, we are going to use zoltan to invert this to compute
+    ! the send list for each process too.
+    ! Then we will allocate the l2n halo and set it.
+    ! Then we will chop it down to form the l1n halo, the l1e halo, and the
+    ! l2e halo. 
+    ! Supply the peeps with jeeps, brick apiece, capiche?
+
+    type(zoltan_struct), pointer, intent(in) :: zz    
+
+    integer :: num_import, num_export
+    integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs
+    integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
+    integer :: ierr, i, head
+    type(integer_set), dimension(size(receives)) :: sends
+    integer, dimension(size(receives)) :: nreceives, nsends
+    integer, dimension(ele_count(new_positions)) :: ele_renumber_permutation
+    integer, dimension(node_count(new_positions)) :: node_renumber_permutation
+    integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
+    integer :: universal_node_number, old_new_local_node_number, new_new_local_node_number
+    
+    integer, dimension(ele_count(new_positions)) :: old_new_region_ids
+    
+    ewrite(1,*) "In reconstruct_halo"
+    
+    num_import = 0
+    do i=1,size(receives)
+       nreceives(i) = key_count(receives(i))
+       num_import = num_import + nreceives(i)
+    end do
+    
+    allocate(import_global_ids(num_import))
+    allocate(import_local_ids(num_import))
+    allocate(import_procs(num_import))
+    
+    import_local_ids = 666
+    head = 1
+    do i=1,size(receives)
+       import_global_ids(head:head + nreceives(i) - 1) = set2vector(receives(i))
+       import_procs(head:head + nreceives(i) - 1) = i - 1
+       head = head + nreceives(i)
+    end do
+    
+    export_global_ids => null()
+    export_local_ids => null()
+    export_procs => null()
+    export_to_part => null()
+    
+    ierr = Zoltan_Compute_Destinations(zz, &
+         & num_import, import_global_ids, import_local_ids, import_procs, &
+         & num_export, export_global_ids, export_local_ids, export_procs)
+    assert(ierr == ZOLTAN_OK)
+    
+    ! Now we know the sends too! Thanks, Zoltan!
+    
+    deallocate(import_global_ids)
+    deallocate(import_local_ids)
+    deallocate(import_procs)
+    
+    ! Now create the sends sets .. easier than pulling it straight out of Zoltan's data structures
+    ! as Zoltan does NOT explicitly guarantee that the sends are organised such that export_procs looks
+    ! like 
+    ! [ sends to process 0 | sends to process 1 | sends to process 2 ... ]
+    ! If such a guarantee were available, then it would be just as easy to use that, but there
+    ! is no such guarantee given in the documentation ...
+    ! Is an appetite for destruction, slap a murder rap on this production
+    
+    do i=1,size(sends)
+       call allocate(sends(i))
+    end do
+    
+    do i=1,num_export
+       call insert(sends(export_procs(i)+1), export_global_ids(i))
+    end do
+    
+    do i=1,size(sends)
+       nsends(i) = key_count(sends(i))
+    end do
+    
+    ! Allocate the halo and such
+    ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
+    
+    allocate(new_positions%mesh%halos(2))
+    call allocate(new_positions%mesh%halos(2), &
+         nsends = nsends, &
+         nreceives = nreceives, &
+         name = halo_name(zz_halo), &
+         communicator = halo_communicator(zz_halo), &
+         nowned_nodes = key_count(new_nodes) - num_import, &
+         data_type = halo_data_type(zz_halo))
+
+    do i=1,size(receives)
+       call set_halo_sends(new_positions%mesh%halos(2), i, fetch(universal_to_new_local_numbering, set2vector(sends(i))))
+       call set_halo_receives(new_positions%mesh%halos(2), i, fetch(universal_to_new_local_numbering, set2vector(receives(i))))
+    end do
+
+    ! Now derive all the other halos ...
+    ! And me teevee's always off, cause I see something truly black then
+    
+    call derive_l1_from_l2_halo(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+    call renumber_positions_trailing_receives(new_positions, permutation=node_renumber_permutation)
+    assert(has_ownership(new_positions%mesh%halos(2)))
+    assert(has_ownership(new_positions%mesh%halos(1)))
+    allocate(new_positions%mesh%element_halos(2))
+    call derive_element_halo_from_node_halo(new_positions%mesh, create_caches = .false.)
+    call renumber_positions_elements_trailing_receives(new_positions, permutation=ele_renumber_permutation)
+    assert(has_ownership(new_positions%mesh%halos(2)))
+    assert(has_ownership(new_positions%mesh%halos(1)))
+    
+    if(preserve_mesh_regions) then
+       old_new_region_ids = new_positions%mesh%region_ids
+    end if
+    
+    ! The previous routine has renumbered all the local elements to put the element halos in
+    ! trailing receives status. However, we need the universal element number -> local element number
+    ! later in the field transfer. So we need to update our records now.
+    do i=1,ele_count(new_positions)
+       universal_element_number = fetch(new_elements, i)
+       old_new_local_element_number = i
+       new_new_local_element_number = ele_renumber_permutation(old_new_local_element_number)
+       call insert(uen_to_new_local_numbering, universal_element_number, new_new_local_element_number)
+       if(preserve_mesh_regions) then
+          new_positions%mesh%region_ids(new_new_local_element_number) = old_new_region_ids(old_new_local_element_number)
+       end if
+    end do
+    ! We're also going to need the universal to new local numbering for 2+1d adaptivity
+    do i=1,node_count(new_positions)
+       universal_node_number = fetch(new_nodes, i)
+       old_new_local_node_number = i
+       new_new_local_node_number = node_renumber_permutation(old_new_local_node_number)
+       call insert(universal_to_new_local_numbering, universal_node_number, new_new_local_node_number)
+    end do
+    
+    do i=1,halo_count(new_positions)
+       assert(halo_verifies(new_positions%mesh%halos(i), new_positions))
+    end do
+    
+    ! Now cleanup
+    
+    ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
+    assert(ierr == ZOLTAN_OK)
+
+    do i=1,size(sends)
+       call deallocate(sends(i))
+    end do
+    
+    ewrite(1,*) "Exiting reconstruct_halo"
+    
+  end subroutine reconstruct_halo
+    
+
 
 #endif
 end module zoltan_integration
