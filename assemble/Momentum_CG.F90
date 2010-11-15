@@ -36,6 +36,7 @@
     use sparse_tools
     use boundary_conditions
     use boundary_conditions_from_options
+    use solvers
     use petsc_solve_state_module
     use sparse_tools_petsc
     use sparse_matrices_fields
@@ -57,7 +58,6 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
-    use solvers
     implicit none
 
     private
