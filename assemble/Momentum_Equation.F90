@@ -254,7 +254,6 @@
       integer :: d
       type(scalar_field) :: u_cpt
 
-
       ewrite(1,*) 'Entering solve_momentum'
 
       ! get the velocity
@@ -409,15 +408,15 @@
          case("LumpedSchurComplement")
             full_projection_preconditioner => cmc_m
          case("DiagonalSchurComplement")
-            if(.not.poisson_p) get_cmc_m = .false.
+            get_cmc_m = .false.
             get_diag_schur = .true.
             full_projection_preconditioner => cmc_m
          case("ScaledPressureMassMatrix")
-            if(.not.poisson_p) get_cmc_m = .false.
+            get_cmc_m = .false.
             get_scaled_pressure_mass_matrix = .true.
             full_projection_preconditioner => scaled_pressure_mass_matrix
          case("NoPreconditionerMatrix")
-            if(.not.poisson_p) get_cmc_m = .false.
+            get_cmc_m = .false.
             full_projection_preconditioner => cmc_m
          case default
             ! developer error... out of sync options input and code
@@ -723,53 +722,7 @@
           call add_free_surface_to_cmc_projection(state(istate), &
               cmc_m, dt, theta_pg, get_cmc=get_cmc_m, rhs=ct_rhs)
         end if
-
-        ! do we want to get an initial guess at the pressure?
-        if(poisson_p) then
-
-          call allocate(poisson_rhs, p%mesh, "PoissonRHS")
-
-          ! get the rhs for the poisson pressure equation...
-          if(dg.and.(.not.lump_mass)) then
-            call assemble_poisson_rhs_dg(poisson_rhs, ctp_m, inverse_mass, mom_rhs, ct_rhs, u, dt, theta_pg)
-          else
-            ! here we assume that we're using mass lumping if we're not using dg
-            ! if this isn't true then this leads to inconsistent mass matrices in poisson_rhs and cmc_m
-            ! but as we're only hoping to get a guesstimate of the pressure hopefully this won't be too
-            ! bad.
-            call assemble_masslumped_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, inverse_masslump, u, dt, theta_pg)
-          end if
-
-          if (has_boundary_condition(u, "free_surface")) then
-            call add_free_surface_to_poisson_rhs(poisson_rhs, state(istate), dt, theta_pg)
-          end if
-
-          ! apply strong dirichlet conditions
-          call apply_dirichlet_conditions(cmc_m, poisson_rhs, p)
-
-          call impose_reference_pressure_node(cmc_m, poisson_rhs, trim(p%option_path))
-
-          call profiler_toc(p, "assembly") ! don't include poisson solve
-          call petsc_solve(p_theta, cmc_m, poisson_rhs, state(istate))
-          call profiler_tic(p, "assembly")
-
-          if (has_boundary_condition(u, "free_surface")) then
-            ! use this as initial pressure guess, except at the free surface
-            ! where we use the prescribed initial condition
-            call copy_poisson_solution_to_interior(p_theta, p, old_p, u)
-          end if
-
-          if (pressure_debugging_vtus) then
-             call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
-                sfields=(/ p_theta, p, old_p /))
-          end if
-
-          ewrite_minmax(p_theta%val)
-
-          call deallocate(poisson_rhs)
-
-        end if ! poisson pressure solution
-
+        
         if(get_diag_schur) then
            ! Assemble diagonal schur complement preconditioner:
            call assemble_diagonal_schur(cmc_m,u,inner_m,ctp_m,ct_m)
@@ -794,6 +747,67 @@
                 name="scaled_pressure_mass_matrix")
            call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
         end if
+
+        ! do we want to get an initial guess at the pressure?
+        if(poisson_p) then
+
+          call allocate(poisson_rhs, p%mesh, "PoissonRHS")
+
+          if (full_schur) then
+            call assemble_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, big_m, u, dt, theta_pg)
+          else
+            ! get the rhs for the poisson pressure equation...
+            if(dg.and.(.not.lump_mass)) then
+              call assemble_poisson_rhs_dg(poisson_rhs, ctp_m, inverse_mass, mom_rhs, ct_rhs, u, dt, theta_pg)
+            else
+              ! here we assume that we're using mass lumping if we're not using dg
+              ! if this isn't true then this leads to inconsistent mass matrices in poisson_rhs and cmc_m
+              ! but as we're only hoping to get a guesstimate of the pressure hopefully this won't be too
+              ! bad.
+              call assemble_masslumped_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, inverse_masslump, u, dt, theta_pg)
+            end if
+          end if
+
+          if (has_boundary_condition(u, "free_surface")) then
+            call add_free_surface_to_poisson_rhs(poisson_rhs, state(istate), dt, theta_pg)
+          end if
+
+          ! apply strong dirichlet conditions
+          call apply_dirichlet_conditions(cmc_m, poisson_rhs, p)
+
+          call impose_reference_pressure_node(cmc_m, poisson_rhs, trim(p%option_path))
+
+          call profiler_toc(p, "assembly") ! don't include poisson solve
+          if(full_schur) then
+             if(assemble_schur_auxiliary_matrix) then
+                call petsc_solve_full_projection(p_theta, ctp_m, inner_m, ct_m, poisson_rhs, &
+                     full_projection_preconditioner, state(istate), u%mesh, &
+                     auxiliary_matrix=schur_auxiliary_matrix)
+             else
+                call petsc_solve_full_projection(p_theta, ctp_m, inner_m, ct_m, poisson_rhs, &
+                     full_projection_preconditioner, state(istate), u%mesh)
+             end if
+          else
+            call petsc_solve(p_theta, cmc_m, poisson_rhs, state(istate))
+          end if
+          call profiler_tic(p, "assembly")
+
+          if (has_boundary_condition(u, "free_surface")) then
+            ! use this as initial pressure guess, except at the free surface
+            ! where we use the prescribed initial condition
+            call copy_poisson_solution_to_interior(p_theta, p, old_p, u)
+          end if
+
+          if (pressure_debugging_vtus) then
+             call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
+                sfields=(/ p_theta, p, old_p /))
+          end if
+
+          ewrite_minmax(p_theta%val)
+
+          call deallocate(poisson_rhs)
+
+        end if ! poisson pressure solution
 
         if (apply_kmk) then
            call add_kmk_rhs(state(istate), kmk_rhs, p_theta, dt)

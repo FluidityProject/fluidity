@@ -63,7 +63,7 @@
     public :: construct_momentum_cg, correct_masslumped_velocity, &
               correct_velocity_cg, assemble_masslumped_poisson_rhs, &
               add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix, &
-              deallocate_cg_mass
+              deallocate_cg_mass, assemble_poisson_rhs
 
     ! are we lumping the mass, absorption or source
     logical :: lump_mass, lump_absorption, lump_source
@@ -2217,6 +2217,44 @@
 
     end subroutine correct_velocity_cg
 
+    subroutine assemble_poisson_rhs(poisson_rhs, &
+      ctp_m, mom_rhs, ct_rhs, big_m, velocity, dt, theta_pg)
+
+      type(scalar_field), intent(inout) :: poisson_rhs
+      type(block_csr_matrix), intent(in) :: ctp_m
+      type(vector_field), intent(in) :: mom_rhs
+      type(scalar_field), intent(in) :: ct_rhs
+      type(petsc_csr_matrix), intent(inout) :: big_m
+      type(vector_field), intent(in) :: velocity
+      real, intent(in) :: dt, theta_pg
+
+      type(vector_field) :: l_mom_rhs
+
+      ewrite(1,*) 'Entering assemble_masslumped_poisson'
+
+      call allocate(l_mom_rhs, mom_rhs%dim, mom_rhs%mesh, name="AssemblePoissonMomRHS")
+      
+      ! poisson_rhs = ct_rhs/dt - C^T ( M^-1 mom_rhs + velocity/dt )
+      
+      ! compute M^-1 mom_rhs + velocity/dt
+      call zero(l_mom_rhs)
+      l_mom_rhs%option_path=velocity%option_path
+      call petsc_solve(l_mom_rhs, big_m, mom_rhs)
+      call addto(l_mom_rhs, velocity, scale=1.0/dt/theta_pg)
+      
+      ! need to update before the mult, as halo of mom_rhs may not be valid
+      ! (although it probably is in halo 1 - let's be safe anyway)
+      call halo_update(l_mom_rhs)
+
+      call mult(poisson_rhs, ctp_m, l_mom_rhs)
+      call scale(poisson_rhs, -1.0)
+
+      call addto(poisson_rhs, ct_rhs, scale=1.0/dt/theta_pg)
+
+      call deallocate(l_mom_rhs)
+
+    end subroutine assemble_poisson_rhs
+    
     subroutine assemble_masslumped_poisson_rhs(poisson_rhs, &
       ctp_m, mom_rhs, ct_rhs, inverse_masslump, velocity, dt, theta_pg)
 
