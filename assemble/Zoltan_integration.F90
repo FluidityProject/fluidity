@@ -1322,66 +1322,6 @@ module zoltan_integration
 
     contains
             
-    subroutine dump_linear_mesh
-      type(scalar_field) :: sends, receives, unn
-      integer :: i, proc
-
-      assert(associated(new_positions%refcount))
-      assert(new_positions%refcount%count == 1)
-      assert(associated(new_positions%mesh%refcount))
-      assert(new_positions%mesh%refcount%count == 1)
-
-      call allocate(sends, new_positions%mesh, "Sends")
-      call zero(sends)
-      call allocate(receives, new_positions%mesh, "Receives")
-      call zero(receives)
-      call allocate(unn, new_positions%mesh, "NewUniversalNodeNumber")
-      call zero(unn)
-
-      do proc=1,halo_proc_count(new_positions%mesh%halos(2))
-        do i=1,size(new_positions%mesh%halos(2)%sends(proc)%ptr)
-          call set(sends, new_positions%mesh%halos(2)%sends(proc)%ptr(i), 1.0)
-        end do
-        do i=1,size(new_positions%mesh%halos(2)%receives(proc)%ptr)
-          call set(receives, new_positions%mesh%halos(2)%receives(proc)%ptr(i), 1.0)
-        end do
-      end do
-
-      do i=1,node_count(new_positions)
-        call set(unn, i, float(halo_universal_number(new_positions%mesh%halos(2), i)))
-      end do
-      
-      call deallocate(sends)
-      call deallocate(receives)
-      call deallocate(unn)
-    end subroutine dump_linear_mesh
-
-    subroutine dump_suggested_owner
-      integer :: rank, i
-      type(scalar_field) :: suggested_owner, unn
-      type(vector_field) :: positions
-
-      rank = getrank()
-      call allocate(suggested_owner, zz_mesh, "SuggestedOwner")
-
-      call set(suggested_owner, float(rank))
-      do i=1,p1_num_export
-        call set(suggested_owner, p1_export_local_ids(i), float(p1_export_procs(i)))
-      end do
-
-      call allocate(unn, zz_mesh, "OldUniversalNodeNumber")
-      do i=1,node_count(unn)
-        call set(unn, i, float(halo_universal_number(zz_halo, i)))
-      end do
-
-      positions = get_coordinate_field(states(1), zz_mesh)
-      call halo_update(suggested_owner)
-      call deallocate(positions)
-      call deallocate(suggested_owner)
-      call deallocate(unn)
-
-    end subroutine dump_suggested_owner
-
   end subroutine zoltan_drive
 
   subroutine setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name)
@@ -2826,6 +2766,70 @@ module zoltan_integration
     deallocate(source_states)
     deallocate(target_states)
   end subroutine finalise_transfer
+
+  subroutine dump_linear_mesh
+    type(scalar_field) :: sends, receives, unn
+    integer :: i, proc
+    
+    assert(associated(new_positions%refcount))
+    assert(new_positions%refcount%count == 1)
+    assert(associated(new_positions%mesh%refcount))
+    assert(new_positions%mesh%refcount%count == 1)
+    
+    call allocate(sends, new_positions%mesh, "Sends")
+    call zero(sends)
+    call allocate(receives, new_positions%mesh, "Receives")
+    call zero(receives)
+    call allocate(unn, new_positions%mesh, "NewUniversalNodeNumber")
+    call zero(unn)
+    
+    do proc=1,halo_proc_count(new_positions%mesh%halos(2))
+       do i=1,size(new_positions%mesh%halos(2)%sends(proc)%ptr)
+          call set(sends, new_positions%mesh%halos(2)%sends(proc)%ptr(i), 1.0)
+       end do
+       do i=1,size(new_positions%mesh%halos(2)%receives(proc)%ptr)
+          call set(receives, new_positions%mesh%halos(2)%receives(proc)%ptr(i), 1.0)
+       end do
+    end do
+    
+    do i=1,node_count(new_positions)
+       call set(unn, i, float(halo_universal_number(new_positions%mesh%halos(2), i)))
+    end do
+    
+    call deallocate(sends)
+    call deallocate(receives)
+    call deallocate(unn)
+  end subroutine dump_linear_mesh
+
+  subroutine dump_suggested_owner(states, p1_num_export, p1_export_local_ids, p1_export_procs)
+    type(state_type), dimension(:), intent(inout), target :: states
+    integer(zoltan_int), intent(in) :: p1_num_export
+    integer, dimension(:), pointer, intent(in) :: p1_export_local_ids, p1_export_procs
+
+    integer :: rank, i
+    type(scalar_field) :: suggested_owner, unn
+    type(vector_field) :: positions
+    
+    rank = getrank()
+    call allocate(suggested_owner, zz_mesh, "SuggestedOwner")
+    
+    call set(suggested_owner, float(rank))
+    do i=1,p1_num_export
+       call set(suggested_owner, p1_export_local_ids(i), float(p1_export_procs(i)))
+    end do
+    
+    call allocate(unn, zz_mesh, "OldUniversalNodeNumber")
+    do i=1,node_count(unn)
+       call set(unn, i, float(halo_universal_number(zz_halo, i)))
+    end do
+    
+    positions = get_coordinate_field(states(1), zz_mesh)
+    call halo_update(suggested_owner)
+    call deallocate(positions)
+    call deallocate(suggested_owner)
+    call deallocate(unn)
+    
+  end subroutine dump_suggested_owner
 
 #endif
 end module zoltan_integration
