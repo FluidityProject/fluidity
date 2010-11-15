@@ -1320,8 +1320,6 @@ module zoltan_integration
 
     ewrite(1,*) "Exiting zoltan_drive"
 
-    contains
-            
   end subroutine zoltan_drive
 
   subroutine setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name)
