@@ -2230,7 +2230,7 @@
 
       type(vector_field) :: l_mom_rhs
 
-      ewrite(1,*) 'Entering assemble_masslumped_poisson'
+      ewrite(1,*) 'Entering assemble_poisson_rhs'
 
       call allocate(l_mom_rhs, mom_rhs%dim, mom_rhs%mesh, name="AssemblePoissonMomRHS")
       
