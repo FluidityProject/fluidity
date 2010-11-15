@@ -57,6 +57,7 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
+    use solvers
     implicit none
 
     private
