@@ -1206,9 +1206,9 @@ module zoltan_integration
     call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
-       & p1_num_import, p1_num_export, &
-       & p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+
 
     if (changes .eqv. .false.) then
       ewrite(1,*) "Zoltan decided no change was necessary, exiting"
@@ -1236,9 +1236,9 @@ module zoltan_integration
 
     ! Migrate here
     ! for nodes I am going to own
-    call zoltan_migration_phase_one(zz, p1_num_import, p1_num_export, &
-       & p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+    call zoltan_migration_phase_one(zz, & 
+         & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+         & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
     call deallocate_zoltan_lists(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
          & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
     ! deal with reconstructing new mesh, positions, etc. for processes who are only exporting
@@ -1265,7 +1265,10 @@ module zoltan_integration
 
       call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
       
-      call reset_zoltan_lists_full
+      call reset_zoltan_lists_full(zz, &
+       & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
       
       ! It builds an import list from that, then migrates again
 
@@ -1273,9 +1276,10 @@ module zoltan_integration
 
       ! Migrate here
       ! for nodes I am going to own
-      call zoltan_migration_phase_one(zz, p1_num_import, p1_num_export, &
-       & p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+      call zoltan_migration_phase_one(zz, & 
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+
       call deallocate_zoltan_lists(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
            & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
 
@@ -1296,17 +1300,17 @@ module zoltan_integration
     ! Get populate_state to allocate the fields and such on this new
     ! mesh.
 
-    call initialise_transfer
+    call initialise_transfer(zz, states, new_positions_m1d, metric, full_metric, new_metric, initialise_fields, ignore_extrusion)
 
     ! And now transfer the field data around.
-    call transfer_fields
+    call transfer_fields(zz)
 
     call deallocate(new_positions)
     if(migrate_extruded_mesh) then
       call deallocate(new_positions_m1d)
     end if
 
-    call finalise_transfer
+    call finalise_transfer(states, metric, full_metric, new_metric)
 
     call cleanup_basic_module_variables(zz)
     call cleanup_quality_module_variables
@@ -1317,315 +1321,7 @@ module zoltan_integration
     ewrite(1,*) "Exiting zoltan_drive"
 
     contains
-    
-    subroutine reset_zoltan_lists_full
-    
-      integer :: i, ierr
-      
-      ewrite(1,*) 'in reset_zoltan_lists_full'
-    
-      p1_num_export = p1_num_export_full
-      
-      p1_export_local_ids => p1_export_local_ids_full
-      p1_export_procs => p1_export_procs_full
-      
-      allocate(p1_export_global_ids(p1_num_export))
-      p1_export_global_ids = 0
-      
-      do i=1,p1_num_export
-        p1_export_global_ids(i) = halo_universal_number(zz_halo, p1_export_local_ids(i))
-      end do
-      assert(all(p1_export_global_ids>0))
-      
-      p1_num_import = 0
-      p1_import_local_ids => null()
-      p1_import_procs => null()
-      p1_import_global_ids => null()
-
-      ierr = Zoltan_Compute_Destinations(zz, &
-       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs)
-      assert(ierr == ZOLTAN_OK)
-      
-      preserve_columns = associated(zz_positions%mesh%columns)
-      call allor(preserve_columns)
-      
-      ewrite(1,*) 'exiting reset_zoltan_lists_full'
-      
-    end subroutine reset_zoltan_lists_full
-        
-    subroutine transfer_fields
-      ! OK! So, here is how this is going to work. We are going to 
-      ! loop through every element in which you own at least one node, and note
-      ! that its information needs to be sent to the owners of its vertices.
-      ! We also have to take special care of self-sends, since they don't
-      ! get taken care of in the zoltan communication.
-
-      integer :: old_ele
-      integer, dimension(:), pointer :: old_local_nodes
-      type(integer_set), dimension(halo_proc_count(zz_halo)) :: sends
-      integer :: i, new_owner, universal_element_number
-      type(integer_set) :: self_sends
-      integer :: num_import, num_export
-      integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs, import_to_part
-      integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
-      integer :: head
-      integer(zoltan_int) :: ierr
-
-      integer :: old_universal_element_number, new_local_element_number, old_local_element_number
-      integer :: state_no, field_no
-      type(scalar_field), pointer :: source_sfield, target_sfield
-      type(vector_field), pointer :: source_vfield, target_vfield
-      type(tensor_field), pointer :: source_tfield, target_tfield
-
-      ewrite(1,*) 'in transfer_fields'
-
-      do i=1,size(sends)
-        call allocate(sends(i))
-      end do
-      call allocate(self_sends)
-
-
-      do old_ele=1,ele_count(zz_positions)
-        universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
-        old_local_nodes => ele_nodes(zz_positions, old_ele)
-        if (.not. any(nodes_owned(zz_halo, old_local_nodes))) cycle
-        do i=1,size(old_local_nodes)
-          if (has_value(nodes_we_are_keeping, old_local_nodes(i))) then
-            assert(node_owned(zz_halo, old_local_nodes(i)))
-            call insert(self_sends, universal_element_number)
-          else if (has_key(nodes_we_are_sending,  old_local_nodes(i))) then
-            new_owner = fetch(nodes_we_are_sending, old_local_nodes(i))
-            call insert(sends(new_owner+1), universal_element_number)
-          end if
-        end do
-      end do
-
-      num_export = sum(key_count(sends))
-      allocate(export_global_ids(num_export))
-      allocate(export_procs(num_export))
-
-      head = 1
-      do i=1,size(sends)
-        export_global_ids(head:head + key_count(sends(i)) - 1) = set2vector(sends(i))
-        export_procs(head:head + key_count(sends(i)) - 1) = i - 1
-        head = head + key_count(sends(i))
-      end do
-
-      allocate(export_local_ids(num_export))
-      export_local_ids = 666
-
-      import_global_ids => null()
-      import_local_ids => null()
-      import_procs => null()
-      import_to_part => null()
-      export_to_part => null()
-
-      ierr = Zoltan_Compute_Destinations(zz, &
-       & num_export, export_global_ids, export_local_ids, export_procs, &
-       & num_import, import_global_ids, import_local_ids, import_procs)
-      assert(ierr == ZOLTAN_OK)
-
-      ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
-       & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
-
-      assert(ierr == ZOLTAN_OK)
-
-      deallocate(export_local_ids)
-      deallocate(export_procs)
-      deallocate(export_global_ids)
-
-      ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
-      assert(ierr == ZOLTAN_OK)
-
-      do state_no=1,size(source_states)
-        assert(scalar_field_count(source_states(state_no)) == scalar_field_count(target_states(state_no)))
-        assert(vector_field_count(source_states(state_no)) == vector_field_count(target_states(state_no)))
-        assert(tensor_field_count(source_states(state_no)) == tensor_field_count(target_states(state_no)))
-
-        do field_no=1,scalar_field_count(source_states(state_no))
-          source_sfield => extract_scalar_field(source_states(state_no), field_no)
-          target_sfield => extract_scalar_field(target_states(state_no), field_no)
-          assert(trim(source_sfield%name) == trim(target_sfield%name))
-
-          do i=1,key_count(self_sends)
-            old_universal_element_number = fetch(self_sends, i)
-            new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-            old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-            call set(target_sfield, ele_nodes(target_sfield, new_local_element_number), ele_val(source_sfield, old_local_element_number))
-          end do
-        end do
-
-        do field_no=1,vector_field_count(source_states(state_no))
-          source_vfield => extract_vector_field(source_states(state_no), field_no)
-          target_vfield => extract_vector_field(target_states(state_no), field_no)
-          assert(trim(source_vfield%name) == trim(target_vfield%name))
-          if (source_vfield%name == new_positions%name) cycle
-
-          do i=1,key_count(self_sends)
-            old_universal_element_number = fetch(self_sends, i)
-            new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-            old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-            call set(target_vfield, ele_nodes(target_vfield, new_local_element_number), ele_val(source_vfield, old_local_element_number))
-          end do
-        end do
-
-        do field_no=1,tensor_field_count(source_states(state_no))
-          source_tfield => extract_tensor_field(source_states(state_no), field_no)
-          target_tfield => extract_tensor_field(target_states(state_no), field_no)
-          assert(trim(source_tfield%name) == trim(target_tfield%name))
-
-          do i=1,key_count(self_sends)
-            old_universal_element_number = fetch(self_sends, i)
-            new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-            old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-            call set(target_tfield, ele_nodes(target_tfield, new_local_element_number), ele_val(source_tfield, old_local_element_number))
-          end do
-        end do
-      end do
-
-      call deallocate(self_sends)
-      call deallocate(sends)
-
-      call halo_update(target_states)
-
-      ewrite(1,*) 'exiting transfer_fields'
-
-    end subroutine transfer_fields
-
-    subroutine finalise_transfer
-      integer :: i
-      call set_prescribed_field_values(states, exclude_interpolated = .true.)
-      call populate_boundary_conditions(states)
-      call set_boundary_conditions_values(states)
-      call set_dirichlet_consistent(states)
-      call alias_fields(states)
-
-      if (present(full_metric)) then
-        full_metric = new_metric
-        call halo_update(full_metric)
-      else if (present(metric)) then
-        metric = new_metric
-        call halo_update(metric)
-      end if
-
-      do i=1,size(source_states)
-        call deallocate(source_states(i))
-        call deallocate(target_states(i))
-      end do
-      deallocate(source_states)
-      deallocate(target_states)
-    end subroutine finalise_transfer
-
-    subroutine initialise_transfer
-      integer :: i
-      type(state_type), dimension(size(states)) :: interpolate_states
-      integer(zoltan_int) :: ierr
-      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
-      type(mesh_type), pointer :: mesh
-      integer :: no_meshes
-
-      ewrite(1,*) 'in initialise_transfer'
-
-      ! Set up source_states
-      do i=1,size(states)
-        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
-          first_time_step=initialise_fields)
-        ! Remove the current state as we've copied the bits we need
-        call deallocate(states(i))
-      end do
-
-      ! Interpolate the metric, too
-      if (present(full_metric)) then
-        call insert(interpolate_states(1), full_metric, "ErrorMetric")
-        call deallocate(full_metric)
-      else if (present(metric)) then
-        call insert(interpolate_states(1), metric, "ErrorMetric")
-        call deallocate(metric)
-      end if
-
-      allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
-      no_meshes = 0
-      do i=1, mesh_count(interpolate_states(1))
-        mesh => extract_mesh(interpolate_states(1), i)
-        if (migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
-        no_meshes = no_meshes + 1
-        mesh_names(no_meshes) = mesh%name
-      end do
-        
-      allocate(source_states(no_meshes))
-      call halo_update(interpolate_states, level=1)
-      ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
-      call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), source_states)
-
-      ! Finished with interpolate_states for setting up source_states
-      do i=1,size(interpolate_states)
-        call deallocate(interpolate_states(i))
-      end do
-
-      if (mesh_periodic(zz_mesh)) then
-        new_positions%mesh%periodic = .true.
-      end if
-
-      ! Start setting up states so that it can be populated with migrated fields data
-
-      ! Put the new positions mesh into states
-      
-      if(migrate_extruded_mesh) then
-        if (mesh_periodic(zz_mesh)) then
-          new_positions_m1d%mesh%periodic = .true.
-        end if
-        call insert(states, new_positions_m1d%mesh, name = new_positions_m1d%mesh%name)
-        call insert(states, new_positions_m1d, name = new_positions_m1d%name)
-      end if
-      
-      call insert(states, new_positions%mesh, name = new_positions%mesh%name)
-      call insert(states, new_positions, name = new_positions%name)
-
-      ! Allocate a new metric field on the new positions mesh and zero it
-      if (present(metric).or.present(full_metric)) then
-        call allocate(new_metric, new_positions%mesh, "ErrorMetric")
-        call set(new_metric,spread(spread(666.0, 1, new_metric%dim), 2, new_metric%dim))
-      end if
-
-      !!! TEST
-      !call deallocate(new_positions)
-
-      ! Setup meshes and fields on states
-      call restore_reserved_meshes(states)
-      call insert_derived_meshes(states, skip_extrusion=ignore_extrusion)
-      call allocate_and_insert_fields(states)
-      call restore_reserved_fields(states)
-
-      ! And set up target_states based on states
-      do i=1,size(states)
-        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
-          first_time_step=initialise_fields)
-        
-      end do
-
-      ! Metric will be interpolated too, it is 666.0 (for debugging purposes) at this point
-      if (present(metric).or.present(full_metric)) then
-        call insert(interpolate_states(1), new_metric, "ErrorMetric")
-      end if
-
-      allocate(target_states(no_meshes))
-      call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), target_states)
-      
-      ! Finished with interpolate states for setting up target_states
-      do i=1,size(interpolate_states)
-        call deallocate(interpolate_states(i))
-      end do
-
-      ! Tell Zoltan which callback functions to use for the migration
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
-
-      ewrite(1,*) 'exiting initialise_transfer'
-        
-    end subroutine initialise_transfer
-
+            
     subroutine dump_linear_mesh
       type(scalar_field) :: sends, receives, unn
       integer :: i, proc
@@ -1959,12 +1655,12 @@ module zoltan_integration
   subroutine deallocate_zoltan_lists(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
     
-    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_global_ids
-    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_local_ids
-    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_procs
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_procs    
+    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_global_ids
+    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_local_ids
+    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_procs
 
     integer(zoltan_int) :: ierr
 
@@ -2022,20 +1718,22 @@ module zoltan_integration
   end subroutine cleanup_other_module_variables
 
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
-       & p1_num_import, p1_num_export, &
-       & p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
     
     integer(zoltan_int), intent(out) :: num_gid_entries, num_lid_entries
-    integer(zoltan_int), intent(out) :: p1_num_import, p1_num_export
-    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
-    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
-    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
+    integer(zoltan_int), intent(out) :: p1_num_import
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_procs
+    integer(zoltan_int), intent(out) :: p1_num_export
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
+
     
     integer(zoltan_int) :: ierr
     integer :: i, node
@@ -2108,6 +1806,61 @@ module zoltan_integration
     
   end subroutine derive_full_export_lists
 
+  subroutine reset_zoltan_lists_full(zz, &
+       & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+
+    type(zoltan_struct), pointer, intent(in) :: zz    
+
+    integer(zoltan_int), intent(in) :: p1_num_export_full
+    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids_full
+    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_procs_full
+
+    integer(zoltan_int), intent(out) :: p1_num_import
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_global_ids
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_local_ids
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_procs
+    integer(zoltan_int), intent(out) :: p1_num_export
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
+
+    integer :: i, ierr
+    
+    ewrite(1,*) 'in reset_zoltan_lists_full'
+    
+    p1_num_export = p1_num_export_full
+    
+    p1_export_local_ids => p1_export_local_ids_full
+    p1_export_procs => p1_export_procs_full
+    
+    allocate(p1_export_global_ids(p1_num_export))
+    p1_export_global_ids = 0
+    
+    do i=1,p1_num_export
+       p1_export_global_ids(i) = halo_universal_number(zz_halo, p1_export_local_ids(i))
+    end do
+    assert(all(p1_export_global_ids>0))
+    
+    p1_num_import = 0
+    p1_import_local_ids => null()
+    p1_import_procs => null()
+    p1_import_global_ids => null()
+    
+    ierr = Zoltan_Compute_Destinations(zz, &
+         & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
+         & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+    assert(ierr == ZOLTAN_OK)
+    
+    preserve_columns = associated(zz_positions%mesh%columns)
+    call allor(preserve_columns)
+    
+    ewrite(1,*) 'exiting reset_zoltan_lists_full'
+    
+  end subroutine reset_zoltan_lists_full
+
+
   subroutine are_we_keeping_or_sending_nodes(p1_num_export, p1_export_local_ids, p1_export_procs)
     integer(zoltan_int), intent(in) :: p1_num_export
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids
@@ -2132,19 +1885,21 @@ module zoltan_integration
     end do
   end subroutine are_we_keeping_or_sending_nodes
 
-  subroutine zoltan_migration_phase_one(zz, p1_num_import, p1_num_export, &
-       & p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+  subroutine zoltan_migration_phase_one(zz, &
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
 
     type(zoltan_struct), pointer, intent(in) :: zz    
 
-    integer(zoltan_int), intent(in) :: p1_num_import, p1_num_export
-    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_global_ids
-    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids
-    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_procs
+    integer(zoltan_int), intent(in) :: p1_num_import
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_import_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_import_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_import_procs
+    integer(zoltan_int), intent(in) :: p1_num_export
+    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_global_ids
+    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids
+    integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_procs
+
 
     integer(zoltan_int) :: ierr
     integer(zoltan_int), dimension(:), pointer :: import_to_part, export_to_part
@@ -2787,7 +2542,290 @@ module zoltan_integration
     
   end subroutine reconstruct_halo
     
+  subroutine initialise_transfer(zz, states, new_positions_m1d, metric, full_metric, new_metric, initialise_fields, ignore_extrusion)
+    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(state_type), dimension(:), intent(inout), target :: states
+    type(vector_field), intent(inout) :: new_positions_m1d
+    type(tensor_field), intent(inout), optional :: metric
+    type(tensor_field), intent(inout), optional :: full_metric
+    type(tensor_field), intent(out) :: new_metric
+    logical, intent(in), optional :: initialise_fields
+    logical, intent(in), optional :: ignore_extrusion
 
+    integer :: i
+    type(state_type), dimension(size(states)) :: interpolate_states
+    integer(zoltan_int) :: ierr
+    character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
+    type(mesh_type), pointer :: mesh
+    integer :: no_meshes
+    
+    ewrite(1,*) 'in initialise_transfer'
+    
+    ! Set up source_states
+    do i=1,size(states)
+       call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
+            first_time_step=initialise_fields)
+       ! Remove the current state as we've copied the bits we need
+       call deallocate(states(i))
+    end do
+    
+    ! Interpolate the metric, too
+    if (present(full_metric)) then
+       call insert(interpolate_states(1), full_metric, "ErrorMetric")
+       call deallocate(full_metric)
+    else if (present(metric)) then
+       call insert(interpolate_states(1), metric, "ErrorMetric")
+       call deallocate(metric)
+    end if
+    
+    allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
+    no_meshes = 0
+    do i=1, mesh_count(interpolate_states(1))
+       mesh => extract_mesh(interpolate_states(1), i)
+       if (migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
+       no_meshes = no_meshes + 1
+       mesh_names(no_meshes) = mesh%name
+    end do
+    
+    allocate(source_states(no_meshes))
+    call halo_update(interpolate_states, level=1)
+    ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
+    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), source_states)
+    
+    ! Finished with interpolate_states for setting up source_states
+    do i=1,size(interpolate_states)
+       call deallocate(interpolate_states(i))
+    end do
+    
+    if (mesh_periodic(zz_mesh)) then
+       new_positions%mesh%periodic = .true.
+    end if
+    
+    ! Start setting up states so that it can be populated with migrated fields data
+    
+    ! Put the new positions mesh into states
+    
+    if(migrate_extruded_mesh) then
+       if (mesh_periodic(zz_mesh)) then
+          new_positions_m1d%mesh%periodic = .true.
+       end if
+       call insert(states, new_positions_m1d%mesh, name = new_positions_m1d%mesh%name)
+       call insert(states, new_positions_m1d, name = new_positions_m1d%name)
+    end if
+    
+    call insert(states, new_positions%mesh, name = new_positions%mesh%name)
+    call insert(states, new_positions, name = new_positions%name)
+    
+    ! Allocate a new metric field on the new positions mesh and zero it
+    if (present(metric).or.present(full_metric)) then
+       call allocate(new_metric, new_positions%mesh, "ErrorMetric")
+       call set(new_metric,spread(spread(666.0, 1, new_metric%dim), 2, new_metric%dim))
+    end if
+
+    ! Setup meshes and fields on states
+    call restore_reserved_meshes(states)
+    call insert_derived_meshes(states, skip_extrusion=ignore_extrusion)
+    call allocate_and_insert_fields(states)
+    call restore_reserved_fields(states)
+    
+    ! And set up target_states based on states
+    do i=1,size(states)
+       call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
+            first_time_step=initialise_fields)
+    end do
+
+    ! Metric will be interpolated too, it is 666.0 (for debugging purposes) at this point
+    if (present(metric).or.present(full_metric)) then
+       call insert(interpolate_states(1), new_metric, "ErrorMetric")
+    end if
+    
+    allocate(target_states(no_meshes))
+    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), target_states)
+      
+    ! Finished with interpolate states for setting up target_states
+    do i=1,size(interpolate_states)
+       call deallocate(interpolate_states(i))
+    end do
+
+    ! Tell Zoltan which callback functions to use for the migration
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
+    
+    ewrite(1,*) 'exiting initialise_transfer'
+    
+  end subroutine initialise_transfer
+
+  subroutine transfer_fields(zz)
+    ! OK! So, here is how this is going to work. We are going to 
+    ! loop through every element in which you own at least one node, and note
+    ! that its information needs to be sent to the owners of its vertices.
+    ! We also have to take special care of self-sends, since they don't
+    ! get taken care of in the zoltan communication.
+
+    type(zoltan_struct), pointer, intent(in) :: zz    
+    
+    integer :: old_ele
+    integer, dimension(:), pointer :: old_local_nodes
+    type(integer_set), dimension(halo_proc_count(zz_halo)) :: sends
+    integer :: i, new_owner, universal_element_number
+    type(integer_set) :: self_sends
+    integer :: num_import, num_export
+    integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs, import_to_part
+    integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
+    integer :: head
+    integer(zoltan_int) :: ierr
+    
+    integer :: old_universal_element_number, new_local_element_number, old_local_element_number
+    integer :: state_no, field_no
+    type(scalar_field), pointer :: source_sfield, target_sfield
+    type(vector_field), pointer :: source_vfield, target_vfield
+    type(tensor_field), pointer :: source_tfield, target_tfield
+    
+    ewrite(1,*) 'in transfer_fields'
+    
+    do i=1,size(sends)
+       call allocate(sends(i))
+    end do
+    call allocate(self_sends)
+    
+    
+    do old_ele=1,ele_count(zz_positions)
+       universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
+       old_local_nodes => ele_nodes(zz_positions, old_ele)
+       if (.not. any(nodes_owned(zz_halo, old_local_nodes))) cycle
+       do i=1,size(old_local_nodes)
+          if (has_value(nodes_we_are_keeping, old_local_nodes(i))) then
+             assert(node_owned(zz_halo, old_local_nodes(i)))
+             call insert(self_sends, universal_element_number)
+          else if (has_key(nodes_we_are_sending,  old_local_nodes(i))) then
+             new_owner = fetch(nodes_we_are_sending, old_local_nodes(i))
+             call insert(sends(new_owner+1), universal_element_number)
+          end if
+       end do
+    end do
+    
+    num_export = sum(key_count(sends))
+    allocate(export_global_ids(num_export))
+    allocate(export_procs(num_export))
+    
+    head = 1
+    do i=1,size(sends)
+       export_global_ids(head:head + key_count(sends(i)) - 1) = set2vector(sends(i))
+       export_procs(head:head + key_count(sends(i)) - 1) = i - 1
+       head = head + key_count(sends(i))
+    end do
+    
+    allocate(export_local_ids(num_export))
+    export_local_ids = 666
+    
+    import_global_ids => null()
+    import_local_ids => null()
+    import_procs => null()
+    import_to_part => null()
+    export_to_part => null()
+    
+    ierr = Zoltan_Compute_Destinations(zz, &
+         & num_export, export_global_ids, export_local_ids, export_procs, &
+         & num_import, import_global_ids, import_local_ids, import_procs)
+    assert(ierr == ZOLTAN_OK)
+    
+    ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
+         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
+    
+    assert(ierr == ZOLTAN_OK)
+    
+    deallocate(export_local_ids)
+    deallocate(export_procs)
+    deallocate(export_global_ids)
+    
+    ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
+    assert(ierr == ZOLTAN_OK)
+    
+    do state_no=1,size(source_states)
+       assert(scalar_field_count(source_states(state_no)) == scalar_field_count(target_states(state_no)))
+       assert(vector_field_count(source_states(state_no)) == vector_field_count(target_states(state_no)))
+       assert(tensor_field_count(source_states(state_no)) == tensor_field_count(target_states(state_no)))
+       
+       do field_no=1,scalar_field_count(source_states(state_no))
+          source_sfield => extract_scalar_field(source_states(state_no), field_no)
+          target_sfield => extract_scalar_field(target_states(state_no), field_no)
+          assert(trim(source_sfield%name) == trim(target_sfield%name))
+          
+          do i=1,key_count(self_sends)
+             old_universal_element_number = fetch(self_sends, i)
+             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             call set(target_sfield, ele_nodes(target_sfield, new_local_element_number), ele_val(source_sfield, old_local_element_number))
+          end do
+       end do
+       
+       do field_no=1,vector_field_count(source_states(state_no))
+          source_vfield => extract_vector_field(source_states(state_no), field_no)
+          target_vfield => extract_vector_field(target_states(state_no), field_no)
+          assert(trim(source_vfield%name) == trim(target_vfield%name))
+          if (source_vfield%name == new_positions%name) cycle
+          
+          do i=1,key_count(self_sends)
+             old_universal_element_number = fetch(self_sends, i)
+             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             call set(target_vfield, ele_nodes(target_vfield, new_local_element_number), ele_val(source_vfield, old_local_element_number))
+          end do
+       end do
+       
+       do field_no=1,tensor_field_count(source_states(state_no))
+          source_tfield => extract_tensor_field(source_states(state_no), field_no)
+          target_tfield => extract_tensor_field(target_states(state_no), field_no)
+          assert(trim(source_tfield%name) == trim(target_tfield%name))
+          
+          do i=1,key_count(self_sends)
+             old_universal_element_number = fetch(self_sends, i)
+             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             call set(target_tfield, ele_nodes(target_tfield, new_local_element_number), ele_val(source_tfield, old_local_element_number))
+          end do
+       end do
+    end do
+    
+    call deallocate(self_sends)
+    call deallocate(sends)
+    
+    call halo_update(target_states)
+    
+    ewrite(1,*) 'exiting transfer_fields'
+    
+  end subroutine transfer_fields
+
+  subroutine finalise_transfer(states, metric, full_metric, new_metric)
+    type(state_type), dimension(:), intent(inout), target :: states
+
+    type(tensor_field), intent(inout), optional :: metric
+    type(tensor_field), intent(inout), optional :: full_metric
+    type(tensor_field), intent(in) :: new_metric
+
+    integer :: i
+    call set_prescribed_field_values(states, exclude_interpolated = .true.)
+    call populate_boundary_conditions(states)
+    call set_boundary_conditions_values(states)
+    call set_dirichlet_consistent(states)
+    call alias_fields(states)
+    
+    if (present(full_metric)) then
+       full_metric = new_metric
+       call halo_update(full_metric)
+    else if (present(metric)) then
+       metric = new_metric
+       call halo_update(metric)
+    end if
+    
+    do i=1,size(source_states)
+       call deallocate(source_states(i))
+       call deallocate(target_states(i))
+    end do
+    deallocate(source_states)
+    deallocate(target_states)
+  end subroutine finalise_transfer
 
 #endif
 end module zoltan_integration
