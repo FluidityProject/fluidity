@@ -299,7 +299,7 @@ Reference_count_dynamic_csr_matrix.F90 \
 Reference_count_block_dynamic_csr_matrix.F90 \
 Reference_count_csr_sparsity.F90 \
 Halo_Data_Types.o Halos_Allocates.o Memory_Diagnostics.o \
-ieee_arithmetic_dummy.o
+ieee_arithmetic_dummy.o Data_structures.o
 
 Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
