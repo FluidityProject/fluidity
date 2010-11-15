@@ -1,10 +1,5 @@
 import fluidity_tools
 
-#############################################################
-#                                                           #
-#                         PZND model                        #
-#                                                           #
-#############################################################
 def pznd(state, parameters):
     '''Calculate sources and sinks for a simple PZND model'''
     
@@ -75,10 +70,10 @@ def pznd(state, parameters):
         G_D=(g * (1-p_P) * D_n**2 * Z_n)/(k**2 + p_P*P_n**2 + p_D*D_n**2)
 
         # Death rate of phytoplankton.
-        De_P=mu_P*P_n*P_n/(P_n+1)
+        De_P=mu_P*P_n*P_n/(P_n+0.2)
 
         # Death rate of zooplankton.
-        De_Z=mu_Z*Z_n**3
+        De_Z=mu_Z*Z_n*Z_n*Z_n/(Z_n+3)
 
         # Detritus remineralisation.
         De_D=mu_D*D_n
@@ -158,13 +153,7 @@ def check_pznd_parameters(parameters):
         valid = False
 
     return valid
-
-#############################################################
-#                                                           #
-#                          LV model                         #
-#                                                           #
-#############################################################
-
+    
 def lotka_volterra(state,parameters):
 
     if not check_lotka_volterra_parameters(parameters):
@@ -286,7 +275,7 @@ def six_component(state, parameters):
     theta_m=parameters["theta_m"]
     lambda_bio=parameters["lambda_bio"]
     lambda_A=parameters["lambda_A"]
-    photicZoneDepth=parameters["photic_zone_depth"]
+    photicZoneLimit=parameters["photic_zone_limit"]
     p_D=1-p_P
 
     for n in range(P.node_count):
@@ -304,13 +293,10 @@ def six_component(state, parameters):
         else:
             theta = C_n/(P_n*zeta) # C=P_n*zeta
         
-        # temp fix to alpha whilst debugging:
-        #alpha = 0.01
-        alpha = alpha_c * theta # diff to paper - check other paper/emails
+        alpha = alpha_c * theta 
 
         # Light limited phytoplankton growth rate.
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5
-        #print J, v, alpha, I_n, coords.node_val(n)[2]
 
         # Nitrate limiting factor.
         Q_N=(N_n*math.exp(-psi * A_n))/(k_N+N_n)
@@ -318,8 +304,11 @@ def six_component(state, parameters):
         # Ammonium limiting factor
         Q_A=A_n/(k_A+A_n)
 
-        # Total phytoplankton growth rate.
-        R_P=(theta_m/theta)*((J*(Q_N+Q_A))/alpha*I_n) 
+        # Chl growth scaling factor
+        R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n) 
+
+        # Primary production
+        X_P=J*(Q_N+Q_A)*P_n
 
         # Zooplankton grazing of phytoplankton.
         G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
@@ -338,7 +327,7 @@ def six_component(state, parameters):
 
         # We have 2 sources depending on whether we're below or above the photic zone
         # below
-        if (I_n < photicZoneDepth):
+        if (I_n < photicZoneLimit):
             P_source.set(n, -lambda_bio * P_n)
             C_source.set(n, -lambda_bio*C_n)
             Z_source.set(n, -lambda_bio*Z_n)
@@ -347,15 +336,15 @@ def six_component(state, parameters):
             N_source.set(n, lambda_A*A_n + mu_D*D_n)
         # above
         else:
-            P_source.set(n, J*P_n*(Q_N+Q_A) - G_P - De_P)
-            C_source.set(n, (R_P*J*P_n*(Q_N+Q_A) + (-G_P-De_P))*theta/zeta)
+            P_source.set(n, J*(Q_N+Q_A)*P_n - G_P - De_P)
+            C_source.set(n, (R_P*J*(Q_N+Q_A)*P_n + (-G_P-De_P))*theta/zeta)
             Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
             D_source.set(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
             N_source.set(n, -J*P_n*Q_N)
             A_source.set(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
 
         if PP:
-            PP.set(n, R_P)
+            PP.set(n, X_P)
         if PG:
             PG.set(n, G_P)
 
@@ -468,5 +457,11 @@ def check_six_component_parameters(parameters):
         stderr.write("lambda_A nitrification rate below photic zone\n\n")
         valid = False
 
+    if not parameters.has_key("photic_zone_limit"):
+        stderr.write("PCZNDA parameter photic_zone_limit missing.\n")
+        stderr.write("photic_zone_limit is a value in W/m2 which defines base of photic zone \n\n")
+        valid = False
+
     return valid
+
 
