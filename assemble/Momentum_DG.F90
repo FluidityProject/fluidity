@@ -58,6 +58,7 @@ module momentum_DG
   use slope_limiters_dg
   use les_viscosity_module
   use fields_manipulation
+  use field_options
 
   implicit none
 
@@ -610,12 +611,16 @@ contains
       "dirichlet    "/), pressure_bc, pressure_bc_type)
 
     ! dg les hack
-    cg_mesh=>extract_mesh(state, "CoordinateMesh")
-    call allocate(u_cg, u%dim, cg_mesh, "U_CG")
-    call zero(u_cg)
-    call allocate(u_nl_cg, u%dim, cg_mesh, "U_CG_NL")
-    call zero(u_nl_cg)
-    
+    call find_linear_parent_mesh(state, u%mesh, cg_mesh, stat)
+    if (stat==0) then
+      call allocate(u_cg, u%dim, cg_mesh, "U_CG")
+      call zero(u_cg)
+      call allocate(u_nl_cg, u%dim, cg_mesh, "U_CG_NL")
+      call zero(u_nl_cg)
+    else
+      FLAbort("CG parent mesh required for the LES  remap could not be found")
+    end if
+
     if (have_dg_les) then
       call lumped_mass_galerkin_projection_vector(state, u_cg, u)
       call lumped_mass_galerkin_projection_vector(state, u_nl_cg, advecting_velocity)
