@@ -8405,38 +8405,42 @@ computes a fast approximation to the Radiative Transfer Equation.
 NOTE: This module requires fluidity to be compiled with the 
 --enable-hyperlight flag.</a:documentation>
       <element name="scalar_field">
-        <a:documentation>Input: chlorophyll concentration</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ChlorophyllConcentration</value>
-        </attribute>
-        <element name="prescribed">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prescribed_scalar_field"/>
-        </element>
-      </element>
-      <element name="cdom">
-        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="bf_chl">
-        <a:documentation>BFchl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="scalar_field">
-        <a:documentation/>
+        <a:documentation>Hydrolight always computes the scalar irradiance 
+for 36 regular wavebands of width 10nm in PAR. 
+Particular wavebands or total PAR irradiance need 
+to be derived from these fixed bands.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
           <value>IrradianceTemplate</value>
         </attribute>
-        <group>
+        <element name="prescribed">
           <ref name="velocity_mesh_choice"/>
           <ref name="prescribed_scalar_field"/>
-        </group>
+        </element>
+      </element>
+      <optional>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>IrradiancePAR</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+      </optional>
+      <element name="cdom">
+        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="bf_chl">
+        <a:documentation>BF_chl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
+        <ref name="real"/>
       </element>
     </element>
   </define>

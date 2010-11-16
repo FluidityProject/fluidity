@@ -6556,33 +6556,33 @@ hyperlight =
       ## NOTE: This module requires fluidity to be compiled with the 
       ## --enable-hyperlight flag.
       element hyperlight {
-         ## Input: chlorophyll concentration
+         ## Hydrolight always computes the scalar irradiance 
+         ## for 36 regular wavebands of width 10nm in PAR. 
+         ## Particular wavebands or total PAR irradiance need 
+         ## to be derived from these fixed bands.
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "ChlorophyllConcentration" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }
-            )
+            attribute name { "IrradianceTemplate" },
+            element prescribed {
+               velocity_mesh_choice,
+               prescribed_scalar_field
+            }
          },
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "IrradiancePAR" },
+            element prescribed {
+               velocity_mesh_choice,
+               prescribed_scalar_field
+            }
+         }?,
          ## F, the ratio for correlated CDOM
          element cdom {
             real
          },
-         ## BFchl, the backscatter fraction for chlorophyll-bearing particles
+         ## BF_chl, the backscatter fraction for chlorophyll-bearing particles
          element bf_chl {
             real
-         },
-         ## 
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "IrradianceTemplate" },
-            (
-               velocity_mesh_choice,
-               prescribed_scalar_field              
-            )
          }
       }
    )
