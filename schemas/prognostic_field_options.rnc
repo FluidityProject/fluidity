@@ -822,6 +822,7 @@ prognostic_velocity_field =
                prescribed_vector_field_no_adapt
             }|
             element diagnostic { 
+               mesh_choice?,
                (
                   vector_python_diagnostic_algorithm |
                   imposed_material_velocity_absorption_algorithm |

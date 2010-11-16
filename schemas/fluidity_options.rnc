@@ -1424,6 +1424,11 @@ start =
                      velocity_mesh_choice,
                      prescribed_vector_field
                   }|
+                  element diagnostic {
+                     velocity_mesh_choice,
+                     vector_python_diagnostic_algorithm,
+                     diagnostic_vector_field
+                  }|                  
                   element aliased {
                      attribute material_phase_name { xsd:string },
                      attribute field_name {"Velocity" }

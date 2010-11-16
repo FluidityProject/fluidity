@@ -1860,6 +1860,11 @@ Recommended value (default): 1.3.</a:documentation>
                 <ref name="velocity_mesh_choice"/>
                 <ref name="prescribed_vector_field"/>
               </element>
+              <element name="diagnostic">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="vector_python_diagnostic_algorithm"/>
+                <ref name="diagnostic_vector_field"/>
+              </element>
               <element name="aliased">
                 <attribute name="material_phase_name">
                   <data type="string"/>
