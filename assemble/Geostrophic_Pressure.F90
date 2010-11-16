@@ -407,9 +407,9 @@ contains
     ewrite(2, *) "Include Coriolis? ", include_coriolis
     
     if(.not. include_buoyancy .and. .not. include_coriolis) then
-      ewrite(-1, *) "Warning: Assembling GeostrophicPressure equation with no RHS terms"
+      ewrite(0, *) "Warning: Assembling GeostrophicPressure equation with no RHS terms"
       if(.not. assemble_matrix) then
-        ewrite(-1, *) "Warning: Not assembling LHS matrix either!"
+        ewrite(0, *) "Warning: Not assembling LHS matrix either!"
       end if
     end if
           
@@ -1713,8 +1713,8 @@ contains
     
     ewrite(1, *) "In coriolis_from_velocity"
     
-    ewrite(-1, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
-    ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
+    ewrite(2, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
+    ewrite(2, *) "Velocity mesh: " // trim(velocity%mesh%name)
         
     cont = continuity(coriolis)
     if(present(lump_mass)) then
