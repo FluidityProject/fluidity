@@ -288,11 +288,7 @@ def six_component(state, parameters):
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
         
-        if (P_n < 1e-7):
-            theta = 1000.
-        else:
-            theta = C_n/(P_n*zeta) # C=P_n*zeta
-        
+        theta = C_n/(P_n*zeta) # C=P_n*zeta
         alpha = alpha_c * theta 
 
         # Light limited phytoplankton growth rate.
@@ -306,6 +302,9 @@ def six_component(state, parameters):
 
         # Chl growth scaling factor
         R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n) 
+        # If Chl was zero, theta is zero, so this could be NaN
+        if (math.isnan(R_P)):
+            R_P = 0
 
         # Primary production
         X_P=J*(Q_N+Q_A)*P_n
@@ -331,7 +330,7 @@ def six_component(state, parameters):
             P_source.set(n, -lambda_bio * P_n)
             C_source.set(n, -lambda_bio*C_n)
             Z_source.set(n, -lambda_bio*Z_n)
-            D_source.addto(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
+            D_source.set(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
             A_source.set(n, -lambda_A*A_n)
             N_source.set(n, lambda_A*A_n + mu_D*D_n)
         # above
