@@ -37,7 +37,7 @@ for filename in fortran_files:
 
 for module in module_list:
 
-    outfile.write("  use "+module+"\n")
+        outfile.write("  use "+module+", only: "+module+"_check_options\n")
 
 # Ensure that the subroutine is legal in the trivial case.
 outfile.write("""
