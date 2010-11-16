@@ -2825,6 +2825,7 @@ contains
     ! borrowed field reference.
     sfield%mesh = vfield%mesh
     sfield%val  => vfield%val(dim,:)
+    sfield%val_stride = vfield%dim
     sfield%option_path = vfield%option_path
     sfield%field_type = vfield%field_type
     write(sfield%name, '(a, i0)') trim(vfield%name) // "%", dim
