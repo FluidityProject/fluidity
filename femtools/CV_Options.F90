@@ -158,10 +158,31 @@ contains
     call get_option(trim(complete_field_path(option_path, stat))//&
                         "/temporal_discretisation&
                         &/theta", cv_options%theta)
-    call get_option(trim(complete_field_path(option_path, stat))//&
-                        "/temporal_discretisation&
-                        &/control_volumes/pivot_theta", &
-                        cv_options%ptheta, default=1.0)
+    if (cv_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND) then
+      call get_option(trim(complete_field_path(option_path, stat))//&
+                          "/temporal_discretisation&
+                          &/control_volumes/pivot_theta", &
+                          cv_options%ptheta, stat=stat)
+      if(stat==0) then
+        if(cv_options%ptheta/=cv_options%theta) then
+          ewrite(-1,*) "Found a different pivot_theta and theta for the field with"
+          ewrite(-1,*) "option_path: "//trim(option_path)
+          ewrite(-1,*) "This field uses first order upwinding."
+          ewrite(-1,*) "As the pivot is also first order upwinding theta and"
+          ewrite(-1,*) "pivot theta should be the same."
+          FLExit("Switch off pivot_theta or set it to be the same as theta.")
+        end if
+      else
+        ! the pivot is a first order upwind value value too so
+        ! the pivot theta should be the same
+        cv_options%ptheta = cv_options%theta
+      end if
+    else
+      call get_option(trim(complete_field_path(option_path, stat))//&
+                          "/temporal_discretisation&
+                          &/control_volumes/pivot_theta", &
+                          cv_options%ptheta, default=1.0)
+    end if
     if(present_and_true(coefficient_field)) then
       ! if these options are for a field that just a coefficient to the main
       ! equation then this isn't need.

@@ -300,18 +300,29 @@ contains
           end if
           call zero(rhs)
   
-          ! assemble A_m and rhs
-          call assemble_advection_m_cv(A_m, rhs, &
-                                      advit_tfield, l_tfield, tfield_options, &
-                                      cvfaces, x_cvshape, x_cvbdyshape, &
-                                      u_cvshape, u_cvbdyshape, t_cvshape, t_cvbdyshape, &
-                                      state, relu, x, x_tfield, &
-                                      getmat, sub_dt, rk_it, delta_tfield)
+          ! If we've passed the first iteration/subcycle so we have A_m don't enter the next step.
+          ! Also if we're using first order upwinding (and not using a spatially varying theta 
+          ! - limit_theta) so there's no need to assemble the
+          ! nonlinear rhs (assuming we've enforced pivot theta = theta as cv_options should do)
+          ! then just multiply things out
+          if(getmat.or.(tfield_options%facevalue/=CV_FACEVALUE_FIRSTORDERUPWIND).or.(tfield_options%limit_theta)) then
+            ! we need the matrix (probably the first iteration/subcycle) or we need
+            ! the nonlinear rhs (if we're not using first order upwinding) or we're
+            ! using a spatially varying theta that has to be multiplied into the
+            ! assembly...
+            ! so go into assembly
+            call assemble_advection_m_cv(A_m, rhs, &
+                                        advit_tfield, l_tfield, tfield_options, &
+                                        cvfaces, x_cvshape, x_cvbdyshape, &
+                                        u_cvshape, u_cvbdyshape, t_cvshape, t_cvbdyshape, &
+                                        state, relu, x, x_tfield, &
+                                        getmat, sub_dt, rk_it, delta_tfield)
+          end if
   
           ! assemble it all into a coherent equation
           call assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
                                     advit_tfield, l_tfield, &
-                                    sub_dt, explicit)
+                                    sub_dt, explicit, tfield_options)
   
           if(explicit) then
             do i = 1, delta_tfield%dim
@@ -392,7 +403,7 @@ contains
   ! equation wrapping subroutines
   subroutine assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
                                   tfield, oldtfield, &
-                                  dt, explicit)
+                                  dt, explicit, tfield_options)
 
     ! This subroutine assembles the equation
     ! M(T^{n+1}-T^{n})/\Delta T = rhs
@@ -416,6 +427,8 @@ contains
     real, intent(in) :: dt
     ! we're explicit!
     logical, intent(in) :: explicit
+    ! options wrappers for tfield
+    type(cv_options_type), intent(in) :: tfield_options
 
     ! local memory:
     ! for all equation types:
@@ -428,9 +441,7 @@ contains
 
     ! allocate some memory for assembly
     call allocate(A_mT_old, rhs%mesh, name="A_mT_oldProduct" )
-
-    ! [M + A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
-
+    
     do i=1,oldtfield%dim
       do j=i,oldtfield%dim
         ! construct rhs
@@ -443,9 +454,29 @@ contains
       end do
     end do
 
-    ! construct M
-    if(.not.explicit) then
-      call addto(M, A_m, dt)
+    if((tfield_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND).and.&
+       (.not.tfield_options%limit_theta))then
+       ! in this case the pivot solution is first order upwinding so
+       ! A_m is all we need (i.e. we assume the rhs has been zeroed)
+       ! also we're not using a spatially varying theta so A_m has been
+       ! assembled excluding it (so it needs to be multiplied in now)
+    
+      ! [M + dt*theta*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
+      
+      ! construct M
+      if(.not.explicit) then
+        call addto(M, A_m, tfield_options%theta*dt)
+      end if
+      
+    else
+
+      ! [M + dt*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
+
+      ! construct M
+      if(.not.explicit) then
+        call addto(M, A_m, dt)
+      end if
+      
     end if
 
     call deallocate(A_mT_old)
@@ -561,7 +592,7 @@ contains
     real, dimension(:,:), allocatable :: mat_local
     real, dimension(:,:,:), allocatable :: rhs_local
     
-    integer :: i, j, k
+    integer :: i, j, k, dimi, dimj
 
     real, dimension(relu%dim, relu%dim) :: id, value, strain, rotate
     type(tensor_field), pointer :: max_eigenbound
@@ -593,8 +624,17 @@ contains
     ! Clear memory of arrays being designed
     if(getmat) call zero(A_m)
 
-    do i=1,tfield%dim
-      do j=i,tfield%dim
+    if((tfield_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND).and.&
+        (.not.tfield_options%limit_theta))then
+      dimi = 1
+      dimj = 1
+    else
+      dimi = tfield%dim
+      dimj = tfield%dim
+    end if
+    
+    do i=1,dimi
+      do j=i,dimj
 
         tfield_scomp = extract_scalar_field(tfield, i, j)
         oldtfield_scomp = extract_scalar_field(oldtfield, i, j)
@@ -675,68 +715,91 @@ contains
 
                     income = merge(1.0,0.0,inflow)
 
-                    ! calculate the iterated pivot value (so far only does first order upwind)
-                    ! which will be subtracted out from the rhs such that with an increasing number
-                    ! of iterations the true implicit lhs pivot is cancelled out (if it converges!)
-                    tfield_pivot_val = income*tfield_ele(oloc) + (1.-income)*tfield_ele(iloc)
-
-                    ! evaluate the nonlinear face value that will go into the rhs
-                    ! this is the value that you choose the discretisation for and
-                    ! that will become the dominant term once convergence is achieved
-                    call evaluate_face_val(tfield_face_val, oldtfield_face_val, & 
-                                           iloc, oloc, ggi, upwind_nodes, &
-                                           t_cvshape, &
-                                           tfield_ele, oldtfield_ele, &
-                                           tfield_upwind, oldtfield_upwind, &
-                                           inflow, cfl_ele, &
-                                           tfield_options)
-
-                    ! perform the time discretisation
-                    tfield_theta_val=theta_val(iloc, oloc, &
-                                         tfield_face_val, &
-                                         oldtfield_face_val, &
-                                         tfield_options%theta, dt, udotn, &
-                                         x_ele, tfield_options%limit_theta, &
-                                         tfield_ele, oldtfield_ele, &
-                                         ftheta=ftheta)
-
-                    ! if we need the matrix then assemble it now
-                    if(getmat .and. i == 1 .and. j == 1) then
+                    if((tfield_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND).and.&
+                       (.not.tfield_options%limit_theta))then
+                      ! if we need the matrix then assemble it now
+                      assert((i==1).and.(j==1).and.getmat)
+                    
                       mat_local(iloc, oloc) = mat_local(iloc, oloc) &
-                                            + ptheta*detwei(ggi)*udotn*income
+                                            + detwei(ggi)*udotn*income
                       mat_local(oloc, iloc) = mat_local(oloc, iloc) &
-                                            + ptheta*detwei(ggi)*(-udotn)*(1.-income)
+                                            + detwei(ggi)*(-udotn)*(1.-income)
                       mat_local(iloc, iloc) = mat_local(iloc, iloc) &
-                                            + ptheta*detwei(ggi)*udotn*(1.0-income) &
-                                            - ftheta*(1.-beta)*detwei(ggi)*udotn
+                                            + detwei(ggi)*udotn*(1.0-income) &
+                                            - (1.-beta)*detwei(ggi)*udotn
                       mat_local(oloc, oloc) = mat_local(oloc, oloc) &
-                                            + ptheta*detwei(ggi)*(-udotn)*income &
-                                            - ftheta*(1.-beta)*detwei(ggi)*(-udotn)
+                                            + detwei(ggi)*(-udotn)*income &
+                                            - (1.-beta)*detwei(ggi)*(-udotn)
 
-                    end if
-                    
-                    rhs_local(i, j, iloc) = rhs_local(i, j, iloc) &
-                                    + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
-                                    - udotn*detwei(ggi)*tfield_theta_val &
-                                    + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*oldtfield_ele(iloc)
-                    
-                    if(j/=i) then
-                      rhs_local(j, i, iloc) = rhs_local(j, i, iloc) &
+                    else
+                      ! calculate the iterated pivot value (so far only does first order upwind)
+                      ! which will be subtracted out from the rhs such that with an increasing number
+                      ! of iterations the true implicit lhs pivot is cancelled out (if it converges!)
+                      tfield_pivot_val = income*tfield_ele(oloc) + (1.-income)*tfield_ele(iloc)
+                      
+                      ! evaluate the nonlinear face value that will go into the rhs
+                      ! this is the value that you choose the discretisation for and
+                      ! that will become the dominant term once convergence is achieved
+                      call evaluate_face_val(tfield_face_val, oldtfield_face_val, & 
+                                            iloc, oloc, ggi, upwind_nodes, &
+                                            t_cvshape, &
+                                            tfield_ele, oldtfield_ele, &
+                                            tfield_upwind, oldtfield_upwind, &
+                                            inflow, cfl_ele, &
+                                            tfield_options)
+
+                      ! perform the time discretisation
+                      tfield_theta_val=theta_val(iloc, oloc, &
+                                          tfield_face_val, &
+                                          oldtfield_face_val, &
+                                          tfield_options%theta, dt, udotn, &
+                                          x_ele, tfield_options%limit_theta, &
+                                          tfield_ele, oldtfield_ele, &
+                                          ftheta=ftheta)
+
+                      if((tfield_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND)) then
+                        ptheta = ftheta
+                      end if
+                        
+                      rhs_local(i, j, iloc) = rhs_local(i, j, iloc) &
                                       + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
                                       - udotn*detwei(ggi)*tfield_theta_val &
                                       + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*oldtfield_ele(iloc)
-                    end if
-                    
-                    rhs_local(i, j, oloc) = rhs_local(i, j, oloc) &
-                                    + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
-                                    - (-udotn)*detwei(ggi)*tfield_theta_val &
-                                    + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*oldtfield_ele(oloc)
-  
-                    if(j/=i) then
-                      rhs_local(j, i, oloc) = rhs_local(j, i, oloc) &
+                        
+                      if(j/=i) then
+                        rhs_local(j, i, iloc) = rhs_local(j, i, iloc) &
+                                        + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
+                                        - udotn*detwei(ggi)*tfield_theta_val &
+                                        + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*oldtfield_ele(iloc)
+                      end if
+                        
+                      rhs_local(i, j, oloc) = rhs_local(i, j, oloc) &
                                       + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                       - (-udotn)*detwei(ggi)*tfield_theta_val &
                                       + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*oldtfield_ele(oloc)
+      
+                      if(j/=i) then
+                        rhs_local(j, i, oloc) = rhs_local(j, i, oloc) &
+                                        + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
+                                        - (-udotn)*detwei(ggi)*tfield_theta_val &
+                                        + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*oldtfield_ele(oloc)
+                      end if
+                      
+                      ! if we need the matrix then assemble it now
+                      if(getmat .and. i == 1 .and. j == 1) then
+                        mat_local(iloc, oloc) = mat_local(iloc, oloc) &
+                                              + ptheta*detwei(ggi)*udotn*income
+                        mat_local(oloc, iloc) = mat_local(oloc, iloc) &
+                                              + ptheta*detwei(ggi)*(-udotn)*(1.-income)
+                        mat_local(iloc, iloc) = mat_local(iloc, iloc) &
+                                              + ptheta*detwei(ggi)*udotn*(1.0-income) &
+                                              - ftheta*(1.-beta)*detwei(ggi)*udotn
+                        mat_local(oloc, oloc) = mat_local(oloc, oloc) &
+                                              + ptheta*detwei(ggi)*(-udotn)*income &
+                                              - ftheta*(1.-beta)*detwei(ggi)*(-udotn)
+
+                      end if
+                      
                     end if
 
                   end if ! notvisited
@@ -749,7 +812,10 @@ contains
             call addto(A_m, nodes, nodes, mat_local)
           end if
           
-          call addto(rhs, nodes, rhs_local)
+          if((tfield_options%facevalue/=CV_FACEVALUE_FIRSTORDERUPWIND).or.&
+              (tfield_options%limit_theta))then
+            call addto(rhs, nodes, rhs_local)
+          end if
         end do ! ele
       end do ! j
     end do ! i
