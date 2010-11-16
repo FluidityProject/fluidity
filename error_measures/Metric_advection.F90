@@ -757,10 +757,6 @@ contains
                                           tfield_ele, oldtfield_ele, &
                                           ftheta=ftheta)
 
-                      if((tfield_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND)) then
-                        ptheta = ftheta
-                      end if
-                        
                       rhs_local(i, j, iloc) = rhs_local(i, j, iloc) &
                                       + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
                                       - udotn*detwei(ggi)*tfield_theta_val &
