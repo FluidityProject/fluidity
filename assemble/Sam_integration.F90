@@ -791,6 +791,7 @@ module sam_integration
        integer :: component, component_i, component_j
 
        real, dimension(:,:), allocatable :: xyz
+       real, dimension(:), allocatable :: value
    
 
        ewrite(1, *) "In sam_drive"
@@ -1075,6 +1076,7 @@ module sam_integration
 #endif
        end if
        
+       allocate(value(1:node_count(linear_mesh)))
        ! Extract field data from sam
        do state=size(states),1,-1
          do field=tcount(state),1,-1
@@ -1097,7 +1099,8 @@ module sam_integration
 
          do field=vcount(state),1,-1
            do component=dim,1,-1
-             call sam_pop_field(linear_v%val(component,:), node_count(linear_mesh))
+             call sam_pop_field(value, node_count(linear_mesh))
+             call set_all(linear_v, component, value)
            end do
 
            field_v => extract_vector_field(states(state), trim(namelist_v(state, field)))
@@ -1352,10 +1355,13 @@ module sam_integration
      subroutine sam_add_field_vector(field)
        type(vector_field), intent(in) :: field
        
+       real, dimension(:), allocatable:: value
        integer :: i
        
+       allocate( value(1:node_count(field)) )
        do i=1,field%dim
-         call sam_add_field(field%val(i,:), node_count(field))
+         value=field%val(i,:)
+         call sam_add_field(value, node_count(field))
        end do
        
      end subroutine sam_add_field_vector
