@@ -517,6 +517,9 @@
       if (have_femdem) then
         solid => extract_scalar_field(state, "SolidConcentration")
         old_solid => extract_scalar_field(state, "OldSolidConcentration")
+      else 
+        solid => dummyscalar
+        old_solid => dummyscalar
       end if
 
       ! ----- Volume integrals over elements -------------
@@ -640,18 +643,11 @@
         end if
         
         if (low_re_p_correction_fix) then
-!          ewrite(2,*) "****************************************"
-!          ewrite(2,*) "NOTHING HAPPENS HERE"
-          ewrite(2,*) "****************************************"
-          ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
-!          ewrite(2,*) "Invert it and apply dirichlet conditions!"
-!          ! Add viscous terms (stored in visc_inverse_masslump)
-!          ! and inverse_masslump and store it in visc_inverse_masslump:
-          ewrite(2,*) "The viscous_terms are:"
+          ewrite(2,*) "using low_re_p_correction_fix"
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
           end do
-!          ! viscous_terms are already added to the lumped mass matrix
+          ! viscous_terms are already added to the lumped mass matrix
           call addto(visc_inverse_masslump, inverse_masslump)
           ewrite(2,*) "For comparison only:"
           ewrite(2,*) "The orig inverse_masslump is:"
@@ -662,11 +658,11 @@
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
           end do
-!          ! invert the visc_inverse_masslump:
+          ! invert the visc_inverse_masslump:
           call invert(visc_inverse_masslump)
-!          ! apply boundary conditions (zeroing out strong dirichl. rows)
+          ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-!          
+          
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
           do dim = 1, rhs%dim
             ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
@@ -1117,7 +1113,7 @@
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, solid, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -1153,10 +1149,6 @@
       if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les)) then
         call get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
          du_t, detwei, viscous_terms, visc_masslump, masslump)
-        ! Add viscous terms to visc_masslump
-!        call addto(masslump, visc_masslump)
-!        call addto(visc_masslump, u_ele, viscous_terms)
-        ! At this point, only the viscous_terms are stored in visc_masslump!
       end if
       
       ! Coriolis terms
@@ -1302,11 +1294,10 @@
       
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, solid, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
-      type(scalar_field), intent(in) :: solid
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: nu
       type(vector_field), pointer :: ug
@@ -1320,7 +1311,7 @@
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
     
       integer :: dim
-      real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi, solid_gi
+      real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: advection_mat
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
@@ -1334,17 +1325,6 @@
         relu_gi = relu_gi - ele_val_at_quad(ug, ele)
       end if
       div_relu_gi = ele_div_at_quad(nu, ele, du_t)
-
-!      if (have_femdem) then
-!         ! use u_f to advect, this is: \widehat{\u_f}/\alpha_f
-!         ! \alpa_f is 0 in the solid so we need to clip it
-!         solid_gi = max (1. - ele_val_at_quad(solid, ele), 1.e-3)
-!         relu_gi = ele_val_at_quad(nu, ele) / spread(solid_gi, 1, u%dim)
-!         if(move_mesh) then
-!            relu_gi = relu_gi - ele_val_at_quad(ug, ele) / spread(solid_gi, 1, u%dim)
-!         end if
-!         div_relu_gi = ele_div_at_quad_femdem(nu, solid, ele, du_t)
-!      end if
 
       if(integrate_advection_by_parts) then
         ! element advection matrix
@@ -1866,31 +1846,15 @@
         end if
       end if
 
-!old code:
-!      do dim = 1, u%dim
-!        viscous_terms(dim, :) = viscosity_mat(dim,dim,:,:)
-!        ! off block diagonal viscosity terms
-!        if(stress_form) then
-!          do dimj = 1, u%dim
-!            if (dim==dimj) cycle ! already done this
-!            viscous_terms(dim, :) = matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
-!          end do
-!        end if
-!      end do
-
-!new code:
-    nodes => ele_nodes(u,ele)
-    do dim = 1, u%dim
-      do i = 1, ele_loc(u,ele)
-!        call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
-!        call addto(visc_inverse_masslump, dim, nodes(i), viscosity_mat(dim,dim,i,i))
-!        call addto(masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
-        if (dt*theta*viscosity_mat(dim,dim,i,i) .LT. 0.01) then
-          viscosity_mat(dim,dim,i,i) = 0.0
-        end if
-        call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
+      nodes => ele_nodes(u,ele)
+      do dim = 1, u%dim
+        do i = 1, ele_loc(u,ele)
+          if (dt*theta*viscosity_mat(dim,dim,i,i) .LT. 0.01) then
+            viscosity_mat(dim,dim,i,i) = 0.0
+          end if
+          call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
+        end do
       end do
-    end do
 
     end subroutine get_viscous_terms_element_cg
     
