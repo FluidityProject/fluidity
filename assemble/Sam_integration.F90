@@ -54,6 +54,9 @@ module sam_integration
   use detector_data_types
   use diagnostic_variables
   use pickers
+  use ieee_arithmetic
+
+  
 
   implicit none
   
@@ -787,6 +790,9 @@ module sam_integration
        character(len=OPTION_PATH_LEN) :: linear_mesh_option_path
        integer :: component, component_i, component_j
 
+       real, dimension(:,:), allocatable :: xyz
+   
+
        ewrite(1, *) "In sam_drive"
        call tic(TICTOC_ID_DATA_REMAP)
 
@@ -943,9 +949,12 @@ module sam_integration
        allocate(surface_ids(stotel))
        allocate(senlist(stotel * snloc))
        ewrite(1, *) "Calling sam_export_mesh from sam_drive"
+       allocate(xyz(1:nonods, 1:3))
        call sam_export_mesh(nonods, totele, stotel, nloc, snloc, &
-                          & new_positions%val(1,:), new_positions%val(2,:), new_positions%val(3,:), &
+                          & xyz(:,1), xyz(:,2), xyz(:,3), &
                           & linear_mesh%ndglno, senlist, surface_ids)
+       new_positions%val=transpose(xyz(:,1:new_positions%dim))
+       deallocate(xyz)
        ewrite(1, *) "Exited sam_export_mesh"
        linear_mesh%option_path = linear_mesh_option_path
          
@@ -1145,7 +1154,7 @@ module sam_integration
        call alias_fields(states)
        
        ! Step 6. Cleanup
-
+       
        ewrite(1, *) "Calling sam_cleanup from sam_drive"
        call sam_cleanup
        ewrite(1, *) "Exited sam_cleanup"
@@ -1232,6 +1241,7 @@ module sam_integration
        real, dimension(1), target :: dummy
        integer, dimension(10), intent(in) :: options
        real :: mestp1
+       real, dimension(:,:), allocatable :: xyz
 
        integer :: dim, i, j, nprocs
        type(halo_type) :: halo
@@ -1254,23 +1264,7 @@ module sam_integration
        call getsndgln(mesh, sndgln)
        allocate(surfid(surface_element_count(mesh)))
        call interleave_surface_ids(mesh, surfid, max_coplanar_id)
-       select case(dim)
-         case(3)
-           x => positions%val(1,:)
-           y => positions%val(2,:)
-           z => positions%val(3,:)
-         case(2)
-           x => positions%val(1,:)
-           y => positions%val(2,:)
-           z => dummy
-         case(1)
-           x => positions%val(1,:)
-           y => dummy
-           z => dummy
-         case default
-           FLAbort("Invalid dimension")
-       end select
-
+       
        ! Extract the level 1 halo
        nprocs = getnprocs()       
        if(halo_count(mesh) > 0) then
@@ -1316,6 +1310,10 @@ module sam_integration
        nfields = 0
        dummy = 0
        fields => dummy
+       
+       allocate(xyz(1:nonods,1:3))
+       xyz(:,1:positions%dim)=transpose(positions%val)
+       xyz(:,positions%dim+1:)=0.0
 
        call get_option('/mesh_adaptivity/hr_adaptivity/functional_tolerance', mestp1, default = 0.0)
 
@@ -1326,9 +1324,10 @@ module sam_integration
                           & size(gather), nscate, nprocs, &
                           & ndglno(1:totele * nloc), nloc, &
                           & sndgln(1:stotel * snloc), surfid(1:stotel), snloc, &
-                          & x, y, z, &
+                          & xyz(:,1), xyz(:,2), xyz(:,3), &
                           & metric_handle(1:nonods * dim ** 2), fields, nfields, &
                           & options, mestp1)
+       deallocate(xyz)
        ewrite(1, *) "Exited sam_init_c"
        
        deallocate(sndgln)
