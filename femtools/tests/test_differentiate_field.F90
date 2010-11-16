@@ -29,9 +29,9 @@ subroutine test_differentiate_field
   end do
 
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     pressure_field%val(i) = 2.0 * x + 3.0 * y
   end do
 
@@ -65,9 +65,9 @@ subroutine test_differentiate_field
   call report_test("[linear exact z derivative]", fail, warn, "Z derivative should be constant 0.0")
 
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     pressure_field%val(i) = 0.5 * x * x + 0.5 * y * y
   end do
 
@@ -79,9 +79,9 @@ subroutine test_differentiate_field
 
   ! X derivative
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     if (.not. fequals(outfields(1)%val(i), x, 0.15)) then
       print *," i == ", i, "; x == ", x, "; diffx == ", outfields(1)%val(i)
       fail = .true.
@@ -94,9 +94,9 @@ subroutine test_differentiate_field
 
   ! Y derivative
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     if (.not. fequals(outfields(2)%val(i), y, 0.15)) then
       print *," i == ", i, "; y == ", y, "; diffy == ", outfields(2)%val(i)
       fail = .true.

@@ -705,7 +705,7 @@ module metric_tools
     integer :: i
 
     do i=1,positions%dim
-      domainwidth(i) = maxval(positions%val(i)%ptr) - minval(positions%val(i)%ptr)
+      domainwidth(i) = maxval(positions%val(i,:)) - minval(positions%val(i,:))
     end do
 
     scale = maxval(domainwidth)

@@ -125,8 +125,8 @@
 
       ! Extract the required fields from state.
       positions=>extract_vector_field(state, "Coordinate")
-      positions%val(1)%ptr = positions%val(1)%ptr/eps0
-      positions%val(2)%ptr = positions%val(2)%ptr/eps0
+      positions%val(1,:) = positions%val(1,:)/eps0
+      positions%val(2,:) = positions%val(2,:)/eps0
 
       psi=>extract_scalar_field(state, "Psi")
 

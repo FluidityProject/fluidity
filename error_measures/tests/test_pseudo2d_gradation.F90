@@ -31,9 +31,9 @@ subroutine test_pseudo2d_gradation
   call allocate(hessian, mesh, "Hessian")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     pressure_field%val(i) = x * x
   end do
 
@@ -62,12 +62,12 @@ subroutine test_pseudo2d_gradation
 
   fail = .false.
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 
-    if (x == minval(positions%val(1)%ptr) .or. x == maxval(positions%val(1)%ptr)) cycle
-    if (y == minval(positions%val(2)%ptr) .or. y == maxval(positions%val(2)%ptr)) cycle
+    if (x == minval(positions%val(1,:)) .or. x == maxval(positions%val(1,:))) cycle
+    if (y == minval(positions%val(2,:)) .or. y == maxval(positions%val(2,:))) cycle
     
     call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
     domvec = dominant_eigenvector(evecs, evals)

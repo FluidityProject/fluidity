@@ -124,9 +124,9 @@ contains
       call get_option(trim(bc_path_i),nots)
 
       ! calculate min&max turbulence lengthscale
-      lx => surface_field3%val(1)%ptr  
-      ly => surface_field3%val(2)%ptr
-      lz => surface_field3%val(3)%ptr
+      lx => surface_field3%val(1,:)  
+      ly => surface_field3%val(2,:)
+      lz => surface_field3%val(3,:)
 
       lxmin = minval(lx); lxmax = maxval(lx)
       lymin = minval(ly); lymax = maxval(ly)
@@ -143,9 +143,9 @@ contains
       bcnod=surface_field%mesh%nodes
 
       ! coordinates of nodes
-      x => bc_position%val(1)%ptr  
-      y => bc_position%val(2)%ptr
-      z => bc_position%val(3)%ptr
+      x => bc_position%val(1,:)  
+      y => bc_position%val(2,:)
+      z => bc_position%val(3,:)
 
       ! work out min & max of boundary surface and orientation
       xmin = minval(x); xmax = maxval(x)
@@ -473,9 +473,9 @@ contains
       end do
 
       ! get min&max of mean velocities
-      minum=minval(surface_field1%val(1)%ptr); maxum=maxval(surface_field1%val(1)%ptr)
-      minvm=minval(surface_field1%val(2)%ptr); maxvm=maxval(surface_field1%val(2)%ptr)
-      minwm=minval(surface_field1%val(3)%ptr); maxwm=maxval(surface_field1%val(3)%ptr)
+      minum=minval(surface_field1%val(1,:)); maxum=maxval(surface_field1%val(1,:))
+      minvm=minval(surface_field1%val(2,:)); maxvm=maxval(surface_field1%val(2,:))
+      minwm=minval(surface_field1%val(3,:)); maxwm=maxval(surface_field1%val(3,:))
 
       call allmin(minum); call allmax(maxum)
       call allmin(minvm); call allmax(maxvm)
@@ -490,9 +490,9 @@ contains
       end do
 
       ! calculate min&max of Re_ij
-      reuumn = minval(surface_field2%val(1)%ptr); reuumx=maxval(surface_field2%val(1)%ptr)
-      revvmn = minval(surface_field2%val(2)%ptr); revvmx=maxval(surface_field2%val(2)%ptr)
-      rewwmn = minval(surface_field2%val(3)%ptr); rewwmx=maxval(surface_field2%val(3)%ptr)
+      reuumn = minval(surface_field2%val(1,:)); reuumx=maxval(surface_field2%val(1,:))
+      revvmn = minval(surface_field2%val(2,:)); revvmx=maxval(surface_field2%val(2,:))
+      rewwmn = minval(surface_field2%val(3,:)); rewwmx=maxval(surface_field2%val(3,:))
 
       call allmin(reuumn); call allmax(reuumx)
       call allmin(revvmn); call allmax(revvmx)

@@ -371,9 +371,9 @@ contains
     nprdnd = size(prdnds)
     
     ! Coordinates
-    nodx => input_positions%val(1)%ptr
-    nody => input_positions%val(2)%ptr
-    nodz => input_positions%val(3)%ptr
+    nodx => input_positions%val(1,:)
+    nody => input_positions%val(2,:)
+    nodz => input_positions%val(3,:)
     
     ! Interpolation mesh (the same as the input mesh)
     intnnd = nnod

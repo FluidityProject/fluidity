@@ -332,8 +332,8 @@ contains
        end if
 
        !do j = 1, size(M1%colm(i)%ptr)
-       !   if(abs(M1%val(i)%ptr(j)-M2%val(i)%ptr(j))>1.0e-10) then
-       !      print *, M1%val(i)%ptr(j), M2%val(i)%ptr(j)
+       !   if(abs(M1%val(i,j)-M2%val(i,j))>1.0e-10) then
+       !      print *, M1%val(i,j), M2%val(i,j)
        !      FLAbort('wrong values')
        !   end if
        !end do
@@ -645,9 +645,9 @@ contains
     case(2)
        select case(dirichlet_flag)
        case (0)
-          h0%val = sin(2*pi*X_h%val(1)%ptr)*sin(2*pi*X_h%val(2)%ptr)
+          h0%val = sin(2*pi*X_h%val(1,:))*sin(2*pi*X_h%val(2,:))
        case (3)
-          h0%val = cos(2*pi*X_h%val(1)%ptr)*cos(2*pi*X_h%val(2)%ptr)
+          h0%val = cos(2*pi*X_h%val(1,:))*cos(2*pi*X_h%val(2,:))
           h%val = h%val + h0%val(fix_pressure_value)
        case default
           FLAbort('Boundary condition option not supported')
@@ -655,11 +655,11 @@ contains
     case(3)
        select case(dirichlet_flag)
        case (0)
-          h0%val = sin(2*pi*X_h%val(1)%ptr)*sin(2*pi*X_h%val(2)%ptr)* &
-               sin(2*pi*X_h%val(3)%ptr)
+          h0%val = sin(2*pi*X_h%val(1,:))*sin(2*pi*X_h%val(2,:))* &
+               sin(2*pi*X_h%val(3,:))
        case (3)
-          h0%val = cos(2*pi*X_h%val(1)%ptr)*cos(2*pi*X_h%val(2)%ptr)* &
-               cos(2*pi*X_h%val(3)%ptr)
+          h0%val = cos(2*pi*X_h%val(1,:))*cos(2*pi*X_h%val(2,:))* &
+               cos(2*pi*X_h%val(3,:))
           h%val = h%val + h0%val(fix_pressure_value)
        case default
           FLAbort('Boundary condition option not supported')

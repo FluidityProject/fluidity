@@ -433,7 +433,7 @@
       D_l2 = sum(Md%val*d%val) 
       U_l2 = 0.
       do d1 = 1, dim
-         U_l2 = U_l2 + sum(Mu%val(d1)%ptr*u%val(d1)%ptr)
+         U_l2 = U_l2 + sum(Mu%val(d1,:)*u%val(d1,:))
       end do
       energy = 0.5*g*D_l2 + 0.5*D0*U_l2
       ewrite(2,*) 'SW: energy = ', energy
@@ -592,8 +592,8 @@
          coriolis_mat,div_mat)
 
       ewrite(3,*) 'SW: TESTING BALANCED INITIAL CONDITION'
-      ewrite(3,*) 'SW: infty norm of u_tmp(1)=', maxval(abs(u_tmp%val(1)%ptr))
-      ewrite(3,*) 'SW: infty norm of u_tmp(2)=', maxval(abs(u_tmp%val(2)%ptr))
+      ewrite(3,*) 'SW: infty norm of u_tmp(1)=', maxval(abs(u_tmp%val(1,:)))
+      ewrite(3,*) 'SW: infty norm of u_tmp(2)=', maxval(abs(u_tmp%val(2,:)))
       ewrite(3,*) 'SW: TESTING BALANCED INITIAL CONDITION'
 
       call deallocate(u_tmp)

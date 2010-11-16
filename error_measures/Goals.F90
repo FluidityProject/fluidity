@@ -461,8 +461,8 @@ module goals
     call LESVIS(node_count(nvelocity), ele_count(nvelocity), ele_loc(nvelocity, ele), &
               & nvelocity%mesh%ndglno, ele_ngi(nvelocity, ele), ele, gi, &
               & dn_t(:, :, 1), dn_t(:, :, 2), dn_t(:, :, 3), &
-              & nvelocity%val(1)%ptr, nvelocity%val(2)%ptr, nvelocity%val(3)%ptr, & 
-              & gvelocity%val(1)%ptr, gvelocity%val(2)%ptr, gvelocity%val(3)%ptr, &
+              & nvelocity%val(1,:), nvelocity%val(2,:), nvelocity%val(3,:), & 
+              & gvelocity%val(1,:), gvelocity%val(2,:), gvelocity%val(3,:), &
               & MXX, MXY, MXZ, MYY, MYZ, MZZ) 
 
     kappa(1, 1) = mxx(gi)
@@ -522,8 +522,8 @@ module goals
     call lesvis_d(node_count(nvelocity), ele_count(nvelocity), ele_loc(nvelocity, ele), &
               & nvelocity%mesh%ndglno, ele_ngi(nvelocity, ele), ele, gi, &
               & dn_t(:, :, 1), dn_t(:, :, 2), dn_t(:, :, 3), &
-              & nvelocity%val(1)%ptr, nud, nvelocity%val(2)%ptr, nvd, nvelocity%val(3)%ptr, nwd, & 
-              & gvelocity%val(1)%ptr, gvelocity%val(2)%ptr, gvelocity%val(3)%ptr, &
+              & nvelocity%val(1,:), nud, nvelocity%val(2,:), nvd, nvelocity%val(3,:), nwd, & 
+              & gvelocity%val(1,:), gvelocity%val(2,:), gvelocity%val(3,:), &
               & lenxx, lenxy, lenxz, lenyy, lenyz, lenzz, &
               & mxx, mxxd, mxy, mxyd, mxz, mxzd, myy, myyd, myz, myzd, mzz, mzzd) 
 

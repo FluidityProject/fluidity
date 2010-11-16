@@ -130,7 +130,7 @@ module hydrostatic_pressure
     end select
     
     do i = 1, hpg%dim
-      ewrite_minmax(hpg%val(i)%ptr)
+      ewrite_minmax(hpg%val(i,:))
     end do
     
   end subroutine calculate_hydrostatic_pressure_gradient
@@ -242,7 +242,7 @@ module hydrostatic_pressure
     end do
     call scale(grad_buoyancy, gravity_magnitude)
     do i = 1, grad_buoyancy%dim
-      ewrite_minmax(grad_buoyancy%val(i)%ptr)
+      ewrite_minmax(grad_buoyancy%val(i,:))
     end do
     
     topdis => extract_scalar_field(state, "DistanceToTop")
@@ -612,7 +612,7 @@ module hydrostatic_pressure
       assert(ele_count(positions) == ele_count(mom_rhs))
 
       do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i)%ptr)
+        ewrite_minmax(mom_rhs%val(i,:))
       end do
       
       if(have_option(trim(hp%option_path)// &
@@ -635,7 +635,7 @@ module hydrostatic_pressure
       end if
       
       do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i)%ptr)
+        ewrite_minmax(mom_rhs%val(i,:))
       end do
     end if
     
@@ -648,7 +648,7 @@ module hydrostatic_pressure
       assert(ele_count(positions) == ele_count(mom_rhs))
       
       do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i)%ptr)
+        ewrite_minmax(mom_rhs%val(i,:))
       end do
       
       do i = 1, ele_count(mom_rhs)
@@ -656,7 +656,7 @@ module hydrostatic_pressure
       end do
       
       do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i)%ptr)
+        ewrite_minmax(mom_rhs%val(i,:))
       end do
     end if
     

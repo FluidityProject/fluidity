@@ -77,7 +77,7 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   assert(velocity%dim == positions%dim)
   assert(ele_count(velocity) == ele_count(positions))
   do i = 1, velocity%dim
-    ewrite_minmax(velocity%val(i)%ptr)
+    ewrite_minmax(velocity%val(i,:))
   end do
   
   psi = extract_scalar_field(state, "StreamFunction", stat)

@@ -928,7 +928,7 @@ subroutine get_MLCM_rhs(mesh,D,D_old,u,m,bottom,rho,m_rhs,H_0,dH_0)
               m_rhs(ele,2*n_layers+1)=m_rhs(ele,2*n_layers+1)&
                    +sum(row_val_ptr(mesh%C%blocks(2,i+2*(k-1)),ele)&
                    *(uu(row_m(mesh%C%blocks(2,i+2*(k-1)),ele))))
-!                   *(u(k)%val(i)%ptr(&
+!                   *(u(k)%val(i,:)(&
 !                   row_m(mesh%C%blocks(2,i+2*(k-1)),ele))/dt&
 !                   +uu(row_m(mesh%C%blocks(2,i+2*(k-1)),ele))))
          end do
@@ -992,7 +992,7 @@ subroutine get_MLCM_rhs_element_contributions(mesh,positions,&
   do k=1,n_layers
      do i=1,2
         do j=1,ele_loc(u(1),ele)        
-           uloc(i,k,j)=sum(u(k)%val(i)%ptr(row_m(mesh%M_inv%blocks(1,i),&
+           uloc(i,k,j)=sum(u(k)%val(i,row_m(mesh%M_inv%blocks(1,i),&
                 ele_u(j)))*&
                 row_val_ptr(mesh%M_inv%blocks(1,i+2*(k-1)),ele_u(j)))
         end do
@@ -1100,7 +1100,7 @@ subroutine solve_MLCM_matrix(MLCM_mat,mesh,D,u,rho,m_rhs,m,lambda)
      do k=1,n_layers
 
         m_out(1+(2*(k-1)+i-1)*m_nodes:(2*(k-1)+i)*m_nodes)=&
-             m(k)%val(i)%ptr
+             m(k)%val(i,:)
 
      end do
   end do
@@ -1114,7 +1114,7 @@ subroutine solve_MLCM_matrix(MLCM_mat,mesh,D,u,rho,m_rhs,m,lambda)
 
     do i=1,2
      do k=1,n_layers
-         m(k)%val(i)%ptr=&
+         m(k)%val(i,:)=&
               m_out(1+(2*(k-1)+i-1)*m_nodes:(2*(k-1)+i)*m_nodes)
       end do
    end do
@@ -1149,8 +1149,8 @@ subroutine barotropic_u_step(mesh,D,D_old,H,H_old,u,u_bar,u_bar_old,m,&
         do k=1,n_layers
 
 
-           u1=u(k)%val(1)%ptr-u_bar%val(1)%ptr
-           u2=u(k)%val(2)%ptr-u_bar%val(2)%ptr
+           u1=u(k)%val(1,:)-u_bar%val(1,:)
+           u2=u(k)%val(2,:)-u_bar%val(2,:)
 
 
      do ele=1,ele_count(u_bar)           
@@ -1179,8 +1179,8 @@ end if
         end do
 
 !do k=1,n_layers
-!        u1=u(k)%val(1)%ptr-u_bar%val(1)%ptr
-!        u2=u(k)%val(2)%ptr-u_bar%val(2)%ptr
+!        u1=u(k)%val(1,:)-u_bar%val(1,:)
+!        u2=u(k)%val(2,:)-u_bar%val(2,:)
 !        call get_u_dot_u(mesh,m(k),u(k),u1,u2,rho(k),p_out(k,:))
 !end do
 
@@ -1204,9 +1204,9 @@ end if
      if(step == 1) then
 
         do i=1,2
-           u_bar_old(:,i)=u_bar%val(i)%ptr
+           u_bar_old(:,i)=u_bar%val(i,:)
            do j=1,node_count(u_bar)
-              u_bar%val(i)%ptr(j)=u_bar%val(i)%ptr(j)&
+              u_bar%val(i,j)=u_bar%val(i,j)&
                    +dt*sum(u_rhs(i,row_m(mesh%M_inv%blocks(1,i+2*n_layers),j))*&
                    row_val_ptr(mesh%M_inv%blocks(1,i+2*n_layers),j))
            end do
@@ -1214,7 +1214,7 @@ end if
   else if (step == 2) then
      do i=1,2
         do j=1,node_count(u_bar)
-              u_bar%val(i)%ptr(j)=0.5*(u_bar_old(j,i)+u_bar%val(i)%ptr(j))&
+              u_bar%val(i,j)=0.5*(u_bar_old(j,i)+u_bar%val(i,j))&
                    +0.5*dt*sum(u_rhs(i,row_m(&
                    mesh%M_inv%blocks(1,i+2*n_layers),j))*&
                    row_val_ptr(mesh%M_inv%blocks(1,i+2*n_layers),j))
@@ -1380,7 +1380,7 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
       do i=1,2
          do j=1,node_count(u(1))
             if (step == 1) then
-             u_step(i,j)=sum(u(k)%val(i)%ptr(row_m(mesh%M_inv%blocks(1,i),j))*&
+             u_step(i,j)=sum(u(k)%val(i,row_m(mesh%M_inv%blocks(1,i),j))*&
                    row_val_ptr(mesh%M_inv%blocks(1,i+2*(k-1)),j))
             else if (step ==2) then
               u_step(i,j)=sum(u_old(row_m(mesh%M_inv%blocks(1,i),j),i,k)*&
@@ -1396,7 +1396,7 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
   if(step == 1) then
 
      do i=1,2
-        u_old(:,i,k)=u(k)%val(i)%ptr
+        u_old(:,i,k)=u(k)%val(i,:)
      end do
 
 !     do its=1,5
@@ -1406,7 +1406,7 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
    do i=1,2
            do j=1,node_count(u(1))
 
-              u_step(i,j)=sum(u(k)%val(i)%ptr(row_m(mesh%M_inv%blocks(1,i),j))*&
+              u_step(i,j)=sum(u(k)%val(i,row_m(mesh%M_inv%blocks(1,i),j))*&
                    row_val_ptr(mesh%M_inv%blocks(1,i+2*(k-1)),j))
            end do
         end do
@@ -1425,24 +1425,24 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
 !        u_step=rotate_bdry(u_step,bcs)
 
         do i=1,2
-           !u(k)%val(i)%ptr=u_old(:,i,k)&
+           !u(k)%val(i,:)=u_old(:,i,k)&
            !     +dt*u_step(i,:) 
            do j=1,node_count(u(1))
-             u(k)%val(i)%ptr(j)=u_old(j,i,k)&
+             u(k)%val(i,j)=u_old(j,i,k)&
                   +dt*sum(u_rhs(i,row_m(mesh%mass_u_inv,j))*&
                    row_val_ptr(mesh%mass_u_inv,j))
           end do
         end do
 
 
-        u(k)%val(2)%ptr=0.0
+        u(k)%val(2,:)=0.0
 
  !    end do
 
   else if (step == 2) then
 
 !     do i=1,2
-!        u_old(:,i,k)=u(k)%val(i)%ptr
+!        u_old(:,i,k)=u(k)%val(i,:)
 !     end do
 
 !     do its=1,5
@@ -1452,7 +1452,7 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
         do i=1,2
            do j=1,node_count(u(1))
 
-              u_step(i,j)=sum(u(k)%val(i)%ptr(row_m(mesh%M_inv%blocks(1,i),j))*&
+              u_step(i,j)=sum(u(k)%val(i,row_m(mesh%M_inv%blocks(1,i),j))*&
                    row_val_ptr(mesh%M_inv%blocks(1,i+2*(k-1)),j))
 
            end do
@@ -1472,11 +1472,11 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
 !        u_step=rotate_bdry(u_step,bcs)
         
         do i=1,2
-!           u(k)%val(i)%ptr=u_old(:,i,k)&
+!           u(k)%val(i,:)=u_old(:,i,k)&
 !                +dt*u_step(i,:)
 
            do j=1,node_count(u(1))
-              u(k)%val(i)%ptr(j)=u_old(j,i,k)&
+              u(k)%val(i,j)=u_old(j,i,k)&
                    +dt*sum(u_rhs(i,row_m(mesh%mass_u_inv,j))*&
                    row_val_ptr(mesh%mass_u_inv,j))
           end do
@@ -1485,7 +1485,7 @@ subroutine step_u(mesh,bcs,u,u_old,u_bar,D,D_old,H,m,bottom,rho,dt,step)
 
 !     end do
 
-!        u(k)%val(2)%ptr=0.0
+!        u(k)%val(2,:)=0.0
 
   end if
 end do
@@ -1514,7 +1514,7 @@ end IF
     end do
     do k=1,n_layers
        do i=1,2
-          u(k)%val(i)%ptr=u(k)%val(i)%ptr+(u_bar%val(i)%ptr-u_b(i,:))
+          u(k)%val(i,:)=u(k)%val(i,:)+(u_bar%val(i,:)-u_b(i,:))
        end do
     end do
 
@@ -2495,8 +2495,8 @@ subroutine get_barotropic_mode(mesh,D,u,H,u_bar,rho)
   allocate(u_b(2,node_count(u(1))))
 
   H%val=0.0
-  u_bar%val(1)%ptr=0.0
-  u_bar%val(2)%ptr=0.0
+  u_bar%val(1,:)=0.0
+  u_bar%val(2,:)=0.0
   u_b=0.0
 
   do k=1,n_layers
@@ -2516,16 +2516,16 @@ subroutine get_barotropic_mode(mesh,D,u,H,u_bar,rho)
   end do
 
   do i=1,2
-     u_bar%val(i)%ptr=u_b(i,:)
+     u_bar%val(i,:)=u_b(i,:)
   end do
 
   print*, 'Barotropic mode, max_D=', maxval(H%val)
-  print*, 'Barotropic mode, max_u_1=', maxval(abs(u_bar%val(1)%ptr))
-  print*, 'Barotropic mode, max_u_2=', maxval(abs(u_bar%val(2)%ptr))
+  print*, 'Barotropic mode, max_u_1=', maxval(abs(u_bar%val(1,:)))
+  print*, 'Barotropic mode, max_u_2=', maxval(abs(u_bar%val(2,:)))
 
   if (n_layers ==2 ) then 
-     print*, 'sanity_check=',( rho(1)*maxval(D(1)%val)*maxval(u(1)%val(1)%ptr)&
-          +rho(2)*minval(D(2)%val)*minval(u(2)%val(1)%ptr))&
+     print*, 'sanity_check=',( rho(1)*maxval(D(1)%val)*maxval(u(1)%val(1,:))&
+          +rho(2)*minval(D(2)%val)*minval(u(2)%val(1,:)))&
           /(rho(1)*maxval(H%val))
   end if
 
@@ -2707,7 +2707,7 @@ subroutine d2c(dcsr,csr)
 
        csr%sparsity%colm(rowptr:rowptr+rowlen-1)=dcsr%colm(i)%ptr
 
-       csr%val(rowptr:rowptr+rowlen-1)=dcsr%val(i)%ptr
+       csr%val(rowptr:rowptr+rowlen-1)=dcsr%val(i,:)
 
        if (any(dcsr%colm(i)%ptr==i)) then
 
@@ -3120,12 +3120,12 @@ subroutine get_model_u(mesh,u,D,d_perim,c,rho)
 
      end do
      do j=1,node_count(u(1))
-        u_n(k)%val(1)%ptr(j)=sum(&
+        u_n(k)%val(1,j)=sum(&
              u_rhs(row_m(mesh%M_inv%blocks(1,1+2*(k-1)),j))*&
                row_val_ptr(mesh%M_inv%blocks(1,1+2*(k-1)),j))
      end do    
 
-     u(k)%val(1)%ptr=u_n(k)%val(1)%ptr
+     u(k)%val(1,:)=u_n(k)%val(1,:)
 
   end do
 
@@ -3162,7 +3162,7 @@ subroutine get_model_u(mesh,u,D,d_perim,c,rho)
      end do
 
      do j=1,node_count(u(1))
-        u(1)%val(1)%ptr(j)=sum(&
+        u(1)%val(1,j)=sum(&
              u_rhs(row_m(mesh%M_inv%blocks(1,1),j))*&
                row_val_ptr(mesh%M_inv%blocks(1,1),j))
      end do    
@@ -3208,8 +3208,8 @@ end subroutine get_model_u
 
     do k=1,n_layers
 
-       u1=u(k)%val(1)%ptr-u_bar%val(1)%ptr
-       u2=u(k)%val(2)%ptr-u_bar%val(2)%ptr
+       u1=u(k)%val(1,:)-u_bar%val(1,:)
+       u2=u(k)%val(2,:)-u_bar%val(2,:)
        
        do ele=1,ele_count(u_bar)
           call get_uu_element_contribution(mesh,u_bar,D(k),D_old(:,k),&
@@ -3223,7 +3223,7 @@ end subroutine get_model_u
 
     do i=1,2
        do j=1,node_count(u_bar)
-          u_n(1)%val(i)%ptr(j)=sum(&
+          u_n(1)%val(i,j)=sum(&
                u_rhs(i,row_m(mesh%M_inv%blocks(1,i+2*n_layers),j))*&
                row_val_ptr(mesh%M_inv%blocks(1,i+2*n_layers),j))
        end do
@@ -3244,7 +3244,7 @@ end subroutine get_model_u
 
      do i=1,2
        do j=1,node_count(u_bar)
-          u_n(1)%val(i)%ptr(j)=sum(&
+          u_n(1)%val(i,j)=sum(&
                u_rhs(i,row_m(mesh%M_inv%blocks(1,i+2*n_layers),j))*&
                row_val_ptr(mesh%M_inv%blocks(1,i+2*n_layers),j))
        end do
@@ -3516,7 +3516,7 @@ call zero (mesh%D_mat)
 
 do i = 1,size(mesh%CMC%colm)
    do j = 1,size(mesh%CMC%colm(i)%ptr)
-      call addto(mesh%D_mat,i,mesh%CMC%colm(i)%ptr(j),mesh%CMC%val(i)%ptr(j))
+      call addto(mesh%D_mat,i,mesh%CMC%colm(i)%ptr(j),mesh%CMC%val(i,j))
    end do
 end do
     

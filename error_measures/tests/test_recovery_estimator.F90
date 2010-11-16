@@ -26,9 +26,9 @@ subroutine test_recovery_estimator
   elementwise = piecewise_constant_field(state%meshes(1), "Recovery error estimator")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     field%val(i) = y * x**2  + y**3 + tanh(10.0 * (sin(5.0*y) - 2.0*x))
   end do
   field%val = field%val + 4.0

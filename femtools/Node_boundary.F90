@@ -133,7 +133,7 @@ module node_boundary
             return
           else
             do i=1,mesh_dim(mesh)
-              dimlen(i) = maxval(positions%val(i)%ptr) - minval(positions%val(i)%ptr)
+              dimlen(i) = maxval(positions%val(i,:)) - minval(positions%val(i,:))
             end do
             minloc_out = minloc(dimlen)
             pseudo2d_coord = minloc_out(1)

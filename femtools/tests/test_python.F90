@@ -51,15 +51,15 @@ subroutine test_python
   call set_from_python_function(T, &
        "def val(X,t): import math; return math.cos(X[0])", X, 0.0)
 
-  fail=any(abs(T%val-cos(X%val(1)%ptr))>1e-14)
+  fail=any(abs(T%val-cos(X%val(1,:)))>1e-14)
   call report_test("[test_python 1D function fields]", fail, .false., &
        "python and fortran should produce the same answer.")
 
   call set_from_python_function(T%val, &
-       "def val(X,t): import math; return math.cos(X[0])", X%val(1)%ptr,&
+       "def val(X,t): import math; return math.cos(X[0])", X%val(1,:),&
        & time=0.0) 
   
-  fail=any(abs(T%val-cos(X%val(1)%ptr))>1e-14)
+  fail=any(abs(T%val-cos(X%val(1,:)))>1e-14)
   call report_test("[test_python 1D function values]", fail, .false., &
        "python and fortran should produce the same answer.")
 
@@ -85,7 +85,7 @@ subroutine test_python
   close(unit)
   
   call set_from_python_function(T%val, &
-       trim(func), X%val(1)%ptr,&
+       trim(func), X%val(1,:),&
        & time=0.0) 
   
 

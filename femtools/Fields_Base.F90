@@ -1947,7 +1947,7 @@ contains
         end do
       else
         do i=1,field%py_dim
-          pos(i, :) = field%py_positions%val(i)%ptr(ele_nodes(field%py_positions%mesh, ele_number))
+          pos(i, :) = field%py_positions%val(i,ele_nodes(field%py_positions%mesh, ele_number))
         end do
       end if
       call set_from_python_function(ele_val_out, trim(field%py_func), pos, &
@@ -1970,11 +1970,11 @@ contains
     case(FIELD_TYPE_NORMAL)
       nodes => ele_nodes(field, ele_number)
       do i=1,field%dim
-         ele_val(i, :) = field%val(i)%ptr(nodes)
+         ele_val(i, :) = field%val(i,nodes)
       end do
     case(FIELD_TYPE_CONSTANT)
       do i=1,field%dim
-         ele_val(i,:)=field%val(i)%ptr(1)
+         ele_val(i,:)=field%val(i,1)
       end do
     end select
 
@@ -1990,9 +1990,9 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      ele_val=field%val(dim)%ptr(ele_nodes(field,ele_number))
+      ele_val=field%val(dim,ele_nodes(field,ele_number))
     case(FIELD_TYPE_CONSTANT)
-      ele_val=field%val(dim)%ptr(1)
+      ele_val=field%val(dim,1)
     end select
 
   end function ele_val_vector_dim
@@ -2062,13 +2062,10 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      do i=1,field%dim
-         face_val(i,:)=field%val(i)%ptr(&
-              &               face_global_nodes(field,face_number))
-      end do
+      face_val=field%val(:,face_global_nodes(field,face_number))
     case(FIELD_TYPE_CONSTANT)
       do i=1,field%dim
-         face_val(i,:)=field%val(i)%ptr(1)
+         face_val(i,:)=field%val(i,1)
       end do
     end select
 
@@ -2083,9 +2080,9 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      face_val=field%val(dim)%ptr(face_global_nodes(field,face_number))
+      face_val=field%val(dim,face_global_nodes(field,face_number))
     case(FIELD_TYPE_CONSTANT)
-      face_val=field%val(dim)%ptr(1)
+      face_val=field%val(dim,1)
     end select
 
   end function face_val_vector_dim
@@ -2552,7 +2549,7 @@ contains
         pos(:, 1) = tmp_pos_2(:, loccoord)
       else
         do i=1,field%py_dim
-          pos(i, 1) = field%py_positions%val(i)%ptr(node_number)
+          pos(i, 1) = field%py_positions%val(i,node_number)
         end do
       end if
 
@@ -2575,11 +2572,11 @@ contains
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i=1,field%dim
-         val(i)=field%val(i)%ptr(node_number)
+         val(i)=field%val(i,node_number)
       end do
     case(FIELD_TYPE_CONSTANT)
       do i=1,field%dim
-        val(i)=field%val(i)%ptr(1)
+        val(i)=field%val(i,1)
       end do
     end select
 
@@ -2658,11 +2655,11 @@ contains
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i=1,field%dim
-         val(i,:)=field%val(i)%ptr(node_numbers)
+         val(i,:)=field%val(i,node_numbers)
       end do
     case(FIELD_TYPE_CONSTANT)
       do i=1,field%dim
-         val(i,:)=field%val(i)%ptr(1)
+         val(i,:)=field%val(i,1)
       end do
     end select
 
@@ -2678,9 +2675,9 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      val = field%val(dim)%ptr(node_number)
+      val = field%val(dim,node_number)
     case(FIELD_TYPE_CONSTANT)
-      val = field%val(dim)%ptr(1)
+      val = field%val(dim,1)
     end select
     
   end function node_val_vector_dim
@@ -2695,9 +2692,9 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      val(:)=field%val(dim)%ptr(node_numbers)
+      val(:)=field%val(dim,node_numbers)
     case(FIELD_TYPE_CONSTANT)
-      val=field%val(dim)%ptr(1)
+      val=field%val(dim,1)
     end select
 
   end function node_val_vector_dim_v
@@ -2827,7 +2824,7 @@ contains
     ! Note that the reference count is not incremented as this is a
     ! borrowed field reference.
     sfield%mesh = vfield%mesh
-    sfield%val  => vfield%val(dim)%ptr
+    sfield%val  => vfield%val(dim,:)
     sfield%option_path = vfield%option_path
     sfield%field_type = vfield%field_type
     write(sfield%name, '(a, i0)') trim(vfield%name) // "%", dim
@@ -2941,7 +2938,7 @@ contains
     open(unit=unit, file=filename, action="write")
 
     do d=1,field%dim
-       write(unit, "(g22.8e4)") field%val(d)%ptr
+       write(unit, "(g22.8e4)") field%val(d,:)
     end do
 
     close(unit)
@@ -3229,7 +3226,7 @@ contains
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      val => field%val(dim)%ptr
+      val => field%val(dim,:)
       return
     case(FIELD_TYPE_CONSTANT)
       FLAbort("Trying to pass around the value space of a constant field")
@@ -3766,11 +3763,11 @@ contains
     dim=vfield%dim
     select case(dim)
     case(1)
-      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, time=time)
+      call set_values_from_python_vector(values, func, vfield%val(1,:), time=time)
     case(2)
-      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, vfield%val(2)%ptr, time=time)
+      call set_values_from_python_vector(values, func, vfield%val(1,:), vfield%val(2,:), time=time)
     case(3)
-      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, vfield%val(2)%ptr, vfield%val(3)%ptr, time=time)
+      call set_values_from_python_vector(values, func, vfield%val(1,:), vfield%val(2,:), vfield%val(3,:), time=time)
     end select    
     
   end subroutine set_values_from_python_vector_field

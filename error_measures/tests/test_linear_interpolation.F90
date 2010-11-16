@@ -65,9 +65,9 @@ subroutine test_linear_interpolation
     old_tensor%val(1, 1, node) = x
     old_tensor%val(2, 2, node) = y
     old_tensor%val(3, 3, node) = z
-    old_vector%val(1)%ptr(node) = x
-    old_vector%val(2)%ptr(node) = y
-    old_vector%val(3)%ptr(node) = z
+    old_vector%val(1,node) = x
+    old_vector%val(2,node) = y
+    old_vector%val(3,node) = z
   end do
 
   call linear_interpolation(state_3, state_5)

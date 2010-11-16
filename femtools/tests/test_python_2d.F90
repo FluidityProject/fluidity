@@ -48,15 +48,15 @@ subroutine test_python_2d
   call set_from_python_function(T, &
        "def val(X,t): import math; return math.cos(X[0]*X[1])", X, 0.0)
 
-  fail=any(abs(T%val-cos(X%val(1)%ptr*X%val(2)%ptr))>1e-14)
+  fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
   call report_test("[test_python 2D function fields]", fail, .false., &
        "python and fortran should produce the same answer.")
 
   call set_from_python_function(T%val, &
-       "def val(X,t): import math; return math.cos(X[0]*X[1])", X%val(1)%ptr,&
-       & X%val(2)%ptr, time=0.0) 
+       "def val(X,t): import math; return math.cos(X[0]*X[1])", X%val(1,:),&
+       & X%val(2,:), time=0.0) 
   
-  fail=any(abs(T%val-cos(X%val(1)%ptr*X%val(2)%ptr))>1e-14)
+  fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
   call report_test("[test_python 2D function values]", fail, .false., &
        "python and fortran should produce the same answer.")
 

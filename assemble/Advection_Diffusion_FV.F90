@@ -247,7 +247,7 @@ contains
       
       ewrite(2, *) "Grid velocity:"    
       do i = 1, grid_velocity%dim
-        ewrite_minmax(grid_velocity%val(i)%ptr)
+        ewrite_minmax(grid_velocity%val(i,:))
       end do
     else
       ewrite(2,*) "Not moving the mesh"

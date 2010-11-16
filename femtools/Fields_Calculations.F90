@@ -589,11 +589,11 @@ implicit none
 
     if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
        do d=1,fieldA%dim
-          val(d) = dot_product(fieldA%val(d)%ptr, fieldB%val(d)%ptr)
+          val(d) = dot_product(fieldA%val(d,:), fieldB%val(d,:))
        end do
     else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
        do d=1,fieldA%dim
-          val(d) = fieldA%val(d)%ptr(1) * fieldB%val(d)%ptr(1) * node_count(fieldA)
+          val(d) = fieldA%val(d,1) * fieldB%val(d,1) * node_count(fieldA)
        end do
     else
        val = 0.0
@@ -621,13 +621,13 @@ implicit none
     if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
        do d1=1,fieldA%dim
           do d2=1,fieldB%dim
-             val(d1,d2) = dot_product(fieldA%val(d1)%ptr, fieldB%val(d2)%ptr)
+             val(d1,d2) = dot_product(fieldA%val(d1,:), fieldB%val(d2,:))
           end do
        end do
     else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
        do d1=1,fieldA%dim
           do d2=1,fieldB%dim
-             val(d1,d2) = fieldA%val(d1)%ptr(1) * fieldB%val(d2)%ptr(1) * node_count(fieldA)
+             val(d1,d2) = fieldA%val(d1,1) * fieldB%val(d2,1) * node_count(fieldA)
           end do
        end do
     else

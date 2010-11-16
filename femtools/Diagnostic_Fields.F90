@@ -793,7 +793,7 @@ contains
     call qsort(rho_field%val, index)
     
     ! reorder vertical coordinate
-    call qsort(Xfield_depth%val(Xfield_depth%dim)%ptr, index2)
+    call qsort(Xfield_depth%val(Xfield_depth%dim,:), index2)
     
     call allocate(lumped_mass, rho_field%mesh, name="LumpedMass")
     call allocate(lumped_mass_depth, mesh, name="LumpedMassDepth")
@@ -913,7 +913,7 @@ contains
     assert(velocity%dim == mesh_dim(psi))
     assert(ele_count(velocity) == ele_count(psi))
     do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i)%ptr)
+      ewrite_minmax(velocity%val(i,:))
     end do
     
     ! Extract gravity direction
@@ -1284,12 +1284,12 @@ contains
     if(stat == 0) then
       select case(gravity_direction%dim)
         case(3)
-          assert(all(abs(gravity_direction%val(1)%ptr) < epsilon(0.0)))
-          assert(all(abs(gravity_direction%val(2)%ptr) < epsilon(0.0)))
-          assert(all(abs(gravity_direction%val(3)%ptr + 1.0) < epsilon(0.0)))
+          assert(all(abs(gravity_direction%val(1,:)) < epsilon(0.0)))
+          assert(all(abs(gravity_direction%val(2,:)) < epsilon(0.0)))
+          assert(all(abs(gravity_direction%val(3,:) + 1.0) < epsilon(0.0)))
         case(2)
-          assert(all(abs(gravity_direction%val(1)%ptr) < epsilon(0.0)))
-          assert(all(abs(gravity_direction%val(2)%ptr + 1.0) < epsilon(0.0)))
+          assert(all(abs(gravity_direction%val(1,:)) < epsilon(0.0)))
+          assert(all(abs(gravity_direction%val(2,:) + 1.0) < epsilon(0.0)))
         case default
           FLAbort("Invalid dimension")
       end select
@@ -1371,7 +1371,7 @@ contains
     assert(velocity%dim == mesh_dim(ri))
     assert(ele_count(velocity) == ele_count(ri))
     do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i)%ptr)
+      ewrite_minmax(velocity%val(i,:))
     end do
     
     ! Extract gravity
@@ -2538,7 +2538,7 @@ contains
       call addto(difference, -av_diff)
 
       do i = 1, difference%dim
-        difference%val(i)%ptr = abs(difference%val(i)%ptr)
+        difference%val(i,:) = abs(difference%val(i,:))
       end do
       
       if(remap_field_a) then
@@ -2602,8 +2602,8 @@ contains
          end if
 
          do i=1, max_bed_shear_stress%dim
-            max_bed_shear_stress%val(i)%ptr = &
-                 max(max_bed_shear_stress%val(i)%ptr, bed_shear_stress%val(i)%ptr)
+            max_bed_shear_stress%val(i,:) = &
+                 max(max_bed_shear_stress%val(i,:), bed_shear_stress%val(i,:))
          end do
       else
         call zero(max_bed_shear_stress)

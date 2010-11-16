@@ -259,7 +259,7 @@
       ! get the velocity
       u=>extract_vector_field(state(istate), "Velocity")
       do i = 1, u%dim
-        ewrite_minmax(u%val(i)%ptr(:))
+        ewrite_minmax(u%val(i,:))
       end do
 
       dg=have_option(trim(u%option_path)//&
@@ -850,7 +850,7 @@
 
             ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
             do i = 1, delta_u%dim
-              ewrite_minmax(delta_u%val(i)%ptr(:))
+              ewrite_minmax(delta_u%val(i,:))
             end do
             call addto(mom_rhs, delta_u)
          end if
@@ -866,14 +866,14 @@
           ! solve for the change in velocity
           call petsc_solve(delta_u, big_m, mom_rhs, state(istate))
           do i = 1, u%dim
-            ewrite_minmax(delta_u%val(i)%ptr(:))
+            ewrite_minmax(delta_u%val(i,:))
           end do
 
           call profiler_tic(u, "assembly")
           ! apply change to velocity field
           call addto(u, delta_u, dt)
           do i = 1, u%dim
-            ewrite_minmax(u%val(i)%ptr(:))
+            ewrite_minmax(u%val(i,:))
           end do
 
           call deallocate(delta_u)
@@ -1049,7 +1049,7 @@
 
           if(timestep==1)then
               do d=1,snapmean_velocity%dim
-                u%val(d)%ptr=snapmean_velocity%val(d)%ptr
+                u%val(d,:)=snapmean_velocity%val(d,:)
               enddo
               p%val=snapmean_pressure%val
 

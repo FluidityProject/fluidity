@@ -39,9 +39,9 @@ subroutine test_isotropic_gradation
   call allocate(edgelen, mesh, "Edge lengths")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     if (x == 0.0) then
       metric%val(:, :, i) = x_metric
     else
@@ -64,9 +64,9 @@ subroutine test_isotropic_gradation
                   & should give a constant edge length field.")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     if (x == 0.0) then
       metric%val(:, :, i) = x_metric
     else
@@ -81,9 +81,9 @@ subroutine test_isotropic_gradation
 
   fail = .false.
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     if (x == 0.0 .and. (edgelen%val(i) .fne. 0.1)) fail = .true.
     if (x >  0.0 .and. x < 1.25 .and. edgelen%val(i) > 0.3) fail = .true.
     if (x >= 5.0 .and. (edgelen%val(i) .fne. 0.5)) fail = .true.

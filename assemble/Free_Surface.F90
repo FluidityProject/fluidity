@@ -690,7 +690,7 @@ contains
         call deallocate(local_grid_u)
       end if
       do i = 1, grid_u%dim
-        ewrite_minmax(grid_u%val(i)%ptr)
+        ewrite_minmax(grid_u%val(i,:))
       end do      
     end if
     

@@ -157,7 +157,7 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   ! Extrude the surface mesh
   call extrude(positions_b_surf, mesh_path, positions_b_ext)
   ! and apply the offset
-  positions_b_ext%val(dim)%ptr = positions_b_ext%val(dim)%ptr + top
+  positions_b_ext%val(dim,:) = positions_b_ext%val(dim,:) + top
 #ifdef DUMP_EXTRUSION
   call write_triangle_files("extruded_vertical_integration_mesh", positions_b_ext)
 #endif

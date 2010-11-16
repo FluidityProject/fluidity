@@ -278,9 +278,9 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   integer :: i
   
   assert(x%dim==rhs%dim)
-  assert(size(x%val(1)%ptr)==size(rhs%val(1)%ptr))
-  assert(size(x%val(1)%ptr)==block_size(matrix,2))
-  assert(size(rhs%val(1)%ptr)==block_size(matrix,1))
+  assert(size(x%val(1,:))==size(rhs%val(1,:)))
+  assert(size(x%val(1,:))==block_size(matrix,2))
+  assert(size(rhs%val(1,:))==block_size(matrix,1))
   assert(x%dim==blocks(matrix,2))
   assert(rhs%dim==blocks(matrix,1))
   
@@ -371,9 +371,9 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
   logical lstartfromzero
   
   assert(x%dim==rhs%dim)
-  assert(size(x%val(1)%ptr)==size(rhs%val(1)%ptr))
-  assert(size(x%val(1)%ptr)==size(matrix,2))
-  assert(size(rhs%val(1)%ptr)==size(matrix,1))
+  assert(size(x%val(1,:))==size(rhs%val(1,:)))
+  assert(size(x%val(1,:))==size(matrix,2))
+  assert(size(rhs%val(1,:))==size(matrix,1))
   
   ! option_path_in may still point to field 
   ! (so we have to add "/prognostic/solver" below)
@@ -486,9 +486,9 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   logical lstartfromzero
   
   assert(x%dim==rhs%dim)
-  assert(size(x%val(1)%ptr)==size(rhs%val(1)%ptr))
-  assert(size(x%val(1)%ptr)==block_size(matrix,2))
-  assert(size(rhs%val(1)%ptr)==block_size(matrix,1))
+  assert(size(x%val(1,:))==size(rhs%val(1,:)))
+  assert(size(x%val(1,:))==block_size(matrix,2))
+  assert(size(rhs%val(1,:))==block_size(matrix,1))
   assert(x%dim==blocks(matrix,2))
   assert(rhs%dim==blocks(matrix,1))
   

@@ -258,9 +258,9 @@ contains
           !construct the rest of the particles (they will share the connectivity
           do ipart=1,nparticles
              do inod=1,node_count(position2)
-                ext_x(inod,ipart)=position2%val(X_)%ptr(inod)
-                ext_y(inod,ipart)=position2%val(Y_)%ptr(inod)
-                ext_z(inod,ipart)=position2%val(Z_)%ptr(inod)
+                ext_x(inod,ipart)=position2%val(X_,inod)
+                ext_y(inod,ipart)=position2%val(Y_,inod)
+                ext_z(inod,ipart)=position2%val(Z_,inod)
              end do
           end do
        case('external_3D_mesh')
@@ -277,9 +277,9 @@ contains
           !construct the rest of the particles (they will share the connectivity
           do ipart=1,nparticles
              do inod=1,node_count(position2)
-                ext_x(inod,ipart)=position2%val(X_)%ptr(inod)
-                ext_y(inod,ipart)=position2%val(Y_)%ptr(inod)
-                ext_z(inod,ipart)=position2%val(Z_)%ptr(inod)
+                ext_x(inod,ipart)=position2%val(X_,inod)
+                ext_y(inod,ipart)=position2%val(Y_,inod)
+                ext_z(inod,ipart)=position2%val(Z_,inod)
              end do
           end do
        end select
@@ -423,23 +423,23 @@ contains
           ewrite(0,*) 'after allocating y3dfemdem'
           particle_vector=extract_vector_field(state(1),"ParticleVector")
           particle_force=extract_vector_field(state(1),"ParticleForce")
-          particle_force%val(X_)%ptr=0.0
-          particle_force%val(Y_)%ptr=0.0
-          particle_force%val(Z_)%ptr=0.0
+          particle_force%val(X_,:)=0.0
+          particle_force%val(Y_,:)=0.0
+          particle_force%val(Z_,:)=0.0
           ewrite(0,*) 'right before first call to y3dfemdem',node_count(position2),node_count(particle_vector)
           !initialize 3dfemdem code
-          call y3dfemdem(1,DT,position2%val(X_)%ptr,position2%val(Y_)%ptr,position2%val(Z_)%ptr, &
-               particle_vector%val(X_)%ptr,particle_vector%val(Y_)%ptr,particle_vector%val(Z_)%ptr, &
-               particle_force%val(X_)%ptr,particle_force%val(Y_)%ptr,particle_force%val(Z_)%ptr, &
+          call y3dfemdem(1,DT,position2%val(X_,:),position2%val(Y_,:),position2%val(Z_,:), &
+               particle_vector%val(X_,:),particle_vector%val(Y_,:),particle_vector%val(Z_,:), &
+               particle_force%val(X_,:),particle_force%val(Y_,:),particle_force%val(Z_,:), &
                node_count(position2),lin2quad,quad2lin,&
                trim(femdem3d_filename)//char(0))
           ewrite(0,*) 'right after first call to y3dfemdem',node_count(position2),node_count(particle_vector)
           !Initializing velocity buffer
           do ipart=1,nparticles
              do inod=1,node_count(position2)
-                ext_u(inod,ipart)=particle_vector%val(X_)%ptr(inod)
-                ext_v(inod,ipart)=particle_vector%val(Y_)%ptr(inod)
-                ext_w(inod,ipart)=particle_vector%val(Z_)%ptr(inod)
+                ext_u(inod,ipart)=particle_vector%val(X_,inod)
+                ext_v(inod,ipart)=particle_vector%val(Y_,inod)
+                ext_w(inod,ipart)=particle_vector%val(Z_,inod)
              end do
           end do
 #else
@@ -493,15 +493,15 @@ contains
     solid_concentration%val=0.0
     visualizesolid%val=0.0
     do i=1,3
-       svelocity%val(i)%ptr=0.0
+       svelocity%val(i,:)=0.0
     end do
 
     select case(trim(solid_type))
     case("cylinders")
        do inod=1,node_count(position1)
-          x=position1%val(X_)%ptr(inod)
-          y=position1%val(Y_)%ptr(inod)
-          z=position1%val(Z_)%ptr(inod)
+          x=position1%val(X_,inod)
+          y=position1%val(Y_,inod)
+          z=position1%val(Z_,inod)
           inside=.false.
           do ipart=1,nparticles
              !note: a cylinder is mapped with boundcheckc and a sphere with boundcheck
@@ -514,20 +514,20 @@ contains
                 exit
              end if
           end do
-          !given that the z coordinate is not needed. svelocity%val(Z_)%ptr doesn't need to be
+          !given that the z coordinate is not needed. svelocity%val(Z_,:) doesn't need to be
           !calculated.
           if(inside) then
              rx=x-centerpx(ipart)
              ry=y-centerpy(ipart)
-             svelocity%val(X_)%ptr(inod)= pvelx(ipart) - pavelz(ipart)*ry
-             svelocity%val(Y_)%ptr(inod)= pvely(ipart) + pavelz(ipart)*rx
+             svelocity%val(X_,inod)= pvelx(ipart) - pavelz(ipart)*ry
+             svelocity%val(Y_,inod)= pvely(ipart) + pavelz(ipart)*rx
           end if
        end do
     case("spheres")
        do inod=1,node_count(position1)
-          x=position1%val(X_)%ptr(inod)
-          y=position1%val(Y_)%ptr(inod)
-          z=position1%val(Z_)%ptr(inod)
+          x=position1%val(X_,inod)
+          y=position1%val(Y_,inod)
+          z=position1%val(Z_,inod)
           inside=.false.
           do ipart=1,nparticles
              call boundcheck(x,y,z,radii(ipart),centerpx(ipart),centerpy(ipart),centerpz(ipart),inside)
@@ -543,9 +543,9 @@ contains
              rx=x-centerpx(ipart)
              ry=y-centerpy(ipart)
              rz=z-centerpz(ipart)
-             svelocity%val(X_)%ptr(inod)= pvelx(ipart) - pavelz(ipart)*ry + pavely(ipart)*rz
-             svelocity%val(Y_)%ptr(inod)= pvely(ipart) - pavelx(ipart)*rz + pavelz(ipart)*rx
-             svelocity%val(Z_)%ptr(inod)= pvelz(ipart) - pavely(ipart)*rx + pavelx(ipart)*ry
+             svelocity%val(X_,inod)= pvelx(ipart) - pavelz(ipart)*ry + pavely(ipart)*rz
+             svelocity%val(Y_,inod)= pvely(ipart) - pavelx(ipart)*rz + pavelz(ipart)*rx
+             svelocity%val(Z_,inod)= pvelz(ipart) - pavely(ipart)*rx + pavelx(ipart)*ry
           end if
        end do
        visualizesolid%val=solid_concentration%val
@@ -560,12 +560,12 @@ contains
        particle_scalar%val=1.0
        do ipart=1,nparticles
           do inod=1,node_count(position2)
-             position2%val(X_)%ptr(inod)=ext_x(inod,ipart)
-             position2%val(Y_)%ptr(inod)=ext_y(inod,ipart)
-             position2%val(Z_)%ptr(inod)=ext_z(inod,ipart)
-             particle_vector%val(X_)%ptr(inod)=ext_u(inod,ipart)
-             particle_vector%val(Y_)%ptr(inod)=ext_v(inod,ipart)
-             particle_vector%val(Z_)%ptr(inod)=ext_w(inod,ipart)
+             position2%val(X_,inod)=ext_x(inod,ipart)
+             position2%val(Y_,inod)=ext_y(inod,ipart)
+             position2%val(Z_,inod)=ext_z(inod,ipart)
+             particle_vector%val(X_,inod)=ext_u(inod,ipart)
+             particle_vector%val(Y_,inod)=ext_v(inod,ipart)
+             particle_vector%val(Z_,inod)=ext_w(inod,ipart)
           end do
           call  mesh2mesh_3d(state,ipart,node_to_particle, &
                "SolidConcentration","ParticleScalar",  &
@@ -579,9 +579,9 @@ contains
           do ielem=1,element_count(position1)
              do iloc=1,nloc
                 node = position1%mesh%ndglno((ielem-1)*nloc+iloc)
-                xx(iloc) = position1%val(X_)%ptr(node)
-                yy(iloc) = position1%val(Y_)%ptr(node)!original coordinates are stored in a 4 size vector.
-                zz(iloc) = position1%val(Z_)%ptr(node)
+                xx(iloc) = position1%val(X_,node)
+                yy(iloc) = position1%val(Y_,node)!original coordinates are stored in a 4 size vector.
+                zz(iloc) = position1%val(Z_,node)
              end do
              volume=element_volume_s(nloc,xx,yy,zz)
              do iloc=1,nloc
@@ -606,12 +606,12 @@ contains
                    node = position1%mesh%ndglno((ielem-1)*nloc+iloc)
                    countinside=countinside+1
                    solid_concentration%val(node)=solid_concentration%val(node)+ abs(pvl(iloc)/volume)*particle_volume
-                   rx=position1%val(1)%ptr(node)-centerpx(ipart)
-                   ry=position1%val(2)%ptr(node)-centerpy(ipart)
-                   rz=position1%val(3)%ptr(node)-centerpz(ipart)
-                   svelocity%val(X_)%ptr(node)= pvelx(ipart) - pavelz(ipart)*ry + pavely(ipart)*rz
-                   svelocity%val(Y_)%ptr(node)= pvely(ipart) - pavelx(ipart)*rz + pavelz(ipart)*rx
-                   svelocity%val(Z_)%ptr(node)= pvelz(ipart) - pavely(ipart)*rx + pavelx(ipart)*ry
+                   rx=position1%val(1,node)-centerpx(ipart)
+                   ry=position1%val(2,node)-centerpy(ipart)
+                   rz=position1%val(3,node)-centerpz(ipart)
+                   svelocity%val(X_,node)= pvelx(ipart) - pavelz(ipart)*ry + pavely(ipart)*rz
+                   svelocity%val(Y_,node)= pvely(ipart) - pavelx(ipart)*rz + pavelz(ipart)*rx
+                   svelocity%val(Z_,node)= pvelz(ipart) - pavely(ipart)*rx + pavelx(ipart)*ry
                    visualizesolid%val(node)=visualizesolid%val(node)+ abs(pvl(iloc)/volume)*particle_volume
                    node_to_particle(node)=ipart
                 end do
@@ -629,7 +629,7 @@ contains
     velocity=extract_vector_field(state(1),"Velocity")
     velocityplotforsolids=extract_vector_field(state(1),"VelocityPlotForSolids")
     do i=1,3
-       velocityplotforsolids%val(i)%ptr=(1.-visualizesolid%val)*velocity%val(i)%ptr
+       velocityplotforsolids%val(i,:)=(1.-visualizesolid%val)*velocity%val(i,:)
     end do
 
     !if using multimaterials, then this option helps visualize both solid concentration and
@@ -678,8 +678,8 @@ contains
 
     !could also try using a buffer, and using solid_concentration (which goes up to 0.999), instead.
     do i=1,3
-       flow_velocity%val(i)%ptr=(1.0-visualizesolid%val)*flow_velocity%val(i)%ptr + &
-            visualizesolid%val*svelocity%val(i)%ptr
+       flow_velocity%val(i,:)=(1.0-visualizesolid%val)*flow_velocity%val(i,:) + &
+            visualizesolid%val*svelocity%val(i,:)
     end do
   end subroutine smooth_out_solid_velocities
 
@@ -717,9 +717,9 @@ contains
        do i=1,3
           !note: when using also multi materials, density is probably not worked out yet at this stage
           !try to work this out by averaging the fluid densities? This could avoid problems
-          absorption%val(i)%ptr=solid_concentration%val*solid_density*k/dt
-          velocity_source%val(i)%ptr=(1.0-solid_concentration%val)*velocity_source%val(i)%ptr + &
-               solid_concentration%val*absorption%val(i)%ptr*svelocity%val(i)%ptr
+          absorption%val(i,:)=solid_concentration%val*solid_density*k/dt
+          velocity_source%val(i,:)=(1.0-solid_concentration%val)*velocity_source%val(i,:) + &
+               solid_concentration%val*absorption%val(i,:)*svelocity%val(i,:)
        end do
     else
        !calculate force coefficients and source terms in each direction
@@ -729,9 +729,9 @@ contains
              if (node_to_particle(i)/=0) then
                 a=solid_concentration%val(i)
                 ipart=node_to_particle(i)
-!                slipvelx=abs(flow_velocity%val(1)%ptr(i)-pvelx(ipart))
-!                slipvely=abs(flow_velocity%val(2)%ptr(i)-pvely(ipart))
-!                slipvelz=abs(flow_velocity%val(3)%ptr(i)-pvelz(ipart))
+!                slipvelx=abs(flow_velocity%val(1,i)-pvelx(ipart))
+!                slipvely=abs(flow_velocity%val(2,i)-pvely(ipart))
+!                slipvelz=abs(flow_velocity%val(3,i)-pvelz(ipart))
 
                 slipvelx=abs(pvelx(ipart))
                 slipvely=abs(pvely(ipart))
@@ -748,32 +748,32 @@ contains
 
                 if(a>0.2) then
                    !Use ergun equation if solid volume fraction is above 0.2
-                   absorption%val(1)%ptr(i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
+                   absorption%val(1,i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
                         + 1.75*a*density%val(i)*slipvelx/(2*radii(ipart))
-                   absorption%val(2)%ptr(i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
+                   absorption%val(2,i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
                         + 1.75*a*density%val(i)*slipvely/(2*radii(ipart))
-                   absorption%val(3)%ptr(i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
+                   absorption%val(3,i)=150.0*0.001*a**2.0/((1-a)*2*radii(ipart))**2.0 &
                         + 1.75*a*density%val(i)*slipvelz/(2*radii(ipart))
-!                   ewrite(0,*) 'Ergun : ',absorption%val(1)%ptr(i),absorption%val(2)%ptr(i),absorption%val(3)%ptr(i)
+!                   ewrite(0,*) 'Ergun : ',absorption%val(1,i),absorption%val(2,i),absorption%val(3,i)
                 elseif (a<=0.2) then
                    !Use Wen and Yu's method if solid volume fraction is below 0.2
-                   absorption%val(1)%ptr(i)=0.75*cdx*slipvelx*density%val(i)*a/(2*radii(ipart)*(1-a)**2.65)
-                   absorption%val(2)%ptr(i)=0.75*cdy*slipvely*density%val(i)**2.0*a/(2*radii(ipart)*(1-a)**2.65)
-                   absorption%val(3)%ptr(i)=0.75*cdz*slipvelz*density%val(i)*a/(2*radii(ipart)*(1-a)**2.65)
-!                   ewrite(0,*) 'Wen : ',absorption%val(1)%ptr(i),absorption%val(2)%ptr(i),absorption%val(3)%ptr(i)
+                   absorption%val(1,i)=0.75*cdx*slipvelx*density%val(i)*a/(2*radii(ipart)*(1-a)**2.65)
+                   absorption%val(2,i)=0.75*cdy*slipvely*density%val(i)**2.0*a/(2*radii(ipart)*(1-a)**2.65)
+                   absorption%val(3,i)=0.75*cdz*slipvelz*density%val(i)*a/(2*radii(ipart)*(1-a)**2.65)
+!                   ewrite(0,*) 'Wen : ',absorption%val(1,i),absorption%val(2,i),absorption%val(3,i)
                 endif
              end if
           end do
           !Now the source term.
           do i=1,3
-             velocity_source%val(i)%ptr=(1.0-solid_concentration%val)*velocity_source%val(i)%ptr + &
-                  absorption%val(i)%ptr*svelocity%val(i)%ptr
+             velocity_source%val(i,:)=(1.0-solid_concentration%val)*velocity_source%val(i,:) + &
+                  absorption%val(i,:)*svelocity%val(i,:)
           end do
        else
           do i=1,3
-             absorption%val(i)%ptr=solid_concentration%val*density%val*k/dt
-             velocity_source%val(i)%ptr=(1.0-solid_concentration%val)*velocity_source%val(i)%ptr + &
-                  solid_concentration%val*absorption%val(i)%ptr*svelocity%val(i)%ptr
+             absorption%val(i,:)=solid_concentration%val*density%val*k/dt
+             velocity_source%val(i,:)=(1.0-solid_concentration%val)*velocity_source%val(i,:) + &
+                  solid_concentration%val*absorption%val(i,:)*svelocity%val(i,:)
           end do
        end if
     end if
@@ -858,9 +858,9 @@ contains
           do ipart=1,nparticles
              !put the coordinates for the corresponding particle into position2
              do inod=1,node_count(position2)
-                position2%val(X_)%ptr(inod)=ext_x(inod,ipart)
-                position2%val(Y_)%ptr(inod)=ext_y(inod,ipart)
-                position2%val(Z_)%ptr(inod)=ext_z(inod,ipart)
+                position2%val(X_,inod)=ext_x(inod,ipart)
+                position2%val(Y_,inod)=ext_y(inod,ipart)
+                position2%val(Z_,inod)=ext_z(inod,ipart)
              end do
              !interpolate SolidForce values to the ParticleVector
              !(NOTE: dummy is used to simulate node_to_particle but is actually not used for anything at all)
@@ -869,18 +869,18 @@ contains
                   "ParticleForce","SolidForce")
              !save particle_force values in the respective external mesh force vector
              do inod=1,node_count(position2)
-                ext_forcex(inod,ipart)=particle_force%val(X_)%ptr(inod)
-                ext_forcey(inod,ipart)=particle_force%val(Y_)%ptr(inod)
-                ext_forcez(inod,ipart)=particle_force%val(Z_)%ptr(inod)
+                ext_forcex(inod,ipart)=particle_force%val(X_,inod)
+                ext_forcey(inod,ipart)=particle_force%val(Y_,inod)
+                ext_forcez(inod,ipart)=particle_force%val(Z_,inod)
              end do
           end do
           ewrite(0,*) 'Finished mapback of forces.'
           deallocate(dummy)
        else
           ewrite(0,*) 'No mapback will be done. Particle forces are zero.'
-          particle_force%val(X_)%ptr=0.0
-          particle_force%val(Y_)%ptr=0.0
-          particle_force%val(Z_)%ptr=0.0
+          particle_force%val(X_,:)=0.0
+          particle_force%val(Y_,:)=0.0
+          particle_force%val(Z_,:)=0.0
        end if
        if (its==itinoi.and.output_particle_vtus) then
           call vtk_write_fields("particle", iteration, position2, position2%mesh,sfields=(/particle_scalar/),&
@@ -966,21 +966,21 @@ contains
           !inputs are in particle_force, while outputs are the new nodal
           !positions and velocities (position2, and particle_vector,
           !respectively)
-          call y3dfemdem(0,DT,position2%val(X_)%ptr,position2%val(Y_)%ptr,position2%val(Z_)%ptr, &
-               particle_vector%val(X_)%ptr,particle_vector%val(Y_)%ptr,particle_vector%val(Z_)%ptr, &
-               particle_force%val(X_)%ptr,particle_force%val(Y_)%ptr,particle_force%val(Z_)%ptr, &
+          call y3dfemdem(0,DT,position2%val(X_,:),position2%val(Y_,:),position2%val(Z_,:), &
+               particle_vector%val(X_,:),particle_vector%val(Y_,:),particle_vector%val(Z_,:), &
+               particle_force%val(X_,:),particle_force%val(Y_,:),particle_force%val(Z_,:), &
                node_count(position2),lin2quad,quad2lin,&
                trim(femdem3d_filename)//char(0))
           ewrite(0,*) 'right after second call to y3dfemdem'
           !updating position and velocity buffers for the next timestep.
           do ipart=1,nparticles
              do inod=1,node_count(position2)
-                ext_x(inod,ipart)=position2%val(X_)%ptr(inod)
-                ext_y(inod,ipart)=position2%val(Y_)%ptr(inod)
-                ext_z(inod,ipart)=position2%val(Z_)%ptr(inod)
-                ext_u(inod,ipart)=particle_vector%val(X_)%ptr(inod)
-                ext_v(inod,ipart)=particle_vector%val(Y_)%ptr(inod)
-                ext_w(inod,ipart)=particle_vector%val(Z_)%ptr(inod)
+                ext_x(inod,ipart)=position2%val(X_,inod)
+                ext_y(inod,ipart)=position2%val(Y_,inod)
+                ext_z(inod,ipart)=position2%val(Z_,inod)
+                ext_u(inod,ipart)=particle_vector%val(X_,inod)
+                ext_v(inod,ipart)=particle_vector%val(Y_,inod)
+                ext_w(inod,ipart)=particle_vector%val(Z_,inod)
              end do
           end do
 #else
@@ -1224,12 +1224,12 @@ contains
        inside=.false.
        call check_if_in_bin(inside,bin_x_max,bin_y_max,bin_z_max, &
             bin_x_min,bin_y_min,bin_z_min,                        &
-            position1%val(X_)%ptr(inod),position1%val(Y_)%ptr(inod),position1%val(Z_)%ptr(inod))
+            position1%val(X_,inod),position1%val(Y_,inod),position1%val(Z_,inod))
        if (inside) then
           !find which bin the node "inod" lands in
-          i=min(max(int(abs((position1%val(X_)%ptr(inod)-bin_x_min)/dx))+1,1),number_of_bins_x)
-          j=min(max(int(abs((position1%val(Y_)%ptr(inod)-bin_y_min)/dy))+1,1),number_of_bins_y)
-          k=min(max(int(abs((position1%val(Z_)%ptr(inod)-bin_z_min)/dz))+1,1),number_of_bins_z)
+          i=min(max(int(abs((position1%val(X_,inod)-bin_x_min)/dx))+1,1),number_of_bins_x)
+          j=min(max(int(abs((position1%val(Y_,inod)-bin_y_min)/dy))+1,1),number_of_bins_y)
+          k=min(max(int(abs((position1%val(Z_,inod)-bin_z_min)/dz))+1,1),number_of_bins_z)
 
           !search which fluid2 mesh element associated with the bin where the inod lands.
           ielem=bin(i,j,k)
@@ -1249,9 +1249,9 @@ contains
              do itry=1,ntry
                 do iloc=1,nloc
                    node = field2%mesh%ndglno((ielem-1)*nloc+iloc)
-                   xx(iloc) = position2%val(X_)%ptr(node)
-                   yy(iloc) = position2%val(Y_)%ptr(node) !original coordinates are stored in a 4 size vector.
-                   zz(iloc) = position2%val(Z_)%ptr(node)
+                   xx(iloc) = position2%val(X_,node)
+                   yy(iloc) = position2%val(Y_,node) !original coordinates are stored in a 4 size vector.
+                   zz(iloc) = position2%val(Z_,node)
                 end do
 
                 volume=element_volume_s(nloc,xx,yy,zz)
@@ -1261,9 +1261,9 @@ contains
                    xx1=xx(iloc)
                    yy1=yy(iloc)
                    zz1=zz(iloc)
-                   xx(iloc)=position1%val(X_)%ptr(inod)
-                   yy(iloc)=position1%val(Y_)%ptr(inod)
-                   zz(iloc)=position1%val(Z_)%ptr(inod)
+                   xx(iloc)=position1%val(X_,inod)
+                   yy(iloc)=position1%val(Y_,inod)
+                   zz(iloc)=position1%val(Z_,inod)
                    pvl(iloc)=element_volume_s(nloc,xx,yy,zz)
                    xx(iloc)=xx1
                    yy(iloc)=yy1
@@ -1278,19 +1278,19 @@ contains
                 vcheck1=1.0-(abs(pvl(1))+abs(pvl(2))+abs(pvl(3))+abs(pvl(4)))/abs(volume)
                 if (abs(vcheck1).lt.vcheck_tol) then
                    field1%val(inod)=0.0
-                   vfield1%val(X_)%ptr(inod)=0.0
-                   vfield1%val(Y_)%ptr(inod)=0.0
-                   vfield1%val(Z_)%ptr(inod)=0.0
+                   vfield1%val(X_,inod)=0.0
+                   vfield1%val(Y_,inod)=0.0
+                   vfield1%val(Z_,inod)=0.0
                    do iloc=1,4
                       node=field2%mesh%ndglno((ielem-1)*4+iloc)
                       shapef=pvl(iloc)/volume
                       field1%val(inod)=field1%val(inod) + field2%val(node)*shapef
-                      vfield1%val(1)%ptr(inod)= vfield1%val(1)%ptr(inod) + &
-                           vfield2%val(1)%ptr(node)*shapef
-                      vfield1%val(2)%ptr(inod)= vfield1%val(2)%ptr(inod) + &
-                           vfield2%val(2)%ptr(node)*shapef
-                      vfield1%val(3)%ptr(inod)= vfield1%val(3)%ptr(inod) + &
-                           vfield2%val(3)%ptr(node)*shapef
+                      vfield1%val(1,inod)= vfield1%val(1,inod) + &
+                           vfield2%val(1,node)*shapef
+                      vfield1%val(2,inod)= vfield1%val(2,inod) + &
+                           vfield2%val(2,node)*shapef
+                      vfield1%val(3,inod)= vfield1%val(3,inod) + &
+                           vfield2%val(3,node)*shapef
                    end do
                    node_to_particle1(inod)=ipart
                    nfastest=nfastest+1
@@ -1307,18 +1307,18 @@ contains
              do ielem=1,totele2
                 do iloc=1,nloc
                    node = field2%mesh%ndglno((ielem-1)*nloc+iloc)
-                   xx(iloc) = position2%val(X_)%ptr(node)
-                   yy(iloc) = position2%val(Y_)%ptr(node)!original coordinates are stored in a 4 size vector.
-                   zz(iloc) = position2%val(Z_)%ptr(node)
+                   xx(iloc) = position2%val(X_,node)
+                   yy(iloc) = position2%val(Y_,node)!original coordinates are stored in a 4 size vector.
+                   zz(iloc) = position2%val(Z_,node)
                 end do
                 volume=element_volume_s(nloc,xx,yy,zz)
                 do iloc=1,nloc
                    xx1=xx(iloc)
                    yy1=yy(iloc)
                    zz1=zz(iloc)
-                   xx(iloc)=position1%val(X_)%ptr(inod)
-                   yy(iloc)=position1%val(Y_)%ptr(inod)
-                   zz(iloc)=position1%val(Z_)%ptr(inod)
+                   xx(iloc)=position1%val(X_,inod)
+                   yy(iloc)=position1%val(Y_,inod)
+                   zz(iloc)=position1%val(Z_,inod)
                    pvl(iloc)=element_volume_s(nloc,xx,yy,zz)
                    xx(iloc)=xx1
                    yy(iloc)=yy1
@@ -1333,18 +1333,18 @@ contains
                       shapef=pvl(iloc)/volume
                       field1%val(inod)=field1%val(inod) + field2%val(node)*shapef
                    end do
-                   vfield1%val(X_)%ptr(inod)=0.0
-                   vfield1%val(Y_)%ptr(inod)=0.0
-                   vfield1%val(Z_)%ptr(inod)=0.0
+                   vfield1%val(X_,inod)=0.0
+                   vfield1%val(Y_,inod)=0.0
+                   vfield1%val(Z_,inod)=0.0
                    do iloc=1,4
                       node=field2%mesh%ndglno((ielem-1)*4+iloc)
                       shapef=pvl(iloc)/volume
-                      vfield1%val(X_)%ptr(inod)= vfield1%val(X_)%ptr(inod) + &
-                           vfield2%val(X_)%ptr(node)*shapef
-                      vfield1%val(Y_)%ptr(inod)= vfield1%val(Y_)%ptr(inod) + &
-                           vfield2%val(Y_)%ptr(node)*shapef
-                      vfield1%val(Z_)%ptr(inod)= vfield1%val(Z_)%ptr(inod) + &
-                           vfield2%val(Z_)%ptr(node)*shapef
+                      vfield1%val(X_,inod)= vfield1%val(X_,inod) + &
+                           vfield2%val(X_,node)*shapef
+                      vfield1%val(Y_,inod)= vfield1%val(Y_,inod) + &
+                           vfield2%val(Y_,node)*shapef
+                      vfield1%val(Z_,inod)= vfield1%val(Z_,inod) + &
+                           vfield2%val(Z_,node)*shapef
                    end do
                    node_to_particle1(inod)=ipart
                    nbrute=nbrute+1
@@ -1420,20 +1420,20 @@ contains
     !-----------------------------------------------------
     !extract coordinates corresponding to the mesh of field1
     position1=extract_vector_field(state(1),trim(position_name1))
-    bin_x_max1=maxval(position1%val(X_)%ptr,nonods1)
-    bin_y_max1=maxval(position1%val(Y_)%ptr,nonods1)
-    bin_z_max1=maxval(position1%val(Z_)%ptr,nonods1)
-    bin_x_min1=minval(position1%val(X_)%ptr,nonods1)
-    bin_y_min1=minval(position1%val(Y_)%ptr,nonods1)
-    bin_z_min1=minval(position1%val(Z_)%ptr,nonods1)
+    bin_x_max1=maxval(position1%val(X_,:),nonods1)
+    bin_y_max1=maxval(position1%val(Y_,:),nonods1)
+    bin_z_max1=maxval(position1%val(Z_,:),nonods1)
+    bin_x_min1=minval(position1%val(X_,:),nonods1)
+    bin_y_min1=minval(position1%val(Y_,:),nonods1)
+    bin_z_min1=minval(position1%val(Z_,:),nonods1)
 
     position2=extract_vector_field(state(1),trim(position_name2))
-    bin_x_max2=maxval(position2%val(X_)%ptr,nonods2)
-    bin_y_max2=maxval(position2%val(Y_)%ptr,nonods2)
-    bin_z_max2=maxval(position2%val(Z_)%ptr,nonods2)
-    bin_x_min2=minval(position2%val(X_)%ptr,nonods2)
-    bin_y_min2=minval(position2%val(Y_)%ptr,nonods2)
-    bin_z_min2=minval(position2%val(Z_)%ptr,nonods2)
+    bin_x_max2=maxval(position2%val(X_,:),nonods2)
+    bin_y_max2=maxval(position2%val(Y_,:),nonods2)
+    bin_z_max2=maxval(position2%val(Z_,:),nonods2)
+    bin_x_min2=minval(position2%val(X_,:),nonods2)
+    bin_y_min2=minval(position2%val(Y_,:),nonods2)
+    bin_z_min2=minval(position2%val(Z_,:),nonods2)
 
     !first get the maximum size of the interpolating box (bin size)
     bin_x_max=min(bin_x_max2,bin_x_max1)
@@ -1529,7 +1529,7 @@ contains
        do ii=1,3
           avg(ii)=0
           do iii=1,nloc
-             avg(ii)=avg(ii) + position%val(ii)%ptr(node(iii))
+             avg(ii)=avg(ii) + position%val(ii,node(iii))
           end do
           avg(ii)=avg(ii)/nloc
        end do
@@ -1582,20 +1582,20 @@ contains
     do inod=1,node_count(positions)
        if (node_to_particle(inod)==ipart) then
 
-          forcexs = absorption%val(X_)%ptr(inod)* &
-               (velocity%val(X_)%ptr(inod)-svelocity%val(X_)%ptr(inod))*lumped_mass%val(inod)
-          forceys = absorption%val(Y_)%ptr(inod)* &
-               (velocity%val(Y_)%ptr(inod)-svelocity%val(Y_)%ptr(inod))*lumped_mass%val(inod)
-          forcezs = absorption%val(Z_)%ptr(inod)* &
-               (velocity%val(Z_)%ptr(inod)-svelocity%val(Z_)%ptr(inod))*lumped_mass%val(inod)
+          forcexs = absorption%val(X_,inod)* &
+               (velocity%val(X_,inod)-svelocity%val(X_,inod))*lumped_mass%val(inod)
+          forceys = absorption%val(Y_,inod)* &
+               (velocity%val(Y_,inod)-svelocity%val(Y_,inod))*lumped_mass%val(inod)
+          forcezs = absorption%val(Z_,inod)* &
+               (velocity%val(Z_,inod)-svelocity%val(Z_,inod))*lumped_mass%val(inod)
 
           forcex(ipart) = forcex(ipart) + forcexs
           forcey(ipart) = forcey(ipart) + forceys
           forcez(ipart) = forcez(ipart) + forcezs
 
-          rx = positions%val(X_)%ptr(inod)-centerpx(ipart)
-          ry = positions%val(Y_)%ptr(inod)-centerpy(ipart)
-          rz = positions%val(Z_)%ptr(inod)-centerpz(ipart)
+          rx = positions%val(X_,inod)-centerpx(ipart)
+          ry = positions%val(Y_,inod)-centerpy(ipart)
+          rz = positions%val(Z_,inod)-centerpz(ipart)
 
           torquex(ipart) = torquex(ipart) - rz*forceys + ry*forcezs
           torquey(ipart) = torquey(ipart) - rx*forcezs + rz*forcexs
@@ -1635,12 +1635,12 @@ contains
     !generate lumped mass matrix
     call compute_lumped_mass(positions, lumped_mass)
 
-    solid_force%val(X_)%ptr = absorption%val(X_)%ptr*visualizesolid%val*(velocity%val(X_)%ptr - &
-         svelocity%val(X_)%ptr)*lumped_mass%val
-    solid_force%val(Y_)%ptr = absorption%val(Y_)%ptr*visualizesolid%val*(velocity%val(Y_)%ptr - &
-         svelocity%val(Y_)%ptr)*lumped_mass%val
-    solid_force%val(Z_)%ptr = absorption%val(Z_)%ptr*visualizesolid%val*(velocity%val(Z_)%ptr - &
-         svelocity%val(Z_)%ptr)*lumped_mass%val
+    solid_force%val(X_,:) = absorption%val(X_,:)*visualizesolid%val*(velocity%val(X_,:) - &
+         svelocity%val(X_,:))*lumped_mass%val
+    solid_force%val(Y_,:) = absorption%val(Y_,:)*visualizesolid%val*(velocity%val(Y_,:) - &
+         svelocity%val(Y_,:))*lumped_mass%val
+    solid_force%val(Z_,:) = absorption%val(Z_,:)*visualizesolid%val*(velocity%val(Z_,:) - &
+         svelocity%val(Z_,:))*lumped_mass%val
 
     call deallocate(lumped_mass)
 
@@ -2302,9 +2302,9 @@ contains
           ewrite(0,*) 'surface element: ielem: ',ielem
           do iloc=1,nloc
              node=mesh%ndglno(nloc*(ielem-1) + iloc)
-             xx(iloc)=positions%val(X_)%ptr(node)
-             yy(iloc)=positions%val(Y_)%ptr(node)
-             zz(iloc)=positions%val(Z_)%ptr(node)
+             xx(iloc)=positions%val(X_,node)
+             yy(iloc)=positions%val(Y_,node)
+             zz(iloc)=positions%val(Z_,node)
           end do
 
           dn=element_derivatives(nloc,xx,yy,zz)
@@ -2321,12 +2321,12 @@ contains
           !      EWRITE(0,*) '--------------------------------------------------'
           DO ILOC = 1,NLOC
              Node = positions%mesh%ndglno((ielem-1)*nloc + iloc )
-             TAUXX = TAUXX + Flow_velocity%val(X_)%ptr(Node)*dn(1)   ! Assuming linear tet basis funcions and hence constant derivs
-             TAUXY = TAUXY + Flow_velocity%val(X_)%ptr(Node)*dn(2) + Flow_velocity%val(Y_)%ptr(Node)*dn(1)
-             TAUXZ = TAUXZ + Flow_velocity%val(X_)%ptr(Node)*dn(3) + Flow_velocity%val(Z_)%ptr(Node)*dn(1)
-             TAUYY = TAUYY + Flow_velocity%val(Y_)%ptr(Node)*dn(2)
-             TAUYZ = TAUYZ + Flow_velocity%val(Y_)%ptr(Node)*dn(3) + Flow_velocity%val(Z_)%ptr(Node)*dn(2)
-             TAUZZ = TAUZZ + Flow_velocity%val(Z_)%ptr(Node)*dn(3)
+             TAUXX = TAUXX + Flow_velocity%val(X_,Node)*dn(1)   ! Assuming linear tet basis funcions and hence constant derivs
+             TAUXY = TAUXY + Flow_velocity%val(X_,Node)*dn(2) + Flow_velocity%val(Y_,Node)*dn(1)
+             TAUXZ = TAUXZ + Flow_velocity%val(X_,Node)*dn(3) + Flow_velocity%val(Z_,Node)*dn(1)
+             TAUYY = TAUYY + Flow_velocity%val(Y_,Node)*dn(2)
+             TAUYZ = TAUYZ + Flow_velocity%val(Y_,Node)*dn(3) + Flow_velocity%val(Z_,Node)*dn(2)
+             TAUZZ = TAUZZ + Flow_velocity%val(Z_,Node)*dn(3)
              !          EWRITE(0,'(A,7E12.5)') 'VELOCITIES:',U(Node),V(Node),W(Node),VISC,dn(1),dn(2),dn(3)
           END DO
 
@@ -2346,14 +2346,14 @@ contains
 
           !Now going to formulate the two vectors that define the plane that contains the surface element
           !Vector 1 goes from node 1 to node 2
-          EDGE1(1)=positions%val(X_)%ptr(NOD2)-positions%val(X_)%ptr(NOD1)
-          EDGE1(2)=positions%val(Y_)%ptr(NOD2)-positions%val(Y_)%ptr(NOD1)
-          EDGE1(3)=positions%val(Z_)%ptr(NOD2)-positions%val(Z_)%ptr(NOD1)
+          EDGE1(1)=positions%val(X_,NOD2)-positions%val(X_,NOD1)
+          EDGE1(2)=positions%val(Y_,NOD2)-positions%val(Y_,NOD1)
+          EDGE1(3)=positions%val(Z_,NOD2)-positions%val(Z_,NOD1)
 
           !Vector 2 goes from node 1 to node 3
-          EDGE1(1)=positions%val(X_)%ptr(NOD3)-positions%val(X_)%ptr(NOD1)
-          EDGE1(2)=positions%val(Y_)%ptr(NOD3)-positions%val(Y_)%ptr(NOD1)
-          EDGE1(3)=positions%val(Z_)%ptr(NOD3)-positions%val(Z_)%ptr(NOD1)
+          EDGE1(1)=positions%val(X_,NOD3)-positions%val(X_,NOD1)
+          EDGE1(2)=positions%val(Y_,NOD3)-positions%val(Y_,NOD1)
+          EDGE1(3)=positions%val(Z_,NOD3)-positions%val(Z_,NOD1)
 
           !Now calculating the cross product of the two EDGE vectors.
           NORMALX=EDGE1(2)*EDGE2(3)-EDGE1(3)*EDGE2(2)

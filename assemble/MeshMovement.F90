@@ -44,8 +44,7 @@ contains
     type(vector_field) :: positions
     type(vector_field), pointer :: velocity,gridvelocity
     type(vector_field) :: gridvelocity_yves
-    type(vector_field) :: newgridvelocity
-    type(vector_field) :: relativevelocity
+    type(vector_field) :: relativevelocity, newgridvelocity
     real, dimension(:,:), allocatable::ugnew
     real, dimension(:,:), allocatable::ugold
     real, dimension(:,:), allocatable::b
@@ -424,7 +423,7 @@ contains
           !loop block by block ...this will be fix soon
           Ablock=block(MatrixA,d,1)
           do  i =1 ,size(Ablock,1)!node_count(MatrixAlumped)
-             MatrixAlumped%val(d)%ptr(i)=sum(row_val_ptr(Ablock,i))
+             MatrixAlumped%val(d,i)=sum(row_val_ptr(Ablock,i))
           end do
        end do
        !       call deallocate(Ablock,stat=lstat)
@@ -566,8 +565,8 @@ contains
     iteration=10
     if((option==2).and.(.NOT.(spring))) iteration=1
 
-    if (mdim==3) newgridvelocity=wrap_vector_field(mesh,ugnew(:,1),ugnew(:,2),ugnew(:,3),"Grid VelocityTemp")
-    if (mdim==2) newgridvelocity=wrap_vector_field(mesh,ugnew(:,1),ugnew(:,2),name="Grid VelocityTemp")
+    !if (mdim==3) newgridvelocity=wrap_vector_field(mesh,ugnew(:,1),ugnew(:,2),ugnew(:,3),"Grid VelocityTemp")
+    !if (mdim==2) newgridvelocity=wrap_vector_field(mesh,ugnew(:,1),ugnew(:,2),name="Grid VelocityTemp")
 
 
     call allocate(relativevelocity,velocity%dim,velocity%mesh,"RelativeVelocity")
@@ -618,9 +617,9 @@ contains
 
                 do node=1, node_count(velocity)
                    !probably no need to loop here
-                   call set (relativevelocity,node,node_val(velocity,node)-node_val(newgridvelocity,node))
+                   call set (relativevelocity,node,node_val(velocity,node)-ugnew(node,:))
                    ! do d=1,velocity%dim
-                   !    relativevelocity%val(d)%ptr(node)=velocity%val(d)%ptr(node)-newgridvelocity%val(d)%ptr(node)
+                   !    relativevelocity%val(d,node)=velocity%val(d,node)-newgridvelocity%val(d,node)
                    ! end do
                 end do
 
@@ -629,7 +628,7 @@ contains
                    minidij=1.0
                    do j=NNList2%findrm(node),NNList2%findrm(node+1)-1
                       node2=NNList2%colm(j)
-                      X2=node_val(newgridvelocity,node)-node_val(newgridvelocity,node2)
+                      X2=ugnew(node,:)-ugnew(node2,:)
                       Pos2=node_val(positions,node)-node_val(positions,node2)   
                       Dij=Pos2(3)+DT*X2(3)    
                       call addto(Fe,node,1/(1-Dij/D0)**1/3)                     
@@ -665,12 +664,15 @@ contains
              
              call zero(relativevelocity)
              if (option==1) then
+                call allocate(newgridvelocity,3,gridvelocity%mesh,"NewGridVelocity")
+                call set_all(newgridvelocity, transpose(ugnew))
                 call compute_BVEC(matrixA=MatrixA,MassLump=masslump,velocity=newgridvelocity,BVEC=BVEC,&
                      weights=F1weight,LAM=LAM)
+                call deallocate(newgridvelocity)
                 do node=1, node_count(velocity)
-                   call set (relativevelocity,node,node_val(velocity,node)-node_val(newgridvelocity,node))
+                   call set (relativevelocity,node,node_val(velocity,node)-ugnew(node,:))
                    !do d=1,velocity%dim
-                   !   relativevelocity%val(d)%ptr(node)=abs(velocity%val(d)%ptr(node)-newgridvelocity%val(d)%ptr(node))
+                   !   relativevelocity%val(d,node)=abs(velocity%val(d,node)-newgridvelocity%val(d,node))
                    !end do
                 end do
 
@@ -680,14 +682,17 @@ contains
                 do node=1,node_count(velocity)
                    !call addto(F1,node,abs(BFUNC(node,i)*node_val(relativevelocity))
                    do i=1,mdim
-                      F1%val(node)= F1%val(node)+abs(BFUNC(node,i)*relativevelocity%val(i)%ptr(node))
+                      F1%val(node)= F1%val(node)+abs(BFUNC(node,i)*relativevelocity%val(i,node))
                    end do
                 end do
 
                 ewrite(3,*) "if option 1"
              endif
              if(spring) then
+                call allocate(newgridvelocity,3,gridvelocity%mesh,"NewGridVelocity")
+                call set_all(newgridvelocity, transpose(ugnew))
                 call compute_BVEC(velocity=newgridvelocity,BVEC=BVEC,Nnlist2=Nnlist2,alpha=alpha,weights=Fspringweight)
+                call deallocate(newgridvelocity)
                 ewrite(3,*) "if spring",spring
              endif
              !if(spring) call compute_BVEC(velocity=newgridvelocity,BVEC=BVEC,Nnlist2=Nnlist2,alpha=alpha,weights=Fspringweight)
@@ -736,10 +741,10 @@ contains
                    sp=0.0
                    !do i=1,3
                    !   BNEW(NODE,i)=BNEW(NODE,i)-FeweightScal*node_val(DFe(i),node)
-                   !   sp=sp+gradfe%val(i)%ptr(node)*positions%val(i)%ptr(node)
+                   !   sp=sp+gradfe%val(i,node)*positions%val(i,node)
                    !end do
 
-                   !BNEW(NODE,3)=BNEW(NODE,3)-FeweightScal*gradfe%val(3)%ptr(node)
+                   !BNEW(NODE,3)=BNEW(NODE,3)-FeweightScal*gradfe%val(3,node)
 
                    !  end do
                 endif
@@ -766,8 +771,8 @@ contains
     endif
 
     call zero(gridvelocity)
-    ewrite(3,*) "Setting the grid velocity ",gridvelocity%dim, newgridvelocity%dim
-    call set(gridvelocity,newgridvelocity)
+    ewrite(3,*) "Setting the grid velocity ",gridvelocity%dim
+    call set_all(gridvelocity, transpose(ugnew))
     ewrite(3,*) "Done!" 
 
     if (.not.iterating) then
@@ -887,7 +892,6 @@ contains
        call deallocate(linear_velocity)
     end if
     call set_vector_field_in_state(state,"IteratedGridVelocity","IteratedGridVelocity")
-    call deallocate(newgridvelocity)
 
     MeshCount=MeshCount+1
     ewrite(3,*) "end subroutine", MeshCount
@@ -933,7 +937,7 @@ contains
        do i=1,velocity%dim
           matrixAblock=block(matrixA,i,1)
           !   field1=extract_scalar_field_from_vector_field(velocity,i)
-          temp1=velocity%val(i)%ptr
+          temp1=velocity%val(i,:)
           call mult(Btemp,matrixAblock,temp1)
           call mult_T(Btemp2,matrixAblock,Btemp)
 
@@ -1084,15 +1088,15 @@ contains
           if ((X(i).LT.(MinX(i)+epsilon)).or.(X(i).GT.(MaxX(i)-epsilon))) then
              NewX(i)=X(i)
              Speed(i)=0.0
-             MeshVelocity%val(i)%ptr(inod)=Speed(i)
+             MeshVelocity%val(i,inod)=Speed(i)
           endif
           if ((NewX(i).LT.MaxX(i)).and.(NewX(i).GT.MinX(i))) then
-             positions%val(i)%ptr(inod)=NewX(i)
-             MeshVelocity%val(i)%ptr(inod)=(NewX(i)-X(i))/DThalf
+             positions%val(i,inod)=NewX(i)
+             MeshVelocity%val(i,inod)=(NewX(i)-X(i))/DThalf
           else
              NewX(i)=X(i)
              Speed(i)=0.0
-             MeshVelocity%val(i)%ptr(inod)=Speed(i)
+             MeshVelocity%val(i,inod)=Speed(i)
           endif
           !  endif
        end do

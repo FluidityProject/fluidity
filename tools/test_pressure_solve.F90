@@ -104,8 +104,8 @@
        call allocate(exact,psi%mesh,name='Exact')
        call set_from_python_function(exact, trim(func), positions, 0.0)
        
-       positions%val(1)%ptr = positions%val(1)%ptr/eps0
-       positions%val(2)%ptr = positions%val(2)%ptr/eps0
+       positions%val(1,:) = positions%val(1,:)/eps0
+       positions%val(2,:) = positions%val(2,:)/eps0
        
        call insert(state,exact,'Exact')
        

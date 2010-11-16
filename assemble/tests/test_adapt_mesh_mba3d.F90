@@ -69,7 +69,7 @@ subroutine test_adapt_mesh_mba3d
   call allocate(velocity, mesh_dim(mesh), mesh, "Velocity")
   
   do i = 1, node_count(mesh)
-    call set(pressure, i, input_mesh_field%val(1)%ptr(i) ** 2.0)
+    call set(pressure, i, input_mesh_field%val(1,i) ** 2.0)
     call set(velocity, i, node_val(input_mesh_field, i))
   end do
   

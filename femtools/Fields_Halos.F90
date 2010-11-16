@@ -114,7 +114,7 @@ contains
     allocate( aliased_positions(1:model%dim, mapped_node_count), &
       physical_positions(1:model%dim, mapped_node_count ) )
     do j=1, model%dim
-       new_positions%val(j)%ptr(1:node_count(model))=model%val(j)%ptr
+       new_positions%val(j,1:node_count(model))=model%val(j,:)
     end do
     
     ! copy aliased positions into an array
@@ -132,7 +132,7 @@ contains
     do i=1, mapped_node_count
       call fetch_pair(aliased_to_new_node_number, i, aliased_node, physical_node)
       do j=1, model%dim
-         new_positions%val(j)%ptr(physical_node)=physical_positions(j,i)
+         new_positions%val(j,physical_node)=physical_positions(j,i)
       end do
     end do
       

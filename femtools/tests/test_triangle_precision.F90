@@ -71,32 +71,32 @@ subroutine test_triangle_precision
   ! Clean existing output
   call write_triangle_files(filename, written_mesh_field)
   read_mesh_field = read_triangle_files(filename, quad_degree = 1)
-  call report_test("[Clean]", abs(read_mesh_field%val(1)%ptr(1)) > 0.0, .false., "[Failed to clean output]")
+  call report_test("[Clean]", abs(read_mesh_field%val(1,1)) > 0.0, .false., "[Failed to clean output]")
   call deallocate(read_mesh_field)
   
   call set(written_mesh_field, 1, real((/1.0_S * tiny(0.0_S), 0.0_S/)))
   call write_triangle_files(filename, written_mesh_field)
   read_mesh_field = read_triangle_files(filename, quad_degree = 1)
-  call report_test("[tiny, real_4 precision]", read_mesh_field%val(1)%ptr(1) < tiny(0.0_S), .false., "Insufficient precision")
+  call report_test("[tiny, real_4 precision]", read_mesh_field%val(1,1) < tiny(0.0_S), .false., "Insufficient precision")
   call deallocate(read_mesh_field)
     
   call set(written_mesh_field, 1, real((/1.0_S + epsilon(1.0_S), 0.0_S/)))
   call write_triangle_files(filename, written_mesh_field)
   read_mesh_field = read_triangle_files(filename, quad_degree = 1)
-  call report_test("[epsilon, real_4 precision]", read_mesh_field%val(1)%ptr(1) < 1.0_S + epsilon(1.0_S), .false., "Insufficient precision")
+  call report_test("[epsilon, real_4 precision]", read_mesh_field%val(1,1) < 1.0_S + epsilon(1.0_S), .false., "Insufficient precision")
   call deallocate(read_mesh_field)
   
 #ifdef DOUBLEP
   call set(written_mesh_field, 1, (/1.0_D * tiny(0.0_D), 0.0_D/))
   call write_triangle_files(filename, written_mesh_field)
   read_mesh_field = read_triangle_files(filename, quad_degree = 1)
-  call report_test("[tiny, real_8 precision]", read_mesh_field%val(1)%ptr(1) < tiny(0.0_D), .false., "Insufficient precision")
+  call report_test("[tiny, real_8 precision]", read_mesh_field%val(1,1) < tiny(0.0_D), .false., "Insufficient precision")
   call deallocate(read_mesh_field)
     
   call set(written_mesh_field, 1, (/1.0_D + epsilon(1.0_D), 0.0_D/))
   call write_triangle_files(filename, written_mesh_field)
   read_mesh_field = read_triangle_files(filename, quad_degree = 1)
-  call report_test("[epsilon, real_8 precision]", read_mesh_field%val(1)%ptr(1) < 1.0_S + epsilon(1.0_D), .false., "Insufficient precision")
+  call report_test("[epsilon, real_8 precision]", read_mesh_field%val(1,1) < 1.0_S + epsilon(1.0_D), .false., "Insufficient precision")
   call deallocate(read_mesh_field)
 #endif
 

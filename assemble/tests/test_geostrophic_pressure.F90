@@ -95,7 +95,7 @@ subroutine test_geostrophic_pressure
   
   fail = .false.
   gp_zero_point = minval(gp%val)
-  z_zero_point = minval(positions_remap%val(3)%ptr)
+  z_zero_point = minval(positions_remap%val(3,:))
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, pos(3) - z_zero_point, tol = 1.0e-10)) then
@@ -121,7 +121,7 @@ subroutine test_geostrophic_pressure
     
   fail = .false.
   gp_zero_point = minval(gp%val)
-  y_zero_point = minval(positions_remap%val(2)%ptr)
+  y_zero_point = minval(positions_remap%val(2,:))
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, pos(2) - y_zero_point, tol = 1.0e-10)) then
@@ -138,7 +138,7 @@ subroutine test_geostrophic_pressure
   
   fail = .false.
   gp_zero_point = minval(gp%val)
-  y_zero_point = minval(positions_remap%val(2)%ptr)
+  y_zero_point = minval(positions_remap%val(2,:))
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, (pos(2) - y_zero_point) + (pos(3) - z_zero_point), tol = 1.0e-10)) then

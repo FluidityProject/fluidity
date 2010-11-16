@@ -101,7 +101,7 @@ subroutine differentiate_vtu(input_filename, input_filename_len, output_filename
         
         do i = 1, nfields
           do j = 1, dim
-            field_grads(i)%val(j)%ptr = field_grads(i)%val(j)%ptr / masslump%val
+            field_grads(i)%val(j,:) = field_grads(i)%val(j,:) / masslump%val
           end do
         end do
         call deallocate(masslump)

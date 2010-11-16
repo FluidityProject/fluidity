@@ -20,8 +20,8 @@ void init_vars(void);
 void python_add_statec_(char *name,int *len); // Add a new state object to the Python environment, if a state with the same name already exists it will overwrite that state; also the last added state will be accessible as 'state', all others in the 'states' dictionary
 
 void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*);  // Add a new scalar field to the state with name *state
-void python_add_vector_(int *s, int *num_dim, 
-  double x[], double y[], double z[],
+void python_add_vector_(int *num_dim, int *s, 
+  double x[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new vector field to the state with name *state
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new tensor field to the state with name *state

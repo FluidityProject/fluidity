@@ -88,9 +88,9 @@ contains
     NNodes=node_count(positions)
     NElements=surface_element_count(positions)
     SNLOC=face_loc(positions, 1)
-    X => positions%val(X_)%ptr
-    Y => positions%val(Y_)%ptr
-    Z => positions%val(Z_)%ptr
+    X => positions%val(X_,:)
+    Y => positions%val(Y_,:)
+    Z => positions%val(Z_,:)
     SurfaceIds => positions%mesh%faces%coplanar_ids
     ! get surface element (global) node list
     allocate(ENList(1:NElements*SNLOC))

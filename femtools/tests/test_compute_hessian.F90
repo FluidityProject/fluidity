@@ -21,9 +21,9 @@ subroutine test_compute_hessian
   call allocate(pressure_field, mesh, "Pressure")
 
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     pressure_field%val(i) = 0.5 * x * x + 0.5 * y * y
     !pressure_field%val(i) = x
   end do

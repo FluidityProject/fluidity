@@ -241,7 +241,7 @@ implicit none
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     do i=1,field%dim
-       field%val(i)%ptr=0.0
+       field%val(i,:)=0.0
     end do
 
   end subroutine zero_vector
@@ -252,7 +252,7 @@ implicit none
     integer, intent(in) :: dim
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val(dim)%ptr=0.0
+    field%val(dim,:)=0.0
 
   end subroutine zero_vector_dim
 
@@ -297,7 +297,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
-      field%val(i)%ptr(node_numbers) = 0.0
+      field%val(i,node_numbers) = 0.0
     end do
     
   end subroutine zero_vector_field_nodes
@@ -367,7 +367,7 @@ implicit none
     
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     do i = 1, field%dim
-      field%val(i)%ptr=field%val(i)%ptr+val(i)
+      field%val(i,:)=field%val(i,:)+val(i)
     end do
 
   end subroutine vector_field_addto_vector
@@ -384,7 +384,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do j=1,field%dim
-       field%val(j)%ptr(node_number)=field%val(j)%ptr(node_number)+val(j)
+       field%val(j,node_number)=field%val(j,node_number)+val(j)
     end do
 
   end subroutine vector_field_addto
@@ -398,7 +398,7 @@ implicit none
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
     
-    field%val(dim)%ptr(node_number)=field%val(dim)%ptr(node_number)+val
+    field%val(dim,node_number)=field%val(dim,node_number)+val
 
   end subroutine vector_field_addto_dim
   
@@ -416,8 +416,8 @@ implicit none
     
     assert(field%field_type==FIELD_TYPE_NORMAL)
     do j=1,size(node_numbers)
-       field%val(dim)%ptr(node_numbers(j))&
-            =field%val(dim)%ptr(node_numbers(j))+val(j)
+       field%val(dim,node_numbers(j))&
+            =field%val(dim,node_numbers(j))+val(j)
     end do
 
   end subroutine vector_field_vaddto_dim
@@ -584,11 +584,11 @@ implicit none
     if (field1%field_type==field2%field_type) then
        if (present(scale)) then
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale*lfield2%val(i)%ptr
+             field1%val(i,:)=field1%val(i,:)+scale*lfield2%val(i,:)
           end do
        else
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+lfield2%val(i)%ptr
+             field1%val(i,:)=field1%val(i,:)+lfield2%val(i,:)
           end do
        end if
     else if (field1%field_type==FIELD_TYPE_NORMAL) then
@@ -596,11 +596,11 @@ implicit none
        assert(field2%field_type==FIELD_TYPE_CONSTANT)
        if (present(scale)) then
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale*field2%val(i)%ptr(1)
+             field1%val(i,:)=field1%val(i,:)+scale*field2%val(i,1)
           end do
        else
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+field2%val(i)%ptr(1)
+             field1%val(i,:)=field1%val(i,:)+field2%val(i,1)
           end do
        end if
     else
@@ -656,7 +656,7 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale%val*lfield2%val(i)%ptr
+             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
           end do
 
        else
@@ -672,28 +672,28 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale%val(1)*lfield2%val(i)%ptr(1)
+             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
 
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale%val(1)*lfield2%val(i)%ptr
+             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,:)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale%val*lfield2%val(i)%ptr(1)
+             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i)%ptr=field1%val(i)%ptr+scale%val*lfield2%val(i)%ptr
+             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
           end do
 
        else
@@ -733,17 +733,17 @@ implicit none
     
     if (field1%field_type==field2%field_type) then
        if (present(scale)) then
-          field1%val(dim)%ptr=field1%val(dim)%ptr+scale*lfield2%val
+          field1%val(dim,:)=field1%val(dim,:)+scale*lfield2%val
        else
-          field1%val(dim)%ptr=field1%val(dim)%ptr+lfield2%val
+          field1%val(dim,:)=field1%val(dim,:)+lfield2%val
        end if
     else if (field1%field_type==FIELD_TYPE_NORMAL) then
 
        assert(field2%field_type==FIELD_TYPE_CONSTANT)
        if (present(scale)) then
-          field1%val(dim)%ptr=field1%val(dim)%ptr+scale*field2%val(1)
+          field1%val(dim,:)=field1%val(dim,:)+scale*field2%val(1)
        else
-          field1%val(dim)%ptr=field1%val(dim)%ptr+field2%val(1)
+          field1%val(dim,:)=field1%val(dim,:)+field2%val(1)
        end if
     else
       
@@ -903,9 +903,9 @@ implicit none
     
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
-       out_field%val=in_field%val(dim)%ptr
+       out_field%val=in_field%val(dim,:)
     case (FIELD_TYPE_CONSTANT)
-       out_field%val=in_field%val(dim)%ptr(1)
+       out_field%val=in_field%val(dim,1)
     case default
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in set()")
@@ -974,7 +974,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
-      field%val(i)%ptr(node) = val(i)
+      field%val(i,node) = val(i)
     end do
     
   end subroutine set_vector_field_node
@@ -1021,7 +1021,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
-    field%val(dim)%ptr(node) = val
+    field%val(dim,node) = val
     
   end subroutine set_vector_field_node_dim
     
@@ -1037,7 +1037,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
-      field%val(i)%ptr(node_numbers) = val(i, :)
+      field%val(i,node_numbers) = val(i, :)
     end do
     
   end subroutine set_vector_field_nodes
@@ -1054,7 +1054,7 @@ implicit none
     assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
-    field%val(dim)%ptr(node_numbers) = val
+    field%val(dim,node_numbers) = val
     
   end subroutine set_vector_field_nodes_dim
     
@@ -1068,7 +1068,7 @@ implicit none
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
     do i=1,field%dim
-      field%val(i)%ptr = val(i)
+      field%val(i,:) = val(i)
     end do
 
   end subroutine set_vector_field
@@ -1083,7 +1083,7 @@ implicit none
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(dim>=1 .and. dim<=field%dim)
     
-    field%val(dim)%ptr = val
+    field%val(dim,:) = val
 
   end subroutine set_vector_field_dim
 
@@ -1096,7 +1096,7 @@ implicit none
     assert(field%field_type == FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
-      field%val(i)%ptr = val(i, :)
+      field%val(i,:) = val(i, :)
     end do
 
   end subroutine set_vector_field_arr
@@ -1110,7 +1110,7 @@ implicit none
     assert(field%field_type == FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
     
-    field%val(dim)%ptr = val
+    field%val(dim,:) = val
 
   end subroutine set_vector_field_arr_dim
 
@@ -1130,11 +1130,11 @@ implicit none
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
        do dim=1,in_field%dim
-          out_field%val(dim)%ptr=in_field%val(dim)%ptr
+          out_field%val(dim,:)=in_field%val(dim,:)
        end do
     case (FIELD_TYPE_CONSTANT)
        do dim=1,in_field%dim
-          out_field%val(dim)%ptr=in_field%val(dim)%ptr(1)
+          out_field%val(dim,:)=in_field%val(dim,1)
        end do
     case default
        ! someone could implement in_field type python
@@ -1169,11 +1169,11 @@ implicit none
     select case (in_field_new%field_type)
     case (FIELD_TYPE_NORMAL)
       do dim = 1, out_field%dim
-        out_field%val(dim)%ptr=theta*in_field_new%val(dim)%ptr + (1.-theta)*in_field_old%val(dim)%ptr
+        out_field%val(dim,:)=theta*in_field_new%val(dim,:) + (1.-theta)*in_field_old%val(dim,:)
       end do
     case (FIELD_TYPE_CONSTANT)
       do dim = 1, out_field%dim
-        out_field%val(dim)%ptr=theta*in_field_new%val(dim)%ptr(1) + (1.-theta)*in_field_old%val(dim)%ptr(1)
+        out_field%val(dim,:)=theta*in_field_new%val(dim,1) + (1.-theta)*in_field_old%val(dim,1)
       end do
     case default
        ! someone could implement in_field type python
@@ -1196,9 +1196,9 @@ implicit none
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
-       out_field%val(dim)%ptr=in_field%val
+       out_field%val(dim,:)=in_field%val
     case (FIELD_TYPE_CONSTANT)
-       out_field%val(dim)%ptr=in_field%val(1)
+       out_field%val(dim,:)=in_field%val(1)
     case default
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in set()")
@@ -1220,9 +1220,9 @@ implicit none
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
-       out_field%val(dim)%ptr=in_field%val(dim)%ptr
+       out_field%val(dim,:)=in_field%val(dim,:)
     case (FIELD_TYPE_CONSTANT)
-       out_field%val(dim)%ptr=in_field%val(dim)%ptr(1)
+       out_field%val(dim,:)=in_field%val(dim,1)
     case default
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in set()")
@@ -1356,11 +1356,11 @@ implicit none
     select case (vector%field_type)
     case (FIELD_TYPE_NORMAL)
        do i = 1, tensor%dim
-          tensor%val(i, i, :) = vector%val(i)%ptr*lscale
+          tensor%val(i, i, :) = vector%val(i,:)*lscale
        end do
     case (FIELD_TYPE_CONSTANT)
        do i = 1, tensor%dim
-          tensor%val(i, i, :) = vector%val(i)%ptr(1)*lscale
+          tensor%val(i, i, :) = vector%val(i,1)*lscale
        end do
     case default
        ! someone could implement scalar field type python
@@ -1475,13 +1475,13 @@ implicit none
     y=>zero
     z=>zero
     if (field%mesh==position%mesh) then
-       x=>position%val(1)%ptr
+       x=>position%val(1,:)
        
        if (dim>1) then
-          y=>position%val(2)%ptr
+          y=>position%val(2,:)
 
           if (dim>2) then
-             z=>position%val(3)%ptr
+             z=>position%val(3,:)
           end if
        end if
     else
@@ -1498,13 +1498,13 @@ implicit none
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
-       x=>lposition%val(1)%ptr
+       x=>lposition%val(1,:)
        
        if (dim>1) then
-          y=>lposition%val(2)%ptr
+          y=>lposition%val(2,:)
 
           if (dim>2) then
-             z=>lposition%val(3)%ptr
+             z=>lposition%val(3,:)
           end if
        end if
     end if
@@ -1556,13 +1556,13 @@ implicit none
     y=>zero
     z=>zero
     if (field%mesh==position%mesh) then
-       x=>position%val(1)%ptr
+       x=>position%val(1,:)
        
        if (dim>1) then
-          y=>position%val(2)%ptr
+          y=>position%val(2,:)
 
           if (dim>2) then
-             z=>position%val(3)%ptr
+             z=>position%val(3,:)
           end if
        end if
     else
@@ -1579,13 +1579,13 @@ implicit none
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
-       x=>lposition%val(1)%ptr
+       x=>lposition%val(1,:)
        
        if (dim>1) then
-          y=>lposition%val(2)%ptr
+          y=>lposition%val(2,:)
 
           if (dim>2) then
-             z=>lposition%val(3)%ptr
+             z=>lposition%val(3,:)
           end if
        end if
     end if
@@ -1594,12 +1594,12 @@ implicit none
     fy=>zero
     fz=>zero
 
-    fx=>field%val(1)%ptr
+    fx=>field%val(1,:)
     if (dim>1) then
-       fy=>field%val(2)%ptr
+       fy=>field%val(2,:)
        
        if (dim>2) then
-          fz=>field%val(3)%ptr
+          fz=>field%val(3,:)
        end if
     end if
     
@@ -1646,13 +1646,13 @@ implicit none
     y=>zero
     z=>zero
     if (field%mesh==position%mesh) then
-       x=>position%val(1)%ptr
+       x=>position%val(1,:)
        
        if (dim>1) then
-          y=>position%val(2)%ptr
+          y=>position%val(2,:)
 
           if (dim>2) then
-             z=>position%val(3)%ptr
+             z=>position%val(3,:)
           end if
        end if
     else
@@ -1669,13 +1669,13 @@ implicit none
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
-       x=>lposition%val(1)%ptr
+       x=>lposition%val(1,:)
        
        if (dim>1) then
-          y=>lposition%val(2)%ptr
+          y=>lposition%val(2,:)
 
           if (dim>2) then
-             z=>lposition%val(3)%ptr
+             z=>lposition%val(3,:)
           end if
        end if
     end if
@@ -2019,15 +2019,15 @@ implicit none
           to_ele=>ele_nodes(to_field, ele)
           
           do i=1,from_field%dim
-              to_field%val(i)%ptr(to_ele)= &
-                  matmul(locweight,from_field%val(i)%ptr(from_ele))          
+              to_field%val(i,to_ele)= &
+                  matmul(locweight,from_field%val(i,from_ele))          
           end do
           
         end do
         
       case(FIELD_TYPE_CONSTANT)
         do i=1,from_field%dim
-          to_field%val(i)%ptr = from_field%val(i)%ptr(1)
+          to_field%val(i,:) = from_field%val(i,1)
         end do
       end select
   
@@ -2035,7 +2035,7 @@ implicit none
     
     ! Zero any left-over dimensions
     do ele=from_field%dim+1,to_field%dim
-      to_field%val(i)%ptr=0.0
+      to_field%val(i,:)=0.0
     end do
     
   end subroutine remap_vector_field
@@ -2062,7 +2062,7 @@ implicit none
     select case(from_field%field_type)
     case(FIELD_TYPE_CONSTANT)
       do i=1,from_field%dim
-        output(:, i, :) = from_field%val(i)%ptr(1)
+        output(:, i, :) = from_field%val(i,1)
       end do
       return
     end select
@@ -2272,20 +2272,20 @@ implicit none
          from_val = face_val(from_field, face)
 
          do i=1, to_field%dim
-           to_field%val(i)%ptr(to_nodes)=matmul(locweight,from_val(i, :))
+           to_field%val(i,to_nodes)=matmul(locweight,from_val(i, :))
          end do
          
       end do
       
     case(FIELD_TYPE_CONSTANT)
       do i=1, from_field%dim
-        to_field%val(i)%ptr = from_field%val(i)%ptr(1)
+        to_field%val(i,:) = from_field%val(i,1)
       end do
     end select
 
     ! Zero any left-over dimensions
     do ele=from_field%dim+1, to_field%dim
-       to_field%val(i)%ptr=0.0
+       to_field%val(i,:)=0.0
     end do
 
   end subroutine remap_vector_field_to_surface
@@ -2352,7 +2352,7 @@ implicit none
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
     do i=1,field%dim
-      field%val(i)%ptr = field%val(i)%ptr * factor
+      field%val(i,:) = field%val(i,:) * factor
     end do
       
   end subroutine vector_scale
@@ -2411,11 +2411,11 @@ implicit none
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
-          field%val(i)%ptr = field%val(i)%ptr * sfield%val
+          field%val(i,:) = field%val(i,:) * sfield%val
        end do
     case (FIELD_TYPE_CONSTANT)
        do i=1,field%dim
-          field%val(i)%ptr = field%val(i)%ptr * sfield%val(1)
+          field%val(i,:) = field%val(i,:) * sfield%val(1)
        end do
     case default
        ! someone could implement in_field type python
@@ -2473,11 +2473,11 @@ implicit none
     select case (vfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
-          field%val(i)%ptr = field%val(i)%ptr * vfield%val(i)%ptr
+          field%val(i,:) = field%val(i,:) * vfield%val(i,:)
        end do
     case (FIELD_TYPE_CONSTANT)
        do i=1,field%dim
-          field%val(i)%ptr = field%val(i)%ptr * vfield%val(i)%ptr(1)
+          field%val(i,:) = field%val(i,:) * vfield%val(i,1)
        end do
     case default
        ! someone could implement in_field type python
@@ -2547,12 +2547,12 @@ implicit none
     case(FIELD_TYPE_NORMAL)
       do i = 1, field%dim
         do j = 1, node_count(field)
-          field%val(i)%ptr(j) = min(max(field%val(i)%ptr(j), lower_bound), upper_bound)
+          field%val(i,j) = min(max(field%val(i,j), lower_bound), upper_bound)
         end do
       end do
     case(FIELD_TYPE_CONSTANT)
       do i = 1, field%dim
-        field%val(i)%ptr(1) = min(max(field%val(i)%ptr(1), lower_bound), upper_bound)
+        field%val(i,1) = min(max(field%val(i,1), lower_bound), upper_bound)
       end do
     case default
       FLAbort("Illegal field type in bound()")
@@ -2691,17 +2691,17 @@ implicit none
     do i = 1, out_field%dim
       if (in_field%field_type==out_field%field_type) then
         if(present(tolerance)) then
-          do j = 1, size(out_field%val(i)%ptr)
-            out_field%val(i)%ptr(j) = 1/sign(max(tolerance, abs(in_field%val(i)%ptr(j))), in_field%val(i)%ptr(j))
+          do j = 1, size(out_field%val(i,:))
+            out_field%val(i,j) = 1/sign(max(tolerance, abs(in_field%val(i,j))), in_field%val(i,j))
           end do
         else
-          out_field%val(i)%ptr=1/in_field%val(i)%ptr
+          out_field%val(i,:)=1/in_field%val(i,:)
         end if
       else if (in_field%field_type==FIELD_TYPE_CONSTANT) then
         if(present(tolerance)) then
-          out_field%val(i)%ptr=1/sign(max(tolerance, abs(in_field%val(i)%ptr(1))), in_field%val(i)%ptr(1))
+          out_field%val(i,:)=1/sign(max(tolerance, abs(in_field%val(i,1))), in_field%val(i,1))
         else
-          out_field%val(i)%ptr=1/in_field%val(i)%ptr(1)
+          out_field%val(i,:)=1/in_field%val(i,1)
         end if
       else
         FLAbort("Calling invert_vector_field with wrong field type")
@@ -2756,13 +2756,13 @@ implicit none
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           do i=1, a%dim
-            a%val(i)%ptr=tmp_b%val( perm1(i) )%ptr * tmp_c%val( perm2(i) )%ptr- &
-               tmp_b%val( perm2(i) )%ptr * tmp_c%val( perm1(i) )%ptr
+            a%val(i,:)=tmp_b%val( perm1(i),: ) * tmp_c%val( perm2(i),: )- &
+               tmp_b%val( perm2(i),: ) * tmp_c%val( perm1(i),: )
           end do
        case (FIELD_TYPE_CONSTANT)
           do i=1, a%dim
-            a%val(i)%ptr=tmp_b%val( perm1(i) )%ptr * tmp_c%val( perm2(i) )%ptr(1)- &
-               tmp_b%val( perm2(i) )%ptr * tmp_c%val( perm1(i) )%ptr(1)
+            a%val(i,:)=tmp_b%val( perm1(i),: ) * tmp_c%val( perm2(i),1 )- &
+               tmp_b%val( perm2(i),: ) * tmp_c%val( perm1(i),1 )
           end do
        case default
           ! someone could implement in_field type python
@@ -2778,13 +2778,13 @@ implicit none
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           do i=1, a%dim
-            a%val(i)%ptr=b%val( perm1(i) )%ptr(1) * tmp_c%val( perm2(i) )%ptr- &
-               b%val( perm2(i) )%ptr(1) * tmp_c%val( perm1(i) )%ptr
+            a%val(i,:)=b%val( perm1(i),1 ) * tmp_c%val( perm2(i),: )- &
+               b%val( perm2(i),1 ) * tmp_c%val( perm1(i),: )
           end do
        case (FIELD_TYPE_CONSTANT)
           do i=1, a%dim
-            a%val(i)%ptr=b%val( perm1(i) )%ptr(1) * tmp_c%val( perm2(i) )%ptr(1)- &
-               b%val( perm2(i) )%ptr(1) * tmp_c%val( perm1(i) )%ptr(1)
+            a%val(i,:)=b%val( perm1(i),1 ) * tmp_c%val( perm2(i),1 )- &
+               b%val( perm2(i),1 ) * tmp_c%val( perm1(i),1 )
           end do
        case default
           ! someone could implement b type python
@@ -2839,14 +2839,14 @@ implicit none
        
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
-          a%val=tmp_b%val(1)%ptr*tmp_c%val(1)%ptr
+          a%val=tmp_b%val(1,:)*tmp_c%val(1,:)
           do i=2, c%dim
-             a%val=a%val+tmp_b%val(i)%ptr*tmp_c%val(i)%ptr
+             a%val=a%val+tmp_b%val(i,:)*tmp_c%val(i,:)
           end do
        case (FIELD_TYPE_CONSTANT)
-          a%val=tmp_b%val(1)%ptr*c%val(1)%ptr(1)
+          a%val=tmp_b%val(1,:)*c%val(1,1)
           do i=2, c%dim
-             a%val=a%val+tmp_b%val(i)%ptr*c%val(i)%ptr(1)
+             a%val=a%val+tmp_b%val(i,:)*c%val(i,1)
           end do
        case default
           ! someone could implement in_field type python
@@ -2857,14 +2857,14 @@ implicit none
       
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
-          a%val=b%val(1)%ptr(1)*tmp_c%val(1)%ptr
+          a%val=b%val(1,1)*tmp_c%val(1,:)
           do i=2, c%dim
-             a%val=a%val+b%val(i)%ptr(1)*tmp_c%val(i)%ptr
+             a%val=a%val+b%val(i,1)*tmp_c%val(i,:)
           end do
        case (FIELD_TYPE_CONSTANT)
-          a%val=b%val(1)%ptr(1)*c%val(1)%ptr(1)
+          a%val=b%val(1,1)*c%val(1,1)
           do i=2, c%dim
-             a%val=a%val+b%val(i)%ptr(1)*c%val(i)%ptr(1)
+             a%val=a%val+b%val(i,1)*c%val(i,1)
           end do
        case default
           ! someone could implement in_field type python
@@ -2899,14 +2899,14 @@ implicit none
     
     select case (c%field_type)
     case (FIELD_TYPE_NORMAL)
-       a%val=b(1)*c%val(1)%ptr
+       a%val=b(1)*c%val(1,:)
        do i=2, c%dim
-         a%val=a%val+b(i)*c%val(i)%ptr
+         a%val=a%val+b(i)*c%val(i,:)
        end do
     case (FIELD_TYPE_CONSTANT)
-       a%val=b(1)*c%val(1)%ptr(1)
+       a%val=b(1)*c%val(1,1)
        do i=2, c%dim
-         a%val=a%val+b(i)*c%val(i)%ptr(1)
+         a%val=a%val+b(i)*c%val(i,1)
        end do
     case default
        ! someone could implement in_field type python
@@ -2930,14 +2930,14 @@ implicit none
     
     select case (b%field_type)
     case (FIELD_TYPE_NORMAL)
-       a%val=c(1)*b%val(1)%ptr
+       a%val=c(1)*b%val(1,:)
        do i=2, b%dim
-         a%val=a%val+c(i)*b%val(i)%ptr
+         a%val=a%val+c(i)*b%val(i,:)
        end do
     case (FIELD_TYPE_CONSTANT)
-       a%val=c(1)*b%val(1)%ptr(1)
+       a%val=c(1)*b%val(1,1)
        do i=2, b%dim
-         a%val=a%val+c(i)*b%val(i)%ptr(1)
+         a%val=a%val+c(i)*b%val(i,1)
        end do
     case default
        ! someone could implement in_field type python
@@ -3079,9 +3079,8 @@ implicit none
     integer :: i
 
     out_field = field
-    do i=1,out_field%dim
-      nullify(out_field%val(i)%ptr)
-    end do
+    nullify(out_field%val)
+    
   end function clone_header_vector
 
   function clone_header_tensor(field) result(out_field)

@@ -486,11 +486,11 @@ contains
 #ifdef DOUBLEP
          call VecSetValues(vec, insert_rows, &
             petsc_numbering%gnn2unn( 1:insert_rows, b ), &
-            fields(i)%val(j)%ptr( 1:insert_rows ), insert_action, ierr)
+            fields(i)%val(j, 1:insert_rows ), insert_action, ierr)
 #else
          call VecSetValues(vec, insert_rows, &
             petsc_numbering%gnn2unn( 1:insert_rows, b ), &
-            real(fields(i)%val(j)%ptr( 1:insert_rows ), kind = PetscScalar_kind), insert_action, ierr)
+            real(fields(i)%val(j, 1:insert_rows ), kind = PetscScalar_kind), insert_action, ierr)
 #endif
         b=b+1
         
@@ -808,7 +808,7 @@ contains
       do j=1, fields(i)%dim
          call VecGetValues(vec, nnodp, &
            petsc_numbering%gnn2unn( 1:nnodp, b ), &
-           fields(i)%val(j)%ptr( 1:nnodp ), ierr)
+           fields(i)%val(j, 1:nnodp ), ierr)
          b=b+1
       end do
       call profiler_toc(fields(i), "petsc2field")
@@ -824,7 +824,7 @@ contains
          call VecGetValues(vec, nnodp, &
            petsc_numbering%gnn2unn( 1:nnodp, b ), &
            vals, ierr)
-         fields(i)%val(j)%ptr( 1:nnodp ) = vals
+         fields(i)%val(j, 1:nnodp ) = vals
          b=b+1
       end do
       call profiler_toc(fields(i), "petsc2field")

@@ -140,7 +140,7 @@ contains
     assert(velocity%dim == mesh_dim(pv))
     assert(ele_count(velocity) == ele_count(pv))
     do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i)%ptr)
+      ewrite_minmax(velocity%val(i,:))
     end do
     
     ! Extract perturbation density
@@ -247,7 +247,7 @@ contains
     assert(velocity%dim == mesh_dim(rel_pv))
     assert(ele_count(velocity) == ele_count(rel_pv))
     do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i)%ptr)
+      ewrite_minmax(velocity%val(i,:))
     end do
     
     ! Extract perturbation density

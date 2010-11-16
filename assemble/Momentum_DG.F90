@@ -318,7 +318,7 @@ contains
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Source)
       do dim = 1, source%dim
-        ewrite_minmax(source%val(dim)%ptr(:))
+        ewrite_minmax(source%val(dim,:))
       end do
     end if
 
@@ -331,7 +331,7 @@ contains
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Abs)
        do dim = 1, abs%dim
-         ewrite_minmax(Abs%val(dim)%ptr(:))
+         ewrite_minmax(Abs%val(dim,:))
        end do
     end if
 
@@ -664,7 +664,7 @@ contains
     if (present(inverse_masslump) .and. lump_mass) then
       call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
       do dim = 1, rhs%dim
-         ewrite_minmax(inverse_masslump%val(dim)%ptr)
+         ewrite_minmax(inverse_masslump%val(dim,:))
       end do
     end if
     if (present(inverse_mass) .and. .not. lump_mass) then
@@ -674,7 +674,7 @@ contains
       end do
     end if
     do dim = 1, rhs%dim
-      ewrite_minmax(rhs%val(dim)%ptr(:))
+      ewrite_minmax(rhs%val(dim,:))
     end do
 
     ! Drop the reference to the fields we may have made.
@@ -2853,7 +2853,7 @@ contains
     end do
 
     do d = 1, delta_u%dim
-      ewrite_minmax(delta_u%val(d)%ptr(:))
+      ewrite_minmax(delta_u%val(d,:))
     end do
 
     !update RHS of momentum equation
@@ -3115,7 +3115,7 @@ contains
 
     call halo_update(u)
     do dim = 1, u%dim
-      ewrite_minmax(u%val(dim)%ptr(:))
+      ewrite_minmax(u%val(dim,:))
     end do
 
     call deallocate(delta_U1)

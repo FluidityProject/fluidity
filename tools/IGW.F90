@@ -378,12 +378,12 @@ subroutine IGW
           max_its=1000, atol=1.0e-30, rtol=1.0e-14, &
           start_from_zero=.true.)
      tmpu = Ro*tmpu
-     call petsc_solve(u%val(1)%ptr,u_mass_static,tmpu, &
+     call petsc_solve(u%val(1,:),u_mass_static,tmpu, &
           option_path="/temporary/fix")
      ewrite(2,*) 'getting balanced v'
      call mult_T(tmpu,C1T_static,h%val)
      tmpu = -Ro*tmpu
-     call petsc_solve(u%val(2)%ptr,u_mass_static,tmpu, &
+     call petsc_solve(u%val(2,:),u_mass_static,tmpu, &
           option_path="/temporary/fix")
   else
      inquire(file=trim(u_input),exist=file_exists)  
@@ -549,9 +549,9 @@ subroutine IGW
      ewrite(2,*) 'computing div u'
      
      ctu%val = 0.0
-     call mult(tmph,C1T_static,u%val(1)%ptr)
+     call mult(tmph,C1T_static,u%val(1,:))
      ctu%val = ctu%val + tmph
-     call mult(tmph,C2T_static,u%val(2)%ptr)
+     call mult(tmph,C2T_static,u%val(2,:))
      ctu%val = ctu%val + tmph
 
      ewrite(2,*) 'max(abs(ctu))=',maxval(ctu%val), minval(ctu%val)
@@ -574,7 +574,7 @@ subroutine IGW
           startfromzero=.true., checkconvergence=.true., &
           iterations=number_of_iterations)
      !call mult(tmpu,u_inverse_mass_static,tmpu)
-     u%val(1)%ptr = u%val(1)%ptr - tmpu
+     u%val(1,:) = u%val(1,:) - tmpu
      ewrite(2,*) 'max u1 correction', maxval(abs(tmpu))
      call mult_T(tmpu,C2T_static,tmph)
      call petsc_solve(tmpu,u_mass_static,tmpu, &
@@ -582,14 +582,14 @@ subroutine IGW
           iterations=number_of_iterations)
      !call mult(tmpu,u_inverse_mass_static,tmpu)
      ewrite(2,*) 'max u2 correction', maxval(abs(tmpu))
-     u%val(2)%ptr = u%val(2)%ptr - tmpu
+     u%val(2,:) = u%val(2,:) - tmpu
 
      ewrite(2,*) 'computing div u'
      
      ctu%val = 0.0
-     call mult(tmph,C1T_static,u%val(1)%ptr)
+     call mult(tmph,C1T_static,u%val(1,:))
      ctu%val = ctu%val + tmph
-     call mult(tmph,C2T_static,u%val(2)%ptr)
+     call mult(tmph,C2T_static,u%val(2,:))
      ctu%val = ctu%val + tmph
 
      ewrite(2,*) 'max(abs(ctu))=',maxval(ctu%val), minval(ctu%val)
@@ -601,9 +601,9 @@ subroutine IGW
      ewrite(2,*) 'computing curl of u'
 
      ctu%val = 0.0
-     call mult(tmph,C2T_static,u%val(1)%ptr)
+     call mult(tmph,C2T_static,u%val(1,:))
      ctu%val = ctu%val - tmph
-     call mult(tmph,C1T_static,u%val(2)%ptr)
+     call mult(tmph,C1T_static,u%val(2,:))
      ctu%val = ctu%val + tmph
 
      ewrite(2,*) 'max(abs(ctu))=',maxval(ctu%val), minval(ctu%val)
@@ -621,14 +621,14 @@ subroutine IGW
      call petsc_solve(tmpu,u_mass_static,tmpu, &
           startfromzero=.true., checkconvergence=.true., &
           iterations=number_of_iterations)
-     ewrite(2,*) 'difference for u2', maxval(abs(tmpu-u%val(2)%ptr))
-     error_u%val(2)%ptr = tmpu
+     ewrite(2,*) 'difference for u2', maxval(abs(tmpu-u%val(2,:)))
+     error_u%val(2,:) = tmpu
      call mult_T(tmpu,C2T_static,tmph)
      call petsc_solve(tmpu,u_mass_static,tmpu, &
           startfromzero=.true., checkconvergence=.true., &
           iterations=number_of_iterations)
-     ewrite(2,*) 'difference for u1', maxval(abs(tmpu+u%val(1)%ptr))
-     error_u%val(1)%ptr = -tmpu
+     ewrite(2,*) 'difference for u1', maxval(abs(tmpu+u%val(1,:)))
+     error_u%val(1,:) = -tmpu
 
      call vtk_write_fields(trim('projection'), &
           index=0, position=positions, &
@@ -640,16 +640,16 @@ subroutine IGW
   end if
 
   ctu%val = 0.0
-  call mult(tmph,C1T_static,u%val(1)%ptr)
+  call mult(tmph,C1T_static,u%val(1,:))
   ctu%val = ctu%val + tmph
-  call mult(tmph,C2T_static,u%val(2)%ptr)
+  call mult(tmph,C2T_static,u%val(2,:))
   ctu%val = ctu%val + tmph
   
   if(steady_state) then
-     initial_u%val(1)%ptr = u%val(1)%ptr
-     initial_u%val(2)%ptr = u%val(2)%ptr
-     error_u%val(1)%ptr = 0.
-     error_u%val(2)%ptr = 0.
+     initial_u%val(1,:) = u%val(1,:)
+     initial_u%val(2,:) = u%val(2,:)
+     error_u%val(1,:) = 0.
+     error_u%val(2,:) = 0.
      call vtk_write_fields(trim(filename), &
           index=0, position=positions, &
           model=vtk_mesh, sfields=(/h,ctu/), &
@@ -673,7 +673,7 @@ subroutine IGW
      rhs = 0.
 
      !u mass parts
-     call mult(tmpu,u_mass_static,u%val(1)%ptr)
+     call mult(tmpu,u_mass_static,u%val(1,:))
      !d/dt
      rhs(1:node_count(u))=rhs(1:node_count(u)) + tmpu
      !coriolis
@@ -681,7 +681,7 @@ subroutine IGW
           rhs(1+node_count(u):2*node_count(u))&
           + 0.5*dt*tmpu*Fr*Fr/Ro
 
-     call mult(tmpu,u_mass_static,u%val(2)%ptr)
+     call mult(tmpu,u_mass_static,u%val(2,:))
      !d/dt
      rhs(1+node_count(u):2*node_count(u))= &
           rhs(1+node_count(u):2*node_count(u))&
@@ -699,11 +699,11 @@ subroutine IGW
              rhs(1+node_count(u):2*node_count(u)) - &
              0.5*dt*tmpu
         
-        call mult(tmph,C1T_static,u%val(1)%ptr)
+        call mult(tmph,C1T_static,u%val(1,:))
         rhs(2*node_count(u)+1:2*node_count(u)+node_count(h)) = &
              rhs(2*node_count(u)+1:2*node_count(u)+node_count(h)) &
              +0.5*dt*tmph
-        call mult(tmph,C2T_static,u%val(2)%ptr)
+        call mult(tmph,C2T_static,u%val(2,:))
         rhs(2*node_count(u)+1:2*node_count(u)+node_count(h)) = &
              rhs(2*node_count(u)+1:2*node_count(u)+node_count(h)) &
              +0.5*dt*tmph
@@ -731,9 +731,9 @@ subroutine IGW
         ewrite(1,*) 'dumping t = ',t
 
         ctu%val = 0.0
-        call mult(tmph,C1T_static,u%val(1)%ptr)
+        call mult(tmph,C1T_static,u%val(1,:))
         ctu%val = ctu%val + tmph
-        call mult(tmph,C2T_static,u%val(2)%ptr)
+        call mult(tmph,C2T_static,u%val(2,:))
         ctu%val = ctu%val + tmph
 
         !call petsc_solve(ctu%val,h_mass_static, ctu%val, &
@@ -741,8 +741,8 @@ subroutine IGW
         !     iterations=number_of_iterations)
         
         if (steady_state) then
-           error_u%val(1)%ptr = u%val(1)%ptr - initial_u%val(1)%ptr
-           error_u%val(2)%ptr = u%val(2)%ptr - initial_u%val(2)%ptr
+           error_u%val(1,:) = u%val(1,:) - initial_u%val(1,:)
+           error_u%val(2,:) = u%val(2,:) - initial_u%val(2,:)
            call vtk_write_fields(trim(filename), &
                 index=dump, position=positions, &
                 model=vtk_mesh, sfields=(/h,ctu/), &

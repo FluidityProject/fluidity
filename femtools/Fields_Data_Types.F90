@@ -160,8 +160,8 @@ module fields_data_types
   end type scalar_field
 
   type vector_field
-     !!< (Up to) 3d vector field.
-     type(real_vector), dimension(3) :: val
+     !! dim x nonods vector values
+     real, dimension(:,:), pointer :: val
      !! Flag for whether val is allocated
      logical :: wrapped = .true.
      !! The data source to be used
@@ -187,7 +187,7 @@ module fields_data_types
   end type vector_field
 
   type tensor_field
-     !!< ndim x ndim x nonods
+     !! ndim x ndim x nonods
      real, dimension(:,:,:), pointer :: val
      !! Flag for whether val is allocated
      logical :: wrapped=.true.

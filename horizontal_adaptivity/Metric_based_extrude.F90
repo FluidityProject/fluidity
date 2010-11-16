@@ -783,7 +783,7 @@ module hadapt_metric_based_extrude
     end do
 
     if(l_preserve_regions) then
-      ewrite_minmax(z_mesh%val(1)%ptr)
+      ewrite_minmax(z_mesh%val(1,:))
       ewrite_minmax(z_mesh%mesh%region_ids)
     end if
 

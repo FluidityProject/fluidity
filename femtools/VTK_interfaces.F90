@@ -706,7 +706,7 @@ contains
         ! Note that the following fails for variable element types.
         NNod=sz_enlist
         
-        allocate(field_buffer(NNod), v_field_buffer(NNod, 5), t_field_buffer(NNod, 3, 3))
+        allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
         
         call make_global_numbering_DG(NNod, ndglno, element_count(model),&
@@ -725,7 +725,7 @@ contains
       else
         
         NNod=node_count(model)
-        allocate(field_buffer(NNod), v_field_buffer(NNod, 5), t_field_buffer(NNod, 3, 3))
+        allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
 
         model_mesh = model
@@ -746,7 +746,7 @@ contains
         ! Note that the following fails for variable element types.
         NNod=sz_enlist
         
-        allocate(field_buffer(NNod), v_field_buffer(NNod, 5), t_field_buffer(NNod, 3, 3))
+        allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
         
         call make_global_numbering_DG(NNod, ndglno, element_count(position%mesh),&
@@ -764,7 +764,7 @@ contains
       else
         
         NNod=node_count(position%mesh)
-        allocate(field_buffer(NNod), v_field_buffer(NNod, 5), t_field_buffer(NNod, 3, 3))
+        allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
         
         model_mesh = position%mesh
@@ -776,15 +776,10 @@ contains
 
     l_model= wrap_scalar_field(model_mesh, field_buffer, "TempVTKModel")
     
-    ! vector fields may be of any dimension, so we need a v_model for each case
-    ! note that for dim<3, the next columns of v_field_buffer are unused and
-    ! always left 0.0. This is needed in the following as vector fields are always
-    ! written as 3d (with the unused components being 0)
-    v_model(1)=wrap_vector_field(model_mesh,v_field_buffer(:,3), name="TempVTKModel1")
-    v_model(2)=wrap_vector_field(model_mesh,v_field_buffer(:,2), &
-            v_field_buffer(:,3), name="TempVTKModel2")
-    v_model(3)=wrap_vector_field(model_mesh,v_field_buffer(:,1), &
-            v_field_buffer(:,2), v_field_buffer(:,3), name="TempVTKModel3")
+    ! vector fields may be of any dimension
+    do i=1, 3
+      call allocate(v_model(i), i, model_mesh, name="TempVTKModel")
+    end do
 
     t_model=wrap_tensor_field(model_mesh,t_field_buffer, name="TempVTKModel")
 
@@ -865,9 +860,14 @@ contains
     ! we've just allowed remapping from a higher order to a lower order continuous field
 
     ! Write the mesh coordinates.
-    k=3-position%dim
+    do i=1, position%dim
+      v_field_buffer(:,i)=v_model(position%dim)%val(i,:)
+    end do
+    do i=position%dim+1, 3
+      v_field_buffer(:,i)=0.0
+    end do
     call VTKWRITEMESH(node_count(model_mesh), element_count(model_mesh), &
-           v_field_buffer(:,k+X_), v_field_buffer(:,k+Y_), v_field_buffer(:,k+Z_)&
+           v_field_buffer(:,X_), v_field_buffer(:,Y_), v_field_buffer(:,Z_)&
            &, ENLIST, ELtype, ELsize)
 
     !----------------------------------------------------------------------
@@ -990,10 +990,15 @@ contains
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
           
-            k=3-vfields(i)%dim
+            do k=1, vfields(i)%dim
+              v_field_buffer(:,k)=v_model(vfields(i)%dim)%val(k,:)
+            end do
+            do k=vfields(i)%dim+1, 3
+              v_field_buffer(:,k)=0.0
+            end do
             call vtkwritevn(&
-                v_field_buffer(:,k+X_), v_field_buffer(:,k+Y_), &
-                v_field_buffer(:,k+Z_), &
+                v_field_buffer(:,X_), v_field_buffer(:,Y_), &
+                v_field_buffer(:,Z_), &
                 trim(vfields(i)%name))
 
           else
@@ -1003,11 +1008,11 @@ contains
             tempval = 0.0
             if(vfields(i)%field_type==FIELD_TYPE_CONSTANT) then
               do j = 1, vfields(i)%dim
-                tempval(:,j) = vfields(i)%val(j)%ptr(1)
+                tempval(:,j) = vfields(i)%val(j,1)
               end do
             else
               do j = 1, vfields(i)%dim
-                tempval(:,j) = vfields(i)%val(j)%ptr(:)
+                tempval(:,j) = vfields(i)%val(j,:)
               end do
             end if
 
@@ -1649,7 +1654,7 @@ contains
     
     ! the node number is the same, so we can just copy, even though the mesh is entirely different
     do i=1, position%dim
-      face_position%val(i)%ptr=position%val(i)%ptr
+      face_position%val(i,:)=position%val(i,:)
     end do
 
     if (present(face_sets)) then

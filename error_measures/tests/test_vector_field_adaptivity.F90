@@ -45,13 +45,13 @@ subroutine test_vector_field_adaptivity
   call allocate(metric, mesh, "Metric")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 
-    vfield%val(1)%ptr(i) = x
-    vfield%val(2)%ptr(i) = y
-    vfield%val(3)%ptr(i) = z
+    vfield%val(1,i) = x
+    vfield%val(2,i) = y
+    vfield%val(3,i) = z
   end do
 
   vfield%option_path = "/whatever"

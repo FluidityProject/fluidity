@@ -682,7 +682,7 @@ contains
       do j = 1, repair_field%dim
         ! Non-blocking sends
         if(halo_send_count(halo, i) > 0) then
-          call mpi_isend(repair_field%val(j)%ptr, 1, send_types(i), i - 1, &
+          call mpi_isend(repair_field%val(j,:), 1, send_types(i), i - 1, &
                tag, communicator, requests((i - 1) * repair_field%dim + j), ierr)
           assert(ierr == MPI_SUCCESS)
         end if

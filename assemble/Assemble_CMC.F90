@@ -158,8 +158,8 @@ contains
       call extract_diagonal(inner_m,inner_m_diagonal)
 
       do i = 1, inner_m_diagonal%dim
-         ewrite_minmax(inner_m_diagonal%val(i)%ptr)
-         if(any(inner_m_diagonal%val(i)%ptr < 0)) then
+         ewrite_minmax(inner_m_diagonal%val(i,:))
+         if(any(inner_m_diagonal%val(i,:) < 0)) then
             ewrite(-1,*) 'Inner_m_diagonal has negative values'
             FLExit("Negative values in the diagonal schur complement preconditioner")
 

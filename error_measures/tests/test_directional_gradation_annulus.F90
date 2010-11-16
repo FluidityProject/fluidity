@@ -30,9 +30,9 @@ subroutine test_directional_gradation_annulus
   pi = 4.0 * atan(1.0)
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 
     call random_number(rand)
     call random_number(rand2)
@@ -69,9 +69,9 @@ subroutine test_directional_gradation_annulus
 
   fail = .false.
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 
     call eigendecomposition_symmetric(metric%val(:, :, i), evecs, evals)
     if (get_angle(dominant_eigenvector(evecs, evals), (/x, y, 0.0/)) > 0.4) then

@@ -31,9 +31,9 @@ subroutine test_node_lies_on_boundary
 
   fail = .false.
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 
     output = node_lies_on_boundary(mesh, positions, i, expected=1)
     if (x == 0.0 .or. x == 30.0 .or. y == 0.0 .or. y == 15.0) then

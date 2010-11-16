@@ -233,7 +233,7 @@ contains
         call assemble_perp_ele(i, positions, source_field, v_field)
       end do
       do i = 1, v_field%dim
-        v_field%val(i)%ptr = v_field%val(i)%ptr / masslump%val
+        v_field%val(i,:) = v_field%val(i,:) / masslump%val
       end do
     else
       select case(continuity(v_field))
@@ -459,7 +459,7 @@ contains
         call assemble_curl_ele(i, positions, source_field, v_field)
       end do
       do i = 1, v_field%dim
-        v_field%val(i)%ptr = v_field%val(i)%ptr / masslump%val
+        v_field%val(i,:) = v_field%val(i,:) / masslump%val
       end do
     else
       select case(continuity(v_field))
@@ -486,7 +486,7 @@ contains
     end if
     
     do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i)%ptr)
+      ewrite_minmax(v_field%val(i,:))
     end do
     
     ewrite(1, *) "Exiting calculate_curl"
@@ -607,7 +607,7 @@ contains
     assert(ele_count(source_field) == ele_count(v_field))
     assert(source_field%dim == v_field%dim)
     do i = 1, source_field%dim
-      ewrite_minmax(source_field%val(i)%ptr)
+      ewrite_minmax(source_field%val(i,:))
     end do
       
     call check_source_mesh_derivative(source_field, "vector_laplacian")
@@ -629,16 +629,16 @@ contains
       end do
     end do
     do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i)%ptr)
+      ewrite_minmax(v_field%val(i,:))
     end do
     
     masslump => get_lumped_mass(state, v_field%mesh)
     
     do i = 1, v_field%dim
-      v_field%val(i)%ptr = v_field%val(i)%ptr / masslump%val
+      v_field%val(i,:) = v_field%val(i,:) / masslump%val
     end do
     do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i)%ptr)
+      ewrite_minmax(v_field%val(i,:))
     end do
     
     ewrite(1, *) "Exiting calculate_vector_laplacian"

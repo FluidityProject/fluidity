@@ -39,11 +39,11 @@ subroutine test_mba_adapt
   call allocate(metric, mesh, "Metric")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
     pressure%val(i) = x * x
-    velocity%val(1)%ptr(i) = x
-    velocity%val(2)%ptr(i) = y
+    velocity%val(1,i) = x
+    velocity%val(2,i) = y
   end do
   
   call adaptivity_options(state, pressure, 0.001, .false.)

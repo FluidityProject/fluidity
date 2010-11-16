@@ -420,9 +420,9 @@ CONTAINS
                surface_element_list)
           call allocate(surface_position, position%dim-1, surface_mesh, &
                'Coordinate')
-          surface_position%val(1)%ptr=tmp_surface_position%val(1)%ptr
+          surface_position%val(1,:)=tmp_surface_position%val(1,:)
           if(position%dim-1>1) then
-             surface_position%val(2)%ptr=tmp_surface_position%val(2)%ptr
+             surface_position%val(2,:)=tmp_surface_position%val(2,:)
           end if
           call insert(bc_states(j), surface_position, 'Coordinate')
           call deallocate(tmp_surface_position)
@@ -437,8 +437,8 @@ CONTAINS
                surface_element_list)
           call allocate(surface_velocity, velocity%dim-1, surface_v_mesh, &
                'GeostrophicVelocity')
-          surface_velocity%val(1)%ptr=tmp_surface_velocity%val(1)%ptr
-          surface_velocity%val(2)%ptr=tmp_surface_velocity%val(2)%ptr
+          surface_velocity%val(1,:)=tmp_surface_velocity%val(1,:)
+          surface_velocity%val(2,:)=tmp_surface_velocity%val(2,:)
           call insert(bc_states(j), surface_velocity, 'GeostrophicVelocity')
           ! put surface velocity mesh into bc_state(j) and don't deallocate
           ! as we need it for the source field later
@@ -556,8 +556,8 @@ CONTAINS
                surface_velocity%mesh, 'tmp_surface_velocity')
           call remap_field_to_surface(velocity, tmp_surface_velocity,&
                surface_element_list)
-          surface_velocity%val(1)%ptr=tmp_surface_velocity%val(1)%ptr
-          surface_velocity%val(2)%ptr=tmp_surface_velocity%val(2)%ptr
+          surface_velocity%val(1,:)=tmp_surface_velocity%val(1,:)
+          surface_velocity%val(2,:)=tmp_surface_velocity%val(2,:)
           call deallocate(tmp_surface_velocity)
 
           ! update source field

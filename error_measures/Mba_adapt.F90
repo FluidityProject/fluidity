@@ -76,7 +76,7 @@ module mba_adapt_module
     allocate(pos(2, mxnods))
     pos = 0.0
     do i=1,2
-      pos(i, 1:nonods) = positions%val(i)%ptr
+      pos(i, 1:nonods) = positions%val(i,:)
     end do
 
     allocate(ipf(4, mxface))
@@ -259,7 +259,7 @@ module mba_adapt_module
         if (norm2(node_val(new_positions, node_new) - node_val(old_positions, node_old)) < snap_dist .and. .not. used_old(node_old)) then
           used_old(node_old) = .true.
           do j=1,dim
-            new_positions%val(j)%ptr(node_new) = old_positions%val(j)%ptr(node_old)
+            new_positions%val(j,node_new) = old_positions%val(j,node_old)
           end do
           cycle nodeloop
         end if
@@ -273,7 +273,7 @@ module mba_adapt_module
        proj = project_to_subspace(node_val(new_positions, node_new), basis)
        if (norm2(node_val(new_positions, node_new) - proj) < snap_dist) then
          do j=1,dim
-           new_positions%val(j)%ptr(node_new) = proj(j)
+           new_positions%val(j,node_new) = proj(j)
          end do
          cycle nodeloop
        end if

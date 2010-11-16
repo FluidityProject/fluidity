@@ -160,7 +160,7 @@ module supermesh_construction
 !        end do
 !      else
          do i = 1, dim
-           intersection%val(i)%ptr = nodes_tmp((i - 1) * nonods + 1:i * nonods)
+           intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
          end do
 !      end if
     end if

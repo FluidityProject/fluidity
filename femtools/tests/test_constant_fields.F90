@@ -92,7 +92,7 @@ subroutine test_constant_fields
   call report_test("[constant vector fields]", fail, .false., "Constant fields should return the value you give them.")
 
   fail = .false.
-  if (size(vfield%val(1)%ptr) /= 1) then
+  if (size(vfield%val(1,:)) /= 1) then
     fail = .true.
   end if
   call report_test("[constant vector fields]", fail, .false., "Constant fields shouldn't allocate more than they need to.")

@@ -287,7 +287,7 @@ contains
 
        nodeID = nodes(n)%nodeID
        forall (d = 1:effDimen)
-          field%val(d)%ptr(nodeID) = nodes(n)%x(d)
+          field%val(d,nodeID) = nodes(n)%x(d)
        end forall
 
        ! If there's a valid node column ID, use it.

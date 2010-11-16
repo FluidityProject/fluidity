@@ -554,7 +554,7 @@ contains
            POD_pressure=>extract_scalar_field(POD_state(i), "PODPressure")
 
            do d=1,POD_velocity%dim
-              pod_sol_velocity(:,d)=pod_sol_velocity(:,d)+pod_coef(i+(d-1)*POD_num)*POD_velocity%val(d)%ptr
+              pod_sol_velocity(:,d)=pod_sol_velocity(:,d)+pod_coef(i+(d-1)*POD_num)*POD_velocity%val(d,:)
            enddo
 
            pod_sol_pressure(:)=pod_sol_pressure(:)+pod_coef(i+POD_velocity%dim*POD_num)*POD_pressure%val(:)

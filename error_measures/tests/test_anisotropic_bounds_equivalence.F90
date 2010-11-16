@@ -35,9 +35,9 @@ subroutine test_anisotropic_bounds_equivalence
   call allocate(field, mesh, "Field") 
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     field%val(i) = (y-0.5)**3
   end do
   call insert(state, field, "Field")

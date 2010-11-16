@@ -170,12 +170,12 @@ contains
        write(num_str,'(i0)') (layer-1)*3 + 1
        field_in => extract_scalar_field(variables_state, &
             & 'Attributes '//trim(num_str))
-       u(layer)%val(1)%ptr = map_quad_to_DG(field_in,u(1))
+       u(layer)%val(1,:) = map_quad_to_DG(field_in,u(1))
        !read u2
        write(num_str,'(i0)') (layer-1)*3 + 2
        field_in => extract_scalar_field(variables_state, &
             & 'Attributes '//trim(num_str))
-       u(layer)%val(2)%ptr = map_quad_to_DG(field_in,u(1))
+       u(layer)%val(2,:) = map_quad_to_DG(field_in,u(1))
        !read D
        write(num_str,'(i0)') layer*3
        field_in => extract_scalar_field(variables_state, &
@@ -188,8 +188,8 @@ contains
     call map_data_to_CG(bottom,field_in)
 
     do layer=1,n_layers
-       m(layer)%val(1)%ptr=0.0
-       m(layer)%val(2)%ptr=0.0
+       m(layer)%val(1,:)=0.0
+       m(layer)%val(2,:)=0.0
     end do
 
 !    print*, 'average h_0=', &
@@ -571,7 +571,7 @@ contains
     call allocate(vec1,vec2%dim,mesh,'copied_vector')
 
     do i=1,vec2%dim
-       vec1%val(i)%ptr=vec2%val(i)%ptr
+       vec1%val(i,:)=vec2%val(i,:)
     end do
   end subroutine vec_copy
 

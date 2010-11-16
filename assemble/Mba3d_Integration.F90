@@ -125,7 +125,7 @@ contains
     allocate(xyp(dim, maxp))
     xyp = 0.0
     do i = 1, dim
-      xyp(i, :np) = input_positions%val(i)%ptr
+      xyp(i, :np) = input_positions%val(i,:)
     end do
 
     allocate(ipf(snloc, maxf))
@@ -304,7 +304,7 @@ contains
     call deallocate(output_mesh)
                
     do i = 1, dim
-      output_positions%val(i)%ptr = xyp(i, :np)
+      output_positions%val(i,:) = xyp(i, :np)
     end do
     output_positions%option_path = input_positions%option_path
 

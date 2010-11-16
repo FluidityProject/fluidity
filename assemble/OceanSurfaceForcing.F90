@@ -64,8 +64,8 @@ contains
     logical:: parallel_dg
     
     ewrite(1,*) 'Inside wind_forcing'
-    ewrite_minmax(rhs%val(1)%ptr)
-    ewrite_minmax(rhs%val(2)%ptr)
+    ewrite_minmax(rhs%val(1,:))
+    ewrite_minmax(rhs%val(2,:))
    
     velocity => extract_vector_field(state, "Velocity")
     positions => extract_vector_field(state, "Coordinate")
@@ -162,8 +162,8 @@ contains
       deallocate(llpos_at_quads, ll_wind_at_quads)
     end if
     
-    ewrite_minmax(rhs%val(1)%ptr)
-    ewrite_minmax(rhs%val(2)%ptr)
+    ewrite_minmax(rhs%val(1,:))
+    ewrite_minmax(rhs%val(2,:))
    
   end subroutine wind_forcing
 

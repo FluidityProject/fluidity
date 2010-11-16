@@ -137,12 +137,12 @@ module python_state
       character(len=oplen) :: option_path
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
-    subroutine python_add_vector(sx,numdim, x,y,z,&
+    subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len)
       implicit none
       integer :: sx,numdim,nlen,field_type,oplen,snlen,mesh_name_len
-      real, dimension(sx) :: x,y,z
+      real, dimension(sx) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name
       character(len=oplen) :: option_path
@@ -229,26 +229,17 @@ module python_state
     type(vector_field) :: V
     type(state_type) :: st
     integer :: snlen,slen,oplen,mesh_name_len
-    real, dimension(:), pointer :: x, y, z
     real, dimension(0), target :: zero
+    
     slen = len(trim(V%name))
     snlen = len(trim(st%name))
     oplen = len(trim(V%option_path))
     mesh_name_len = len(trim(V%mesh%name))
-    !! Make sure the pointers past really do point to something
-    x=>zero
-    y=>zero
-    z=>zero 
-    x=>V%val(1)%ptr
-    if (V%dim>1) then
-       y=>V%val(2)%ptr
-       if (V%dim>2) then
-          z=>V%val(3)%ptr
-       end if
-    end if
-    call python_add_vector(size(V%val(1)%ptr,1),&
-      V%dim, x, y, z,&
+    
+    assert(v%dim==size(v%val,1))
+    call python_add_vector(V%dim, size(V%val,2), V%val, &
       trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
+    
   end subroutine python_add_vector_directly
 
   subroutine python_add_tensor_directly(T,st)

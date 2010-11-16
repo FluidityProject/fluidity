@@ -221,12 +221,12 @@ contains
                nnodp,totele,nloc,state,lfiem_s,       &
                sourceX,sourceY,sourceZ,absorpX,SPhase)
 
-          source%val(1)%ptr(:)=SourceX%val(:)
-          source%val(2)%ptr(:)=SourceY%val(:)
-          source%val(3)%ptr(:)=SourceZ%val(:)
-          absorp%val(1)%ptr(:)=absorpX%val(:)
-          absorp%val(2)%ptr(:)=absorpX%val(:)
-          absorp%val(3)%ptr(:)=absorpX%val(:)
+          source%val(1,:)=SourceX%val(:)
+          source%val(2,:)=SourceY%val(:)
+          source%val(3,:)=SourceZ%val(:)
+          absorp%val(1,:)=absorpX%val(:)
+          absorp%val(2,:)=absorpX%val(:)
+          absorp%val(3,:)=absorpX%val(:)
           
           lfiem_s=.false.
 
@@ -235,9 +235,9 @@ contains
 
     ! define velocities...
     do nod=1,nonods       
-       VelSource%val(1)%ptr(nod)=node_val(source,1,nod)/max(1.e-10,node_val(absorp,1,nod))
-       VelSource%val(2)%ptr(nod)=node_val(source,2,nod)/max(1.e-10,node_val(absorp,2,nod))
-       VelSource%val(3)%ptr(nod)=node_val(source,3,nod)/max(1.e-10,node_val(absorp,3,nod))
+       VelSource%val(1,nod)=node_val(source,1,nod)/max(1.e-10,node_val(absorp,1,nod))
+       VelSource%val(2,nod)=node_val(source,2,nod)/max(1.e-10,node_val(absorp,2,nod))
+       VelSource%val(3,nod)=node_val(source,3,nod)/max(1.e-10,node_val(absorp,3,nod))
        
        call set(Sphase,nod,min(0.999,node_val(SPhase,nod)))
        call set(cdenpt,nod,denpt%val(nod))
@@ -289,9 +289,9 @@ contains
     
     v_field => extract_vector_field(state, "Coordinate")
     
-    x => v_field%val(1)%ptr
-    y => v_field%val(2)%ptr
-    z => v_field%val(3)%ptr
+    x => v_field%val(1,:)
+    y => v_field%val(2,:)
+    z => v_field%val(3,:)
     nonods=size(x)
     
     allocate(mlad(nonods))
@@ -799,9 +799,9 @@ contains
       else
          position => extract_vector_field(state,"Coordinate")
          
-         crz  = minval(position%val(3)%ptr)
-         nxtz = minval(position%val(3)%ptr)
-         prvz = minval(position%val(3)%ptr)
+         crz  = minval(position%val(3,:))
+         nxtz = minval(position%val(3,:))
+         prvz = minval(position%val(3,:))
          
          call allmin(crz)
          call allmin(nxtz)
@@ -1363,9 +1363,9 @@ contains
       xmesh => extract_mesh(state,"CoordinateMesh")
 
       positions => extract_vector_field(state,"Coordinate")
-      x => positions%val(1)%ptr
-      y => positions%val(2)%ptr
-      z => positions%val(3)%ptr
+      x => positions%val(1,:)
+      y => positions%val(2,:)
+      z => positions%val(3,:)
 
       xnonod=size(x)
 
@@ -1398,7 +1398,10 @@ contains
       call remap_field_to_surface(positions,bc_position,surface_element_list)
       
       allocate(eid(points), eshape(snloc, points))
-      bc_position_2d = wrap_vector_field(bc_position%mesh, bc_position%val(1)%ptr, bc_position%val(2)%ptr, name = trim(bc_position%name) // "2d")
+      !bc_position_2d = wrap_vector_field(bc_position%mesh, bc_position%val(1,:), bc_position%val(2,:), name = trim(bc_position%name) // "2d")
+      call allocate(bc_position_2d, 2, bc_position%mesh, name = trim(bc_position%name) // "2d")
+      call set_all(bc_position_2d, 1, bc_position%val(1,:))
+      call set_all(bc_position_2d, 2, bc_position%val(2,:))
       call picker_inquire(bc_position_2d, coordsx = pointX, coordsy = pointY, &
         & eles = eid, local_coords = eshape, global = .true.)
       

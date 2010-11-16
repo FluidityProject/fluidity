@@ -35,9 +35,9 @@ subroutine test_anisotropically_bounded_metric
   pressure_field => extract_scalar_field(state, "Pressure")
 
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     pressure_field%val(i) = 10.0 * x * x + 0.5 * y * y
   end do
 

@@ -209,9 +209,9 @@ contains
           ! return to femdem: 1. ext_pos_fluid_vel
           call femdem_two_way_update(state)
  
-          ewrite_minmax(external_positions%val(1)%ptr)
-          ewrite_minmax(external_positions%val(2)%ptr)
-          ewrite_minmax(external_positions%val(3)%ptr)
+          ewrite_minmax(external_positions%val(1,:))
+          ewrite_minmax(external_positions%val(2,:))
+          ewrite_minmax(external_positions%val(3,:))
 
           ! interpolate the solid velocity from
           ! the femdem mesh to the fluidity mesh
@@ -282,15 +282,15 @@ contains
     ! translate coordinates for multiple solids...
     if (one_way_coupling .and. multiple_solids) then
        do i = 1, node_count(external_positions)
-          external_positions_local%val(1)%ptr(i) = &
-               external_positions%val(1)%ptr(i) + &
+          external_positions_local%val(1,i) = &
+               external_positions%val(1,i) + &
                translation_coordinates(1, solid_number)
-          external_positions_local%val(2)%ptr(i) = &
-               external_positions%val(2)%ptr(i) + &
+          external_positions_local%val(2,i) = &
+               external_positions%val(2,i) + &
                translation_coordinates(2, solid_number)
           if (external_positions%dim == 3) then
-             external_positions_local%val(3)%ptr(i) = &
-                  external_positions%val(3)%ptr(i) + &
+             external_positions_local%val(3,i) = &
+                  external_positions%val(3,i) + &
                   translation_coordinates(3, solid_number)
           end if
        end do
@@ -759,9 +759,9 @@ contains
     call allocate(external_positions, dim, mesh, name="Coordinate")
 
     ! initialise solid mesh coordinates
-    external_positions%val(1)%ptr(:) = xs
-    external_positions%val(2)%ptr(:) = ys
-    external_positions%val(3)%ptr(:) = zs
+    external_positions%val(1,:) = xs
+    external_positions%val(2,:) = ys
+    external_positions%val(3,:) = zs
 
     do i = 1, elements
        external_positions%mesh%ndglno((i-1)*loc+1:i*loc) = &
@@ -884,20 +884,20 @@ contains
 
     call zero(ext_pos_bulk_vel)
     do i = 1, external_positions%dim
-       ext_pos_bulk_vel%val(i)%ptr(:) = &
-       ext_pos_fluid_vel%val(i)%ptr(:) + ext_pos_solid_vel%val(i)%ptr(:)
+       ext_pos_bulk_vel%val(i,:) = &
+       ext_pos_fluid_vel%val(i,:) + ext_pos_solid_vel%val(i,:)
     end do
 
 #ifdef USING_FEMDEM
     ! in  :: ext_pos_bulk_vel
     ! out :: updated external_positions and ext_pos_solid_vel
     call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho, &
-         external_positions%val(1)%ptr, external_positions%val(2)%ptr, &
-         external_positions%val(3)%ptr, &
-         ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, &
-         ext_pos_solid_vel%val(3)%ptr, &
-         ext_pos_bulk_vel%val(1)%ptr, ext_pos_bulk_vel%val(2)%ptr, &
-         ext_pos_bulk_vel%val(3)%ptr)
+         external_positions%val(1,:), external_positions%val(2,:), &
+         external_positions%val(3,:), &
+         ext_pos_solid_vel%val(1,:), ext_pos_solid_vel%val(2,:), &
+         ext_pos_solid_vel%val(3,:), &
+         ext_pos_bulk_vel%val(1,:), ext_pos_bulk_vel%val(2,:), &
+         ext_pos_bulk_vel%val(3,:))
 #endif
 
   end subroutine femdem_two_way_update
@@ -994,13 +994,13 @@ contains
        call interpolation_galerkin_femdem(alg_ext, alg_fl, field=solid_local)
        ! this is:                           old     new
 
-       ewrite_minmax(ext_pos_solid_vel%val(1)%ptr)
-       ewrite_minmax(ext_pos_solid_vel%val(2)%ptr)
-       ewrite_minmax(ext_pos_solid_vel%val(3)%ptr)
+       ewrite_minmax(ext_pos_solid_vel%val(1,:))
+       ewrite_minmax(ext_pos_solid_vel%val(2,:))
+       ewrite_minmax(ext_pos_solid_vel%val(3,:))
 
-       ewrite_minmax(field_fl%val(1)%ptr)
-       ewrite_minmax(field_fl%val(2)%ptr)
-       ewrite_minmax(field_fl%val(3)%ptr)
+       ewrite_minmax(field_fl%val(1,:))
+       ewrite_minmax(field_fl%val(2,:))
+       ewrite_minmax(field_fl%val(3,:))
 
        solid_velocity => extract_vector_field(state, "SolidVelocity")
        call set(solid_velocity, fl_pos_solid_vel)
@@ -1012,13 +1012,13 @@ contains
        call interpolation_galerkin_femdem(alg_fl, alg_ext, femdem_out=.true.)
        ! this is:                          old      new
 
-       ewrite_minmax(field_fl%val(1)%ptr)
-       ewrite_minmax(field_fl%val(2)%ptr)
-       ewrite_minmax(field_fl%val(3)%ptr)
+       ewrite_minmax(field_fl%val(1,:))
+       ewrite_minmax(field_fl%val(2,:))
+       ewrite_minmax(field_fl%val(3,:))
 
-       ewrite_minmax(ext_pos_fluid_vel%val(1)%ptr)
-       ewrite_minmax(ext_pos_fluid_vel%val(2)%ptr)
-       ewrite_minmax(ext_pos_fluid_vel%val(3)%ptr)
+       ewrite_minmax(ext_pos_fluid_vel%val(1,:))
+       ewrite_minmax(ext_pos_fluid_vel%val(2,:))
+       ewrite_minmax(ext_pos_fluid_vel%val(3,:))
 
     else
        FLAbort("Don't know what to interpolate...")

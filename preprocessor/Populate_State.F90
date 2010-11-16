@@ -2913,8 +2913,8 @@ contains
     allocate(domain_bbox(positions%dim, 2))
 
     do dim=1,positions%dim
-      domain_bbox(dim, 1) = minval(positions%val(dim)%ptr)
-      domain_bbox(dim, 2) = maxval(positions%val(dim)%ptr)
+      domain_bbox(dim, 1) = minval(positions%val(dim,:))
+      domain_bbox(dim, 2) = maxval(positions%val(dim,:))
       ewrite(2,*) "domain_bbox - dim, range =", dim, domain_bbox(dim,:)
     end do
 

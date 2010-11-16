@@ -44,16 +44,16 @@ subroutine test_adaptivity
   call allocate(metric, mesh, "Metric")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 !    if (x == 0.0) pressure%val(i) = 0.0
 !    if (x <= 3.0) pressure%val(i) = x   * 1.0e6  ! ramp up .. rapidly
 !    if (x >  3.0) pressure%val(i) = 3.0 * 1.0e6
     pressure%val(i) = x * x
-    velocity%val(1)%ptr(i) = x
-    velocity%val(2)%ptr(i) = y
-    velocity%val(3)%ptr(i) = z
+    velocity%val(1,i) = x
+    velocity%val(2,i) = y
+    velocity%val(3,i) = z
   end do
   
   call adaptivity_options(state, pressure, 1.0, .false.)

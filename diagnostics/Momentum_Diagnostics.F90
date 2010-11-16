@@ -226,7 +226,7 @@ contains
       return
     end if    
     do i = 1, gravity%dim
-      ewrite_minmax(gravity%val(i)%ptr)
+      ewrite_minmax(gravity%val(i,:))
     end do  
     
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
@@ -341,7 +341,7 @@ contains
     end do
     
     do i = 1, coriolis%dim
-      coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
+      coriolis%val(i,:) = coriolis%val(i,:) / masslump%val
     end do
     
   end subroutine compute_coriolis_gp_lumped

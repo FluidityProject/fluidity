@@ -74,7 +74,7 @@ contains
     allocate(is_node_locked(node_count(positions)))
     
     call set_integer_array_from_python(func, len_trim(func), positions%dim, node_count(positions), &
-      & positions%val(1)%ptr, positions%val(2)%ptr, positions%val(3)%ptr, lcurrent_time, &
+      & positions%val(1,:), positions%val(2,:), positions%val(3,:), lcurrent_time, &
       & is_node_locked, stat)
     if(stat /= 0) then
        ewrite(-1, *) "Python error, Python string was:"

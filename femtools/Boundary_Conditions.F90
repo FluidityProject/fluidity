@@ -2234,7 +2234,7 @@ contains
           ewrite(2, *) "Collapsing vector bc " // trim(bcname) // " for field " // trim(v_field%name)
           
           bc_dim_loop: do l = 1, v_field%dim
-            ewrite_minmax(bcvalue%val(l)%ptr)  
+            ewrite_minmax(bcvalue%val(l,:))  
             if(.not. bcapplies(l)) cycle bc_dim_loop
             
             call add_boundary_condition_surface_elements(v_field_comps(l)%ptr, bcname, bctype, &

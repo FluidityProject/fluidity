@@ -193,8 +193,8 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
 }
 
 
-void python_add_vector_(int *s, int *num_dim, 
-  double x[], double y[], double z[],
+void python_add_vector_(int *num_dim, int *s, 
+  double x[], 
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
   char *mesh_name, int *mesh_name_len){
 #ifdef HAVE_NUMPY
@@ -202,21 +202,9 @@ void python_add_vector_(int *s, int *num_dim,
   PyObject *pMain = PyImport_AddModule("__main__");
   PyObject *pDict = PyModule_GetDict(pMain);
 
-  if(*num_dim>0)
-    python_add_array_double_1d(x,s,"vector1");
-  else
-    PyRun_SimpleString("vector1 = numpy.matrix([])");
-
-  if(*num_dim>1)
-    python_add_array_double_1d(y,s,"vector2");
-  else
-    PyRun_SimpleString("vector2 = numpy.matrix([])");
-
-  if(*num_dim>2)
-    python_add_array_double_1d(z,s,"vector3");
-  else
-    PyRun_SimpleString("vector3 = numpy.matrix([])");
-
+  python_add_array_double_2d(x,num_dim,s,"vector");
+  PyRun_SimpleString("vector = vector.transpose(1, 0)");
+    
   // Fix the Fortran strings for C and Python
   char *namec = fix_string(name,*nlen);
   char *opc = fix_string(option_path,*oplen);
@@ -236,7 +224,7 @@ void python_add_vector_(int *s, int *num_dim,
 
   char *n = fix_string(state,*slen);
   char t[150+*slen+*mesh_name_len];
-  sprintf(t,"field = VectorField(n,vector1,vector2,vector3,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
+  sprintf(t,"field = VectorField(n,vector,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
@@ -244,7 +232,7 @@ void python_add_vector_(int *s, int *num_dim,
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del ft; del nd; del vector1; del vector2; del vector3; del field");
+  PyRun_SimpleString("del n; del op; del ft; del nd; del vector; del field");
   free(n);
   free(namec); 
   free(opc);

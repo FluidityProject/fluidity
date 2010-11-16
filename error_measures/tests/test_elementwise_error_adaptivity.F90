@@ -40,15 +40,15 @@ subroutine test_elementwise_error_adaptivity
   call allocate(difference_grad, 3, mesh, "Analytical - Postprocessed")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     field%val(i) = y * x**2  + y**3 + tanh(10.0 * (sin(5.0*y) - 2.0*x))
 
-    analytical_grad%val(1)%ptr(i) = (2.0*x*y - 20.0 / (cosh(10.0*(sin(5.0*y) - 2.0*x))**2))
-    analytical_grad%val(2)%ptr(i) = 50.0*cos(5.0*y) / &
+    analytical_grad%val(1,i) = (2.0*x*y - 20.0 / (cosh(10.0*(sin(5.0*y) - 2.0*x))**2))
+    analytical_grad%val(2,i) = 50.0*cos(5.0*y) / &
                                     & (cosh(10.0*(sin(5.0*y) - 2.0*x))**2) + 3*y**2 + x**2
-    analytical_grad%val(3)%ptr(i) = 0.0
+    analytical_grad%val(3,i) = 0.0
   end do
   field%val = field%val + 4.0
 

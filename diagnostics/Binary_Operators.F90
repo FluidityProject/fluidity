@@ -111,7 +111,7 @@ contains
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/absolute_difference")) then
       do i = 1, v_field%dim
-        v_field%val(i)%ptr = abs(v_field%val(i)%ptr)
+        v_field%val(i,:) = abs(v_field%val(i,:))
       end do
     end if
   

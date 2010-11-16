@@ -53,7 +53,7 @@ module residual_estimation
     do node=1,node_count(mesh)
       tmp = matmul(node_val(diffusivity, node), node_val(grad_field, node))
       do j=1,size(tmp)
-        grad_field%val(j)%ptr(node) = tmp(j)
+        grad_field%val(j,node) = tmp(j)
       end do
     end do
 

@@ -23,9 +23,9 @@ subroutine test_compute_inner_product_sa
   positions_b = read_triangle_files("data/laplacian_grid.2", quad_degree=4)
   !positions_a = read_triangle_files("data/cube.1", quad_degree=4)
   !positions_b = read_triangle_files("data/cube.2", quad_degree=4)
-  !positions_a%val(1)%ptr = positions_a%val(1)%ptr + 3.0
+  !positions_a%val(1,:) = positions_a%val(1,:) + 3.0
   !call scale(positions_a, 1.0 / 6.0)  
-  !positions_b%val(1)%ptr = positions_b%val(1)%ptr + 3.0
+  !positions_b%val(1,:) = positions_b%val(1,:) + 3.0
   !call scale(positions_b, 1.0 / 6.0)  
   !positions_b = positions_a
   !call incref(positions_b)

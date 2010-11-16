@@ -121,7 +121,7 @@ contains
     assert(dim >= 1)
     assert(dim <= vfield%dim)
     
-    call zero_halo_receives(halo, vfield%val(dim)%ptr)
+    call zero_halo_receives(halo, vfield%val(dim,:))
     
   end subroutine zero_halo_receives_vector_on_halo_dim
   
@@ -370,15 +370,18 @@ contains
     type(halo_type), intent(in) :: halo
     type(vector_field), intent(inout) :: v_field
     
+    real, dimension(:), allocatable:: vbuffer
     integer :: i
     
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
 
+    allocate( vbuffer(1:node_count(v_field)) )
     select case(v_field%field_type)
       case(FIELD_TYPE_NORMAL)
         do i = 1, v_field%dim
-          assert(associated(v_field%val(i)%ptr))
-          call halo_update(halo, v_field%val(i)%ptr)
+          vbuffer=v_field%val(i,:)
+          call halo_update(halo, vbuffer)
+          v_field%val(i,:)=vbuffer
         end do
       case(FIELD_TYPE_CONSTANT)
       case default

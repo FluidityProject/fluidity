@@ -39,7 +39,7 @@ module bounding_box_metric
       allocate(domain_width(dim))
       do i=1,dim
         ! Get the width of the bounding box.
-        domain_width(i) = abs(maxval(positions%val(i)%ptr) - minval(positions%val(i)%ptr))
+        domain_width(i) = abs(maxval(positions%val(i,:)) - minval(positions%val(i,:)))
       end do
     end if
 

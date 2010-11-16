@@ -175,7 +175,7 @@ module field_derivatives
 
         ! Now we need to multiply P * the solution to get the recovered derivative at the point.
         do i=1,positions%dim
-          node_position(i) = positions%val(i)%ptr(node)
+          node_position(i) = positions%val(i,node)
         end do
         ! So now get P:
         P = getP_spr(node_position, shape)
@@ -1036,7 +1036,7 @@ module field_derivatives
 
       do node=1,node_count(gradient)
         do i=1,dim
-          gradient%val(i)%ptr(node) = gradient%val(i)%ptr(node) / node_val(lumped_mass_matrix, node)
+          gradient%val(i,node) = gradient%val(i,node) / node_val(lumped_mass_matrix, node)
         end do
       end do
 
@@ -1381,9 +1381,9 @@ module field_derivatives
       end if
 
       do i=1,node_count(infield)
-        a = grad_v(3)%val(2)%ptr(i) - grad_v(2)%val(3)%ptr(i) ! dw/dy - dv/dz
-        b = grad_v(1)%val(3)%ptr(i) - grad_v(3)%val(1)%ptr(i) ! du/dz - dw/dx
-        c = grad_v(2)%val(1)%ptr(i) - grad_v(1)%val(2)%ptr(i) ! dv/dx - du/dy
+        a = grad_v(3)%val(2,i) - grad_v(2)%val(3,i) ! dw/dy - dv/dz
+        b = grad_v(1)%val(3,i) - grad_v(3)%val(1,i) ! du/dz - dw/dx
+        c = grad_v(2)%val(1,i) - grad_v(1)%val(2,i) ! dv/dx - du/dy
         if (present(curl_norm)) then
           w = sqrt(a**2 + b**2 + c**2)
           call addto(curl_norm, i, w)

@@ -143,8 +143,8 @@ contains
     new_metric%val=metric%val                                !copy of metric
     new_volumefraction%val=volumefraction%val                !copy of volume fraction
     do i=1,3
-       new_coordinates%val(i)%ptr=coordinates%val(i)%ptr     !copy of coordinates
-       new_velocity%val(i)%ptr=v%val(i)%ptr           !copy of flow velocities
+       new_coordinates%val(i,:)=coordinates%val(i,:)     !copy of coordinates
+       new_velocity%val(i,:)=v%val(i,:)           !copy of flow velocities
     end do
 
     !Create a node order list
@@ -182,9 +182,9 @@ contains
 
     dummy1%val=functional_field%val
     dummy2%val=0.0
-    dummy3%val(X_)%ptr=0.0
-    dummy3%val(Y_)%ptr=0.0
-    dummy3%val(Z_)%ptr=0.0
+    dummy3%val(X_,:)=0.0
+    dummy3%val(Y_,:)=0.0
+    dummy3%val(Z_,:)=0.0
     
     negvolcenter_it=0
     negvolgrad_it=0   
@@ -213,7 +213,7 @@ contains
           end if
           if(((grad_f(1)**2.0+grad_f(2)**2.0+grad_f(3)**2.0)==0.0).or.negvol.or.fail) cycle
           do i=1,3
-             dummy3%val(i)%ptr(inod)=-grad_f(i)
+             dummy3%val(i,inod)=-grad_f(i)
           end do
           
           !Calculating the maximum length of the linesearch in the gradient direction
@@ -224,9 +224,9 @@ contains
           do icount=1,node_patch%count
              node = node_patch%elements(icount)
              if(node/=inod) then
-                xx2=(new_coordinates%val(X_)%ptr(node) - new_coordinates%val(X_)%ptr(inod))**2.0
-                yy2=(new_coordinates%val(Y_)%ptr(node) - new_coordinates%val(Y_)%ptr(inod))**2.0
-                zz2=(new_coordinates%val(Z_)%ptr(node) - new_coordinates%val(Z_)%ptr(inod))**2.0
+                xx2=(new_coordinates%val(X_,node) - new_coordinates%val(X_,inod))**2.0
+                yy2=(new_coordinates%val(Y_,node) - new_coordinates%val(Y_,inod))**2.0
+                zz2=(new_coordinates%val(Z_,node) - new_coordinates%val(Z_,inod))**2.0
                 dnorm1=(xx2+yy2+zz2)**0.5
                 if(dnorm1>dnorm) dnorm=dnorm1                       
              end if
@@ -240,9 +240,9 @@ contains
           savebuffer=huge(0.0)
           !Start linesearch, save values corresponding to minimum
           do lspt=1,numlspts   
-             xnew = new_coordinates%val(X_)%ptr(inod) - dnorm*grad_f(1) 
-             ynew = new_coordinates%val(Y_)%ptr(inod) - dnorm*grad_f(2) 
-             znew = new_coordinates%val(Z_)%ptr(inod) - dnorm*grad_f(3) 
+             xnew = new_coordinates%val(X_,inod) - dnorm*grad_f(1) 
+             ynew = new_coordinates%val(Y_,inod) - dnorm*grad_f(2) 
+             znew = new_coordinates%val(Z_,inod) - dnorm*grad_f(3) 
 
              call calculate_functional_from_new_coordinates(                  &
                   state,inod,xnew,ynew,znew,metric,metric_save,               &
@@ -276,13 +276,13 @@ contains
           !this defines the first criteria for accepting position (need to work on second criteria)
           if ((functional_field%val(inod)-savebuffer(1))>minfchg) then
              functional_field%val(inod)=savebuffer(1)
-             new_coordinates%val(X_)%ptr(inod)=savebuffer(2)
-             new_coordinates%val(Y_)%ptr(inod)=savebuffer(3)
-             new_coordinates%val(Z_)%ptr(inod)=savebuffer(4)
+             new_coordinates%val(X_,inod)=savebuffer(2)
+             new_coordinates%val(Y_,inod)=savebuffer(3)
+             new_coordinates%val(Z_,inod)=savebuffer(4)
              new_volumefraction%val(inod)=savebuffer(5)
-             new_velocity%val(X_)%ptr(inod)=savebuffer(6)
-             new_velocity%val(Y_)%ptr(inod)=savebuffer(7)
-             new_velocity%val(Z_)%ptr(inod)=savebuffer(8)
+             new_velocity%val(X_,inod)=savebuffer(6)
+             new_velocity%val(Y_,inod)=savebuffer(7)
+             new_velocity%val(Z_,inod)=savebuffer(8)
              new_metric%val(1,1,inod)=savebuffer(9)
              new_metric%val(1,2,inod)=savebuffer(10)
              new_metric%val(1,3,inod)=savebuffer(11)
@@ -328,7 +328,7 @@ contains
     ewrite(0,'(a6,'//trim(iter_string)//'(A1,i0))') 'cr.2: ',(' ',acc_crit_2(it),it=1,maxiter)     
 
     do i=1,3
-       gv%val(i)%ptr=(new_coordinates%val(i)%ptr - coordinates%val(i)%ptr)/dt
+       gv%val(i,:)=(new_coordinates%val(i,:) - coordinates%val(i,:))/dt
     end do
 
     call deallocate(metric);call deallocate(metric_save);call deallocate(functional_field);
@@ -505,9 +505,9 @@ contains
     do ele=1,element_count(coordinates)
        do iloc=1,nloc
           node = coordinates%mesh%ndglno((ele-1)*nloc+iloc)
-          xx(iloc) = coordinates%val(X_)%ptr(node)
-          yy(iloc) = coordinates%val(Y_)%ptr(node)
-          zz(iloc) = coordinates%val(Z_)%ptr(node)
+          xx(iloc) = coordinates%val(X_,node)
+          yy(iloc) = coordinates%val(Y_,node)
+          zz(iloc) = coordinates%val(Z_,node)
        end do
        volumes(ele)=element_volume_s(nloc,xx,yy,zz)
        if (volumes(ele)<=0.0) then
@@ -541,9 +541,9 @@ contains
     do inod=1,nonods                       
        negvol=.false.
        fail=.false.       
-       xnew=new_coordinates%val(X_)%ptr(inod)
-       ynew=new_coordinates%val(Y_)%ptr(inod)
-       znew=new_coordinates%val(Z_)%ptr(inod)
+       xnew=new_coordinates%val(X_,inod)
+       ynew=new_coordinates%val(Y_,inod)
+       znew=new_coordinates%val(Z_,inod)
        call calculate_functional_from_new_coordinates(                  &
             state,inod,xnew,ynew,znew,metric,metric_save,               &
             new_coordinates,new_velocity,new_metric,new_volumefraction, &
@@ -630,9 +630,9 @@ contains
              mele = mele + metric_nod_new 
              mele=mele+metric_nod_new
           else
-             xx(iloc) = new_coordinates%val(X_)%ptr(node)
-             yy(iloc) = new_coordinates%val(Y_)%ptr(node)
-             zz(iloc) = new_coordinates%val(Z_)%ptr(node)
+             xx(iloc) = new_coordinates%val(X_,node)
+             yy(iloc) = new_coordinates%val(Y_,node)
+             zz(iloc) = new_coordinates%val(Z_,node)
              !             mele=mele+new_metric%val(:,:,node)
              mele(1)=mele(1)+new_metric%val(1,1,node)
              mele(2)=mele(2)+new_metric%val(1,2,node)
@@ -655,9 +655,9 @@ contains
     coordinates=extract_vector_field(state(fs),"Coordinate")
     !------------------------------------------------------------------------------
     !This section calculates the lagrangian functional.(funtional 2)
-    uu=v%val(X_)%ptr(inod)-(xnew-coordinates%val(X_)%ptr(inod))/dt
-    vv=v%val(Y_)%ptr(inod)-(ynew-coordinates%val(Y_)%ptr(inod))/dt
-    ww=v%val(Z_)%ptr(inod)-(znew-coordinates%val(Z_)%ptr(inod))/dt
+    uu=v%val(X_,inod)-(xnew-coordinates%val(X_,inod))/dt
+    vv=v%val(Y_,inod)-(ynew-coordinates%val(Y_,inod))/dt
+    ww=v%val(Z_,inod)-(znew-coordinates%val(Z_,inod))/dt
     functional2 = ((dt/minch)**2.0)*(uu**2.0 + vv**2.0 + ww**2.0)
 
     !------------------------------------------------------------------------------
@@ -683,7 +683,7 @@ contains
     !    end do
     !    !THIS IS FROM FIELD DERIVATIVES.F90 LINE 1076
     !    do i=1,3
-    !       gradient%val(i)%ptr(node) = gradient%val(i)%ptr(node) / node_val(lumped_mass_matrix, node)
+    !       gradient%val(i,node) = gradient%val(i,node) / node_val(lumped_mass_matrix, node)
     !    end do
     !    call deallocate(lumped_mass_matrix)
     !    call deallocate(gradient)
@@ -746,13 +746,13 @@ contains
     f=0.0  
     grad_f=0.0
     do i=1,3       
-       new_c(1)=new_coordinates%val(X_)%ptr(inod) 
-       new_c(2)=new_coordinates%val(Y_)%ptr(inod)
-       new_c(3)=new_coordinates%val(Z_)%ptr(inod) 
+       new_c(1)=new_coordinates%val(X_,inod) 
+       new_c(2)=new_coordinates%val(Y_,inod)
+       new_c(3)=new_coordinates%val(Z_,inod) 
        !if there is no boundary condition that impedes movement of nodes in this direction, for this node (inod)
        !then calculate the functionals. Otherwise, jump to next coordinate axis.
        if(b_condition(inod,i)==0) cycle
-       new_c(i)=new_coordinates%val(i)%ptr(inod) + d(i)       
+       new_c(i)=new_coordinates%val(i,inod) + d(i)       
        
        !Calculate new functional values (positive side)
        call calculate_functional_from_new_coordinates(                  &
@@ -764,10 +764,10 @@ contains
        !If there is a negative volume resulting from this, or a failure to calculate, then exit the i loop
        if(negvol.or.fail) return                                                                                 
        
-       new_c(1)=new_coordinates%val(X_)%ptr(inod) 
-       new_c(2)=new_coordinates%val(Y_)%ptr(inod)
-       new_c(3)=new_coordinates%val(Z_)%ptr(inod)     
-       new_c(i)=new_coordinates%val(i)%ptr(inod) - d(i)
+       new_c(1)=new_coordinates%val(X_,inod) 
+       new_c(2)=new_coordinates%val(Y_,inod)
+       new_c(3)=new_coordinates%val(Z_,inod)     
+       new_c(i)=new_coordinates%val(i,inod) - d(i)
        !Calculate new functional values. (negative side
        call calculate_functional_from_new_coordinates(                  &
             state,inod,new_c(1),new_c(2),new_c(3),metric,metric_save,   &
@@ -802,7 +802,7 @@ contains
     gv=extract_vector_field(state(fs),"GridVelocity")
 
     do i=1,3
-       coordinates%val(i)%ptr=coordinates%val(i)%ptr + gv%val(i)%ptr*dt
+       coordinates%val(i,:)=coordinates%val(i,:) + gv%val(i,:)*dt
     end do
 
   end  subroutine coordinate_update
@@ -843,9 +843,9 @@ contains
        ele=patch%elements(icount)
        do iloc=1,nloc
           node = new_coordinates%mesh%ndglno((ele-1)*nloc+iloc)
-          xx(iloc) = new_coordinates%val(X_)%ptr(node)
-          yy(iloc) = new_coordinates%val(Y_)%ptr(node)
-          zz(iloc) = new_coordinates%val(Z_)%ptr(node)
+          xx(iloc) = new_coordinates%val(X_,node)
+          yy(iloc) = new_coordinates%val(Y_,node)
+          zz(iloc) = new_coordinates%val(Z_,node)
           if(inod==node) then
              xx(iloc) = xnew
              yy(iloc) = ynew
@@ -894,9 +894,9 @@ contains
           volume=volumes(ele)
           do iloc=1,nloc
              node = coordinates%mesh%ndglno((ele-1)*nloc+iloc)
-             xx(iloc) = coordinates%val(X_)%ptr(node)
-             yy(iloc) = coordinates%val(Y_)%ptr(node)
-             zz(iloc) = coordinates%val(Z_)%ptr(node)
+             xx(iloc) = coordinates%val(X_,node)
+             yy(iloc) = coordinates%val(Y_,node)
+             zz(iloc) = coordinates%val(Z_,node)
           end do
           !calculate partial volumes
           do iloc=1,nloc
@@ -924,9 +924,9 @@ contains
                 node=coordinates%mesh%ndglno((ele-1)*nloc+iloc)
                 shapef=pvl(iloc)/volume
                 mvf_nod_new=mvf_nod_new + volumefraction%val(node)*shapef
-                velu_nod_new= velu_nod_new + v%val(1)%ptr(node)*shapef
-                velv_nod_new= velv_nod_new + v%val(2)%ptr(node)*shapef
-                velw_nod_new= velw_nod_new + v%val(3)%ptr(node)*shapef
+                velu_nod_new= velu_nod_new + v%val(1,node)*shapef
+                velv_nod_new= velv_nod_new + v%val(2,node)*shapef
+                velw_nod_new= velw_nod_new + v%val(3,node)*shapef
                 metric_nod_new(1)=metric_nod_new(1) + metric%val(1,1,node)*shapef   
                 metric_nod_new(2)=metric_nod_new(2) + metric%val(1,2,node)*shapef
                 metric_nod_new(3)=metric_nod_new(3) + metric%val(1,3,node)*shapef 

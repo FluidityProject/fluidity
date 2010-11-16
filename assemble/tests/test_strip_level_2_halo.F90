@@ -137,9 +137,9 @@ subroutine test_strip_level_2_halo
   allocate(x(nnodes))
   allocate(y(nnodes))
   allocate(z(nnodes))
-  x = mesh_field%val(1)%ptr
-  y = mesh_field%val(2)%ptr
-  z = mesh_field%val(3)%ptr
+  x = mesh_field%val(1,:)
+  y = mesh_field%val(2,:)
+  z = mesh_field%val(3,:)
 
   nfields = 0
   fstride = nnodes
@@ -221,9 +221,9 @@ subroutine test_strip_level_2_halo
 
   mesh_field = extract_vector_field(state, "Coordinate")
   assert(mesh_dim(mesh_field) == 3)
-  call report_test("[Same x coordinates]", any(mesh_field%val(1)%ptr /= x(1:nnodes)), .false., "x coordinates returned by strip_level_2_halo and flstriph2 are different")
-  call report_test("[Same y coordinates]", any(mesh_field%val(2)%ptr /= y(1:nnodes)), .false., "y coordinates returned by strip_level_2_halo and flstriph2 are different")
-  call report_test("[Same z coordinates]", any(mesh_field%val(3)%ptr /= z(1:nnodes)), .false., "z coordinates returned by strip_level_2_halo and flstriph2 are different")
+  call report_test("[Same x coordinates]", any(mesh_field%val(1,:) /= x(1:nnodes)), .false., "x coordinates returned by strip_level_2_halo and flstriph2 are different")
+  call report_test("[Same y coordinates]", any(mesh_field%val(2,:) /= y(1:nnodes)), .false., "y coordinates returned by strip_level_2_halo and flstriph2 are different")
+  call report_test("[Same z coordinates]", any(mesh_field%val(3,:) /= z(1:nnodes)), .false., "z coordinates returned by strip_level_2_halo and flstriph2 are different")
 
   call report_test("[Same number of level 1 receive nodes]", halo_all_receives_count(mesh_field%mesh%halos(1)) /= nscatter, .false., "Number of level 1 receive nodes returned by strip_level_2_halo and flstriph2 are different")
   allocate(new_scatter(halo_all_receives_count(mesh_field%mesh%halos(1))))

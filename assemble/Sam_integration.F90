@@ -944,7 +944,7 @@ module sam_integration
        allocate(senlist(stotel * snloc))
        ewrite(1, *) "Calling sam_export_mesh from sam_drive"
        call sam_export_mesh(nonods, totele, stotel, nloc, snloc, &
-                          & new_positions%val(1)%ptr, new_positions%val(2)%ptr, new_positions%val(3)%ptr, &
+                          & new_positions%val(1,:), new_positions%val(2,:), new_positions%val(3,:), &
                           & linear_mesh%ndglno, senlist, surface_ids)
        ewrite(1, *) "Exited sam_export_mesh"
        linear_mesh%option_path = linear_mesh_option_path
@@ -1088,14 +1088,12 @@ module sam_integration
 
          do field=vcount(state),1,-1
            do component=dim,1,-1
-             call sam_pop_field(linear_v%val(component)%ptr, node_count(linear_mesh))
+             call sam_pop_field(linear_v%val(component,:), node_count(linear_mesh))
            end do
 
            field_v => extract_vector_field(states(state), trim(namelist_v(state, field)))
-           do component=dim,1,-1
-             deallocate(field_v%val(component)%ptr)
-             allocate(field_v%val(component)%ptr(node_count(field_v%mesh)))
-           end do
+           deallocate(field_v%val)
+           allocate(field_v%val(dim,node_count(field_v%mesh)))
 #ifdef HAVE_MEMORY_STATS
            call register_allocation("vector_field", "real", node_count(field_v%mesh)*mesh_dim(field_v%mesh), name=trim(field_v%name))
 #endif
@@ -1187,10 +1185,8 @@ module sam_integration
          do j = 1, vector_field_count(states(i))
            v_field => extract_vector_field(states(i), j)
            if(v_field%field_type == FIELD_TYPE_DEFERRED) then
-             do k = 1, mesh_dim(v_field%mesh)
-               deallocate(v_field%val(k)%ptr)
-               allocate(v_field%val(k)%ptr(node_count(v_field%mesh)))
-             end do
+             deallocate(v_field%val)
+             allocate(v_field%val(mesh_dim(v_field%mesh),node_count(v_field%mesh)))
 #ifdef HAVE_MEMORY_STATS
              call register_allocation("vector_field", "real", node_count(v_field%mesh)*mesh_dim(v_field%mesh), name=trim(v_field%name))
 #endif
@@ -1260,15 +1256,15 @@ module sam_integration
        call interleave_surface_ids(mesh, surfid, max_coplanar_id)
        select case(dim)
          case(3)
-           x => positions%val(1)%ptr
-           y => positions%val(2)%ptr
-           z => positions%val(3)%ptr
+           x => positions%val(1,:)
+           y => positions%val(2,:)
+           z => positions%val(3,:)
          case(2)
-           x => positions%val(1)%ptr
-           y => positions%val(2)%ptr
+           x => positions%val(1,:)
+           y => positions%val(2,:)
            z => dummy
          case(1)
-           x => positions%val(1)%ptr
+           x => positions%val(1,:)
            y => dummy
            z => dummy
          case default
@@ -1360,7 +1356,7 @@ module sam_integration
        integer :: i
        
        do i=1,field%dim
-         call sam_add_field(field%val(i)%ptr, node_count(field))
+         call sam_add_field(field%val(i,:), node_count(field))
        end do
        
      end subroutine sam_add_field_vector

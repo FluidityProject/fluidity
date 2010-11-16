@@ -288,7 +288,7 @@ contains
       if(include_advection) then
         nu=>extract_vector_field(state(1), "NonlinearVelocity")
         do i = 1, nu%dim
-          ewrite_minmax(nu%val(i)%ptr)
+          ewrite_minmax(nu%val(i,:))
         end do
         ! find relative velocity
         allocate(advu)
@@ -309,7 +309,7 @@ contains
           call addto(advu, gravity, scale=sink)
         end if
         do i = 1, advu%dim
-          ewrite_minmax(advu%val(i)%ptr)
+          ewrite_minmax(advu%val(i,:))
         end do
       else
         ewrite(2,*) 'Excluding advection'
@@ -525,7 +525,7 @@ contains
         
         ug=>extract_vector_field(state(1), "GridVelocity")
         do i = 1, ug%dim
-          ewrite_minmax(ug%val(i)%ptr)
+          ewrite_minmax(ug%val(i,:))
         end do
 
         ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
@@ -2392,7 +2392,7 @@ contains
         
         ug=>extract_vector_field(state(1), "GridVelocity")
         do i = 1, ug%dim
-          ewrite_minmax(ug%val(i)%ptr)
+          ewrite_minmax(ug%val(i,:))
         end do
 
         ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)

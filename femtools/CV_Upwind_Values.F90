@@ -1601,15 +1601,15 @@ contains
        n = 0.0
        vx = 0.0
        do k = 1, x_field%dim
-         n(k) = normals%val(k)%ptr(i) ! extract the normal
-         vx(k) = (x_field%val(k)%ptr(i) &
-                 -x_field%val(k)%ptr(j))    ! extract the vector between the nodes
+         n(k) = normals%val(k,i) ! extract the normal
+         vx(k) = (x_field%val(k,i) &
+                 -x_field%val(k,j))    ! extract the vector between the nodes
        end do
        t2 = cross_product(n, vx)      ! find the perpendicular surface tangent
        if(norm2(t2)<(1.e-5)*norm2(vx)) then   ! if the node pair is almost perpendicular to the surface
          do k = 1, x_field%dim                      ! then just reflect straight back
-            xc(k) = c_distance*(x_field%val(k)%ptr(j) &
-                                       -x_field%val(k)%ptr(i))
+            xc(k) = c_distance*(x_field%val(k,j) &
+                                       -x_field%val(k,i))
          end do
        else
          t2 = t2/norm2(t2)          ! normalise the surface tangent
@@ -1637,8 +1637,8 @@ contains
                             ! and use the values from that
        do k = 1, x_field%dim
          ! find the vector to upwind coordinates
-         xc(k) = -c_distance*(x_field%val(k)%ptr(j) &
-                             -x_field%val(k)%ptr(i))
+         xc(k) = -c_distance*(x_field%val(k,j) &
+                             -x_field%val(k,i))
        end do
     end if
 
@@ -1666,14 +1666,14 @@ contains
        n = 0.0
        vx = 0.0
        do k = 1, x%dim
-         n(k) = normals%val(k)%ptr(i) ! extract the normal
-         vx(k) = (x%val(k)%ptr(i) &
-                 -x%val(k)%ptr(j))    ! extract the vector between the nodes
+         n(k) = normals%val(k,i) ! extract the normal
+         vx(k) = (x%val(k,i) &
+                 -x%val(k,j))    ! extract the vector between the nodes
        end do
        t2 = cross_product(n, vx)      ! find the perpendicular surface tangent
        if(norm2(t2)<(1.e-5)*norm2(vx)) then   ! if the node pair is almost perpendicular to the surface
          do k = 1, x%dim                      ! then just reflect straight back
-            d(k) = x%val(k)%ptr(j)-x%val(k)%ptr(i)
+            d(k) = x%val(k,j)-x%val(k,i)
          end do
        else
          t2 = t2/norm2(t2)          ! normalise the surface tangent
@@ -1698,7 +1698,7 @@ contains
     else                    ! else just find the point outside the mesh (if you're actually on the boundary)
                             ! then (later) you'll just project to an upwind value outside... bounding won't be possible
       do k = 1, x%dim
-         d(k) = x%val(k)%ptr(j)-x%val(k)%ptr(i)
+         d(k) = x%val(k,j)-x%val(k,i)
       end do
     end if
 

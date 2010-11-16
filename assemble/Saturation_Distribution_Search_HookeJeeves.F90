@@ -379,8 +379,8 @@ module saturation_distribution_search_hookejeeves
            if (is_vwell) then
               call get_option(trim(option_buffer)//'borehole_y',bh_y)
               do j=1,node_count(coordinates)
-                 if ((abs(coordinates%val(X_)%ptr(j)-bh_x)<err).and.(abs(coordinates%val(Y_)%ptr(j)-bh_y)<err).and.&
-                    (abs(coordinates%val(Z_)%ptr(j)-target_potential(i,1))<err)) then
+                 if ((abs(coordinates%val(X_,j)-bh_x)<err).and.(abs(coordinates%val(Y_,j)-bh_y)<err).and.&
+                    (abs(coordinates%val(Z_,j)-target_potential(i,1))<err)) then
                     node_list(i)=j
                  end if
               end do
@@ -388,8 +388,8 @@ module saturation_distribution_search_hookejeeves
               call get_option(trim(option_buffer)//'borehole_x',bh_x)
               call get_option(trim(option_buffer)//'borehole_z',bh_z)
               do j=1,node_count(coordinates)
-                 if ((abs(coordinates%val(X_)%ptr(j)-bh_x)<err).and.(abs(coordinates%val(Z_)%ptr(j)-bh_z)<err).and.&
-                    (abs(coordinates%val(Y_)%ptr(j)-target_potential(i,1))<err)) then
+                 if ((abs(coordinates%val(X_,j)-bh_x)<err).and.(abs(coordinates%val(Z_,j)-bh_z)<err).and.&
+                    (abs(coordinates%val(Y_,j)-target_potential(i,1))<err)) then
                     node_list(i)=j
                  endif
               end do

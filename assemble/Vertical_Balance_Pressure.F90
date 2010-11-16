@@ -262,7 +262,7 @@ module vertical_balance_pressure
     assert(ele_count(positions) == ele_count(mom_rhs))
 
     do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
+      ewrite_minmax(mom_rhs%val(i,:))
     end do
     
     do i = 1, ele_count(mom_rhs)
@@ -272,7 +272,7 @@ module vertical_balance_pressure
     end do
 
     do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
+      ewrite_minmax(mom_rhs%val(i,:))
     end do
     
     ewrite(1, *) "Exiting subtract_vertical_balance_pressure_gradient"

@@ -72,13 +72,13 @@ contains
     end if
 
     if (field%mesh==position%mesh) then
-       x=>position%val(1)%ptr
+       x=>position%val(1,:)
        
        if (dim>1) then
-          y=>position%val(2)%ptr
+          y=>position%val(2,:)
 
           if (dim>2) then
-             z=>position%val(3)%ptr
+             z=>position%val(3,:)
           end if
        end if
     else
@@ -86,13 +86,13 @@ contains
        call allocate(lposition, dim, field%mesh, "Local Position")
        call remap_field(position, lposition)
 
-       x=>lposition%val(1)%ptr
+       x=>lposition%val(1,:)
        
        if (dim>1) then
-          y=>lposition%val(2)%ptr
+          y=>lposition%val(2,:)
 
           if (dim>2) then
-             z=>lposition%val(3)%ptr
+             z=>lposition%val(3,:)
           end if
        end if
     end if

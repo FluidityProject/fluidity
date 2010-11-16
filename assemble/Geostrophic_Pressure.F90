@@ -460,7 +460,7 @@ contains
         ewrite(2, *) "Using " // hpg_name
         have_hpg = .true.
         do i = 1, hpg%dim
-          ewrite_minmax(hpg%val(i)%ptr)
+          ewrite_minmax(hpg%val(i,:))
         end do
       else
         ewrite(2, *) "No " // hpg_name
@@ -485,7 +485,7 @@ contains
       assert(ele_count(velocity) == ele_count(gp_rhs))
     
       do i = 1, velocity%dim
-        ewrite_minmax(velocity%val(i)%ptr)
+        ewrite_minmax(velocity%val(i,:))
       end do
     else
       velocity => dummy_vector
@@ -701,7 +701,7 @@ contains
     assert(ele_count(positions) == ele_count(mom_rhs))
 
     do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
+      ewrite_minmax(mom_rhs%val(i,:))
     end do
     
     do i = 1, ele_count(mom_rhs)
@@ -711,7 +711,7 @@ contains
     end do
     
     do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
+      ewrite_minmax(mom_rhs%val(i,:))
     end do
     
     ewrite(1, *) "Exiting subtract_geostrophic_pressure_gradient"
@@ -1587,7 +1587,7 @@ contains
         call assemble_velocity_ele(i, positions, coriolis, velocity, llump_rhs)
       end do
       do i = 1, coriolis%dim
-        velocity%val(i)%ptr = velocity%val(i)%ptr / masslump%val
+        velocity%val(i,:) = velocity%val(i,:) / masslump%val
       end do
     else
       select case(cont)
@@ -1606,7 +1606,7 @@ contains
             call assemble_velocity_ele(i, positions, coriolis, rhs, llump_rhs)
           end do
           do i = 1, rhs%dim
-            ewrite_minmax(rhs%val(i)%ptr)
+            ewrite_minmax(rhs%val(i,:))
           end do
           call petsc_solve(velocity, mass, rhs, option_path = solver_path)
           call deallocate(rhs)
@@ -1621,7 +1621,7 @@ contains
     end if
     
     do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i)%ptr)
+      ewrite_minmax(velocity%val(i,:))
     end do
     
     ewrite(1, *) "Exiting velocity_from_coriolis"
@@ -1741,7 +1741,7 @@ contains
         call assemble_coriolis_ele(i, positions, velocity, coriolis, llump_rhs)
       end do
       do i = 1, coriolis%dim
-        coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
+        coriolis%val(i,:) = coriolis%val(i,:) / masslump%val
       end do
     else
       select case(cont)
@@ -1772,7 +1772,7 @@ contains
     end if
     
     do i = 1, coriolis%dim
-      ewrite_minmax(coriolis%val(i)%ptr)
+      ewrite_minmax(coriolis%val(i,:))
     end do
     
     ewrite(1, *) "Exiting coriolis_from_velocity"
@@ -3009,9 +3009,9 @@ contains
       & solver_path = trim(base_path) // "/coriolis/coriolis_to_velocity")  
     if(dim == 3) then
       ! Recover the vertical velocity
-      ewrite_minmax(new_velocity%val(W_)%ptr)
+      ewrite_minmax(new_velocity%val(W_,:))
       call set(new_velocity, W_, new_w)
-      ewrite_minmax(new_velocity%val(W_)%ptr)
+      ewrite_minmax(new_velocity%val(W_,:))
       call deallocate(new_w)
     end if
     

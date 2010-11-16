@@ -255,14 +255,14 @@
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
       do dim = 1, source%dim
-        ewrite_minmax(source%val(dim)%ptr(:))
+        ewrite_minmax(source%val(dim,:))
       end do
 
       absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
       do dim = 1, absorption%dim
-        ewrite_minmax(absorption%val(dim)%ptr(:))
+        ewrite_minmax(absorption%val(dim,:))
       end do
 
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
@@ -645,18 +645,18 @@
         if (low_re_p_correction_fix) then
           ewrite(2,*) "using low_re_p_correction_fix"
           do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
+            ewrite_minmax(visc_inverse_masslump%val(dim,:))
           end do
           ! viscous_terms are already added to the lumped mass matrix
           call addto(visc_inverse_masslump, inverse_masslump)
           ewrite(2,*) "For comparison only:"
           ewrite(2,*) "The orig inverse_masslump is:"
           do dim = 1, rhs%dim
-            ewrite_minmax(inverse_masslump%val(dim)%ptr)
+            ewrite_minmax(inverse_masslump%val(dim,:))
           end do
           ewrite(2,*) "The new visc_inverse_masslump is:"
           do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
+            ewrite_minmax(visc_inverse_masslump%val(dim,:))
           end do
           ! invert the visc_inverse_masslump:
           call invert(visc_inverse_masslump)
@@ -665,7 +665,7 @@
           
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
           do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim)%ptr)
+            ewrite_minmax(visc_inverse_masslump%val(dim,:))
           end do
           ewrite(2,*) "****************************************"
         endif
@@ -677,7 +677,7 @@
         call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
         
         do dim = 1, rhs%dim
-          ewrite_minmax(inverse_masslump%val(dim)%ptr)
+          ewrite_minmax(inverse_masslump%val(dim,:))
         end do
       end if
       
@@ -686,7 +686,7 @@
       end if
             
       do dim = 1, rhs%dim
-        ewrite_minmax(rhs%val(dim)%ptr)
+        ewrite_minmax(rhs%val(dim,:))
       end do
 
       if (les_fourth_order) then
@@ -2133,7 +2133,7 @@
 
       call halo_update(u)
       do i = 1, u%dim
-        ewrite_minmax(u%val(i)%ptr(:))
+        ewrite_minmax(u%val(i,:))
       end do
 
       call deallocate(delta_u)
@@ -2174,7 +2174,7 @@
       
       call halo_update(u)
       do i = 1, u%dim
-        ewrite_minmax(u%val(i)%ptr(:))
+        ewrite_minmax(u%val(i,:))
       end do
 
       call deallocate(delta_U1)

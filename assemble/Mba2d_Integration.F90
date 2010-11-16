@@ -134,7 +134,7 @@ module mba2d_integration
     allocate(pos(2, maxp))
     pos = 0.0
     do i=1,2
-      pos(i, 1:nonods) = input_positions%val(i)%ptr
+      pos(i, 1:nonods) = input_positions%val(i,:)
     end do
 
     allocate(surface_ids(surface_element_count(xmesh)))

@@ -26,9 +26,9 @@ subroutine test_pseudo2d_hessian
   call allocate(hessian, mesh, "Hessian")
 
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
-    y = position_field%val(2)%ptr(i)
-    z = position_field%val(3)%ptr(i)
+    x = position_field%val(1,i)
+    y = position_field%val(2,i)
+    z = position_field%val(3,i)
     pressure_field%val(i) = x * x
   end do
 
@@ -39,10 +39,10 @@ subroutine test_pseudo2d_hessian
 
   fail = .false.
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
+    x = position_field%val(1,i)
     if (x <= 1.0 .or. x >= 29.0) cycle
 
-    y = position_field%val(2)%ptr(i)
+    y = position_field%val(2,i)
     if (y <= 1.0 .or. y >= 14.0) cycle
 
     if (.not. fequals(hessian%val(1, 1, i), answer(1, 1), 0.15)) then
@@ -56,10 +56,10 @@ subroutine test_pseudo2d_hessian
 
   fail = .false.
   do i=1,mesh%nodes
-    x = position_field%val(1)%ptr(i)
+    x = position_field%val(1,i)
     if (x <= 1.0 .or. x >= 29.0) cycle
 
-    y = position_field%val(2)%ptr(i)
+    y = position_field%val(2,i)
     if (y <= 1.0 .or. y >= 14.0) cycle
 
     if (.not. fequals(hessian%val(1, 2, i), answer(1, 2), 0.15)) then

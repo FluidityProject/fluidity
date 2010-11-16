@@ -336,11 +336,11 @@ contains
       select case(b%field_type)
       case(FIELD_TYPE_NORMAL)
         do i = 1, block_size(A,1)
-          call addto(A, j, j, i, i, b%val(j)%ptr(i)*l_scale)
+          call addto(A, j, j, i, i, b%val(j,i)*l_scale)
         end do
       case(FIELD_TYPE_CONSTANT)
         allocate(tmp(node_count(b)))
-        tmp=b%val(j)%ptr
+        tmp=b%val(j,:)
         do i = 1, block_size(A,1)
           call addto(A, j, j, i, i, tmp(i)*l_scale)
         end do
@@ -396,10 +396,10 @@ contains
     do dim=1,b%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
-          call mult(tmpx, block(A,1,dim), b%val(dim)%ptr)
+          call mult(tmpx, block(A,1,dim), b%val(dim,:))
        case(FIELD_TYPE_CONSTANT)
           allocate(tmpb(size(x%val)))
-          tmpb=b%val(dim)%ptr(1)
+          tmpb=b%val(dim,1)
           call mult(tmpx, block(A,1,dim), tmpb)
           deallocate(tmpb)
        end select
@@ -425,11 +425,11 @@ contains
     do dim=1,x%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
-          call mult(x%val(dim)%ptr, block(A,dim,1), b%val)
+          call mult(x%val(dim,:), block(A,dim,1), b%val)
        case(FIELD_TYPE_CONSTANT)
-          allocate(tmpb(size(x%val(dim)%ptr)))
+          allocate(tmpb(size(x%val(dim,:))))
           tmpb=b%val
-          call mult(x%val(dim)%ptr, block(A,dim,1), tmpb)
+          call mult(x%val(dim,:), block(A,dim,1), tmpb)
           deallocate(tmpb)
        end select
     end do
@@ -448,7 +448,7 @@ contains
 
     assert(all(A%blocks==(/x%dim,b%dim/)))
 
-    allocate(tmpx(size(x%val(1)%ptr)))
+    allocate(tmpx(size(x%val(1,:))))
     call zero(x)
     
     do dim_x=1,x%dim
@@ -457,14 +457,14 @@ contains
           
           select case(b%field_type)
           case(FIELD_TYPE_NORMAL)
-             call mult(tmpx, block(A,dim_x,dim_b), b%val(dim_b)%ptr)
+             call mult(tmpx, block(A,dim_x,dim_b), b%val(dim_b,:))
           case(FIELD_TYPE_CONSTANT)
              allocate(tmpb(size(x%val)))
-             tmpb=b%val(dim_b)%ptr(dim_x)
+             tmpb=b%val(dim_b,dim_x)
              call mult(tmpx, block(A,dim_x,dim_b), tmpb)
              deallocate(tmpb)
           end select
-          x%val(dim_x)%ptr=x%val(dim_x)%ptr+tmpx
+          x%val(dim_x,:)=x%val(dim_x,:)+tmpx
        end do
     end do
 
@@ -506,11 +506,11 @@ contains
     do dim=1,x%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
-          call mult_T(x%val(dim)%ptr, block(A,1,dim), b%val)
+          call mult_T(x%val(dim,:), block(A,1,dim), b%val)
        case(FIELD_TYPE_CONSTANT)
           allocate(tmpb(node_count(b)))
           tmpb=b%val(1)
-          call mult_T(x%val(dim)%ptr, block(A,1,dim), tmpb)
+          call mult_T(x%val(dim,:), block(A,1,dim), tmpb)
           deallocate(tmpb)
        end select
     end do

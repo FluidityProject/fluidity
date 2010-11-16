@@ -238,7 +238,7 @@ contains
     ! Coordinate
     positions => extract_vector_field(state, "Coordinate")
     do i = 1, positions%dim
-      ewrite_minmax(positions%val(i)%ptr)
+      ewrite_minmax(positions%val(i,:))
     end do
     assert(positions%dim == mesh_dim(t))
     assert(ele_count(positions) == ele_count(t))
@@ -251,7 +251,7 @@ contains
       
       ewrite(2, *) "Velocity:"
       do i = 1, velocity_ptr%dim
-        ewrite_minmax(velocity_ptr%val(i)%ptr)
+        ewrite_minmax(velocity_ptr%val(i,:))
       end do
 
       if (have_option(trim(t%option_path) // &
@@ -302,7 +302,7 @@ contains
       ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
       call addto(velocity, gravity_direction, scale = sinking_velocity)
       do i = 1, velocity_ptr%dim
-        ewrite_minmax(velocity%val(i)%ptr)
+        ewrite_minmax(velocity%val(i,:))
       end do
     else
       ewrite(2, *) "No sinking velocity"
@@ -378,11 +378,11 @@ contains
       ewrite(2,*) "Moving the mesh"
       old_positions => extract_vector_field(state, "OldCoordinate")
       do i = 1, old_positions%dim
-        ewrite_minmax(old_positions%val(i)%ptr)
+        ewrite_minmax(old_positions%val(i,:))
       end do
       new_positions => extract_vector_field(state, "IteratedCoordinate")
       do i = 1, new_positions%dim
-        ewrite_minmax(new_positions%val(i)%ptr)
+        ewrite_minmax(new_positions%val(i,:))
       end do
       
       ! Grid velocity
@@ -392,7 +392,7 @@ contains
       
       ewrite(2, *) "Grid velocity:"    
       do i = 1, grid_velocity%dim
-        ewrite_minmax(grid_velocity%val(i)%ptr)
+        ewrite_minmax(grid_velocity%val(i,:))
       end do
     else
       ewrite(2,*) "Not moving the mesh"

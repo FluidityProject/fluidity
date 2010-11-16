@@ -190,7 +190,7 @@ contains
 
       do n = 1, ntests
          do d1 = 1, dim
-            call random_number(u_test%val(d1)%ptr)
+            call random_number(u_test%val(d1,:))
          end do
 
          !First apply mass matrix
@@ -211,8 +211,8 @@ contains
          call addto(u_mem2,u_test,scale=-1.0)
          !Now check the residual
          do d1 = 1, dim
-            if(maxval(abs(u_mem2%val(d1)%ptr))>1.0e-7) then
-               ewrite(-1,*) 'residual of ',maxval(abs(u_mem2%val(d1)%ptr))
+            if(maxval(abs(u_mem2%val(d1,:)))>1.0e-7) then
+               ewrite(-1,*) 'residual of ',maxval(abs(u_mem2%val(d1,:)))
                ewrite(-1,*) 'in component',d1
                FLAbort('check big mat failed')
             end if
@@ -293,11 +293,11 @@ contains
       !
       ewrite(2,*) dt,theta,g,D0
       ewrite(2,*) 'SW: h residual', maxval(abs(h_residual%val))
-      ewrite(2,*) 'SW: u1 residual', maxval(abs(u_residual%val(1)%ptr))
-      ewrite(2,*) 'SW: u size', maxval(abs(u%val(1)%ptr))
+      ewrite(2,*) 'SW: u1 residual', maxval(abs(u_residual%val(1,:)))
+      ewrite(2,*) 'SW: u size', maxval(abs(u%val(1,:)))
       if(dim==2) then
-         ewrite(2,*) 'SW: u2 residual', maxval(abs(u_residual%val(2)%ptr))
-      ewrite(2,*) 'SW: u size', maxval(abs(u%val(2)%ptr))
+         ewrite(2,*) 'SW: u2 residual', maxval(abs(u_residual%val(2,:)))
+      ewrite(2,*) 'SW: u size', maxval(abs(u%val(2,:)))
       end if
       call deallocate(h_residual)
       call deallocate(u_residual)
@@ -405,8 +405,8 @@ contains
       call mult_T(vec,div_mat,D)
       call addto(u_rhs,vec,scale=-dt*g)
 
-      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(1)%ptr))
-      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2)%ptr))
+      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(1,:)))
+      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2,:)))
 
       call deallocate(rhs2)
       call deallocate(vec)

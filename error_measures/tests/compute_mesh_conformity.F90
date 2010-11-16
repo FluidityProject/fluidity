@@ -39,9 +39,9 @@ subroutine compute_mesh_conformity
   call allocate(metric, mesh, "Metric")
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
 !    if (x == 0.0) pressure%val(i) = 0.0
 !    if (x <= 3.0) pressure%val(i) = x   * 1.0e6  ! ramp up .. rapidly
 !    if (x >  3.0) pressure%val(i) = 3.0 * 1.0e6

@@ -328,7 +328,7 @@ contains
 
     ewrite(2,*) 'MinMax info for subdomain_mesh positions_field: '
     do i = 1, mesh_dim(subdomain_mesh)
-       ewrite_minmax(position%val(i)%ptr)
+       ewrite_minmax(position%val(i,:))
     end do
 
     ! Load sub_states:

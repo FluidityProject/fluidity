@@ -111,8 +111,8 @@ program make_cube_test_data
      call get_lumped_mass(u2_inverse_mass,u_mesh,positions, &
           u2_dirichlet,dirichlet_flag)
      do i = 1, node_count(u_mesh)
-        u1_inverse_mass%val(i)%ptr = u1_inverse_mass%val(i)%ptr
-        u2_inverse_mass%val(i)%ptr = u2_inverse_mass%val(i)%ptr
+        u1_inverse_mass%val(i,:) = u1_inverse_mass%val(i,:)
+        u2_inverse_mass%val(i,:) = u2_inverse_mass%val(i,:)
      end do
   end if
 
@@ -138,7 +138,7 @@ program make_cube_test_data
   do i = 1, size(CMC1,1)
      row_j => CMC1%colm(i)%ptr
      do j = 1, size(row_j)
-        call addto(CMC,i,row_j(j),CMC1%val(i)%ptr(j))
+        call addto(CMC,i,row_j(j),CMC1%val(i,j))
      end do
   end do
 

@@ -38,9 +38,9 @@ subroutine test_boundary_layer_adaptivity_two
   call allocate(field, mesh, "Field") 
 
   do i=1,mesh%nodes
-    x = positions%val(1)%ptr(i)
-    y = positions%val(2)%ptr(i)
-    z = positions%val(3)%ptr(i)
+    x = positions%val(1,i)
+    y = positions%val(2,i)
+    z = positions%val(3,i)
     field%val(i) = tanh(50 * (x-0.5))
   end do
 

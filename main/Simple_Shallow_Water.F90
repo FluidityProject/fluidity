@@ -695,10 +695,10 @@ contains
     
     ewrite_minmax(n_m%val)
     ewrite(2, *) "sum(n_m%val) = ", sum(n_m%val)
-    ewrite_minmax(n_rhs%val(1)%ptr)
-    ewrite(2, *) "sum(n_rhs%val(1)%ptr) = ", sum(n_rhs%val(1)%ptr)
-    ewrite_minmax(n_rhs%val(2)%ptr)
-    ewrite(2, *) "sum(n_rhs%val(2)%ptr) = ", sum(n_rhs%val(2)%ptr)
+    ewrite_minmax(n_rhs%val(1,:))
+    ewrite(2, *) "sum(n_rhs%val(1,:)) = ", sum(n_rhs%val(1,:))
+    ewrite_minmax(n_rhs%val(2,:))
+    ewrite(2, *) "sum(n_rhs%val(2,:)) = ", sum(n_rhs%val(2,:))
     
     ewrite(1, *) "Finished assembling advection terms"
   
@@ -951,8 +951,8 @@ contains
   subroutine increment_fields()
     !!< Increment the system fields using the solution vector
   
-    u%val(1)%ptr = u%val(1)%ptr + big_solution%val(:node_count(u))
-    u%val(2)%ptr = u%val(2)%ptr + big_solution%val(node_count(u) + 1:2 * node_count(u))
+    u%val(1,:) = u%val(1,:) + big_solution%val(:node_count(u))
+    u%val(2,:) = u%val(2,:) + big_solution%val(node_count(u) + 1:2 * node_count(u))
     p%val = p%val + big_solution%val(2 * node_count(u) + 1:)
     
   end subroutine increment_fields

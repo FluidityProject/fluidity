@@ -255,7 +255,7 @@ contains
        if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
          read(node_unit,*) read_buffer
          forall (j=1:dim+1)
-            field%val(j)%ptr(i)=read_buffer(j+1)
+            field%val(j,i)=read_buffer(j+1)
          end forall
          if (node_attributes==1) then
            field%mesh%columns(i)=floor(read_buffer(dim+2))
@@ -263,7 +263,7 @@ contains
        else
          read(node_unit,*) read_buffer
          forall (j=1:dim)
-            field%val(j)%ptr(i)=read_buffer(j+1)
+            field%val(j,i)=read_buffer(j+1)
          end forall
          if (node_attributes==1) then
            field%mesh%columns(i)=floor(read_buffer(dim+2))
@@ -505,7 +505,7 @@ contains
        read(node_unit,*) read_buffer
 
        forall (j=1:dim)
-          field%val(j)%ptr(i)=read_buffer(j+1)
+          field%val(j,i)=read_buffer(j+1)
        end forall
 
        forall (j=1:node_attributes)
@@ -747,7 +747,7 @@ contains
     do i=1,nodes
        read(node_unit,*) read_buffer
        forall (j=1:dim)
-          field%val(j)%ptr(i)=read_buffer(j+1)
+          field%val(j,i)=read_buffer(j+1)
        end forall
     end do
 
@@ -953,7 +953,7 @@ contains
     do i = 1, nodes
        read(node_unit,*) read_buffer
        forall (j=1:dim)
-          field%val(j)%ptr(i)=read_buffer(j+1)
+          field%val(j,i)=read_buffer(j+1)
        end forall
        if (node_attributes==1) then
           field%mesh%columns(i)=floor(read_buffer(dim+1))

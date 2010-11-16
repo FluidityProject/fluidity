@@ -259,8 +259,8 @@ program linear_interpolation_parallel
     integer :: i
 
     do i=1,positions%dim
-      bbox(i, 1) = minval(positions%val(i)%ptr)
-      bbox(i, 2) = maxval(positions%val(i)%ptr)
+      bbox(i, 1) = minval(positions%val(i,:))
+      bbox(i, 2) = maxval(positions%val(i,:))
     end do
   end function compute_bbox
     

@@ -51,7 +51,7 @@ implicit none
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
     & create_surface_mesh, make_fake_mesh_linearnonconforming
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
-    & wrap_vector_field, wrap_tensor_field
+    & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
     & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
@@ -74,10 +74,6 @@ implicit none
      module procedure deallocate_mesh_faces
   end interface
 
-  interface wrap_vector_field
-     module procedure wrap_vector_field_vdata, wrap_vector_field_adata
-  end interface
-  
   interface add_lists
     module procedure add_lists_mesh, add_lists_scalar, add_lists_vector, &
       & add_lists_tensor
@@ -317,45 +313,18 @@ contains
     select case(lfield_type)
     case(FIELD_TYPE_NORMAL)
       n_count = node_count(mesh)
-      do i=1,dim
-         allocate(field%val(i)%ptr(n_count))
-      end do
-
-      do i=dim+1,3
-         allocate(field%val(i)%ptr(0))
-         deallocate(field%val(i)%ptr)
-         !field%val(i)%ptr=>null()
-      end do
-
+      allocate(field%val(dim,n_count))
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("vector_field", "real", n_count*dim, &
         name=name)
 #endif
     case(FIELD_TYPE_CONSTANT)
-      n_count = node_count(mesh)
-      do i=1,dim
-         allocate(field%val(i)%ptr(1))
-      end do
-
-      do i=dim+1,3
-         allocate(field%val(i)%ptr(0))
-         deallocate(field%val(i)%ptr)
-         !field%val(i)%ptr=>null()
-      end do
-
+      allocate(field%val(dim,1))
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("vector_field", "real", dim, name=name)
 #endif
     case(FIELD_TYPE_DEFERRED)
-      do i=1,dim
-         allocate(field%val(i)%ptr(0))
-      end do
-
-      do i=dim+1,3
-         allocate(field%val(i)%ptr(0))
-         deallocate(field%val(i)%ptr)
-         !field%val(i)%ptr=>null()
-      end do
+      allocate(field%val(0,0))
     end select
 
     field%wrapped = .false.
@@ -631,17 +600,14 @@ contains
     if (.not.field%wrapped) then
       select case(field%field_type)
       case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT)
-        do i=1,field%dim
+#ifdef DDEBUG
+        field%val = ieee_get_value(0.0, ieee_quiet_nan)
+#endif          
 #ifdef HAVE_MEMORY_STATS
            call register_deallocation("vector_field", "real", &
-                size(field%val(i)%ptr), name=field%name)
-#endif
-  
-#ifdef DDEBUG
-          field%val(i)%ptr = ieee_get_value(0.0, ieee_quiet_nan)
-#endif
-          deallocate(field%val(i)%ptr)
-        end do
+                size(field%val), name=field%name)
+#endif  
+        deallocate(field%val)
       case(FIELD_TYPE_DEFERRED)
         FLAbort("You were supposed to allocate the deferred field later!")
       end select
@@ -864,76 +830,6 @@ contains
     call addref(field)
 
   end function wrap_scalar_field
-
-  function wrap_vector_field_vdata(mesh, val1, val2, val3, name) result (field)
-    !!< Return a vector field wrapped around the arrays provided.
-    type(vector_field) :: field
-    
-    type(mesh_type), target, intent(in) :: mesh
-    real, dimension(:), target, intent(in) :: val1
-    real, dimension(:), target, intent(in), optional :: val2, val3
-    character(len=*), intent(in) :: name
-    
-    field%val(1)%ptr=>val1
-    field%dim=1
-    if (present(val2)) then
-       field%val(2)%ptr=>val2
-       field%dim=2
-       if (present(val3)) then
-          field%val(3)%ptr=>val3
-          field%dim=3
-       end if
-    end if
-
-    field%mesh=mesh
-    
-    field%name=name
-
-    field%wrapped = .true.
-
-    call incref(mesh)
-    nullify(field%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    
-    allocate(field%picker)
-    
-    allocate(field%bc)
-    
-    call addref(field)
-
-  end function wrap_vector_field_vdata
-
-  function wrap_vector_field_adata(mesh, val, name)&
-       & result (field) 
-    !!< Version of scalar_to_vector_field allowing for the passing of 1
-    !!< nodes x dim array instead of several vectors.
-    type(vector_field) :: field
-    
-    type(mesh_type), intent(in) :: mesh
-    real, dimension(:,:), target, intent(in) :: val
-    character(len=*), intent(in) :: name
-    
-    select case(size(val,2))
-    case(1)
-       field=wrap_vector_field(mesh, val(:,1), name=name)
-    case(2)
-       field=wrap_vector_field(mesh, val(:,1), val(:,2), name=name)
-    case(3)
-       field=wrap_vector_field(mesh, val(:,1), val(:,2), val(:,3),&
-            & name=name) 
-    end select
-       
-    call incref(mesh)
-    nullify(field%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    
-    allocate(field%picker)
-    
-    allocate(field%bc)
-    
-    call addref(field)
-
-  end function wrap_vector_field_adata
 
   function wrap_tensor_field(mesh, val, name) result (field)
     !!< Return a tensor field wrapped around the arrays provided.
@@ -1905,11 +1801,11 @@ contains
     assert(has_faces(model))
         
     !get pointers to coordinates
-    x => positions%val(1)%ptr
+    x => positions%val(1,:)
     if (positions%dim>1) then
-       y => positions%val(2)%ptr
+       y => positions%val(2,:)
        if(positions%dim>1) then
-          z => positions%val(3)%ptr
+          z => positions%val(3,:)
        end if
     end if
 
@@ -2084,7 +1980,7 @@ contains
        mapping_list(local_mapping_list(2,nod)) = nod
        mapping_list(local_mapping_list(1,nod)) = nod
        do k=1, positions_out%dim
-         positions_out%val(k)%ptr(nod)=node_val(positions, k, local_mapping_list(1,nod))
+         positions_out%val(k,nod)=node_val(positions, k, local_mapping_list(1,nod))
        end do
     end do
     !then the rest
@@ -2094,7 +1990,7 @@ contains
           count = count + 1
           mapping_list(nod) = count
           do k=1, positions_out%dim
-             positions_out%val(k)%ptr(count)=node_val(positions, k, nod)
+             positions_out%val(k,count)=node_val(positions, k, nod)
           end do
        end if
     end do
@@ -2387,7 +2283,7 @@ contains
   do i=1,size(elements)
     ele = elements(i)
     do k=1,positions%dim
-      subpos%val(k)%ptr(ele_nodes(subpos, j)) = ele_val(positions, k, ele)
+      subpos%val(k,ele_nodes(subpos, j)) = ele_val(positions, k, ele)
     end do
     j = j + 1
   end do

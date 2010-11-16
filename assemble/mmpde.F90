@@ -143,9 +143,9 @@ contains
     allocate(zorig(node_count(positions)))
     
     do node = 1,node_count(positions)
-       xorig(node) = positions%val(1)%ptr(node) 
-       yorig(node) = positions%val(2)%ptr(node)
-       zorig(node) = positions%val(3)%ptr(node)
+       xorig(node) = positions%val(1,node) 
+       yorig(node) = positions%val(2,node)
+       zorig(node) = positions%val(3,node)
     end do
 
     call vtk_write_fields(trim("Mesh"), 0, positions, positions%mesh, sfields=(/x_new,y_new,z_new/), tfields=(/Diffusivity/) )    
@@ -189,9 +189,9 @@ contains
 
 ! Update the locations
     do node = 1,node_count(positions)
-       positions%val(1)%ptr(node) = x_new%val(node)
-       positions%val(2)%ptr(node) = y_new%val(node)
-       positions%val(3)%ptr(node) = z_new%val(node)
+       positions%val(1,node) = x_new%val(node)
+       positions%val(2,node) = y_new%val(node)
+       positions%val(3,node) = z_new%val(node)
     end do
 ! Output the new mesh
     dump = dump+1
@@ -199,9 +199,9 @@ contains
 
 ! Now put them back for next time step - as my projection currently assumes base is comp coord.
     do node = 1,node_count(positions)
-       positions%val(1)%ptr(node) = xorig(node)
-       positions%val(2)%ptr(node) = yorig(node)
-       positions%val(3)%ptr(node) = zorig(node)
+       positions%val(1,node) = xorig(node)
+       positions%val(2,node) = yorig(node)
+       positions%val(3,node) = zorig(node)
     end do
 
     deallocate(xorig)

@@ -97,73 +97,12 @@ class ScalarField(Field):
 class VectorField(Field):
   "A vector field"
   description = "VectorField"
-  def __init__(self,n,v1,v2,v3,ft,op,dim):
+  def __init__(self,n,v,ft,op,dim):
     Field.__init__(self,n,ft,op,self.description)
-    self.val1 = v1
-    self.val2 = v2
-    self.val3 = v3
-    self.val = [v1,v2,v3]
+    self.val = v
     self.dimension = dim
-    self.node_count=self.val1.shape[0]
-
-  def node_val(self, node):
-    # Returns the values at position node in each dimension
-    v = []
-    if(self.dimension>=1):
-      v.append(self.val1[node])
-    if(self.dimension>=2):
-      v.append(self.val2[node])
-    if(self.dimension>=3):
-      v.append(self.val3[node])
-    return numpy.array(v)
-
-  def set(self, node, val):
-      '''Set the value of node node of this field to val. If node is a scalar then
-      val must be a sequence of length equal to the field dimension. If node is
-      a sequence then val must be two dimensional with first dimension the
-      same length as node and second dimension equal to the field dimension.'''
-
-      if (operator.isSequenceType(node)):
-          # We have a sequence of values to insert.
-          for ii in range(len(node)):
-              self.val1[node[ii]] = val[ii][0]
-              if(self.dimension>=2):
-                  self.val2[node[ii]] = val[ii][1]
-              if(self.dimension>=3):
-                  self.val3[node[ii]] = val[ii][2]
-                  
-      else:
-          self.val1[node] = val[0]
-          if(self.dimension>=2):
-              self.val2[node] = val[1]
-          if(self.dimension>=3):
-              self.val3[node] = val[2]
-
-
-      
-  def addto(self, node, val):
-      '''Add val to node node of this field. If node is a scalar then val must be
-      a sequence of length equal to the field dimension. If node is a sequence
-      then val must be two dimensional with first dimension the same length
-      as node and second dimension equal to the field dimension.'''
-
-      if (operator.isSequenceType(node)):
-          # We have a sequence of values to insert.
-          for ii in range(len(i)):
-              self.val1[node[ii]] = self.val1[node[ii]] + val[ii][0]
-              if(self.dimension>=2):
-                  self.val2[node[ii]] = self.val2[node[ii]] + val[ii][1]
-              if(self.dimension>=3):
-                  self.val3[node[ii]] = self.val3[node[ii]] + val[ii][2]
-                  
-      else:
-          self.val1[node] = self.val1[node] + val[0]
-          if(self.dimension>=2):
-              self.val2[node] = self.val2[node] + val[1]
-          if(self.dimension>=3):
-              self.val3[node] = self.val3[node] + val[2]
-
-
+    self.node_count=self.val.shape[0]
+    
 class TensorField(Field):
   "A tensor field"
   description = "VectorField"

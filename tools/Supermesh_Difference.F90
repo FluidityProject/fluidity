@@ -322,7 +322,7 @@ subroutine supermesh_difference(vtu1_filename, vtu1_filename_len, vtu2_filename,
     v_field_23 => extract_vector_field(state_23(1), v_field_13%name)
     v_field_3 = extract_vector_field(state_3_split(1), v_field_13%name)
     do j = 1, dim
-      v_field_3%val(i)%ptr = v_field_13%val(i)%ptr - v_field_23%val(i)%ptr
+      v_field_3%val(i,:) = v_field_13%val(i,:) - v_field_23%val(i,:)
     end do
   end do
   do i = 1, tensor_field_count(state_13(1))
@@ -344,7 +344,7 @@ subroutine supermesh_difference(vtu1_filename, vtu1_filename_len, vtu2_filename,
       v_field_23 => extract_vector_field(state_23(2), v_field_13%name)
       v_field_3 = extract_vector_field(state_3_split(2), v_field_13%name)
       do j = 1, dim
-        v_field_3%val(i)%ptr = v_field_13%val(i)%ptr - v_field_23%val(i)%ptr
+        v_field_3%val(i,:) = v_field_13%val(i,:) - v_field_23%val(i,:)
       end do
     end do
     do i = 1, tensor_field_count(state_13(2))
