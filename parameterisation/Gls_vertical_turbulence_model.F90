@@ -794,7 +794,7 @@ subroutine gls_check_options
     end if
 
     call get_option("/problem_type", buffer)
-    if (buffer/="oceans" .or. buffer /="large_scale_ocean_options") then
+    if (.not. (buffer .eq. "oceans" .or. buffer .eq. "large_scale_ocean_options")) then
         FLExit("GLS modelling is only supported for problem type oceans.")
     end if
 
