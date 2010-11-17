@@ -806,18 +806,25 @@ contains
 
   end function wrap_mesh
 
-  function wrap_scalar_field(mesh, val, name) result (field)
+  function wrap_scalar_field(mesh, val, name, val_stride) result (field)
     !!< Return a scalar field wrapped around the arrays provided.
     type(scalar_field) :: field
     
     type(mesh_type), target, intent(in) :: mesh
     real, dimension(:), target, intent(in) :: val
     character(len=*), intent(in) :: name
+    !! has to be provided if the val array is non-contiguous in memory!
+    integer, optional:: val_stride
     
     field%val=>val
     field%mesh=mesh
     
     field%name=name
+    if (present(val_stride)) then
+      field%val_stride=val_stride
+    else
+      field%val_stride=1
+    end if
 
     field%py_dim = mesh_dim(mesh)
     field%py_positions_shape => mesh%shape
