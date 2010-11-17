@@ -338,16 +338,17 @@ contains
     type(halo_type), intent(in) :: halo
     type(scalar_field), intent(inout) :: s_field
     
-    integer, dimension(:), allocatable :: buffer
+    real, dimension(:), allocatable :: buffer
 
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(s_field%name)
-
+    
     select case(s_field%field_type)
       case(FIELD_TYPE_NORMAL)
         assert(associated(s_field%val))
         if(s_field%val_stride == 1) then
           call halo_update(halo, s_field%val)
         else
+          ewrite(2,*) "Need to copy into temp. buffer because field has stride", s_field%val_stride
           ! A stride argument should be passed to halo_update_real_array. For
           ! now just use a buffer.
           allocate(buffer(node_count(s_field)))
