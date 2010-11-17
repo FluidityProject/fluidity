@@ -737,6 +737,7 @@ contains
     !! same for pressure
     type(scalar_field), intent(in) :: pressure_bc
     integer, dimension(:), intent(in) :: pressure_bc_type
+    logical :: have_pressure_bc
     
     !! Inverse mass matrix
     type(block_csr_matrix), intent(inout), optional :: inverse_mass
@@ -1500,7 +1501,8 @@ contains
     ! Interface integrals
     !-------------------------------------------------------------------
     
-    if(dg.and.((have_viscosity.or.have_dg_les).or.have_advection).and.owned_element) then
+    have_pressure_bc = any(pressure_bc_type>0)
+    if(dg.and.((have_viscosity.or.have_dg_les).or.have_advection.or.have_pressure_bc).and.owned_element) then
       neigh=>ele_neigh(U, ele)
       ! x_neigh/=t_neigh only on periodic boundaries.
       x_neigh=>ele_neigh(X, ele)
