@@ -126,6 +126,7 @@ module momentum_DG
   logical :: have_coriolis
   logical :: have_advection
   logical :: move_mesh
+  logical :: have_pressure_bc
   
   real :: gravity_magnitude
 
@@ -609,6 +610,7 @@ contains
     call get_entire_boundary_condition(P, (/ &
       "weakdirichlet", &
       "dirichlet    "/), pressure_bc, pressure_bc_type)
+    have_pressure_bc = any(pressure_bc_type>0)
 
     ! dg les hack
     call find_linear_parent_mesh(state, u%mesh, cg_mesh, stat)
@@ -737,7 +739,6 @@ contains
     !! same for pressure
     type(scalar_field), intent(in) :: pressure_bc
     integer, dimension(:), intent(in) :: pressure_bc_type
-    logical :: have_pressure_bc
     
     !! Inverse mass matrix
     type(block_csr_matrix), intent(inout), optional :: inverse_mass
@@ -1501,7 +1502,6 @@ contains
     ! Interface integrals
     !-------------------------------------------------------------------
     
-    have_pressure_bc = any(pressure_bc_type>0)
     if(dg.and.((have_viscosity.or.have_dg_les).or.have_advection.or.have_pressure_bc).and.owned_element) then
       neigh=>ele_neigh(U, ele)
       ! x_neigh/=t_neigh only on periodic boundaries.
@@ -1919,7 +1919,7 @@ contains
     real, dimension(u%dim, u%dim, face_ngi(u_nl, face)) :: tension_q
     
     integer :: dim, start, finish, floc
-    logical :: boundary, free_surface, no_normal_flow, have_pressure_bc
+    logical :: boundary, free_surface, no_normal_flow, l_have_pressure_bc
     logical, dimension(U%dim) :: dirichlet
 
     logical :: p0
@@ -1971,7 +1971,7 @@ contains
     dirichlet=.false.
     free_surface=.false.
     no_normal_flow=.false.
-    have_pressure_bc=.false.
+    l_have_pressure_bc=.false.
     if (boundary) then
        do dim=1,U%dim
           if (velocity_bc_type(dim,face)==1) then
@@ -1988,7 +1988,7 @@ contains
           ! advection boundary integral.
           no_normal_flow=.true.
        end if
-       have_pressure_bc = pressure_bc_type(face) > 0
+       l_have_pressure_bc = pressure_bc_type(face) > 0
     end if
 
     !----------------------------------------------------------------------
@@ -2161,7 +2161,7 @@ contains
     !----------------------------------------------------------------------
 
     ! Insert pressure boundary integral.
-    if (l_cg_pressure .and. boundary .and. have_pressure_bc) then
+    if (l_cg_pressure .and. boundary .and. l_have_pressure_bc) then
     
        mnCT(1,:,:,:) =shape_shape_vector(P_shape, U_shape_2, detwei, normal)
        ! for both weak and strong pressure dirichlet bcs:
