@@ -217,6 +217,12 @@ def check_lotka_volterra_parameters(parameters):
 def six_component(state, parameters):
     '''Calculate sources and sinks for pczdna biology model'''
     
+
+    # Based on the equations in
+    # Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. & Anderson, T. R. 
+    # Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
+    # Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
+    # DOI: 10.5194/os-2-249-2006
     import math
 
     if not check_six_component_parameters(parameters):
@@ -288,8 +294,11 @@ def six_component(state, parameters):
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
         
-        theta = C_n/(P_n*zeta) # C=P_n*zeta
-        alpha = alpha_c * theta 
+        if (P_n < 1e-7):
+            theta = 1000.
+        else:
+            theta = C_n/P_n*zeta # C=P_n*zeta
+        alpha = alpha_c * theta
 
         # Light limited phytoplankton growth rate.
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5
@@ -302,9 +311,6 @@ def six_component(state, parameters):
 
         # Chl growth scaling factor
         R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n) 
-        # If Chl was zero, theta is zero, so this could be NaN
-        if (math.isnan(R_P)):
-            R_P = 0
 
         # Primary production
         X_P=J*(Q_N+Q_A)*P_n
@@ -330,7 +336,7 @@ def six_component(state, parameters):
             P_source.set(n, -lambda_bio * P_n)
             C_source.set(n, -lambda_bio*C_n)
             Z_source.set(n, -lambda_bio*Z_n)
-            D_source.set(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
+            D_source.addto(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
             A_source.set(n, -lambda_A*A_n)
             N_source.set(n, lambda_A*A_n + mu_D*D_n)
         # above
@@ -458,7 +464,7 @@ def check_six_component_parameters(parameters):
 
     if not parameters.has_key("photic_zone_limit"):
         stderr.write("PCZNDA parameter photic_zone_limit missing.\n")
-        stderr.write("photic_zone_limit is a value in W/m2 which defines base of photic zone \n\n")
+        stderr.write("photic_zone_limit defines the base of the photic zone in W/m2\n\n")
         valid = False
 
     return valid

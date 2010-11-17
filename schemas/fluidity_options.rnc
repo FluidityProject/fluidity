@@ -6423,6 +6423,14 @@ biology =
          }|
          ## 6 component biology model, which models Nitrates, Ammonium, 
          ## Phytoplankton, Zooplankton, Detritus and Chlorophyll.
+         ##
+         ## These fields must be enabled in the material phase
+         ##
+         ## Based on the equations in
+         ## Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. & Anderson, T. R. 
+         ## Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
+         ## Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
+         ## DOI: 10.5194/os-2-249-2006
          element six_component {
             (
                ## Python code specifying the biology model. This takes
