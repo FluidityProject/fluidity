@@ -1,0 +1,22 @@
+/experiment=BBOP
+/cruise=bats100
+/data_status=update
+/investigators=Dave_Siegel,Norm_Nelson
+/north_latitude=31.6960[DEG]
+/east_longitude=-64.1650[DEG]
+/start_date=19970114
+/start_time=17:00:00[GMT]
+/end_time=17:00:00[GMT]
+depth (m)   Chl (mg/m^3)
+1.0    0.199
+10.0    0.137
+20.0    0.160
+40.0    0.137
+60.0    0.120
+80.0    0.125
+100.0    0.097
+120.0    0.051
+140.0    0.040
+160.0    0.025
+200.0    0.005
+250.0    0.002
