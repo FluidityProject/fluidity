@@ -45,7 +45,7 @@ LINKER = $(CXX)
 
 
 ifeq (@HYPERLIGHT@,yes)
-	OBJS =  Hyperlight.o Sky.o Util.o Iop.o Hyperlight_interface.o
+	OBJS =  Hyperlight.o Sky.o Util.o Iop.o GridContainer.o AvgCosine.o SurfaceCorrection.o EoSubSurface.o BFTable.o Hyperlight_interface.o
 endif
 
 .SUFFIXES: .c .o .cpp .F90 .a .so
