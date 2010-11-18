@@ -158,9 +158,9 @@ contains
     integer i, n, n1, n2, iterations
     
     ewrite(0,*) "Called petsc_readnsolve without specifying flml."
-    ewrite(0,*) "The recommend way of calling petsc_readnsolve is now&
-                 & by specifying both the .flml and field to solve for&
-                 & on the command line, e.g.:"
+    ewrite(0,*) "The recommend way of calling petsc_readnsolve is now"//&
+                 &" by specifying both the .flml and field to solve for"//&
+                 &" on the command line, e.g.:"
     ewrite(0,*) "   petsc_readnsolve mycase.flml Pressure"
     ewrite(0,*)
         
