@@ -38,7 +38,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include
 
 LFLAGS  = @LFLAGS@
 
-LIBS = @LIBS@ ./lib/libadaptivity.a ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a
+LIBS = ./lib/libadaptivity.a ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a @LIBS@
 FLIBS = @FLIBS@
 LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
 
