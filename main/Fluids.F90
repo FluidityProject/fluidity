@@ -217,6 +217,9 @@ contains
 
     if (have_option("/reduced_model/execute_reduced_model")) then
        call read_pod_basis(POD_state, state)
+    else
+       ! need something to pass into momentum_loop
+       allocate(POD_state(1:0))
     end if
 
     ! Check the diagnostic field dependencies for circular dependencies
