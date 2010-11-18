@@ -897,10 +897,11 @@ contains
       if (stat/=0) FLAbort('Error extracting gravity field.')
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-          &by_vertical_diffusion/amplitude")) then    
-        call get_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-            &by_vertical_diffusion/amplitude", mixing_diffusion_amplitude) 
+      if (have_option(trim(T%option_path)//&
+          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude")) then    
+        call get_option(trim(T%option_path)//&
+          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude", &
+          &mixing_diffusion_amplitude) 
       else
         mixing_diffusion_amplitude = 1.0
       end if
