@@ -1595,10 +1595,10 @@ implicit none
     fz=>zero
 
     fx=>field%val(1,:)
-    if (dim>1) then
+    if (field%dim>1) then
        fy=>field%val(2,:)
        
-       if (dim>2) then
+       if (field%dim>2) then
           fz=>field%val(3,:)
        end if
     end if
