@@ -277,7 +277,11 @@ contains
     if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
 
     loc = size( elements(1)%nodeIDs )
-    sloc = size( faces(1)%nodeIDs )
+    if (numFaces>0) then
+      sloc = size( faces(1)%nodeIDs )
+    else
+      sloc = 0
+    end if
 
     assert(loc==shape%loc)
 
