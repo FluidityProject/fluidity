@@ -694,7 +694,7 @@
 
           if(dg.and.(.not.lump_mass)) then
             call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass)
-          elseif(lump_mass .and. low_re_p_correction_fix) then
+          elseif(lump_mass .and. low_re_p_correction_fix .and. timestep/=1) then
             ewrite(2,*) "Assembling CMC_M with visc_inverse_masslump"
             call assemble_masslumped_cmc(cmc_m, ctp_m, visc_inverse_masslump, ct_m)
             ! P1-P1 stabilisation
@@ -996,12 +996,14 @@
             ! correct velocity according to new delta_p
             if(full_schur) then
               call correct_velocity_cg(u, inner_m, ct_m, delta_p, state(istate))
-!            elseif(lump_mass) then
-!              call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
             elseif(lump_mass .and. (.not.low_re_p_correction_fix)) then
               call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
             elseif(lump_mass .and. low_re_p_correction_fix) then
-              call correct_masslumped_velocity(u, visc_inverse_masslump, ct_m, delta_p)
+              if (timestep==1) then
+                call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
+              else
+                call correct_masslumped_velocity(u, visc_inverse_masslump, ct_m, delta_p)
+              endif
            elseif(dg) then
               call correct_velocity_dg(u, inverse_mass, ct_m, delta_p)
            else
@@ -1090,9 +1092,9 @@
         end if
       else
         call deallocate_cg_mass(mass, inverse_masslump)
-      end if
-      if (low_re_p_correction_fix) then
-        call deallocate(visc_inverse_masslump)
+        if (low_re_p_correction_fix) then
+          call deallocate(visc_inverse_masslump)
+        end if
       end if
 
       if (use_theta_pg) then
