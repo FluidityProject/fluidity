@@ -1039,6 +1039,11 @@ contains
        end do
     end if
 
+    ! solar irradiance submodel (hyperlight)
+    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then 
+       call allocate_and_insert_irradiance(states(1))
+    end if
+
     ! insert porous media fields
     if (have_option('/porous_media')) then
        do i=1, nstates
@@ -1251,6 +1256,38 @@ contains
           end do sediment_class_loop
 
     end subroutine allocate_and_insert_sediment
+
+    subroutine allocate_and_insert_irradiance(state)
+      ! Allocate irradiance fields for 36 wavebands in PAR
+      type(state_type), intent(inout) :: state
+      integer :: nwavelength, j
+      real :: lambda
+      character(len=OPTION_PATH_LEN) :: light_path, field_name
+      type(scalar_field), pointer :: irradiance
+
+      ! Replicate irradiance template field for all wavebands
+      light_path = "/ocean_biology/lagrangian_ensemble/hyperlight"      
+      frequency_field_loop: do j=0,35         
+         lambda = 350.0 + (j * 10.0)
+         field_name="Irradiance_"//int2str(NINT(lambda))
+         call allocate_and_insert_scalar_field(&
+                  trim(light_path)&
+                  //"/scalar_field::IrradianceTemplate", &
+                  state, field_name=trim(field_name), &
+                  dont_allocate_prognostic_value_spaces&
+                  =dont_allocate_prognostic_value_spaces)
+      end do frequency_field_loop
+
+      ! Create PAR irradiance field
+      if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/scalar_field::IrradiancePAR")) then 
+         call allocate_and_insert_scalar_field(&
+                  trim(light_path)&
+                  //"/scalar_field::IrradiancePAR", &
+                  state, field_name="IrradiancePAR", &
+                  dont_allocate_prognostic_value_spaces&
+                  =dont_allocate_prognostic_value_spaces)
+      end if
+    end subroutine allocate_and_insert_irradiance
 
   end subroutine allocate_and_insert_fields
 

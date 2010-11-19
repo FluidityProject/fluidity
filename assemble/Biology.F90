@@ -39,6 +39,9 @@ module biology
   use solvers
   use python_state
   use sparsity_patterns_meshes
+#ifdef HAVE_HYPERLIGHT
+  use hyperlight
+#endif
   implicit none
 
   private
@@ -83,6 +86,13 @@ contains
     else
        FLExit("Unknown biology algorithm")
     end if
+
+#ifdef HAVE_HYPERLIGHT
+    ! Calculate multispectral irradiance fields from hyperlight
+    if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
+       call set_irradiance_from_hyperlight(state)
+    end if
+#endif
 
     ewrite(1,*) "Solving biology sources"
 
