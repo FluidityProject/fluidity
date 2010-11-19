@@ -2410,27 +2410,6 @@ contains
     
   end function ele_div_at_quad
 
-  function ele_div_at_quad_femdem(field, solid, ele_number, dn) result (quad_div)
-    ! Return the divergence of field at the quadrature points of
-    ! ele_number. dn is the transformed element gradient. 
-    type(vector_field),intent(in) :: field
-    type(scalar_field),intent(in) :: solid
-    integer, intent(in) :: ele_number
-    real, dimension(ele_loc(field,ele_number), &
-         &          ele_ngi(field,ele_number),&
-         &          field%dim),                   intent(in) :: dn
-    real, dimension(field%mesh%shape%ngi) :: quad_div
-    
-    integer :: i
-
-    quad_div=0.0
-
-    do i=1,field%dim
-       quad_div=quad_div+matmul(ele_val(field, i, ele_number)/max(1.-ele_val(solid, ele_number), 1.e-3),dn(:,:,i))
-    end do
-    
-  end function ele_div_at_quad_femdem
-
   function ele_2d_curl_at_quad(field, ele_number, dn) result(quad_curl)
     ! Return the 2D curl of field at the quadrature points of ele_number. dn is
     ! the transformed element gradient.

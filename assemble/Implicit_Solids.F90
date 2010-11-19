@@ -94,12 +94,13 @@ module implicit_solids
 
   type(scalar_field), save :: solid_local, old_solid_local
   type(vector_field), save :: external_positions
-  real, save :: beta, source_intensity
+  real, save :: beta, source_intensity, solid_diffusivity, fluid_diffusivity
   real, dimension(:,:), allocatable, save :: translation_coordinates
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, do_calculate_volume_fraction
+  logical, save :: have_fixed_temperature, have_fixed_temperature_source
   integer, dimension(:), allocatable, save :: node_to_particle
 
   private
@@ -165,6 +166,9 @@ contains
 
        call set_source(state)
        call set_absorption_coefficient(state)
+
+       if (have_fixed_temperature_source) &
+            call calculate_temperature_diffusivity(state)
 
        if (do_print_diagnostics .and. its==itinoi) &
             call print_diagnostics_one_way(state)
@@ -411,7 +415,7 @@ contains
        end do
     end do
 
-    if (have_temperature) then
+    if (have_temperature .and. have_fixed_temperature) then
        
        ewrite(3, *) "  set absorption for temperature"
 
@@ -454,21 +458,66 @@ contains
     if (have_temperature) then
 
        ewrite(3, *) "  set source for temperature"
-       ewrite(3, *) "  source intensity", source_intensity
 
        Tsource => extract_scalar_field(state, "TemperatureSource")
        call zero(Tsource)
 
-       do i = 1, node_count(Tsource)
-          sigma = node_val(solid_local, i)*beta/dt
-          call set(Tsource, i, sigma * source_intensity)
-       end do
 
+       if (have_fixed_temperature_source) then
+
+          ewrite(3, *) "  source intensity", source_intensity
+
+          do i = 1, node_count(Tsource)
+             sigma = node_val(solid_local, i)
+             call set(Tsource, i, sigma * source_intensity)
+          end do
+
+       else if (have_fixed_temperature) then
+
+          ewrite(3, *) "  solid temperature", source_intensity
+
+          do i = 1, node_count(Tsource)
+             sigma = node_val(solid_local, i)*beta/dt
+             call set(Tsource, i, sigma * source_intensity)
+          end do
+
+       end if
     end if
 
     ewrite(2, *) "leaving set_source"
 
   end subroutine set_source
+
+  !----------------------------------------------------------------------------
+
+  subroutine calculate_temperature_diffusivity(state)
+
+    type(state_type), intent(inout) :: state
+    type(tensor_field), pointer :: diffusivity
+    integer :: i, j, k
+    real :: l
+
+    ewrite(2, *) "inside calculate_temperature_diffusivity"
+
+    diffusivity => extract_tensor_field(state, "TemperatureDiffusivity")
+    call zero(diffusivity)
+
+    do i = 1, node_count(diffusivity)
+
+       l = node_val(solid_local, i)*solid_diffusivity + &
+            (1.-node_val(solid_local, i))*fluid_diffusivity
+
+       do j = 1, diffusivity%dim 
+          do k = 1, diffusivity%dim           
+             if (j==k) call set (diffusivity, j ,k, i, l)
+          end do
+       end do
+
+    end do
+
+    ewrite(2, *) "leaving calculate_temperature_diffusivity"
+
+  end subroutine calculate_temperature_diffusivity
 
   !----------------------------------------------------------------------------
 
@@ -513,13 +562,29 @@ contains
                node_val(absorption, j, i) * node_val(velocity, j, i) * &
                node_val(lumped_mass, i)
        end do
-
-       if (have_temperature) then
-          particle_nusselt(particle) = particle_nusselt(particle) + &
-               node_val(absorption, 1, i) * (source_intensity - &
-               node_val(temperature, i)) * node_val(lumped_mass, i)
-       end if
     end do
+
+    if (have_temperature) then
+
+       if (have_fixed_temperature) then
+
+          do i = 1, nowned_nodes(positions)
+             particle = node_to_particle(i)
+
+             if (particle < 0) cycle
+
+             particle_nusselt(particle) = particle_nusselt(particle) + &
+                  node_val(absorption, 1, i) * (source_intensity - &
+                  node_val(temperature, i)) * node_val(lumped_mass, i)
+          end do
+
+       else if (have_fixed_temperature_source) then
+
+          particle_nusselt = 0.
+
+       end if
+
+    end if
 
     do i = 1, number_of_solids
        call allsumv(particle_drag(i, :))
@@ -587,7 +652,7 @@ contains
     ! where \sigma_f = \alpha_s rho_f / dt and \hat{u_k} = \alpha_k u_k
 
     velocity => extract_vector_field(state, "Velocity")
-    solid_velocity => extract_vector_field(state, "SolidVelocity")
+    solid_velocity => extract_vector_field(state, "SolidVelocity") !! B U G  H E R E <<<<<<<<<<<<
     solid => extract_scalar_field(state, "SolidConcentration")
     absorption => extract_vector_field(state, "VelocityAbsorption")
     positions => extract_vector_field(state, "Coordinate")
@@ -669,13 +734,26 @@ contains
 
     ! check temperature related options
     if (have_temperature .and. &
-         .not. have_option("/implicit_solids/source_intensity")) then
+         .not. have_option("/implicit_solids/source")) then
        ewrite(-1, *) "WARNING: Implicit solids are not emitting!"
     end if
     if (.not. have_temperature .and. &
-         have_option("/implicit_solids/source_intensity")) then
+         have_option("/implicit_solids/source")) then
        FLExit("You need to use a Temperature field if you want to &
             have emitting solids.")
+    end if
+
+    have_fixed_temperature_source = have_option("/implicit_solids/source/temperature_source")
+    have_fixed_temperature = have_option("/implicit_solids/source/temperature")
+
+    if (have_fixed_temperature_source) then
+       call get_option("/implicit_solids/source/temperature_source/solid_diffusivity", solid_diffusivity)
+       call get_option("/implicit_solids/source/temperature_source/fluid_diffusivity", fluid_diffusivity)
+       call get_option("/implicit_solids/source/temperature_source/source_intensity", source_intensity)
+    end if
+
+    if (have_fixed_temperature) then
+       call get_option("/implicit_solids/source/temperature/temperature", source_intensity)
     end if
 
     ! figure out if we want to print out diagnostics and initialise files

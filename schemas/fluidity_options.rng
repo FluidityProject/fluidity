@@ -2685,14 +2685,36 @@ default: beta=1.</a:documentation>
             </element>
           </optional>
           <optional>
-            <element name="source_intensity">
-              <a:documentation>Source intensity for emitting solids.
-This is used to set the source term for
-the Temperature field. Obviously, this
-requires a prognostic Temperature field. 
-
-default: source_intensity=0.</a:documentation>
-              <ref name="real"/>
+            <element name="source">
+              <a:documentation>Source options for heated solids.
+A fixed source term for the solid or a
+solid fixed temperature can be used. Obviously, this
+requires a prognostic Temperature field. </a:documentation>
+              <choice>
+                <element name="temperature_source">
+                  <a:documentation>Use a fixed temperature source for the solids.
+The temperature diffusivity should be set to diagnostic/internal with this option.</a:documentation>
+                  <element name="solid_diffusivity">
+                    <a:documentation>Solid diffusivity. Isotropic for now.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="fluid_diffusivity">
+                    <a:documentation>Fluid diffusivity. Isotropic for now.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="source_intensity">
+                    <a:documentation>Solid source intensity.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+                <element name="temperature">
+                  <a:documentation>Use a fixed temperature for the solids.</a:documentation>
+                  <element name="temperature">
+                    <a:documentation>Solid temperature.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </choice>
             </element>
           </optional>
           <choice>

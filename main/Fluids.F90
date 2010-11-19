@@ -571,6 +571,10 @@ contains
              call calculate_biology_terms(state(1))
           end if
 
+          if (have_option("/implicit_solids")) then
+             call solids(state(1), its)
+          end if
+
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
@@ -697,10 +701,6 @@ contains
 
           if (have_option("/traffic_model")) then
              call traffic_source(state(1),timestep)
-          end if
-
-          if (have_option("/implicit_solids")) then
-             call solids(state(1), its)
           end if
 
           if (have_solids) then

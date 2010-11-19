@@ -1904,13 +1904,29 @@ start =
               ##
               ## default: beta=1.
               element beta{ real }?,
-              ## Source intensity for emitting solids.
-              ## This is used to set the source term for
-              ## the Temperature field. Obviously, this
+              ## Source options for heated solids.
+              ## A fixed source term for the solid or a
+              ## solid fixed temperature can be used. Obviously, this
               ## requires a prognostic Temperature field. 
-              ##
-              ## default: source_intensity=0.
-              element source_intensity{ real }?,
+              element source{
+                 (
+                    ## Use a fixed temperature source for the solids.
+                    ## The temperature diffusivity should be set to diagnostic/internal with this option.
+                    element temperature_source{
+                         ## Solid diffusivity. Isotropic for now.
+                         element solid_diffusivity{ real },
+                         ## Fluid diffusivity. Isotropic for now.
+                         element fluid_diffusivity{ real },
+                         ## Solid source intensity.
+                         element source_intensity { real }
+                    }|
+                    ## Use a fixed temperature for the solids.
+                    element temperature{
+                         ## Solid temperature.
+                         element temperature{ real }
+                    }
+                 )
+              }?,
               (
                  element one_way_coupling{
                       ## The solid mesh.
