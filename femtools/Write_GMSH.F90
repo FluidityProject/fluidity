@@ -95,24 +95,27 @@ contains
     logical, intent(in), optional :: print_internal_faces
     integer :: numParts, fileDesc
 
-    fileDesc=free_unit()
-
-    meshFile = trim(filename) // ".msh"
-
-    open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
-         action="write", err=101 )
-
     ! How many processes contain data?
     numParts = get_active_nparts(ele_count(positions))
-
+    
     ! Write out data only for those processes that contain data - SPMD requires
-    ! that there be no early return
+    ! that there be no early return    
+    if( getprocno() <= numParts ) then
 
+      fileDesc=free_unit()
+
+      meshFile = trim(filename) // ".msh"
+
+      open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
+           action="write", err=101 )
+      
+    end if
+
+    ! this needs to be called by all processes
     if (present_and_true(print_internal_faces) &
          .and. .not. has_faces(positions%mesh) ) then
        call add_faces(positions%mesh)
     end if
-
 
 
     if( getprocno() <= numParts ) then
@@ -127,11 +130,12 @@ contains
           call write_gmsh_node_columns( fileDesc, meshFile, positions, &
                useBinaryGMSH )
        end if
+
+      ! Close GMSH file
+      close( fileDesc )
+
     end if
-
-    ! Close GMSH file
-    close( fileDesc )
-
+      
     return
 
 101 FLExit("Failed to open " // trim(meshFile) // " for writing")
