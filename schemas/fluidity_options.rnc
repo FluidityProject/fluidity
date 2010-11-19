@@ -1952,7 +1952,11 @@ start =
                            element print_diagnostics { empty }?
                       }?,
                       ## Calculate diagnostic variables associated with the solids.
-                      element print_diagnostics { empty }?
+                      element print_diagnostics { empty }?,
+                      ## Calculate drag force only
+                      ##
+                      ## To be removed in future
+                      element print_drag { empty }?
                  }|
                  element two_way_coupling{
                       ## The solid mesh.

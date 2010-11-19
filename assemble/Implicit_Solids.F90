@@ -99,7 +99,7 @@ module implicit_solids
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
-  logical, save :: do_print_diagnostics, do_calculate_volume_fraction
+  logical, save :: do_print_diagnostics, do_calculate_volume_fraction, do_print_drag
   logical, save :: have_fixed_temperature, have_fixed_temperature_source
   integer, dimension(:), allocatable, save :: node_to_particle
 
@@ -170,7 +170,7 @@ contains
        if (have_fixed_temperature_source) &
             call calculate_temperature_diffusivity(state)
 
-       if (do_print_diagnostics .and. its==itinoi) &
+       if ((do_print_diagnostics .or. do_print_drag) .and. its==itinoi) &
             call print_diagnostics_one_way(state)
 
        do_calculate_volume_fraction = .false.
@@ -531,7 +531,7 @@ contains
     real, dimension(:,:), allocatable :: particle_drag
     real :: nusselt
     integer :: i, j, particle, stat
-    character(len=FIELD_NAME_LEN) :: FMT1, FMT2
+    character(len=FIELD_NAME_LEN) :: FMT1, FMT2, FMT3
 
     ewrite(2, *) "inside print_diagnostics"
 
@@ -607,22 +607,31 @@ contains
     FMT1 = "(F10.5, 1X, "//int2str(positions%dim+1)//"(F12.5, 1X))"
     FMT2 = "(F10.5, 1X, " &
          //int2str((positions%dim+1)*number_of_solids)//"(F12.5, 1X))"
+    FMT3 = "(1X,"//int2str(positions%dim+1)//"(F25.15, 1X))"
 
     if (GetRank() == 0) then
-       ! file format: time, fx, fy, fz, nusselt
-       open(1453, file="diagnostic_data", position="append")
-       write(1453, FMT1, advance="no") &
-            current_time, (drag(i), i = 1, positions%dim), nusselt
-       close(1453)
+       if (do_print_diagnostics) then
+          ! file format: time, fx, fy, fz, nusselt
+          open(1453, file="diagnostic_data", position="append")
+          write(1453, FMT1, advance="no") &
+               current_time, (drag(i), i = 1, positions%dim), nusselt
+          close(1453)
 
-       if (do_print_multiple_solids_diagnostics) then
-          ! file format: 
-          ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
-          open(1454, file="particle_diagnostic_data", position="append")
-          write(1454, FMT2, advance="no") current_time, &
-               (particle_drag(i,:), i = 1, number_of_solids), &
-               (particle_nusselt(i), i = 1, number_of_solids)
-          close(1454)
+          if (do_print_multiple_solids_diagnostics) then
+             ! file format: 
+             ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, nusselt1, ..., nusseltn
+             open(1454, file="particle_diagnostic_data", position="append")
+             write(1454, FMT2, advance="no") current_time, &
+                  (particle_drag(i,:), i = 1, number_of_solids), &
+                  (particle_nusselt(i), i = 1, number_of_solids)
+             close(1454)
+          end if
+       else if (do_print_drag) then
+          ! file format: time, fx, fy, fz, nusselt
+          open(1455, file="drag_force", position="append")
+          write(1455, FMT3, advance="no") &
+               (drag(i), i = 1, positions%dim)
+          close(1455)
        end if
     end if
 
@@ -761,6 +770,8 @@ contains
          have_option("/implicit_solids/one_way_coupling/print_diagnostics")
     do_print_multiple_solids_diagnostics = &
          have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+    do_print_drag = &
+         have_option("/implicit_solids/one_way_coupling/print_drag")
 
     ! initialise diagnostics (and drag force) data file
     if (GetRank() == 0 .and. do_print_diagnostics) then
@@ -773,6 +784,12 @@ contains
           open(dat_unit, file="particle_diagnostic_data", status="replace")
           close(dat_unit)
        end if
+    end if
+
+    if (GetRank() == 0 .and. do_print_drag) then
+       dat_unit = free_unit()
+       open(dat_unit, file="drag_force", status="replace")
+       close(dat_unit)
     end if
 
   end subroutine one_way_initialise

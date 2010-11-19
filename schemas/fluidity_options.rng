@@ -2761,6 +2761,14 @@ The t argument is for future use only - currently solid locations are only set a
                   <empty/>
                 </element>
               </optional>
+              <optional>
+                <element name="print_drag">
+                  <a:documentation>Calculate drag force only
+
+To be removed in future</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
             <element name="two_way_coupling">
               <element name="mesh">
