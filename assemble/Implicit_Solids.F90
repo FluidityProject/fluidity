@@ -108,12 +108,13 @@ module implicit_solids
 
 contains
 
-  subroutine solids(state, its)
+  subroutine solids(state, its, itinoi)
 
     type(state_type), intent(inout) :: state
     integer, intent(in) :: its
+    integer, intent(in) :: itinoi
     type(scalar_field), pointer :: solid, old_solid
-    integer, save :: dim, itinoi
+    integer, save :: dim
     logical, save :: init=.false.
     integer :: i
 
@@ -124,7 +125,6 @@ contains
     if (.not. init) then
 
        call get_option("/geometry/dimension", dim)
-       call get_option("/timestepping/nonlinear_iterations", itinoi)
 
        call get_option("/implicit_solids/beta", beta, default=1.)
        call get_option("/implicit_solids/source_intensity", &

@@ -572,7 +572,7 @@ contains
           end if
 
           if (have_option("/implicit_solids")) then
-             call solids(state(1), its)
+             call solids(state(1), its, nonlinear_iterations)
           end if
 
           field_loop: do it = 1, ntsol
