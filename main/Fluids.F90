@@ -119,7 +119,8 @@ contains
 
     INTEGER :: &
          & NTSOL,  &
-         & nonlinear_iterations
+         & nonlinear_iterations,  &
+         & nonlinear_iterations_adapt
 
     REAL :: &
          & finish_time, &
@@ -227,7 +228,19 @@ contains
 
     zoltan_drive_call=.false.
 
+   ! set the nonlinear timestepping options, needs to be before the adapt at first timestep
+    call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
+         & default=1)
+    call get_option("/timestepping/nonlinear_iterations/tolerance", &
+         & nonlinear_iteration_tolerance, default=0.0)
+    call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
+         & default=1)
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
+
+       if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
+         nonlinear_iterations = nonlinear_iterations_adapt
+       end if
 
        call adapt_state_first_timestep(state)
 
@@ -255,6 +268,19 @@ contains
        call enforce_discrete_properties(state)
     end if
 
+   ! set the remaining timestepping options, needs to be before any diagnostics are calculated
+    call get_option("/timestepping/timestep", dt)
+    if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
+       call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
+       call set_option("/timestepping/timestep", dt)
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/finish_time", finish_time)
+
+    call get_option("/timestepping/steady_state/tolerance", &
+         & steady_state_tolerance, default = -666.01)
+
     if(use_sub_state()) then
        call populate_sub_state(state,sub_state)
     end if
@@ -266,25 +292,6 @@ contains
     call initialise_field_lists_from_options(state, ntsol)
 
     call check_old_code_path()
-
-    ! set all timestepping options, needs to be before any diagnostics are calculated
-
-    call get_option("/timestepping/timestep", dt)
-    if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-       call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-       call set_option("/timestepping/timestep", dt)
-    end if
-
-    call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
-         & default=1)
-    call get_option("/timestepping/nonlinear_iterations/tolerance", &
-         & nonlinear_iteration_tolerance, default=0.0)
-    call get_option("/timestepping/current_time", current_time)
-    call get_option("/timestepping/finish_time", finish_time)
-
-    call get_option("/timestepping/steady_state/tolerance", &
-         & steady_state_tolerance, default = -666.01)
-
 
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
@@ -751,6 +758,10 @@ contains
 
        end do nonlinear_iteration_loop
 
+       ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
+       call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
+         & default=1)
+
        if(have_option("/timestepping/nonlinear_iterations/terminate_if_not_converged")) then
           if(its >= nonlinear_iterations .and. change >= abs(nonlinear_iteration_tolerance)) then
              ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
@@ -813,6 +824,7 @@ contains
        ! ******************
        ! *** Mesh adapt ***
        ! ******************
+
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
           if(do_adapt_mesh(current_time, timestep)) then
@@ -825,11 +837,11 @@ contains
 
              call adapt_state(state, metric_tensor)
 
-             call update_state_post_adapt(state, metric_tensor, dt, sub_state)
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-
+ 
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
@@ -840,7 +852,7 @@ contains
              call run_diagnostics(state)
 
              call adapt_state_prescribed(state, current_time)
-             call update_state_post_adapt(state, metric_tensor, dt, sub_state)
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -967,11 +979,17 @@ contains
 
   end subroutine pre_adapt_tasks
 
-  subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state)
+  subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
     type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field), intent(out) :: metric_tensor
     real, intent(inout) :: dt
+    integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
+    
+    ! Overwrite the number of nonlinear iterations if the option is switched on
+    if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
+      nonlinear_iterations = nonlinear_iterations_adapt
+    end if
 
     ! The adaptivity metric
     if(have_option("/mesh_adaptivity/hr_adaptivity")) then

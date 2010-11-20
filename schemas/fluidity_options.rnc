@@ -412,6 +412,12 @@ start =
                ## suspect the solution is not converging.
                element terminate_if_not_converged {
                   empty
+               }?,
+               ## Number of non-linear iterations for the first time step after adapting the mesh.
+               ## This option will work only if the mesh_adaptivity is switched on.
+               element nonlinear_iterations_at_adapt {
+                  attribute replaces {"ITINOIAD"},
+                  integer
                }?
             }?,
             ## Vary the timestep according to the courant number.

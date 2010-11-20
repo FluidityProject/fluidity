@@ -524,6 +524,16 @@ suspect the solution is not converging.</a:documentation>
                 <empty/>
               </element>
             </optional>
+            <optional>
+              <element name="nonlinear_iterations_at_adapt">
+                <a:documentation>Number of non-linear iterations for the first time step after adapting the mesh.
+This option will work only if the mesh_adaptivity is switched on.</a:documentation>
+                <attribute name="replaces">
+                  <value>ITINOIAD</value>
+                </attribute>
+                <ref name="integer"/>
+              </element>
+            </optional>
           </element>
         </optional>
         <optional>
