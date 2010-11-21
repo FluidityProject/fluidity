@@ -1826,6 +1826,7 @@ must be removed for multimaterial and free surface calculations</a:documentation
               <attribute name="replaces">
                 <value>NOFILT</value>
               </attribute>
+              <empty/>
             </element>
           </optional>
           <optional>
@@ -1845,6 +1846,7 @@ If activated this means that the pressure gradient operator is not integrated by
           <attribute name="replaces">
             <value>NCOLOP = X1XXXXX -&gt; INTERF, NOFILT</value>
           </attribute>
+          <empty/>
         </element>
       </choice>
     </element>
@@ -9381,6 +9383,7 @@ Suggested value: 0.01</a:documentation>
             <attribute name="replaces">
               <value>PREOPT=PREOPT+1000</value>
             </attribute>
+            <empty/>
           </element>
         </optional>
         <optional>
@@ -9388,6 +9391,7 @@ Suggested value: 0.01</a:documentation>
             <attribute name="replaces">
               <value>PREOPT=PREOPT+10000</value>
             </attribute>
+            <empty/>
           </element>
         </optional>
       </element>

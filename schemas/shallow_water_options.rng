@@ -6655,6 +6655,7 @@ Suggested value: 0.01</a:documentation>
             <attribute name="replaces">
               <value>PREOPT=PREOPT+1000</value>
             </attribute>
+            <empty/>
           </element>
         </optional>
         <optional>
@@ -6662,6 +6663,7 @@ Suggested value: 0.01</a:documentation>
             <attribute name="replaces">
               <value>PREOPT=PREOPT+10000</value>
             </attribute>
+            <empty/>
           </element>
         </optional>
       </element>

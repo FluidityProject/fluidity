@@ -1156,6 +1156,7 @@ must be removed for multimaterial and free surface calculations</a:documentation
               <attribute name="replaces">
                 <value>NOFILT</value>
               </attribute>
+              <empty/>
             </element>
           </optional>
           <optional>
@@ -1185,6 +1186,7 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
           <attribute name="replaces">
             <value>NCOLOP = X1XXXXX -&gt; INTERF, NOFILT</value>
           </attribute>
+          <empty/>
         </element>
       </choice>
     </element>

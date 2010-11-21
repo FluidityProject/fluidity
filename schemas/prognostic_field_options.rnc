@@ -926,7 +926,8 @@ prognostic_pressure_field =
                ## remove the  fourth order pressure stabilisation term KCMC
                ## must be removed for multimaterial and free surface calculations
                element remove_stabilisation_term {
-                  attribute replaces { "NOFILT" }
+                  attribute replaces { "NOFILT" },
+                  empty
                }?,
                ## Integrate the continuity equation by parts.
                ##
@@ -946,7 +947,8 @@ prognostic_pressure_field =
                }?
             }|
             element control_volumes {
-               attribute replaces { "NCOLOP = X1XXXXX -> INTERF, NOFILT" }
+               attribute replaces { "NCOLOP = X1XXXXX -> INTERF, NOFILT" },
+               empty
             }
          )
       },

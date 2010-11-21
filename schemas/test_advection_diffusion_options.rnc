@@ -1483,7 +1483,8 @@ prognostic_pressure_field =
                ## remove the  fourth order pressure stabilisation term KCMC
                ## must be removed for multimaterial and free surface calculations
                element remove_stabilisation_term {
-                  attribute replaces { "NOFILT" }
+                  attribute replaces { "NOFILT" },
+                  empty
                }?,
                ## Integrate the continuity equation by parts.
                ##
@@ -1495,7 +1496,8 @@ prognostic_pressure_field =
                }?
             }|
             element control_volumes {
-               attribute replaces { "NCOLOP = X1XXXXX -> INTERF, NOFILT" }
+               attribute replaces { "NCOLOP = X1XXXXX -> INTERF, NOFILT" },
+               empty
             }
          )
       },
@@ -7627,10 +7629,12 @@ inner_element_velocity =
             empty
          }?,
          element use_quadratic_pressure {
-            attribute replaces { "PREOPT=PREOPT+1000" }
+            attribute replaces { "PREOPT=PREOPT+1000" },
+            empty
          }?,
          element apply_full_discontinuous_Galerkin {
-            attribute replaces { "PREOPT=PREOPT+10000" }
+            attribute replaces { "PREOPT=PREOPT+10000" },
+            empty
          }?
       }?
    )
