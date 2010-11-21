@@ -658,7 +658,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -747,7 +747,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -836,7 +836,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -926,7 +926,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -1371,7 +1371,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -1460,7 +1460,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -1549,7 +1549,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>
@@ -1639,7 +1639,7 @@
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replace="70 &lt;= DISOTT &lt;= 90">
+          <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
               <integrate_advection_by_parts>

@@ -572,7 +572,6 @@ start =
                         ##
                         ## Used with compressible simulations
                         element stiffened_gas {
-                           attribute replace { "MKCOMP from solidity_inputs.inp" },
                            ## reference uncompressed density
                            ##
                            ## if activated then either Liquid EoS or

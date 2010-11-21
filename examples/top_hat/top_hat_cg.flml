@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -19,7 +19,7 @@
       </from_file>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -29,7 +29,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">1</real_value>
       </constant>
     </dump_period>
@@ -37,17 +37,17 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
       <comment>This value is not actually used in this example, as we use the options adaptive_timestep and at_first_timestep - see the comment under adaptive_timestep/requested_cfl.</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">100.0</real_value>
     </finish_time>
-    <adaptive_timestep replaces="TIMAUT">
+    <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">0.5</real_value>
         <comment>We also need the "at_first_timestep" option if we use /mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep option, because this gives an adapted mesh before the first timestep, so that the cfl condition in the first timestep depends on the mesh being produced.</comment>
@@ -79,14 +79,14 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field replaces="IDENT = 666" name="Tracer" rank="0">
+    <scalar_field name="Tracer" rank="0">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin replaces="DISOTT = 3">
+              <streamline_upwind_petrov_galerkin>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
@@ -96,12 +96,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -144,8 +144,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -194,7 +194,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -213,11 +213,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">20</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">1000000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation/>

@@ -694,9 +694,6 @@ approximation</a:documentation>
                       <a:documentation>Stiffened Gas EoS
 
 Used with compressible simulations</a:documentation>
-                      <attribute name="replace">
-                        <value>MKCOMP from solidity_inputs.inp</value>
-                      </attribute>
                       <optional>
                         <element name="reference_density">
                           <a:documentation>reference uncompressed density

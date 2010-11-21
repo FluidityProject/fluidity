@@ -42,7 +42,6 @@ spatial_discretisation_options =
          ## formulation with a continuous field in which case a simple
          ## galerkin formulation will result. 
          element discontinuous_galerkin {
-            attribute replace { "70 <= DISOTT <= 90" },
             element advection_scheme {
                (
                   ## Straightforward upwinding of the nonlinear velocity.

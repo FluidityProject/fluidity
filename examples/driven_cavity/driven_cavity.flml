@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
@@ -45,7 +45,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">5.0</real_value>
       </constant>
     </dump_period>
@@ -53,20 +53,20 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.01</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">200.0</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1.0e-7</real_value>
         <infinity_norm/>
       </tolerance>
@@ -79,8 +79,8 @@
   <material_phase name="Fluid">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </linear>
@@ -92,14 +92,14 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <reference_node replaces="NDPSET">
+        <reference_node>
           <integer_value rank="0">100</integer_value>
         </reference_node>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -163,15 +163,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -198,7 +198,7 @@
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="TopWind">
+        <boundary_conditions name="TopWind">
           <surface_ids>
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
@@ -223,7 +223,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="OtherWalls">
+        <boundary_conditions name="OtherWalls">
           <surface_ids>
             <integer_value shape="2" rank="1">444 666</integer_value>
           </surface_ids>
@@ -242,7 +242,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -276,7 +276,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

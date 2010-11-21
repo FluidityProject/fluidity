@@ -54,9 +54,6 @@ temporal_discretisation).</a:documentation>
           <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
 galerkin formulation will result. </a:documentation>
-          <attribute name="replace">
-            <value>70 &lt;= DISOTT &lt;= 90</value>
-          </attribute>
           <element name="advection_scheme">
             <choice>
               <element name="upwind">

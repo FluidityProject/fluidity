@@ -78,7 +78,7 @@
   <material_phase name="Gas">
     <equation_of_state>
       <compressible>
-        <stiffened_gas replace="MKCOMP from solidity_inputs.inp">
+        <stiffened_gas>
           <ratio_specific_heats>
             <real_value rank="0">1.4</real_value>
           </ratio_specific_heats>
