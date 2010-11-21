@@ -2134,7 +2134,7 @@ scalar_field_choice =
          ##
          ## Field for the internal energy of this material.
          ## Required in multimaterial compressible simulations
-         ## with full miegrunneisen (perfect gas) eos.
+         ## with full stiffened_gas (perfect gas) eos.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MaterialInternalEnergy" },

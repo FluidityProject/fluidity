@@ -774,8 +774,8 @@ approximation</a:documentation>
                 <element name="compressible">
                   <a:documentation>Equations of state for compressible applications</a:documentation>
                   <choice>
-                    <element name="miegrunneisen">
-                      <a:documentation>Mie-Grunneisen EoS
+                    <element name="stiffened_gas">
+                      <a:documentation>Stiffened Gas EoS
 
 Used with compressible simulations</a:documentation>
                       <attribute name="replace">
@@ -786,7 +786,7 @@ Used with compressible simulations</a:documentation>
                           <a:documentation>reference uncompressed density
 
 if activated then either Liquid EoS or
-full Mie-Grunneisen EoS
+full Stiffened Gas EoS
  - replaces EOS TYPE = 1 or 3 from
  solidity_imputs.inp -&gt; MATEOS
 if not activated then replaces EOS TYPE 2 from
@@ -803,7 +803,7 @@ solidity_inputs.inp -&gt; MATEOS</a:documentation>
 pressure to that at constant volume
 
 Requires an energy field.
-If activated then a full Mie-Grunneisen EoS 
+If activated then a full Stiffened Gas EoS 
  - replaces EOS TYPE = 3 from solidity_imputs.inp -&gt; MATEOS
 if not activated then either EOS TYPE 1 or 3
 from solidity_inputs.inp -&gt; MATEOS</a:documentation>
@@ -818,7 +818,7 @@ from solidity_inputs.inp -&gt; MATEOS</a:documentation>
                           <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
 
 if activated then either full or partial Liquid EoS or full
-Mie-Grunneisen EoS - replaces EOS TYPE = 1, 2 or 3
+Stiffened Gas EoS - replaces EOS TYPE = 1, 2 or 3
 from solidity_imputs.inp -&gt; MATEOS</a:documentation>
                           <attribute name="replaces">
                             <value>GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -&gt; GASCONMAT for multimaterials</value>
@@ -4918,7 +4918,7 @@ the equation of state)</a:documentation>
 
 Field for the internal energy of this material.
 Required in multimaterial compressible simulations
-with full miegrunneisen (perfect gas) eos.</a:documentation>
+with full stiffened_gas (perfect gas) eos.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -4940,7 +4940,7 @@ with full miegrunneisen (perfect gas) eos.</a:documentation>
 
 Field for the internal energy of a single material.
 Required in compressible simulations
-with full miegrunneisen (perfect gas) eos.</a:documentation>
+with full stiffened_gas (perfect gas) eos.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

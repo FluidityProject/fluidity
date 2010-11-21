@@ -4506,7 +4506,7 @@ the equation of state)</a:documentation>
 
 Field for the internal energy of this material.
 Required in multimaterial compressible simulations
-with full miegrunneisen (perfect gas) eos.</a:documentation>
+with full stiffened_gas (perfect gas) eos.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
