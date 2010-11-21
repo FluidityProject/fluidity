@@ -14,7 +14,7 @@ def Help():
   debug.dprint("Usage: update_options [OPTIONS] ... [FILES]\n" + \
                "\n" + \
                "Updates flml, bml, swml and adml files. If FILES is not specified, all .flml, .bml, .swml and .adml files in\n" + \
-               "tests/*/., tests/*/*/., longtests/*/. and longtests/*/*/. will be updated. Options:\n" + \
+               "tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated. Options:\n" + \
                "\n" + \
                "-h  Display this help\n" + \
                "-v  Verbose mode", 0)
@@ -37,6 +37,7 @@ if not ("-v", "") in opts:
 rootDir = os.path.join(os.path.dirname(__file__), os.path.pardir)
 testDir = os.path.join(rootDir, "tests")
 longtestDir = os.path.join(rootDir, "longtests")
+examplesDir = os.path.join(rootDir, "examples")
 
 extdict = {"flml" : "fluidity_options.rng", 
            "bml"  : "burgers_equation.rng", 
@@ -51,6 +52,7 @@ if len(filenames) == 0:
     filenames += glob.glob(os.path.join(testDir, "*", "*", "*."+k))
     filenames += glob.glob(os.path.join(longtestDir, "*", "*."+k))
     filenames += glob.glob(os.path.join(longtestDir, "*", "*", "*."+k))
+    filenames += glob.glob(os.path.join(examplesDir, "*", "*."+k))
 
 invalidFiles = []
 updated = 0
