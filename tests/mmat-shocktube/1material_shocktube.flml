@@ -78,11 +78,11 @@
   <material_phase name="Gas">
     <equation_of_state>
       <compressible>
-        <miegrunneisen replace="MKCOMP from solidity_inputs.inp">
+        <stiffened_gas replace="MKCOMP from solidity_inputs.inp">
           <ratio_specific_heats replaces="DENGAM for single materials, DEN GAM from solidity_inputs.inp -&gt; DENGAMMAT for multimaterials">
             <real_value rank="0">1.4</real_value>
           </ratio_specific_heats>
-        </miegrunneisen>
+        </stiffened_gas>
       </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">

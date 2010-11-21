@@ -313,17 +313,17 @@ contains
 
     if(have_option(trim(eos_path)//'/compressible')) then
 
-      if(have_option(trim(eos_path)//'/compressible/miegrunneisen')) then
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/reference_density', &
+      if(have_option(trim(eos_path)//'/compressible/stiffened_gas')) then
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/reference_density', &
                         reference_density, default=0.0)
         
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/ratio_specific_heats', &
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/ratio_specific_heats', &
                         ratio_specific_heats, stat=gstat)
         if(gstat/=0) then
           ratio_specific_heats=1.0
         end if
         
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/bulk_sound_speed_squared', &
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/bulk_sound_speed_squared', &
                         bulk_sound_speed_squared, stat=cstat)
         if(cstat/=0) then
           bulk_sound_speed_squared=0.0
@@ -566,15 +566,15 @@ contains
 
     if(have_option(trim(eos_path)//'/compressible')) then
 
-      if(have_option(trim(eos_path)//'/compressible/miegrunneisen')) then
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/reference_density', &
+      if(have_option(trim(eos_path)//'/compressible/stiffened_gas')) then
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/reference_density', &
                         reference_density, default=0.0)
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/ratio_specific_heats', &
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/ratio_specific_heats', &
                         ratio_specific_heats, stat=gstat)
         if(gstat/=0) then
           ratio_specific_heats=1.0
         end if
-        call get_option(trim(eos_path)//'/compressible/miegrunneisen/bulk_sound_speed_squared', &
+        call get_option(trim(eos_path)//'/compressible/stiffened_gas/bulk_sound_speed_squared', &
                         bulk_sound_speed_squared, stat = cstat)
         if(cstat/=0) then
           bulk_sound_speed_squared=0.0

@@ -92,14 +92,14 @@
   <material_phase name="Material1">
     <equation_of_state>
       <compressible>
-        <miegrunneisen replace="MKCOMP from solidity_inputs.inp">
+        <stiffened_gas replace="MKCOMP from solidity_inputs.inp">
           <reference_density replaces="DENINI for single materials, REFERENCE DENS. from solidity_inputs.inp -&gt; DENINIMAT for multimaterials">
             <real_value rank="0">1.E+3</real_value>
           </reference_density>
           <bulk_sound_speed_squared replaces="GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -&gt; GASCONMAT for multimaterials">
             <real_value rank="0">2.2E+6</real_value>
           </bulk_sound_speed_squared>
-        </miegrunneisen>
+        </stiffened_gas>
       </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
@@ -516,14 +516,14 @@
   <material_phase name="Material2">
     <equation_of_state>
       <compressible>
-        <miegrunneisen replace="MKCOMP from solidity_inputs.inp">
+        <stiffened_gas replace="MKCOMP from solidity_inputs.inp">
           <reference_density replaces="DENINI for single materials, REFERENCE DENS. from solidity_inputs.inp -&gt; DENINIMAT for multimaterials">
             <real_value rank="0">1.E+3</real_value>
           </reference_density>
           <bulk_sound_speed_squared replaces="GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -&gt; GASCONMAT for multimaterials">
             <real_value rank="0">2.2E+6</real_value>
           </bulk_sound_speed_squared>
-        </miegrunneisen>
+        </stiffened_gas>
       </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
