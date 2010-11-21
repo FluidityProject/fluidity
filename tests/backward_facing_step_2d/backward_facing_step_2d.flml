@@ -8,7 +8,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -36,7 +36,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
@@ -46,7 +46,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
@@ -54,19 +54,19 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.005</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
-    <adaptive_timestep replaces="TIMAUT">
+    <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">2.0</real_value>
       </requested_cfl>
@@ -87,10 +87,10 @@
           <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -137,15 +137,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -172,7 +172,7 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Inflow">
+        <boundary_conditions name="Inflow">
           <surface_ids>
             <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
@@ -193,7 +193,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="NoSlip">
+        <boundary_conditions name="NoSlip">
           <surface_ids>
             <integer_value shape="4" rank="1">10 11 12 14</integer_value>
           </surface_ids>
@@ -212,7 +212,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -245,7 +245,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
+            <vector_field name="InterpolationErrorBound" rank="1">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -266,7 +266,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -285,11 +285,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">10</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation>

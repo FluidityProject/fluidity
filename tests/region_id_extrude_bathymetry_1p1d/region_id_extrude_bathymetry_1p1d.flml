@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -121,7 +121,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -219,19 +219,19 @@
     </detectors>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.001</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1000.0</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">0</integer_value>
     </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -279,21 +279,21 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field replaces="IDENT = 666" name="Tracer" rank="0">
+    <scalar_field name="Tracer" rank="0">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -308,7 +308,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="8">
+        <boundary_conditions name="8">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -318,7 +318,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="6">
+        <boundary_conditions name="6">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
@@ -328,7 +328,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="9">
+        <boundary_conditions name="9">
           <surface_ids>
             <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
@@ -377,15 +377,15 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -400,7 +400,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="1">
+        <boundary_conditions name="1">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -410,7 +410,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="2">
+        <boundary_conditions name="2">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
@@ -420,7 +420,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="7">
+        <boundary_conditions name="7">
           <surface_ids>
             <integer_value shape="1" rank="1">7</integer_value>
           </surface_ids>
@@ -494,12 +494,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
         </temporal_discretisation>
@@ -526,7 +526,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="6">
+        <boundary_conditions name="6">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
@@ -536,7 +536,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="8">
+        <boundary_conditions name="8">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -546,7 +546,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="9">
+        <boundary_conditions name="9">
           <surface_ids>
             <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
@@ -605,12 +605,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
         </temporal_discretisation>
@@ -637,7 +637,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="1">
+        <boundary_conditions name="1">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -647,7 +647,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="2">
+        <boundary_conditions name="2">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
@@ -657,7 +657,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="7">
+        <boundary_conditions name="7">
           <surface_ids>
             <integer_value shape="1" rank="1">7</integer_value>
           </surface_ids>

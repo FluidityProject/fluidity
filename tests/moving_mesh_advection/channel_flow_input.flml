@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -46,7 +46,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
@@ -56,7 +56,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.12</real_value>
       </constant>
     </dump_period>
@@ -64,13 +64,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.02</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">0.3</real_value>
     </finish_time>
   </timestepping>
@@ -99,25 +99,25 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
+                <limiter name="Sweby">
                   <pseudo_structured_upwind_value/>
                 </limiter>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
           </control_volumes>
@@ -149,7 +149,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -190,12 +190,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -226,7 +226,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -267,12 +267,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -303,7 +303,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -345,12 +345,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -381,7 +381,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -423,12 +423,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -459,7 +459,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -496,12 +496,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -532,7 +532,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -571,12 +571,12 @@
             </advection_terms>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -607,7 +607,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -643,15 +643,15 @@
             </stabilisation>
             <advection_terms/>
             <mass_terms>
-              <lump_mass_matrix replaces="TLUMP"/>
+              <lump_mass_matrix/>
             </mass_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -682,7 +682,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -713,18 +713,18 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <locally_bound_upwind_value replaces="all cube elements, NDISOT &lt; 0 on simplex elements"/>
+            <face_value name="HyperC">
+              <locally_bound_upwind_value/>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -743,7 +743,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -774,25 +774,25 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
+                <limiter name="Sweby">
                   <pseudo_structured_upwind_value/>
                 </limiter>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
           </control_volumes>
@@ -824,7 +824,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -865,12 +865,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -901,7 +901,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -942,12 +942,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -978,7 +978,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1020,12 +1020,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1056,7 +1056,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1098,12 +1098,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1134,7 +1134,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1171,12 +1171,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1207,7 +1207,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1246,12 +1246,12 @@
             </advection_terms>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1282,7 +1282,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1318,15 +1318,15 @@
             </stabilisation>
             <advection_terms/>
             <mass_terms>
-              <lump_mass_matrix replaces="TLUMP"/>
+              <lump_mass_matrix/>
             </mass_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1357,7 +1357,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1388,18 +1388,18 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <locally_bound_upwind_value replaces="all cube elements, NDISOT &lt; 0 on simplex elements"/>
+            <face_value name="HyperC">
+              <locally_bound_upwind_value/>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -1418,7 +1418,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -1462,7 +1462,7 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <imposed_grid_velocity/>
       <vector_field name="GridVelocity" rank="1">
         <prescribed>

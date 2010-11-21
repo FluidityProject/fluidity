@@ -4,7 +4,7 @@
     <string_value lines="1">mms_diffusion_adjoint_E</string_value>
   </simulation_name>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -24,7 +24,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -39,13 +39,13 @@
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">10.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">10000.0</real_value>
     </finish_time>
     <steady_state>
@@ -213,8 +213,7 @@ for i in range(du.node_count):
 for ele in range(du.element_count):
   t = Transform(ele, coord)
   m = t.shape_shape(du.ele_shape(ele), du.ele_shape(ele))
-  du.addto(du.ele_nodes(ele), numpy.dot(m, f[du.ele_nodes(ele)]))
-  </string_value>
+  du.addto(du.ele_nodes(ele), numpy.dot(m, f[du.ele_nodes(ele)]))</string_value>
       </algorithm>
     </functional_derivative>
   </adjoint>

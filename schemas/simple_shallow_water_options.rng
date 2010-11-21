@@ -53,9 +53,6 @@ Specifies the period between each dump of the solution to disk.
 A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
             <choice>
               <element name="constant">
-                <attribute name="replaces">
-                  <value>TIMDUM</value>
-                </attribute>
                 <ref name="real"/>
               </element>
               <element name="python">
@@ -66,9 +63,6 @@ A value of 0.0 indicates that there would be a dump at every timestep.</a:docume
     return # Return value
 
 </a:documentation>
-                <attribute name="replaces">
-                  <value>TIMDUM</value>
-                </attribute>
                 <ref name="python_code"/>
               </element>
             </choice>
@@ -99,18 +93,12 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
           <!-- every CPUDUM seconds write results to disc. -->
           <element name="cpu_dump_period">
             <a:documentation>This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>CPUDUM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
         <optional>
           <element name="wall_time_dump_period">
             <a:documentation>The period between dumps in walltime seconds. This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>WTIDUM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -316,24 +304,15 @@ NOTE: Requires -v2</a:documentation>
         <element name="current_time">
           <a:documentation>Current simulation time. At the start of the simulation this
 is the start time.</a:documentation>
-          <attribute name="replaces">
-            <value>ACCTIM</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <element name="timestep">
           <a:documentation>The time step size. If adaptive time stepping is used
 then this is the initial time step size.</a:documentation>
-          <attribute name="replaces">
-            <value>DT</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <element name="finish_time">
           <a:documentation>Simulation time at which the simulation should end.</a:documentation>
-          <attribute name="replaces">
-            <value>LTIME</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <optional>
@@ -345,9 +324,6 @@ then this is the initial time step size.</a:documentation>
         <optional>
           <element name="cpu_time_limit">
             <a:documentation>Maximum CPU time (in seconds) before the simulation terminates</a:documentation>
-            <attribute name="replaces">
-              <value>CPULIM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -357,9 +333,6 @@ then this is the initial time step size.</a:documentation>
 simulation terminates writing results to disc.
 
 This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>WATIME</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -367,9 +340,6 @@ This is usually disabled.</a:documentation>
           <a:documentation>maximum number of non-linear iterations.
 
 Manual suggests 2</a:documentation>
-          <attribute name="replaces">
-            <value>ITINOI</value>
-          </attribute>
           <ref name="integer"/>
         </element>
       </element>
@@ -1094,9 +1064,6 @@ Adapting to this field is not recommended</a:documentation>
         <attribute name="name">
           <value>CFLNumber</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -601</value>
-        </attribute>
         <element name="diagnostic">
           <ref name="internal_algorithm"/>
           <ref name="velocity_mesh_choice"/>
@@ -1724,9 +1691,6 @@ Replaces and expands upon the old heaviside.dat file</a:documentation>
       <attribute name="name">
         <data type="string"/>
       </attribute>
-      <attribute name="replaces">
-        <value>heaviside.dat file</value>
-      </attribute>
       <choice>
         <element name="continuous_galerkin">
           <a:documentation>Select whether to evaluate the volume fraction over the finite element
@@ -1871,9 +1835,6 @@ This means the interpolation will not be conservative from the previous mesh so 
       <element name="dimension">
         <a:documentation>Dimension of the problem.
 &lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
-        <attribute name="replaces">
-          <value>NDIM</value>
-        </attribute>
         <element name="integer_value">
           <attribute name="rank">
             <value>0</value>
@@ -1926,9 +1887,6 @@ This means the interpolation will not be conservative from the previous mesh so 
 
 note: this specifies the degree of quadrature,
 not the number of gauss points</a:documentation>
-          <attribute name="replaces">
-            <value>NGI</value>
-          </attribute>
           <ref name="integer"/>
         </element>
         <optional>
@@ -1937,9 +1895,6 @@ not the number of gauss points</a:documentation>
 
 note: this specifies the degree of surface
 quadrature not the number of surface gauss points</a:documentation>
-            <attribute name="replaces">
-              <value>SNGI</value>
-            </attribute>
             <ref name="integer"/>
           </element>
         </optional>
@@ -2035,9 +1990,6 @@ strictly valid on 2d meshes.</a:documentation>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation</a:documentation>
-          <attribute name="replaces">
-            <value>DISOPT</value>
-          </attribute>
           <optional>
             <element name="mass_terms">
               <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
@@ -2090,9 +2042,6 @@ strictly valid on 2d meshes.</a:documentation>
  0. &lt; BETA &lt; 1.
 
 Defaults to 1.0 if not supplied.</a:documentation>
-          <attribute name="replaces">
-            <value>BETA</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -2107,9 +2056,6 @@ Defaults to 1.0 if not supplied.</a:documentation>
  0. &lt; ITHETA &lt; 1.
 
 Defaults to 0.5 if not supplied.</a:documentation>
-          <attribute name="replaces">
-            <value>ITHETA</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -2143,9 +2089,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     </oneOrMore>
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
-      <attribute name="replaces">
-        <value>boundary, TMPER1 TMPER2 TMPERI</value>
-      </attribute>
       <attribute name="name">
         <value>FreeSlip</value>
       </attribute>
@@ -2201,9 +2144,6 @@ strictly valid on 2d meshes.</a:documentation>
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>THETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -2214,9 +2154,6 @@ strictly valid on 2d meshes.</a:documentation>
  0. &lt; ITHETA &lt; 1.
 
 Defaults to 0.5 if not supplied.</a:documentation>
-          <attribute name="replaces">
-            <value>ITHETA</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>

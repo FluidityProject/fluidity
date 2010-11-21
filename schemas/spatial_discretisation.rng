@@ -36,9 +36,6 @@ Useful for pseudo-1D simulations involving biology</a:documentation>
             <optional>
               <element name="lump_mass_matrix">
                 <a:documentation>Lump the mass matrix</a:documentation>
-                <attribute name="replaces">
-                  <value>TLUMP</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
@@ -478,9 +475,6 @@ conservative_advection below).</a:documentation>
  TBETA=1. -- conservative (divergence form)
  TBETA=0. -- non-conservative
  0. &lt; TBETA &lt; 1.</a:documentation>
-        <attribute name="replaces">
-          <value>TBETA, DEFALT (TBETA = 0.0)</value>
-        </attribute>
         <ref name="real"/>
       </element>
     </element>
@@ -581,9 +575,6 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
         <attribute name="name">
           <value>FirstOrderUpwind</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 0,1</value>
-        </attribute>
         <empty/>
       </element>
       <element name="face_value">
@@ -596,9 +587,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
         <attribute name="name">
           <value>Trapezoidal</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 2,3</value>
-        </attribute>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">
@@ -608,9 +596,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
         <attribute name="name">
           <value>FiniteElement</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7</value>
         </attribute>
         <optional>
           <element name="only_sinking_velocity">
@@ -668,9 +653,6 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
         <attribute name="name">
           <value>FirstOrderUpwind</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 0,1</value>
-        </attribute>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">
@@ -683,9 +665,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
         <attribute name="name">
           <value>Trapezoidal</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 2,3</value>
-        </attribute>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">
@@ -695,9 +674,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
         <attribute name="name">
           <value>FiniteElement</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7</value>
         </attribute>
         <ref name="limiter_options"/>
       </element>
@@ -713,9 +689,6 @@ Normally used for MaterialVolumeFraction fields</a:documentation>
         <attribute name="name">
           <value>HyperC</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 8,9</value>
-        </attribute>
         <optional>
           <ref name="upwind_value_options"/>
         </optional>
@@ -729,9 +702,6 @@ explicit TVD zone of NVD diagram assuming
 values bounded by target_maximum and target_minimum.</a:documentation>
         <attribute name="name">
           <value>UltraC</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 8,9, with ULTRAC = TRUE from solidity_options.inp</value>
         </attribute>
         <element name="target_maximum">
           <a:documentation>Specifiy the upper bound which UltraC will use to

@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">6</integer_value>
       </degree>
     </quadrature>
@@ -87,7 +87,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
@@ -107,13 +107,13 @@
     </detectors>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.05</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1</real_value>
     </finish_time>
   </timestepping>
@@ -144,11 +144,11 @@
   <material_phase name="Water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1</real_value>
           </reference_density>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -157,14 +157,14 @@
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -259,15 +259,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">1</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">1</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -294,7 +294,7 @@
             <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="wallblock1">
+        <boundary_conditions name="wallblock1">
           <surface_ids>
             <integer_value shape="3" rank="1">62 63 64</integer_value>
           </surface_ids>
@@ -318,7 +318,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="wall_block2">
+        <boundary_conditions name="wall_block2">
           <surface_ids>
             <integer_value shape="3" rank="1">66 67 68</integer_value>
           </surface_ids>
@@ -342,7 +342,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="right_block1">
+        <boundary_conditions name="right_block1">
           <surface_ids>
             <integer_value shape="1" rank="1">56</integer_value>
           </surface_ids>
@@ -366,7 +366,7 @@
             </align_bc_with_surface>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="left_block2">
+        <boundary_conditions name="left_block2">
           <surface_ids>
             <integer_value shape="1" rank="1">57</integer_value>
           </surface_ids>
@@ -390,19 +390,19 @@
             </align_bc_with_surface>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="top_block1">
+        <boundary_conditions name="top_block1">
           <surface_ids>
             <integer_value shape="1" rank="1">61</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="top_block2">
+        <boundary_conditions name="top_block2">
           <surface_ids>
             <integer_value shape="1" rank="1">65</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -455,7 +455,7 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <free_surface>
         <move_surface_nodes/>
       </free_surface>

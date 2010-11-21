@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -38,7 +38,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -48,7 +48,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.025</real_value>
       </constant>
     </dump_period>
@@ -56,14 +56,14 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.12566370614359174</real_value>
       <comment>2 * pi/50 (50 steps per revolution)</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0</real_value>
       <comment>one timestep</comment>
     </finish_time>
@@ -92,7 +92,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -109,7 +109,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = 666" name="Tracer" rank="0">
+    <scalar_field name="Tracer" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -125,12 +125,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>

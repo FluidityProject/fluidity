@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -63,7 +63,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -123,20 +123,20 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1e20</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">500</integer_value>
       <comment>This should bring the wave exactly around</comment>
     </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -177,15 +177,15 @@
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <remove_stabilisation_term replaces="NOFILT"/>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <remove_stabilisation_term/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -233,7 +233,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
             </viscosity_scheme>
@@ -244,15 +244,15 @@
               </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -288,7 +288,7 @@
    return (u,0,w)</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="NoNormalFlow">
+        <boundary_conditions name="NoNormalFlow">
           <surface_ids>
             <integer_value shape="1" rank="1">4</integer_value>
           </surface_ids>
@@ -303,13 +303,13 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSurface">
+        <boundary_conditions name="FreeSurface">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="NoNormalFlowBottom">
+        <boundary_conditions name="NoNormalFlowBottom">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>

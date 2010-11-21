@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -71,7 +71,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
@@ -81,7 +81,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.05</real_value>
       </constant>
     </dump_period>
@@ -89,25 +89,25 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.01</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">0.9999999</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -161,7 +161,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+    <scalar_field name="Temperature" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -196,12 +196,12 @@
               <debugging/>
             </slope_limiter>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">1</real_value>
           </theta>
           <discontinuous_galerkin/>
@@ -245,11 +245,11 @@
             <normalise/>
           </surface_integral>
           <surface_integral type="gradient_normal" name="GradientNormalWholeMesh"/>
-          <include_mixing_stats replaces="heaviside.dat file" name="stats">
+          <include_mixing_stats name="stats">
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-              <real_value shape="6" rank="1">0.0 0.2 0.4 0.6 0.8 1.0</real_value>
+                <real_value shape="6" rank="1">0.0 0.2 0.4 0.6 0.8 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
@@ -266,7 +266,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -61,7 +61,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
@@ -71,7 +71,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.01</real_value>
       </constant>
     </dump_period>
@@ -79,13 +79,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.00005</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">0.00015</real_value>
     </finish_time>
   </timestepping>
@@ -116,27 +116,27 @@
   <material_phase name="Main">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1</real_value>
           </reference_density>
-          <temperature_dependency replaces="BOUSIN, EQNSTA=0">
-            <reference_temperature replaces="TEMINI">
+          <temperature_dependency>
+            <reference_temperature>
               <real_value rank="0">0.0</real_value>
             </reference_temperature>
-            <thermal_expansion_coefficient replaces="DENGAM">
+            <thermal_expansion_coefficient>
               <real_value rank="0">142857.0</real_value>
             </thermal_expansion_coefficient>
           </temperature_dependency>
-          <salinity_dependency replaces="BOUSIN, EQNSTA=1">
-            <reference_salinity replaces="S0 if from .dat file?, GAMDE3(1) if from gem">
+          <salinity_dependency>
+            <reference_salinity>
               <real_value rank="0">0</real_value>
             </reference_salinity>
-            <saline_contraction_coefficient replaces="DENGAM_SAL if from .dat file?, GAMDE2(1) if from gem">
+            <saline_contraction_coefficient>
               <real_value rank="0">79365.0</real_value>
             </saline_contraction_coefficient>
           </salinity_dependency>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -147,10 +147,10 @@
           <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -214,15 +214,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -249,7 +249,7 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="TopBottom">
+        <boundary_conditions name="TopBottom">
           <surface_ids>
             <integer_value shape="2" rank="1">7 8</integer_value>
           </surface_ids>
@@ -263,7 +263,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -297,29 +297,29 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = 42" name="Salinity" rank="0">
+    <scalar_field name="Salinity" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
+                <limiter name="Sweby"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
             <maximum_courant_number_per_subcycle>
@@ -359,7 +359,7 @@
 		return 5*(x[1]-0.016*cos(10*pi*x[0])) - 4.5</string_value>
           </python>
         </initial_condition>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -383,8 +383,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -403,29 +403,29 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+    <scalar_field name="Temperature" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
+                <limiter name="Sweby"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
             <maximum_courant_number_per_subcycle>
@@ -463,7 +463,7 @@
 		return 5*x[1] - 4.5</string_value>
           </python>
         </initial_condition>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -489,7 +489,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -506,11 +506,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -2003" name="GeostrophicPressure" rank="0">
+    <scalar_field name="GeostrophicPressure" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <spatial_discretisation>
-          <geostrophic_pressure_option replaces="GEOBAL">
+          <geostrophic_pressure_option>
             <string_value>include_buoyancy</string_value>
           </geostrophic_pressure_option>
         </spatial_discretisation>
@@ -564,11 +564,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">0</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">50000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation>

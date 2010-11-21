@@ -7,7 +7,7 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -56,13 +56,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">8.0</real_value>
     </finish_time>
   </timestepping>
@@ -70,8 +70,8 @@
   <material_phase name="Material1">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </linear>
@@ -117,15 +117,15 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -151,7 +151,7 @@
         </initial_condition>
         <output/>
         <stat>
-          <include_mixing_stats replaces="heaviside.dat file" name="cv_normalised">
+          <include_mixing_stats name="cv_normalised">
             <control_volumes>
               <normalise/>
             </control_volumes>
@@ -164,7 +164,7 @@
               <real_value rank="0">1.E-8</real_value>
             </tolerance>
           </include_mixing_stats>
-          <include_mixing_stats replaces="heaviside.dat file" name="cv_unormalised">
+          <include_mixing_stats name="cv_unormalised">
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
@@ -175,7 +175,7 @@
               <real_value rank="0">1.E-8</real_value>
             </tolerance>
           </include_mixing_stats>
-          <include_mixing_stats replaces="heaviside.dat file" name="cg_normalised">
+          <include_mixing_stats name="cg_normalised">
             <continuous_galerkin>
               <normalise/>
             </continuous_galerkin>
@@ -188,7 +188,7 @@
               <real_value rank="0">1.E-8</real_value>
             </tolerance>
           </include_mixing_stats>
-          <include_mixing_stats replaces="heaviside.dat file" name="cg_unormalised">
+          <include_mixing_stats name="cg_unormalised">
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <constant>
@@ -199,7 +199,7 @@
               <real_value rank="0">1.E-8</real_value>
             </tolerance>
           </include_mixing_stats>
-          <include_mixing_stats replaces="heaviside.dat file" name="cv_normalised_python">
+          <include_mixing_stats name="cv_normalised_python">
             <control_volumes>
               <normalise/>
             </control_volumes>
@@ -224,8 +224,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -265,8 +265,8 @@
   <material_phase name="Material2">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">2.0</real_value>
           </reference_density>
         </linear>
@@ -281,7 +281,7 @@
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
-          <include_mixing_stats replaces="heaviside.dat file" name="cv">
+          <include_mixing_stats name="cv">
             <control_volumes>
               <normalise/>
             </control_volumes>
@@ -325,11 +325,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">5</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">10000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation/>

@@ -8,7 +8,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -44,7 +44,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -54,7 +54,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
@@ -62,25 +62,25 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.1</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">50.0</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="whole_mesh">
@@ -98,12 +98,12 @@
         </prescribed>
       </vector_field>
     </gravity>
-    <coriolis replaces="OPTOME">
-      <beta_plane replaces="OPTOME = 1">
-        <f_0 replaces="OMEGA">
+    <coriolis>
+      <beta_plane>
+        <f_0>
           <real_value rank="0">0.0</real_value>
         </f_0>
-        <beta replaces="OMEGA1 OMEGA2 OMEGA3">
+        <beta>
           <real_value shape="3" dim1="dim" rank="1">0 1 0</real_value>
         </beta>
       </beta_plane>
@@ -112,19 +112,19 @@
   <material_phase name="water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <temperature_dependency replaces="BOUSIN, EQNSTA=0">
-            <reference_temperature replaces="TEMINI">
+          <temperature_dependency>
+            <reference_temperature>
               <real_value rank="0">0.0</real_value>
             </reference_temperature>
-            <thermal_expansion_coefficient replaces="DENGAM">
+            <thermal_expansion_coefficient>
               <real_value rank="0">0.0</real_value>
             </thermal_expansion_coefficient>
           </temperature_dependency>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -133,14 +133,14 @@
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -187,7 +187,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
             </viscosity_scheme>
@@ -198,15 +198,15 @@
               </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -244,7 +244,7 @@
    return v</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="sides">
+        <boundary_conditions name="sides">
           <surface_ids>
             <integer_value shape="1" rank="1">30</integer_value>
           </surface_ids>
@@ -258,7 +258,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">31</integer_value>
           </surface_ids>
@@ -272,7 +272,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="outlet">
+        <boundary_conditions name="outlet">
           <surface_ids>
             <integer_value shape="1" rank="1">32</integer_value>
           </surface_ids>
@@ -286,13 +286,13 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="top">
+        <boundary_conditions name="top">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Bottom">
+        <boundary_conditions name="Bottom">
           <surface_ids>
             <integer_value shape="1" rank="1">28</integer_value>
           </surface_ids>
@@ -328,7 +328,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+    <scalar_field name="Temperature" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -345,7 +345,7 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <free_surface>
         <move_surface_nodes/>
       </free_surface>

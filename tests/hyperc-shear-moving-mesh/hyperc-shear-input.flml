@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">1</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -66,14 +66,14 @@
     </stat>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.00427561316453</real_value>
       <comment>this is overwritten by the adaptive timestepping but roughly corresponds to a cfl of 0.1</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">15.512558773625283</real_value>
       <comment>corresponds to 4020 timesteps (looks like half of Rudman)</comment>
     </finish_time>
@@ -126,22 +126,22 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <reflect_off_domain_boundaries/>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -166,7 +166,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="keep_it_all_in">
+        <boundary_conditions name="keep_it_all_in">
           <surface_ids>
             <integer_value shape="4" rank="1">7 8 9 10</integer_value>
           </surface_ids>
@@ -175,11 +175,11 @@
         <output/>
         <stat>
           <include_cv_stats/>
-          <include_mixing_stats replaces="heaviside.dat file" name="Mixing">
+          <include_mixing_stats name="Mixing">
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-              <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
+                <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -230,22 +230,22 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <reflect_off_domain_boundaries/>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -270,7 +270,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="keep_it_all_in">
+        <boundary_conditions name="keep_it_all_in">
           <surface_ids>
             <integer_value shape="4" rank="1">7 8 9 10</integer_value>
           </surface_ids>
@@ -279,11 +279,11 @@
         <output/>
         <stat>
           <include_cv_stats/>
-          <include_mixing_stats replaces="heaviside.dat file" name="Mixing">
+          <include_mixing_stats name="Mixing">
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-              <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
+                <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -364,7 +364,7 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <imposed_grid_velocity/>
       <vector_field name="GridVelocity" rank="1">
         <prescribed>

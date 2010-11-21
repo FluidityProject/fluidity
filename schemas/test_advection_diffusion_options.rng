@@ -18,9 +18,6 @@ characters in the simulation name should be avoided.</a:documentation>
         <element name="dimension">
           <a:documentation>Dimension of the problem.
 &lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
-          <attribute name="replaces">
-            <value>NDIM</value>
-          </attribute>
           <element name="integer_value">
             <attribute name="rank">
               <value>0</value>
@@ -66,9 +63,6 @@ characters in the simulation name should be avoided.</a:documentation>
 
 note: this specifies the degree of quadrature,
 not the number of gauss points</a:documentation>
-            <attribute name="replaces">
-              <value>NGI</value>
-            </attribute>
             <ref name="integer"/>
           </element>
           <optional>
@@ -77,9 +71,6 @@ not the number of gauss points</a:documentation>
 
 note: this specifies the degree of surface
 quadrature not the number of surface gauss points</a:documentation>
-              <attribute name="replaces">
-                <value>SNGI</value>
-              </attribute>
               <ref name="integer"/>
             </element>
           </optional>
@@ -116,9 +107,6 @@ Specifies the period between each dump of the solution to disk.
 A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
             <choice>
               <element name="constant">
-                <attribute name="replaces">
-                  <value>TIMDUM</value>
-                </attribute>
                 <ref name="real"/>
               </element>
               <element name="python">
@@ -129,9 +117,6 @@ A value of 0.0 indicates that there would be a dump at every timestep.</a:docume
     return # Return value
 
 </a:documentation>
-                <attribute name="replaces">
-                  <value>TIMDUM</value>
-                </attribute>
                 <ref name="python_code"/>
               </element>
             </choice>
@@ -162,18 +147,12 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
           <!-- every CPUDUM seconds write results to disc. -->
           <element name="cpu_dump_period">
             <a:documentation>This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>CPUDUM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
         <optional>
           <element name="wall_time_dump_period">
             <a:documentation>The period between dumps in walltime seconds. This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>WTIDUM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -213,9 +192,6 @@ interpolated for VTK output.</a:documentation>
         <element name="current_time">
           <a:documentation>Current simulation time. At the start of the simulation this
 is the start time.</a:documentation>
-          <attribute name="replaces">
-            <value>ACCTIM</value>
-          </attribute>
           <ref name="real"/>
           <optional>
             <element name="time_units">
@@ -251,16 +227,10 @@ above, is zero at the reference data/time.</a:documentation>
         <element name="timestep">
           <a:documentation>The time step size. If adaptive time stepping is used
 then this is the initial time step size.</a:documentation>
-          <attribute name="replaces">
-            <value>DT</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <element name="finish_time">
           <a:documentation>Simulation time at which the simulation should end.</a:documentation>
-          <attribute name="replaces">
-            <value>LTIME</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <optional>
@@ -275,9 +245,6 @@ then this is the initial time step size.</a:documentation>
 simulation terminates writing results to disc.
 
 Manual suggests 1.E+20</a:documentation>
-            <attribute name="replaces">
-              <value>CPULIM</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -287,9 +254,6 @@ Manual suggests 1.E+20</a:documentation>
 simulation terminates writing results to disc.
 
 This is usually disabled.</a:documentation>
-            <attribute name="replaces">
-              <value>WATIME</value>
-            </attribute>
             <ref name="real"/>
           </element>
         </optional>
@@ -328,9 +292,6 @@ This is usually disabled.</a:documentation>
             <attribute name="name">
               <value>Tracer</value>
             </attribute>
-            <attribute name="replaces">
-              <value>IDENT = 666</value>
-            </attribute>
             <element name="prognostic">
               <ref name="velocity_mesh_choice"/>
               <ref name="prognostic_scalar_field"/>
@@ -348,9 +309,6 @@ Adapting to this field is not recommended</a:documentation>
               </attribute>
               <attribute name="name">
                 <value>CFLNumber</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>IDENT = -601</value>
               </attribute>
               <element name="diagnostic">
                 <ref name="internal_algorithm"/>
@@ -868,9 +826,6 @@ are the components of the viscosity tensor.</a:documentation>
           <a:documentation>Discontinuous galerkin formulation. This causes Momentum_DG to be
 called instead of diff3d. Confusingly it is not necessary to provide
 a discontinuous velocity field for this to work!</a:documentation>
-          <attribute name="replaces">
-            <value>DISOPT</value>
-          </attribute>
           <optional>
             <element name="mass_terms">
               <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
@@ -1034,122 +989,71 @@ twice.</a:documentation>
         </element>
         <element name="legacy_continuous_galerkin">
           <a:documentation>Use the legacy finite element discretisation</a:documentation>
-          <attribute name="replaces">
-            <value>DISOPT</value>
-          </attribute>
           <choice>
             <element name="balancing_diffusion_x">
               <a:documentation>balancing diffusion based on (x,y) space.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 1</value>
-              </attribute>
               <empty/>
             </element>
             <element name="laxwendroff_balancing_diffusion">
               <a:documentation>Laxwendrof balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 2</value>
-              </attribute>
               <empty/>
             </element>
             <element name="balancing_diffusion_xt">
               <a:documentation>(x,y,t) -balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 3</value>
-              </attribute>
               <empty/>
             </element>
             <element name="no_balancing_diffusion">
               <a:documentation>No balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 4</value>
-              </attribute>
               <empty/>
             </element>
             <element name="nonlinear_streamline_w_crossstream_diffusion">
               <a:documentation>nonlinear streamline and cross stream diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 5</value>
-              </attribute>
               <empty/>
             </element>
             <element name="nonlinear_upwind_steepest">
               <a:documentation>nonlinear upwind in steapest direction.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 6</value>
-              </attribute>
               <empty/>
             </element>
             <element name="nonlinear_streamline_w_restricted_crossstream_diffusion">
               <a:documentation>nonlinear streamline+ cross stream diffusion(but restricted)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 7</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_constant_length_scale">
               <a:documentation>LES option using constant length scale.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 42</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_isotropic_length_scale">
               <a:documentation>LES option using isotropic length scale.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 43</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_no_balancing_diffusion">
               <a:documentation>LES option which uses no balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 44</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_no_balancing_diffusion_2">
               <a:documentation>LES option which uses no balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 45</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_no_balancing_diffusion_fourth_order_dissipation">
               <a:documentation>same as 45 but with 4th order dissipation.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 46</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_tensor_form">
               <a:documentation>LES but in tensor form like hart3d</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 47</value>
-              </attribute>
               <empty/>
             </element>
             <element name="les_fourth_order">
               <a:documentation>LES 4th order version of 47</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 48</value>
-              </attribute>
               <empty/>
             </element>
             <element name="no_balancing_diffusion_remove_nonlinear_terms">
               <a:documentation>NO balancing diffusion(DISOPT=4)and take out non-linear terms.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 125</value>
-              </attribute>
               <empty/>
             </element>
           </choice>
           <optional>
             <element name="lump_mass_matrix">
               <a:documentation>Lump the mass matrix in the momentum equation</a:documentation>
-              <attribute name="replaces">
-                <value>MLUMP</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1177,17 +1081,11 @@ twice.</a:documentation>
  DISOPT=48 -LES 4th order version of 47.
  
  DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.</a:documentation>
-            <attribute name="replaces">
-              <value>DISOPT</value>
-            </attribute>
             <ref name="integer"/>
           </element>
           <optional>
             <element name="legacy_mlump">
               <a:documentation>Lump the mass matrix in the momentum equation</a:documentation>
-              <attribute name="replaces">
-                <value>MLUMP</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1207,9 +1105,6 @@ Set to 0 if not activated
    =7      Finite elements in space    Theta=non-linear   NONE
    =8      Finite elements in space    Theta=specified    DOWNWIND+
    =9      Finite elements in space    Theta=non-linear   DOWNWIND+</a:documentation>
-              <attribute name="replaces">
-                <value>NDISOP</value>
-              </attribute>
               <ref name="integer"/>
             </element>
           </optional>
@@ -1220,9 +1115,6 @@ Set to 0 if not activated
  BETA=1. -- conservative (divergence form)
  BETA=0. -- non-conservative
  0. &lt; BETA &lt; 1.</a:documentation>
-        <attribute name="replaces">
-          <value>BETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -1236,9 +1128,6 @@ Set to 0 if not activated
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>THETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <element name="relaxation">
@@ -1246,9 +1135,6 @@ Set to 0 if not activated
  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
  0. &lt; ITHETA &lt; 1.</a:documentation>
-        <attribute name="replaces">
-          <value>ITHETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -1299,9 +1185,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TMPER1 TMPER2 TMPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -1318,9 +1201,6 @@ requires a distinct name for the options dictionary.</a:documentation>
 
 For continuous_galerkin see stress_terms to see how the
 viscosity tensor is dealt with in the momentum equation.</a:documentation>
-        <attribute name="replaces">
-          <value>MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU</value>
-        </attribute>
         <attribute name="name">
           <value>Viscosity</value>
         </attribute>
@@ -1347,9 +1227,6 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
-        <attribute name="replaces">
-          <value>CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <optional>
@@ -1364,9 +1241,6 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
         </choice>
         <optional>
           <element name="lump_source">
-            <attribute name="replaces">
-              <value>SLUMP</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
@@ -1381,9 +1255,6 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
-        <attribute name="replaces">
-          <value>XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <ref name="prescribed_vector_field_no_adapt"/>
@@ -1397,16 +1268,10 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
           <element name="default_absorption">
             <a:documentation>Default absorption: no lumping, is fully evaluated before the
 the pressure correction.</a:documentation>
-            <attribute name="replaces">
-              <value>ABSLUM</value>
-            </attribute>
             <empty/>
           </element>
           <element name="lump_absorption">
             <a:documentation>Lump the inclusion of absorbtion terms.</a:documentation>
-            <attribute name="replaces">
-              <value>ABSLUM</value>
-            </attribute>
             <empty/>
           </element>
           <element name="include_pressure_correction">
@@ -1431,9 +1296,6 @@ UNDER DEVELOPMENT
  - only single materials tested so far
  - momentum equations assembled in solid3d so not all
    discretisation options above are valid</a:documentation>
-        <attribute name="replaces">
-          <value>SOLIDS = 1 from solidity_options.inp</value>
-        </attribute>
         <attribute name="name">
           <value>Elasticity</value>
         </attribute>
@@ -1501,9 +1363,6 @@ UNDER DEVELOPMENT
         <attribute name="rank">
           <value>0</value>
         </attribute>
-        <attribute name="replaces">
-          <value>COHESI from solidity_options.inp</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -1528,9 +1387,6 @@ UNDER DEVELOPMENT
         </attribute>
         <attribute name="rank">
           <value>0</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>FRCANG from solidity_options.inp</value>
         </attribute>
         <choice>
           <element name="prescribed">
@@ -1592,9 +1448,6 @@ requires a distinct name for the options dictionary.</a:documentation>
         </attribute>
         <attribute name="rank">
           <value>2</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU</value>
         </attribute>
         <element name="prescribed">
           <optional>
@@ -1823,9 +1676,6 @@ In this case each value requires a distinct name for the options dictionary.</a:
             <element name="remove_stabilisation_term">
               <a:documentation>remove the  fourth order pressure stabilisation term KCMC
 must be removed for multimaterial and free surface calculations</a:documentation>
-              <attribute name="replaces">
-                <value>NOFILT</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1835,17 +1685,11 @@ must be removed for multimaterial and free surface calculations</a:documentation
 
 This allows for the imposition of weak velocity boundary conditions with continuous_galerkin.
 If activated this means that the pressure gradient operator is not integrated by parts.</a:documentation>
-              <attribute name="replaces">
-                <value>PREOPT</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
         </element>
         <element name="control_volumes">
-          <attribute name="replaces">
-            <value>NCOLOP = X1XXXXX -&gt; INTERF, NOFILT</value>
-          </attribute>
           <empty/>
         </element>
       </choice>
@@ -1859,9 +1703,6 @@ If parallel must be less than the total number of nodes of the first processor.
 
 Note - it is also an option to remove the null-space of the residual vector. This
 option is available under solvers.</a:documentation>
-        <attribute name="replaces">
-          <value>NDPSET</value>
-        </attribute>
         <ref name="integer"/>
       </element>
     </optional>
@@ -1880,9 +1721,6 @@ This is useful as a debugging tool if PETSc complains about zeros on the diagona
         <a:documentation>Atmospheric pressure
 
 Manual suggests 1.01325E+6</a:documentation>
-        <attribute name="replaces">
-          <value>PATMOS</value>
-        </attribute>
         <ref name="real"/>
       </element>
     </optional>
@@ -1895,34 +1733,26 @@ This does not necessarily satisfy continuity.
   = 0 -- never use a poisson guess
   =-1 -- use a poisson guess at the first timestep only
 Manual suggests -1</a:documentation>
-        <attribute name="replaces">
-          <value>POISON</value>
-        </attribute>
-        <group>
-          <element name="string_value">
-            <!--
-              Lines is a hint to the gui about the size of the text box.
-              It is not an enforced limit on string length.
-            -->
-            <attribute name="lines">
-              <value>1</value>
-            </attribute>
-            <choice>
-              <value>never</value>
-              <value>every timestep</value>
-              <value>only first timestep</value>
-            </choice>
-          </element>
-          <ref name="comment"/>
-        </group>
+        <element name="string_value">
+          <!--
+            Lines is a hint to the gui about the size of the text box.
+            It is not an enforced limit on string length.
+          -->
+          <attribute name="lines">
+            <value>1</value>
+          </attribute>
+          <choice>
+            <value>never</value>
+            <value>every timestep</value>
+            <value>only first timestep</value>
+          </choice>
+        </element>
+        <ref name="comment"/>
       </element>
       <choice>
         <element name="use_projection_method">
           <a:documentation>Use the incompressible projection method to determine
 the pressure and satisfy continuity</a:documentation>
-          <attribute name="replaces">
-            <value>PROJEC</value>
-          </attribute>
           <optional>
             <element name="full_schur_complement">
               <a:documentation>Assemble and use the full schur complement.
@@ -1995,9 +1825,6 @@ pressure and satisfy continuity and the eos.
 This is only currently compatible with control volume
 pressure spatial discretisations and requires a
 multimaterial eos.</a:documentation>
-          <attribute name="replaces">
-            <value>MKCOMP from solidity_options.inp</value>
-          </attribute>
           <optional>
             <choice>
               <element name="normalisation">
@@ -2039,9 +1866,6 @@ Allows the selection of an arbitrary field.</a:documentation>
           <a:documentation>rediscretise the equations at every timestep and iteration
 (for instance if using a compressible formulation
 or if density varies a lot or if not using a Boussinesque approximation)</a:documentation>
-          <attribute name="replaces">
-            <value>CMCHAN</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
@@ -2132,9 +1956,6 @@ want this.</a:documentation>
         <a:documentation>Select whether on not to include the buoyancy term "g" in the RHS:
 
   f = - grad p_gp + g</a:documentation>
-        <attribute name="replaces">
-          <value>GEOBAL</value>
-        </attribute>
         <element name="string_value">
           <choice>
             <value>include_buoyancy</value>
@@ -2200,9 +2021,6 @@ requires a distinct name for the options dictionary.</a:documentation>
       -->
       <element name="geostrophic_pressure_option">
         <a:documentation>Geostrophic pressure option</a:documentation>
-        <attribute name="replaces">
-          <value>GEOBAL</value>
-        </attribute>
         <element name="string_value">
           <choice>
             <value>include_buoyancy</value>
@@ -2291,26 +2109,17 @@ requires a distinct name for the options dictionary.</a:documentation>
         <optional>
           <element name="free_surface_3D">
             <a:documentation>Form a full 3D system for the free surface</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^0 (frees3d)</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
         <optional>
           <element name="fourth_order_dissipation">
-            <attribute name="replaces">
-              <value>DISOTT=2^2 (fourthfrees_diss)</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
         <optional>
           <element name="low_order_free_surface">
             <a:documentation>low order (linear) free surface</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^3 (geo_short)</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
@@ -2332,18 +2141,12 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
           </element>
           <element name="switch_off_free_surface_filter">
             <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^8 (nofsta)</value>
-            </attribute>
             <empty/>
           </element>
         </choice>
         <optional>
           <element name="wetting_drying">
             <a:documentation>Apply wetting and drying routines</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^10 (wetdry)</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
@@ -2353,9 +2156,6 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
             <optional>
               <element name="M2">
                 <a:documentation>M2</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^11</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
@@ -2404,27 +2204,18 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
             <optional>
               <element name="all_tidal_components">
                 <a:documentation>Switch on all tidal components</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^5 (tidallcom)</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
             <optional>
               <element name="love_number">
                 <a:documentation>Switches on a Love number of 0.3</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^6 (tlove)</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
             <optional>
               <element name="static_tidal_force">
                 <a:documentation>Use static tidal force for testing</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^7 (statid)</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
@@ -2465,9 +2256,6 @@ O1 constituent = 65536
 P1 constituent = 131072
 
 Q1 constituent = 262144</a:documentation>
-        <attribute name="replaces">
-          <value>FREESDISOTT</value>
-        </attribute>
         <ref name="integer"/>
       </element>
     </choice>
@@ -2484,9 +2272,6 @@ Suggested value 1.0 (should be at least bigger than 0.5).
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>THETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -2496,9 +2281,6 @@ Suggested value 1.0 (should be at least bigger than 0.5).
 =0.  -- explicit (default)
 =0.5 -- Crank-Nicolson
 =1.  -- implicit</a:documentation>
-          <attribute name="replaces">
-            <value>disott=2^4 (IMPABS)</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -2537,9 +2319,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TTPER1 TTPER2 TTPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -2798,29 +2577,20 @@ formulations</a:documentation>
       <element name="normal_direction">
         <a:documentation>Select if you want to specify the normal direction
 of the rotation matrix.
-If off then fluidity computes the normal (replaces GETTAN = .TRUE.)
+If off then fluidity computes the normal
 If on the tangents vectors must also be specified.</a:documentation>
-        <attribute name="replaces">
-          <value>GETTAN=.FALSE.</value>
-        </attribute>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_1">
         <a:documentation>specify first unit tangent vector to boundary</a:documentation>
-        <attribute name="replaces">
-          <value>GETTAN=.FALSE.</value>
-        </attribute>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_2">
         <a:documentation>specify second (if exists, i.e. if 3d) unit tangent vector to boundary</a:documentation>
-        <attribute name="replaces">
-          <value>GETTAN=.FALSE.</value>
-        </attribute>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -3593,18 +3363,12 @@ one specifies the absolute interpolation
 error in the units of the field that is 
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
-            <attribute name="replaces">
-              <value>ADOPTT = 0</value>
-            </attribute>
             <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADWEIT</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_scalar_field_no_adapt"/>
@@ -3617,18 +3381,12 @@ one specifies the interpolation error
 relative to the field that is
 being adapted, e.g. you can specify
 the error to be 5% (i.e. 0.05)</a:documentation>
-            <attribute name="replaces">
-              <value>ADOPTT = 1</value>
-            </attribute>
             <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADADOT</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_scalar_field_no_adapt"/>
@@ -3644,9 +3402,6 @@ psi_min is the tolerance. The tolerance prevents
 division by zero errors.
 
 Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
-              <attribute name="replaces">
-                <value>ADATOT</value>
-              </attribute>
               <ref name="real"/>
             </element>
           </element>
@@ -3681,18 +3436,12 @@ one specifies the absolute interpolation
 error in the units of the field that is 
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
-        <attribute name="replaces">
-          <value>ADOPTT = 0</value>
-        </attribute>
         <element name="scalar_field">
           <attribute name="rank">
             <value>0</value>
           </attribute>
           <attribute name="name">
             <value>InterpolationErrorBound</value>
-          </attribute>
-          <attribute name="replaces">
-            <value>ADWEIT</value>
           </attribute>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -3705,18 +3454,12 @@ one specifies the interpolation error
 relative to the field that is
 being adapted, e.g. you can specify
 the error to be 5% (i.e. 0.05)</a:documentation>
-        <attribute name="replaces">
-          <value>ADOPTT = 1</value>
-        </attribute>
         <element name="scalar_field">
           <attribute name="rank">
             <value>0</value>
           </attribute>
           <attribute name="name">
             <value>InterpolationErrorBound</value>
-          </attribute>
-          <attribute name="replaces">
-            <value>ADADOT</value>
           </attribute>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -3732,9 +3475,6 @@ psi_min is the tolerance. The tolerance prevents
 division by zero errors.
 
 Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
-          <attribute name="replaces">
-            <value>ADATOT</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </element>
@@ -3784,9 +3524,6 @@ the error to be 1.3 units </a:documentation>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
               </attribute>
-              <attribute name="replaces">
-                <value>ADWEIU ADWEIV ADWEIW</value>
-              </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
               </element>
@@ -3804,9 +3541,6 @@ the error to be 5% (i.e. 0.05)</a:documentation>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADATOU ADATOV ADATOW</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
@@ -3848,9 +3582,6 @@ the error to be 1.3 units </a:documentation>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
               </attribute>
-              <attribute name="replaces">
-                <value>ADWEIU ADWEIV ADWEIW</value>
-              </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
               </element>
@@ -3868,9 +3599,6 @@ the error to be 5% (i.e. 0.05)</a:documentation>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADATOU ADATOV ADATOW</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
@@ -4154,9 +3882,6 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         <attribute name="name">
           <value>Salinity</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = 42</value>
-        </attribute>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
@@ -4178,9 +3903,6 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         </attribute>
         <attribute name="name">
           <value>Temperature</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -1</value>
         </attribute>
         <choice>
           <element name="prognostic">
@@ -4216,9 +3938,6 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         </attribute>
         <attribute name="name">
           <value>Tracer</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = 666</value>
         </attribute>
         <choice>
           <element name="prognostic">
@@ -4293,9 +4012,6 @@ of the free surface elevation.</a:documentation>
         <attribute name="name">
           <value>SecondFluid</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = 56</value>
-        </attribute>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
@@ -4318,9 +4034,6 @@ of the free surface elevation.</a:documentation>
         <attribute name="name">
           <value>DiffuseInterface</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = 57</value>
-        </attribute>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
@@ -4341,9 +4054,6 @@ of the free surface elevation.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>BalancePressure</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -2003</value>
         </attribute>
         <element name="prognostic">
           <!--
@@ -4380,9 +4090,6 @@ mesh for the geopressure solver.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>GeostrophicPressure</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -2003</value>
         </attribute>
         <element name="prognostic">
           <element name="mesh">
@@ -4734,9 +4441,6 @@ and electrochemical problems
         <attribute name="name">
           <value>DistanceToSideBoundaries</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -144</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <ref name="velocity_mesh_choice"/>
@@ -4823,9 +4527,6 @@ Requires a diagnostic bulk Cohesion field
         </attribute>
         <attribute name="name">
           <value>PerturbationDensity</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -143</value>
         </attribute>
         <choice>
           <element name="diagnostic">
@@ -4981,9 +4682,6 @@ Adapting to this field is not recommended</a:documentation>
         <attribute name="name">
           <value>CFLNumber</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -601</value>
-        </attribute>
         <choice>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
@@ -5093,9 +4791,6 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>CopyofDensity</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>DENTRAF</value>
         </attribute>
         <element name="diagnostic">
           <ref name="internal_algorithm"/>
@@ -5848,9 +5543,6 @@ ocean biology is being simulated.</a:documentation>
         <attribute name="name">
           <value>TidalRange</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -32</value>
-        </attribute>
         <choice>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
@@ -5869,9 +5561,6 @@ ocean biology is being simulated.</a:documentation>
         <attribute name="name">
           <value>MaxFreeSurface</value>
         </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -33</value>
-        </attribute>
         <choice>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
@@ -5889,9 +5578,6 @@ ocean biology is being simulated.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>MinFreeSurface</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -34</value>
         </attribute>
         <choice>
           <element name="diagnostic">
@@ -6742,9 +6428,6 @@ Limitations:
         <a:documentation>Solid Velocity field.  Used to generate the momentum source </a:documentation>
         <attribute name="rank">
           <value>1</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>UTRAF,VTRAF,WTRAF</value>
         </attribute>
         <attribute name="name">
           <value>SolidVelocity</value>
@@ -8158,9 +7841,6 @@ Currently only works with triangle files created by gmsh2triangle.</a:documentat
 This increases the accuracy of the face values and ensures that
 the pivoted solution is cancelled out.
 Defaults to 1 if unselected.</a:documentation>
-          <attribute name="replaces">
-            <value>INT(ABS(NDISOT)/10)</value>
-          </attribute>
           <ref name="integer"/>
           <optional>
             <element name="tolerance">
@@ -8215,9 +7895,6 @@ This only works for pure control volume discretisations.</a:documentation>
 continuous galerkin spatial discretisation is selected.
 If not active then the theta specified above will be used.
 Otherwise use variable limited theta on individual faces.</a:documentation>
-          <attribute name="replaces">
-            <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
@@ -8268,9 +7945,6 @@ Clearly, in terms of discretisation this does the same thing
 as a pure control volume discretisation if diffusion terms
 are zero.
 However it still follows a partially legacy code path.</a:documentation>
-      <attribute name="replaces">
-        <value>NDISOT &gt;= 10, DISOTT = -7, TLUMP = .TRUE.</value>
-      </attribute>
       <ref name="spatial_control_volume_options"/>
       <optional>
         <element name="legacy_disott">
@@ -8278,9 +7952,6 @@ However it still follows a partially legacy code path.</a:documentation>
 BE WARNED: this probably means you're using inconsistent discretisations
 on different terms - make sure you're happy with what your code path is doing
 before selecting this.</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT</value>
-          </attribute>
           <ref name="integer"/>
         </element>
       </optional>
@@ -8362,9 +8033,6 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
         <attribute name="name">
           <value>FirstOrderUpwind</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 0,1</value>
-        </attribute>
         <empty/>
       </element>
       <element name="face_value">
@@ -8377,9 +8045,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
         <attribute name="name">
           <value>Trapezoidal</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 2,3</value>
-        </attribute>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">
@@ -8389,9 +8054,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
         <attribute name="name">
           <value>FiniteElement</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7</value>
         </attribute>
         <optional>
           <ref name="limiter_options"/>
@@ -8422,9 +8084,6 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
         <attribute name="name">
           <value>FirstOrderUpwind</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 0,1</value>
-        </attribute>
         <optional>
           <ref name="limiter_options"/>
         </optional>
@@ -8439,9 +8098,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
         <attribute name="name">
           <value>Trapezoidal</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 2,3</value>
-        </attribute>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">
@@ -8451,9 +8107,6 @@ Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentati
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
         <attribute name="name">
           <value>FiniteElement</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7</value>
         </attribute>
         <optional>
           <ref name="limiter_options"/>
@@ -8471,9 +8124,6 @@ Normally used for MaterialVolumeFraction fields</a:documentation>
         <attribute name="name">
           <value>HyperC</value>
         </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 8,9</value>
-        </attribute>
         <optional>
           <ref name="upwind_value_options"/>
         </optional>
@@ -8487,9 +8137,6 @@ explicit TVD zone of NVD diagram assuming
 values bounded by target_maximum and target_minimum.</a:documentation>
         <attribute name="name">
           <value>UltraC</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>MOD(INT(ABS(NDISOT)/1),10) = 8,9, with ULTRAC = TRUE from solidity_options.inp</value>
         </attribute>
         <element name="target_maximum">
           <a:documentation>Specifiy the upper bound which UltraC will use to
@@ -8722,9 +8369,6 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
       <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
 Hyperblic Conservation-Laws", P. K. Sweby, 1984, Siam
 Journal on Numerical Analysis, 21, 995-1011</a:documentation>
-      <attribute name="replaces">
-        <value>MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5</value>
-      </attribute>
       <attribute name="name">
         <value>Sweby</value>
       </attribute>
@@ -8781,9 +8425,6 @@ upwind of the node pair straddling the face.  It is otherwise known as
 anisotropic limiting.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
-        <attribute name="replaces">
-          <value>NDISOT &gt; 0 on simplex meshes</value>
-        </attribute>
         <optional>
           <element name="reflect_off_domain_boundaries">
             <a:documentation>When the donor node is on a domain boundary reflect the projection
@@ -8805,9 +8446,6 @@ are projected from for each node pair.
 This inserts an integer csr matrix into state so is memory expensive but
 saves a significant amount of time (searching around the neighbouring elements).
 This is unsafe for moving meshes but should be ok for adaptive meshes.</a:documentation>
-            <attribute name="replaces">
-              <value>ABS(NDISOT) &gt;= 1000</value>
-            </attribute>
             <optional>
               <element name="store_upwind_quadrature">
                 <a:documentation>Store the quadrature locations within the elements
@@ -8819,9 +8457,6 @@ only saves a comparitively
 marginal amount of time (as actually searching the
 neighbouring elements is the
 slowest bit, finding the quadrature is relatively easy).</a:documentation>
-                <attribute name="replaces">
-                  <value>ABS(NDISOT) &gt;= 1000</value>
-                </attribute>
                 <empty/>
               </element>
             </optional>
@@ -8890,9 +8525,6 @@ Chooses an upwind value by selecting the maximum or minimum of the neighbouring
 nodes depending on the local slope of the donor and downwind values.
 Otherwise known as isotropic limiting.
 This is available on all meshes.</a:documentation>
-        <attribute name="replaces">
-          <value>all cube elements, NDISOT &lt; 0 on simplex elements</value>
-        </attribute>
         <empty/>
       </element>
       <element name="pseudo_structured_upwind_value">
@@ -9039,9 +8671,6 @@ bins specified by the user. This allows mixing of the field to be quantified.
 Replaces and expands upon the old heaviside.dat file</a:documentation>
       <attribute name="name">
         <data type="string"/>
-      </attribute>
-      <attribute name="replaces">
-        <value>heaviside.dat file</value>
       </attribute>
       <choice>
         <element name="continuous_galerkin">
@@ -9311,9 +8940,6 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
     <element name="inner_element">
       <a:documentation>Inner element sub-grid scale model (Candy and Pain)
 Requires continuous galerkin selected above.</a:documentation>
-      <attribute name="replaces">
-        <value>NSUBTLOC, NSUBNTLOC</value>
-      </attribute>
       <element name="scalar_field">
         <a:documentation>Inner element solution of the scalar field.</a:documentation>
         <attribute name="rank">
@@ -9340,9 +8966,6 @@ Requires continuous galerkin selected above.</a:documentation>
       <element name="inner_element">
         <a:documentation>Inner element sub-grid scale model (Candy and Pain)
 Requires continuous galerkin selected above.</a:documentation>
-        <attribute name="replaces">
-          <value>NSUBVLOC, NSUBNVLOC</value>
-        </attribute>
         <element name="vector_field">
           <a:documentation>SGS velocity in an inner element SGS treatment of momentum
 
@@ -9380,17 +9003,11 @@ Suggested value: 0.01</a:documentation>
         </optional>
         <optional>
           <element name="use_quadratic_pressure">
-            <attribute name="replaces">
-              <value>PREOPT=PREOPT+1000</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
         <optional>
           <element name="apply_full_discontinuous_Galerkin">
-            <attribute name="replaces">
-              <value>PREOPT=PREOPT+10000</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
@@ -9569,9 +9186,6 @@ radiation for water and phytoplankton.</a:documentation>
     <oneOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TTPER1 TTPER2 TTPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>

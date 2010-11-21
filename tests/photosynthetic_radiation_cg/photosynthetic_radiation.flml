@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
@@ -53,13 +53,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0</real_value>
     </finish_time>
   </timestepping>
@@ -158,7 +158,7 @@
               <real_value rank="0">0.03</real_value>
             </phytoplankton>
           </absorption_coefficients>
-          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Sunlight">
+          <boundary_conditions name="Sunlight">
             <surface_ids>
               <integer_value shape="1" rank="1">111</integer_value>
             </surface_ids>

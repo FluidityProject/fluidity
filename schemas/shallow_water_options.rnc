@@ -22,7 +22,6 @@ start =
             ## Dimension of the problem.
             ## <b>This can only be set once</b>
             element dimension {
-               attribute replaces {"NDIM"},
                element integer_value {
                   attribute rank {"0"},
                   ("2"|"1")
@@ -55,7 +54,6 @@ start =
                ## note: this specifies the degree of quadrature,
                ## not the number of gauss points
                element degree {
-                  attribute replaces {"NGI"},
                   integer
                },
                ## Surface quadrature degree
@@ -63,7 +61,6 @@ start =
                ## note: this specifies the degree of surface
                ## quadrature not the number of surface gauss points
                element surface_degree {
-                  attribute replaces {"SNGI"},
                   integer
                }?,
                ## Select which family of quadrature rules to use.
@@ -93,7 +90,6 @@ start =
                element dump_period {
                 (
                      element constant {
-                     attribute replaces {"TIMDUM"},
                      real
                    }|
                    ## Python function prescribing real input. Functions should be of the form:
@@ -104,7 +100,6 @@ start =
                    ##
                    ## 
                    element python {
-                     attribute replaces {"TIMDUM"},
                      python_code
                    }
                 )  
@@ -134,12 +129,10 @@ start =
             # every CPUDUM seconds write results to disc.
             ## This is usually disabled.
             element cpu_dump_period {
-               attribute replaces {"CPUDUM"},
                real
             }?,
             ## The period between dumps in walltime seconds. This is usually disabled.
             element wall_time_dump_period {
-               attribute replaces {"WTIDUM"},
                real
             }?,
             (
@@ -170,7 +163,6 @@ start =
             ## Current simulation time. At the start of the simulation this
             ## is the start time.
             element current_time {
-               attribute replaces {"ACCTIM"},
                real,
                ## The following excerpt from the Udunits
                ## documentation explains the time unit encoding by
@@ -200,17 +192,14 @@ start =
             ## The time step size. If adaptive time stepping is used
             ## then this is the initial time step size.
             element timestep {
-               attribute replaces {"DT"},
                real
             },
             ## How many nonlinear iterations in the timestepping loop
             element nonlinear_iterations {
-               attribute replaces {"ITINOI"},
                integer
             },
             ## Simulation time at which the simulation should end.
             element finish_time {
-               attribute replaces {"LTIME"},
                real
             },
             ## Timestep after which the simulation should end.
@@ -222,7 +211,6 @@ start =
             ## 
             ## Manual suggests 1.E+20
             element cpu_time_limit {
-               attribute replaces {"CPULIM"},
                real
             }?,
             ## Maximum wall time (secs) taken up before
@@ -230,7 +218,6 @@ start =
             ## 
             ## This is usually disabled.
             element wall_time_limit {
-               attribute replaces {"WATIME"},
                real
             }?
          },
@@ -240,12 +227,10 @@ start =
             element gravity {
                ## Acceleration due to gravity. 9.8 m/s^2 on earth.
                element magnitude {
-                  attribute replaces { "GRAVTY" },
                   real
                }
             }?,
             element coriolis {
-               attribute replaces { "OPTOME" },
                (
                   ## f-plane approximation
                   ## This means the Coriolis force looks like:
@@ -254,7 +239,6 @@ start =
                   ##    and u the velocity vector
                   ##    and f is constant
                   element f_plane {
-                     attribute replaces { "OPTOME = 0" },
                      ## f-plane approximation
                      ## This means the Coriolis force looks like:
                      ##   f k x u
@@ -262,7 +246,6 @@ start =
                      ##    and u the velocity vector
                      ##    and f is constant
                      element f {
-                        attribute replaces {"OMEGA" },
                         real
                      }
                   }|
@@ -273,7 +256,6 @@ start =
                   ##    and u the velocity vector
                   ##    and f=f_0+beta . (x,y,z)
                   element beta_plane {
-                     attribute replaces { "OPTOME = 1" },
                      ## Beta-plane approximation
                      ## This means the Coriolis force looks like:
                      ##   f k x u
@@ -281,7 +263,6 @@ start =
                      ##    and u the velocity vector
                      ##    and f=f_0+beta . (x,y,z)
                      element f_0 {
-                        attribute replaces {"OMEGA" },
                         real
                      },
                      ## Beta-plane approximation
@@ -292,7 +273,6 @@ start =
                      ##    and f=f_0+beta . (x,y,z)
                      ## usually only the y-component of beta is non-zero
                      element beta {
-                        attribute replaces {"OMEGA1 OMEGA2 OMEGA3" },
                         real_dim_vector
                      }
                   }
@@ -391,7 +371,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Tracer" },
-            attribute replaces { "IDENT = 666" },
             element prognostic {
                velocity_mesh_choice,
                prognostic_scalar_field
@@ -405,7 +384,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CFLNumber" },
-            attribute replaces { "IDENT = -601" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -708,7 +686,6 @@ prognostic_velocity_field =
             ## called instead of diff3d. Confusingly it is not necessary to provide
             ## a discontinuous velocity field for this to work!
             element discontinuous_galerkin {
-               attribute replaces { "DISOPT" },
                element advection_scheme {
                   (
                      ## Disable advection
@@ -751,7 +728,6 @@ prognostic_velocity_field =
       )+,
       ## Boundary conditions
       element boundary_conditions {
-         attribute replaces { "boundary, TMPER1 TMPER2 TMPERI" },
          attribute name { string },
          ## Surface id:
          element surface_ids {
@@ -797,7 +773,6 @@ prognostic_layerthickness_field =
          ##  =0.5 -- Crank-Nicolson
          ##  =1.  -- implicit
          element theta {
-            attribute replaces {"THETA"},
             real
          },
          ## Non-linear relaxation term
@@ -805,7 +780,6 @@ prognostic_layerthickness_field =
          ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
          ##  0. < ITHETA < 1.
          element relaxation {
-            attribute replaces {"ITHETA"},
             real
          }
       },
@@ -877,7 +851,6 @@ prognostic_scalar_field =
       element tensor_field {
          attribute name { "Diffusivity" },
          attribute rank { "2" },
-         attribute replaces { "TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" },
          element prescribed {
             mesh_choice?,
             prescribed_values_tensor_field
@@ -1874,7 +1847,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Salinity" },
-            attribute replaces { "IDENT = 42" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -1893,7 +1865,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Temperature" },
-            attribute replaces { "IDENT = -1" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -1923,7 +1894,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Tracer" },
-            attribute replaces { "IDENT = 666" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -1984,7 +1954,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SecondFluid" },
-            attribute replaces { "IDENT = 56" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -2003,7 +1972,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DiffuseInterface" },
-            attribute replaces { "IDENT = 57" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -2029,7 +1997,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "GeostrophicPressure" },
-            attribute replaces { "IDENT = -2003" },
             (
                element prognostic {
                   ## The GeostrophicPressure mesh
@@ -2322,7 +2289,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DistanceToSideBoundaries" },
-            attribute replaces { "IDENT = -144" },
             (
                element prescribed {
                   velocity_mesh_choice,
@@ -2396,7 +2362,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PerturbationDensity" },
-            attribute replaces { "IDENT = -143" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -2494,7 +2459,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CFLNumber" },
-            attribute replaces { "IDENT = -601" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -2585,7 +2549,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CopyofDensity" },
-            attribute replaces { "DENTRAF" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3190,7 +3153,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "TidalRange" },
-            attribute replaces { "IDENT = -32" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3205,7 +3167,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MaxFreeSurface" },
-            attribute replaces { "IDENT = -33" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3220,7 +3181,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MinFreeSurface" },
-            attribute replaces { "IDENT = -34" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3916,7 +3876,6 @@ vector_field_choice =
          ## Solid Velocity field.  Used to generate the momentum source 
          element vector_field {
             attribute rank { "1" },
-            attribute replaces {"UTRAF,VTRAF,WTRAF"},
             attribute name { "SolidVelocity" },
             (
                element diagnostic {
@@ -4538,7 +4497,6 @@ temporal_control_volume_options =
          ## the pivoted solution is cancelled out.
          ## Defaults to 1 if unselected.
          element number_advection_iterations {
-            attribute replaces { "INT(ABS(NDISOT)/10)" },
             integer,
             ## Cut short advection_iterations if the specified tolerance
             ## is reached.
@@ -4587,7 +4545,6 @@ temporal_control_volume_options =
          ## If not active then the theta specified above will be used.
          ## Otherwise use variable limited theta on individual faces.
          element limit_theta {
-            attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
             empty
          }?,
          ## Only works if a control volume or mixed control volume -
@@ -4672,7 +4629,6 @@ standard_control_volume_options =
       ## First order upwinding is monotonic so no limiting is ever required
       element face_value {
         attribute name { "FirstOrderUpwind" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
         empty
       }|
       ## Trapezoidal face value discretisation
@@ -4683,7 +4639,6 @@ standard_control_volume_options =
       ## Trapezoidal discretisation is unbounded so limiting is compulsory
       element face_value {
         attribute name { "Trapezoidal" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
         limiter_options
       }|
       ## Finite Element face value discretisation
@@ -4692,7 +4647,6 @@ standard_control_volume_options =
       ## Finite element discretisation may become unbounded so limiting is often necessary.
       element face_value {
         attribute name { "FiniteElement" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
         limiter_options?
       }
    )
@@ -4713,7 +4667,6 @@ coupled_control_volume_options =
       ## First order upwinding is monotonic so no limiting is ever required
       element face_value {
         attribute name { "FirstOrderUpwind" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
         limiter_options?
       }|
       ## Trapezoidal face value discretisation
@@ -4724,7 +4677,6 @@ coupled_control_volume_options =
       ## Trapezoidal discretisation is unbounded so limiting is compulsory
       element face_value {
         attribute name { "Trapezoidal" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
         limiter_options
       }|
       ## Finite Element face value discretisation
@@ -4733,7 +4685,6 @@ coupled_control_volume_options =
       ## Finite element discretisation may become unbounded so limiting is often necessary.
       element face_value {
         attribute name { "FiniteElement" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
         limiter_options?
       }
    )
@@ -4746,7 +4697,6 @@ compressive_control_volume_options =
       ## Normally used for MaterialVolumeFraction fields
       element face_value {
         attribute name { "HyperC" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9" },
         upwind_value_options?,
         cv_face_cfl_number_options
       }|
@@ -4757,7 +4707,6 @@ compressive_control_volume_options =
       ## values bounded by target_maximum and target_minimum.
       element face_value {
         attribute name { "UltraC" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9, with ULTRAC = TRUE from solidity_options.inp" },
         ## Specifiy the upper bound which UltraC will use to
         ## calculate the maximum flux.
         element target_maximum {
@@ -4945,7 +4894,6 @@ sweby_limiter =
   ## Hyperblic Conservation-Laws", P. K. Sweby, 1984, Siam
   ## Journal on Numerical Analysis, 21, 995-1011
   element limiter {
-    attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" },
     attribute name {"Sweby"},
     slope_options?,
     upwind_value_options?
@@ -4991,7 +4939,6 @@ upwind_value_options =
          ## This is only available on simplex meshes as it involes a search around
          ## the donor node to find the upwind element.
          element project_upwind_value_from_point {
-            attribute replaces { "NDISOT > 0 on simplex meshes" },
             ## When the donor node is on a domain boundary reflect the projection
             ## back into the mesh.
             element reflect_off_domain_boundaries {
@@ -5008,7 +4955,6 @@ upwind_value_options =
             ## saves a significant amount of time (searching around the neighbouring elements).
             ## This is unsafe for moving meshes but should be ok for adaptive meshes.
             element store_upwind_elements {
-               attribute replaces { "ABS(NDISOT) >= 1000" },
                ## Store the quadrature locations within the elements
                ## where the upwind values
                ## are projected from for each node pair.
@@ -5019,7 +4965,6 @@ upwind_value_options =
                ## neighbouring elements is the
                ## slowest bit, finding the quadrature is relatively easy).
                element store_upwind_quadrature {
-                  attribute replaces { "ABS(NDISOT) >= 1000" },
                   empty
                }?
             }?
@@ -5080,7 +5025,6 @@ upwind_value_options =
          ## Otherwise known as isotropic limiting.
          ## This is available on all meshes.
          element locally_bound_upwind_value {
-            attribute replaces { "all cube elements, NDISOT < 0 on simplex elements" },
             empty
          }|
          ## Select the method to be used for calculating the upwind value.
@@ -5210,7 +5154,6 @@ mixing_stats =
       ## Replaces and expands upon the old heaviside.dat file
       element include_mixing_stats{
          attribute name { xsd:string },
-         attribute replaces { "heaviside.dat file" },
          (
             ## Select whether to evaluate the volume fraction over the finite element
             ## (continuous galerkin) or within the control volume (control_volumes).
@@ -5423,7 +5366,6 @@ inner_element_scalar =
       ## Inner element sub-grid scale model (Candy and Pain)
       ## Requires continuous galerkin selected above.
       element inner_element {
-         attribute replaces { "NSUBTLOC, NSUBNTLOC" },
          ## Inner element solution of the scalar field.
          element scalar_field {
             attribute rank { "0" },
@@ -5445,7 +5387,6 @@ inner_element_velocity =
       ## Inner element sub-grid scale model (Candy and Pain)
       ## Requires continuous galerkin selected above.
       element inner_element {
-         attribute replaces { "NSUBVLOC, NSUBNVLOC" },
          ## SGS velocity in an inner element SGS treatment of momentum
          ##
          ## Limitations:
@@ -5474,11 +5415,9 @@ inner_element_velocity =
             empty
          }?,
          element use_quadratic_pressure {
-            attribute replaces { "PREOPT=PREOPT+1000" },
             empty
          }?,
          element apply_full_discontinuous_Galerkin {
-            attribute replaces { "PREOPT=PREOPT+10000" },
             empty
          }?
       }?
@@ -5646,7 +5585,6 @@ prognostic_photosynthetic_radiation =
       },
       ## Boundary conditions
       element boundary_conditions {
-         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
          attribute name { string },
          ## Surface id:
          element surface_ids {

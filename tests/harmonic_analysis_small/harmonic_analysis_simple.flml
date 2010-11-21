@@ -9,7 +9,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -37,10 +37,10 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
-      <surface_degree replaces="SNGI">
+      <surface_degree>
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
@@ -92,7 +92,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">20</real_value>
       </constant>
     </dump_period>
@@ -100,13 +100,13 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">20</real_value>
     </finish_time>
   </timestepping>
@@ -137,11 +137,11 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
   <material_phase name="water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -150,15 +150,15 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <remove_stabilisation_term replaces="NOFILT"/>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <remove_stabilisation_term/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -220,15 +220,15 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -255,25 +255,25 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="SidesNoNormalFlow">
+        <boundary_conditions name="SidesNoNormalFlow">
           <surface_ids>
             <integer_value shape="2" rank="1">32 31</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="TopFreeSurface">
+        <boundary_conditions name="TopFreeSurface">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="BottomNoNormalFlow">
+        <boundary_conditions name="BottomNoNormalFlow">
           <surface_ids>
             <integer_value shape="1" rank="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -463,7 +463,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <free_surface>
         <move_surface_nodes/>
       </free_surface>

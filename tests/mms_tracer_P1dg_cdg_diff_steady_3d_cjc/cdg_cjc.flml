@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -43,7 +43,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -53,7 +53,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">500.0</real_value>
       </constant>
     </dump_period>
@@ -61,17 +61,17 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.05</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0e-10</real_value>
     </finish_time>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1.E-6</real_value>
         <infinity_norm/>
       </tolerance>
@@ -127,12 +127,12 @@
               <exclude_mass_terms/>
             </mass_terms>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
@@ -156,7 +156,7 @@
             <real_value rank="0">0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Dirichlet_all_sides">
+        <boundary_conditions name="Dirichlet_all_sides">
           <surface_ids>
             <integer_value shape="1" rank="1">28</integer_value>
           </surface_ids>
@@ -175,7 +175,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -187,7 +187,7 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <scalar_field replaces="ZSOT" name="Source" rank="0">
+        <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>

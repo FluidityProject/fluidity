@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -65,7 +65,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">6</integer_value>
       </degree>
     </quadrature>
@@ -83,17 +83,17 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.025</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">10</real_value>
     </finish_time>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1.0e-6</real_value>
         <l2_norm/>
       </tolerance>
@@ -116,10 +116,10 @@
           <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -155,7 +155,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
             </viscosity_scheme>
@@ -166,15 +166,15 @@
               </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -206,7 +206,7 @@ def val(X,t):
         return (sol(X), 0.0)</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="NoSlipWalls">
+        <boundary_conditions name="NoSlipWalls">
           <surface_ids>
             <integer_value shape="1" rank="1">3</integer_value>
           </surface_ids>
@@ -221,7 +221,7 @@ def val(X,t):
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
+        <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
@@ -239,7 +239,7 @@ def val(X,t):
             </detectors>
           </prescribed>
         </vector_field>
-        <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">
+        <vector_field name="Absorption" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
@@ -256,7 +256,7 @@ def val(X,t):
               <exclude_from_detectors/>
             </detectors>
           </prescribed>
-          <default_absorption replaces="ABSLUM"/>
+          <default_absorption/>
         </vector_field>
         <output/>
         <stat>

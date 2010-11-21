@@ -39,7 +39,6 @@ geometry =
          ## Dimension of the problem.
          ## <b>This can only be set once</b>
          element dimension {
-            attribute replaces {"NDIM"},
             element integer_value {
                attribute rank {"0"},
                ("1")
@@ -62,7 +61,6 @@ geometry =
             ## note: this specifies the degree of quadrature,
             ## not the number of gauss points
             element degree {
-               attribute replaces {"NGI"},
                integer
             },
             ## Surface quadrature degree
@@ -70,7 +68,6 @@ geometry =
             ## note: this specifies the degree of surface
             ## quadrature not the number of surface gauss points
             element surface_degree {
-               attribute replaces {"SNGI"},
                integer
             }?
          }
@@ -154,18 +151,15 @@ timestepping =
             ## Current simulation time. At the start of the simulation this
             ## is the start time.
             element current_time {
-               attribute replaces {"ACCTIM"},
                real
             },
             ## The time step size. If adaptive time stepping is used
             ## then this is the initial time step size.
             element timestep {
-               attribute replaces {"DT"},
                real
             },
             ## Simulation time at which the simulation should end.
             element finish_time {
-               attribute replaces {"LTIME"},
                real
             },
             ## Timestep after which the simulation should end.
@@ -176,7 +170,6 @@ timestepping =
             ## 
             ## Manual suggests 2
             element nonlinear_iterations {
-               attribute replaces {"ITINOI"},
                integer
             }?,
             ## Indicate that the problem should be considered time-independent.

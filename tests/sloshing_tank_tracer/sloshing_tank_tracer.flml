@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -46,10 +46,10 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">3</integer_value>
       </degree>
-      <surface_degree replaces="SNGI">
+      <surface_degree>
         <integer_value rank="0">3</integer_value>
       </surface_degree>
     </quadrature>
@@ -102,7 +102,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
@@ -112,20 +112,20 @@
     </stat>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.018507</real_value>
       <comment>This should leads to a Courant number of approx 0.1</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">18.5</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
-    <adaptive_timestep replaces="TIMAUT">
+    <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">0.1</real_value>
       </requested_cfl>
@@ -139,10 +139,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="whole_mesh">
@@ -166,11 +166,11 @@
   <material_phase name="water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -179,15 +179,15 @@
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <remove_stabilisation_term replaces="NOFILT"/>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <remove_stabilisation_term/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -283,15 +283,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -321,19 +321,19 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="sides">
+        <boundary_conditions name="sides">
           <surface_ids>
             <integer_value shape="2" rank="1">31 32</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="bottom">
+        <boundary_conditions name="bottom">
           <surface_ids>
             <integer_value shape="1" rank="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSurface">
+        <boundary_conditions name="FreeSurface">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -406,12 +406,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -490,15 +490,15 @@
             </stabilisation>
             <advection_terms/>
             <mass_terms>
-              <lump_mass_matrix replaces="TLUMP"/>
+              <lump_mass_matrix/>
             </mass_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -580,12 +580,12 @@
             </advection_terms>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -669,12 +669,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -758,12 +758,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -848,12 +848,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -938,12 +938,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1017,10 +1017,10 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
-                  <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+                <limiter name="Sweby">
+                  <project_upwind_value_from_point>
                     <reflect_off_domain_boundaries/>
                     <bound_projected_value_locally/>
                   </project_upwind_value_from_point>
@@ -1029,16 +1029,16 @@
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
           </control_volumes>
@@ -1119,12 +1119,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1203,15 +1203,15 @@
             </stabilisation>
             <advection_terms/>
             <mass_terms>
-              <lump_mass_matrix replaces="TLUMP"/>
+              <lump_mass_matrix/>
             </mass_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1293,12 +1293,12 @@
             </advection_terms>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1382,12 +1382,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1471,12 +1471,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1561,12 +1561,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1651,12 +1651,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -1730,10 +1730,10 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+            <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
-                  <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+                <limiter name="Sweby">
+                  <project_upwind_value_from_point>
                     <reflect_off_domain_boundaries/>
                     <bound_projected_value_locally/>
                   </project_upwind_value_from_point>
@@ -1742,16 +1742,16 @@
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+            <number_advection_iterations>
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
           </control_volumes>
@@ -1826,8 +1826,8 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <reflect_off_domain_boundaries/>
                 <bound_projected_value_locally/>
               </project_upwind_value_from_point>
@@ -1835,12 +1835,12 @@
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -1901,7 +1901,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -2008,7 +2008,7 @@ for i in range(field.node_count):
     </vector_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+    <mesh_movement>
       <free_surface>
         <move_whole_mesh/>
       </free_surface>

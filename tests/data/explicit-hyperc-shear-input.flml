@@ -7,7 +7,7 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -48,7 +48,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.72881643692213247</real_value>
       </constant>
     </dump_period>
@@ -63,14 +63,14 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.427561316453</real_value>
       <comment>co0p1-halfres = 0.00427561316453</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">14.576328738442649</real_value>
     </finish_time>
   </timestepping>
@@ -119,21 +119,21 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>

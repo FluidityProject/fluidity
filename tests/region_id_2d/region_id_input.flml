@@ -7,7 +7,7 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,10 +35,10 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">2</integer_value>
       </degree>
-      <surface_degree replaces="SNGI">
+      <surface_degree>
         <integer_value rank="0">2</integer_value>
       </surface_degree>
     </quadrature>
@@ -52,29 +52,29 @@
         <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <cpu_dump_period replaces="CPUDUM">
+    <cpu_dump_period>
       <real_value rank="0">1.E+34</real_value>
     </cpu_dump_period>
-    <max_dump_file_count replaces="DUMSAV">
+    <max_dump_file_count>
       <integer_value rank="0">1000</integer_value>
     </max_dump_file_count>
     <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.005</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">100.0</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">2</integer_value>
     </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -82,8 +82,8 @@
   <material_phase name="Water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1000</real_value>
           </reference_density>
         </linear>
@@ -123,15 +123,15 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -166,7 +166,7 @@
 		return 1.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="incoming_vfrac">
+        <boundary_conditions name="incoming_vfrac">
           <surface_ids>
             <integer_value shape="1" rank="1">27</integer_value>
           </surface_ids>
@@ -177,7 +177,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="base_vfrac">
+        <boundary_conditions name="base_vfrac">
           <surface_ids>
             <integer_value shape="1" rank="1">22</integer_value>
           </surface_ids>
@@ -200,8 +200,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -292,8 +292,8 @@
   <material_phase name="Air">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </linear>
@@ -347,11 +347,11 @@
     </tensor_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">1</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">500</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation/>

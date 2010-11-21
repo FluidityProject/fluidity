@@ -54,7 +54,6 @@ start =
                element dump_period {
                 (
                      element constant {
-                     attribute replaces {"TIMDUM"},
                      real
                    }|
                    ## Python function prescribing real input. Functions should be of the form:
@@ -65,7 +64,6 @@ start =
                    ##
                    ## 
                    element python {
-                     attribute replaces {"TIMDUM"},
                      python_code
                    }
                 )  
@@ -95,12 +93,10 @@ start =
             # every CPUDUM seconds write results to disc.
             ## This is usually disabled.
             element cpu_dump_period {
-               attribute replaces {"CPUDUM"},
                real
             }?,
             ## The period between dumps in walltime seconds. This is usually disabled.
             element wall_time_dump_period {
-               attribute replaces {"WTIDUM"},
                real
             }?,
             (
@@ -269,18 +265,15 @@ start =
             ## Current simulation time. At the start of the simulation this
             ## is the start time.
             element current_time {
-               attribute replaces {"ACCTIM"},
                real
             },
             ## The time step size. If adaptive time stepping is used
             ## then this is the initial time step size.
             element timestep {
-               attribute replaces {"DT"},
                real
             },
             ## Simulation time at which the simulation should end.
             element finish_time {
-               attribute replaces {"LTIME"},
                real
             },
             ## Timestep after which the simulation should end.
@@ -289,7 +282,6 @@ start =
             }?,
             ## Maximum CPU time (in seconds) before the simulation terminates
             element cpu_time_limit {
-               attribute replaces {"CPULIM"},
                real
             }?,
             ## Maximum wall time (secs) taken up before
@@ -297,14 +289,12 @@ start =
             ## 
             ## This is usually disabled.
             element wall_time_limit {
-               attribute replaces {"WATIME"},
                real
             }?,
             ## maximum number of non-linear iterations.
             ## 
             ## Manual suggests 2
             element nonlinear_iterations {
-               attribute replaces {"ITINOI"},
                integer
             }
          },
@@ -922,7 +912,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CFLNumber" },
-            attribute replaces { "IDENT = -601" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -1458,7 +1447,6 @@ mixing_stats =
       ## Replaces and expands upon the old heaviside.dat file
       element include_mixing_stats{
          attribute name { xsd:string },
-         attribute replaces { "heaviside.dat file" },
          (
             ## Select whether to evaluate the volume fraction over the finite element
             ## (continuous galerkin) or within the control volume (control_volumes).
@@ -1596,7 +1584,6 @@ geometry =
          ## Dimension of the problem.
          ## <b>This can only be set once</b>
          element dimension {
-            attribute replaces {"NDIM"},
             element integer_value {
                attribute rank {"0"},
                "2"
@@ -1629,7 +1616,6 @@ geometry =
             ## note: this specifies the degree of quadrature,
             ## not the number of gauss points
             element degree {
-               attribute replaces {"NGI"},
                integer
             },
             ## Surface quadrature degree
@@ -1637,7 +1623,6 @@ geometry =
             ## note: this specifies the degree of surface
             ## quadrature not the number of surface gauss points
             element surface_degree {
-               attribute replaces {"SNGI"},
                integer
             }?,
             ## Select which family of quadrature rules to use.
@@ -1716,7 +1701,6 @@ simple_prognostic_velocity_field =
             }|
             ## Discontinuous galerkin formulation
             element discontinuous_galerkin {
-               attribute replaces { "DISOPT" },
                ## Discretisation options for the mass terms in the velocity equation.
                element mass_terms{
                   ## Lump the mass matrix
@@ -1758,7 +1742,6 @@ simple_prognostic_velocity_field =
          ##
          ## Defaults to 1.0 if not supplied.
          element conservative_advection {
-            attribute replaces {"BETA"},
             real
          }?
       },
@@ -1771,7 +1754,6 @@ simple_prognostic_velocity_field =
          ##
          ## Defaults to 0.5 if not supplied.
          element relaxation {
-            attribute replaces {"ITHETA"},
             real
          }?
       },
@@ -1798,7 +1780,6 @@ simple_prognostic_velocity_field =
       )+,
       ## Boundary conditions
       element boundary_conditions {
-         attribute replaces { "boundary, TMPER1 TMPER2 TMPERI" },
          attribute name { "FreeSlip" },
          ## Enter all external surface IDs here
          element surface_ids {
@@ -1850,7 +1831,6 @@ prognostic_layerthickness_field =
          ##  =0.5 -- Crank-Nicolson
          ##  =1.  -- implicit
          element theta {
-            attribute replaces {"THETA"},
             real
          },
          ## Non-linear relaxation term
@@ -1860,7 +1840,6 @@ prognostic_layerthickness_field =
          ##
          ## Defaults to 0.5 if not supplied.
          element relaxation {
-            attribute replaces {"ITHETA"},
             real
          }?
       },

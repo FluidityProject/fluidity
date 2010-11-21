@@ -7,7 +7,7 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -43,7 +43,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">2</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -64,28 +64,28 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.01</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1000.0</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">100</integer_value>
     </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">9.8</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -109,8 +109,8 @@
   <material_phase name="Water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1000</real_value>
           </reference_density>
         </linear>
@@ -120,13 +120,13 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <control_volumes replaces="NCOLOP = X1XXXXX -&gt; INTERF, NOFILT"/>
+          <control_volumes/>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -178,7 +178,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <mass_terms>
               <lump_mass_matrix/>
             </mass_terms>
@@ -193,15 +193,15 @@
               <integrate_conservation_term_by_parts/>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -228,25 +228,25 @@
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="bottom">
+        <boundary_conditions name="bottom">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="rightside">
+        <boundary_conditions name="rightside">
           <surface_ids>
             <integer_value shape="1" rank="1">7</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="leftside">
+        <boundary_conditions name="leftside">
           <surface_ids>
             <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -297,12 +297,12 @@
               <bassi_rebay/>
             </diffusion_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0</real_value>
           </theta>
         </temporal_discretisation>
@@ -381,8 +381,8 @@
   <material_phase name="Air">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1</real_value>
           </reference_density>
         </linear>

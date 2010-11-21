@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -59,7 +59,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -77,13 +77,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0e6</real_value>
     </finish_time>
     <final_timestep>
@@ -106,14 +106,14 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <reference_node replaces="NDPSET">
+        <reference_node>
           <integer_value rank="0">1</integer_value>
         </reference_node>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -148,7 +148,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
             </viscosity_scheme>
@@ -159,15 +159,15 @@
               </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -194,7 +194,7 @@
             <real_value shape="3" dim1="dim" rank="1">1.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Flow">
+        <boundary_conditions name="Flow">
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
@@ -209,7 +209,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSlip1">
+        <boundary_conditions name="FreeSlip1">
           <surface_ids>
             <integer_value shape="2" rank="1">5 6</integer_value>
           </surface_ids>
@@ -224,7 +224,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSlip2">
+        <boundary_conditions name="FreeSlip2">
           <surface_ids>
             <integer_value shape="2" rank="1">3 4</integer_value>
           </surface_ids>
@@ -239,7 +239,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -288,8 +288,8 @@
           <exclude_from_detectors/>
         </detectors>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -309,7 +309,7 @@
     </scalar_field>
     <scalar_field name="NodeOwner" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -343,11 +343,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">100</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">16</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation/>

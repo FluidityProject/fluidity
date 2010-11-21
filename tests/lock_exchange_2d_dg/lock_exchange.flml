@@ -7,7 +7,7 @@
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -43,7 +43,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -53,7 +53,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.5</real_value>
       </constant>
     </dump_period>
@@ -61,26 +61,26 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.1</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">30.0</real_value>
     </finish_time>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">10.0</real_value>
         <comment>Everybody knows gravity is really 10m/s^2</comment>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -104,19 +104,19 @@
   <material_phase name="Water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <temperature_dependency replaces="BOUSIN, EQNSTA=0">
-            <reference_temperature replaces="TEMINI">
+          <temperature_dependency>
+            <reference_temperature>
               <real_value rank="0">0.0</real_value>
             </reference_temperature>
-            <thermal_expansion_coefficient replaces="DENGAM">
+            <thermal_expansion_coefficient>
               <real_value rank="0">0.001</real_value>
             </thermal_expansion_coefficient>
           </temperature_dependency>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -126,14 +126,14 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <reference_node replaces="NDPSET">
+        <reference_node>
           <integer_value rank="0">1</integer_value>
         </reference_node>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -176,7 +176,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
             </viscosity_scheme>
@@ -187,15 +187,15 @@
               </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -225,7 +225,7 @@
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="OtherWalls">
+        <boundary_conditions name="OtherWalls">
           <surface_ids>
             <integer_value shape="3" rank="1">333 444 666</integer_value>
           </surface_ids>
@@ -244,7 +244,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
+        <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <constant>
@@ -299,7 +299,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+    <scalar_field name="Temperature" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -323,12 +323,12 @@
               </limit_factor>
             </slope_limiter>
           </discontinuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <discontinuous_galerkin>

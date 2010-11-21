@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -60,7 +60,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -70,7 +70,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">10</real_value>
       </constant>
     </dump_period>
@@ -78,17 +78,17 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">400</real_value>
     </finish_time>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1e-10</real_value>
         <infinity_norm/>
       </tolerance>
@@ -128,11 +128,11 @@
   <material_phase name="Fluid">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1</real_value>
           </reference_density>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -141,18 +141,18 @@
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <remove_stabilisation_term replaces="NOFILT"/>
-            <integrate_continuity_by_parts replaces="PREOPT"/>
+            <remove_stabilisation_term/>
+            <integrate_continuity_by_parts/>
           </continuous_galerkin>
         </spatial_discretisation>
-        <reference_node replaces="NDPSET">
+        <reference_node>
           <integer_value rank="0">1</integer_value>
         </reference_node>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -259,12 +259,12 @@
               <advection_terms/>
               <mass_terms/>
             </continuous_galerkin>
-            <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <conservative_advection>
               <real_value rank="0">1</real_value>
             </conservative_advection>
           </spatial_discretisation>
           <temporal_discretisation>
-            <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <theta>
               <real_value rank="0">1</real_value>
             </theta>
           </temporal_discretisation>
@@ -291,7 +291,7 @@
               <real_value rank="0">0.1</real_value>
             </constant>
           </initial_condition>
-          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="SolidLid">
+          <boundary_conditions name="SolidLid">
             <surface_ids>
               <integer_value shape="1" rank="1">11</integer_value>
             </surface_ids>
@@ -301,13 +301,13 @@
               </constant>
             </type>
           </boundary_conditions>
-          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Reentrainment">
+          <boundary_conditions name="Reentrainment">
             <surface_ids>
               <integer_value shape="1" rank="1">8</integer_value>
             </surface_ids>
             <type name="sediment_reentrainment"/>
           </boundary_conditions>
-          <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+          <tensor_field name="Diffusivity" rank="2">
             <prescribed>
               <value name="WholeMesh">
                 <isotropic>

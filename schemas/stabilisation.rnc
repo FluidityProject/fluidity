@@ -41,7 +41,6 @@ nu_bar_scheme = (
    ##
    ## This is the approximation for xi used by legacy_continuous_galerkin.
    element nu_bar_critical_rule {
-      attribute replaces { "OPWIND" },
       comment
    }|
    ## The stabilisation parameter nu_bar is given by:
@@ -160,7 +159,6 @@ supg_stabilisation = (
    ##
    ## <b>Under testing.</b>
    element streamline_upwind_petrov_galerkin {
-      attribute replaces { "DISOTT = 3" },
       nu_bar_scheme,
       nu_scale_supg
    }

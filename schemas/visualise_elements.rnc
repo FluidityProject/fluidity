@@ -14,7 +14,6 @@ start =
             ## Dimension of the problem.
             ## <b>This can only be set once</b>
             element dimension {
-               attribute replaces {"NDIM"},
                element integer_value {
                   attribute rank {"0"},
                   ("2")
@@ -44,7 +43,6 @@ start =
                ## note: this specifies the degree of quadrature not
                ## the number of gauss points
                element degree {
-                  attribute replaces {"NGI"},
                   integer
                }
             },

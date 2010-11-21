@@ -7,7 +7,7 @@
     <string_value lines="1">stokes</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -32,7 +32,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
@@ -90,17 +90,17 @@
     </detectors>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1e12</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1e16</real_value>
     </finish_time>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1e-6</real_value>
         <infinity_norm/>
       </tolerance>
@@ -112,14 +112,14 @@
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <remove_stabilisation_term replaces="NOFILT"/>
+            <remove_stabilisation_term/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC">
+          <use_projection_method>
             <full_schur_complement>
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
@@ -210,15 +210,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -263,7 +263,7 @@
         return [vx,vy]</string_value>
           </python>
         </prescribed_region>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Batchelor">
+        <boundary_conditions name="Batchelor">
           <surface_ids>
             <integer_value shape="3" rank="1">12 13 16</integer_value>
           </surface_ids>
@@ -346,7 +346,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Crust">
+        <boundary_conditions name="Crust">
           <surface_ids>
             <integer_value shape="1" rank="1">32</integer_value>
           </surface_ids>
@@ -365,7 +365,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Slab">
+        <boundary_conditions name="Slab">
           <surface_ids>
             <integer_value shape="1" rank="1">31</integer_value>
           </surface_ids>
@@ -390,7 +390,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -434,7 +434,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+    <scalar_field name="Temperature" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -448,12 +448,12 @@
               <exclude_mass_terms/>
             </mass_terms>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
@@ -482,7 +482,7 @@
 	return T</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="SurfaceTemperature">
+        <boundary_conditions name="SurfaceTemperature">
           <surface_ids>
             <integer_value shape="1" rank="1">10</integer_value>
           </surface_ids>
@@ -492,7 +492,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="InflowWedge">
+        <boundary_conditions name="InflowWedge">
           <surface_ids>
             <integer_value shape="1" rank="1">12</integer_value>
           </surface_ids>
@@ -502,7 +502,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="ERF">
+        <boundary_conditions name="ERF">
           <surface_ids>
             <integer_value shape="1" rank="1">15</integer_value>
           </surface_ids>
@@ -540,7 +540,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="LinearGradientCrust">
+        <boundary_conditions name="LinearGradientCrust">
           <surface_ids>
             <integer_value shape="1" rank="1">11</integer_value>
           </surface_ids>
@@ -553,7 +553,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Outflow">
+        <boundary_conditions name="Outflow">
           <surface_ids>
             <integer_value shape="2" rank="1">13 16</integer_value>
           </surface_ids>
@@ -563,7 +563,7 @@
             </constant>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>

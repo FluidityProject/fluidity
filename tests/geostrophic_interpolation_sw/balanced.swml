@@ -4,7 +4,7 @@
     <string_value lines="1">balanced</string_value>
   </simulation_name>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -58,7 +58,7 @@
       <exclude_from_mesh_adaptivity/>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -75,16 +75,16 @@
     <output_mesh name="PressureMesh"/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">100</real_value>
     </timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1000000</real_value>
     </finish_time>
     <final_timestep>
@@ -93,13 +93,13 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">10</real_value>
       </magnitude>
     </gravity>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">0.00010313</real_value>
         </f>
       </f_plane>
@@ -111,7 +111,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <advection_scheme>
               <none/>
             </advection_scheme>
@@ -141,7 +141,7 @@
         <initial_condition name="WholeMesh">
           <balanced/>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSlip">
+        <boundary_conditions name="FreeSlip">
           <surface_ids>
             <integer_value shape="1" rank="1">3</integer_value>
           </surface_ids>
@@ -267,10 +267,10 @@
           </continuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>

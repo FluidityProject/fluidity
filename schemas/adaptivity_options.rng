@@ -29,18 +29,12 @@ one specifies the absolute interpolation
 error in the units of the field that is 
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
-            <attribute name="replaces">
-              <value>ADOPTT = 0</value>
-            </attribute>
             <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADWEIT</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_scalar_field_no_adapt"/>
@@ -62,18 +56,12 @@ one specifies the interpolation error
 relative to the field that is
 being adapted, e.g. you can specify
 the error to be 5% (i.e. 0.05)</a:documentation>
-            <attribute name="replaces">
-              <value>ADOPTT = 1</value>
-            </attribute>
             <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADADOT</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_scalar_field_no_adapt"/>
@@ -89,9 +77,6 @@ psi_min is the tolerance. The tolerance prevents
 division by zero errors.
 
 Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
-              <attribute name="replaces">
-                <value>ADATOT</value>
-              </attribute>
               <ref name="real"/>
             </element>
           </element>
@@ -126,18 +111,12 @@ one specifies the absolute interpolation
 error in the units of the field that is 
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
-        <attribute name="replaces">
-          <value>ADOPTT = 0</value>
-        </attribute>
         <element name="scalar_field">
           <attribute name="rank">
             <value>0</value>
           </attribute>
           <attribute name="name">
             <value>InterpolationErrorBound</value>
-          </attribute>
-          <attribute name="replaces">
-            <value>ADWEIT</value>
           </attribute>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -159,18 +138,12 @@ one specifies the interpolation error
 relative to the field that is
 being adapted, e.g. you can specify
 the error to be 5% (i.e. 0.05)</a:documentation>
-        <attribute name="replaces">
-          <value>ADOPTT = 1</value>
-        </attribute>
         <element name="scalar_field">
           <attribute name="rank">
             <value>0</value>
           </attribute>
           <attribute name="name">
             <value>InterpolationErrorBound</value>
-          </attribute>
-          <attribute name="replaces">
-            <value>ADADOT</value>
           </attribute>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -186,9 +159,6 @@ psi_min is the tolerance. The tolerance prevents
 division by zero errors.
 
 Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
-          <attribute name="replaces">
-            <value>ADATOT</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </element>
@@ -238,9 +208,6 @@ the error to be 1.3 units </a:documentation>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
               </attribute>
-              <attribute name="replaces">
-                <value>ADWEIU ADWEIV ADWEIW</value>
-              </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
               </element>
@@ -267,9 +234,6 @@ the error to be 5% (i.e. 0.05)</a:documentation>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADATOU ADATOV ADATOW</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
@@ -311,9 +275,6 @@ the error to be 1.3 units </a:documentation>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
               </attribute>
-              <attribute name="replaces">
-                <value>ADWEIU ADWEIV ADWEIW</value>
-              </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
               </element>
@@ -340,9 +301,6 @@ the error to be 5% (i.e. 0.05)</a:documentation>
               </attribute>
               <attribute name="name">
                 <value>InterpolationErrorBound</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>ADATOU ADATOV ADATOW</value>
               </attribute>
               <element name="prescribed">
                 <ref name="prescribed_vector_field_no_adapt"/>
@@ -503,9 +461,6 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
   <define name="hr_adaptivity">
     <element name="hr_adaptivity">
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
-      <attribute name="replaces">
-        <value>ADMESH</value>
-      </attribute>
       <choice>
         <element name="period">
           <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
@@ -516,9 +471,6 @@ APPEAR AS ZERO OR JUNK
 DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
 
 Usually set to 10-20 times the timestep.</a:documentation>
-          <attribute name="replaces">
-            <value>TIMMES</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <element name="period_in_timesteps">
@@ -530,9 +482,6 @@ Usually set to 10-20 times the timestep.</a:documentation>
         <element name="cpu_period">
           <a:documentation>Time interval (in cpu time) when mesh adaptivity performed
 Manual suggests disabling this option.</a:documentation>
-          <attribute name="replaces">
-            <value>CPUMES</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -573,9 +522,6 @@ maximum number of nodes in the horizontal mesh, i.e. the number
 of nodes in the full mesh will be much bigger and depends on the 
 number of layers specified, or if using inhomogenous_vertical_resolution
 on the resolution produced by the vertical adaptivity step.</a:documentation>
-        <attribute name="replaces">
-          <value>MXNODS</value>
-        </attribute>
         <optional>
           <element name="per_process">
             <a:documentation>Define maximum_number_of_nodes to be the maximum number of
@@ -626,9 +572,6 @@ The minimum permitted value is 0.15 - the value supplied to
 libadaptivity is max(abs(user value), 0.15).
 
 Default value if not specified: 0.15</a:documentation>
-          <attribute name="replaces">
-            <value>MESTP1</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -649,9 +592,6 @@ rather than always lagging behind.</a:documentation>
  TBETA=1. -- conservative (divergence form)
  TBETA=0. -- non-conservative
  0. &lt; TBETA &lt; 1.</a:documentation>
-              <attribute name="replaces">
-                <value>TBETA, DEFALT (TBETA = 0.0)</value>
-              </attribute>
               <ref name="real"/>
             </element>
           </element>
@@ -661,9 +601,6 @@ rather than always lagging behind.</a:documentation>
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-              <attribute name="replaces">
-                <value>TTHETA, DEFALT (TTHETA = 0.5)</value>
-              </attribute>
               <ref name="real"/>
             </element>
             <choice>
@@ -698,9 +635,6 @@ Default is 1.1</a:documentation>
 This increases the accuracy of the face values and ensures that
 the pivoted solution is cancelled out.
 Defaults to 1 if unselected.</a:documentation>
-                  <attribute name="replaces">
-                    <value>INT(ABS(NDISOT)/10)</value>
-                  </attribute>
                   <ref name="integer"/>
                 </element>
               </optional>
@@ -708,9 +642,6 @@ Defaults to 1 if unselected.</a:documentation>
                 <element name="limit_theta">
                   <a:documentation>If not active then the theta specified above will be used.
 Otherwise use variable limited theta on individual faces.</a:documentation>
-                  <attribute name="replaces">
-                    <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
-                  </attribute>
                   <empty/>
                 </element>
               </optional>
@@ -2186,9 +2117,6 @@ integral.  If the conservation fails this tolerance a warning is issued
  Allow a moving mesh.
  Assigns memory for grid velocities
  Amends previous timestep`s mass matrix</a:documentation>
-          <attribute name="replaces">
-            <value>MVMESH = TRUE, ZERQG, CMCHAN = TRUE</value>
-          </attribute>
           <choice>
             <element name="free_surface">
               <a:documentation>enable movement of mesh with the free surface</a:documentation>
@@ -2319,68 +2247,57 @@ in a flml file!</a:documentation>
             </element>
             <element name="vertical_ale">
               <a:documentation>enable vertical movement of mesh (TBD)</a:documentation>
-              <attribute name="replaces">
-                <value>NCOLOP &lt; 0 </value>
-              </attribute>
-              <group>
-                <element name="physical_functionals">
-                  <a:documentation>Functionals</a:documentation>
-                  <choice>
-                    <element name="minimise_relative_velocity_dot_grad_density">
-                      <a:documentation>move the nodes along an isosurface
+              <element name="physical_functionals">
+                <a:documentation>Functionals</a:documentation>
+                <choice>
+                  <element name="minimise_relative_velocity_dot_grad_density">
+                    <a:documentation>move the nodes along an isosurface
 Please specify a scalar field</a:documentation>
-                      <attribute name="replaces">
-                        <value>NCOLOP = -1</value>
-                      </attribute>
-                      <attribute name="name">
-                        <data type="string"/>
-                      </attribute>
-                    </element>
-                    <element name="use_hessian_density">
-                      <a:documentation>Lock a node to a high curvature region, 
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                  <element name="use_hessian_density">
+                    <a:documentation>Lock a node to a high curvature region, 
 Please specify a scalar field</a:documentation>
-                      <attribute name="replaces">
-                        <value>NCOLOP = -2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <data type="string"/>
-                      </attribute>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
+              </element>
+              <optional>
+                <element name="mesh_quality_terms">
+                  <a:documentation>Mesh Quality terms</a:documentation>
+                  <optional>
+                    <element name="spring_term">
+                      <a:documentation>Spring term, default value is 1.0</a:documentation>
+                      <ref name="real"/>
                     </element>
-                  </choice>
+                  </optional>
+                  <optional>
+                    <element name="exponential_term">
+                      <a:documentation>Exponential term, default value is 1.0</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
-                <optional>
-                  <element name="mesh_quality_terms">
-                    <a:documentation>Mesh Quality terms</a:documentation>
-                    <optional>
-                      <element name="spring_term">
-                        <a:documentation>Spring term, default value is 1.0</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="exponential_term">
-                        <a:documentation>Exponential term, default value is 1.0</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="block_nodes_in_x">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="block_nodes_in_y">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="block_nodes_in_z">
-                    <empty/>
-                  </element>
-                </optional>
-              </group>
+              </optional>
+              <optional>
+                <element name="block_nodes_in_x">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="block_nodes_in_y">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="block_nodes_in_z">
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </choice>
           <element name="vector_field">

@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -45,30 +45,30 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">0.0</real_value>
       </constant>
     </dump_period>
-    <max_dump_file_count replaces="DUMSAV">
+    <max_dump_file_count>
       <integer_value rank="0">2</integer_value>
     </max_dump_file_count>
     <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.745</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.00125</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">0.74625</real_value>
     </finish_time>
-    <cpu_time_limit replaces="CPULIM">
+    <cpu_time_limit>
       <real_value rank="0">2.5E+5</real_value>
     </cpu_time_limit>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -76,11 +76,11 @@
   <material_phase name="Air">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.204</real_value>
           </reference_density>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -90,15 +90,15 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <atmospheric_pressure replaces="PATMOS">
+        <atmospheric_pressure>
           <real_value rank="0">1013250</real_value>
         </atmospheric_pressure>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
-          <update_discretised_equation replaces="CMCHAN"/>
+          <use_projection_method/>
+          <update_discretised_equation/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -175,15 +175,15 @@
               </model>
             </les_model>
           </continuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -214,7 +214,7 @@
             <real_value shape="3" dim1="dim" rank="1">1.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="inlet">
+        <boundary_conditions name="inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">28</integer_value>
           </surface_ids>
@@ -238,7 +238,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="wall">
+        <boundary_conditions name="wall">
           <surface_ids>
             <integer_value shape="1" rank="1">29</integer_value>
           </surface_ids>
@@ -262,7 +262,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="side">
+        <boundary_conditions name="side">
           <surface_ids>
             <integer_value shape="1" rank="1">30</integer_value>
           </surface_ids>
@@ -276,7 +276,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="sky">
+        <boundary_conditions name="sky">
           <surface_ids>
             <integer_value shape="1" rank="1">31</integer_value>
           </surface_ids>
@@ -290,7 +290,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+        <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="whole_mesh">
               <anisotropic_symmetric>
@@ -302,7 +302,7 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">
+        <vector_field name="Source" rank="1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
@@ -319,9 +319,9 @@
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
-          <lump_source replaces="SLUMP"/>
+          <lump_source/>
         </vector_field>
-        <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">
+        <vector_field name="Absorption" rank="1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
@@ -338,7 +338,7 @@
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
-          <lump_absorption replaces="ABSLUM"/>
+          <lump_absorption/>
         </vector_field>
         <output/>
         <stat>
@@ -361,7 +361,7 @@
         </steady_state>
         <adaptivity_options>
           <relative_measure>
-            <vector_field replaces="ADATOU ADATOV ADATOW" name="InterpolationErrorBound" rank="1">
+            <vector_field name="InterpolationErrorBound" rank="1">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -401,8 +401,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <relative_measure replaces="ADOPTT = 1">
-            <scalar_field replaces="ADADOT" name="InterpolationErrorBound" rank="0">
+          <relative_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -416,14 +416,14 @@
                 </detectors>
               </prescribed>
             </scalar_field>
-            <tolerance replaces="ADATOT">
+            <tolerance>
               <real_value rank="0">0.001</real_value>
             </tolerance>
           </relative_measure>
         </adaptivity_options>
       </diagnostic>
     </scalar_field>
-    <scalar_field replaces="DENTRAF" name="CopyofDensity" rank="0">
+    <scalar_field name="CopyofDensity" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -440,7 +440,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field replaces="UTRAF,VTRAF,WTRAF" name="SolidVelocity" rank="1">
+    <vector_field name="SolidVelocity" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -461,11 +461,11 @@
     </vector_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
-      <period replaces="TIMMES">
+    <hr_adaptivity>
+      <period>
         <real_value rank="0">0.5</real_value>
       </period>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">2000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation/>
@@ -542,12 +542,12 @@
             <advection_terms/>
             <mass_terms/>
           </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
         </temporal_discretisation>
@@ -574,7 +574,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <scalar_field replaces="ZSOT" name="Source" rank="0">
+        <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>

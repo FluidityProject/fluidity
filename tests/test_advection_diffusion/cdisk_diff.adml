@@ -4,7 +4,7 @@
     <string_value lines="1">cdisk_ad</string_value>
   </simulation_name>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -26,7 +26,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -43,14 +43,14 @@
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.0125663706</real_value>
       <comment>2 * pi/50 (50 steps per revolution)</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1000</real_value>
     </finish_time>
     <final_timestep>
@@ -59,7 +59,7 @@
     </final_timestep>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field replaces="IDENT = 666" name="Tracer" rank="0">
+    <scalar_field name="Tracer" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <solver>
@@ -89,7 +89,7 @@
 	return 0</string_value>
           </python>
         </initial_condition>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>

@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -19,7 +19,7 @@
       </from_file>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">2</integer_value>
       </degree>
     </quadrature>
@@ -38,13 +38,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0</real_value>
     </finish_time>
   </timestepping>
@@ -81,11 +81,11 @@
         </value>
         <output/>
         <stat>
-          <include_mixing_stats replaces="heaviside.dat file" name="Bins">
+          <include_mixing_stats name="Bins">
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <python>
-                <string_value type="python" lines="20">def val(t):
+                <string_value lines="20" type="python">def val(t):
   bounds = [float(i) / float(101) for i in range(100)]
   bounds.insert(0, -float("inf"))
   bounds.append(float("inf"))
@@ -111,7 +111,7 @@
         </value>
         <output/>
         <stat>
-          <include_mixing_stats replaces="heaviside.dat file" name="Bins">
+          <include_mixing_stats name="Bins">
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <constant>

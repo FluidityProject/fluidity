@@ -52,9 +52,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TTPER1 TTPER2 TTPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -231,9 +228,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
         <attribute name="rank">
           <value>2</value>
         </attribute>
-        <attribute name="replaces">
-          <value>TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <optional>
@@ -261,9 +255,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
-        <attribute name="replaces">
-          <value>ZSOT</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <ref name="prescribed_scalar_field_no_adapt"/>
@@ -287,9 +278,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
         </attribute>
         <attribute name="rank">
           <value>0</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>TABSZE TABS TABSCO TABSOR</value>
         </attribute>
         <choice>
           <element name="prescribed">
@@ -571,9 +559,6 @@ requires a fine mesh to perform well</a:documentation>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
 a discontinuous velocity field for this to work!</a:documentation>
-          <attribute name="replaces">
-            <value>DISOPT</value>
-          </attribute>
           <optional>
             <element name="mass_terms">
               <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
@@ -805,9 +790,6 @@ suggested value 0.1</a:documentation>
  BETA=1. -- conservative (divergence form)
  BETA=0. -- non-conservative
  0. &lt; BETA &lt; 1.</a:documentation>
-        <attribute name="replaces">
-          <value>BETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
     </element>
@@ -818,9 +800,6 @@ suggested value 0.1</a:documentation>
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>THETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <element name="relaxation">
@@ -828,9 +807,6 @@ suggested value 0.1</a:documentation>
  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
  0 &lt;= ITHETA &lt;= 1</a:documentation>
-        <attribute name="replaces">
-          <value>ITHETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -910,9 +886,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TMPER1 TMPER2 TMPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -929,9 +902,6 @@ requires a distinct name for the options dictionary.</a:documentation>
 
 For continuous_galerkin see stress_terms to see how the
 viscosity tensor is dealt with in the momentum equation.</a:documentation>
-        <attribute name="replaces">
-          <value>MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU</value>
-        </attribute>
         <attribute name="name">
           <value>Viscosity</value>
         </attribute>
@@ -968,9 +938,6 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
-        <attribute name="replaces">
-          <value>CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ</value>
-        </attribute>
         <choice>
           <element name="prescribed">
             <optional>
@@ -989,9 +956,6 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
         </choice>
         <optional>
           <element name="lump_source">
-            <attribute name="replaces">
-              <value>SLUMP</value>
-            </attribute>
             <empty/>
           </element>
         </optional>
@@ -1010,9 +974,6 @@ respectively.</a:documentation>
         </attribute>
         <attribute name="rank">
           <value>1</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO</value>
         </attribute>
         <choice>
           <element name="prescribed">
@@ -1034,16 +995,10 @@ respectively.</a:documentation>
           <element name="default_absorption">
             <a:documentation>Default absorption: no lumping, is fully evaluated before the
 the pressure correction.</a:documentation>
-            <attribute name="replaces">
-              <value>ABSLUM</value>
-            </attribute>
             <empty/>
           </element>
           <element name="lump_absorption">
             <a:documentation>Lump the inclusion of absorbtion terms.</a:documentation>
-            <attribute name="replaces">
-              <value>ABSLUM</value>
-            </attribute>
             <optional>
               <element name="use_submesh">
                 <a:documentation>Lump on the submesh.
@@ -1153,9 +1108,6 @@ Note that the default value is zero. </a:documentation>
             <element name="remove_stabilisation_term">
               <a:documentation>remove the  fourth order pressure stabilisation term KCMC
 must be removed for multimaterial and free surface calculations</a:documentation>
-              <attribute name="replaces">
-                <value>NOFILT</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1165,9 +1117,6 @@ must be removed for multimaterial and free surface calculations</a:documentation
 
 This allows for the imposition of weak velocity boundary conditions with continuous_galerkin.
 If activated this means that the pressure gradient operator is not integrated by parts.</a:documentation>
-              <attribute name="replaces">
-                <value>PREOPT</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1183,9 +1132,6 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
           </optional>
         </element>
         <element name="control_volumes">
-          <attribute name="replaces">
-            <value>NCOLOP = X1XXXXX -&gt; INTERF, NOFILT</value>
-          </attribute>
           <empty/>
         </element>
       </choice>
@@ -1199,9 +1145,6 @@ If parallel must be less than the total number of nodes of the first processor.
 
 Note - it is also an option to remove the null-space of the residual vector. This
 option is available under solvers.</a:documentation>
-        <attribute name="replaces">
-          <value>NDPSET</value>
-        </attribute>
         <ref name="integer"/>
       </element>
     </optional>
@@ -1220,9 +1163,6 @@ This is useful as a debugging tool if PETSc complains about zeros on the diagona
         <a:documentation>Atmospheric pressure
 
 Manual suggests 1.01325E+6</a:documentation>
-        <attribute name="replaces">
-          <value>PATMOS</value>
-        </attribute>
         <ref name="real"/>
       </element>
     </optional>
@@ -1235,33 +1175,25 @@ This does not necessarily satisfy continuity.
   = 0 -- never use a poisson guess
   =-1 -- use a poisson guess at the first timestep only
 Manual suggests -1</a:documentation>
-        <attribute name="replaces">
-          <value>POISON</value>
-        </attribute>
-        <group>
-          <element name="string_value">
-            <!--
-              Lines is a hint to the gui about the size of the text box.
-              It is not an enforced limit on string length.
-            -->
-            <attribute name="lines">
-              <value>1</value>
-            </attribute>
-            <choice>
-              <value>never</value>
-              <value>only first timestep</value>
-            </choice>
-          </element>
-          <ref name="comment"/>
-        </group>
+        <element name="string_value">
+          <!--
+            Lines is a hint to the gui about the size of the text box.
+            It is not an enforced limit on string length.
+          -->
+          <attribute name="lines">
+            <value>1</value>
+          </attribute>
+          <choice>
+            <value>never</value>
+            <value>only first timestep</value>
+          </choice>
+        </element>
+        <ref name="comment"/>
       </element>
       <choice>
         <element name="use_projection_method">
           <a:documentation>Use the incompressible projection method to determine
 the pressure and satisfy continuity</a:documentation>
-          <attribute name="replaces">
-            <value>PROJEC</value>
-          </attribute>
           <optional>
             <element name="full_schur_complement">
               <a:documentation>Assemble and use the full schur complement.
@@ -1346,9 +1278,6 @@ pressure and satisfy continuity and the eos.
 This is only currently compatible with control volume
 pressure spatial discretisations and requires a
 multimaterial eos.</a:documentation>
-          <attribute name="replaces">
-            <value>MKCOMP from solidity_options.inp</value>
-          </attribute>
           <optional>
             <choice>
               <element name="normalisation">
@@ -1389,9 +1318,6 @@ Allows the selection of an arbitrary field.</a:documentation>
         <element name="update_discretised_equation">
           <a:documentation>rediscretise the equations at every timestep and iteration
 (this is useful as a debugging tool but shouldn't be necessary for any application runs)</a:documentation>
-          <attribute name="replaces">
-            <value>CMCHAN</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
@@ -1485,9 +1411,6 @@ want this.</a:documentation>
   include_buoyancy - Include both the buoyancy and Coriolis terms on the RHS
   exclude_buoyancy - Include only the Coriolis term on the RHS
   exclude_coriolis - Include only the buoyancy term on the RHS</a:documentation>
-        <attribute name="replaces">
-          <value>GEOBAL</value>
-        </attribute>
         <element name="string_value">
           <choice>
             <value>include_buoyancy</value>
@@ -1719,26 +1642,17 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
       <optional>
         <element name="free_surface_3D">
           <a:documentation>Form a full 3D system for the free surface</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT=2^0 (frees3d)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
       <optional>
         <element name="fourth_order_dissipation">
-          <attribute name="replaces">
-            <value>DISOTT=2^2 (fourthfrees_diss)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
       <optional>
         <element name="low_order_free_surface">
           <a:documentation>low order (linear) free surface</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT=2^3 (geo_short)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
@@ -1760,18 +1674,12 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
         </element>
         <element name="switch_off_free_surface_filter">
           <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT=2^8 (nofsta)</value>
-          </attribute>
           <empty/>
         </element>
       </choice>
       <optional>
         <element name="wetting_drying">
           <a:documentation>Apply wetting and drying routines</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT=2^10 (wetdry)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>
@@ -1781,9 +1689,6 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT=2^11</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1832,27 +1737,18 @@ With PN-PN we need some filter to supress spurious modes.</a:documentation>
           <optional>
             <element name="all_tidal_components">
               <a:documentation>Switch on all tidal components</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT=2^5 (tidallcom)</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
           <optional>
             <element name="love_number">
               <a:documentation>Switches on a Love number of 0.3</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT=2^6 (tlove)</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
           <optional>
             <element name="static_tidal_force">
               <a:documentation>Use static tidal force for testing</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT=2^7 (statid)</value>
-              </attribute>
               <empty/>
             </element>
           </optional>
@@ -1872,9 +1768,6 @@ Suggested value 1.0 (should be at least bigger than 0.5).
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>THETA</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -1884,9 +1777,6 @@ Suggested value 1.0 (should be at least bigger than 0.5).
 =0.  -- explicit (default)
 =0.5 -- Crank-Nicolson
 =1.  -- implicit</a:documentation>
-          <attribute name="replaces">
-            <value>disott=2^4 (IMPABS)</value>
-          </attribute>
           <ref name="real"/>
         </element>
       </optional>
@@ -1927,9 +1817,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="replaces">
-          <value>boundary, TTPER1 TTPER2 TTPERI</value>
-        </attribute>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -2278,9 +2165,6 @@ field itself).</a:documentation>
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-          <attribute name="replaces">
-            <value>TTHETA, DEFALT (TTHETA = 0.5)</value>
-          </attribute>
           <ref name="real"/>
         </element>
         <element name="control_volumes">
@@ -2289,9 +2173,6 @@ field itself).</a:documentation>
               <a:documentation>Only works if a control volume or coupled_cv spatial discretisation is selected.
 If not active then the theta specified above will be used.
 Otherwise use variable limited theta on individual faces.</a:documentation>
-              <attribute name="replaces">
-                <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
-              </attribute>
               <empty/>
             </element>
           </optional>

@@ -14,9 +14,6 @@ characters in the project name should be avoided.</a:documentation>
         <element name="dimension">
           <a:documentation>Dimension of the problem.
 &lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
-          <attribute name="replaces">
-            <value>NDIM</value>
-          </attribute>
           <element name="integer_value">
             <attribute name="rank">
               <value>0</value>
@@ -52,9 +49,6 @@ characters in the project name should be avoided.</a:documentation>
 
 note: this specifies the degree of quadrature not
 the number of gauss points</a:documentation>
-            <attribute name="replaces">
-              <value>NGI</value>
-            </attribute>
             <ref name="integer"/>
           </element>
         </element>
@@ -259,10 +253,6 @@ layers.</a:documentation>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
         <ref name="real"/>
-      </element>
-      <element name="generic_function">
-        <a:documentation>Generic function prescribing real input</a:documentation>
-        <ref name="anystring"/>
       </element>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:

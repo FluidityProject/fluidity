@@ -7,9 +7,6 @@
  =0.  -- explicit
  =0.5 -- Crank-Nicolson
  =1.  -- implicit</a:documentation>
-        <attribute name="replaces">
-          <value>TTHETA, DEFALT (TTHETA = 0.5)</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -29,9 +26,6 @@
 This increases the accuracy of the face values and ensures that
 the pivoted solution is cancelled out.
 Defaults to 1 if unselected.</a:documentation>
-          <attribute name="replaces">
-            <value>INT(ABS(NDISOT)/10)</value>
-          </attribute>
           <ref name="integer"/>
           <optional>
             <element name="tolerance">
@@ -85,9 +79,6 @@ This only works for pure control volume discretisations.</a:documentation>
           <a:documentation>Only works if a control volume or coupled_cv spatial discretisation is selected.
 If not active then the theta specified above will be used.
 Otherwise use variable limited theta on individual faces.</a:documentation>
-          <attribute name="replaces">
-            <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
-          </attribute>
           <empty/>
         </element>
       </optional>

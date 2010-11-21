@@ -51,7 +51,6 @@ start =
                element dump_period {
                 (
                      element constant {
-                     attribute replaces {"TIMDUM"},
                      real
                    }|
                    ## Python function prescribing real input. Functions should be of the form:
@@ -62,7 +61,6 @@ start =
                    ##
                    ## 
                    element python {
-                     attribute replaces {"TIMDUM"},
                      python_code
                    }
                 )  
@@ -100,17 +98,14 @@ start =
             # every CPUDUM seconds write results to disc.
             ## This is usually disabled.
             element cpu_dump_period {
-               attribute replaces {"CPUDUM"},
                real
             }?,
             ## The period between dumps in walltime seconds. This is usually disabled.
             element wall_time_dump_period {
-               attribute replaces {"WTIDUM"},
                real
             }?,
             ## Number of dumps before we overwrite previous dumps.
             element max_dump_file_count {
-               attribute replaces {"DUMSAV"},
                integer
             }?,
             (
@@ -318,7 +313,6 @@ start =
             ## Current simulation time. At the start of the simulation this
             ## is the start time.
             element current_time {
-               attribute replaces {"ACCTIM"},
                real,
                ## The following excerpt from the Udunits
                ## documentation explains the time unit encoding by
@@ -348,12 +342,10 @@ start =
             ## The time step size. If adaptive time stepping is used
             ## then this is the initial time step size.
             element timestep {
-               attribute replaces {"DT"},
                real
             },
             ## Simulation time at which the simulation should end.
             element finish_time {
-               attribute replaces {"LTIME"},
                real
             },
             ## Timestep after which the simulation should end.
@@ -362,7 +354,6 @@ start =
             }?,
             ## Maximum CPU time (in seconds) before the simulation terminates
             element cpu_time_limit {
-               attribute replaces {"CPULIM"},
                real
             }?,
             ## Maximum wall time (secs) taken up before
@@ -370,19 +361,16 @@ start =
             ## 
             ## This is usually disabled.
             element wall_time_limit {
-               attribute replaces {"WATIME"},
                real
             }?,
             ## maximum number of non-linear iterations.
             ## 
             ## Manual suggests 2
             element nonlinear_iterations {
-               attribute replaces {"ITINOI"},
                integer,
                ## tolerance for non-linear iteration.
                ## Manual suggests 1.0E-12
                element tolerance {
-                  attribute replaces {"ITIERR"},
                   real,
                   (
                       ## Select the norm with which you want the tolerance to be tested.
@@ -416,13 +404,11 @@ start =
                ## Number of non-linear iterations for the first time step after adapting the mesh.
                ## This option will work only if the mesh_adaptivity is switched on.
                element nonlinear_iterations_at_adapt {
-                  attribute replaces {"ITINOIAD"},
                   integer
                }?
             }?,
             ## Vary the timestep according to the courant number.
             element adaptive_timestep {
-               attribute replaces {"TIMAUT"},
                ## The timestep will be adjusted (within the tolerance
                ## and bounds specified) to target this courant
                ## number. Timestep adapts occur at the end of each
@@ -434,7 +420,6 @@ start =
                ## Minimum time step size.
                ## Manual suggests 0.0
                element minimum_timestep {
-                  attribute replaces {"MINDT"},
                   ## If enabled, signals model termination if a timestep less
                   ## than or equal to the minimum_timestep is requested. The
                   ## model will stop at the end of the timestep in order to
@@ -447,7 +432,6 @@ start =
                ## Maximum time step size.
                ## Manual suggests 1.E+10
                element maximum_timestep {
-                  attribute replaces {"MAXDT"},
                   real
                }?,
                ## The maximum ratio by which the timestep is allowed
@@ -472,7 +456,6 @@ start =
             element steady_state {
                ## Enter the tolerance to which you want a steady state to be judged.
                element tolerance {
-                  attribute replaces { "STEDER" },
                   real,
                   (
                       ## Select the norm with which you want the tolerance to be tested.
@@ -533,52 +516,43 @@ start =
                            ## 
                            ## (e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))
                            element linear {
-                              attribute replaces { "EQNSTA=0 or 1" },
                               ## The reference or background density
                               element reference_density {
-                                 attribute replaces {"DENINI"},
                                  real
                               },
                               ## Enable to add temperature dependency
                               ## to the equation of state.
                               element temperature_dependency {
-                                 attribute replaces { "BOUSIN, EQNSTA=0" },
                                  ## The reference or background
                                  ## temperature (actual temperature =
                                  ## calculated temperature plus this
                                  ## value).
                                  element reference_temperature {
-                                    attribute replaces {"TEMINI"},
                                     real
                                  },
                                  ## The thermal expansion coefficient
                                  element thermal_expansion_coefficient {
-                                    attribute replaces {"DENGAM"},
                                     real
                                  }
                               }?,
                               ## Enable to add salinity dependency to
                               ## the equation of state.
                               element salinity_dependency {
-                                 attribute replaces { "BOUSIN, EQNSTA=1" },
                                  ## The reference or background
                                  ## salinity (actual salinity =
                                  ## calculated salinity plus this
                                  ## value).
                                  element reference_salinity {
-                                    attribute replaces {"S0 if from .dat file?, GAMDE3(1) if from gem"},
                                     real
                                  },
                                  ## The haline contraction coefficient
                                  element saline_contraction_coefficient {
-                                    attribute replaces {"DENGAM_SAL if from .dat file?, GAMDE2(1) if from gem"},
                                     real
                                  }
                               }?,
                               ## Enable this option to subtract out
                               ## the hydrostatic level
                               element subtract_out_hydrostatic_level {
-                                 attribute replaces {"BHOUT"},
                                  empty
                               }?
                            }|
@@ -586,9 +560,7 @@ start =
                            ## Feistel equation of state using Pade
                            ## approximation
                            element ocean_pade_approximation {
-                              attribute replaces { "EQNSTA = 2 or 3" },
                               element include_depth_below_surface {
-                                 attribute replaces { "EQNSTA = 2 if switched on" },
                                  empty
                               }?
                            }
@@ -605,12 +577,7 @@ start =
                            ##
                            ## if activated then either Liquid EoS or
                            ## full Stiffened Gas EoS
-                           ##  - replaces EOS TYPE = 1 or 3 from
-                           ##  solidity_imputs.inp -> MATEOS
-                           ## if not activated then replaces EOS TYPE 2 from
-                           ## solidity_inputs.inp -> MATEOS
                            element reference_density {
-                              attribute replaces { "DENINI for single materials, REFERENCE DENS. from solidity_inputs.inp -> DENINIMAT for multimaterials" },
                               real
                            }?,
                            ## Ratio of specific heats at constant
@@ -618,20 +585,14 @@ start =
                            ##
                            ## Requires an energy field.
                            ## If activated then a full Stiffened Gas EoS 
-                           ##  - replaces EOS TYPE = 3 from solidity_imputs.inp -> MATEOS
-                           ## if not activated then either EOS TYPE 1 or 3
-                           ## from solidity_inputs.inp -> MATEOS
                            element ratio_specific_heats {
-                              attribute replaces { "DENGAM for single materials, DEN GAM from solidity_inputs.inp -> DENGAMMAT for multimaterials" },
                               real
                            }?,
                            ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
                            ##
                            ## if activated then either full or partial Liquid EoS or full
-                           ## Stiffened Gas EoS - replaces EOS TYPE = 1, 2 or 3
-                           ## from solidity_imputs.inp -> MATEOS
+                           ## Stiffened Gas EoS
                            element bulk_sound_speed_squared {
-                              attribute replaces { "GASCON for single materials, COMPRESS COEF. from solidity_inputs.inp -> GASCONMAT for multimaterials" },
                               real
                            }?
                         }|
@@ -1127,7 +1088,6 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "KineticEnergy" },
-                     attribute replaces { "IDENT = 101" },
                      (
                         element prognostic {
                            velocity_mesh_choice,
@@ -1142,7 +1102,6 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TurbulentLengthScalexKineticEnergy" },
-                     attribute replaces { "IDENT = 102" },
                      (
                         element prognostic {
                            velocity_mesh_choice,
@@ -1157,7 +1116,6 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "VerticalViscosity" },
-                     attribute replaces { "IDENT = 103" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1173,7 +1131,6 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "VerticalDiffusivity" },
-                     attribute replaces { "IDENT = 104" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -2028,7 +1985,6 @@ sediment =
             element tensor_field {
                attribute name { "Diffusivity" },
                attribute rank { "2" },
-               attribute replaces { "TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" },
                (
                   element prescribed {
                      mesh_choice?,
@@ -2113,7 +2069,6 @@ prognostic_density_field =
          ##  TBETA=0. -- non-conservative
          ##  0. < TBETA < 1.
          element conservative_advection {
-           attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
            real
          }
       },
@@ -2123,7 +2078,6 @@ prognostic_density_field =
          ##  =0.5 -- Crank-Nicholson
          ##  =1.  -- implicit
          element theta {
-            attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
             real
          },
          temporal_control_volume_options?
@@ -2167,7 +2121,6 @@ prognostic_density_field =
       )+,
       ## Boundary conditions
       element boundary_conditions {
-         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
          attribute name { string },
          ## Surface id:
          element surface_ids {
@@ -2200,7 +2153,6 @@ prognostic_density_field =
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
-         attribute replaces { "ZSOT" },
          (
             element prescribed {
                prescribed_scalar_field_no_adapt,
@@ -2217,7 +2169,6 @@ prognostic_density_field =
       element scalar_field {
          attribute name { "Absorption" },
          attribute rank { "0" },
-         attribute replaces { "TABSZE TABS TABSCO TABSOR" },
          element prescribed {
             prescribed_scalar_field_no_adapt
          }
@@ -2247,7 +2198,6 @@ geometry =
          ## Dimension of the problem.
          ## <b>This can only be set once</b>
          element dimension {
-            attribute replaces {"NDIM"},
             element integer_value {
                attribute rank {"0"},
                ("3"|"2"|"1")
@@ -2280,7 +2230,6 @@ geometry =
             ## note: this specifies the degree of quadrature,
             ## not the number of gauss points
             element degree {
-               attribute replaces {"NGI"},
                integer
             },
             ## Surface quadrature degree
@@ -2288,7 +2237,6 @@ geometry =
             ## note: this specifies the degree of surface
             ## quadrature not the number of surface gauss points
             element surface_degree {
-               attribute replaces {"SNGI"},
                integer
             }?,
             ## Sets the degree of quadrature on each quadrilateral
@@ -2323,16 +2271,13 @@ geometry =
          }?,
          ## Options specifying that the problem is on the surface of the sphere.
          element spherical_earth {
-            attribute replaces{"ISPHERE"},
             (
                element linear_mapping {
-                  attribute replaces{ "ISPHERE=1" },
                   empty
                }|
                ## Enabling this option approximates the curvature of the Earth as an
                ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
                element superparametric_mapping {
-                  attribute replaces{ "ISPHERE=2" },
                   empty
                }
             )
@@ -2579,20 +2524,17 @@ rotation_matrix_components =
    (
       ## Select if you want to specify the normal direction
       ## of the rotation matrix.
-      ## If off then fluidity computes the normal (replaces GETTAN = .TRUE.)
+      ## If off then fluidity computes the normal
       ## If on the tangents vectors must also be specified.
       element normal_direction {
-         attribute replaces { "GETTAN=.FALSE." },
          input_choice_real_dim_vector
       }?,
       ## specify first unit tangent vector to boundary
       element tangent_direction_1 {
-         attribute replaces { "GETTAN=.FALSE." },
          input_choice_real_dim_vector
       }?,
       ## specify second (if exists, i.e. if 3d) unit tangent vector to boundary
       element tangent_direction_2 {
-         attribute replaces { "GETTAN=.FALSE." },
          input_choice_real_dim_vector
       }?
    )
@@ -3425,7 +3367,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Salinity" },
-            attribute replaces { "IDENT = 42" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -3444,7 +3385,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Temperature" },
-            attribute replaces { "IDENT = -1" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -3474,7 +3414,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Tracer" },
-            attribute replaces { "IDENT = 666" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -3541,7 +3480,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SecondFluid" },
-            attribute replaces { "IDENT = 56" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -3560,7 +3498,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DiffuseInterface" },
-            attribute replaces { "IDENT = 57" },
             (
                element prognostic {
                   velocity_mesh_choice,
@@ -3592,7 +3529,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "GeostrophicPressure" },
-            attribute replaces { "IDENT = -2003" },
             (
                element prognostic {
                   ## The GeostrophicPressure mesh. Must be continuous.
@@ -3972,7 +3908,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DistanceToSideBoundaries" },
-            attribute replaces { "IDENT = -144" },
             (
                element prescribed {
                   velocity_mesh_choice,
@@ -4026,7 +3961,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PerturbationDensity" },
-            attribute replaces { "IDENT = -143" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -4178,7 +4112,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CFLNumber" },
-            attribute replaces { "IDENT = -601" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -4288,7 +4221,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "CopyofDensity" },
-            attribute replaces { "DENTRAF" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -4922,7 +4854,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "TidalRange" },
-            attribute replaces { "IDENT = -32" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -4937,7 +4868,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MaxFreeSurface" },
-            attribute replaces { "IDENT = -33" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -4952,7 +4882,6 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MinFreeSurface" },
-            attribute replaces { "IDENT = -34" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -5273,7 +5202,6 @@ vector_field_choice =
          ## Solid Velocity field.  Used to generate the momentum source 
          element vector_field {
             attribute rank { "1" },
-            attribute replaces {"UTRAF,VTRAF,WTRAF"},
             attribute name { "SolidVelocity" },
             (
                element diagnostic {
@@ -5838,7 +5766,6 @@ sweby_limiter =
   ## Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
   ## Journal on Numerical Analysis, 21, 995-1011
   element limiter {
-    attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" },
     attribute name {"Sweby"},
     slope_options?,
     upwind_value_options?
@@ -5884,7 +5811,6 @@ upwind_value_options =
          ## This is only available on simplex meshes as it involes a search around
          ## the donor node to find the upwind element.
          element project_upwind_value_from_point {
-            attribute replaces { "NDISOT > 0 on simplex meshes" },
             ## When the donor node is on a domain boundary reflect the projection
             ## back into the mesh.
             element reflect_off_domain_boundaries {
@@ -5901,7 +5827,6 @@ upwind_value_options =
             ## saves a significant amount of time (searching around the neighbouring elements).
             ## This is unsafe for moving meshes but should be ok for adaptive meshes.
             element store_upwind_elements {
-               attribute replaces { "ABS(NDISOT) >= 1000" },
                ## Store the quadrature locations within the elements
                ## where the upwind values
                ## are projected from for each node pair.
@@ -5912,7 +5837,6 @@ upwind_value_options =
                ## neighbouring elements is the
                ## slowest bit, finding the quadrature is relatively easy).
                element store_upwind_quadrature {
-                  attribute replaces { "ABS(NDISOT) >= 1000" },
                   empty
                }?
             }?
@@ -5973,7 +5897,6 @@ upwind_value_options =
          ## Otherwise known as isotropic limiting.
          ## This is available on all meshes except periodic domains.
          element locally_bound_upwind_value {
-            attribute replaces { "all cube elements, NDISOT < 0 on simplex elements" },
             empty
          }|
          ## Select the method to be used for calculating the upwind value.
@@ -6093,7 +6016,6 @@ mixing_stats =
       ## Replaces and expands upon the old heaviside.dat file
       element include_mixing_stats{
          attribute name { xsd:string },
-         attribute replaces { "heaviside.dat file" },
          (
             ## Select whether to evaluate the volume fraction over the finite element
             ## (continuous galerkin) or within the control volume (control_volumes).
@@ -6336,7 +6258,6 @@ forcing =
         element tidal_forcing {
                ## M2
                element M2 {
-                 attribute replaces {"DISOTT=2^11"}, 
                  empty
                }?,
                ## S2
@@ -6381,12 +6302,10 @@ forcing =
                }?,  
                ## Switch on all tidal components
                element all_tidal_components {
-                  attribute replaces { "DISOTT=2^5 (tidallcom)" },
                   empty
                }?,
                ## Sets a user defined Love number. If not active a value of 1.0 is used.
                element love_number {
-                  attribute replaces { "DISOTT=2^6 (tlove)" },
                   element value {
                      real
                   }
@@ -6533,7 +6452,6 @@ prognostic_photosynthetic_radiation =
       },
       ## Boundary conditions
       element boundary_conditions {
-         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
          attribute name { string },
          ## Surface id:
          element surface_ids {

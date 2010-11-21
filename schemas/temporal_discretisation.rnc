@@ -5,7 +5,6 @@ temporal_discretisation_options =
       ##  =0.5 -- Crank-Nicolson
       ##  =1.  -- implicit
       element theta {
-         attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
          real
       },
       temporal_control_volume_options?,
@@ -21,7 +20,6 @@ temporal_control_volume_options =
          ## the pivoted solution is cancelled out.
          ## Defaults to 1 if unselected.
          element number_advection_iterations {
-            attribute replaces { "INT(ABS(NDISOT)/10)" },
             integer,
             ## Cut short advection_iterations if the specified tolerance
             ## is reached.
@@ -69,7 +67,6 @@ temporal_control_volume_options =
          ## If not active then the theta specified above will be used.
          ## Otherwise use variable limited theta on individual faces.
          element limit_theta {
-            attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
             empty
          }?,
          ## Only works if a control volume or coupled_cv spatial discretisation is selected.

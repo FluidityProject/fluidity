@@ -4,7 +4,7 @@
     <string_value lines="1">rossby</string_value>
   </simulation_name>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -76,7 +76,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -93,22 +93,22 @@
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.001</real_value>
     </timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">10</real_value>
       </magnitude>
     </gravity>
@@ -119,7 +119,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <advection_scheme>
               <none/>
             </advection_scheme>
@@ -179,10 +179,10 @@
           </continuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>

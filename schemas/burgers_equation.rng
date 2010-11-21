@@ -38,9 +38,6 @@ characters in the simulation name should be avoided.</a:documentation>
       <element name="dimension">
         <a:documentation>Dimension of the problem.
 &lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
-        <attribute name="replaces">
-          <value>NDIM</value>
-        </attribute>
         <element name="integer_value">
           <attribute name="rank">
             <value>0</value>
@@ -69,9 +66,6 @@ characters in the simulation name should be avoided.</a:documentation>
 
 note: this specifies the degree of quadrature,
 not the number of gauss points</a:documentation>
-          <attribute name="replaces">
-            <value>NGI</value>
-          </attribute>
           <ref name="integer"/>
         </element>
         <optional>
@@ -80,9 +74,6 @@ not the number of gauss points</a:documentation>
 
 note: this specifies the degree of surface
 quadrature not the number of surface gauss points</a:documentation>
-            <attribute name="replaces">
-              <value>SNGI</value>
-            </attribute>
             <ref name="integer"/>
           </element>
         </optional>
@@ -177,24 +168,15 @@ surface or region IDs.</a:documentation>
       <element name="current_time">
         <a:documentation>Current simulation time. At the start of the simulation this
 is the start time.</a:documentation>
-        <attribute name="replaces">
-          <value>ACCTIM</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <element name="timestep">
         <a:documentation>The time step size. If adaptive time stepping is used
 then this is the initial time step size.</a:documentation>
-        <attribute name="replaces">
-          <value>DT</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <element name="finish_time">
         <a:documentation>Simulation time at which the simulation should end.</a:documentation>
-        <attribute name="replaces">
-          <value>LTIME</value>
-        </attribute>
         <ref name="real"/>
       </element>
       <optional>
@@ -208,9 +190,6 @@ then this is the initial time step size.</a:documentation>
           <a:documentation>Number of non-linear iterations.
 
 Manual suggests 2</a:documentation>
-          <attribute name="replaces">
-            <value>ITINOI</value>
-          </attribute>
           <ref name="integer"/>
         </element>
       </optional>

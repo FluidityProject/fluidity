@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -48,7 +48,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">500.0</real_value>
         <comment>500.0</comment>
       </constant>
@@ -57,20 +57,20 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.011910999491063532</real_value>
       <comment>0.023821998982127064 gives a max cv cfl number of 1.0
 0.011910999491063532 gives a max cv cfl number of 0.5</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">500.0</real_value>
       <comment>5.0</comment>
     </finish_time>
     <steady_state>
-      <tolerance replaces="STEDER">
+      <tolerance>
         <real_value rank="0">1.E-10</real_value>
         <infinity_norm/>
       </tolerance>
@@ -117,12 +117,12 @@
               <exclude_advection_terms/>
             </advection_terms>
           </finite_volume>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
@@ -149,7 +149,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="sides">
+        <boundary_conditions name="sides">
           <surface_ids>
             <integer_value shape="2" rank="1">7 9</integer_value>
           </surface_ids>
@@ -167,7 +167,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="neumann_x_left">
+        <boundary_conditions name="neumann_x_left">
           <surface_ids>
             <integer_value shape="1" rank="1">10</integer_value>
           </surface_ids>
@@ -185,7 +185,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="neumann_x_right">
+        <boundary_conditions name="neumann_x_right">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -203,7 +203,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+        <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
               <isotropic>
@@ -215,7 +215,7 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <scalar_field replaces="ZSOT" name="Source" rank="0">
+        <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
@@ -296,7 +296,7 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
+    <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="TracerMesh"/>

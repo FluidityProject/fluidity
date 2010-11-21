@@ -4,7 +4,7 @@
     <string_value lines="1">mms_adjoint_D</string_value>
   </simulation_name>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -24,7 +24,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -39,13 +39,13 @@
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">10.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">10000.0</real_value>
     </finish_time>
     <steady_state>

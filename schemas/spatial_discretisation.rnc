@@ -27,7 +27,6 @@ spatial_discretisation_options =
             element mass_terms {
                ## Lump the mass matrix
                element lump_mass_matrix {
-                  attribute replaces { "TLUMP" },
                   empty
                }?,
                ## Remove the mass terms from the equation. This requires an
@@ -408,7 +407,6 @@ spatial_discretisation_options =
       ##  TBETA=0. -- non-conservative
       ##  0. < TBETA < 1.
       element conservative_advection {
-         attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
          real
       }
    }
@@ -495,7 +493,6 @@ standard_control_volume_options =
       ## First order upwinding is monotonic so no limiting is ever required
       element face_value {
         attribute name { "FirstOrderUpwind" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
         empty
       }|
       ## Trapezoidal face value discretisation
@@ -506,7 +503,6 @@ standard_control_volume_options =
       ## Trapezoidal discretisation is unbounded so limiting is compulsory
       element face_value {
         attribute name { "Trapezoidal" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
         limiter_options
       }|
       ## Finite Element face value discretisation
@@ -515,7 +511,6 @@ standard_control_volume_options =
       ## Finite element discretisation may become unbounded so limiting is often necessary.
       element face_value {
         attribute name { "FiniteElement" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
         ## Disable advection, but still permit a sinking velocity.
         ## Useful for pseudo-1D simulations involving biology
         element only_sinking_velocity {
@@ -561,7 +556,6 @@ coupled_control_volume_options =
       ## First order upwinding is monotonic so no limiting is ever required
       element face_value {
         attribute name { "FirstOrderUpwind" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
         limiter_options
       }|
       ## Trapezoidal face value discretisation
@@ -572,7 +566,6 @@ coupled_control_volume_options =
       ## Trapezoidal discretisation is unbounded so limiting is compulsory
       element face_value {
         attribute name { "Trapezoidal" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
         limiter_options
       }|
       ## Finite Element face value discretisation
@@ -581,7 +574,6 @@ coupled_control_volume_options =
       ## Finite element discretisation may become unbounded so limiting is often necessary.
       element face_value {
         attribute name { "FiniteElement" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
         limiter_options
       }
    )
@@ -594,7 +586,6 @@ compressive_control_volume_options =
       ## Normally used for MaterialVolumeFraction fields
       element face_value {
         attribute name { "HyperC" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9" },
         upwind_value_options?,
         cv_face_cfl_number_options
       }|
@@ -605,7 +596,6 @@ compressive_control_volume_options =
       ## values bounded by target_maximum and target_minimum.
       element face_value {
         attribute name { "UltraC" },
-        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9, with ULTRAC = TRUE from solidity_options.inp" },
         ## Specifiy the upper bound which UltraC will use to
         ## calculate the maximum flux.
         element target_maximum {

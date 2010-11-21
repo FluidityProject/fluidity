@@ -28,11 +28,9 @@ adaptivity_options_prognostic_scalar_field =
             ## being adapted, e.g. you can specify
             ## the error to be 1.3 units 
             element absolute_measure {
-               attribute replaces { "ADOPTT = 0" },
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADWEIT" },
                   element prescribed {
                      prescribed_scalar_field_no_adapt
                   }
@@ -51,11 +49,9 @@ adaptivity_options_prognostic_scalar_field =
             ##being adapted, e.g. you can specify
             ##the error to be 5% (i.e. 0.05)
             element relative_measure {
-               attribute replaces { "ADOPTT = 1" },
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADADOT" },
                   element prescribed {
                      prescribed_scalar_field_no_adapt
                   }
@@ -70,7 +66,6 @@ adaptivity_options_prognostic_scalar_field =
                ##
                ## Source: Fluidity/ICOM manual draft version 1.2
                element tolerance {
-                  attribute replaces { "ADATOT" },
                   real
                }
             }|
@@ -105,11 +100,9 @@ adaptivity_options_scalar_field.adaptivity_options =
       ## being adapted, e.g. you can specify
       ## the error to be 1.3 units 
       element absolute_measure {
-         attribute replaces { "ADOPTT = 0" },
          element scalar_field {
             attribute rank { "0" },
             attribute name { "InterpolationErrorBound" },
-            attribute replaces { "ADWEIT" },
             element prescribed {
                prescribed_scalar_field_no_adapt
             }
@@ -128,11 +121,9 @@ adaptivity_options_scalar_field.adaptivity_options =
       ## being adapted, e.g. you can specify
       ## the error to be 5% (i.e. 0.05)
       element relative_measure {
-         attribute replaces { "ADOPTT = 1" },
          element scalar_field {
             attribute rank { "0" },
             attribute name { "InterpolationErrorBound" },
-            attribute replaces { "ADADOT" },
             element prescribed {
                prescribed_scalar_field_no_adapt
             }
@@ -147,7 +138,6 @@ adaptivity_options_scalar_field.adaptivity_options =
          ##
          ## Source: Fluidity/ICOM manual draft version 1.2
          element tolerance {
-            attribute replaces { "ADATOT" },
             real
          }
       }|
@@ -192,7 +182,6 @@ adaptivity_options_prognostic_vector_field =
                element vector_field {
                   attribute rank { "1" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADWEIU ADWEIV ADWEIW" },
                   element prescribed {
                      prescribed_vector_field_no_adapt
                   }
@@ -214,7 +203,6 @@ adaptivity_options_prognostic_vector_field =
                element vector_field {
                   attribute rank { "1" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADATOU ADATOV ADATOW" },
                   element prescribed {
                      prescribed_vector_field_no_adapt
                   }
@@ -251,7 +239,6 @@ adaptivity_options_vector_field =
                element vector_field {
                   attribute rank { "1" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADWEIU ADWEIV ADWEIW" },
                   element prescribed {
                      prescribed_vector_field_no_adapt
                   }
@@ -273,7 +260,6 @@ adaptivity_options_vector_field =
                element vector_field {
                   attribute rank { "1" },
                   attribute name { "InterpolationErrorBound" },
-                  attribute replaces { "ADATOU ADATOV ADATOW" },
                   element prescribed {
                      prescribed_vector_field_no_adapt
                   }
@@ -414,7 +400,6 @@ hr_adaptivity =
    (
    ## Anisotropic mesh hr-adaptivity
       element hr_adaptivity {
-         attribute replaces {"ADMESH"},
          (
             ## Time interval (in simulation time) when mesh adaptivity performed.
             ##
@@ -425,7 +410,6 @@ hr_adaptivity =
             ##
             ## Usually set to 10-20 times the timestep.
             element period {
-               attribute replaces {"TIMMES"},
                real
             }|
             ## Adapt period in timesteps.
@@ -436,7 +420,6 @@ hr_adaptivity =
          ## Time interval (in cpu time) when mesh adaptivity performed
          ## Manual suggests disabling this option.
          element cpu_period {
-            attribute replaces {"CPUMES"},
             real
          }?,
          ## The minimum number of nodes this simulation may use.
@@ -472,7 +455,6 @@ hr_adaptivity =
          ## number of layers specified, or if using inhomogenous_vertical_resolution
          ## on the resolution produced by the vertical adaptivity step.
          element maximum_number_of_nodes {
-            attribute replaces {"MXNODS"},
             ## Define maximum_number_of_nodes to be the maximum number of
             ## nodes per process (rather than the global maximum number of
             ## nodes).
@@ -516,7 +498,6 @@ hr_adaptivity =
          ##
          ## Default value if not specified: 0.15
          element functional_tolerance {
-            attribute replaces {"MESTP1"},
             real
          }?,
          gradation_options_full,
@@ -537,7 +518,6 @@ hr_adaptivity =
               ##  TBETA=0. -- non-conservative
               ##  0. < TBETA < 1.
               element conservative_advection {
-                  attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
                   real
               }
             },
@@ -547,7 +527,6 @@ hr_adaptivity =
               ##  =0.5 -- Crank-Nicolson
               ##  =1.  -- implicit
               element theta {
-                attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
                 real
               },
               (
@@ -579,13 +558,11 @@ hr_adaptivity =
                 ## the pivoted solution is cancelled out.
                 ## Defaults to 1 if unselected.
                 element number_advection_iterations {
-                    attribute replaces { "INT(ABS(NDISOT)/10)" },
                     integer
                 }?,
                 ## If not active then the theta specified above will be used.
                 ## Otherwise use variable limited theta on individual faces.
                 element limit_theta {
-                    attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
                     empty
                 }?,
                 ## Time discretisation of upwind discretisation off which the
@@ -1810,7 +1787,6 @@ mesh_adaptivity_options =
       ##  Assigns memory for grid velocities
       ##  Amends previous timestep`s mass matrix
       element mesh_movement {
-         attribute replaces { "MVMESH = TRUE, ZERQG, CMCHAN = TRUE" },
          (
             ## enable movement of mesh with the free surface
             element free_surface {
@@ -1885,20 +1861,17 @@ mesh_adaptivity_options =
             }|
             ## enable vertical movement of mesh (TBD)
             element vertical_ale {
-               attribute replaces { "NCOLOP < 0 " },
                (
                   ## Functionals
                   element physical_functionals {
                      ## move the nodes along an isosurface
                      ##Please specify a scalar field
                      element minimise_relative_velocity_dot_grad_density {
-                        attribute replaces { "NCOLOP = -1" },
                         attribute name { xsd:string }
                      }|
                      ## Lock a node to a high curvature region, 
                      ##Please specify a scalar field
                      element use_hessian_density {
-                        attribute replaces { "NCOLOP = -2" },
                         attribute name { xsd:string }
                      }
                   },

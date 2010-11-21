@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -45,7 +45,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant replaces="TIMDUM">
+      <constant>
         <real_value rank="0">inf</real_value>
       </constant>
     </dump_period>
@@ -53,13 +53,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">2.0</real_value>
     </finish_time>
   </timestepping>
@@ -82,7 +82,7 @@
         </detectors>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
+            <vector_field name="InterpolationErrorBound" rank="1">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -127,11 +127,11 @@
     </vector_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
-      <period replaces="TIMMES">
+    <hr_adaptivity>
+      <period>
         <real_value rank="0">1</real_value>
       </period>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
       </maximum_number_of_nodes>
       <disable_gradation/>

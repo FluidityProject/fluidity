@@ -7,7 +7,7 @@
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
@@ -53,13 +53,13 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">1.0</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1.0</real_value>
     </finish_time>
     <final_timestep>
@@ -108,8 +108,7 @@
 
 for i in range(field.node_count):  
         X_n=X.node_val(i)
-	field.set(i, X_n[0]*X_n[1])
-</string_value>
+	field.set(i, X_n[0]*X_n[1])</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>

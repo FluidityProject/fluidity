@@ -44,9 +44,6 @@ Hughes, Computer Methods in Applied Mechanics and Engineering 32 (1982)
          1 + 1 / pe if pe &gt; 1
 
 This is the approximation for xi used by legacy_continuous_galerkin.</a:documentation>
-        <attribute name="replaces">
-          <value>OPWIND</value>
-        </attribute>
         <ref name="comment"/>
       </element>
       <element name="nu_bar_unity">
@@ -184,9 +181,6 @@ Huerta (2003). This only acts to stabilise if advection
 is not integrated by parts.
 
 &lt;b&gt;Under testing.&lt;/b&gt;</a:documentation>
-      <attribute name="replaces">
-        <value>DISOTT = 3</value>
-      </attribute>
       <ref name="nu_bar_scheme"/>
       <ref name="nu_scale_supg"/>
     </element>

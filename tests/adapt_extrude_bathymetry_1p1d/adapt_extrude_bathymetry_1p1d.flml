@@ -7,7 +7,7 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -118,7 +118,7 @@
       </from_file>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">4</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -199,19 +199,19 @@
     </stat>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.001</real_value>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">1000.0</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">55</integer_value>
     </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
+    <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -244,8 +244,8 @@
   <material_phase name="Water">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1000.0</real_value>
           </reference_density>
         </linear>
@@ -255,13 +255,13 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <control_volumes replaces="NCOLOP = X1XXXXX -&gt; INTERF, NOFILT"/>
+          <control_volumes/>
         </spatial_discretisation>
         <scheme>
-          <poisson_pressure_solution replaces="POISON">
+          <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -315,7 +315,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
-          <discontinuous_galerkin replaces="DISOPT">
+          <discontinuous_galerkin>
             <mass_terms>
               <lump_mass_matrix/>
             </mass_terms>
@@ -330,15 +330,15 @@
               <integrate_conservation_term_by_parts/>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection replaces="BETA">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="THETA">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
-          <relaxation replaces="ITHETA">
+          <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -365,7 +365,7 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="BottomLeft">
+        <boundary_conditions name="BottomLeft">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
@@ -385,25 +385,25 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="RightWall">
+        <boundary_conditions name="RightWall">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="LeftWall">
+        <boundary_conditions name="LeftWall">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="BottomFlat">
+        <boundary_conditions name="BottomFlat">
           <surface_ids>
             <integer_value shape="1" rank="1">7</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="BottomRight">
+        <boundary_conditions name="BottomRight">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -451,11 +451,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <coupled_cv>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <reflect_off_domain_boundaries/>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
@@ -468,12 +468,12 @@
               </target_minimum>
             </parent_sum>
           </coupled_cv>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -496,7 +496,7 @@
       return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Top">
+        <boundary_conditions name="Top">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -519,8 +519,8 @@
           <exclude_from_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -634,8 +634,8 @@
   <material_phase name="Landslide">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">2000.0</real_value>
           </reference_density>
         </linear>
@@ -658,10 +658,10 @@
                 <real_value rank="0">0.0</real_value>
               </target_minimum>
               <switch_to_hyperc/>
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+              <project_upwind_value_from_point>
                 <reflect_off_domain_boundaries/>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
@@ -674,12 +674,12 @@
               </target_minimum>
             </parent_sum>
           </coupled_cv>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -702,7 +702,7 @@
       return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Top">
+        <boundary_conditions name="Top">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
@@ -725,8 +725,8 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure replaces="ADOPTT = 0">
-            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -791,8 +791,8 @@
   <material_phase name="Air">
     <equation_of_state>
       <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
+        <linear>
+          <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </linear>
@@ -822,11 +822,11 @@
     </scalar_field>
   </material_phase>
   <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
+    <hr_adaptivity>
       <period_in_timesteps>
         <integer_value rank="0">10</integer_value>
       </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
+      <maximum_number_of_nodes>
         <integer_value rank="0">15000</integer_value>
       </maximum_number_of_nodes>
       <anisotropic_gradation>
@@ -841,14 +841,14 @@
       <metric_advection>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <face_value name="FirstOrderUpwind"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.5</real_value>
           </theta>
           <maximum_courant_number_per_subcycle>
