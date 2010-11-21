@@ -13,9 +13,8 @@ import diamond.schema as schema
 def Help():
   debug.dprint("Usage: update_options [OPTIONS] ... [FILES]\n" + \
                "\n" + \
-               "Updates flml files. If FILES is not specified, all .flml files in\n" + \
-               "tests/*/*.flml, tests/*/*/*.flml, longtests/*/*.flml and longtests/*/*/*.flml\n" + \
-               "will be updated. Options:\n" + \
+               "Updates flml, bml, swml and adml files. If FILES is not specified, all .flml, .bml, .swml and .adml files in\n" + \
+               "tests/*/., tests/*/*/., longtests/*/. and longtests/*/*/. will be updated. Options:\n" + \
                "\n" + \
                "-h  Display this help\n" + \
                "-v  Verbose mode", 0)
@@ -39,21 +38,29 @@ rootDir = os.path.join(os.path.dirname(__file__), os.path.pardir)
 testDir = os.path.join(rootDir, "tests")
 longtestDir = os.path.join(rootDir, "longtests")
 
+extdict = {"flml" : "fluidity_options.rng", 
+           "bml"  : "burgers_equation.rng", 
+           "swml" : "shallow_water_options.rng", 
+           "adml" : "test_advection_diffusion_options.rng"}
+
 filenames = args
 if len(filenames) == 0:
-  filenames = glob.glob(os.path.join(testDir, "*", "*.flml"))
-  filenames += glob.glob(os.path.join(testDir, "*", "*", "*.flml"))
-  filenames += glob.glob(os.path.join(longtestDir, "*", "*.flml"))
-  filenames += glob.glob(os.path.join(longtestDir, "*", "*", "*.flml"))
+  filenames = []
+  for k,v in extdict.items():
+    filenames += glob.glob(os.path.join(testDir, "*", "*."+k))
+    filenames += glob.glob(os.path.join(testDir, "*", "*", "*."+k))
+    filenames += glob.glob(os.path.join(longtestDir, "*", "*."+k))
+    filenames += glob.glob(os.path.join(longtestDir, "*", "*", "*."+k))
 
-schemafile = os.path.join(rootDir, "schemas", "fluidity_options.rng")
-sch = schema.Schema(schemafile)
- 
 invalidFiles = []
 updated = 0
 for filename in filenames:
   debug.dprint("Processing " + str(filename), 1)
   
+  ext = filename.split(".")[-1]
+  schemafile = os.path.join(rootDir, "schemas", extdict[ext])
+  sch = schema.Schema(schemafile)
+ 
   # Read the file and check that either the file is valid, or diamond.schema
   # can make the file valid by adding in the missing elements
   optionsTree = sch.read(filename)
