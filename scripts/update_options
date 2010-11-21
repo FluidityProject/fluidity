@@ -14,7 +14,8 @@ def Help():
   debug.dprint("Usage: update_options [OPTIONS] ... [FILES]\n" + \
                "\n" + \
                "Updates flml files. If FILES is not specified, all .flml files in\n" + \
-               "tests/*/*.flml and tests/*/*/*.flml will be updated. Options:\n" + \
+               "tests/*/*.flml, tests/*/*/*.flml, longtests/*/*.flml and longtests/*/*/*.flml\n" + \
+               "will be updated. Options:\n" + \
                "\n" + \
                "-h  Display this help\n" + \
                "-v  Verbose mode", 0)
@@ -36,13 +37,16 @@ if not ("-v", "") in opts:
 
 rootDir = os.path.join(os.path.dirname(__file__), os.path.pardir)
 testDir = os.path.join(rootDir, "tests")
+longtestDir = os.path.join(rootDir, "longtests")
 
 filenames = args
 if len(filenames) == 0:
   filenames = glob.glob(os.path.join(testDir, "*", "*.flml"))
   filenames += glob.glob(os.path.join(testDir, "*", "*", "*.flml"))
+  filenames += glob.glob(os.path.join(longtestDir, "*", "*.flml"))
+  filenames += glob.glob(os.path.join(longtestDir, "*", "*", "*.flml"))
 
-schemafile = os.path.join(rootDir, "tools", "fluidity_options.rng")
+schemafile = os.path.join(rootDir, "schemas", "fluidity_options.rng")
 sch = schema.Schema(schemafile)
  
 invalidFiles = []
