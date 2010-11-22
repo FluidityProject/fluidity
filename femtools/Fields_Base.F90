@@ -314,6 +314,14 @@ module fields_base
       face_opposite_tensor
   end interface
     
+  interface mesh_compatible
+    module procedure mesh_compatible, mesh_positions_compatible
+  end interface
+    
+  interface print_mesh_incompatibility
+    module procedure print_mesh_incompatibility, print_mesh_positions_incompatibility
+  end interface
+    
 contains
 
   pure function mesh_dim_mesh(mesh) result (mesh_dim)
@@ -812,16 +820,38 @@ contains
 
     logical :: pass
 
-    pass = .true.
-
-    ! Further tests could be added
-    if(.not. node_count(test_mesh) == node_count(reference_mesh) .or. &
-      &.not. ele_count(test_mesh) == ele_count(reference_mesh) .or. &
-      &.not. continuity(test_mesh) == continuity(reference_mesh) ) then
-        pass = .false.
-    end if
+    pass = node_count(test_mesh) == node_count(reference_mesh) .and. &
+      &ele_count(test_mesh) == ele_count(reference_mesh) .and. &
+      &continuity(test_mesh) == continuity(reference_mesh)
 
   end function mesh_compatible
+  
+  function mesh_positions_compatible(test_positions, reference_positions) result(pass)
+    !!< Tests if two meshes (including its positions) are the same
+    
+    type(vector_field), intent(in) :: test_positions, reference_positions
+    logical :: pass
+    
+    real:: L
+    integer:: i
+    
+    ! first test if the topological meshes are the same
+    if (.not. mesh_compatible(test_positions%mesh, reference_positions%mesh)) then
+      pass=.false.
+      return
+    end if
+    
+    do i=1, reference_positions%dim
+      L=maxval(reference_positions%val(i,:))-minval(reference_positions%val(i,:))
+      if (maxval(abs(test_positions%val(i,:)-reference_positions%val(i,:)))>1e-9*L) then
+        pass=.false.
+        return
+      end if
+    end do
+      
+    pass=.true.
+  
+  end function mesh_positions_compatible
   
   subroutine print_mesh_incompatibility(debug_level, test_mesh, reference_mesh)
     !!< Tests if a field on test_mesh is suitable for initialising a field
@@ -837,12 +867,26 @@ contains
     if(ele_count(test_mesh) /= ele_count(reference_mesh)) then
       ewrite(debug_level, *) "Element counts do not match"
     end if
-    if(continuity(test_mesh) == continuity(reference_mesh)) then
+    if(continuity(test_mesh) /= continuity(reference_mesh)) then
       ewrite(debug_level, *) "Continuities do not match"
     end if
     
   end subroutine print_mesh_incompatibility
 
+  subroutine print_mesh_positions_incompatibility(debug_level, test_positions, reference_positions)
+    !!< Tests if two meshes are the same (including its positions) and prints a descriptive message.
+
+    integer, intent(in) :: debug_level
+    type(vector_field), intent(in) :: test_positions, reference_positions
+      
+    if (.not. mesh_compatible(test_positions%mesh, reference_positions%mesh)) then
+      call print_mesh_incompatibility(debug_level, test_positions%mesh, reference_positions%mesh)
+    else if (.not. mesh_compatible(test_positions, reference_positions)) then
+      ewrite(debug_level, *) "Node positions do not match"
+    end if
+    
+  end subroutine print_mesh_positions_incompatibility
+  
   function ele_faces_mesh(mesh, ele_number) result (ele_faces)
     !!< Return a pointer to a vector containing the face numbers of the
     !!< faces adjacent to ele_number.

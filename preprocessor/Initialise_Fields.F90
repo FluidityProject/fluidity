@@ -76,6 +76,8 @@ contains
     character(len=*), intent(in), optional :: phase_path
 
     type(scalar_field), pointer:: read_field
+    type(vector_field), pointer:: vtk_position
+    type(vector_field) :: field_position
     real :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
     character(len=PYTHON_FUNC_LEN) :: func
@@ -127,8 +129,19 @@ contains
          case ("vtu")
             call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)
             read_field => vtk_cache_read_scalar_field(filename, field_name)
+            vtk_position => vtk_cache_read_positions_field(filename)
+            if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
+              ! if the vtk mesh is the same mesh as the position%mesh, use position
+              ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
+              field_position=position
+              call incref(field_position)
+            else
+              ! otherwise the position mapped onto field%mesh
+              call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
+              call remap_field(position, field_position)
+            end if
             
-            if (mesh_compatible(read_field%mesh, field%mesh)) then
+            if (mesh_compatible(vtk_position, field_position)) then
               call set(field, read_field)
             else
               ! repeat, this to make sure it ends up in any error log
@@ -138,9 +151,11 @@ contains
                  trim(field%mesh%name), &
                 " specified under ", trim(field%mesh%option_path)
               ! treat this as a user error!
-              call print_mesh_incompatibility(-1, read_field%mesh, field%mesh)
+              call print_mesh_incompatibility(-1, vtk_position, field_position)
               FLExit("Mesh from file and in state are not compatible")
             end if
+            
+            call deallocate(field_position)
             
          case ("climatology (Boyer2005)")
            
@@ -190,7 +205,8 @@ contains
     real, optional, intent(in):: time
     character(len=*), intent(in), optional :: phase_path
 
-    type(vector_field), pointer:: read_field
+    type(vector_field), pointer:: read_field, vtk_position
+    type(vector_field) :: field_position
     real, dimension(1:field%dim) :: const
     character(len=OPTION_PATH_LEN) :: format, field_name, filename, varname1, varname2
     character(len=PYTHON_FUNC_LEN) :: func
@@ -238,8 +254,20 @@ contains
          case ("vtu")
             call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)            
             read_field => vtk_cache_read_vector_field(filename, field_name)
+            vtk_position => vtk_cache_read_positions_field(filename)
+            ! get the right field to compare it with
+            if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
+              ! if the vtk mesh is the same mesh as the position%mesh, use position
+              ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
+              field_position=position
+              call incref(field_position)
+            else
+              ! otherwise the position mapped onto field%mesh
+              call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
+              call remap_field(position, field_position)
+            end if
             
-            if (mesh_compatible(read_field%mesh, field%mesh)) then
+            if (mesh_compatible(vtk_position, field_position)) then
               call set(field, read_field)
             else
               ! repeat, this to make sure it ends up in any error log
@@ -249,9 +277,11 @@ contains
                  trim(field%mesh%name), &
                 " specified under ", trim(field%mesh%option_path)
               ! treat this as a user error!
-              call print_mesh_incompatibility(-1, read_field%mesh, field%mesh)
+              call print_mesh_incompatibility(-1, vtk_position, field_position)
               FLExit("Mesh from file and in state are not compatible")
             end if
+            
+            call deallocate(field_position)
             
          case default
             
