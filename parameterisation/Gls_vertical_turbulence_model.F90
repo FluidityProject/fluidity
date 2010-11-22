@@ -103,9 +103,9 @@ subroutine gls_init(state)
 
     type(state_type), intent(inout) :: state
 
-    real                           :: N, gen_l, gen_alpha, gen_d, rad,rcm,cmsf
+    real                           :: N,gen_l,gen_alpha,gen_d,rad,rcm,cmsf,current_time
     integer                        :: stat
-    character(len=FIELD_NAME_LEN)  :: gls_option, gls_stability_function
+    character(len=FIELD_NAME_LEN)  :: gls_option, gls_stab_function
     type(scalar_field), pointer    :: s_cur
 
     ! Allocate the temporary, module-level variables
@@ -182,8 +182,8 @@ subroutine gls_init(state)
         FLAbort("Unknown gls_option")           
     end select
 
-    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/stability_function", gls_stability_function)
-    select case (trim(gls_stability_function))
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/stability_function", gls_stab_function)
+    select case (trim(gls_stab_function))
     ! initilise the constant based on several well-known schemes
     case ("KanthaClayson-94")
          ! parameters for Kantha and Clayson (2004)
@@ -292,27 +292,46 @@ subroutine gls_init(state)
     ewrite(1,*) "Fixing surface values: ", fix_surface_values
     ewrite(1,*) "Calculating BCs: ", calculate_bcs
     ewrite(1,*) "--------------------------------------------"
-    
-    ! initilise 2 GLS fields with minimum values
-    s_cur => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
-    call set(s_cur,k_min)
-    s_cur => extract_scalar_field(state, "GLSGenericSecondQuantity")
-    call set(s_cur,psi_min)
-    ! init other fields
-    call set(NN2,0.0)
-    call set(MM2,0.0)
-    call set(ll,cde*k_min**1.5/psi_min)
-    call set(K_H,1e-6)
-    call set(K_M,1e-6)
-    call set(eps,eps_min)
-    if (calc_fwall) then
-        call gls_calc_wall_function(state)
-    end if
 
     ! intilise surface - only if we need to though
     if (calculate_bcs) then
         call gls_init_surfaces(state)
     end if
+
+    ! initilise 2 GLS fields with minimum values if not a checkpoint
+    call get_option("/timestepping/current_time", current_time)
+    if (current_time == 0) then
+        s_cur => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
+        call set(s_cur,k_min)
+        s_cur => extract_scalar_field(state, "GLSGenericSecondQuantity")
+        call set(s_cur,psi_min)
+        ! init other fields
+        call set(NN2,0.0)
+        call set(MM2,0.0)
+        call set(ll,cde*k_min**1.5/psi_min)
+        call set(K_H,1e-6)
+        call set(K_M,1e-6)
+        call set(eps,eps_min)
+    else
+        ! bit complicated here - we need to repopulate the fields internal to this
+        ! module. We need the diffusivity for the first iteration to
+        ! calculate the TKE src/abs terms, but for diffusivity, we need stability
+        ! functions, for those we need epsilon, which is calculated in the
+        ! diffusivity subroutine, but first we need the buoyancy freq.
+        ! So, working backwards...
+        call gls_buoyancy(state) ! buoyancy for epsilon calculation
+        call gls_diffusivity(state) ! gets us epsilon, but K_H and K_M are wrong
+        call gls_stability_function(state) ! requires espilon, but sets S_H and S_M
+        call gls_diffusivity(state) ! sets K_H, K_M to correct values
+        ! and this one sets up the diagnostic fields again
+        call gls_output_fields(state)
+    end if
+    
+    if (calc_fwall) then
+        call gls_calc_wall_function(state)
+    end if
+
+
 
 
     ! we're all done!
