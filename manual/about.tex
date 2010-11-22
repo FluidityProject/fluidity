@@ -93,6 +93,9 @@ it is the author's responsibility to provide both \verb+basename.pdf+ and
 variable in the \verb+Makefile+. This will cause the image files to become
 dependencies of the compiled manual.
 
+If no \verb+basename.png+ is available, then the
+\lstinline[language=TeX]+\pdffig[options]{basename}+ should be used instead.
+
 The \lstinline[language=TeX]+options+ provided to
 \lstinline[language=TeX]+\fig+ are passed straight to
 \lstinline[language=TeX]+\includegraphics+ and may therefore include any

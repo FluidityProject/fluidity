@@ -85,13 +85,13 @@ answer while keeping the solution conservative and bounded.
 
 \begin{figure}
   \centering
-  \subfigure[Initial condition of the top hat tracer.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_ic}} 
+  \subfigure[Initial condition of the top hat tracer.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_ic}} 
     \label{fig:top_hat_ic}
-  \subfigure[Numerical solution using Continuous Galerkin.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg}} 
+  \subfigure[Numerical solution using Continuous Galerkin.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg}} 
     \label{fig:top_hat_cg_example} \\
-  \subfigure[Numerical solution using Discontinuous Galerkin.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg}}
+  \subfigure[Numerical solution using Discontinuous Galerkin.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg}}
     \label{fig:top_hat_dg}
-  \subfigure[Numerical solution using Control Volumes.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cv}}
+  \subfigure[Numerical solution using Control Volumes.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cv}}
     \label{fig:top_hat_cv}
   \caption{Initial condition and numerical solutions after $100~s$, for the 1D top hat tracer advection problem.}
 \end{figure}
@@ -194,9 +194,9 @@ scheme itself is not bounded.
 
 \begin{figure}
   \centering
-  \subfigure[Tracer conservation in the Continuous Galerkin solution.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg_conservation}} 
+  \subfigure[Tracer conservation in the Continuous Galerkin solution.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_cg_conservation}} 
     \label{fig:top_hat_cg_conservation}
-  \subfigure[Maximum tracer bound in the Discontinuous Galerkin solution.]{\fig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg_max}} 
+  \subfigure[Maximum tracer bound in the Discontinuous Galerkin solution.]{\pdffig[width=0.47\textwidth]{examples_images/top_hat/top_hat_dg_max}} 
     \label{fig:top_hat_dg_max}
   \caption{Conservation and bounds checking using statplot.}
 \end{figure}
@@ -315,7 +315,7 @@ Two diagnostics are considered. First the Froude number, $Fr = U/u_b$, is the ra
 
 \begin{figure}[ht]
   \centering
-  \fig[width=1.0\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 15mm]{./examples_images/lock_exchange/front_speed}
+  \pdffig[width=1.0\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 15mm]{./examples_images/lock_exchange/front_speed}
   \caption{Distance along the domain ($X$) and Froude number ($Fr$) for the no-slip and free-slip fronts in the lock-exchange.}
   \label{fig:lock_exchange_Fr}
 \end{figure}
@@ -343,7 +343,7 @@ Two diagnostics are considered. First the Froude number, $Fr = U/u_b$, is the ra
 
 \begin{figure}[ht]
   \centering
-  \fig[width=0.6\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 20mm]{./examples_images/lock_exchange/mixing}
+  \pdffig[width=0.6\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 20mm]{./examples_images/lock_exchange/mixing}
   \caption{Time evolution of fraction of domain that contains fluid in three temperature classes.}
   \label{fig:lock_exchange_mixing}
 \end{figure}
@@ -499,7 +499,7 @@ The command \option{make postprocess NPROCS=np} runs the parallel-specific data 
 
 \begin{figure}
 \centering
-\fig[width=12.0cm]{examples_images/backward_facing_step/backward_facing_step_3d-schematic}
+\pdffig[width=12.0cm]{examples_images/backward_facing_step/backward_facing_step_3d-schematic}
 \caption{Schematic of the domain for the three-dimensional flow past a backward facing step
 problem.}
 \label{Fig:Schematic3d}
@@ -517,7 +517,7 @@ consistent with \cite{armaly1983}.
 
 \begin{figure}
 \centering
-\fig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
 \caption{Schematic of the domain for the two-dimensional flow past a backward facing step
 problem, showing adaptive mesh refinement.}
 \label{Fig:Schematic2d}
@@ -539,7 +539,7 @@ with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$ and $\kappa = 0.41$.
 %A plot of this inflow profile is given in figure \ref{Fig:Inflow}.
 %\begin{figure}
 %\centering
-%\fig[width=8.0cm]{images/StepInflow.pdf}
+%\pdffig[width=8.0cm]{images/StepInflow.pdf}
 %\caption{Inflow profile.}
 %\label{Fig:Inflow}
 %\end{figure}
@@ -598,9 +598,9 @@ conditions, and also strongly on the Reynolds number of the flow.
 
 \begin{figure}
 \centering
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
 \caption{Snapshots of the velocity magnitude from the 2D run at times 5, 10 and 50 time units
 (top to bottom) into the simulation from the smaller benchmark run.
 The evolution of the dynamics to steady state can be seen, in particular the downstream movement
@@ -610,7 +610,7 @@ of the streamline reattachment point (indicated by contours of $U=0$).}
 
 \begin{figure}
 \centering
-\fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
 \caption{Streamwise velocity profiles from the 2D run at $x/h=0, 2, 4 \text{ and } 6$
 downstream of the step, where $h=1$ is the step height. The converged solution is in red.
 The recirculation region is indicated by negative velocity in figure (b).
@@ -630,9 +630,9 @@ In fact the flow reattaches at $x/h \approx 8.3$.
 
 \begin{figure}
 \centering
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-5sec}}
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-10sec}}
-\subfigure{\fig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-50sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-5sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-10sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-3d-50sec}}
 \caption{From top to bottom: vertical plane cuts through the 3D domain showing
 the velocity magnitude at times 5, 25 and 50 time units.
 The evolution of the dynamics to steady state can be seen, in particular the downstream movement
@@ -642,7 +642,7 @@ of the streamline reattachment point (indicated by contours of $U=0$).}
 
 \begin{figure}
 \centering
-\fig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
 \caption{Streamwise velocity profiles from the 3d run at $x/h=4, 6, 10 \text{ and } 19$
 downstream of the step, where $h=1$ is the step height. The converged solution is in red.
 The recirculation region is indicated by the negative velocity in figure (b).
@@ -659,10 +659,10 @@ It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
 
 %\begin{figure}
 %\centering
-%\subfigure{\fig[width=15.0cm]{images/Velocity1.pdf}}
-%\subfigure{\fig[width=15.0cm]{images/Velocity33.pdf}}
-%\subfigure{\fig[width=15.0cm]{images/Velocity64.pdf}}
-%\subfigure{\fig[width=15.0cm]{images/VelocityAverage.pdf}}
+%\subfigure{\pdffig[width=15.0cm]{images/Velocity1.pdf}}
+%\subfigure{\pdffig[width=15.0cm]{images/Velocity33.pdf}}
+%\subfigure{\pdffig[width=15.0cm]{images/Velocity64.pdf}}
+%\subfigure{\pdffig[width=15.0cm]{images/VelocityAverage.pdf}}
 %\caption{Snapshots of the $u$ velocity components at three time slices (top three frames) and the
 %average field from 64 input snapshots spaced equally between times 70 and 102 (bottom).
 %Contours are displayed at the $-0.05$, $0.0$, $0.05$, $0.1$, $0.5$ and $1.0$ levels.}
@@ -961,7 +961,7 @@ state interface in appendix \ref{chap:python}\ may be useful.
 % 
 % %\begin{figure}
 % %\centering
-% %\fig[width=8.0cm]{images/oodc-schematic.pdf}
+% %\pdffig[width=8.0cm]{images/oodc-schematic.pdf}
 % %\caption{Schematic of the domain for the three-dimensional open ocean deep convection
 % %problem.}
 % %\label{Fig:Schematic}

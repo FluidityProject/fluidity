@@ -88,6 +88,16 @@
   \ifhtml{
     \includegraphics[#1]{#2.png}
   }{
+    \includegraphics[#1]{#2.png}
+  }
+}
+
+\newcommand{\pdffig}[2][]{
+  \ifhtml{
+    % This won't work. If we ever re-enable html we'll have to deal with
+    % this. 
+    \includegraphics[#1]{#2.pdf}
+  }{
     \includegraphics[#1]{#2.pdf}
   }
 }
