@@ -33,15 +33,31 @@ RelaxVertDiffEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVer
     <variable name="RelaxVertViscEnd" language="python">
 import fluidity_tools
 RelaxVertViscEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalViscosity']['max'][-1]
+    </variable>    
+    <variable name="RelaxVertDiffStart" language="python">
+import fluidity_tools
+RelaxVertDiffStart = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalDiffusivity']['max'][0]
+    </variable>  
+    <variable name="RelaxVertViscStart" language="python">
+import fluidity_tools
+RelaxVertViscStart = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalViscosity']['max'][0]
     </variable>
 </variables>
 
   <pass_tests> 
-    <test name ="Relaxed diffusivity is half value of normal" language="python">
-assert ( (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)-0.000005 &lt; RelaxVertDiffEnd &lt; (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)+0.000005 )
+      <test name ="Relaxed diffusivity is half value of normal" language="python">
+normalDiffChange = NormalVertDiffEnd-NormalVertDiffStart
+relaxDiffChange = RelaxVertDiffEnd-RelaxVertDiffStart
+PredictedDifference = ((NormalVertDiffEnd-NormalVertDiffStart)/2.0) - relaxDiffChange
+print PredictedDifference
+assert (  -0.0005 &lt; PredictedDifference &lt; +0.0005 )
     </test>
     <test name ="Relaxed Viscosity is half value of normal" language="python">
-assert ( (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)-0.000005 &lt; RelaxVertViscEnd &lt; (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)+0.000005 )
+normalViscChange = NormalVertViscEnd-NormalVertViscStart
+relaxViscChange = RelaxVertViscEnd-RelaxVertViscStart
+PredictedDifference = ((NormalVertViscEnd-NormalVertViscStart)/2.0) - relaxViscChange
+print PredictedDifference
+assert (  -0.0005 &lt; PredictedDifference &lt; +0.0005 )
     </test>
 
   </pass_tests>

@@ -1,13 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">gls-relax</string_value>
+    <string_value lines="1">gls-MixedLayer-ke_checkpoint</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
-    <dimension>
+    <dimension replaces="NDIM">
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
@@ -48,7 +48,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree>
+      <degree replaces="NGI">
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
@@ -58,7 +58,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period>
-      <constant>
+      <constant replaces="TIMDUM">
         <real_value rank="0">0</real_value>
         <comment>86400 - 1 day
 604800 - 1 week</comment>
@@ -68,16 +68,16 @@
     <stat/>
   </io>
   <timestepping>
-    <current_time>
+    <current_time replaces="ACCTIM">
       <real_value rank="0">36000</real_value>
     </current_time>
-    <timestep>
+    <timestep replaces="DT">
       <real_value rank="0">240</real_value>
     </timestep>
-    <finish_time>
+    <finish_time replaces="LTIME">
       <real_value rank="0">36480</real_value>
     </finish_time>
-    <nonlinear_iterations>
+    <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
@@ -108,7 +108,7 @@
   <material_phase name="Fluid">
     <equation_of_state>
       <fluids>
-        <ocean_pade_approximation/>
+        <ocean_pade_approximation replaces="EQNSTA = 2 or 3"/>
       </fluids>
     </equation_of_state>
     <subgridscale_parameterisations>
@@ -135,23 +135,23 @@
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
               <control_volumes>
-                <face_value name="FiniteElement">
+                <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
                   <limit_face_value>
-                    <limiter name="Sweby"/>
+                    <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
                   </limit_face_value>
                 </face_value>
                 <diffusion_scheme name="ElementGradient"/>
               </control_volumes>
-              <conservative_advection>
+              <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
                 <real_value rank="0">0</real_value>
               </conservative_advection>
             </spatial_discretisation>
             <temporal_discretisation>
-              <theta>
+              <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
                 <real_value rank="0">1</real_value>
               </theta>
               <control_volumes>
-                <number_advection_iterations>
+                <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
                   <integer_value rank="0">3</integer_value>
                 </number_advection_iterations>
               </control_volumes>
@@ -179,13 +179,13 @@
                 <format name="vtu"/>
               </from_file>
             </initial_condition>
-            <tensor_field name="Diffusivity" rank="2">
+            <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
               </diagnostic>
             </tensor_field>
-            <scalar_field name="Source" rank="0">
+            <scalar_field replaces="ZSOT" name="Source" rank="0">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
@@ -195,7 +195,7 @@
                 </detectors>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="Absorption" rank="0">
+            <scalar_field replaces="TABSZE TABS TABSCO TABSOR" name="Absorption" rank="0">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
@@ -228,23 +228,23 @@
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
               <control_volumes>
-                <face_value name="FiniteElement">
+                <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
                   <limit_face_value>
-                    <limiter name="Sweby"/>
+                    <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
                   </limit_face_value>
                 </face_value>
                 <diffusion_scheme name="ElementGradient"/>
               </control_volumes>
-              <conservative_advection>
+              <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
                 <real_value rank="0">0</real_value>
               </conservative_advection>
             </spatial_discretisation>
             <temporal_discretisation>
-              <theta>
+              <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
                 <real_value rank="0">1</real_value>
               </theta>
               <control_volumes>
-                <number_advection_iterations>
+                <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
                   <integer_value rank="0">3</integer_value>
                 </number_advection_iterations>
               </control_volumes>
@@ -272,13 +272,13 @@
                 <format name="vtu"/>
               </from_file>
             </initial_condition>
-            <tensor_field name="Diffusivity" rank="2">
+            <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
               </diagnostic>
             </tensor_field>
-            <scalar_field name="Source" rank="0">
+            <scalar_field replaces="ZSOT" name="Source" rank="0">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
@@ -288,7 +288,7 @@
                 </detectors>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="Absorption" rank="0">
+            <scalar_field replaces="TABSZE TABS TABSCO TABSOR" name="Absorption" rank="0">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
@@ -670,15 +670,15 @@
               <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
-          <conservative_advection>
+          <conservative_advection replaces="BETA">
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta>
+          <theta replaces="THETA">
             <real_value rank="0">1</real_value>
           </theta>
-          <relaxation>
+          <relaxation replaces="ITHETA">
             <real_value rank="0">1</real_value>
           </relaxation>
         </temporal_discretisation>
@@ -705,7 +705,7 @@
             <format name="vtu"/>
           </from_file>
         </initial_condition>
-        <boundary_conditions name="Sides">
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Sides">
           <surface_ids>
             <integer_value shape="2" rank="1">3 4</integer_value>
           </surface_ids>
@@ -719,7 +719,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="top_bottom">
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="top_bottom">
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
@@ -733,7 +733,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="Wind">
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Wind">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -745,7 +745,7 @@
             </wind_stress>
           </type>
         </boundary_conditions>
-        <tensor_field name="Viscosity" rank="2">
+        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
@@ -773,29 +773,29 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
+            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
               <limit_face_value>
-                <limiter name="Sweby"/>
+                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
-          <conservative_advection>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
             <real_value rank="0">1</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations>
+            <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
               <integer_value rank="0">3</integer_value>
             </number_advection_iterations>
           </control_volumes>
@@ -838,7 +838,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PerturbationDensity" rank="0">
+    <scalar_field replaces="IDENT = -143" name="PerturbationDensity" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -855,7 +855,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field replaces="IDENT = 42" name="Salinity" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -870,11 +870,11 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field replaces="IDENT = -2003" name="GeostrophicPressure" rank="0">
       <prognostic>
         <mesh name="GeostrophicPressureMesh"/>
         <spatial_discretisation>
-          <geostrophic_pressure_option>
+          <geostrophic_pressure_option replaces="GEOBAL">
             <string_value>include_buoyancy</string_value>
           </geostrophic_pressure_option>
         </spatial_discretisation>

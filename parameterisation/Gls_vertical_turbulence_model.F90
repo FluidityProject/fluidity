@@ -320,9 +320,9 @@ subroutine gls_init(state)
         ! diffusivity subroutine, but first we need the buoyancy freq.
         ! So, working backwards...
         call gls_buoyancy(state) ! buoyancy for epsilon calculation
-        call gls_diffusivity(state) ! gets us epsilon, but K_H and K_M are wrong
+        call gls_diffusivity(state, relax=0.0) ! gets us epsilon, but K_H and K_M are wrong
         call gls_stability_function(state) ! requires espilon, but sets S_H and S_M
-        call gls_diffusivity(state) ! sets K_H, K_M to correct values
+        call gls_diffusivity(state, relax = 0.0) ! sets K_H, K_M to correct values
         ! and this one sets up the diagnostic fields again
         call gls_output_fields(state)
     end if
@@ -555,16 +555,17 @@ end subroutine gls_psi
 ! These are placed in the GLS fields ready for other tracer fields to use
 ! Viscosity is placed in the velocity viscosity
 !----------
-subroutine gls_diffusivity(state)
+subroutine gls_diffusivity(state, relax)
 
-    type(state_type), intent(inout)  :: state 
+    type(state_type), intent(inout)  :: state
+    real, optional, intent(in)       :: relax
     
     type(scalar_field), pointer      :: KK_state, psi_state
     type(scalar_field)               :: KK, psi, kk_copy
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
-    real                             :: epslim, tke
+    real                             :: epslim, tke, relax_temp
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     logical                          :: limit_length = .true.
     type(vector_field), pointer      :: positions, velocity
@@ -654,6 +655,13 @@ subroutine gls_diffusivity(state)
         end do
     endif
     
+    ! sometimes (like if we're just after a checkpoint) we don't want to relax
+    ! the fields
+    if (present(relax))then
+        relax_temp = relaxation
+        relaxation = relax
+    end if
+    write(*,*) relaxation
 
     ! calculate diffusivities for next step and for use in other fields
     do i=1,nNodes
@@ -664,6 +672,10 @@ subroutine gls_diffusivity(state)
         call set(K_H,i, min(7.0,relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x))
     end do
 
+    ! reset relaxation
+    if (present(relax))then
+        relaxation = relax_temp
+    end if
 
     !set the eddy_diffusivity and viscosity tensors for use by other fields
     call zero(eddy_diff_KH) ! zero it first as we're using an addto below
