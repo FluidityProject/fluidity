@@ -56,6 +56,7 @@ module halos_communications
   
   interface halo_update
     module procedure halo_update_array_integer, halo_update_array_real, &
+      & halo_update_array_real_block, halo_update_array_real_block2, &
       & halo_update_scalar_on_halo, halo_update_vector_on_halo, &
       & halo_update_tensor_on_halo, halo_update_scalar, halo_update_vector, &
       & halo_update_tensor
@@ -242,6 +243,45 @@ contains
     type(halo_type), intent(in) :: halo
     real, dimension(:), intent(inout) :: real_data
     
+    assert(size(real_data, 1) >= max_halo_node(halo))
+    
+    call halo_update_array_real_star(halo, real_data, 1)
+    
+  end subroutine halo_update_array_real
+  
+  subroutine halo_update_array_real_block(halo, real_data)
+    !!< Update the supplied array of real data. Fortran port of
+    !!< FLComms::Update(...).
+    
+    type(halo_type), intent(in) :: halo
+    real, dimension(:,:), intent(inout) :: real_data
+    
+    assert(size(real_data, 2) >= max_halo_node(halo))
+    
+    call halo_update_array_real_star(halo, real_data, size(real_data,1))
+    
+  end subroutine halo_update_array_real_block
+    
+  subroutine halo_update_array_real_block2(halo, real_data)
+    !!< Update the supplied array of real data. Fortran port of
+    !!< FLComms::Update(...).
+    
+    type(halo_type), intent(in) :: halo
+    real, dimension(:,:,:), intent(inout) :: real_data
+    
+    assert(size(real_data, 3) >= max_halo_node(halo))
+    
+    call halo_update_array_real_star(halo, real_data, size(real_data,1)*size(real_data,2))
+    
+  end subroutine halo_update_array_real_block2
+    
+  subroutine halo_update_array_real_star(halo, real_data, block_size)
+    ! This is the actual workhorse for the previous versions of halo_update_real_...
+    ! It simply takes in the begin address and the size of the blocks    
+    type(halo_type), intent(in) :: halo
+    real, dimension(*), intent(inout) :: real_data
+    integer, intent(in) :: block_size
+    
 #ifdef HAVE_MPI
     integer :: communicator, i, ierr, nprocs, nreceives, nsends, rank
     integer, dimension(:), allocatable :: receive_types, requests, send_types, statuses
@@ -249,9 +289,6 @@ contains
 
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
-
-    assert(lbound(real_data, 1) <= min_halo_node(halo))
-    assert(ubound(real_data, 1) >= max_halo_node(halo))
 
     nprocs = halo_proc_count(halo)
     communicator = halo_communicator(halo)
@@ -264,8 +301,8 @@ contains
     do i = 1, nprocs
       nsends = halo_send_count(halo, i)
       if(nsends > 0) then
-        call mpi_type_create_indexed_block(nsends, 1, &
-          & halo_sends(halo, i) - lbound(real_data, 1), &
+        call mpi_type_create_indexed_block(nsends, block_size, &
+          & (halo_sends(halo, i) - 1)*block_size, &
           & getpreal(), send_types(i), ierr)
         assert(ierr == MPI_SUCCESS)
         call mpi_type_commit(send_types(i), ierr)
@@ -274,8 +311,8 @@ contains
 
       nreceives = halo_receive_count(halo, i)
       if(nreceives > 0) then
-        call mpi_type_create_indexed_block(nreceives, 1, &
-          & halo_receives(halo, i) - lbound(real_data, 1), &
+        call mpi_type_create_indexed_block(nreceives, block_size, &
+          & (halo_receives(halo, i) - 1)*block_size, &
           & getpreal(), receive_types(i), ierr)
         assert(ierr == MPI_SUCCESS)
         call mpi_type_commit(receive_types(i), ierr)
@@ -330,7 +367,7 @@ contains
     end if
 #endif
 
-  end subroutine halo_update_array_real
+  end subroutine halo_update_array_real_star
   
   subroutine halo_update_scalar_on_halo(halo, s_field)
     !!< Update the supplied scalar field on the suppied halo.
@@ -371,19 +408,13 @@ contains
     type(halo_type), intent(in) :: halo
     type(vector_field), intent(inout) :: v_field
     
-    real, dimension(:), allocatable:: vbuffer
     integer :: i
     
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
 
-    allocate( vbuffer(1:node_count(v_field)) )
     select case(v_field%field_type)
       case(FIELD_TYPE_NORMAL)
-        do i = 1, v_field%dim
-          vbuffer=v_field%val(i,:)
-          call halo_update(halo, vbuffer)
-          v_field%val(i,:)=vbuffer
-        end do
+        call halo_update(halo, v_field%val)
       case(FIELD_TYPE_CONSTANT)
       case default
         ewrite(-1, "(a,i0)") "For field type ", v_field%field_type
@@ -399,25 +430,13 @@ contains
     type(tensor_field), intent(inout) :: t_field
 
     integer :: i, j
-    real, dimension(:), allocatable :: val
 
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(t_field%name)
 
     select case(t_field%field_type)
       case(FIELD_TYPE_NORMAL)              
-        allocate(val(node_count(t_field)))
-        
         assert(associated(t_field%val))
-        do i = 1, size(t_field%val, 1)
-           do j = 1, size(t_field%val, 2)
-              ! Should supply MPI with a stride. For now use a buffer.
-              val=t_field%val(i, j, :)
-              call halo_update(halo, val)
-              t_field%val(i, j, :)=val
-           end do
-        end do
-        
-        deallocate(val)
+        call halo_update(halo, t_field%val)
       case(FIELD_TYPE_CONSTANT)
       case default
         ewrite(-1, "(a,i0)") "For field type ", t_field%field_type
