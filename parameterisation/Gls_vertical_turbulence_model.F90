@@ -661,7 +661,6 @@ subroutine gls_diffusivity(state, relax)
         relax_temp = relaxation
         relaxation = relax
     end if
-    write(*,*) relaxation
 
     ! calculate diffusivities for next step and for use in other fields
     do i=1,nNodes
