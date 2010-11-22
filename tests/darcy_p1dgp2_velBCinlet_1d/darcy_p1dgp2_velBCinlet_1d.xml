@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>darcy_p1dgp2_velBCinlet</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+       fluidity darcy_p1dgp2_velBCinlet_1d.flml 
+    </command_line>
+    <!-- One dimensional problem for darcy flow with one region and one material using p1dgp2 element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow-->
+  </problem_definition>
+  <variables>
+    <variable name="pressure" language="python">
+import vtktools
+v = vtktools.vtu("darcy_p1dgp2_velBCinlet_1d_1.vtu")
+pressure = v.GetScalarRange("Pressure")
+    </variable>
+    <variable name="inter_vel" language="python">
+import vtktools
+v = vtktools.vtu("darcy_p1dgp2_velBCinlet_1d_1.vtu")
+inter_vel = max(v.GetScalarRange("interstitial_velocity"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="change_P should equal domain_length*visc*darcy_vel_BC/perm, check relative difference to be under tolerance 1.0e-05" language="python">
+change_P = abs(max(pressure) - min(pressure))
+visc = 1.0e-04
+darcy_vel_BC = 5.0
+perm = 1.0e-10
+domain_length = 300.0
+assert abs((change_P - domain_length*visc*darcy_vel_BC/perm)/(domain_length*visc*darcy_vel_BC/perm)) &lt; 1.0e-05
+    </test>
+    <test name="interstitial velocity should equal darcy_vel/porosity), check relative difference to be under tolerance 1.0e-05" language="python">
+analytic_vel = 10.0
+assert abs((inter_vel - analytic_vel)/analytic_vel) &lt; 1.0e-05
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
