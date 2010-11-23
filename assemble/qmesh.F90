@@ -38,6 +38,7 @@ module qmesh_module
   use state_module
   use vtk_interfaces
   use spud
+  use tictoc
     
 implicit none
 
@@ -159,8 +160,14 @@ contains
     type(vector_field), pointer :: position_field
     
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
+    
+    call tictoc_clear(TICTOC_ID_ASSEMBLE_METRIC)
+    call tic(TICTOC_ID_ASSEMBLE_METRIC)
 
     call assemble_metric(state, metric)
+    
+    call toc(TICTOC_ID_ASSEMBLE_METRIC)
+    call tictoc_report(2, TICTOC_ID_ASSEMBLE_METRIC)
 
     if (debug_metric) then
       position_field => extract_vector_field(state(1), "Coordinate")
