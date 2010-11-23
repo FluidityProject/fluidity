@@ -85,19 +85,20 @@ contains
     !!< with detwei.
     type(element_type), intent(in) :: shape
     real, dimension(shape%ngi), intent(in) :: detwei
-    !! tensor is dim x dim x ngi
+    !! tensor is dim1 x dim2 x ngi
     real, dimension(:,:,:), intent(in) :: tensor
 
     real, dimension(size(tensor,1), size(tensor, 2), shape%loc) :: shape_tensor_rhs
 
-    integer :: dim,i, j
+    integer :: dim1,dim2,i, j
 
     assert(size(tensor,3)==shape%ngi)
     shape_tensor_rhs = 0.0
     
-    dim = size(tensor,1)
-    forall(i=1:dim)
-      forall(j=1:dim)
+    dim1 = size(tensor,1)
+    dim2 = size(tensor,2)
+    forall(i=1:dim1)
+      forall(j=1:dim2)
         shape_tensor_rhs(i,j,:)=matmul(shape%n, detwei * tensor(i,j,:))
       end forall
     end forall
@@ -115,8 +116,8 @@ contains
     !!< with detwei.
     type(element_type), intent(in) :: shape ! shape%n is loc x ngi
     real, dimension(shape%ngi), intent(in) :: detwei
-    real, dimension(:,:,:), intent(in) :: tensor !dim x dim x ngi
-    real, dimension(:,:) :: vector  !dim x ngi
+    real, dimension(:,:,:), intent(in) :: tensor !dim1 x dim2 x ngi
+    real, dimension(:,:) :: vector  !dim2 x ngi
 
     real, dimension(size(tensor,1), shape%loc) :: shape_tensor_dot_vector_rhs
 
@@ -173,16 +174,16 @@ contains
     !!< primarily useful for evaluating righthand sides of equations where a
     !!< function has been evaluated at the quadrature points and incorporated
     !!< with detwei.
-    real, dimension(:,:,:), intent(in) :: dshape ! loc x ngi x dim
+    real, dimension(:,:,:), intent(in) :: dshape ! loc x ngi x dim2
     real, dimension(:), intent(in) :: detwei ! ngi
-    real, dimension(:,:,:), intent(in) :: tensor ! dim x dim x ngi
+    real, dimension(:,:,:), intent(in) :: tensor ! dim1 x dim2 x ngi
 
     real, dimension(size(tensor,1),size(dshape,1)) :: dshape_dot_tensor_rhs
 
     integer :: dim,i,ngi,j
 
     assert(size(tensor,3)==size(detwei))
-    
+    assert(size(tensor,2)==size(dshape,3))
     dim = size(tensor,1)
     ngi = size(detwei)
 
