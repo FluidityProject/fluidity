@@ -3269,7 +3269,10 @@ contains
     integer :: row, i
     integer, dimension(:), pointer:: cols
     real, dimension(:), pointer :: vals
-    
+#ifdef DDEBUG    
+    logical :: matrix_same_shape
+#endif
+
     if(in_matrix%sparsity%refcount%id==out_matrix%sparsity%refcount%id) then
        !Code for the same sparsity
        if (associated(out_matrix%ival)) then
@@ -3289,8 +3292,12 @@ contains
        ewrite(-1,*) 'Warning, not same sparsity'
        !Code for different sparsity, we assume that in_matrix%sparsity
        !is contained in out_matrix%sparsity
-       assert(size(out_matrix,1)==size(in_matrix,1))       
-       assert(size(out_matrix,2)==size(in_matrix,2))
+#ifdef DDEBUG
+       matrix_same_shape=size(out_matrix,1)==size(in_matrix,1)
+       assert(matrix_same_shape)       
+       matrix_same_shape=size(out_matrix,2)==size(in_matrix,2)
+       assert(matrix_same_shape)       
+#endif
 
        if (associated(out_matrix%ival)) then
           assert(associated(in_matrix%ival))
