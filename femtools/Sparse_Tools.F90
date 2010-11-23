@@ -3328,6 +3328,9 @@ contains
     integer :: row, i
     integer, dimension(:), pointer:: cols
     real, dimension(:), pointer :: vals
+#ifdef DDEBUG
+    logical :: matrix_same_shape
+#endif
     
     if(in_matrix%sparsity%refcount%id==out_matrix%sparsity%refcount%id) then
        !Code for the same sparsity
