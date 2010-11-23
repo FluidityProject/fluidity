@@ -714,7 +714,8 @@ END SUBROUTINE qsorti
             ! Sort using integer_array(permutation(start_index:end_index), 2:)
             allocate(sorted_integer_array(end_index - start_index + 1, size(integer_array, 2) - 1))
             do j = 1, size(sorted_integer_array, 1)
-              assert(permutation(j + start_index - 1) >= 1 .and. permutation(j + start_index - 1) <= size(integer_array, 1))
+              assert(permutation(j + start_index - 1) >= 1)
+              assert(permutation(j + start_index - 1) <= size(integer_array, 1))
               sorted_integer_array(j, :) = integer_array(permutation(j + start_index - 1), 2:)
             end do
             allocate(sub_permutation(end_index - start_index + 1))
