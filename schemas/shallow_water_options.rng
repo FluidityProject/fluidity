@@ -31,6 +31,20 @@ characters in the simulation name should be avoided.</a:documentation>
             </choice>
           </element>
         </element>
+        <element name="embedded_manifold">
+          <element name="projection">
+            <a:documentation>documentation goes here</a:documentation>
+            <ref name="python_code"/>
+          </element>
+          <element name="inclusion">
+            <a:documentation>documentation goes here</a:documentation>
+            <ref name="python_code"/>
+          </element>
+          <element name="vector_map">
+            <a:documentation>documentation goes here</a:documentation>
+            <ref name="python_code"/>
+          </element>
+        </element>
         <element name="mesh">
           <a:documentation>The position mesh</a:documentation>
           <attribute name="name">

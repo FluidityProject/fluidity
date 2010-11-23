@@ -27,6 +27,20 @@ start =
                   ("2"|"1")
                }
             },
+            element embedded_manifold {
+               ## documentation goes here
+               element projection{
+                  python_code
+               },
+               ## documentation goes here
+               element inclusion{
+                  python_code
+               },
+               ## documentation goes here
+               element vector_map{
+                  python_code
+               }
+            },
             ## The position mesh
             element mesh {
                attribute name { "CoordinateMesh" },
