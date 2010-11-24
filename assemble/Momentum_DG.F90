@@ -1019,8 +1019,7 @@ contains
 
       ! Make sure u and viscosity are on the same mesh
       if (.not.(u%mesh==viscosity%mesh)) then
-         ewrite(-1,*)"DG LES currently requires u and viscosity to be on the same mesh."
-         FLExit("Esnure u and viscosity are on the same mesh.")
+         FLExit("DG LES currently requires u and viscosity to be on the same mesh.")
       end if
 
       cg_les_rhs=shape_tensor_rhs(u_cg_shape, les_tensor_gi, detwei_cg)
