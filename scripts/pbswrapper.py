@@ -9,7 +9,7 @@ def is_job_running(jobid):
 
 pbsfile = sys.argv[1]
 
-outp = os.popen("qsub "+pbsfile)
+outp = os.popen("qsub %s" % pbsfile)
 jobid = outp.read().split(".")[0]
 outp.close()
 
