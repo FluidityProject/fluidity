@@ -1257,15 +1257,9 @@ contains
       ib_abs_diag=0.0
 
       if (have_vertical_velocity_relaxation) then
-        
-        assert(ele_ngi(U, ele)==ele_ngi(Rho, ele))
-        assert(ele_ngi(rho,ele)==ele_ngi(depth,ele))          
-        
+                
         ! Form the vertical velocity relaxation absorption term
-        if (on_sphere) then
-          assert(ele_ngi(U, ele)==ele_ngi(X, ele))
-        else
-          assert(ele_ngi(U, ele)==ele_ngi(gravity, ele))
+        if (.not.on_sphere) then
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
         depth_at_quads=ele_val_at_quad(depth, ele)
@@ -1285,8 +1279,6 @@ contains
 
       if (have_implicit_buoyancy) then
 
-        assert(ele_ngi(u, ele)==ele_ngi(buoyancy, ele))
-        
         call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
         grad_rho=ele_grad_at_quad(buoyancy, ele, dt_rho)
 
