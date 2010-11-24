@@ -9,9 +9,6 @@ def is_job_running(jobid):
 
 pbsfile = sys.argv[1]
 
-#os.chdir(basedir)
-if not os.system("svn update") == 0:
-  sys.exit(1)
 outp = os.popen("qsub "+pbsfile)
 jobid = outp.read().split(".")[0]
 outp.close()
