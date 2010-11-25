@@ -154,7 +154,7 @@ module element_numbering
   interface face_local_num
      module procedure face_local_num_int, face_local_num_no_int
   end interface
-
+  
   interface operator(==)
      module procedure element_num_equal
   end interface
@@ -1966,6 +1966,43 @@ contains
 
   end function boundary_local_num_int
 
+  !------------------------------------------------------------------------
+  ! Return all local nodes in the order determined by specified local vertices
+  !------------------------------------------------------------------------
+  
+  function ele_local_num(nodes, ele_num)
+    !!< Given the local vertex numbers (1-4 for tets) in a certain order,
+    !!< return all local node numbers of ele_num in the corresponding order
+    !! nodes are the specified vertices
+    integer, dimension(:), intent(in) :: nodes
+    type(ele_numbering_type), intent(in) :: ele_num
+    integer, dimension(1:ele_num%nodes) :: ele_local_num
+    
+    ! count coordinate
+    integer, dimension(3) :: cc
+    integer :: i, j
+    
+    cc=(/ 0, 0, 0 /)
+    
+    if (ele_num%family/=FAMILY_SIMPLEX) then
+      FLAbort("ele_local_num currently only works for simplices")
+    end if
+    
+    do i=1, ele_num%nodes
+      
+      do j=1, size(ele_num%number2count,1)
+        if (nodes(j)<=3) then
+          cc(nodes(j)) = ele_num%number2count(j, i)
+        end if
+      end do
+      
+      if (size(ele_num%number2count,1)<3) cc(3)=0
+      ele_local_num(i) = ele_num%count2number(cc(1), cc(2), cc(3))
+      
+    end do
+  
+  end function ele_local_num
+  
   !------------------------------------------------------------------------
   ! Local coordinate calculations.
   !------------------------------------------------------------------------
