@@ -1062,7 +1062,7 @@ module zoltan_integration
           do field_no=1,tensor_field_count(source_states(state_no))
              tfield => extract_tensor_field(source_states(state_no), field_no)
              loc = ele_loc(tfield, old_local_element_number)
-             rbuf(rhead:rhead + loc*(product(tfield%dim) - 1)) &
+             rbuf(rhead:rhead + loc*(product(tfield%dim)) - 1) &
                   = reshape(ele_val(tfield, old_local_element_number), (/loc*(product(tfield%dim))/))
              rhead = rhead + loc * product(tfield%dim)
           end do
