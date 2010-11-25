@@ -193,7 +193,7 @@ module spontaneous_potentials
       FLExit('Did not find an ElectricalPotentialDiffusivity field')
     end if
     call zero(ep_diffusivity)
-    do j=1,ep_diffusivity%dim
+    do j=1,ep_diffusivity%dim(1)
       call set(ep_diffusivity, j, j, conductivity, symmetric=.true.)
     end do
 
@@ -282,7 +282,7 @@ module spontaneous_potentials
     real, dimension(ele_loc(t, ele)) :: rhs_addto
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: matrix_addto
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: diffusivity_mat
-    real, dimension(diffusivity%dim, diffusivity%dim, ele_ngi(diffusivity, ele)) :: diffusivity_gi
+    real, dimension(diffusivity%dim(1), diffusivity%dim(2), ele_ngi(diffusivity, ele)) :: diffusivity_gi
     type(element_type), pointer :: t_shape
     logical :: isotropic_diffusivity
     ! values

@@ -162,8 +162,8 @@ contains
     integer, save :: delete_me = 1
 
     assert(mesh_periodic(metric))
-    assert(metric%dim == old_positions%dim)
-    dim = metric%dim
+    assert(all(metric%dim == old_positions%dim))
+    dim = metric%dim(1)
 
     no_bcs = option_count(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions')
 

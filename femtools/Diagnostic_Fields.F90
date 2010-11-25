@@ -2989,12 +2989,12 @@ contains
 
          type(element_type), pointer :: field_shape, proj_field_shape
 
-         real, dimension(field%dim, field%dim, ele_loc(field, ele)) :: little_rhs
+         real, dimension(field%dim(1), field%dim(2), ele_loc(field, ele)) :: little_rhs
          real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: little_mass
          real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba
          real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba_int
          real, dimension(ele_ngi(field, ele)) :: detwei
-         real, dimension(field%dim, field%dim, ele_loc(projected_field, ele)) :: proj_field_val
+         real, dimension(field%dim(1), field%dim(2), ele_loc(projected_field, ele)) :: proj_field_val
 
          integer :: i, j, k
 
@@ -3015,8 +3015,8 @@ contains
          end do
 
          proj_field_val = ele_val(projected_field, ele)
-         do i=1,field%dim
-           do j=1,field%dim
+         do i=1,field%dim(1)
+           do j=1,field%dim(2)
              little_rhs(i, j, :) = matmul(little_mba, proj_field_val(i, j, :))
            end do
          end do

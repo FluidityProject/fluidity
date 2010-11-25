@@ -67,8 +67,8 @@ module gradation_metric
     type(elist) :: edgelist    !!< Linked list of edges
     type(mesh_type) :: mesh
     integer :: p, q !! the nodes
-    real, dimension(error_metric%dim, error_metric%dim) :: vec_P, vec_Q ! eigenvectors
-    real, dimension(error_metric%dim) :: val_P, val_Q ! the eigenvalues
+    real, dimension(error_metric%dim(1), error_metric%dim(2)) :: vec_P, vec_Q ! eigenvectors
+    real, dimension(error_metric%dim(1)) :: val_P, val_Q ! the eigenvalues
     logical :: vals_changed_P, vals_changed_Q !!< have P or Q changed? If so need to reform
     logical :: vecs_changed_P, vecs_changed_Q !!< the metric and update any surrounding nodes.
 
@@ -88,7 +88,7 @@ module gradation_metric
 #endif
     logical :: debug_metric
 
-    dim = error_metric%dim
+    dim = error_metric%dim(1)
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
 
     ewrite(2,*) "++: Applying gradation"

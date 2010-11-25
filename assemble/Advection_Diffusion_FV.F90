@@ -182,7 +182,7 @@ contains
     diffusivity => extract_tensor_field(state, trim(t%name) // "Diffusivity", stat = stat)
     have_diffusivity = stat == 0
     if(have_diffusivity) then
-      assert(diffusivity%dim == mesh_dim(t))
+      assert(all(diffusivity%dim == mesh_dim(t)))
       assert(ele_count(diffusivity) == ele_count(t))
       
       isotropic_diffusivity = option_count(complete_field_path(diffusivity%option_path)) &
@@ -190,11 +190,11 @@ contains
         
       if(isotropic_diffusivity) then
         ewrite(2, *) "Isotropic diffusivity"
-        assert(diffusivity%dim > 0)
+        assert(all(diffusivity%dim > 0))
         ewrite_minmax(diffusivity%val(1, 1, :))
       else
-        do i = 1, diffusivity%dim
-          do j = 1, diffusivity%dim
+        do i = 1, diffusivity%dim(1)
+          do j = 1, diffusivity%dim(2)
             ewrite_minmax(diffusivity%val(i, j, :))
           end do
         end do
@@ -430,7 +430,7 @@ contains
     
     real, dimension(face_loc(t_coordinate, face), t_coordinate%dim) :: c_vector
     real, dimension(face_loc(t_coordinate, face)) :: c_dist
-    real, dimension(diffusivity%dim, diffusivity%dim, face_ngi(diffusivity, face)) :: diffusivity_gi
+    real, dimension(diffusivity%dim(1), diffusivity%dim(2), face_ngi(diffusivity, face)) :: diffusivity_gi
     real, dimension(face_loc(t, face)+face_loc(t,face_2), face_ngi(t, face), mesh_dim(t)) :: dt_t
     type(element_type), pointer :: t_shape
     real, dimension(face_loc(t, face), face_loc(t,face)+face_loc(t,face_2)) :: diff_mat

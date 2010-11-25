@@ -202,8 +202,8 @@ implicit none
       type(tensor_field), intent(in):: source_field
       type(scalar_field), intent(inout) :: s_field
 
-      real, dimension(source_field%dim) :: evals
-      real, dimension(source_field%dim, source_field%dim) :: evecs
+      real, dimension(source_field%dim(1)) :: evals
+      real, dimension(source_field%dim(1), source_field%dim(2)) :: evecs
       real, dimension(3) :: v
 
       real :: s
@@ -211,10 +211,14 @@ implicit none
 
       v = 0.0
 
+      !! This was clearly hard-coded for 3D. 
+      assert(source_field%dim(1)==3)
+      assert(source_field%dim(2)==3)
+
       ! Making sure the second invariant gets evaluated over the whole mesh
       do node=1,node_count(s_field)
              call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
-             do dimen=1,source_field%dim
+             do dimen=1,source_field%dim(1)
                v(dimen)=evals(dimen)
              end do
              s = -(v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
@@ -1241,7 +1245,7 @@ implicit none
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
     assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
-    assert(in_field%dim==out_field%dim)
+    assert(all(in_field%dim==out_field%dim))
 
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1277,8 +1281,8 @@ implicit none
         FLAbort("Evil")
     end if
 #endif
-    assert(in_field_new%dim==out_field%dim)
-    assert(in_field_old%dim==out_field%dim)
+    assert(all(in_field_new%dim==out_field%dim))
+    assert(all(in_field_old%dim==out_field%dim))
     
     select case (in_field_new%field_type)
     case (FIELD_TYPE_NORMAL)
@@ -1345,7 +1349,7 @@ implicit none
     assert(tensor%mesh%refcount%id==vector%mesh%refcount%id)
     assert(tensor%field_type/=FIELD_TYPE_PYTHON)
     assert(tensor%field_type==FIELD_TYPE_NORMAL .or. vector%field_type==FIELD_TYPE_CONSTANT)
-    assert(tensor%dim==vector%dim)
+    assert(minval(tensor%dim)==vector%dim)
 
     if (present(scale)) then
        lscale=scale
@@ -1355,11 +1359,11 @@ implicit none
 
     select case (vector%field_type)
     case (FIELD_TYPE_NORMAL)
-       do i = 1, tensor%dim
+       do i = 1, minval(tensor%dim)
           tensor%val(i, i, :) = vector%val(i,:)*lscale
        end do
     case (FIELD_TYPE_CONSTANT)
-       do i = 1, tensor%dim
+       do i = 1, minval(tensor%dim)
           tensor%val(i, i, :) = vector%val(i,1)*lscale
        end do
     case default
@@ -1390,8 +1394,8 @@ implicit none
     real, intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    assert(dim1>=1 .and. dim1<=field%dim)
-    assert(dim2>=1 .and. dim2<=field%dim)
+    assert(dim1>=1 .and. dim1<=field%dim(1))
+    assert(dim2>=1 .and. dim2<=field%dim(2))
 
     field%val(dim1, dim2, node) = val
     
@@ -2104,7 +2108,7 @@ implicit none
 
     if(present(stat)) stat = 0
     
-    assert(to_field%dim>=from_field%dim)
+    assert(all(to_field%dim>=from_field%dim))
     
     if(from_field%mesh==to_field%mesh) then
     
@@ -2164,8 +2168,8 @@ implicit none
           from_ele=>ele_nodes(from_field, ele)
           to_ele=>ele_nodes(to_field, ele)
           
-          do i=1,from_field%dim
-            do j=1,from_field%dim
+          do i=1,from_field%dim(1)
+            do j=1,from_field%dim(2)
               to_field%val(i, j, to_ele) = matmul(locweight, from_field%val(i, j, from_ele))
             end do
           end do
@@ -2441,8 +2445,8 @@ implicit none
     
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
-       do i=1,field%dim
-          do j=1,field%dim
+       do i=1,field%dim(1)
+          do j=1,field%dim(2)
              field%val(i,j,:) = field%val(i,j,:) * sfield%val
           end do
        end do
@@ -2569,16 +2573,16 @@ implicit none
     
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
-      do i = 1, field%dim
-        do j = 1, field%dim
+      do i = 1, field%dim(1)
+        do j = 1, field%dim(2)
           do k = 1, node_count(field)
             field%val(i, j, k) = min(max(field%val(i, j, k), lower_bound), upper_bound)
           end do
         end do
       end do
     case(FIELD_TYPE_CONSTANT)
-      do i = 1, field%dim
-        do j = 1, field%dim
+      do i = 1, field%dim(1)
+        do j = 1, field%dim(2)
           field%val(i, j, 1) = min(max(field%val(i, j, 1), lower_bound), upper_bound)
         end do
       end do
@@ -3076,7 +3080,6 @@ implicit none
   function clone_header_vector(field) result(out_field)
     type(vector_field), intent(in) :: field
     type(vector_field) :: out_field
-    integer :: i
 
     out_field = field
     nullify(out_field%val)

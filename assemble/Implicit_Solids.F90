@@ -507,8 +507,8 @@ contains
        l = node_val(solid_local, i)*solid_diffusivity + &
             (1.-node_val(solid_local, i))*fluid_diffusivity
 
-       do j = 1, diffusivity%dim 
-          do k = 1, diffusivity%dim           
+       do j = 1, diffusivity%dim(1)
+          do k = 1, diffusivity%dim(2)           
              if (j==k) call set (diffusivity, j ,k, i, l)
           end do
        end do

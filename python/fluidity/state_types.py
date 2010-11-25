@@ -106,10 +106,10 @@ class VectorField(Field):
 class TensorField(Field):
   "A tensor field"
   description = "VectorField"
-  def __init__(self,n,v,ft,op,dim):
+  def __init__(self,n,v,ft,op,dim0,dim1):
     Field.__init__(self,n,ft,op,self.description)
     self.val = v
-    self.dimension = dim
+    self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
 
 

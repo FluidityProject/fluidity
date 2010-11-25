@@ -318,8 +318,8 @@
       if(.not. have_viscosity) then
          viscosity=>dummytensor
       else
-         do dim = 1, viscosity%dim
-            do dim2 = 1, viscosity%dim
+         do dim = 1, viscosity%dim(1)
+            do dim2 = 1, viscosity%dim(2)
               if(dim2<dim) cycle
               ewrite_minmax(viscosity%val(dim,dim2,:))
             end do
@@ -331,8 +331,8 @@
       if(.not. have_surfacetension) then
          surfacetension=>dummytensor
       else
-         do dim = 1, surfacetension%dim
-            do dim2 = 1, surfacetension%dim
+         do dim = 1, surfacetension%dim(1)
+            do dim2 = 1, surfacetension%dim(2)
               if(dim2<dim) cycle
               ewrite_minmax(surfacetension%val(dim,dim2,:))
             end do

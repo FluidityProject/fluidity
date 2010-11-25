@@ -312,7 +312,7 @@ contains
     diffusivity => extract_tensor_field(state, trim(t%name) // "Diffusivity", stat = stat)
     have_diffusivity = stat == 0
     if(have_diffusivity) then
-      assert(diffusivity%dim == mesh_dim(t))
+      assert(all(diffusivity%dim == mesh_dim(t)))
       assert(ele_count(diffusivity) == ele_count(t))
       
       isotropic_diffusivity = option_count(complete_field_path(diffusivity%option_path)) &
@@ -320,11 +320,11 @@ contains
         
       if(isotropic_diffusivity) then
         ewrite(2, *) "Isotropic diffusivity"
-        assert(diffusivity%dim > 0)
+        assert(all(diffusivity%dim > 0))
         ewrite_minmax(diffusivity%val(1, 1, :))
       else
-        do i = 1, diffusivity%dim
-          do j = 1, diffusivity%dim
+        do i = 1, diffusivity%dim(1)
+          do j = 1, diffusivity%dim(2)
             ewrite_minmax(diffusivity%val(i, j, :))
           end do
         end do
@@ -928,7 +928,7 @@ contains
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
     
-    real, dimension(diffusivity%dim, diffusivity%dim, ele_ngi(diffusivity, ele)) :: diffusivity_gi
+    real, dimension(diffusivity%dim(1), diffusivity%dim(2), ele_ngi(diffusivity, ele)) :: diffusivity_gi
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: diffusivity_mat
     
     assert(have_diffusivity)

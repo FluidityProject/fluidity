@@ -532,14 +532,14 @@ implicit none
     type(scalar_field), intent(inout) :: output
 
     integer :: i, j
-    real, dimension(tensor%dim, tensor%dim) :: val
+    real, dimension(tensor%dim(1), tensor%dim(2)) :: val
     real :: x
 
     do i=1,node_count(tensor)
       x = 0.0
 
       val = node_val(tensor, i)
-      do j=1,tensor%dim
+      do j=1,minval(tensor%dim)
         x = x + val(j, j)
       end do
 

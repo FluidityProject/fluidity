@@ -335,8 +335,8 @@ module goal_metric
     type(patch_type) :: patch
     integer :: node, nnode, i
     type(element_type), pointer :: t_shape, x_shape
-    real, dimension(hessian%dim, hessian%dim) :: avg_hessian, evecs
-    real, dimension(hessian%dim) :: edge, evals
+    real, dimension(hessian%dim(1), hessian%dim(2)) :: avg_hessian, evecs
+    real, dimension(hessian%dim(1)) :: edge, evals
 
     real :: err
 

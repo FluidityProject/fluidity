@@ -246,7 +246,7 @@ void python_add_vector_(int *num_dim, int *s,
 }
 
 
-void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
+void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
   char *mesh_name, int *mesh_name_len){
 #ifdef HAVE_NUMPY
@@ -269,15 +269,17 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
   PyDict_SetItemString(pDict,"op",poptionp);  
   PyObject *pft = PyInt_FromLong(*field_type);
   PyDict_SetItemString(pDict,"ft",pft);  
-  PyObject *pnd = PyInt_FromLong(*num_dim);
-  PyDict_SetItemString(pDict,"nd",pnd);  
+  PyObject *pnd0 = PyInt_FromLong(num_dim[0]);
+  PyDict_SetItemString(pDict,"nd0",pnd0);  
+  PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
+  PyDict_SetItemString(pDict,"nd1",pnd1);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
   char t[150+*slen+*mesh_name_len];
-  sprintf(t,"field = TensorField(n,val,ft,op,nd); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  sprintf(t,"field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);  
 
   // Set the mesh for this field
@@ -294,7 +296,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
   Py_DECREF(pname);
   Py_DECREF(poptionp);
   Py_DECREF(pft);
-  Py_DECREF(pnd);
+  Py_DECREF(pnd0);
+  Py_DECREF(pnd1);
 #endif
 }
 

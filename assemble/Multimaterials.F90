@@ -65,7 +65,7 @@ contains
     type(tensor_field), intent(inout) :: surfacetension
     
     type(scalar_field), pointer :: volumefraction
-    integer :: i, node, dimi, dimj, dim, stat
+    integer :: i, node, dimi, dimj, stat
     logical :: prognostic
     type(scalar_field) :: grad_mag, grad_mag2
     type(vector_field) :: gradient
@@ -77,7 +77,7 @@ contains
     integer, dimension(:), allocatable :: surface_ids
     
     real :: coeff, eq_angle
-    real, dimension(surfacetension%dim, surfacetension%dim) :: tensor
+    real, dimension(surfacetension%dim(1), surfacetension%dim(2)) :: tensor
     
     if(size(state)==1) then
       FLExit("Don't know how to calculate a surface tension with only one material_phase.")
@@ -85,12 +85,10 @@ contains
     
     x => extract_vector_field(state(1), "Coordinate")
     
-    call allocate(gradient, surfacetension%dim, surfacetension%mesh, "Gradient")
+    call allocate(gradient, surfacetension%dim(1), surfacetension%mesh, "Gradient")
     gradient%option_path = surfacetension%option_path
     
     call zero(surfacetension)
-    
-    dim = surfacetension%dim
     
     do i = 1, size(state)
       volumefraction => extract_scalar_field(state(i), "MaterialVolumeFraction")

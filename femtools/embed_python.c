@@ -421,7 +421,7 @@ void set_vector_field_from_python(char *function, int *function_len, int *dim,
 void set_tensor_field_from_python(char *function, int *function_len, int *dim, 
                                   int *nodes, 
                                   double x[], double y[], double z[], double *t, 
-                                  int *result_dim, 
+                                  int result_dim[], 
                                   double result[], int* stat)
 {
 #ifndef HAVE_NUMPY
@@ -521,11 +521,11 @@ void set_tensor_field_from_python(char *function, int *function_len, int *dim,
       return;
     }
 
-    for (ii = 0; ii < *dim; ii++){
-      for (jj = 0; jj < *dim; jj++){
+    for (ii = 0; ii < result_dim[0]; ii++){
+      for (jj = 0; jj < result_dim[1]; jj++){
         
         // Note the transpose for fortran.
-        result[i*(*dim * *dim) + jj * *dim + ii] = 
+        result[i*(result_dim[0] * result_dim[1]) + jj * result_dim[0] + ii] = 
           *(double*)(pArray->data 
                      + ii * pArray->strides[0] 
                      + jj * pArray->strides[1]);

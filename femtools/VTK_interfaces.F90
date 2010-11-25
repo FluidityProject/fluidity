@@ -1044,8 +1044,11 @@ contains
     if (present(tfields)) then
 
        do i=1,size(tfields)
-          dim = tfields(i)%dim
-          if(mesh_dim(tfields(i))/=mesh_dim(t_model)) cycle
+          dim = tfields(i)%dim(1)
+          ! Can't output non-square tensors.
+          if(tfields(i)%dim(1)/=tfields(i)%dim(2)) cycle
+          
+          if(tfields(i)%dim(1)/=t_model%dim(1)) cycle
           
           if(tfields(i)%mesh%shape%degree /= 0) then
 

@@ -1079,7 +1079,7 @@ contains
 
     real, dimension(ele_and_faces_loc(T,ele),ele_and_faces_loc(T,ele)) ::&
          & Diffusivity_mat
-    real, dimension(Diffusivity%dim, Diffusivity%dim, &
+    real, dimension(Diffusivity%dim(1), Diffusivity%dim(2), &
          & ele_loc(Diffusivity,ele)) :: Diffusivity_ele
     
 
@@ -1749,8 +1749,8 @@ contains
     
     subroutine local_assembly_arbitrary_upwind
       
-      do dim1=1, Diffusivity%dim
-         do dim2=1,Diffusivity%dim
+      do dim1=1, Diffusivity%dim(1)
+         do dim2=1,Diffusivity%dim(2)
             
             ! Div U * G^T * Diffusivity * G * Grad U
             ! Where G^T*G = inverse(Q_mass)
@@ -1772,8 +1772,8 @@ contains
     subroutine local_assembly_bassi_rebay
       integer d1, d2, i, j
 
-      do dim1=1, Diffusivity%dim
-         do dim2=1,Diffusivity%dim
+      do dim1=1, Diffusivity%dim(1)
+         do dim2=1,Diffusivity%dim(2)
             
             ! Div U * G^T * Diffusivity * G * Grad U
             ! Where G^T*G = inverse(Q_mass)
@@ -2191,7 +2191,7 @@ contains
     end if
 
     if(do_primal_fluxes) then
-       allocate( kappa_gi(Diffusivity%dim, Diffusivity%dim, &
+       allocate( kappa_gi(Diffusivity%dim(1), Diffusivity%dim(2), &
             face_ngi(Diffusivity,face)) )
        kappa_gi = face_val_at_quad(Diffusivity, face)
     end if

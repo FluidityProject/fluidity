@@ -268,18 +268,16 @@ module field_derivatives
       type(scalar_field), dimension(infield%dim) :: pardiff
       type(scalar_field) :: component
 
-      real, dimension(t_field%dim,t_field%dim) :: t
+      real, dimension(t_field%dim(1),t_field%dim(2)) :: t
       logical, dimension(infield%dim) :: derivatives
-      integer :: i, j, dim
+      integer :: i, j
       integer :: node
-
-      dim = infield%dim
 
       do j=1,infield%dim
 
         component = extract_scalar_field(infield, j)
 
-        do i=1,dim
+        do i=1,infield%dim
           pardiff(i) = extract_scalar_field(t_field,i,j)
         end do
 
@@ -689,16 +687,18 @@ module field_derivatives
       real :: sum_weights
       real, dimension(ele_ngi(hessian, 1)) :: detwei
       real, dimension(ele_loc(hessian, 1), ele_loc(hessian, 1)) :: mass_matrix
-      real, dimension(hessian%dim, hessian%dim) :: old_val
+      real, dimension(hessian%dim(1), hessian%dim(2)) :: old_val
       
       logical :: has_neighbouring_interior_node
       type(patch_type) :: node_patch
       type(csr_sparsity), pointer :: nelist
 
+      assert(hessian%dim(1)==hessian%dim(2))
+
       mesh => hessian%mesh
       nelist => extract_nelist(mesh)
       call allocate(node_weights, mesh, "Node weights")
-      dim = hessian%dim
+      dim = hessian%dim(1)
 
       call initialise_boundcount(hessian%mesh, positions)
 

@@ -537,7 +537,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   integer literations, i, j, startj
   logical lstartfromzero
   
-  assert(x%dim==rhs%dim)
+  assert(all(x%dim==rhs%dim))
   assert(size(x%val,3)==size(rhs%val,3))
   assert(size(x%val,3)==size(matrix,2))
   assert(size(rhs%val,3)==size(matrix,1))
@@ -560,7 +560,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   ewrite(1,*) 'Solving for multiple components of a tensor field'
   
   startj=1
-  do i=1, x%dim
+  do i=1, x%dim(1)
      
      if (present(symmetric)) then
        if (symmetric) then
@@ -569,7 +569,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
        end if
      end if
      
-     do j=startj, x%dim
+     do j=startj, x%dim(2)
        
         ewrite(1, *) 'Now solving for component: ', i, j
        
@@ -599,8 +599,8 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
        ewrite(2,*) 'Now copying these to components (j,i).'
 
        ! copy results x(i,j) of equations with rhs(i,j) where j>=i to x(j,i)
-       do i=1, x%dim
-          do j=i, x%dim
+       do i=1, x%dim(1)
+          do j=i, x%dim(2)
              x%val(j,i,:)=x%val(i,j,:)
           end do
        end do

@@ -241,7 +241,7 @@ subroutine keps_tke(state)
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
-    do i = 1, kk_diff%dim
+    do i = 1, kk_diff%dim(1)
         call set(kk_diff, i, i, EV, scale=1. / sigma_k)
         ewrite_minmax(kk_diff%val(i,i,:))
     end do
@@ -302,7 +302,7 @@ subroutine keps_eps(state)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
-    do i = 1, eps_diff%dim
+    do i = 1, eps_diff%dim(1)
         call set(eps_diff, i,i, EV, scale=1./sigma_eps)
         ewrite_minmax(eps_diff%val(i,i,:))
     end do
@@ -371,7 +371,7 @@ subroutine keps_eddyvisc(state)
     call zero(eddy_diff)
 
     !tensors are isotropic
-    do i = 1, eddy_visc%dim
+    do i = 1, eddy_visc%dim(1)
         call set(eddy_visc, i, i, EV)
         ! Using Schmidt number for k (usually 1.0), in absence of a better idea.
         call set(eddy_diff, i, i, EV, scale=1./sigma_k)
@@ -381,7 +381,7 @@ subroutine keps_eddyvisc(state)
     call addto(eddy_diff, bg_diff)
 
     ! Check components of viscosity
-    do i = 1, viscosity%dim
+    do i = 1, viscosity%dim(1)
         ewrite_minmax(viscosity%val(i,i,:))
     end do
 

@@ -35,7 +35,7 @@ module huang_metric_module
     integer, dimension(2) :: tmp
     real :: gamma, sigma, alpha, eps, power_A, power_B, power_C
     integer :: node
-    real, dimension(hessian%dim, hessian%dim) :: identity, abs_h, metric
+    real, dimension(hessian%dim(1), hessian%dim(2)) :: identity, abs_h, metric
     character(len=OPTION_PATH_LEN) :: path
 
     assert(field%mesh%shape%degree == 1) ! this can be generalised, but currently I don't have the time
@@ -159,11 +159,11 @@ module huang_metric_module
     real, intent(in) :: alpha
     real :: p
     real, dimension(ele_ngi(m_hessian, 1)) :: detwei, integrand_s
-    real, dimension(m_hessian%dim, m_hessian%dim, ele_ngi(m_hessian, 1)) :: integrand_t, id
+    real, dimension(m_hessian%dim(1), m_hessian%dim(2), ele_ngi(m_hessian, 1)) :: integrand_t, id
     integer :: j, ele
 
     do j=1,ele_ngi(m_hessian, 1)
-      id(:, :, j) = get_matrix_identity(m_hessian%dim)
+      id(:, :, j) = get_matrix_identity(m_hessian%dim(1))
     end do
 
     p = 0

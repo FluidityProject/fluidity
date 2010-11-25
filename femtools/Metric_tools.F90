@@ -53,8 +53,8 @@ module metric_tools
 #ifdef DDEBUG
 
     do i=1,metric%mesh%nodes
-      do j=1,metric%dim
-        do k=1,metric%dim
+      do j=1,metric%dim(1)
+        do k=1,metric%dim(2)
           if (is_nan(metric%val(j, k, i))) then
             ewrite(-1,*) "Node == ", i, "; position (", j, ", ", k, ")"
             ewrite(-1,*) metric%val(:, :, i)
@@ -954,10 +954,12 @@ module metric_tools
     integer :: i
     real, dimension(mesh_dim(isotropic_metric)) :: eigenvals
     real, dimension(mesh_dim(isotropic_metric), mesh_dim(isotropic_metric)) :: eigenvecs, tensor
-    
+
+    assert(anisotropic_metric%dim(1)==anisotropic_metric%dim(2))
+
     call allocate(anisotropic_metric, isotropic_metric%mesh, isotropic_metric%name)
     
-    eigenvecs = get_matrix_identity(anisotropic_metric%dim)
+    eigenvecs = get_matrix_identity(anisotropic_metric%dim(1))
 
     call zero(anisotropic_metric)
     do i = 1, node_count(isotropic_metric)

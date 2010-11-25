@@ -110,8 +110,8 @@ subroutine project_to_continuous(vtuname, vtuname_len, meshname,&
      call allocate(cg_tensor, cg_mesh, name=dg_tensor%name)
      
      ! Perform projection.
-     do j=1,cg_tensor%dim
-        do k=1,cg_tensor%dim
+     do j=1,cg_tensor%dim(1)
+        do k=1,cg_tensor%dim(2)
            cg_scalar=extract_scalar_field_from_tensor_field(cg_tensor, j, k)
            dg_scalar=extract_scalar_field_from_tensor_field(dg_tensor, j, k)
            call mult(cg_scalar, P, dg_scalar)

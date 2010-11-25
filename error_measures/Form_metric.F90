@@ -207,7 +207,7 @@ module form_metric_field
     if(present(stat)) then
       if(stat/=0) return
     end if
-    if((min_bound%dim /= hessian%dim).or.(max_bound%dim /= hessian%dim)) then
+    if(any(min_bound%dim /= hessian%dim).or.any(max_bound%dim /= hessian%dim)) then
       if(present(stat)) then
         stat = 1
         return
@@ -225,14 +225,14 @@ module form_metric_field
     type(tensor_field), intent(inout) :: hessian
     type(tensor_field), intent(in) :: min_bound, max_bound
 
-    real, dimension(hessian%dim, hessian%dim) :: max_tensor, min_tensor, evecs
-    real, dimension(hessian%dim) :: evals
+    real, dimension(hessian%dim(1), hessian%dim(2)) :: max_tensor, min_tensor, evecs
+    real, dimension(hessian%dim(1)) :: evals
     integer :: i, j
 
     ! min and max refer to edge lengths, not eigenvalues
     do i=1,node_count(hessian)
       call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
-      do j=1,hessian%dim
+      do j=1,hessian%dim(1)
         evals(j) = abs(evals(j))
       end do
       call eigenrecomposition(hessian%val(:, :, i), evecs, evals)

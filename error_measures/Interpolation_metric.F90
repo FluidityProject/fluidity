@@ -63,7 +63,7 @@ module interpolation_metric
     ! for the purposes of computing the metric for adaptivity.
 
     positions => extract_vector_field(state(1), "Coordinate")
-    dim = error_metric%dim
+    dim = error_metric%dim(1)
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
     ! is this metric going to be collapsed in the vertical to do horizontal adaptivity with it?
     align_metric_vertically = have_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/vertically_align_metric")
@@ -117,8 +117,8 @@ module interpolation_metric
         if (have_adapt_opt(trim(field_t%option_path), "/adaptivity_options") &
           & .and. .not. have_adapt_opt(trim(field_s%option_path), "/adaptivity_options/no_interpolation_measure")) then
           adweit_t = extract_tensor_field(state(i), trim(field_t%name) // "InterpolationErrorBound")
-          do k=1,field_t%dim
-            do l=1,field_t%dim
+          do k=1,field_t%dim(1)
+            do l=1,field_t%dim(2)
               adweit_s = extract_scalar_field(adweit_t, k, l)
               if (minval(adweit_s) > 0.0) then
                 field_s = extract_scalar_field(field_t, k, l)

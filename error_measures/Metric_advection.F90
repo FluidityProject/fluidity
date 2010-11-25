@@ -325,8 +325,8 @@ contains
                                     sub_dt, explicit, tfield_options)
   
           if(explicit) then
-            do i = 1, delta_tfield%dim
-              do j = 1, delta_tfield%dim
+            do i = 1, delta_tfield%dim(1)
+              do j = 1, delta_tfield%dim(2)
                 delta_tfield%val(i,j,:) = rhs%val(i,j,:)/lumpedmass%val(:)
               end do
             end do
@@ -442,8 +442,8 @@ contains
     ! allocate some memory for assembly
     call allocate(A_mT_old, rhs%mesh, name="A_mT_oldProduct" )
     
-    do i=1,oldtfield%dim
-      do j=i,oldtfield%dim
+    do i=1,oldtfield%dim(1)
+      do j=i,oldtfield%dim(2)
         ! construct rhs
         oldtfield_scomp = extract_scalar_field(oldtfield, i, j)
         call mult(A_mT_old, A_m, oldtfield_scomp)
@@ -576,7 +576,7 @@ contains
     type(scalar_field) :: tfield_bc
 
     ! Bilinear form for the tensor twisting terms.
-    real, dimension(tfield%dim, tfield%dim, ele_loc(tfield,1), ele_loc(tfield,1)) :: &
+    real, dimension(tfield%dim(1), tfield%dim(2), ele_loc(tfield,1), ele_loc(tfield,1)) :: &
          Twist_mat
     ! Twist terms applied to explicit T_guess values.
     real, dimension(ele_loc(tfield,1)) :: Twist_rhs
@@ -619,7 +619,7 @@ contains
              oldtfield_ele(ele_loc(oldtfield,1)))
     allocate(notvisited(x_cvshape%ngi))
     allocate(mat_local(ele_loc(tfield,1), ele_loc(tfield,1)), &
-             rhs_local(tfield%dim, tfield%dim, ele_loc(tfield,1)))
+             rhs_local(tfield%dim(1), tfield%dim(2), ele_loc(tfield,1)))
 
     ! Clear memory of arrays being designed
     if(getmat) call zero(A_m)
@@ -629,8 +629,8 @@ contains
       dimi = 1
       dimj = 1
     else
-      dimi = tfield%dim
-      dimj = tfield%dim
+      dimi = tfield%dim(1)
+      dimj = tfield%dim(2)
     end if
     
     do i=1,dimi

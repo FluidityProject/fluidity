@@ -39,7 +39,7 @@ module geometric_constraints_metric
     integer :: stat, stat2
     real :: gradation_parameter
 
-    real, dimension(error_metric%dim * error_metric%dim * node_count(error_metric)) :: geometric_edge_lengths_raw
+    real, dimension(error_metric%dim(1) * error_metric%dim(2) * node_count(error_metric)) :: geometric_edge_lengths_raw
     type(tensor_field) :: geometric_edge_lengths
     integer :: snloc, nselements
     integer :: noits, grad_count
@@ -65,7 +65,7 @@ module geometric_constraints_metric
     allocate(lsenlist(1:nselements*snloc))
     call getsndgln(error_metric%mesh, lsenlist)
     
-    dim = error_metric%dim
+    dim = error_metric%dim(1)
     ewrite(2,*) "++: Applying geometric constraints"
 
     call FindGeometryConstraints(positions, geometric_edge_lengths_raw)

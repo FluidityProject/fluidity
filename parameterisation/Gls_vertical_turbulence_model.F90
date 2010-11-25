@@ -393,7 +393,7 @@ subroutine gls_tke(state)
         call set(kk_diff,i,K_M_sphere_node)
       end do
     else
-      call set(kk_diff,kk_diff%dim,kk_diff%dim,K_M,scale=1./sigma_k)
+      call set(kk_diff,kk_diff%dim(1),kk_diff%dim(2),K_M,scale=1./sigma_k)
     end if
     call addto(KK_diff,background_diff) 
 
@@ -513,7 +513,7 @@ subroutine gls_psi(state)
         call set(psi_diff,i,psi_sphere_node)
       end do
     else
-      call set(psi_diff,psi_diff%dim,psi_diff%dim,K_M,scale=1./sigma_psi)
+      call set(psi_diff,psi_diff%dim(1),psi_diff%dim(2),K_M,scale=1./sigma_psi)
     end if
     call addto(psi_diff,background_diff) 
 
@@ -688,8 +688,8 @@ subroutine gls_diffusivity(state, relax)
         call set(eddy_visc_KM,i,eddy_visc_KM_sphere_node)
       end do
     else
-      call set(eddy_diff_KH,eddy_diff_KH%dim,eddy_diff_KH%dim,K_H)
-      call set(eddy_visc_KM,eddy_visc_KM%dim,eddy_visc_KM%dim,K_M)
+      call set(eddy_diff_KH,eddy_diff_KH%dim(1),eddy_diff_KH%dim(2),K_H)
+      call set(eddy_visc_KM,eddy_visc_KM%dim(1),eddy_visc_KM%dim(2),K_M)
     end if
 
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
@@ -725,7 +725,7 @@ subroutine gls_diffusivity(state, relax)
         call set(viscosity,i,viscosity_sphere_node)
       end do
     else
-      call set(viscosity,viscosity%dim,viscosity%dim,remaped_K_M)
+      call set(viscosity,viscosity%dim(1),viscosity%dim(2),remaped_K_M)
     end if
     call addto(viscosity,remaped_background_visc)
     
@@ -1693,7 +1693,7 @@ subroutine gls_output_fields(state)
         ! add vertical background
         tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
        call set(scalarField,K_M)  
-       call addto(scalarField, extract_scalar_field(tensorField, tensorField%dim, tensorField%dim))
+       call addto(scalarField, extract_scalar_field(tensorField, tensorField%dim(1), tensorField%dim(2)))
     end if     
       
     scalarField => extract_scalar_field(state, "GLSVerticalDiffusivity", stat)
@@ -1701,7 +1701,7 @@ subroutine gls_output_fields(state)
         ! add vertical background
         tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
         call set(scalarField,K_H)
-        call addto(scalarField, extract_scalar_field(tensorField,tensorField%dim, tensorField%dim))
+        call addto(scalarField, extract_scalar_field(tensorField,tensorField%dim(1), tensorField%dim(2)))
     end if  
 
 

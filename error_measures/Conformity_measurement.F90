@@ -31,8 +31,8 @@ module conformity_measurement
     type(tensor_field), intent(in) :: metric
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
-    real, dimension(metric%dim, metric%dim) :: m
-    real, dimension(metric%dim, metric%dim, ele_ngi(metric, ele)) :: A
+    real, dimension(metric%dim(1), metric%dim(2)) :: m
+    real, dimension(metric%dim(1), metric%dim(2), ele_ngi(metric, ele)) :: A
     real, dimension(ele_ngi(metric, ele)) :: detwei
     type(element_type), pointer :: t_shape
     integer :: i, j, dim
@@ -163,7 +163,7 @@ module conformity_measurement
 
     integer :: ele
     real, dimension(2) :: ele_minmax
-    real, dimension(metric%dim, metric%dim) :: A, B
+    real, dimension(metric%dim(1), metric%dim(2)) :: A, B
 
     assert(ele_count(positions) > 0)
     A = edge_length_from_eigenvalue(simplex_tensor(positions, 1))

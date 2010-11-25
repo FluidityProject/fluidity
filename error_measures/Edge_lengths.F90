@@ -70,14 +70,14 @@ module edge_length_module
 
     type(tensor_field), intent(in) :: metric
     type(scalar_field), intent(inout) :: field
-    real, dimension(metric%dim), intent(in) :: vec
-    real, dimension(metric%dim) :: evals
-    real, dimension(metric%dim, metric%dim) :: evecs
+    real, dimension(metric%dim(1)), intent(in) :: vec
+    real, dimension(metric%dim(1)) :: evals
+    real, dimension(metric%dim(1), metric%dim(2)) :: evecs
     real :: len
 
     integer :: i, j, dim
 
-    dim = metric%dim
+    dim = metric%dim(1)
 
     do i=1,metric%mesh%nodes
       call eigendecomposition_symmetric(metric%val(:, :, i), evecs, evals)

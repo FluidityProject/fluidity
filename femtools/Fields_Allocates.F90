@@ -288,7 +288,7 @@ contains
     type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in), optional :: name
     integer, intent(in), optional :: field_type
-    integer :: i, n_count
+    integer :: n_count
     integer :: lfield_type
 
     if (present(field_type)) then
@@ -344,7 +344,7 @@ contains
     type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in), optional :: name
     integer, intent(in), optional :: field_type
-    integer, intent(in), optional :: dim
+    integer, intent(in), dimension(2), optional :: dim
     integer :: lfield_type
 
     if (present(field_type)) then
@@ -356,7 +356,7 @@ contains
     if(present(dim)) then
       field%dim = dim
     else
-      field%dim=mesh_dim(mesh)
+      field%dim=(/mesh_dim(mesh),mesh_dim(mesh)/)
     end if
     field%option_path=empty_path
 
@@ -372,18 +372,18 @@ contains
     field%field_type = lfield_type
     select case(lfield_type)
     case(FIELD_TYPE_NORMAL)
-      allocate(field%val(field%dim,field%dim, node_count(mesh)))
+      allocate(field%val(field%dim(1), field%dim(2), node_count(mesh)))
 
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("tensor_field", "real", &
-           node_count(mesh)*field%dim**2, name=name)
+           node_count(mesh)*field%dim(1)*field%dim(2), name=name)
 #endif
     case(FIELD_TYPE_CONSTANT)
-      allocate(field%val(field%dim, field%dim, 1))
+      allocate(field%val(field%dim(1), field%dim(2), 1))
 
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("tensor_field", "real", &
-           field%dim**2, name=name)
+           field%dim(1)*field%dim(2), name=name)
 #endif
     case(FIELD_TYPE_DEFERRED)
       allocate(field%val(0, 0, 0))
@@ -588,8 +588,6 @@ contains
     !!< is called on the mesh which will delete one reference to it and
     !!< deallocate it if the count drops to zero.
     type(vector_field), intent(inout) :: field
-
-    integer :: i
     
     call decref(field)
     if (has_references(field)) then

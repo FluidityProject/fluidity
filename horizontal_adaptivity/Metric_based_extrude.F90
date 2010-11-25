@@ -255,7 +255,7 @@ module hadapt_metric_based_extrude
       ! NOTE WELL: this is where we assume that up is in the vertical direction (i.e. not
       ! safe on the sphere but that's not supported yet anyway and this is assumed in
       ! lots of places)
-      intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim, full_metric%dim, local_coords)
+      intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim(1), full_metric%dim(2), local_coords)
       mesh_size = edge_length_from_eigenvalue(intersection_metric_comp)
       call set(back_sizing, 1, mesh_size)
 
@@ -277,7 +277,7 @@ module hadapt_metric_based_extrude
         ! NOTE WELL: this is where we assume that up is in the vertical direction (i.e. not
         ! safe on the sphere but that's not supported yet anyway and this is assumed in
         ! lots of places)
-        intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim, full_metric%dim, local_coords)
+        intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim(1), full_metric%dim(2), local_coords)
         mesh_size = edge_length_from_eigenvalue(intersection_metric_comp)
         call set(back_sizing, i, mesh_size)
 
@@ -419,7 +419,7 @@ module hadapt_metric_based_extrude
     ! and we want to get the sizing based on the vertical component of the metric
     type(scalar_field), intent(out) :: sizing
 
-    real, dimension(metric%dim) :: normal
+    real, dimension(metric%dim(1)) :: normal
     real :: mesh_size
     integer :: node
 
@@ -427,7 +427,7 @@ module hadapt_metric_based_extrude
 
     ! normal here should be made smarter if this is on the globe.
     normal = 0.0
-    normal(metric%dim) = 1.0
+    normal(metric%dim(1)) = 1.0
 
     do node=1,node_count(sizing)
       mesh_size = edge_length_from_eigenvalue(dot_product(matmul(normal, node_val(metric, node)), normal))
@@ -458,7 +458,7 @@ module hadapt_metric_based_extrude
     if(back_tensor%field_type==FIELD_TYPE_CONSTANT) then
 
       oned_value = dot_product(matmul(normal, node_val(back_tensor, 1)), normal)
-      call set(oned_tensor, spread(spread(oned_value, 1, oned_tensor%dim), 2, oned_tensor%dim))
+      call set(oned_tensor, spread(spread(oned_value, 1, oned_tensor%dim(1)), 2, oned_tensor%dim(1)))
 
     else
     
@@ -469,7 +469,7 @@ module hadapt_metric_based_extrude
         j = column_nodes(i)
 
         oned_value = dot_product(matmul(normal, node_val(back_tensor, j)), normal)
-        call set(oned_tensor, i, spread(spread(oned_value, 1, oned_tensor%dim), 2, oned_tensor%dim))
+        call set(oned_tensor, i, spread(spread(oned_value, 1, oned_tensor%dim(1)), 2, oned_tensor%dim(1)))
       end do
       
     end if
@@ -497,7 +497,7 @@ module hadapt_metric_based_extrude
       j = column_nodes(i)
       
       oned_val = node_val(oned_metric, i)
-      call set(metric, metric%dim, metric%dim, j, oned_val(1,1))
+      call set(metric, metric%dim(1), metric%dim(2), j, oned_val(1,1))
     end do
   
   end subroutine recombine_metric

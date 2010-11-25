@@ -50,8 +50,8 @@ contains
 
     integer :: i
     real :: evals_ratio_bound
-    real, dimension(metric%dim) :: evals
-    real, dimension(metric%dim, metric%dim) :: evecs
+    real, dimension(metric%dim(1)) :: evals
+    real, dimension(metric%dim(1), metric%dim(2)) :: evecs
 
     ewrite(1, *) "In bound_metric_aspect_ratio_ratio"
 

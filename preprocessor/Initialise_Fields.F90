@@ -361,8 +361,8 @@ contains
     real :: current_time    
     ! to read in constant initial value
     real:: const
-    real, dimension(1:field%dim) :: const_vec
-    real, dimension(1:field%dim,1:field%dim) :: const_array
+    real, dimension(1:field%dim(1)) :: const_vec
+    real, dimension(1:field%dim(1),1:field%dim(2)) :: const_array
     character(len=OPTION_PATH_LEN):: tpath
     ! Temporary field for calculating isotropic tensor fields from python...
     type(scalar_field) :: sfield
@@ -388,7 +388,7 @@ contains
           const_array=0.0
           ! Put constant on diagonal of tensor
           call get_option(trim(tpath)//"/constant", const)
-          do i=1, field%dim
+          do i=1, field%dim(1)
             const_array(i,i)=const
           end do
           call set(field, const_array)
@@ -404,7 +404,7 @@ contains
           call set_from_python_function(sfield, trim(func), position,&
                   & current_time) 
           ! Put isotropic value on diagonal of tensor
-          do i=1, field%dim
+          do i=1, field%dim(1)
              call set(field, i, i, sfield)
           end do
           call deallocate(sfield)
@@ -431,7 +431,7 @@ contains
           const_array=0.0
           ! Put constant on diagonal of tensor
           call get_option(trim(tpath)//"/constant", const_vec)
-          do i=1, field%dim
+          do i=1, minval(field%dim)
             const_array(i,i)=const_vec(i)
           end do
           call set(field, const_array)
@@ -443,7 +443,7 @@ contains
           else
             call get_option("/timestepping/current_time", current_time)
           end if
-          call allocate(vfield, field%dim, field%mesh, name="TemporaryDiagonal")
+          call allocate(vfield, minval(field%dim), field%mesh, name="TemporaryDiagonal")
           call set_from_python_function(vfield, trim(func), position,&
                   & current_time) 
           ! Put values on diagonal of tensor

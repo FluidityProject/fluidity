@@ -2045,7 +2045,7 @@ contains
     ! Return the values of field at the nodes of ele_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%dim, field%dim, field%mesh%shape%loc) :: ele_val
+    real, dimension(field%dim(1), field%dim(2), field%mesh%shape%loc) :: ele_val
 
     integer, dimension(:), pointer :: nodes
     integer :: i
@@ -2135,7 +2135,7 @@ contains
     ! Return the values of field at the nodes of face_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: face_number
-    real, dimension(field%dim, field%dim, face_loc(field, face_number)) ::&
+    real, dimension(field%dim(1), field%dim(2), face_loc(field, face_number)) ::&
          & face_val
 
     integer :: i
@@ -2215,7 +2215,7 @@ contains
     ! Return the values of field at the quadrature points of ele_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%dim, field%dim, field%mesh%shape%ngi) :: quad_val
+    real, dimension(field%dim(1), field%dim(2), field%mesh%shape%ngi) :: quad_val
     
     type(element_type), pointer :: shape
 
@@ -2276,7 +2276,7 @@ contains
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
     type(element_type), intent(in) :: shape
-    real, dimension(field%dim, field%dim, shape%ngi) :: quad_val
+    real, dimension(field%dim(1), field%dim(2), shape%ngi) :: quad_val
 
     type(element_type), pointer :: meshshape
     
@@ -2334,7 +2334,7 @@ contains
     ! Return the values of field at the quadrature points of face_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: face_number
-    real, dimension(field%dim, field%dim, face_ngi(field, face_number)) :: quad_val
+    real, dimension(field%dim(1), field%dim(2), face_ngi(field, face_number)) :: quad_val
     
     type(element_type), pointer :: shape
 
@@ -2421,7 +2421,7 @@ contains
     real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_div
     
     integer :: i, j
-    real, dimension(field%dim, field%dim, ele_loc(field, ele_number)) :: tensor
+    real, dimension(field%dim(1), field%dim(2), ele_loc(field, ele_number)) :: tensor
     
     tensor = ele_val(field, ele_number)
     quad_div = 0.0
@@ -2609,7 +2609,7 @@ contains
     ! Return the value of field at node node_number
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: node_number
-    real, dimension(field%dim, field%dim) :: val
+    real, dimension(field%dim(1), field%dim(2)) :: val
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
@@ -2726,7 +2726,7 @@ contains
     ! Return the value of field at node node_numbers
     type(tensor_field),intent(in) :: field
     integer, dimension(:), intent(in) :: node_numbers
-    real, dimension(field%dim, field%dim, size(node_numbers)) :: val
+    real, dimension(field%dim(1), field%dim(2), size(node_numbers)) :: val
     integer :: i
 
 
@@ -2872,19 +2872,19 @@ contains
 
     if (present(stat)) then
       stat = 0
-      if (dim1 > tfield%dim .or. dim2 > tfield%dim) then
+      if (dim1 > tfield%dim(1) .or. dim2 > tfield%dim(2)) then
         stat = 1
         return
       end if
     end if
-    assert(dim1 .le. tfield%dim)
-    assert(dim2 .le. tfield%dim)
+    assert(dim1 .le. tfield%dim(1))
+    assert(dim2 .le. tfield%dim(2))
 
     ! Note that the reference count is not incremented as this is a
     ! borrowed field reference.
     sfield%mesh = tfield%mesh
     sfield%val  => tfield%val(dim1, dim2, :)
-    sfield%val_stride = tfield%dim * tfield%dim
+    sfield%val_stride = tfield%dim(1) * tfield%dim(2)
     sfield%field_type = tfield%field_type
     write(sfield%name, '(a, 2i0)') trim(tfield%name) // "%", (dim1-1) * tfield%dim + dim2
 
@@ -2923,7 +2923,8 @@ contains
     ! Return the values of field at the superconvergent points of ele_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%dim, field%dim, field%mesh%shape%superconvergence%nsp) :: superconvergent_val
+    real, dimension(field%dim(1), field%dim(2), &
+         field%mesh%shape%superconvergence%nsp) :: superconvergent_val
 
     type(element_type), pointer :: shape
 
@@ -3345,7 +3346,7 @@ contains
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
     
-    real, dimension(t_field%dim, t_field%dim) :: val
+    real, dimension(t_field%dim(1), t_field%dim(2)) :: val
     
     integer :: i, j
     real, dimension(ele_loc(t_field, ele)) :: n
@@ -3504,7 +3505,7 @@ contains
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
     
-    real, dimension(t_field%dim, t_field%dim) :: val
+    real, dimension(t_field%dim(1), t_field%dim(2)) :: val
     
     integer :: i, j
     real, dimension(face_loc(t_field, face)) :: n

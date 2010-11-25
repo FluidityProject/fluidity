@@ -804,7 +804,8 @@ contains
     assert(size(matrix1,2)==size(matrix2,2))
     assert(blocks(matrix1,1)==blocks(matrix2,1))
     assert(blocks(matrix1,2)==blocks(matrix2,2))
-    assert(blocks(matrix1,2)==tfield%dim)
+    assert(blocks(matrix1,2)==tfield%dim(1))
+    assert(blocks(matrix2,2)==tfield%dim(2))
     assert(blocks(matrix1,1)==1)
 
     ndim = blocks(matrix1,2)
@@ -919,15 +920,15 @@ contains
         entry0 = 0.0
 
         if(l_isotropic) then
-          do dim1 = 1, tfield%dim
+          do dim1 = 1, tfield%dim(1)
               entry0 = entry0 + &
                         sum((row_val(dim1)%ptr*node_val(tfield, dim1, dim1, row_indices)&
                             /node_val(sfield, row_indices))&
                         *node_val(vfield, dim1, row_indices))
           end do
         else
-          do dim1 = 1, tfield%dim
-            do dim2 = 1, tfield%dim
+          do dim1 = 1, tfield%dim(1)
+            do dim2 = 1, tfield%dim(2)
               entry0 = entry0 + &
                         sum((row_val(dim1)%ptr*node_val(tfield, dim1, dim2, row_indices)&
                             /node_val(sfield, row_indices))&

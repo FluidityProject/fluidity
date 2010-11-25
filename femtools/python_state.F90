@@ -151,7 +151,8 @@ module python_state
     subroutine python_add_tensor(sx,sy,sz,x,numdim,name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len)
       implicit none
-      integer :: sx,sy,sz,nlen,field_type,oplen,numdim,snlen,mesh_name_len
+      integer :: sx,sy,sz,nlen,field_type,oplen,snlen,mesh_name_len
+      integer, dimension(2) :: numdim
       real, dimension(sx,sy,sz) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name

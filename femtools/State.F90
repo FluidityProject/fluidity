@@ -2748,7 +2748,7 @@ contains
 
     do field=1,tensor_field_count(state)
       field_t => extract_tensor_field(state, field)
-      field_count = field_count + field_t%dim**2
+      field_count = field_count + product(field_t%dim)
     end do
 
     allocate(fields(field_count))
@@ -2771,8 +2771,8 @@ contains
 
     do field=1,tensor_field_count(state)
       field_t => extract_tensor_field(state, field)
-      do j=1,mesh_dim(field_t)
-        do k=1,mesh_dim(field_t)
+      do j=1,field_t%dim(1)
+        do k=1,field_t%dim(2)
           fields(i) = extract_scalar_field(field_t, j, k)
           i = i + 1
         end do
@@ -2803,7 +2803,7 @@ contains
 
       do field=1,tensor_field_count(states(state))
         field_t => extract_tensor_field(states(state), field)
-        field_count = field_count + field_t%dim**2
+        field_count = field_count + product(field_t%dim)
       end do
     end do
 
@@ -2828,8 +2828,8 @@ contains
 
       do field=1,tensor_field_count(states(state))
         field_t => extract_tensor_field(states(state), field)
-        do j=1,mesh_dim(field_t)
-          do k=1,mesh_dim(field_t)
+        do j=1,field_t%dim(1)
+          do k=1,field_t%dim(2)
             fields(i) = extract_scalar_field(field_t, j, k)
             i = i + 1
           end do
@@ -2887,11 +2887,11 @@ contains
   
       do i=1,tensor_field_count(input_states(l))
         field_t => extract_tensor_field(input_states(l), i)
-        do j=1,mesh_dim(field_t)
-          do k=1,mesh_dim(field_t)
+        do j=1,field_t%dim(1)
+          do k=1,field_t%dim(2)
             field_s = extract_scalar_field(field_t, j, k)
             call insert(output_states(l), field_s, &
-                        trim(input_states(l)%tensor_names(i))//"%"//int2str((j-1)*field_t%dim+k))
+                        trim(input_states(l)%tensor_names(i))//"%"//int2str((j-1)*field_t%dim(1)+k))
           end do
         end do
       end do

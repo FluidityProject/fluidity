@@ -466,7 +466,7 @@ module interpolation_module
       allocate(val_v(old_state%vector_fields(1)%ptr%dim))
     end if
     if(field_count_t>0) then
-      allocate(val_t(old_state%tensor_fields(1)%ptr%dim, old_state%tensor_fields(1)%ptr%dim))
+      allocate(val_t(old_state%tensor_fields(1)%ptr%dim(1), old_state%tensor_fields(1)%ptr%dim(2)))
     end if
 
     if (present(map)) then

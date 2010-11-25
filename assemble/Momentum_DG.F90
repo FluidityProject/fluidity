@@ -399,8 +399,8 @@ contains
     else
       ! Grab an extra reference to cause the deallocate below to be safe.
       call incref(Viscosity)
-      do dim = 1, viscosity%dim
-        do dim2 = 1, viscosity%dim
+      do dim = 1, viscosity%dim(1)
+        do dim2 = 1, viscosity%dim(2)
           if(dim2<dim) cycle
           ewrite_minmax(viscosity%val(dim,dim2,:))
         end do
@@ -424,8 +424,8 @@ contains
       call zero(surfacetension)
     else
       call incref(surfacetension)
-      do dim = 1, surfacetension%dim
-        do dim2 = 1, surfacetension%dim
+      do dim = 1, surfacetension%dim(1)
+        do dim2 = 1, surfacetension%dim(2)
           if(dim2<dim) cycle
           ewrite_minmax(surfacetension%val(dim,dim2,:))
         end do
@@ -776,7 +776,7 @@ contains
          & Grad_u_mat_q, Div_u_mat_q 
     real, dimension(U%dim,ele_and_faces_loc(U,ele),ele_and_faces_loc(U,ele)) ::&
          & Viscosity_mat
-    real, dimension(Viscosity%dim, Viscosity%dim, &
+    real, dimension(Viscosity%dim(1), Viscosity%dim(2), &
          & ele_loc(Viscosity,ele)) :: Viscosity_ele
     real, dimension(x%dim, ele_loc(x,ele)) :: x_val, x_val_2
     real, dimension(u%dim, ele_loc(u,ele)) :: u_val
@@ -1760,8 +1760,8 @@ contains
     subroutine local_assembly_arbitrary_upwind
       integer :: d3
 
-      do dim1=1, Viscosity%dim
-         do dim2=1,Viscosity%dim
+      do dim1=1, Viscosity%dim(1)
+         do dim2=1,Viscosity%dim(2)
             do d3 = 1, mesh_dim(U)
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
@@ -1784,8 +1784,8 @@ contains
      
       integer :: d3
 
-      do dim1=1, Viscosity%dim
-         do dim2=1,Viscosity%dim
+      do dim1=1, Viscosity%dim(1)
+         do dim2=1,Viscosity%dim(2)
             do d3 = 1, mesh_dim(U)
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
@@ -1930,7 +1930,7 @@ contains
     p0=(element_degree(u,ele)==0)
 
     if(present(viscosity)) then
-       allocate( kappa_gi(Viscosity%dim, Viscosity%dim, &
+       allocate( kappa_gi(Viscosity%dim(1), Viscosity%dim(2), &
             face_ngi(Viscosity,face)) )
        ! If have_dg_les create a temp viscosity tensor field that includes the
        ! les viscosities

@@ -108,8 +108,8 @@ module embed_python
       integer, intent(in) :: nodes
       real(kind = real_8), dimension(nodes), intent(in) :: x, y, z
       real(kind = real_8), intent(in) :: t
-      integer, intent(in) :: result_dim
-      real(kind = real_8), dimension(result_dim, result_dim, nodes), intent(out) :: result
+      integer,dimension(2), intent(in) :: result_dim
+      real(kind = real_8), dimension(result_dim(1), result_dim(2), nodes), intent(out) :: result
       integer, intent(out) :: stat
     end subroutine set_tensor_field_from_python
   end interface set_tensor_field_from_python
@@ -336,7 +336,7 @@ contains
     real(kind = real_4), dimension(:), intent(in) :: y
     real(kind = real_4), dimension(:), intent(in) :: z
     real(kind = real_4), intent(in) :: t
-    integer, intent(in) :: result_dim
+    integer, dimension(2), intent(in) :: result_dim
     real(kind = real_4), dimension(:, :, :), intent(out) :: result
     integer, intent(out) :: stat
 

@@ -194,7 +194,7 @@ module fields_data_types
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL
      character(len=FIELD_NAME_LEN) :: name
-     integer :: dim
+     integer, dimension(2) :: dim
      !! path to options in the options tree
 #ifdef DDEBUG
      character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
