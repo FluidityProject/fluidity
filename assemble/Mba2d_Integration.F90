@@ -114,7 +114,7 @@ module mba2d_integration
 
     ewrite(1, *) "In adapt_mesh_mba2d"
 
-    assert(metric%dim == 2)
+    assert(all(metric%dim == 2))
 
     xmesh => input_positions%mesh
     call deallocate_boundcount

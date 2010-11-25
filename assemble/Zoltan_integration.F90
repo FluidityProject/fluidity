@@ -994,7 +994,7 @@ module zoltan_integration
 
       do field_no=1,tensor_field_count(source_states(state_no))
         tfield => extract_tensor_field(source_states(state_no), field_no)
-        sz = sz + ele_loc(tfield, 1) * tfield%dim**2
+        sz = sz + ele_loc(tfield, 1) * product(tfield%dim)
       end do
 
     end do
@@ -1062,8 +1062,9 @@ module zoltan_integration
           do field_no=1,tensor_field_count(source_states(state_no))
              tfield => extract_tensor_field(source_states(state_no), field_no)
              loc = ele_loc(tfield, old_local_element_number)
-             rbuf(rhead:rhead + loc*(tfield%dim**2) - 1) = reshape(ele_val(tfield, old_local_element_number), (/loc*(tfield%dim**2)/))
-             rhead = rhead + loc * tfield%dim**2
+             rbuf(rhead:rhead + loc*(product(tfield%dim) - 1)) &
+                  = reshape(ele_val(tfield, old_local_element_number), (/loc*(product(tfield%dim))/))
+             rhead = rhead + loc * product(tfield%dim)
           end do
           
        end do
@@ -1145,8 +1146,10 @@ module zoltan_integration
           do field_no=1,tensor_field_count(target_states(state_no))
              tfield => extract_tensor_field(target_states(state_no), field_no)
              loc = ele_loc(tfield, new_local_element_number)
-             call set(tfield, ele_nodes(tfield, new_local_element_number), reshape(rbuf(rhead:rhead + loc*(tfield%dim**2) - 1), (/tfield%dim, tfield%dim, loc/)))
-             rhead = rhead + loc * tfield%dim**2
+             call set(tfield, ele_nodes(tfield, new_local_element_number), &
+                  reshape(rbuf(rhead:rhead + loc*product(tfield%dim) - 1), &
+                  (/tfield%dim(1), tfield%dim(2), loc/)))
+             rhead = rhead + loc * product(tfield%dim)
           end do
           
        end do
@@ -2557,7 +2560,7 @@ module zoltan_integration
     ! Allocate a new metric field on the new positions mesh and zero it
     if (present(metric).or.present(full_metric)) then
        call allocate(new_metric, new_positions%mesh, "ErrorMetric")
-       call set(new_metric,spread(spread(666.0, 1, new_metric%dim), 2, new_metric%dim))
+       call set(new_metric,spread(spread(666.0, 1, new_metric%dim(1)), 2, new_metric%dim(2)))
     end if
 
     ! Setup meshes and fields on states

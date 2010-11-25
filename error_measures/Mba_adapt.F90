@@ -53,7 +53,7 @@ module mba_adapt_module
     integer :: npv
     integer :: xpctel
 
-    assert(metric%dim == 2)
+    assert(all(metric%dim == 2))
 
     positions => extract_vector_field(state, "Coordinate")
     xmesh => extract_mesh(state, "Mesh")
