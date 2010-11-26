@@ -542,7 +542,7 @@ contains
           end if
 
           !     Addition for reading solids in - jem  02-04-2008
-          if (have_solids) call solid_configuration(state(ss:ss), its, nonlinear_iterations)
+          if (have_solids) call solid_configuration(state(ss:ss))
 
           !Explicit ALE ------------   jem 21/07/08
           if (use_ale) then

@@ -79,8 +79,8 @@ contains
 
     character(len=1024) :: simulation_name, filename
 
-    integer :: dump_period, quadrature_degree
-    integer :: i,j,k,total_dumps
+    integer :: quadrature_degree
+    integer :: i,total_dumps
 
     type(state_type), dimension(:), allocatable :: POD_state
     type(state_type), dimension(:) :: state
@@ -186,8 +186,6 @@ contains
     real, dimension(:), allocatable :: pod_coef 
     real, dimension(:,:), allocatable :: pod_sol_velocity
     real, dimension(:), allocatable :: pod_sol_pressure
-    type(state_type), dimension(:,:), allocatable :: pod_state_solution
-    character(len=1024) :: simulation_name
 
     POD_u=>extract_vector_field(POD_state(1), "PODVelocity")
     POD_p=>extract_scalar_field(POD_state(1), "PODPressure")
@@ -521,7 +519,7 @@ contains
         type(state_type), dimension(:), intent(in) :: POD_state
         real, dimension(:), intent(in) :: pod_coef
 
-        type(vector_field), pointer :: POD_velocity, POD_u
+        type(vector_field), pointer :: POD_velocity
         type(scalar_field), pointer :: POD_pressure
 
         type(vector_field), pointer :: snapmean_velocity
@@ -585,23 +583,15 @@ contains
     real, dimension(:,:) :: pod_sol_velocity
     real, dimension(:) :: pod_sol_pressure
 
-    type(mesh_type), pointer :: pod_xmesh, pod_umesh, pod_pmesh, pmesh, pod_mesh
-    type(element_type) :: pod_xshape, pod_ushape, pod_pshape
+    type(mesh_type), pointer :: pod_xmesh, pod_umesh, pod_pmesh, pod_mesh
     type(vector_field), pointer :: pod_positions, velocity
-    type(scalar_field), pointer :: pressure
 
     type(vector_field) :: pod_velocity
     type(vector_field), pointer :: snapmean_velocity
     type(scalar_field) :: pod_pressure
 
-    real, dimension(:), allocatable :: x,y,z
-
-    character(len=1024) :: filename
-    character(len = FIELD_NAME_LEN) :: field_name
-
-    integer :: u_nodes, p_nodes, POD_num
-    integer :: dump_period, quadrature_degree,nonods
-    integer :: i,j,k,nod,total_dumps,stat,dim,f,d
+    integer :: POD_num
+    integer :: stat,dim,d
     logical :: all_meshes_same
 
     allocate(pod_state_solution(1,1))

@@ -298,9 +298,6 @@ contains
     integer, dimension(:), pointer :: neigh, x_neigh
     integer :: loc, ni, ele_2, face, face_2, start, finish
     
-    integer, dimension(:), allocatable :: t_bc_types
-    type(scalar_field) :: t_bc
-
     assert(element_degree(t,ele)==0)
     t_shape => ele_shape(t, ele)
 
@@ -406,7 +403,7 @@ contains
                                  
     if(have_diffusivity) then
       call add_diffusivity_face_fv(face, face_2, start, finish, &
-                                   t, coordinate, t_coordinate, diffusivity, &
+                                   t, t_coordinate, diffusivity, &
                                    detwei, normal, &
                                    matrix_addto, rhs_addto)
     end if
@@ -415,13 +412,13 @@ contains
   end subroutine assemble_advection_diffusion_face_fv
   
   subroutine add_diffusivity_face_fv(face, face_2, start, finish, &
-                                     t, coordinate, t_coordinate, diffusivity, &
+                                     t, t_coordinate, diffusivity, &
                                      detwei, normal, &
                                      matrix_addto, rhs_addto)
     
     integer, intent(in) :: face, face_2, start, finish
     type(scalar_field), intent(in) :: t
-    type(vector_field), intent(in) :: coordinate, t_coordinate
+    type(vector_field), intent(in) :: t_coordinate
     type(tensor_field), intent(in) :: diffusivity
     real, dimension(:), intent(in) :: detwei
     real, dimension(:,:), intent(in) :: normal

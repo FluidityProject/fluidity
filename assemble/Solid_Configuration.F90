@@ -94,18 +94,17 @@ module solidconfiguration
   !  end interface
 #endif
 
-  public solid_configuration, smooth_out_solid_velocities,solid_drag_calculation,mesh2mesh_3d,&
+  public solid_configuration, solid_drag_calculation,mesh2mesh_3d,&
        & drag_on_surface,calculate_particle_mass,solid_data_update,element_volume_s
 
 contains
-  subroutine solid_configuration(state,its,itinoi)
+  subroutine solid_configuration(state)
     implicit none
     !variables in the call
     type(state_type), dimension(:), intent(inout) :: state
-    integer, intent(in)    :: its,itinoi  !this is just to know where in the non linear loop the subroutine is called
 
     !general integers
-    integer  inod,ielem,node,stat,i,j
+    integer  inod,ielem,node,stat,i
     integer  iloc,countinside,ipart
 
     !for tetrahedral local coordinate handling
@@ -126,11 +125,11 @@ contains
 
     !new variable types.
     type(scalar_field) visualize,matvolfrac,visualizesolid,particle_scalar,solid_concentration
-    type(vector_field) svelocity,position1,position2,particle_vector,particle_force
+    type(vector_field) svelocity,position1,position2,particle_vector
     type(vector_field) velocity,velocityplotforsolids
 
     !logicals
-    logical inside,got_particles,got_quad2lin
+    logical inside,got_particles
 
     !files
     integer dat_unit
@@ -664,10 +663,9 @@ contains
     end if
   end subroutine initialise_output_files
 
-  subroutine smooth_out_solid_velocities(state,itinoi)
+  subroutine smooth_out_solid_velocities(state)
     implicit none
     type(state_type), dimension(:), intent(inout) :: state
-    integer, intent(in) :: itinoi
     type(scalar_field) visualizesolid
     type(vector_field) svelocity,flow_velocity
     integer i
@@ -687,10 +685,10 @@ contains
     implicit none
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) ::  its,itinoi
-    integer stat,inod,i,ipart
+    integer inod,i,ipart
 
     !new variable types.
-    type(scalar_field) density,copyofdensity,visualize,matvolfrac,solid_concentration,particle_scalar
+    type(scalar_field) density,copyofdensity,solid_concentration,particle_scalar
     type(vector_field) svelocity,absorption,velocity_source,flow_velocity,solid_force_vector
     type(vector_field) position2,particle_vector,particle_force
     !dummy
@@ -894,14 +892,14 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: its,itinoi
     type(scalar_field) :: copyofdensity,density
-    type(vector_field) :: particle_vector,particle_force,position2
+    type(vector_field) :: position2
     integer inod,ipart
 
     !first recover saved density, and smooth out velocities if using non-linear iterations
     copyofdensity=extract_scalar_field(state(1),"CopyofDensity")
     density=extract_scalar_field(state(1),"Density")
     if(itinoi>1) then
-       call smooth_out_solid_velocities(state,itinoi)
+       call smooth_out_solid_velocities(state)
     end if
     density%val=copyofdensity%val
 
@@ -1053,7 +1051,7 @@ contains
     integer, intent(in) :: nloc
     real,    intent(in) :: xx(nloc),yy(nloc),zz(nloc)
     real :: volume
-    integer i,ii,node(nloc)
+    integer i,node(nloc)
     real matrix(3,3),a,b,c,d
 
     node(1)=2
@@ -1093,7 +1091,7 @@ contains
     real,    intent(in) :: xx(nloc),yy(nloc),zz(nloc)
     real :: dn(3)
     real :: volume6
-    integer i,ii,node(nloc)
+    integer i,node(nloc)
     real matrix(3,3),a,b,c,d
 
     node(1)=2
@@ -1148,7 +1146,7 @@ contains
 
     integer nonods1,nonods2,totele1,totele2
     integer number_of_bins_x,number_of_bins_y,number_of_bins_z
-    integer nfastest,nbrute,ntry,inod,ielem,iele,i,j,k,imin,new_i,new_j,new_k
+    integer nfastest,nbrute,ntry,inod,ielem,i,j,k,imin,new_i,new_j,new_k
     real ffmin
 
     real bin_x_max,bin_y_max,bin_z_max
@@ -1156,7 +1154,6 @@ contains
     real xx(4),yy(4),zz(4),xx1,yy1,zz1,pvl(4),volume
     real sec1,sec2,shapef,vcheck1
 
-    integer max_number_of_bins_x,max_number_of_bins_y,max_number_of_bins_z
     integer ii,iloc,nloc,itry,node
 
     logical inside
@@ -1197,7 +1194,7 @@ contains
     !generate element to element list for mesh 2
     call generate_eelist(field2%mesh)
 
-    call get_bin_size(state,position_name1,position_name2,ntry, &
+    call get_bin_size(state,position_name1,position_name2, &
          number_of_bins_x,number_of_bins_y,number_of_bins_z,          &
          bin_x_min,bin_y_min,bin_z_min,                               &
          bin_x_max,bin_y_max,bin_z_max,                               &
@@ -1206,7 +1203,6 @@ contains
     call construct_bin(                                      &
          state,                                              &
          number_of_bins_x,number_of_bins_y,number_of_bins_z, &
-         bin_x_max,bin_y_max,bin_z_max,                      &
          bin_x_min,bin_y_min,bin_z_min,                      &
          position_name2,dx,dy,dz)
 
@@ -1383,7 +1379,7 @@ contains
 
   end subroutine check_if_in_bin
 
-  subroutine get_bin_size(state,position_name1,position_name2,ntry, &
+  subroutine get_bin_size(state,position_name1,position_name2,      &
        number_of_bins_x,number_of_bins_y,number_of_bins_z,          &
        bin_x_min,bin_y_min,bin_z_min,                               &
        bin_x_max,bin_y_max,bin_z_max,                               &
@@ -1392,7 +1388,6 @@ contains
     implicit none
     type(state_type), dimension(:), intent(inout) :: state
     character(len=*) ,intent(in) :: position_name1,position_name2
-    integer, intent(in)    :: ntry
     integer, intent(inout) :: number_of_bins_x,number_of_bins_y,number_of_bins_z
     real,    intent(inout) :: bin_x_min,bin_y_min,bin_z_min
     real,    intent(inout) :: bin_x_max,bin_y_max,bin_z_max
@@ -1494,14 +1489,12 @@ contains
   subroutine construct_bin(                                &
        state,                                              &
        number_of_bins_x,number_of_bins_y,number_of_bins_z, &
-       bin_x_max,bin_y_max,bin_z_max,                      &
        bin_x_min,bin_y_min,bin_z_min,                      &
        position_name,dx,dy,dz)
 
     implicit none
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in)    :: number_of_bins_x,number_of_bins_y,number_of_bins_z
-    real, intent(in)    :: bin_x_max,bin_y_max,bin_z_max
     real, intent(in)    :: bin_x_min,bin_y_min,bin_z_min
     character(len=OPTION_PATH_LEN), intent(in) :: position_name
     real,    intent(in) :: dx,dy,dz
