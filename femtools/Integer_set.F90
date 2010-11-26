@@ -280,7 +280,9 @@ module integer_set_module
     end if
 
     do i = n+1, size(isets)
-       if (present(mask).and..not.mask(i)) cycle
+       if (present(mask)) then
+          if (.not.mask(i)) cycle
+       end if
        oldr=r
        r=mod(r+1,2)
        call set_intersection(tmp_iset(r), tmp_iset(oldr), isets(i))
