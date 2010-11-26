@@ -700,8 +700,8 @@ contains
        &pressure_bc, pressure_bc_type, &
        &u_cg, u_nl_cg, &
        &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
-       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, &
-       &Abs_wd, vvr_sf, ib_min_grad)
+       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
+       vvr_sf, ib_min_grad)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -889,6 +889,7 @@ contains
     real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_rhs, cg_les_loc
 
     real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: v_mass
+    real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1312,6 +1313,9 @@ contains
       if (on_sphere) then
 
         Abs_mat_sphere = shape_shape_tensor(U_shape, U_shape, detwei*rho_q, tensor_absorption_gi)
+        if (have_wd_abs) then
+               FLExit("Wetting and drying absorption does currently not work on the sphere.")
+        end if
 
         if(lump_abs) then
 
@@ -1355,6 +1359,13 @@ contains
       else
 
         Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
+
+        if (have_wd_abs) then
+          alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)  !! Wetting and drying absorption becomes active when water level reaches d_0
+          Abs_mat = Abs_mat + shape_shape_vector(U_shape, U_shape, alpha_u_quad*detwei*rho_q, &
+            &                                 ele_val_at_quad(Abs_wd,ele))
+        end if
+
         if(lump_abs) then        
           abs_lump = sum(Abs_mat, 3)
           do dim = 1, u%dim
