@@ -64,7 +64,7 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">20.0</real_value>
+      <real_value rank="0">5.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
