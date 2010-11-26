@@ -361,8 +361,6 @@ contains
 
       integer, dimension(:), allocatable :: density_bc_type
       type(scalar_field) :: density_bc
-
-      real, dimension(:,:), allocatable :: mass_p_mat
       
       integer :: stat
 
