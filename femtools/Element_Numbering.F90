@@ -58,6 +58,9 @@ module element_numbering
      ! Type to record element numbering details.
      ! Differentiate tets from other elements.
      integer :: faces, vertices, edges, boundaries
+     ! How many nodes are there on each geometric object. The index in this
+     ! array is the dimension of the object. 
+     integer, dimension(0:3) :: nodes_per
      integer :: degree ! Degree of polynomials.
      integer :: dimension ! 2D or 3D
      integer :: nodes
@@ -405,6 +408,11 @@ contains
        ele=>tet_numbering(i)
        ele%degree=i
 
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=tr(i-2)
+       ele%nodes_per(3)=te(i-3)
+
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,te(i+1)))
@@ -485,6 +493,11 @@ contains
     degree_loop: do i=1,TET_BUBBLE_MAX_DEGREE
        ele=>tet_numbering_bubble(i)
        ele%degree=i
+
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=tr(i-2)
+       ele%nodes_per(3)=te(i-3)+1
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
@@ -578,6 +591,11 @@ contains
        ele=>tri_numbering(i)
        ele%degree=i 
 
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=tr(i-2)
+       ele%nodes_per(3)=0
+
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,tr(i+1)))
@@ -654,6 +672,11 @@ contains
     degree_loop: do i=1,TRI_BUBBLE_MAX_DEGREE
        ele=>tri_numbering_bubble(i)
        ele%degree=i
+
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=tr(i-2)+1
+       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
@@ -739,6 +762,11 @@ contains
     ele=>tri_numbering_nc
     ele%degree=1
     
+    ele%nodes_per(0)=0
+    ele%nodes_per(1)=1
+    ele%nodes_per(2)=0
+    ele%nodes_per(3)=0
+
     ! Allocate mappings: 
     allocate(ele%count2number(0:ele%degree,0:ele%degree,0:ele%degree))
     allocate(ele%number2count(ele%dimension+1,tr(ele%degree+1)))
@@ -802,6 +830,11 @@ contains
     degree_loop: do i=0,INTERVAL_MAX_DEGREE
        ele=>interval_numbering(i)
        ele%degree=i 
+
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=0
+       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))
@@ -872,6 +905,11 @@ contains
     ! are co-located
      ele=>interval_numbering_bubble
      ele%degree=1
+
+     ele%nodes_per(0)=1
+     ele%nodes_per(1)=1
+     ele%nodes_per(2)=0
+     ele%nodes_per(3)=0
 
      ! Allocate mappings:
      ! we need a lot of blank spaces here to make this
@@ -948,6 +986,11 @@ contains
     ele=>point_numbering(0)
     ele%degree=0
 
+    ele%nodes_per(0)=1
+    ele%nodes_per(1)=0
+    ele%nodes_per(2)=0
+    ele%nodes_per(3)=0
+
     ! Allocate mappings:
     allocate(ele%count2number(0:0,0:0,0:0))
     allocate(ele%number2count(ele%dimension+1,1))
@@ -981,6 +1024,11 @@ contains
     degree_loop: do i=0,HEX_MAX_DEGREE
        ele=>hex_numbering(i)
        ele%degree=i
+
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=ele%nodes_per(1)**2
+       ele%nodes_per(3)=ele%nodes_per(1)**3
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
@@ -1046,6 +1094,11 @@ contains
     degree_loop: do i=0,QUAD_MAX_DEGREE
        ele=>quad_numbering(i)
        ele%degree=i
+
+       ele%nodes_per(0)=1
+       ele%nodes_per(1)=i-1
+       ele%nodes_per(2)=ele%nodes_per(1)**2
+       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))

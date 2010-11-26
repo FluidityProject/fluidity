@@ -41,6 +41,7 @@ module global_numbering
   use halos_numbering
   use halos_ownership
   use parallel_tools
+  use integer_set_module
   use linked_lists
   use mpi_interfaces
   use fields_base
@@ -142,89 +143,6 @@ contains
 
   end subroutine make_global_numbering_DG
   
-!!$  subroutine make_global_numbering_nc &
-!!$       (new_nonods, new_ndglno, Nonods, Totele, NDGLNO) 
-!!$    ! Construct a global node numbering for nc elements
-!!$    ! only works for 2D triangles currently
-!!$    integer, intent(in) :: nonods, totele
-!!$    integer, dimension(:), intent(out) :: new_ndglno
-!!$    integer, intent(out) :: new_nonods
-!!$
-!!$    !local variables
-!!$    integer :: ele, iloc,nloc
-!!$    integer, dimension(:), pointer :: verts   
-!!$    integer, dimension(3) :: local_nodes
-!!$
-!!$    new_nonods = totele + nonods - 1
-!!$
-!!$    !get a node-node list
-!!$    call MakeLists(Nonods, Totele, 3, NDGLNO, .false., NNList)
-!!$
-!!$    !the node-node list is a double list of vertices
-!!$    !use it to make a vertex numbering
-!!$    !use NNList%colm to index
-!!$
-!!$    V_checklist = clone( NNList )
-!!$    call zero( V_checklist )
-!!$
-!!$    !construct the element-edge list
-!!$
-!!$    edge = 0
-!!$    new_ndglno = 0
-!!$    !loop through elements
-!!$    element_loop: do ele = 1, totele
-!!$       !find the nodes in the element
-!!$       verts =>ndglno((i-1)*3+1:i*3)
-!!$       !loop through those nodes
-!!$       iloc_loop: do iloc = 1, 3
-!!$          !edge ordering: edge 1 is between nodes 2 and 3
-!!$          !               edge 2 is between nodes 1 and 3
-!!$          !               edge 3 is between nodes 1 and 2
-!!$          select case (iloc)
-!!$          case (1)
-!!$             jloc = 2
-!!$             kloc = 3
-!!$          case (2)
-!!$             jloc = 1
-!!$             kloc = 3
-!!$          case (3)
-!!$             jloc = 1
-!!$             kloc = 2
-!!$          end select
-!!$
-!!$          !get the neighbours of the node jloc
-!!$          neighs => row_m(NNList,verts(jloc))
-!!$          !loop through the neighbours to get the position
-!!$          !of kloc in the jloc row of NNlist
-!!$          neigh_loop: do neigh = 1, size(neighs)
-!!$             !check if the neighbour is in the cell
-!!$             neigh_k = 0
-!!$             if( (neighs(neigh)==verts(kloc)) .and. (iloc.ne.kloc)) then
-!!$                neigh_k = neigh
-!!$             end if
-!!$          end do neigh_loop
-!!$
-!!$          ASSERT(neigh_k.ne.0)
-!!$
-!!$          !get an edge number
-!!$          if(ival(V_checklist,verts(jloc),verts(kloc)) == 0) then
-!!$             edge = edge + 1
-!!$             set(V_checklist(verts(jloc),verts(kloc)),edge)
-!!$             set(V_checklist(verts(kloc),verts(jloc)),edge)
-!!$          end if
-!!$
-!!$          new_ndglno((ele-1)*3 + iloc) = &
-!!$               ival(V_checklist,verts(jloc,verts(kloc)))
-!!$
-!!$       end do iloc_loop
-!!$    end do element_loop
-!!$
-!!$    ASSERT(edge == new_nonods)
-!!$
-!!$    call deallocate( V_checklist )
-!!$    call deallocate( NNList )
-!!$
-!!$  end subroutine make_global_numbering_nc
 
   subroutine make_global_numbering &
        (new_nonods, new_ndglno, Nonods, Totele, NDGLNO, element, halos,&
@@ -248,10 +166,10 @@ contains
     type(csr_sparsity) :: NEList, NNList, EEList
 
     logical :: D3
-    integer :: dim, nloc, snloc, faces, owned_nodes
+    integer :: dim, vertex_count, facet_vertex_count, interior_facets, exterior_facets, owned_nodes
 
     ! Number of nodes associated with each object.
-    integer :: face_len, edge_len, element_len
+    integer :: face_len, edge_len
 
     ! Total nodes associated with an element
     integer :: element_tot_len
@@ -267,7 +185,7 @@ contains
     integer, dimension(:), allocatable :: node_owner, receive_halo_level, &
          & new_receive_halo_level
     integer, dimension(:,:), allocatable :: new_node_owner
-    integer :: this_node_owner, this_receive_halo_level, this_node_winner
+    integer :: this_node_owner, this_receive_halo_level
 
     ! Cache for positions in ndglno which are currently being worked on and
     ! new values to go in them
@@ -277,16 +195,24 @@ contains
     integer, dimension(:), allocatable :: node_map
     
     ! In each case, halos is the last dimension of halos.
-    type(ilist), dimension(:), allocatable :: this_send_targets, node_targets,&
+    type(integer_set), dimension(:), allocatable :: this_send_targets, node_targets,&
          & node2_targets
-    type(ilist), dimension(:,:), allocatable :: old_send_targets, new_send_targets
-    type(inode), pointer :: this_target
+    type(integer_set), dimension(:,:), allocatable :: old_send_targets, new_send_targets
 
     ! Nodes in current element
     integer, pointer, dimension(:) :: ele_node
 
+    ! Nodes and elements adjacent to current node
+    integer, pointer, dimension(:) :: adjacent_nodes, adjacent_elements
+
     ! Flag for whether halos are being calculated:
     logical :: have_halos
+
+    ! List of vertex numbers in an element.
+    integer, dimension(:), pointer :: ele1_vertices, ele2_vertices
+
+!DEBUG
+    character(len=10) :: format
 
     ! Ascertain whether we are calculating halos or not.
     if (present(halos)) then
@@ -294,9 +220,10 @@ contains
        assert(present(element_halo))
        allocate(this_send_targets(size(halos)), node_targets(size(halos)),&
          & node2_targets(size(halos)))
-       
+
        have_halos=.true.
     else
+       allocate(this_send_targets(0))
        have_halos=.false.
     end if
 
@@ -305,11 +232,11 @@ contains
     D3=dim==3
     
     ! Vertices per element.
-    nloc=element%numbering%vertices
+    vertex_count=element%numbering%vertices
     ! Vertices per surface element
-    snloc = nloc - 1
+    facet_vertex_count = vertex_count - 1
 
-    call MakeLists_Dynamic(Nonods, Totele, Nloc, ndglno, D3, NEList,&
+    call MakeLists_Dynamic(Nonods, Totele, Vertex_count, ndglno, D3, NEList,&
        & NNList, EEList)
 
     new_ndglno=0
@@ -323,51 +250,39 @@ contains
     ! elements, face elements and interior elements.
     !----------------------------------------------------------------------
 
-    ! Vertices.
-    new_nonods=nonods
-
-    ! Edges.
-    edge_len=max(element%numbering%degree-1,0)
-    new_nonods=new_nonods+0.5*size(NNList%colm)*edge_len
     
-    select case(dim)
-      case(3)
-       ! Interior faces
-       faces=count(EEList%colm/=0)
-       
-       ! Total distinct faces
-       faces=0.5*faces+ size(EEList%colm)-faces
-       
-       face_len=max(tr(element%numbering%degree-2),0)
-       new_nonods=new_nonods+faces*face_len       
+    ! Add any interior elements
+    new_nonods=totele*element%numbering%nodes_per(dim)
 
-       ! Interior nodes
-       element_len=max(te(element%numbering%degree-3),0)
-       if (element%numbering%type==ELEMENT_BUBBLE) then
-         element_len = element_len + 1
+    if (dim>0) then
+       ! For dim 0 there are no facets.
+
+       ! Interior faces
+       interior_facets=0.5*count(EEList%colm/=0)
+
+       exterior_facets=size(EEList%colm)-2*interior_facets
+
+       new_nonods=new_nonods+element%numbering%nodes_per(dim-1)&
+            &*(interior_facets+exterior_facets)
+
+       if (dim>1) then
+          ! Vertices.
+          new_nonods=new_nonods+element%numbering%nodes_per(0)&
+               *nonods
+          
+          if (dim>2) then
+             ! For dim==3 only, still need edges.
+
+             ! Edges. 
+             ! 0.5*size(NNList%colm) is the number of edges in the mesh.
+             new_nonods=new_nonods+0.5*size(NNList%colm)&
+                  &*element%numbering%nodes_per(1)
+             
+          end if
        end if
-       new_nonods=new_nonods+totele*element_len
-      case(2)
-       faces=0
-        
-       ! Interior nodes
-       element_len=max(tr(element%numbering%degree-2),0)
-       if (element%numbering%type==ELEMENT_BUBBLE) then
-         element_len = element_len + 1
-       end if
-       new_nonods=new_nonods+totele*element_len
-      case(1)
-       faces=0
-       
-       ! Interior nodes
-       element_len=0
-       if (element%numbering%type==ELEMENT_BUBBLE) then
-         element_len = element_len + 1
-       end if
-       new_nonods=new_nonods+totele*element_len
-     case default
-       FLAbort("Unsupported dimension specified.")
-   end select
+
+    end if
+
 
     ! Total nodes per element
     element_tot_len=element%numbering%nodes
@@ -376,7 +291,14 @@ contains
        allocate(new_node_owner(new_nonods, 0:size(halos)), &
             &   new_receive_halo_level(size(new_ndglno)), &
             &   new_send_targets(new_nonods, size(halos)))
+       do i = 1, size(new_send_targets,1)
+          do j = 1,  size(new_send_targets,2)
+             call allocate(new_send_targets(i,j))
+          end do
+       end do
     end if
+
+    ! n is the current maximum node number.
 
     ! We need one n plus one for each halo so as to separately number the
     ! nodes in each halo. We then transplant them into one long list
@@ -391,12 +313,15 @@ contains
     !----------------------------------------------------------------------
     ! Vertex numbers
     !----------------------------------------------------------------------
-    allocate(ndglno_pos(nloc), ndglno_val(nloc))
+    
+    ! ndglno_pos stores the postion of the vertices of the current element
+    ! in the new_ndglno list. ndglno_val stores the corresponding values.
+    allocate(ndglno_pos(vertex_count), ndglno_val(vertex_count))
     allocate(node_map(nonods))
     node_map=0
     
     do i=1,totele
-       ele_node=>NDGLNO(nloc*(i-1)+1:nloc*i)
+       ele_node=>NDGLNO(vertex_count*(i-1)+1:vertex_count*i)
        ndglno_pos=(i-1)*element_tot_len &
             + vertex_num(ele_node, &
                          ele_node, &
@@ -406,7 +331,7 @@ contains
        ! Pick up those values which have been done already.
        ndglno_val=node_map(ele_node)
 
-       do j=1,nloc
+       do j=1,vertex_count
           if (ndglno_val(j)==0) then
              n(receive_halo_level(ele_node(j)))=&
                   n(receive_halo_level(ele_node(j)))+1 
@@ -415,14 +340,15 @@ contains
              node_map(ele_node(j))=ndglno_val(j)
              
              if(receive_halo_level(ele_node(j)) == 0 .and. have_halos) then
-               new_send_targets(n(0),:) = copy(old_send_targets(ele_node(j),:))
+               call copy(new_send_targets(n(0),:), &
+                    &    old_send_targets(ele_node(j),:))
              end if
           end if
        end do
        
        new_ndglno(ndglno_pos) = ndglno_val
        if (have_halos) then
-          do j=1,nloc
+          do j=1,vertex_count
              new_node_owner(ndglno_val(j),receive_halo_level(ele_node(j)))&
                   =node_owner(ele_node(j))
           end do
@@ -435,104 +361,45 @@ contains
     !----------------------------------------------------------------------
     ! Edge numbers.
     !----------------------------------------------------------------------
+    ! edge_len is the number of non-vertex nodes on each edge.
+    edge_len=element%numbering%nodes_per(1)
+
     if (edge_len>0) then
        allocate(ndglno_pos(edge_len))
 
        do node=1,size(NNList,1)
-          do j=NNList%findrm(node),NNList%findrm(node+1)-1
-             node2=NNList%colm(j)
+          adjacent_nodes=>row_m_ptr(NNlist, node)
+
+          do j=1, size(adjacent_nodes)
+             node2=adjacent_nodes(j)
              
              new_node=node_map(node)
              new_node2=node_map(node2)
 
-             ! Listen very carefully, I shall do each row only once!
+             ! Listen very carefully, I shall do each edge only once!
              if (node2<=node) cycle
-
-             ! Defaults which may be overwritten in the following if block
-             this_receive_halo_level=0                
-             this_node_owner=node_owner(node)
-
-             if (have_halos) then
-                if (node_owner(node)/=node_owner(node2)) then
-                   ! Contested nodes. Nodes have the same halo properties as
-                   ! the winning side.
-                   
-                   ! Work out who should own these nodes.
-                   this_node_owner=max(node_owner(node), node_owner(node2))
-                   if (this_node_owner==node_owner(node)) then
-                      this_receive_halo_level=receive_halo_level(node)
-                      this_send_targets=copy(old_send_targets(node,:))
-                   else
-                      this_receive_halo_level=receive_halo_level(node2)
-                      this_send_targets=copy(old_send_targets(node2,:))
-                   end if
-                   
-                   ! Uncontested nodes. Nodes belong to the smallest available
-                   ! halo.
-                else if (any(old_send_targets(node,:)%length>0&
-                     &       .and.old_send_targets(node2,:)%length>0))&
-                     & then
-                   
-                   do halo=1, size(halos)
-                      ! A new node is in a halo if both old nodes are.
-                      this_send_targets(halo)=intersect_ascending(&
-                           old_send_targets(node,halo),&
-                           old_send_targets(node2,halo))
-                   end do
-
-                   ! For the level 2 halo, a point is in if one of the nodes
-                   ! is in the level 2 halo and the other is in the level 1.
-                   do halo=2,size(halos)
-                      !this_send_targets(halo)=intersect_ascending(&
-                      node_targets=old_send_targets(node,halo-1:halo)
-                      node2_targets=old_send_targets(node2,halo-1:halo)
-                      
-                      this_target=>node_targets(1)%firstnode
-                      do while(associated(this_target))
-                         if(has_value_sorted(node2_targets(2), this_target%value)) then
-                            call insert_ascending(this_send_targets(halo),&
-                                 & this_target%value)
-                         end if
-                         this_target=>this_target%next
-                      end do
-                      
-                      this_target=>node2_targets(1)%firstnode
-                      do while(associated(this_target))
-                         if(has_value_sorted(node_targets(2), this_target%value)) then
-                            call insert_ascending(this_send_targets(halo),&
-                                 & this_target%value)
-                         end if
-                         this_target=>this_target%next
-                      end do
-                   end do
-                   
-                else if (receive_halo_level(node)&
-                     &>0.and.receive_halo_level(node2)>0) then
-                   
-                   this_receive_halo_level=max(receive_halo_level(node), &
-                        receive_halo_level(node2))
-                   
-                end if
-             end if
+             
+             call conduct_halo_voting((/node,node2/), this_node_owner,&
+                  & this_receive_halo_level, this_send_targets)
              
              ! Now double loop over all adjacent elements and number in the
-             ! elements which border this face.
-             do k=NEList%findrm(node2), NEList%findrm(node2+1)-1
-
-                ele=NEList%colm(k)
+             ! elements which border this edge.
+             adjacent_elements=>row_m_ptr(NEList, node2)
+             
+             do k=1, size(adjacent_elements)
+                ele=adjacent_elements(k)
 
                 if (any(ele==row_m(NEList, node))) then
                    ! This element contains this edge.
 
                    ! Nodes in this element
 
-
                    ! This horrible mess finds the appropriate nodes in this
                    ! element and assigns the next edge_len indices to them.
-                   ndglno_pos=(ele-1)*element_tot_len&
+                   ndglno_pos=(ele-1)*element_tot_len &
                         +edge_num((/node,node2/), &
-                        NDGLNO(nloc*(ele-1)+1:nloc*ele), &
-                        element%numbering, interior=.true.)
+                        &  NDGLNO(vertex_count*(ele-1)+1:vertex_count*ele), &
+                        &  element%numbering, interior=.true.)
 
                    new_ndglno(ndglno_pos) &
                         = sequence(n(this_receive_halo_level)+1, edge_len)
@@ -542,24 +409,27 @@ contains
                            this_receive_halo_level
                       new_node_owner(new_ndglno(ndglno_pos),&
                            & this_receive_halo_level)=this_node_owner
-                      
-                      if (any(this_send_targets%length/=0)) then
-                         do i=1,size(ndglno_pos)
-                            new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 = copy(this_send_targets)
-                         end do
-                      end if
                    end if
                       
                 end if
              end do
 
+             ! Because we by definition own send nodes, we can set these
+             ! directly rather than via the node element list.
+             if (any(key_count(this_send_targets)/=0)) then
+                do i=n(this_receive_halo_level)+1,&
+                     n(this_receive_halo_level)+edge_len
+
+                   call copy(new_send_targets(i,:), this_send_targets)
+                end do
+             end if
+             
              ! Move on the node count.
              n(this_receive_halo_level)=n(this_receive_halo_level)+edge_len
              
              if (have_halos) then
                 ! Clean up send targets
-                call flush_lists(this_send_targets)
+                call deallocate(this_send_targets)
              end if
           end do
 
@@ -571,15 +441,20 @@ contains
 
     !----------------------------------------------------------------------
     ! Interior face numbers - only for 3D.
+    ! 
+    ! 2D interior face number are just interior numbers and are dealt with below.
     !----------------------------------------------------------------------
+    face_len=element%numbering%nodes_per(2)
+
     if (D3.and.face_len>0) then
-       if(isparallel()) then
-         FLAbort("This is broken - blame dham.")
-       end if
-       allocate(face_nodes(snloc), ndglno_pos(face_len))
+       allocate(face_nodes(facet_vertex_count), ndglno_pos(face_len))
+
        do ele=1,size(EEList,1)
-          do j=EEList%findrm(ele),EEList%findrm(ele+1)-1
-             ele2=EEList%colm(j)
+          adjacent_elements=>row_m_ptr(EEList, ele)
+          
+
+          do j=1, size(adjacent_elements)
+             ele2=adjacent_elements(j)
 
              ! Skip exterior faces.
              if (ele2==0) cycle
@@ -587,42 +462,61 @@ contains
              ! Listen very carefully, I shall do each face only once!
              if (ele2<=ele) cycle
 
-             ! This horrible mess finds the appropriate nodes in this
-             ! element and assigns the next face_len indices to them.
-             face_nodes=common(NDGLNO(nloc*(ele-1)+1:nloc*ele),&
-                  NDGLNO(nloc*(ele2-1)+1:nloc*ele2))
+             ele1_vertices=>NDGLNO(vertex_count*(ele-1)+1:vertex_count*ele)
+             ele2_vertices=>NDGLNO(vertex_count*(ele2-1)+1:vertex_count*ele2)
+
+             ! Find the vertices on the common face.
+             face_nodes=common(ele1_vertices,ele2_vertices)
 
              ! Work out who should own these nodes.
-             this_node_winner&
-                  &=face_nodes(maxloc(node_owner(face_nodes),1))
-             this_node_owner=node_owner(this_node_winner)
-             this_receive_halo_level=receive_halo_level(this_node_winner)
+             call conduct_halo_voting(face_nodes, this_node_owner,&
+                  & this_receive_halo_level, this_send_targets)
 
+             ! Set new_ndglno for this face in ele1.
              ndglno_pos=(ele-1)*element_tot_len&
-                  +face_num(face_nodes,&
-                  NDGLNO(nloc*(ele-1)+1:nloc*ele), &
+                  +face_num(face_nodes, ele1_vertices, &
                   element%numbering, interior=.true.)
-
-!             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
-!             new_node_owner(ndglno_pos)=this_node_owner
              
              new_ndglno(ndglno_pos) &
                   = sequence(n(this_receive_halo_level)+1, face_len)
 
-             face_nodes=common(NDGLNO(nloc*(ele-1)+1:nloc*ele),&
-                  NDGLNO(nloc*(ele2-1)+1:nloc*ele2))
+             if(have_halos) then
+                new_receive_halo_level(ndglno_pos)=this_receive_halo_level
+                new_node_owner(ndglno_pos, this_receive_halo_level)&
+                     =this_node_owner
+             end if
 
+             ! Set new_ndglno for this face in ele2.
              ndglno_pos=(ele2-1)*element_tot_len&
-                  +face_num(face_nodes,&
-                  NDGLNO(nloc*(ele2-1)+1:nloc*ele2), &
+                  +face_num(face_nodes, ele2_vertices, &
                   element%numbering, interior=.true.)
-
-!             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
-!             new_node_owner(ndglno_pos)=this_node_owner
 
              new_ndglno(ndglno_pos) &
                   = sequence(n(this_receive_halo_level)+1, face_len)
-             n(this_receive_halo_level)=n(this_receive_halo_level)+1
+
+             if (have_halos) then
+                new_receive_halo_level(ndglno_pos)=this_receive_halo_level
+                new_node_owner(ndglno_pos, this_receive_halo_level)&
+                     =this_node_owner
+             end if
+
+             ! Because we by definition own send nodes, we can set these
+             ! directly rather than via the node element list.
+             if (any(key_count(this_send_targets)/=0)) then
+                do i=n(this_receive_halo_level)+1,&
+                     n(this_receive_halo_level)+face_len
+
+                   call copy(new_send_targets(i,:), this_send_targets)
+                end do
+             end if
+             
+             ! Move on the node count.
+             n(this_receive_halo_level)=n(this_receive_halo_level)+face_len
+
+             if (have_halos) then
+                ! Clean up send targets
+                call deallocate(this_send_targets)
+             end if
 
           end do
        end do
@@ -639,34 +533,46 @@ contains
 
     ! This is the internal nodes of the elements plus the external faces.
     do ele=1,size(EEList,1)
-       
-    
+              
        ndglno_pos=sequence((ele-1)*element%loc+1, element%loc)
 
-       !this_node_winner=face_nodes(maxloc(new_node_owner(ndglno_pos),1))
-       !this_node_owner=new_node_owner(this_node_winner)
-       !this_send_halo_level=new_send_halo_level(this_node_winner)
-       !this_receive_halo_level=new_receive_halo_level(this_node_winner)
+       ! Work out who should own these nodes.
+       ele1_vertices=>NDGLNO(vertex_count*(ele-1)+1:vertex_count*ele)
+       call conduct_halo_voting(ele1_vertices, this_node_owner,&
+            & this_receive_halo_level, this_send_targets)
               
        do i=1, element%loc
           if (new_ndglno(ndglno_pos(i))==0) then
              n(this_receive_halo_level)=n(this_receive_halo_level)+1
              new_ndglno(ndglno_pos(i))=n(this_receive_halo_level)
-             
-             if(isparallel()) then
-               FLAbort("This is broken - blame dham.")
-               new_receive_halo_level(ndglno_pos(i))=this_receive_halo_level
-!               new_node_owner(ndglno_pos(i))=this_node_owner
+
+             if(have_halos) then
+                new_receive_halo_level(ndglno_pos(i))=this_receive_halo_level
+                new_node_owner(ndglno_pos(i), this_receive_halo_level)&
+                     =this_node_owner
+             end if
+
+             if (any(key_count(this_send_targets)/=0)) then
+                call copy(new_send_targets(n(this_receive_halo_level),:), &
+                     &    this_send_targets)
+                
              end if
           end if
        end do
 
+       if (have_halos) then
+          ! Clean up send targets
+          call deallocate(this_send_targets)
+       end if
+       
     end do
 
     deallocate(ndglno_pos)
     call deallocate(NEList)
     call deallocate(NNList)
     call deallocate(EEList)
+
+    write(format,'(a,i0,a)') '(',element%loc,'i4)'
 
     ASSERT(sum(n)==new_nonods)
 
@@ -689,21 +595,21 @@ contains
        new_node_owner(n(halo)+1:,0)&
             =new_node_owner(:new_nonods-n(halo),halo)
 
-       call remove_spurious_sends(new_send_targets, new_ndglno,&
-            & element_tot_len, element_halo)
+!!$       call remove_spurious_sends(new_send_targets, new_ndglno,&
+!!$            & element_tot_len, element_halo)
 
        call generate_new_halos(new_halos, new_ndglno, new_node_owner(:,0)&
             &, new_receive_halo_level, totele,&
             & element%loc, owned_nodes, new_send_targets) 
 
        do i = 1, size(old_send_targets,1)
-          do j = 1, size(halos)
-             call flush_list(old_send_targets(i, j))
+          do j = 1, size(old_send_targets,2)
+             call deallocate(old_send_targets(i, j))
           end do
        end do
        do i = 1, size(new_send_targets,1)
-          do j = 1, size(halos)
-             call flush_list(new_send_targets(i, j))
+          do j = 1, size(old_send_targets,2)
+             call deallocate(new_send_targets(i, j))
           end do
        end do
        deallocate(old_send_targets)
@@ -712,82 +618,146 @@ contains
 
   contains
 
-    subroutine remove_spurious_sends(send_targets, ndglno, nloc, element_halo)
-      !!< Given the node ownership and a complete element halo, remove any
-      !!< sends which apply only to elements about which the receiving
-      !!< processor is unaware.
+    subroutine conduct_halo_voting(vertices, this_node_owner,&
+         & this_receive_halo_level, this_send_targets) 
+      !!< Given a list of vertices of a topological object (element, face,
+      !!< edge etc.), apply the voting algorithm to determine which
+      !!< processor owns that object and therefore what the halo properties
+      !!< of any new nodes placed on that object should be.
+      integer, dimension(:), intent(in) :: vertices
+      integer, intent(out) :: this_node_owner
+      integer, intent(out) :: this_receive_halo_level
+      type(integer_set), dimension(:), intent(out) :: this_send_targets
 
-      !! Send_targets provides the list of processors to which each
-      !! node is broadcast at each halo level. It is nonods x halos
-      type(ilist), dimension(:,:), intent(inout) :: send_targets
-      !! The element node list and number of nodes per element for the NEW
-      !! mesh.
-      integer, dimension(:), intent(in), target :: ndglno
-      integer, intent(in) :: nloc
-      type(halo_type), intent(in) :: element_halo
+      integer :: halo, i
+
+      ! Defaults which may be overwritten in the following if block
+      this_receive_halo_level=0                
+      this_node_owner=maxval(node_owner(vertices))
+
+      ! Ensure the send targets pointer is null
+      call allocate(this_send_targets)
+             
+      if (.not.have_halos) return
       
-      !! For each node, a list of processors which can see that node.
-      type(ilist), dimension(:), allocatable :: visible_to
-      !! For each processor, a list of halo elements that processor can see.
-      type(integer_vector), dimension(:), allocatable :: known_element_lists
+      if (any(node_owner(vertices)/=this_node_owner)) then
+         ! Contested object. Nodes have the same halo properties as
+         ! the winning side.
+       
+         if (this_node_owner/=rank) then
+            ! We don't own the new nodes so they go on the receive list.
+            this_receive_halo_level=maxval(receive_halo_level(vertices))
 
-      integer :: e, ele, element_count
-      integer :: n, node_count, proc, h, halo_count
-      integer, dimension(:), pointer :: this_ele
-      type(ilist) :: tmplist
-
-      element_count=size(ndglno)/nloc
-      node_count=size(send_targets,1)
-      halo_count=size(send_targets,2)
-
-      allocate(visible_to(node_count))
-      allocate(known_element_lists(halo_proc_count(element_halo)))
-
-      ! Check that nloc does actually divide size(ndglno)
-      assert(size(ndglno)==element_count*nloc)
-
-      ! Retrieve the list of elements which each processor can see.
-      call element_halo_communicate_visibility(element_halo,&
-           & known_element_lists)
-
-      ! Mark all nodes in elements visible to a processor as themselves
-      ! visible to that processor
-      do proc=1,halo_proc_count(element_halo)
-         do e = 1, size(known_element_lists(proc)%ptr)
-            ele = known_element_lists(proc)%ptr(e)
-            this_ele=>ndglno((ele-1)*nloc+1:ele*nloc)
-
-            do n=1,size(this_ele)
-               
-               call insert_ascending(visible_to(this_ele(n)), proc)
-            
+         else
+            ! We do own the new nodes so we form send lists for them.
+            ! 
+            ! The send sets are the intersection of the send
+            ! sets. This is because if one vertex is not a sender at the
+            ! given halo level, the obect does not belong to that halo.
+            do halo = 1, size(halos) 
+               call set_intersection(this_send_targets(halo),&
+                    old_send_targets(vertices, halo), &
+                    mask=(node_owner(vertices)==rank))
             end do
+         end if
+
+         !! If we get here, the object is uncontested. It's either all ours
+         !! or all someone else's.
+      else if(all(receive_halo_level(vertices)>0)) then
+         ! It's someone else's.
+         
+         this_receive_halo_level=maxval(receive_halo_level(vertices))
+
+      else if (all(key_count(&
+           pack(old_send_targets(vertices,:),mask=.true.))>0)) then
+         ! It's ours and there's something to send.
+         
+         do halo = 1, size(halos) 
+            call set_intersection(this_send_targets(halo),&
+                 old_send_targets(vertices, halo), &
+                 mask=(node_owner(vertices)==rank))
          end do
-      end do
-
-      do proc=1,halo_proc_count(element_halo)
-         deallocate(known_element_lists(proc)%ptr)
-      end do
-
-      do n=1,node_count
          
-         do h=1,halo_count
-            ! Do nothing for non-send nodes.
-            if (send_targets(n,h)%length==0) cycle
-         
-            
-            tmplist=intersect_ascending(send_targets(n,h),visible_to(n))
-         
-            call flush_list(send_targets(n,h))
-            send_targets(n,h)=tmplist
-         end do
+      end if
 
-         call flush_list(visible_to(n))
-      end do
-      deallocate(visible_to)
+    end subroutine conduct_halo_voting
 
-
-    end subroutine remove_spurious_sends
+!!$    subroutine remove_spurious_sends(send_targets, ndglno, nloc, element_halo)
+!!$      !!< Given the node ownership and a complete element halo, remove any
+!!$      !!< sends which apply only to elements about which the receiving
+!!$      !!< processor is unaware.
+!!$
+!!$      !! Send_targets provides the list of processors to which each
+!!$      !! node is broadcast at each halo level. It is nonods x halos
+!!$      type(ilist), dimension(:,:), intent(inout) :: send_targets
+!!$      !! The element node list and number of nodes per element for the NEW
+!!$      !! mesh.
+!!$      integer, dimension(:), intent(in), target :: ndglno
+!!$      integer, intent(in) :: nloc
+!!$      type(halo_type), intent(in) :: element_halo
+!!$      
+!!$      !! For each node, a list of processors which can see that node.
+!!$      type(ilist), dimension(:), allocatable :: visible_to
+!!$      !! For each processor, a list of halo elements that processor can see.
+!!$      type(integer_vector), dimension(:), allocatable :: known_element_lists
+!!$
+!!$      integer :: e, ele, element_count
+!!$      integer :: n, node_count, proc, h, halo_count
+!!$      integer, dimension(:), pointer :: this_ele
+!!$      type(ilist) :: tmplist
+!!$
+!!$      element_count=size(ndglno)/nloc
+!!$      node_count=size(send_targets,1)
+!!$      halo_count=size(send_targets,2)
+!!$
+!!$      allocate(visible_to(node_count))
+!!$      allocate(known_element_lists(halo_proc_count(element_halo)))
+!!$
+!!$      ! Check that nloc does actually divide size(ndglno)
+!!$      assert(size(ndglno)==element_count*nloc)
+!!$
+!!$      ! Retrieve the list of elements which each processor can see.
+!!$      call element_halo_communicate_visibility(element_halo,&
+!!$           & known_element_lists)
+!!$
+!!$      ! Mark all nodes in elements visible to a processor as themselves
+!!$      ! visible to that processor
+!!$      do proc=1,halo_proc_count(element_halo)
+!!$         do e = 1, size(known_element_lists(proc)%ptr)
+!!$            ele = known_element_lists(proc)%ptr(e)
+!!$            this_ele=>ndglno((ele-1)*nloc+1:ele*nloc)
+!!$
+!!$            do n=1,size(this_ele)
+!!$               
+!!$               call insert_ascending(visible_to(this_ele(n)), proc)
+!!$            
+!!$            end do
+!!$         end do
+!!$      end do
+!!$
+!!$      do proc=1,halo_proc_count(element_halo)
+!!$         deallocate(known_element_lists(proc)%ptr)
+!!$      end do
+!!$
+!!$      do n=1,node_count
+!!$         
+!!$         do h=1,halo_count
+!!$            ! Do nothing for non-send nodes.
+!!$            if (send_targets(n,h)%length==0) cycle
+!!$         
+!!$            
+!!$            tmplist=intersect_ascending(send_targets(n,h),visible_to(n))
+!!$         
+!!$            call flush_list(send_targets(n,h))
+!!$            send_targets(n,h)=tmplist
+!!$         end do
+!!$
+!!$         call flush_list(visible_to(n))
+!!$      end do
+!!$      deallocate(visible_to)
+!!$
+!!$
+!!$    end subroutine remove_spurious_sends
     
     subroutine generate_new_halos(new_halos, new_ndglno, new_node_owner&
             &, new_receive_halo_level, elements,&
@@ -803,54 +773,55 @@ contains
       integer, intent(in) :: elements, nloc, owned_nodes
       ! Send_targets provides the list of processors to which each
       ! node is broadcast at each halo level. It is nonods x halos
-      type(ilist), dimension(:,:), intent(in) :: send_targets
+      type(integer_set), dimension(:,:), intent(in) :: send_targets
 
       integer :: processors, this_proc, halo, n, proc
       
-      type(ilist), dimension(:), allocatable :: sends, receives
-      integer, dimension(:), pointer :: ele_nodes, ele_owners
-      type(inode), pointer :: list_node => null()
+      type(integer_set), dimension(:), allocatable :: sends, receives
+      integer, dimension(:), pointer :: ele_nodes
 
       processors=getnprocs()
       this_proc=getprocno()
 
       allocate(sends(processors))
       allocate(receives(processors))
+      do n=1,size(sends)
+         call allocate(sends(n))
+         call allocate(receives(n))
+      end do
       
       halo_loop: do halo = 1, size(new_halos)
          
          do n=1, size(new_receive_halo_level)
             ! Receive node
             if (new_receive_halo_level(n)>0.and.new_receive_halo_level(n)<=halo) then
-               call insert_ascending(receives(new_node_owner(new_ndglno(n))), new_ndglno(n))
+               call insert(receives(new_node_owner(new_ndglno(n))), new_ndglno(n))
             end if
          end do            
 
          do n = 1, new_nonods
-                        
             ! Send node
-            list_node => send_targets(n,halo)%firstnode
-            do while(associated(list_node))
-               call insert_ascending(sends(list_node%value), n)
-               
-               list_node => list_node%next
+            do i = 1, key_count(send_targets(n,halo))
+               call insert(sends(fetch(send_targets(n,halo),i)),n)
             end do
          end do
          
-         call allocate(new_halos(halo), nsends=sends%length, &
-              nreceives=receives%length, nprocs=processors, &
+         call allocate(new_halos(halo), nsends=key_count(sends), &
+              nreceives=key_count(receives), nprocs=processors, &
               nowned_nodes=owned_nodes)
          
          do proc = 1, processors
             
-            new_halos(halo)%sends(proc)%ptr=list2vector(sends(proc))
-            call flush_list(sends(proc))
+            new_halos(halo)%sends(proc)%ptr=set2vector(sends(proc))
+            call deallocate(sends(proc))
             
-            new_halos(halo)%receives(proc)%ptr=list2vector(receives(proc))
-            call flush_list(receives(proc))
+            new_halos(halo)%receives(proc)%ptr=set2vector(receives(proc))
+            call deallocate(receives(proc))
             
          end do
          
+         call print_halo(new_halos(halo), 0)
+    
          assert(trailing_receives_consistent(new_halos(halo)))
          assert(halo_valid_for_communication(new_halos(halo)))
 
@@ -898,7 +869,7 @@ contains
       integer, dimension(:), allocatable, intent(out) :: node_owner
       integer, dimension(:), allocatable, intent(out) :: receive_halo_level
       !! Targets to broadcast each node to. Nonods x halos
-      type(ilist), dimension(:,:), allocatable, intent(out) :: old_send_targets
+      type(integer_set), dimension(:,:), allocatable, intent(out) :: old_send_targets
 
       integer :: h, n, p
 
@@ -910,6 +881,11 @@ contains
       
       if(.not. present(halos)) return
       allocate(old_send_targets(nonods, size(halos)))
+      do h=1,size(old_send_targets,1)
+         do p=1,size(old_send_targets,2)
+            call allocate(old_send_targets(h,p))
+         end do
+      end do
 
       ! Count down through the halos as halo 1 is a subset of halo 2 and
       ! we therefore need halo 1 to overwrite.
@@ -929,7 +905,7 @@ contains
             receive_halo_level(halo_receives(halos(h), p)) = h
 
             do n = 1, halo_send_count(halos(h), p)
-              call insert_ascending(old_send_targets(halo_send(halos(h), p, n),h), p)
+              call insert(old_send_targets(halo_send(halos(h), p, n),h), p)
             end do
             
             if(h == size(halos)) then
