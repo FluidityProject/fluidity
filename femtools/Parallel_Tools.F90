@@ -319,7 +319,7 @@ contains
 
     integer, PARAMETER::TAG=12
 
-    integer NProcs, Rank, I, J, K, Count, IERROR
+    integer NProcs, Rank, I, J, Count, IERROR
     integer numBlocks, numBlocksPerNode, POS
     integer, ALLOCATABLE, DIMENSION(:)::haloType
     SAVE haloType
@@ -962,8 +962,6 @@ contains
     character(len = *), intent(in) :: filename
     
     character(len = parallel_filename_len(filename)) :: pfilename
-
-    integer :: ierr
 
     if (is_active_process .and. no_active_processes == 1) then
       write(pfilename, "(a)") trim(filename)

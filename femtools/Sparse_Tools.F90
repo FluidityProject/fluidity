@@ -458,13 +458,11 @@ contains
   !!     v
   !!
   SUBROUTINE posinm(sparsity, TOTELE, NNodes1, NLoc1, NDGLNO1,&
-       NNodes2, NLoc2, NDGLNO2, diag, nnodp, name)
+       NNodes2, NLoc2, NDGLNO2, diag, name)
     type(csr_sparsity), intent(out) :: sparsity
     INTEGER, INTENT(IN)::NNodes1, NNodes2, TOTELE, NLoc1, NLoc2
     INTEGER, INTENT(IN)::NDGLNO1(TOTELE*NLoc1), NDGLNO2(TOTELE*NLoc2)
     logical, intent(in), optional ::  diag
-    ! Optional arguments needed in parallel:
-    integer, optional, intent(in):: nnodp
     character(len=*), intent(in):: name
 
     INTEGER ELE,GLOBI,GLOBJ,LOCI,LOCJ,I
@@ -4303,7 +4301,7 @@ contains
     type(integer_set):: iset
     integer, dimension(:), allocatable:: nnz
     integer, dimension(:), pointer:: rowA_i, rowB_k, rowC_i
-    integer:: i, j, k
+    integer:: i, k
     
     ! work out number of nonzeros per row of C
     allocate(nnz(size(A,1)))
@@ -4463,10 +4461,6 @@ contains
     type(block_csr_matrix), intent(in) :: A
     type(block_csr_matrix), intent(in) :: B
     type(block_csr_matrix), intent(inout) :: product
-    
-    real, dimension(:), pointer:: A_i, B_k
-    integer, dimension(:), pointer:: rowA_i, rowB_k
-    integer:: i, j, k
     
     ewrite(1,*) 'Entering csr_matmul_preallocated'
     
