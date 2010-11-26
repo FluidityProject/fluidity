@@ -365,16 +365,10 @@ contains
 
     ! Implicit buoyancy (theta*g*dt*drho/dr)
     have_implicit_buoyancy=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")  
-    if (have_implicit_buoyancy) then
-      if (have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient")) then
-        call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient", ib_min_grad)
-      else
-        ib_min_grad=0.0
-      end if
-    end if  
+    call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient"&
+            , ib_min_grad, default=0.0)
 
-    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
-        stat)
+    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
     have_gravity = stat==0
     if(have_gravity) then
       buoyancy=extract_scalar_field(state, "VelocityBuoyancyDensity")
@@ -651,7 +645,8 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
             & subcycle_m=subcycle_m, &
-            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, &
+            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs,&
+            & alpha_u_field=alpha_u_field,&
             & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
       
     end do element_loop
@@ -856,7 +851,6 @@ contains
     ! Absorption matrices
     real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
     real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: tensor_absorption_gi
-    real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat
     real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat_sphere
 
     ! Add vertical velocity relaxation to the absorption if present
@@ -895,7 +889,6 @@ contains
     real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_rhs, cg_les_loc
 
     real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: v_mass
-    real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
