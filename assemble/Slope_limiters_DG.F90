@@ -88,7 +88,7 @@ contains
     integer, intent(in) :: limiter
 
     integer :: ele, stat
-    type(scalar_field) :: T_limit, T_unlimited
+    type(scalar_field) :: T_limit
 
     !assert(mesh_dim(coordinate)==1)
     !assert(field%mesh%continuity<0)
@@ -231,9 +231,8 @@ contains
     type(vector_field), intent(in) :: X
     type(scalar_field), intent(inout), optional :: T_limit
     integer, dimension(:), pointer :: neigh, T_ele
-    real, dimension(X%dim) :: ele_centre, ele_2_centre
-    real :: ele_mean, ele_2_mean, dx, miss_val
-    real :: ele_slope, old_ele_slope, ele_2_slope
+    real, dimension(X%dim) :: ele_centre
+    real :: ele_mean, miss_val
     integer :: ele_2, ni, face, face2, d, i, j, jj, miss
     real, dimension(X%dim, ele_loc(X,ele)) :: X_val, X_val_2
     real, dimension(ele_loc(T,ele)) :: T_val, T_val_2
@@ -241,7 +240,6 @@ contains
     real, dimension(ele_face_count(T,ele)) :: neigh_mean, face_mean
     real, dimension(mesh_dim(T)+1) :: b, new_val
     logical :: limit
-    integer :: have_limit_field
 
     X_val=ele_val(X, ele)
     T_val=ele_val(T, ele)
@@ -452,9 +450,9 @@ contains
     type(vector_field), intent(in) :: X
     
     integer, dimension(:), pointer :: neigh, x_neigh
-    real, dimension(X%dim) :: ele_centre, ele_2_centre, face_2_centre
+    real, dimension(X%dim) :: ele_centre, face_2_centre
     real :: max_alpha, min_alpha, neg_alpha
-    integer :: ele_2, ni, nj, face, face_2, d, i, j, nk, ni_skip, info, nl
+    integer :: ele_2, ni, nj, face, face_2, i, nk, ni_skip, info, nl
     real, dimension(X%dim, ele_loc(X,ele)) :: X_val, X_val_2
     real, dimension(X%dim, ele_face_count(T,ele)) :: neigh_centre,&
          & face_centre
@@ -613,7 +611,7 @@ contains
     integer, dimension(:), pointer :: neigh, x_neigh, T_ele
     real :: ele_mean
     real :: pos, neg
-    integer :: ele_2, ni, nj, face, face_2, d, i, j, nk, ni_skip, info, nl
+    integer :: ele_2, ni, face
     real, dimension(ele_loc(T,ele)) :: T_val, T_val_2
     real, dimension(ele_face_count(T,ele)) :: neigh_mean, face_mean
     real, dimension(mesh_dim(T)+1) :: delta_v
@@ -702,12 +700,12 @@ contains
     integer, dimension(:), pointer :: neigh, x_neigh, T_ele
     real :: ele_mean, ele_mean_2
     real, dimension(ele_face_count(T,ele)) :: ele_means
-    real :: pos, neg, residual
-    integer :: ele_2, ni, nj, face, face_2, d, i, j, nk, ni_skip, info, nl
+    real :: residual
+    integer :: ele_2, ni, nj, face, face_2,i, nk, info, nl
     integer :: l_face, l_face_2
     real, dimension(ele_loc(T,ele)) :: T_val, T_val_2
-    real, dimension(face_loc(T,1)) :: T_val_face, T_val_face_2
-    real, dimension(face_ngi(T,1)) :: T_face_quad, T_face_quad_2
+    real, dimension(face_loc(T,1)) :: T_val_face
+    real, dimension(face_ngi(T,1)) :: T_face_quad
     real, dimension(ele_face_count(T,ele),ele_loc(X,ele)) :: T_vals
     real, dimension(ele_face_count(T,ele),X%dim, ele_loc(X,ele)) :: X_vals
     real, dimension(X%dim, ele_loc(X,ele)) :: X_val
@@ -724,7 +722,6 @@ contains
     real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: dp_quad
     logical, dimension(ele_face_count(T,ele)) :: boundaries
     logical, dimension(ele_face_count(T,ele)) :: construct_Lagrange
-    logical, dimension(2*ele_face_count(T,ele)+1) :: b_flag
     type(element_type), pointer :: shape_T
     real, dimension(ele_loc(T,ele),ele_loc(T,ele)) :: Imat
     real, dimension(ele_loc(T,ele)) :: Irhs
@@ -1365,29 +1362,17 @@ contains
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
     ! counters
-    integer :: ele, node, i, ele2
+    integer :: ele, node
     ! local numbers
     integer, dimension(:), pointer :: T_ele,X_ele, T_max_ele, T_min_ele
     !Coordinates field 
     type(vector_field), pointer :: X
-    !Node-element list for coordinates
-    type(csr_sparsity), pointer :: NElist_X
-    !A pointer to a row in this list
-    integer, dimension(:), pointer :: ele_list
     ! gradient scaling factor
     real :: alpha
     !local field values
     real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
-    real :: Tbar, Tbar2
-    !max and mins
-    real :: uimax, uimin
-    integer :: stat
-    integer :: limiter_vtu_index = 0
-    ! Debug
-!!$    type(scalar_field) :: alpha_field, tbar_field
-!!$
-!!$    call allocate(alpha_field, T%mesh,trim(T%name)//"Alpha")
-!!$    call allocate(tbar_field, T%mesh,trim(T%name)//"ElementMean")
+    real :: Tbar
+
 
     !Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
@@ -1486,7 +1471,7 @@ contains
     type(csr_sparsity), pointer :: eelist
     integer :: ele
     real :: node_max, node_min, line_max, line_min, extra_val, extra_val2
-    integer :: i, j, k, q
+    integer :: i, j, k
 
     integer, dimension(:), pointer :: nodelist, faces, neighbouring_ele_nodes
     integer, dimension(:), allocatable :: face_nodes, neighbouring_nodes
@@ -1499,7 +1484,6 @@ contains
     real, dimension(:), allocatable :: e_vec_1
     real, dimension(:,:,:), allocatable :: dt_t
     real, dimension(:,:), allocatable :: grad_t
-    integer :: p
     real :: grad, e_dist
 
     real, dimension(ele_loc(t,1)) :: weight, tracer_val

@@ -425,16 +425,15 @@ contains
     type(element_type), pointer :: test_shape_ptr
     type(element_type) :: test_shape
     real, dimension(:,:,:), allocatable :: dtest_t
-    real, dimension(:), allocatable :: detwei, detwei_bdy, density_bdy
+    real, dimension(:), allocatable :: detwei
     real, dimension(:,:,:), allocatable :: j_mat
-    real, dimension(:,:), allocatable :: normal_bdy
     
     real, dimension(:), allocatable :: density_at_quad, olddensity_at_quad, p_at_quad, &
                                       drhodp_at_quad, eosp_at_quad, abs_at_quad
     real, dimension(:,:), allocatable :: nlvelocity_at_quad
 
     ! loop integers
-    integer :: ele, sele, dim
+    integer :: ele
 
     ! pointer to coordinates
     type(vector_field), pointer :: coordinate, nonlinearvelocity, velocity
@@ -443,16 +442,10 @@ contains
     type(scalar_field) :: eospressure, drhodp
     real :: theta, atmospheric_pressure
 
-    integer, dimension(:,:), allocatable :: field_bc_type
-    type(vector_field) :: field_bc
-
-    integer, dimension(:), allocatable :: density_bc_type
-    type(scalar_field) :: density_bc
-
     real, dimension(:,:), allocatable :: ele_mat
     
     logical :: have_absorption, have_source
-    integer :: stat, i
+    integer :: stat
 
     ! =============================================================
     ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
