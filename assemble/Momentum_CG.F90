@@ -579,11 +579,11 @@
             
             ele = face_ele(x, sele)
             
-            call construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
+            call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                  inverse_masslump, x, u, nu, ug, density, p, gravity, &
-                 velocity_bc, velocity_bc_type, velocity_bc_number, &
+                 velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
-                 assemble_ct_matrix, cg_pressure, viscosity, oldu, fs_sf=fs_sf)
+                 assemble_ct_matrix, cg_pressure, oldu, fs_sf=fs_sf)
             
          end do surface_element_loop
 
@@ -747,14 +747,14 @@
    
     end subroutine construct_momentum_cg
 
-    subroutine construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
+    subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                                                      masslump, x, u, nu, ug, density, p, gravity, &
-                                                     velocity_bc, velocity_bc_type, velocity_bc_number, &
+                                                     velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
-                                                     assemble_ct_matrix, cg_pressure, viscosity, &
+                                                     assemble_ct_matrix, cg_pressure,&
                                                      oldu, fs_sf)
 
-      integer, intent(in) :: sele, ele
+      integer, intent(in) :: sele
 
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
@@ -769,10 +769,9 @@
       type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density, p
       type(vector_field), pointer, intent(in) :: gravity 
-      type(tensor_field), intent(in) :: viscosity
 
       type(vector_field), intent(in) :: velocity_bc
-      integer, dimension(:,:), intent(in) :: velocity_bc_type, velocity_bc_number
+      integer, dimension(:,:), intent(in) :: velocity_bc_type
 
       type(scalar_field), intent(in) :: pressure_bc
       integer, dimension(:), intent(in) :: pressure_bc_type
@@ -998,7 +997,6 @@
       
       ! low Re fix for pressure correction:
       type(vector_field), intent(inout) :: visc_masslump
-      real, dimension(u%dim, ele_loc(u, ele)) :: viscous_terms
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1158,7 +1156,7 @@
       
       ! Get only the viscous terms
       if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les) .and. timestep/=1) then
-        call get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
+        call get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
          du_t, detwei, visc_masslump)
       end if
       
@@ -1786,18 +1784,17 @@
       
     end subroutine add_viscosity_element_cg
     
-    subroutine get_viscous_terms_element_cg(ele, u, oldu_val, nu, x, viscosity, &
+    subroutine get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
          du_t, detwei, visc_inverse_masslump)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: u, nu
-      real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
       type(tensor_field), intent(in) :: viscosity
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       type(vector_field), intent(inout) :: visc_inverse_masslump
     
-      integer :: i, dim, dimj, gi
+      integer :: i, dim, gi
       real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
       integer, dimension(:), pointer :: nodes
