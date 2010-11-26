@@ -147,7 +147,7 @@ contains
     type(scalar_field), pointer :: T
 
     !! Local velocity name.
-    character(len=FIELD_NAME_LEN) :: lvelocity_name, pvelocity_name, pmesh_name
+    character(len=FIELD_NAME_LEN) :: lvelocity_name, pmesh_name
 
     !! Projected velocity field for them as needs it. 
     type(vector_field) :: pvelocity
@@ -686,11 +686,6 @@ contains
     type(scalar_field) :: buoyancy_from_state
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
-
-    !! Shape function for the auxiliary variable in the second order
-    !! operator. 
-    type(element_type), save, pointer :: q_shape=>null()
-    type(element_type), pointer :: T_shape=>null()
 
     !! Mesh for auxiliary variable
     type(mesh_type), save :: q_mesh
@@ -1617,7 +1612,7 @@ contains
        end if
 
        if(primal) then
-          call construct_adv_diff_interface_dg(ele, ele_2, face, face_2, ni,&
+          call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,& 
                & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
@@ -1636,7 +1631,7 @@ contains
           end select
 
        else
-          call construct_adv_diff_interface_dg(ele, ele_2, face, face_2, ni,&
+          call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,&
                & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
@@ -1770,7 +1765,7 @@ contains
     end subroutine local_assembly_arbitrary_upwind
     
     subroutine local_assembly_bassi_rebay
-      integer d1, d2, i, j
+      integer dim1,dim2
 
       do dim1=1, Diffusivity%dim(1)
          do dim2=1,Diffusivity%dim(2)
@@ -1790,7 +1785,6 @@ contains
     subroutine local_assembly_ip_face
     implicit none
     
-    integer :: i,j
     integer :: nfele, nele
     integer, dimension(face_loc(T,face)) :: T_face_loc
     
@@ -1845,7 +1839,7 @@ contains
   subroutine local_assembly_primal_face
     implicit none
     
-    integer :: i,j
+    integer :: j
     integer :: nele
     integer, dimension(face_loc(T,face)) :: T_face_loc
     
@@ -1997,7 +1991,7 @@ contains
     !!< has size (dim x loc(e), loc(e))
     !!< inverse_mass_mat is the inverse mass in E
 
-    integer :: i,j,d1,d2,nele,k,face1,face2
+    integer :: i,j,d1,d2,nele,face1,face2
     integer, dimension(face_loc(T,face)) :: T_face_loc    
     real, dimension(mesh_dim(T),ele_loc(T,ele),face_loc(T,face)) :: R_mat
     real, dimension(2,2,face_loc(T,face),face_loc(T,face)) :: add_mat
@@ -2105,7 +2099,7 @@ contains
 
   end subroutine construct_adv_diff_element_dg
   
-  subroutine construct_adv_diff_interface_dg(ele, ele_2, face, face_2, &
+  subroutine construct_adv_diff_interface_dg(ele, face, face_2, &
        ni, centre_vec,big_m, rhs, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
@@ -2117,7 +2111,7 @@ contains
     !!< element ele.
     implicit none
 
-    integer, intent(in) :: ele, ele_2, face, face_2, ni
+    integer, intent(in) :: ele, face, face_2, ni
     type(csr_matrix), intent(inout) :: big_m
     type(scalar_field), intent(inout) :: rhs
     real, dimension(:,:,:), intent(inout) :: Grad_T_mat, Div_T_mat
@@ -2153,7 +2147,7 @@ contains
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
     real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: normal, u_nl_q,&
-         & u_nl_i, u_f_q, u_f2_q, div_u_f_q
+         & u_f_q, u_f2_q, div_u_f_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
     real, dimension(face_ngi(U_nl, face)) :: u_nl_q_dotn, income
     ! Variable transform times quadrature weights.
