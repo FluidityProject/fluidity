@@ -1492,7 +1492,7 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
       	  libalgencan/Makefile
           libwm/Makefile
-          gallopede/Makefile libvtkfortran/Makefile 
+          libvtkfortran/Makefile 
           qg_strat/Makefile qg_strat/unittests/Makefile
           tests/lauwerier/Makefile
 	        reduced_modelling/Makefile)
