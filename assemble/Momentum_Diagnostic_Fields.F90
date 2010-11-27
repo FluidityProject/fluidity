@@ -150,7 +150,10 @@ contains
     
     type(scalar_field) :: eosdensity
     type(scalar_field), pointer :: tmpdensity
+    type(scalar_field) :: bulksumvolumefractionsbound
+    type(scalar_field) :: buoyancysumvolumefractionsbound
     type(mesh_type), pointer :: mesh
+    integer, dimension(size(state)) :: state_order
     logical :: subtract_out_hydrostatic, multimaterial
     character(len=OPTION_PATH_LEN) :: option_path
     integer :: subtract_count, materialvolumefraction_count
@@ -200,15 +203,32 @@ contains
       
       multimaterial = .true.
       
+      ! allocate a bounding field for the volume fractions
+      if(present(bulk_density)) then
+        call allocate(bulksumvolumefractionsbound, mesh, "SumMaterialVolumeFractionsBound")
+        call set(bulksumvolumefractionsbound, 1.0)
+      end if
+      if(present(buoyancy_density)) then
+        call allocate(buoyancysumvolumefractionsbound, mesh, "SumMaterialVolumeFractionsBound")
+        call set(buoyancysumvolumefractionsbound, 1.0)
+      end if
+
+      ! get the order in which states should be processed      
+      call order_states_priority(state, state_order)
+
       ! this needs to be done first or none of the following multimaterial algorithms will work...
       call calculate_diagnostic_volume_fraction(state)
+    else
+      assert(size(state_order)==1)
+      ! set up a dummy state ordering for the single material case
+      state_order(1) = 1      
     end if
     
     boussinesq = .false.
     hydrostatic_rho0 = 0.0
-    do i = 1, size(state)
+    state_loop: do i = 1, size(state)
   
-      option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state'
+      option_path='/material_phase::'//trim(state(state_order(i))%name)//'/equation_of_state'
       
       if(have_option(trim(option_path)//'/fluids')) then
       ! we have a fluids eos
@@ -219,7 +239,7 @@ contains
         
         call allocate(eosdensity, mesh, "LocalPerturbationDensity")
         
-        call calculate_perturbation_density(state(i), eosdensity, reference_density)
+        call calculate_perturbation_density(state(state_order(i)), eosdensity, reference_density)
         
         if(multimaterial) then
           ! if multimaterial we have to subtract out a single reference density at the end
@@ -234,7 +254,8 @@ contains
               ! so save it for now
               hydrostatic_rho0 = reference_density
             end if
-            call add_scaled_material_property(state(i), buoyancy_density, eosdensity, &
+            call add_scaled_material_property(state(state_order(i)), buoyancy_density, eosdensity, &
+                                              sumvolumefractionsbound=buoyancysumvolumefractionsbound, &
                                               momentum_diagnostic=momentum_diagnostic)
           else
             call set(buoyancy_density, eosdensity)
@@ -247,7 +268,7 @@ contains
           ! prognostic one and if it's using a Boussinesq equation.
           ! if it is record the rho0 and it will be used later to scale
           ! the buoyancy density
-          velocity => extract_vector_field(state(i), "Velocity", stat)
+          velocity => extract_vector_field(state(state_order(i)), "Velocity", stat)
           if(stat==0) then
             if(.not.aliased(velocity)) then
               if (have_option(trim(velocity%option_path)//"/prognostic/equation::Boussinesq")) then
@@ -269,7 +290,8 @@ contains
           if(multimaterial) then
             ! the perturbation density has already had the reference density added to it
             ! if you're multimaterial
-            call add_scaled_material_property(state(i), bulk_density, eosdensity, &
+            call add_scaled_material_property(state(state_order(i)), bulk_density, eosdensity, &
+                                              sumvolumefractionsbound=bulksumvolumefractionsbound, &
                                               momentum_diagnostic=momentum_diagnostic)
           else
             call set(bulk_density, eosdensity)
@@ -282,15 +304,17 @@ contains
       else
       ! we don't have a fluids eos
         
-        tmpdensity => extract_scalar_field(state(i), "MaterialDensity", stat)
+        tmpdensity => extract_scalar_field(state(state_order(i)), "MaterialDensity", stat)
         if(stat==0) then
           if(multimaterial) then
             if(present(buoyancy_density)) then
-              call add_scaled_material_property(state(i), buoyancy_density, tmpdensity, &
+              call add_scaled_material_property(state(state_order(i)), buoyancy_density, tmpdensity, &
+                                                sumvolumefractionsbound=buoyancysumvolumefractionsbound, &
                                                 momentum_diagnostic=momentum_diagnostic)
             end if
             if(present(bulk_density)) then
-              call add_scaled_material_property(state(i), bulk_density, tmpdensity, &
+              call add_scaled_material_property(state(state_order(i)), bulk_density, tmpdensity, &
+                                                sumvolumefractionsbound=bulksumvolumefractionsbound, &
                                                 momentum_diagnostic=momentum_diagnostic)
             end if
           else
@@ -308,7 +332,7 @@ contains
             if(have_option(trim(option_path)//'/compressible')) then
               call allocate(eosdensity, mesh, "LocalCompressibleEOSDensity")
             
-              call compressible_eos(state(i), density=eosdensity)
+              call compressible_eos(state(state_order(i)), density=eosdensity)
               
               if(present(bulk_density)) then
                 call set(bulk_density, eosdensity)
@@ -319,7 +343,7 @@ contains
             
               call deallocate(eosdensity)
             else
-              tmpdensity => extract_scalar_field(state(i), "Density", stat)
+              tmpdensity => extract_scalar_field(state(state_order(i)), "Density", stat)
               if(stat==0) then
                 if(present(buoyancy_density)) then
                   call remap_field(tmpdensity, buoyancy_density)
@@ -342,7 +366,7 @@ contains
 
       end if
         
-    end do
+    end do state_loop
     
     if(present(buoyancy_density)) then
       if(multimaterial) call addto(buoyancy_density, -hydrostatic_rho0)
@@ -351,6 +375,15 @@ contains
         ! the buoyancy density is being used in a Boussinesq eqn
         ! therefore it needs to be scaled by rho0:
         call scale(buoyancy_density, 1./boussinesq_rho0)
+      end if
+    end if
+
+    if(multimaterial) then
+      if(present(buoyancy_density)) then
+        call deallocate(buoyancysumvolumefractionsbound)
+      end if
+      if(present(bulk_density)) then
+        call deallocate(bulksumvolumefractionsbound)
       end if
     end if
   

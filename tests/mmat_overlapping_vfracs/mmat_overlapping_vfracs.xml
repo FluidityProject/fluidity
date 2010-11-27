@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>mmat_overlapping_vfracs</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l 3materials_overlapping.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="maxdensity" language="python">from fluidity_tools import stat_parser
+maxdensity = min(stat_parser("3materials_overlapping.stat")["Material1"]["Density"]["max"])</variable>
+    <variable name="mindensity" language="python">from fluidity_tools import stat_parser
+mindensity = max(stat_parser("3materials_overlapping.stat")["Material1"]["Density"]["min"])</variable>
+  </variables>
+  <pass_tests>
+    <test name="maxdensity" language="python">assert(abs(maxdensity-3.0)&lt; 1.e-10)</test>
+    <test name="mindensity" language="python">assert(abs(mindensity-3.0)&lt; 1.e-10)</test>
+  </pass_tests>
+</testproblem>

@@ -1,0 +1,284 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">3materials_overlapping</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">multimaterial</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="column_2d">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">1</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">1</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+    <stat>
+      <output_at_start/>
+    </stat>
+    <detectors>
+      <static_detector name="Top">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.05 0.75</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Middle">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.05 0.5</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Bottom">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.05 0.25</real_value>
+        </location>
+      </static_detector>
+    </detectors>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1.0</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="Material1">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <cap_values>
+          <lower_cap>
+            <real_value rank="0">0.0</real_value>
+          </lower_cap>
+        </cap_values>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Material2">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">2.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="Material1" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <prognostic>
+        <mesh name="CoordinateMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <control_volumes>
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
+                <reflect_off_domain_boundaries/>
+                <bound_projected_value_locally/>
+                <store_upwind_elements>
+                  <store_upwind_quadrature/>
+                </store_upwind_elements>
+              </project_upwind_value_from_point>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </face_value>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.0</real_value>
+          </theta>
+          <control_volumes>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.25</real_value>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </maximum_courant_number_per_subcycle>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <explicit/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </initial_condition>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+        <priority>
+          <integer_value rank="0">2</integer_value>
+        </priority>
+        <cap_values/>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Material3">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">3.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="Material1" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <prognostic>
+        <mesh name="CoordinateMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <control_volumes>
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
+                <reflect_off_domain_boundaries/>
+                <bound_projected_value_locally/>
+                <store_upwind_elements>
+                  <store_upwind_quadrature/>
+                </store_upwind_elements>
+              </project_upwind_value_from_point>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </face_value>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.0</real_value>
+          </theta>
+          <control_volumes>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.25</real_value>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </maximum_courant_number_per_subcycle>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <explicit/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </initial_condition>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+        <priority>
+          <integer_value rank="0">3</integer_value>
+        </priority>
+        <cap_values/>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>

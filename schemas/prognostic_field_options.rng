@@ -946,6 +946,9 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
             <ref name="prescribed_vector_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
             <choice>
               <ref name="vector_python_diagnostic_algorithm"/>
               <ref name="imposed_material_velocity_source_algorithm"/>
@@ -977,6 +980,9 @@ respectively.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
             <ref name="prescribed_vector_field_no_adapt"/>
           </element>
           <element name="diagnostic">

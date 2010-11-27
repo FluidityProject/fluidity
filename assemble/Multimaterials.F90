@@ -55,7 +55,7 @@ module multimaterial_module
             calculate_material_mass, calculate_bulk_material_pressure, &
             calculate_sum_material_volume_fractions, calculate_material_volume, &
             calculate_bulk_property, add_scaled_material_property, calculate_surfacetension, &
-            calculate_diagnostic_volume_fraction
+            calculate_diagnostic_volume_fraction, order_states_priority
 
 contains
 
@@ -260,6 +260,50 @@ contains
 
   end subroutine calculate_diagnostic_volume_fraction
   
+  subroutine order_states_priority(state, state_order)
+    type(state_type), dimension(:), intent(inout) :: state
+    integer, dimension(:), intent(inout) :: state_order
+    
+    type(scalar_field), pointer :: volumefraction
+    logical, dimension(size(state)) :: priority_states
+    integer, dimension(size(state)) :: state_priorities
+
+    integer :: i, p, f
+
+    assert(size(state_order)==size(state))
+
+    priority_states = .false.
+    state_priorities = 0
+    do i = 1, size(state)
+      volumefraction=>extract_scalar_field(state(i), "MaterialVolumeFraction")
+
+      if(have_option(trim(volumefraction%option_path)//"/prognostic/priority")) then
+        call get_option(trim(volumefraction%option_path)//"/prognostic/priority", state_priorities(i))
+        priority_states(i) = .true.
+      end if
+    end do
+
+    do i = 1, size(state)
+      if(.not.priority_states(i)) then
+        state_priorities(i) = minval(state_priorities)-1
+      end if
+    end do
+
+    ! now work out the right order
+    f = 0
+    state_order = 0
+    do p = maxval(state_priorities), minval(state_priorities), -1
+      do i=1, size(state)
+        if(state_priorities(i)==p) then
+          f = f + 1
+          state_order(f) = i
+        end if
+      end do
+    end do
+    assert(all(state_order>0))
+
+  end subroutine order_states_priority
+
   subroutine calculate_bulk_scalar_property(state,bulkfield,materialname,momentum_diagnostic)
 
     type(state_type), dimension(:), intent(inout) :: state
@@ -270,18 +314,32 @@ contains
     !locals
     integer :: i, stat
     type(scalar_field), pointer :: sfield
+ 
+    integer, dimension(size(state)) :: state_order
+    type(scalar_field) :: sumvolumefractionsbound
+
+    ewrite(1,*) 'In calculate_bulk_scalar_property'
 
     call zero(bulkfield)
+
+    call order_states_priority(state, state_order)
+
+    call allocate(sumvolumefractionsbound, bulkfield%mesh, "SumMaterialVolumeFractionsBound")
+    call set(sumvolumefractionsbound, 1.0)
     
     do i = 1, size(state)
   
-      sfield => extract_scalar_field(state(i), trim(materialname), stat)
+      ewrite(2,*) 'Considering state: ', state(state_order(i))%name
+      sfield => extract_scalar_field(state(state_order(i)), trim(materialname), stat)
       if(stat==0) then
-        call add_scaled_material_property(state(i), bulkfield, sfield, &
+        call add_scaled_material_property(state(state_order(i)), bulkfield, sfield, &
+                                          sumvolumefractionsbound=sumvolumefractionsbound, &
                                           momentum_diagnostic=momentum_diagnostic)
       end if
 
     end do
+    
+    call deallocate(sumvolumefractionsbound)
     
   end subroutine calculate_bulk_scalar_property
 
@@ -295,19 +353,33 @@ contains
     !locals
     integer :: i, stat
     type(vector_field), pointer :: vfield
+ 
+    integer, dimension(size(state)) :: state_order
+    type(scalar_field) :: sumvolumefractionsbound
+
+    ewrite(1,*) 'In calculate_bulk_vector_property'
 
     call zero(bulkfield)
     
+    call order_states_priority(state, state_order)
+    
+    call allocate(sumvolumefractionsbound, bulkfield%mesh, "SumMaterialVolumeFractionsBound")
+    call set(sumvolumefractionsbound, 1.0)
+
     do i = 1, size(state)
   
-      vfield => extract_vector_field(state(i), trim(materialname), stat)
+      ewrite(2,*) 'Considering state: ', state(state_order(i))%name
+      vfield => extract_vector_field(state(state_order(i)), trim(materialname), stat)
       if(stat==0) then
-        call add_scaled_material_property(state(i), bulkfield, vfield, &
+        call add_scaled_material_property(state(state_order(i)), bulkfield, vfield, &
+                                          sumvolumefractionsbound=sumvolumefractionsbound, &
                                           momentum_diagnostic=momentum_diagnostic)
       end if
 
     end do
     
+    call deallocate(sumvolumefractionsbound)
+
   end subroutine calculate_bulk_vector_property
 
   subroutine calculate_bulk_tensor_property(state,bulkfield,materialname,momentum_diagnostic)
@@ -320,44 +392,54 @@ contains
     !locals
     integer :: i, stat
     type(tensor_field), pointer :: tfield
+ 
+    integer, dimension(size(state)) :: state_order
+    type(scalar_field) :: sumvolumefractionsbound
+
+    ewrite(1,*) 'In calculate_bulk_tensor_property'
 
     call zero(bulkfield)
     
+    call order_states_priority(state, state_order)
+    
+    call allocate(sumvolumefractionsbound, bulkfield%mesh, "SumMaterialVolumeFractionsBound")
+    call set(sumvolumefractionsbound, 1.0)
+
     do i = 1, size(state)
   
-      tfield => extract_tensor_field(state(i), trim(materialname), stat)
+      ewrite(2,*) 'Considering state: ', state(state_order(i))%name
+      tfield => extract_tensor_field(state(state_order(i)), trim(materialname), stat)
       if(stat==0) then
-        call add_scaled_material_property(state(i), bulkfield, tfield, &
+        call add_scaled_material_property(state(state_order(i)), bulkfield, tfield, &
+                                          sumvolumefractionsbound=sumvolumefractionsbound, &
                                           momentum_diagnostic=momentum_diagnostic)
       end if
     
     end do
+
+    call deallocate(sumvolumefractionsbound)
     
   end subroutine calculate_bulk_tensor_property
 
-  subroutine add_scaled_material_property_scalar(state,bulkfield,field,momentum_diagnostic)
+  subroutine get_scalable_volume_fraction(scaledvfrac, state, sumvolumefractionsbound, momentum_diagnostic)
 
+    type(scalar_field), intent(inout) :: scaledvfrac
     type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: bulkfield, field
+    type(scalar_field), intent(inout), optional :: sumvolumefractionsbound
     logical, intent(in), optional :: momentum_diagnostic
 
-    !locals
     type(scalar_field), pointer :: volumefraction, oldvolumefraction
-    type(scalar_field) :: scaledvfrac, remapvfrac
-    type(scalar_field) :: l_bulkfield
-    
     type(vector_field), pointer :: velocity
-    real :: theta
+    type(scalar_field) :: remapvfrac
+
     integer :: stat
-
-
+    real :: theta
+    
     logical :: cap
-    real :: u_cap_val, l_cap_val
+    real:: u_cap_val, l_cap_val
 
     volumefraction => extract_scalar_field(state, 'MaterialVolumeFraction')
     
-    call allocate(scaledvfrac, field%mesh, "ScaledMaterialVolumeFraction")
-
     call remap_field(volumefraction, scaledvfrac)
           
     if(present_and_true(momentum_diagnostic)) then
@@ -366,7 +448,7 @@ contains
         call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
                         theta, stat)
         if(stat==0) then
-          call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
+          call allocate(remapvfrac, scaledvfrac%mesh, "RemppedMaterialVolumeFraction")
           
           oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
           call remap_field(oldvolumefraction, remapvfrac)
@@ -382,6 +464,8 @@ contains
     cap = (have_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values"))
           
     if(cap) then
+      ! this capping takes care of under or overshoots in this volume fraction individually
+      ! these will have typically occurred during advection
             
       call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/upper_cap", &
                       u_cap_val, default=huge(0.0)*epsilon(0.0))
@@ -390,172 +474,95 @@ contains
             
       call bound(scaledvfrac, l_cap_val, u_cap_val)
           
+      if(present(sumvolumefractionsbound)) then
+        assert(sumvolumefractionsbound%mesh==scaledvfrac%mesh)
+        ! this capping takes care of overlapping volume fractions
+        call bound(scaledvfrac, upper_bound=sumvolumefractionsbound) 
+        call addto(sumvolumefractionsbound, scaledvfrac, scale=-1.0)
+        ewrite_minmax(sumvolumefractionsbound%val)
+      end if
+          
     end if
-          
-    call scale(scaledvfrac, field)
-          
-    if(field%mesh==bulkfield%mesh) then
-      call addto(bulkfield, scaledvfrac)
-    else
-      call allocate(l_bulkfield, bulkfield%mesh, "Local"//trim(bulkfield%name))
+    ewrite_minmax(scaledvfrac%val)
+ 
+  end subroutine get_scalable_volume_fraction
+
+  subroutine add_scaled_material_property_scalar(state,bulkfield,field,sumvolumefractionsbound,momentum_diagnostic)
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: bulkfield, field
+    type(scalar_field), intent(inout), optional :: sumvolumefractionsbound
+    logical, intent(in), optional :: momentum_diagnostic
+
+    !locals
+    type(scalar_field) :: scaledvfrac
+    type(scalar_field) :: tempfield
     
-      call remap_field(scaledvfrac, l_bulkfield)
-      call addto(bulkfield, l_bulkfield)
-      
-      call deallocate(l_bulkfield)
-    end if
-  
+    call allocate(tempfield, bulkfield%mesh, "Temp"//trim(bulkfield%name))
+    call allocate(scaledvfrac, bulkfield%mesh, "ScaledMaterialVolumeFraction")
+
+    call get_scalable_volume_fraction(scaledvfrac, state, &
+                                      sumvolumefractionsbound=sumvolumefractionsbound, &
+                                      momentum_diagnostic=momentum_diagnostic)
+
+    call remap_field(field, tempfield)
+    call scale(tempfield, scaledvfrac)
+    call addto(bulkfield, tempfield)
+
+    call deallocate(tempfield)
     call deallocate(scaledvfrac)
 
   end subroutine add_scaled_material_property_scalar
 
-  subroutine add_scaled_material_property_vector(state,bulkfield,field,momentum_diagnostic)
+  subroutine add_scaled_material_property_vector(state,bulkfield,field,sumvolumefractionsbound,momentum_diagnostic)
 
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: bulkfield, field
+    type(scalar_field), intent(inout), optional :: sumvolumefractionsbound
     logical, intent(in), optional :: momentum_diagnostic
 
     !locals
-    type(scalar_field), pointer :: volumefraction, oldvolumefraction
-    type(scalar_field) :: scaledvfrac, remapvfrac
-    type(vector_field) :: l_bulkfield, tempfield
+    type(scalar_field) :: scaledvfrac
+    type(vector_field) :: tempfield
 
-    type(vector_field), pointer :: velocity
-    real :: theta
-    integer :: stat
-
-    logical :: cap
-    real :: u_cap_val, l_cap_val
-
-    volumefraction => extract_scalar_field(state, 'MaterialVolumeFraction')
-      
-    call allocate(tempfield, bulkfield%dim, field%mesh, "Temp"//trim(bulkfield%name))
-    call allocate(scaledvfrac, field%mesh, "ScaledMaterialVolumeFraction")
-
-    call remap_field(volumefraction, scaledvfrac)
+    call allocate(tempfield, bulkfield%dim, bulkfield%mesh, "Temp"//trim(bulkfield%name))
+    call allocate(scaledvfrac, bulkfield%mesh, "ScaledMaterialVolumeFraction")
     
-    if(present_and_true(momentum_diagnostic)) then
-      velocity => extract_vector_field(state, 'Velocity', stat=stat)
-      if(stat==0) then
-        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
-                        theta, stat)
-        if(stat==0) then
-          call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
+    call get_scalable_volume_fraction(scaledvfrac, state, &
+                                      sumvolumefractionsbound=sumvolumefractionsbound, &
+                                      momentum_diagnostic=momentum_diagnostic)
           
-          oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
-          call remap_field(oldvolumefraction, remapvfrac)
-          
-          call scale(scaledvfrac, theta)
-          call addto(scaledvfrac, remapvfrac, (1.-theta))
-          
-          call deallocate(remapvfrac)
-        end if
-      end if
-    end if
-          
-    cap = (have_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values"))
-          
-    if(cap) then
-            
-      call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/upper_cap", &
-                      u_cap_val, default=huge(0.0)*epsilon(0.0))
-      call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/lower_cap", &
-                      l_cap_val, default=-huge(0.0)*epsilon(0.0))
-            
-      call bound(scaledvfrac, l_cap_val, u_cap_val)
-          
-    end if
-          
-    call set(tempfield, field)
+    call remap_field(field, tempfield)
     call scale(tempfield, scaledvfrac)
+    call addto(bulkfield, tempfield)
           
-    if(field%mesh==bulkfield%mesh) then
-      call addto(bulkfield, tempfield)
-    else
-      call allocate(l_bulkfield, bulkfield%dim, bulkfield%mesh, "Local"//trim(bulkfield%name))
-    
-      call remap_field(tempfield, l_bulkfield)
-      call addto(bulkfield, l_bulkfield)
-      
-      call deallocate(l_bulkfield)
-    end if
-  
     call deallocate(tempfield)
     call deallocate(scaledvfrac)
 
   end subroutine add_scaled_material_property_vector
 
-  subroutine add_scaled_material_property_tensor(state,bulkfield,field,momentum_diagnostic)
+  subroutine add_scaled_material_property_tensor(state,bulkfield,field,sumvolumefractionsbound,momentum_diagnostic)
 
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: bulkfield, field
+    type(scalar_field), intent(inout), optional :: sumvolumefractionsbound
     logical, intent(in), optional :: momentum_diagnostic
 
     !locals
-    type(scalar_field), pointer :: volumefraction, oldvolumefraction
-    type(scalar_field) :: scaledvfrac, remapvfrac
-    type(tensor_field) :: l_bulkfield, tempfield
+    type(scalar_field) :: scaledvfrac
+    type(tensor_field) :: tempfield
 
-    type(vector_field), pointer :: velocity
-    real :: theta
-    integer :: stat
+    call allocate(tempfield, bulkfield%mesh, "Temp"//trim(bulkfield%name))
+    call allocate(scaledvfrac, bulkfield%mesh, "ScaledMaterialVolumeFraction")
 
-    logical :: cap
-    real :: u_cap_val, l_cap_val
-
-    volumefraction => extract_scalar_field(state, 'MaterialVolumeFraction')
+    call get_scalable_volume_fraction(scaledvfrac, state, &
+                                      sumvolumefractionsbound=sumvolumefractionsbound, &
+                                      momentum_diagnostic=momentum_diagnostic)
     
-    call allocate(tempfield, field%mesh, "Temp"//trim(bulkfield%name))
-    call allocate(scaledvfrac, field%mesh, "ScaledMaterialVolumeFraction")
-
-    call remap_field(volumefraction, scaledvfrac)
-    
-    if(present_and_true(momentum_diagnostic)) then
-      velocity => extract_vector_field(state, 'Velocity', stat=stat)
-      if(stat==0) then
-        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
-                        theta, stat)
-        if(stat==0) then
-          call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
-          
-          oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
-          call remap_field(oldvolumefraction, remapvfrac)
-          
-          call scale(scaledvfrac, theta)
-          call addto(scaledvfrac, remapvfrac, (1.-theta))
-          
-          call deallocate(remapvfrac)
-        end if
-      end if
-    end if
-
-    cap = (have_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values"))
-          
-    if(cap) then
-            
-      call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/upper_cap", &
-                      u_cap_val, default=huge(0.0)*epsilon(0.0))
-      call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/lower_cap", &
-                      l_cap_val, default=-huge(0.0)*epsilon(0.0))
-            
-      call bound(scaledvfrac, l_cap_val, u_cap_val)
-          
-    end if
-          
-    call set(tempfield, field)
+    call remap_field(field, tempfield)
     call scale(tempfield, scaledvfrac)
+    call addto(bulkfield, tempfield)
           
-    if(field%mesh==bulkfield%mesh) then
-      call addto(bulkfield, tempfield)
-    else
-      call allocate(l_bulkfield, bulkfield%mesh, "Local"//trim(bulkfield%name))
-    
-      call remap_field(tempfield, l_bulkfield)
-      call addto(bulkfield, l_bulkfield)
-      
-      call deallocate(l_bulkfield)
-    end if
-  
     call deallocate(tempfield)
     call deallocate(scaledvfrac)
 

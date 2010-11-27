@@ -783,6 +783,7 @@ prognostic_velocity_field =
                prescribed_vector_field_no_adapt
             }|
             element diagnostic {
+               mesh_choice?,
                (
                   vector_python_diagnostic_algorithm |
                   imposed_material_velocity_source_algorithm |
@@ -806,6 +807,7 @@ prognostic_velocity_field =
          attribute rank { "1" },
          (
             element prescribed {
+               mesh_choice?,
                prescribed_vector_field_no_adapt
             }|
             element diagnostic { 
