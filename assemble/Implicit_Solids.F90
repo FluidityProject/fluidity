@@ -1086,7 +1086,7 @@ contains
   
        ! interpolate the solid velocity from
        ! the solid mesh to the fluidity mesh
-       call interpolation_galerkin_femdem(alg_ext, alg_fl, field=solid_local)
+!       call interpolation_galerkin_femdem(alg_ext, alg_fl, field=solid_local)
        ! this is:                           old     new
 
        ewrite_minmax(ext_pos_solid_vel%val(1,:))
@@ -1104,7 +1104,7 @@ contains
 
        ! interpolate the fluid velocity from
        ! the fluid mesh to the solid mesh
-       call interpolation_galerkin_femdem(alg_fl, alg_ext, femdem_out=.true.)
+!       call interpolation_galerkin_femdem(alg_fl, alg_ext, femdem_out=.true.)
        ! this is:                          old      new
 
        ewrite_minmax(field_fl%val(1,:))
