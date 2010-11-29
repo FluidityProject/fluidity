@@ -469,14 +469,6 @@ hr_adaptivity =
          element max_node_increase {
             real
          }?,
-         ## The maximum ratio by which the number of nodes is allowed to
-         ## change in an adapt. e.g., a value of 0.1 indicates that the
-         ## number of nodes may be changed by at most 10%. Note that a value
-         ## of 1 will impose an increase limit, but not a decrease limit 
-         ## (the minimum number of nodes will be zero).
-         element max_node_change {
-            real
-         }?,
          ## Enable to lock nodes in the mesh.
          element node_locking {
            ## Python function defining nodes to lock. Return 0 for free
