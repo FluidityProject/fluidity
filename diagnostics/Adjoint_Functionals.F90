@@ -111,7 +111,7 @@ module adjoint_functionals
     write(buffer,*) current_time
     call python_run_string("time = " // trim(buffer))
 
-    write(buffer, *) dt
+    write(buffer, *) abs(dt)
     call python_run_string("dt = " // trim(buffer))
 
     ! I think we're ready!
