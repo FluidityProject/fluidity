@@ -33,7 +33,7 @@ void python_add_mesh_(int*,int*,int*,int*,
 void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
   char *state_name, int *state_name_len, char *mesh_name, int *mesh_name_len,
   double *n,int *nx, int *ny, double *dn, int *dnx, int *dny, int *dnz,
-  int *size_spoly_x,int *size_spoly_y,int *size_dspoly_x,int *size_dspoly_y );
+  int *size_spoly_x,int *size_spoly_y,int *size_dspoly_x,int *size_dspoly_y, char *family_name, int *family_name_len );
 void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi, 
   double *weight, int *weight_size, double *locations, int *l_size, int *is_surfacequadr);
 void python_add_superconvergence_(int *nsp, double *l, int *lx, int *ly,

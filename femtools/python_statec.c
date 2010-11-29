@@ -350,11 +350,12 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
   char *state_name, int *state_name_len, char *mesh_name, int *mesh_name_len,
   double *n,int *nx, int *ny, double *dn, int *dnx, int *dny, int *dnz,
-  int *size_spoly_x,int *size_spoly_y,int *size_dspoly_x,int *size_dspoly_y ){
+  int *size_spoly_x,int *size_spoly_y,int *size_dspoly_x,int *size_dspoly_y, char *family_name, int *family_name_len ){
 #ifdef HAVE_NUMPY
   // Fix the Fortran strings for C and Python
   char *meshc = fix_string(mesh_name,*mesh_name_len);
   char *statec = fix_string(state_name,*state_name_len);
+  char *family = fix_string(family_name,*family_name_len);
   char t[80+*mesh_name_len+*state_name_len];
 
   // Set n
@@ -364,9 +365,9 @@ void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
 
   // Add the element to the interpreter and make the element variable available
   // so the other attributes in Fortran can be passed in
-  sprintf(t,"element = Element(%d,%d,%d,%d,n_array,dn_array,%d,%d,%d,%d); states['%s'].meshes['%s'].shape = element",
+  sprintf(t,"element = Element(%d,%d,%d,%d,n_array,dn_array,%d,%d,%d,%d,'%s'); states['%s'].meshes['%s'].shape = element",
     *dim,*loc,*ngi,*degree,
-    *size_spoly_x,*size_spoly_y,*size_dspoly_x,*size_dspoly_y,
+    *size_spoly_x,*size_spoly_y,*size_dspoly_x,*size_dspoly_y, family,
     statec, meshc
   );
   PyRun_SimpleString(t);
