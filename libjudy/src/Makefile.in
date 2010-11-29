@@ -1,6 +1,7 @@
 MAKE = @MAKE@
 
 default:
+	mkdir -p obj
 	cd JudyCommon; $(MAKE); cd ..
 	cd Judy1; $(MAKE); cd ..
 	cd JudyL; $(MAKE); cd ..

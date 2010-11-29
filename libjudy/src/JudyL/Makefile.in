@@ -45,7 +45,7 @@ OBJS = JudyLByCount.o JudyLCount.o JudyLDecascade.o JudyLFirst.o j__udyLGet.o Ju
 %.o: %.mod
 
 default: $(OBJS)
-	cp *.o ../obj
+	cp *.o ../obj/
 
 .c.o: 
 	@echo "        CC $<"

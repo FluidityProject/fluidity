@@ -46,7 +46,7 @@ OBJS = Judy1Tables.o Judy1Test.o j__udy1Test.o Judy1Set.o Judy1SetArray.o Judy1U
 %.o: %.mod
 
 default: $(OBJS)
-	cp *.o ../obj
+	cp *.o ../obj/
 
 .c.o:
 	@echo "        CC $<"

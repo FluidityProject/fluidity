@@ -48,7 +48,7 @@ OBJS = JudyMalloc.o
 	$(CC) $(CFLAGS) -c $<
 
 default: $(OBJS)
-	cp *.o ../obj
+	cp *.o ../obj/
 
 clean:
 	rm -f *.o 
