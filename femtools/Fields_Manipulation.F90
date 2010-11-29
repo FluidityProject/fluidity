@@ -2517,10 +2517,14 @@ implicit none
 
     integer :: i
 
-    assert(.not. present(lower_bound) .or. field%mesh==lower_bound%mesh)
-    assert(.not. present(upper_bound) .or. field%mesh==upper_bound%mesh)
-    assert(.not. present(lower_bound) .or. lower_bound%field_type==FIELD_TYPE_NORMAL) ! The case lower_bound=FIELD_TYPE_CONSTANT should be implemented
-    assert(.not. present(upper_bound) .or. upper_bound%field_type==FIELD_TYPE_NORMAL) ! The case upper_bound=FIELD_TYPE_CONSTANT should be implemented
+    if(present(lower_bound)) then
+      assert(field%mesh==lower_bound%mesh)
+      assert(lower_bound%field_type==FIELD_TYPE_NORMAL) ! The case lower_bound=FIELD_TYPE_CONSTANT should be implemented
+    end if
+    if(present(upper_bound)) then
+      assert(field%mesh==upper_bound%mesh)
+      assert(upper_bound%field_type==FIELD_TYPE_NORMAL) ! The case upper_bound=FIELD_TYPE_CONSTANT should be implemented
+    end if
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
         if (present(lower_bound)) then
