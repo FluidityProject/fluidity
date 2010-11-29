@@ -541,6 +541,16 @@ number of nodes may be increased by at most 10%.</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="max_node_change">
+          <a:documentation>The maximum ratio by which the number of nodes is allowed to
+change in an adapt. e.g., a value of 0.1 indicates that the
+number of nodes may be changed by at most 10%. Note that a value
+of 1 will impose an increase limit, but not a decrease limit 
+(the minimum number of nodes will be zero).</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="node_locking">
           <a:documentation>Enable to lock nodes in the mesh.</a:documentation>
           <element name="python">

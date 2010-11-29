@@ -53,7 +53,11 @@ contains
     if(stat == SPUD_NO_ERROR) then
       max_nodes = min(max_nodes, int(nodes * increase_tolerance))
     end if
-
+    call get_option(base_path // "/max_node_change", increase_tolerance, stat = stat)
+    if(stat == SPUD_NO_ERROR) then
+      max_nodes = min(max_nodes, int(nodes + (nodes*increase_tolerance)))
+      min_nodes = max(min_nodes, int(nodes - (nodes*increase_tolerance)))
+    end if
     call limit_metric(positions, metric, min_nodes, max_nodes)
 
   end subroutine limit_metric_nodes_options

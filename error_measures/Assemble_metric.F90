@@ -33,7 +33,7 @@ module metric_assemble
   implicit none
 
   private
-  public :: assemble_metric, apply_vertical_gradation, apply_horizontal_gradation
+  public :: assemble_metric, apply_vertical_gradation, apply_horizontal_gradation, apply_vertical_limit
   
   contains
 
@@ -379,5 +379,60 @@ module metric_assemble
     call deallocate(oned_shape)
 
   end subroutine apply_vertical_gradation
+
+  subroutine apply_vertical_limit(state, full_metric, full_positions, horizontal_positions)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(in) :: full_positions
+    type(tensor_field), intent(inout) :: full_metric
+    type(vector_field), intent(in) :: horizontal_positions
+    
+    integer :: column, node, i
+    type(csr_sparsity) :: back_columns
+    type(element_type) :: oned_shape
+    type(quadrature_type) :: oned_quad
+    integer :: quadrature_degree
+    integer, parameter :: loc=2
+    type(vector_field) :: oned_positions
+    type(tensor_field) :: oned_metric
+
+    logical :: is_constant
+    type(tensor_field) :: full_gamma, oned_gamma
+    character(len=*), parameter :: gamma_path = "/mesh_adaptivity/hr_adaptivity/anisotropic_gradation/tensor_field::Gamma"
+    character(len=*), parameter :: path = "/mesh_adaptivity/hr_adaptivity/"
+
+    type(tensor_field) :: min_edge, max_edge
+    type(tensor_field) :: min_bound, max_bound
+    type(tensor_field) :: oned_min_bound, oned_max_bound
+    
+    ewrite(1,*) 'in apply_vertical_limit'
+    
+    call get_option("/geometry/quadrature/degree", quadrature_degree)
+    oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
+    oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
+    call deallocate(oned_quad)
+
+    call create_columns_sparsity(back_columns, full_positions%mesh)
+    
+    do column=1,node_count(horizontal_positions)
+
+        call get_1d_mesh(column, full_positions, back_columns, full_metric, oned_shape, oned_positions)
+        
+        call allocate(oned_metric, oned_positions%mesh, "1DMetric")
+        
+        call get_1d_tensor(column, full_metric, oned_metric, back_columns)
+        
+        call limit_metric(oned_positions, oned_metric)
+
+        call recombine_metric(full_metric, column, oned_metric, back_columns)
+
+        call deallocate(oned_positions)
+        call deallocate(oned_metric)
+    end do
+
+
+    call deallocate(back_columns)
+    call deallocate(oned_shape)
+
+  end subroutine apply_vertical_limit
 
 end module metric_assemble

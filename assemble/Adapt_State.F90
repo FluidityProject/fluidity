@@ -1401,6 +1401,8 @@ contains
           call incref(gradation_full_metric)
        end if
 
+       call apply_vertical_limit(states(1), gradation_full_metric, full_metric_positions, old_positions)
+
        ! extrude with adaptivity, computes new extruded_positions
        call metric_based_extrude(new_positions, old_positions, extruded_positions, &
                                 gradation_full_metric, full_metric_positions, map=map)
