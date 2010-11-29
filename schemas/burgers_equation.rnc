@@ -208,7 +208,9 @@ material_phase =
                      ## Recommended to be 0.5.
                      element relaxation {
                         real
-                     }
+                     },
+                     ## If activated, the time term is removed from the equations. Should be used with theta=1 and relaxation=1.
+                     element remove_time_term { empty }?
                   }?,
                   element solver {
                      linear_solver_options_asym

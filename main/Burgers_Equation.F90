@@ -28,6 +28,7 @@
 #include "fdebug.h"
   program burgers_equation
     use spud
+    use elements
     use fields
     use field_options
     use state_module
@@ -75,6 +76,28 @@
     type(state_type), dimension(:,:), pointer :: forward_state, adjoint_state
 
     integer :: no_timesteps
+
+    interface
+      subroutine set_global_debug_level(n)
+        integer, intent(in) :: n
+      end subroutine set_global_debug_level
+
+      subroutine mpi_init(ierr)
+        integer, intent(out) :: ierr
+      end subroutine mpi_init
+
+      subroutine mpi_finalize(ierr)
+        integer, intent(out) :: ierr
+      end subroutine mpi_finalize
+
+      subroutine python_init
+      end subroutine python_init
+
+      subroutine petscinitialize(s, i)
+        character(len=*), intent(in) :: s
+        integer, intent(out) :: i
+      end subroutine petscinitialize
+    end interface
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -272,7 +295,6 @@
       real, intent(in) :: dt
       real, intent(out), optional :: change
 
-      type(scalar_field) :: nonlinear_velocity
       type(scalar_field) :: iterated_velocity
       type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference, stored_iterated_velocity
       type(scalar_field) :: rhs
@@ -285,7 +307,7 @@
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
 
       integer :: nonlinear_iterations, nit
-      real :: itheta, theta
+      real :: theta
       real :: nonlin_change
       logical :: adjoint
       integer :: stat
@@ -304,13 +326,9 @@
       end if
 
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
-      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
 
       adjoint = have_option("/adjoint")
 
-      call allocate(nonlinear_velocity, u%mesh, "NonlinearVelocity")
-      call zero(nonlinear_velocity)
-      nonlinear_velocity%option_path = u%option_path
       call allocate(iterated_velocity, u%mesh, "IteratedVelocity")
       call set(iterated_velocity, u)
       call allocate(old_iterated_velocity, u%mesh, "OldIteratedVelocity")
@@ -321,13 +339,9 @@
       call allocate(rhs, u%mesh, "RightHandSide")
 
       nonlinear_loop: do nit=1,nonlinear_iterations
-        call set(nonlinear_velocity, u)
-        call scale(nonlinear_velocity, (1.0 - itheta))
-        call addto(nonlinear_velocity, iterated_velocity, scale=itheta)
+        call assemble_advection_matrix(advection_matrix, x, u, iterated_velocity)
 
-        call assemble_advection_matrix(advection_matrix, x, nonlinear_velocity)
-
-        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
+        call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
 
         call apply_dirichlet_conditions(lhs_matrix, rhs, u)
@@ -368,7 +382,6 @@
       end if
 
       call set(u, iterated_velocity)
-      call deallocate(nonlinear_velocity)
       call deallocate(iterated_velocity)
       call deallocate(old_iterated_velocity)
       call deallocate(iterated_velocity_difference)
@@ -378,12 +391,23 @@
 
     end subroutine execute_timestep
 
-    subroutine assemble_advection_matrix(advection_matrix, x, nu)
+    subroutine assemble_advection_matrix(advection_matrix, x, u_left, u_right)
       type(csr_matrix), intent(inout) :: advection_matrix
       type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: nu
+      type(scalar_field), intent(in), target :: u_left, u_right
 
+      type(scalar_field) :: nu
+      type(mesh_type), pointer :: mesh
       integer :: ele
+      real :: itheta
+
+      call get_option(trim(u_left%option_path) // "/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
+      mesh => u_left%mesh
+      call allocate(nu, mesh, "NonlinearVelocity")
+      call set(nu, u_left)
+      call scale(nu, (1.0 - itheta))
+      call addto(nu, u_right, scale=itheta)
+      nu%option_path = u_left%option_path
 
       call zero(advection_matrix)
       if (.not. have_option(trim(nu%option_path) // "/prognostic/remove_advection_term")) then
@@ -391,6 +415,8 @@
           call assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
         end do
       end if
+
+      call deallocate(nu)
     end subroutine assemble_advection_matrix
 
     subroutine assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
@@ -408,14 +434,17 @@
       call addto(advection_matrix, ele_nodes(nu, ele), ele_nodes(nu, ele), little_advection_matrix)
     end subroutine assemble_advection_matrix_ele
 
-    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta)
+    subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
       type(csr_matrix), intent(inout) :: lhs_matrix
       type(csr_matrix), intent(in) :: mass_matrix, advection_matrix, diffusion_matrix
+      type(scalar_field), intent(in) :: u
       real, intent(in) :: dt, theta
 
       call zero(lhs_matrix)
 
-      call addto(lhs_matrix, mass_matrix, 1.0/dt)
+      if (.not. have_option(trim(u%option_path) // '/prognostic/temporal_discretisation/remove_time_term')) then
+        call addto(lhs_matrix, mass_matrix, 1.0/dt)
+      end if
       call addto(lhs_matrix, advection_matrix, theta)
       call addto(lhs_matrix, diffusion_matrix, theta)
 
@@ -440,9 +469,11 @@
       mesh => u%mesh
       call allocate(tmp, mesh, "TemporaryField")
 
-      call mult(tmp, mass_matrix, u)
-      call scale(tmp, 1.0/dt)
-      call addto(rhs, tmp)
+      if (.not. have_option(trim(u%option_path) // '/prognostic/temporal_discretisation/remove_time_term')) then
+        call mult(tmp, mass_matrix, u)
+        call scale(tmp, 1.0/dt)
+        call addto(rhs, tmp)
+      end if
 
       call mult(tmp, advection_matrix, u)
       call scale(tmp, theta - 1.0)
@@ -635,90 +666,16 @@
       type(state_type), intent(inout), dimension(:,:) :: forward_state
       type(state_type), intent(inout), dimension(:,:) :: adjoint_state
 
-      type(scalar_field), pointer :: adjoint
-      type(scalar_field), pointer :: u
-      type(vector_field), pointer :: x
-      type(scalar_field) :: Au
-      type(scalar_field), pointer :: rhs
-      type(state_type), dimension(size(forward_state,1)) :: derivatives
-
-      type(csr_matrix) :: A, AT, GT, lhs, advection_matrix
-      type(csr_matrix), target :: diffusion_matrix
-      type(csr_matrix) :: mass_matrix
-      type(csr_sparsity), pointer :: sparsity
-
-      real :: current_time, dt
 
       assert(size(forward_state, 1) == 1) ! one phase
       assert(size(adjoint_state, 1) == 1) ! one phase
 
       if (have_option("/timestepping/steady_state")) then
-        u => extract_scalar_field(forward_state(1,1), "Velocity")
-        adjoint  => extract_scalar_field(adjoint_state(1,1), "AdjointVelocity")
-        x => extract_vector_field(adjoint_state(1,1), "Coordinate")
-
-        call setup_matrices(forward_state(1,1), mass_matrix, diffusion_matrix)
-        sparsity => diffusion_matrix%sparsity
-
-        ! Assemble A again, to compute A^T
-        call allocate(A, sparsity, name="ForwardOperator")
-        call set(A, diffusion_matrix)
-
-        call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
-        call assemble_advection_matrix(advection_matrix, x, u)
-        call addto(A, advection_matrix)
-
-        call allocate(Au, u%mesh, "Au")
-        ! We also want (the nonlinear part of A) * u
-        ! to subtract off in the formula for G^T later
-        call mult(Au, advection_matrix, u)
-        call deallocate(advection_matrix)
-
-        AT = transpose(A, symmetric_sparsity=.true.)
-        call deallocate(A)
-
-        ! OK! Now to compute G^T.
-        if (.not. have_option(trim(u%option_path) // "/prognostic/remove_advection_term")) then
-          ewrite(1,*) "Equation is nonlinear, so computing derivatives of nonlinear terms"
-          GT = compute_GT_ISP(sparsity, u, x, Au)
-        else ! equation is linear, so G^T is zero
-          ewrite(1,*) "Equation is linear, so not computing derivatives of nonlinear terms"
-          call allocate(GT, sparsity, name="ForwardOperatorDerivative")
-          call zero(GT)
-        end if
-        call deallocate(Au)
-
-        call allocate(lhs, sparsity, name="AdjointOperator")
-        call set(lhs, AT)
-        call deallocate(AT)
-
-        call addto(lhs, GT)
-        call deallocate(GT)
-
-        call get_option("/timestepping/current_time", current_time)
-        call get_option("/timestepping/timestep", dt)
-        call functional_derivative(forward_state, current_time, dt, 1, derivatives)
-        rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
-        call vtk_write_fields("new_rhs", position=x, model=adjoint%mesh, sfields=(/rhs/))
-
-        call deallocate(mass_matrix)
-        call deallocate(diffusion_matrix)
-
-        call apply_dirichlet_conditions(lhs, rhs, adjoint)
-        call zero(adjoint)
-        call petsc_solve(adjoint, lhs, rhs)
-        call deallocate(lhs)
-        call deallocate(derivatives)
-
-        call calculate_diagnostic_variables(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
-        call calculate_diagnostic_variables_new(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
-        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
-
-        call output_state(adjoint_state(:, 1))
+        call steady_state_adjoint(forward_state, adjoint_state)
       else
-        ewrite(-1,*) "Sorry, adjoint computation currently only works for steady state simulations."
-        return
+        call time_dependent_adjoint(forward_state, adjoint_state)
       end if
+
     end subroutine compute_adjoint
 
     function compute_GT_ISP(sparsity, u, x, Au) result(GT)
@@ -769,7 +726,7 @@
           end if
         end do
 
-        call assemble_advection_matrix(advection_matrix, x, perturbed_u)
+        call assemble_advection_matrix(advection_matrix, x, perturbed_u, perturbed_u)
         call mult(perturbed_Au, advection_matrix, u)
 
         ! Subtract off Au
@@ -804,12 +761,17 @@
       integer, intent(out) :: no_colours
 
       integer :: i
+      integer, dimension(:), pointer :: row
+
+      ! This is just to shut up the compiler about not using sparsity
+      row => row_m_ptr(sparsity, 1)
 
       ! Here we cheat. Colouring a 1D mesh is quite easy. 
       ! We don't actually need to look at the sparsity at all.
       ! But for more general problems, you need to colour based on the sparsity
       ! pattern, so I added it to the arguments.
 
+      
       call allocate(node_colour, mesh, "NodeColouring")
 
       no_colours = 3
@@ -884,6 +846,7 @@
       character(len=OPTION_PATH_LEN) :: path, field_name, simulation_name
       character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete, fields_to_move
       integer :: stat
+      real :: finish_time, current_time, dt
 
       nfields = option_count("/material_phase[0]/scalar_field")
       allocate(fields_to_delete(nfields))
@@ -941,6 +904,15 @@
       ! And the simulation name
       call get_option("/simulation_name", simulation_name)
       call set_option("/simulation_name", trim(simulation_name) // "_adjoint", stat=stat)
+
+      ! And the timestepping information
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/finish_time", finish_time)
+      call get_option("/timestepping/timestep", dt)
+
+      call set_option("/timestepping/current_time", finish_time)
+      call set_option("/timestepping/finish_time", current_time)
+      call set_option("/timestepping/timestep", -dt)
 
     end subroutine adjoint_options_dictionary
 
@@ -1029,12 +1001,13 @@
         ewrite(-1,*) "Since I know you are wrong, I am ignoring you."
       end if
 
+      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
       call allocate(u_cpy, u%mesh, "Velocity")
       call set(u_cpy, u)
       call insert(out_states(1), u, "Velocity")
+      call insert(out_states(1), u, "IteratedVelocity" // int2str(nonlinear_iterations))
       call deallocate(u_cpy)
    
-      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
       do i=1,nonlinear_iterations-1
         u => extract_scalar_field(in_states(1), "IteratedVelocity" // int2str(i))
         call allocate(u_cpy, u%mesh, trim(u%name))
@@ -1061,8 +1034,8 @@
       end do
 
       x => extract_vector_field(in_states(1), "Coordinate")
-      if (have_option("/mesh_adaptivity/mesh_movement")) then
-        FLExit("Sorry, /adjoint and /mesh_adaptivity/mesh_movement are currently incompatible")
+      if (have_option("/mesh_adaptivity")) then
+        FLExit("Sorry, /adjoint and /mesh_adaptivity are currently incompatible")
       end if
       call insert(out_states(1), x, "Coordinate")
 
@@ -1074,4 +1047,482 @@
       out_states(1)%name = trim(in_states(1)%name)
     end subroutine copy_forward_state
 
+    subroutine mangle_dirichlet_rows(matrix, field, keep_diag)
+      type(csr_matrix), intent(inout) :: matrix
+      type(scalar_field), intent(in) :: field
+      logical, intent(in) :: keep_diag
+
+      integer :: i, j, node
+      character(len=FIELD_NAME_LEN) :: bctype
+      integer, dimension(:), pointer :: node_list
+
+      real,  dimension(:), pointer :: row
+      real, pointer :: diag_ptr
+      real :: diag
+
+      do i=1,get_boundary_condition_count(field)
+        call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
+
+        if (bctype /= "dirichlet") cycle
+
+        do j=1,size(node_list)
+          node = node_list(j)
+          diag_ptr => diag_val_ptr(matrix, node)
+          diag = diag_ptr
+          row  => row_val_ptr(matrix, node)
+          row = 0
+          if (keep_diag) then
+            diag_ptr = diag
+          end if
+        end do
+      end do
+    end subroutine mangle_dirichlet_rows
+
+    subroutine set_inactive_rows(matrix, field)
+      ! Any nodes associated with Dirichlet BCs, we make them inactive
+      type(csr_matrix), intent(inout) :: matrix
+      type(scalar_field), intent(in) :: field
+
+      integer :: i
+      character(len=FIELD_NAME_LEN) :: bctype
+      integer, dimension(:), pointer :: node_list
+
+      do i=1,get_boundary_condition_count(field)
+        call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
+        if (bctype /= "dirichlet") cycle
+        call set_inactive(matrix, node_list)
+      end do
+
+    end subroutine set_inactive_rows
+
+    subroutine compute_inactive_rows(x, A, rhs)                                                                                                                                                                              
+      type(scalar_field), intent(inout):: x                                                                                                                                                                                 
+      type(csr_matrix), intent(in):: A                                                                                                                                                                                      
+      type(scalar_field), intent(inout):: rhs                                                                                                                                                                               
+
+      logical, dimension(:), pointer:: inactive_mask                                                                                                                                                                        
+      integer:: i                                                                                                                                                                                                           
+
+      inactive_mask => get_inactive_mask(A)                                                                                                                                                                                 
+
+      if (.not. associated(inactive_mask)) return                                                                                                                                                                           
+
+      do i=1, size(A,1)                                                                                                                                                                                                     
+        if (inactive_mask(i)) then                                                                                                                                                                                          
+
+          ! we want [rhs_i - ((L+U)*x)_i]/A_ii, where L+U is off-diag part of A                                                                                                                                             
+          ! by setting x_i to zero before this is the same as [rhs_i- (A*x)_i]/A_ii                                                                                                                                         
+          call set(x, i, 0.0)                                                                                                                                                                                               
+          call set(x, i, (node_val(rhs,i)- &                                                                                                                                                                                
+          dot_product(row_val_ptr(A,i),node_val(x, row_m_ptr(A,i))) &                                                                                                                                                    
+          &  )/val(A,i,i) )                                                                                                                                                                
+
+        end if                                                                                                                                                                                                              
+      end do                                                                                                                                                                                                                
+    end subroutine compute_inactive_rows
+
+    subroutine differentiate_V(x, sparsity, u_left, u_right, arg, contraction, adjoint, output)
+      ! The core routine for the time-dependent adjoint equation.
+      ! So, here's the arguments:
+      type(vector_field), intent(in) :: x
+
+      ! The sparsity of the advection operator
+      type(csr_sparsity), intent(in) :: sparsity
+
+      ! u_left and u_right are the arguments to the nonlinear velocity at which
+      ! the advection matrix is assembled.
+      ! nu = (1-itheta) * u_left + itheta * u_right
+      type(scalar_field), intent(in), target :: u_left, u_right
+
+      ! arg is an integer saying what we are differentiating with respect to.
+      ! arg == -1 means differentiating with respect to the u_left argument.
+      ! arg == +1 means differentiating with respect to the u_right argument.
+      ! arg ==  0 means that u_left and u_right are actually the same, and we're
+      !           taking the derivative with respect to that.
+      integer, intent(in) :: arg
+
+      ! So, the derivative of V is a rank-3 tensor. But we can't store them,
+      ! so we immediately contract it with something else to give a rank-2
+      ! tensor. What is it we're contracting it with?
+      type(scalar_field), intent(in) :: contraction
+
+      ! If you write down the form of G, we only ever multiply blocks of G
+      ! by known vectors -- adjoint values previously computed. So this
+      ! argument is the adjoint value to multiply it by.
+      type(scalar_field), intent(in) :: adjoint
+
+      ! The output, which is
+      ! (diff(V[(1-itheta) * u_left + itheta * u_right], whatever) * contraction) * adjoint
+      !                                                  ^ depends on arg
+      !                                                            ^ rank-3 tensor contraction
+      !                                                                           ^ plain old matrix multiplication
+      type(scalar_field), intent(inout) :: output
+
+      type(scalar_field) :: node_colour
+      type(mesh_type), pointer :: mesh
+      integer :: no_colours
+      integer :: colour
+      integer :: node
+      integer, dimension(:), pointer :: connected_nodes
+
+      type(csr_matrix) :: V ! the advection matrix, possibly perturbed, and possibly not
+      type(scalar_field) :: perturbed ! some perturbed argument to assemble_advection_matrix
+      type(scalar_field) :: Vc ! the unperturbed advection matrix, multiplied by contraction
+      type(scalar_field) :: pVc ! the perturbed advection matrix, multiplied by contraction
+      real, parameter :: h=1.0 ! the perturbation size; since our differentiation is exact regardless of h, we choose it to be 1.0
+
+      call zero(output)
+      mesh => u_left%mesh
+
+      call allocate(V, sparsity, name="AdvectionMatrix")
+      ! Firstly, assemble V unperturbed to get Vu
+      call assemble_advection_matrix(V, x, u_left, u_right)
+
+      ! We zero the rows, but not the columns.
+      ! I don't know if this is the right thing to do, or 
+      ! indeed what is the right thing to do.
+      ! This needs a lot more thought.
+      ! However, let's blunder on for now.
+
+      call mangle_dirichlet_rows(V, u_left, keep_diag=.true.)
+      call allocate(Vc, mesh, "UnperturbedVTimesContraction")
+      call allocate(pVc, mesh, "PerturbedVTimesContraction")
+      call mult(Vc, V, contraction)
+
+      call colour_graph(sparsity, mesh, node_colour, no_colours)
+      call allocate(perturbed, mesh, "PerturbedArgument")
+      call zero(perturbed)
+
+      do colour=1,no_colours
+
+        if (arg == -1) then
+          ! We are perturbing the left-hand argument to V
+          call set(perturbed, u_left)
+        else if (arg == 0) then
+          ! In this case, u_left IS u_right, so it's all the same 
+          call set(perturbed, u_left)
+        else if (arg == 1) then
+          ! Here, we're perturbing u_right
+          call set(perturbed, u_right)
+        else
+          FLAbort("invalid value for arg")
+        end if
+
+        ! Assemble the perturbed state
+        do node=1,node_count(mesh)
+          if (node_val(node_colour, node) == float(colour)) then
+            call addto(perturbed, node, h)
+          end if
+        end do
+
+        call zero(V)
+        if (arg == -1) then
+          ! We are perturbing the left-hand argument to V
+          call assemble_advection_matrix(V, x, perturbed, u_right)
+        else if (arg == 0) then
+          ! In this case, u_left IS u_right, so it's all the same 
+          call assemble_advection_matrix(V, x, perturbed, perturbed)
+        else if (arg == 1) then
+          ! Here, we're perturbing u_right
+          call assemble_advection_matrix(V, x, u_left, perturbed)
+        else
+          FLAbort("invalid value for arg")
+        end if
+
+        ! OK. So we've assembled the perturbed V. We multiply that by contraction:
+        call mangle_dirichlet_rows(V, u_left, keep_diag=.true.)
+        call mult(pVc, V, contraction)
+
+        ! Now subtract off the unperturbed V * contraction:
+        call addto(pVc, Vc, scale=-1.0)
+
+        ! And divide by h:
+        call scale(pVc, 1.0/h)
+
+        ! So now pVc contains all the rows of GT associated with this colour.
+        ! So let's extract out each row in turn, and multiply it by adjoint.
+        do node=1,node_count(mesh)
+          if (node_val(node_colour, node) == float(colour)) then
+            connected_nodes => row_m_ptr(sparsity, node)
+            ! node_val(pVc, connected_nodes) IS the row of GT associated with this node.
+            call set(output, node, dot_product(node_val(pVc, connected_nodes), node_val(adjoint, connected_nodes)))
+          end if
+        end do
+      end do
+
+      call deallocate(V)
+      call deallocate(Vc)
+      call deallocate(pVc)
+      call deallocate(perturbed)
+    end subroutine differentiate_V
+
+    subroutine steady_state_adjoint(forward_state, adjoint_state)
+      ! material_phases x time
+      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
+
+      type(scalar_field), pointer :: adjoint
+      type(scalar_field), pointer :: u
+      type(vector_field), pointer :: x
+      type(scalar_field) :: Au
+      type(scalar_field), pointer :: rhs
+      type(state_type), dimension(size(forward_state,1)) :: derivatives
+
+      type(csr_matrix) :: A, AT, GT, lhs, advection_matrix
+      type(csr_matrix), target :: diffusion_matrix
+      type(csr_matrix) :: mass_matrix
+      type(csr_sparsity), pointer :: sparsity
+
+      real :: current_time, dt
+
+      u => extract_scalar_field(forward_state(1,1), "Velocity")
+      adjoint  => extract_scalar_field(adjoint_state(1,1), "AdjointVelocity")
+      x => extract_vector_field(adjoint_state(1,1), "Coordinate")
+
+      call setup_matrices(forward_state(1,1), mass_matrix, diffusion_matrix)
+      sparsity => diffusion_matrix%sparsity
+
+      ! Assemble A again, to compute A^T
+      call allocate(A, sparsity, name="ForwardOperator")
+      call set(A, diffusion_matrix)
+
+      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
+      call assemble_advection_matrix(advection_matrix, x, u, u)
+      call addto(A, advection_matrix)
+
+      call allocate(Au, u%mesh, "Au")
+      ! We also want (the nonlinear part of A) * u
+      ! to subtract off in the formula for G^T later
+      call mult(Au, advection_matrix, u)
+      call deallocate(advection_matrix)
+
+      call mangle_dirichlet_rows(A, u, keep_diag=.true.)
+      AT = transpose(A, symmetric_sparsity=.true.)
+      call deallocate(A)
+      call mangle_dirichlet_rows(AT, u, keep_diag=.true.)
+
+      ! OK! Now to compute G^T.
+      if (.not. have_option(trim(u%option_path) // "/prognostic/remove_advection_term")) then
+        ewrite(1,*) "Equation is nonlinear, so computing derivatives of nonlinear terms"
+        GT = compute_GT_ISP(sparsity, u, x, Au)
+      else ! equation is linear, so G^T is zero
+        ewrite(1,*) "Equation is linear, so not computing derivatives of nonlinear terms"
+        call allocate(GT, sparsity, name="ForwardOperatorDerivative")
+        call zero(GT)
+      end if
+      call deallocate(Au)
+
+      call allocate(lhs, sparsity, name="AdjointOperator")
+      call set(lhs, AT)
+      call deallocate(AT)
+
+      call addto(lhs, GT)
+      call deallocate(GT)
+
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+      call functional_derivative(forward_state, current_time, dt, 1, derivatives)
+      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
+
+      call deallocate(mass_matrix)
+      call deallocate(diffusion_matrix)
+
+      call zero(adjoint)
+      call set_inactive_rows(lhs, u)
+      call petsc_solve(adjoint, lhs, rhs)
+      call compute_inactive_rows(adjoint, lhs, rhs)
+      call deallocate(lhs)
+      call deallocate(derivatives)
+
+      call calculate_diagnostic_variables(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
+      call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
+
+      call output_state(adjoint_state(:, 1))
+    end subroutine steady_state_adjoint
+
+    function iteration_count(state) result(count)
+      type(state_type), intent(in) :: state
+      integer :: count
+
+      integer :: i
+      type(scalar_field), pointer :: iterated_velocity
+      integer :: stat
+
+      count = 0
+      do
+        i = count + 1
+        iterated_velocity => extract_scalar_field(state, "IteratedVelocity" // int2str(i), stat=stat)
+        if (stat /= 0) exit
+      end do
+    end function iteration_count
+
+    subroutine time_dependent_adjoint(forward_state, adjoint_state)
+      ! material_phases x time
+      type(state_type), intent(inout), dimension(:,:) :: forward_state
+      type(state_type), intent(inout), dimension(:,:) :: adjoint_state
+      integer :: timesteps
+
+      timesteps = size(forward_state, 2)
+
+      call compute_final_adjoint_state(forward_state, adjoint_state, timesteps)
+    end subroutine time_dependent_adjoint
+
+    subroutine compute_final_adjoint_state(forward_state, adjoint_state, timestep)
+      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
+      integer, intent(in) :: timestep
+
+      type(state_type), dimension(size(forward_state,1)) :: derivatives
+      type(scalar_field), pointer :: rhs, adjoint, u, u_left, u_right
+      type(csr_matrix) :: L, LT
+      real :: current_time, dt, theta
+      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
+      type(csr_matrix) :: advection_matrix
+      type(vector_field), pointer :: x
+
+      u => extract_scalar_field(forward_state(1, timestep), "Velocity")
+      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
+      x => extract_vector_field(forward_state(1, timestep), "Coordinate")
+      call zero(adjoint)
+
+      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+
+      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
+
+      call allocate(advection_matrix, diffusion_matrix%sparsity, name="AdvectionMatrix")
+      u_left => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
+      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(iteration_count(forward_state(1, timestep))))
+
+      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
+      call deallocate(advection_matrix)
+      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
+      LT = transpose(L)
+      call deallocate(L)
+      call mangle_dirichlet_rows(LT, u, keep_diag=.true.)
+
+      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
+      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
+      
+      call set_inactive_rows(LT, u)
+      call petsc_solve(adjoint, LT, rhs)
+      call compute_inactive_rows(adjoint, LT, rhs)
+
+      ! We'll also insert it as IteraredAdjointVelocityN
+      call insert(adjoint_state(1, timestep), adjoint, "IteratedAdjointVelocity" // int2str(iteration_count(forward_state(1, timestep))))
+
+      call deallocate(derivatives)
+      call deallocate(LT)
+    end subroutine compute_final_adjoint_state
+
+    subroutine compute_initial_adjoint_state(forward_state, adjoint_state)
+      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
+
+      type(state_type), dimension(size(forward_state,1)) :: derivatives
+      type(scalar_field), pointer :: rhs, adjoint, u, u_left, u_right
+      real :: current_time, dt, theta
+      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
+      type(vector_field), pointer :: x
+      type(scalar_field) :: output, contraction
+      type(csr_sparsity), pointer :: sparsity
+      type(csr_matrix) :: advection_matrix, T
+      integer :: count, i
+
+      u => extract_scalar_field(forward_state(1, 1), "Velocity")
+      adjoint => extract_scalar_field(adjoint_state(1, 1), "AdjointVelocity")
+      x => extract_vector_field(forward_state(1, 1), "Coordinate")
+      call zero(adjoint)
+
+      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+
+      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
+      sparsity => mass_matrix%sparsity
+
+
+      ! ---------------------------------------------------------------------------------
+      ! dJ/du
+      ! ---------------------------------------------------------------------------------
+      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
+      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
+      call addto(adjoint, rhs)
+      call deallocate(derivatives)
+
+      call allocate(output, u%mesh, "OutputVector")
+      call allocate(contraction, u%mesh, "ContractionVector")
+
+      ! ---------------------------------------------------------------------------------
+      ! the G-blocks multiplying the adjoint RHS
+      ! ---------------------------------------------------------------------------------
+      ! The first G-block is a special case.
+      u_left => u
+      u_right => u
+
+      call set(contraction, u)
+      call scale(contraction, 1-theta)
+      call addto(contraction, extract_scalar_field(forward_state(1, 2), "IteratedVelocity1"), scale=theta)
+
+      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, &
+           & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"), output)
+      call addto(adjoint, output)
+
+      ! Now loop over the others
+      count = iteration_count(forward_state(1, timestep))
+      do i=2,count
+        u_right => extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i-1))
+
+        call set(contraction, u)
+        call scale(contraction, 1-theta)
+        call addto(contraction, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)), scale=theta)
+        call differentiate_V(x, sparsity, u_left, u_right, -1, contraction, &
+             & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)), output)
+        call addto(adjoint, output)
+      end do
+
+      call deallocate(contraction)
+
+      ! ---------------------------------------------------------------------------------
+      ! the transpose of the forward timestepping operators
+      ! ---------------------------------------------------------------------------------
+      ! Again, the first T-block is a special case.
+
+      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
+      u_left => u
+      u_right => u
+      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+      call allocate(T, sparsity, name="TimesteppingOperator")
+      call set(T, mass_matrix)
+      call scale(T, 1.0/abs(dt))
+
+      call addto(T, diffusion_matrix)
+      call addto(T, advection_matrix)
+      call mangle_dirichlet_rows(T, u, keep_diag=.false.)
+
+      call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity1"))
+      call addto(adjoint, output)
+
+      do i=2,count
+        u_right => extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i-1))
+        call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+        call set(T, mass_matrix)
+        call scale(T, 1.0/abs(dt))
+        call addto(T, diffusion_matrix)
+        call addto(T, advection_matrix)
+        call mangle_dirichlet_rows(T, u, keep_diag=.false.)
+
+        call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)))
+        call addto(adjoint, output)
+      end do
+
+      ! Note that we don't need to invert any operators, because the top-left block is
+      ! just the identity matrix.
+      
+    end subroutine compute_initial_adjoint_state
   end program burgers_equation

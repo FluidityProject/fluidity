@@ -241,6 +241,12 @@ while 1 means the best guess of the next timestep velocity is used.
 Recommended to be 0.5.</a:documentation>
                 <ref name="real"/>
               </element>
+              <optional>
+                <element name="remove_time_term">
+                  <a:documentation>If activated, the time term is removed from the equations. Should be used with theta=1 and relaxation=1.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
           <element name="solver">
