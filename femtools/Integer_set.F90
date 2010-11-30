@@ -2,10 +2,10 @@
 
 module integer_set_module
   ! Don't use this directly, use data_structures
-  use iso_c_binding, only: c_ptr,c_null_ptr
+  use iso_c_binding, only: c_ptr
   use fldebug
   type integer_set
-    type(c_ptr) :: address=c_null_ptr
+    type(c_ptr) :: address
   end type integer_set
 
   interface
@@ -83,7 +83,7 @@ module integer_set_module
   end interface
   
   interface copy
-    module procedure integer_set_copy, integer_set_copy_multiple
+    module procedure integer_set_copy
   end interface
   
   interface set_intersection
@@ -245,51 +245,21 @@ module integer_set_module
     end do
   end subroutine set_intersection_two
 
-  subroutine set_intersection_multiple(intersection, isets, mask)
+  subroutine set_intersection_multiple(intersection, isets)
     ! intersection = isets(i) n isets(j), forall i /= j
     type(integer_set), intent(out) :: intersection
     type(integer_set), dimension(:), intent(in) :: isets
-    logical, dimension(:), intent(in), optional :: mask
-    integer :: i, n
+    integer :: i
     
-    ! Ring buffer of isets.
-    type(integer_set), dimension(2) :: tmp_iset(0:1)
-    integer :: r, oldr
+    type(integer_set) :: tmp_intersection, tmp_iset
 
-    oldr=1
-    r=0
-    
-    if (present(mask)) then
-       assert(size(mask)==size(isets))
-       
-       if (all(.not.mask))then
-          call allocate(intersection)
-          return
-       end if
-
-       do n=1, size(isets)
-          if (mask(n)) then
-             call copy(tmp_iset(r), isets(n))
-             exit
-          end if
-       end do
-       
-    else
-       n=1
-       call copy(tmp_iset(r), isets(n))
-    end if
-
-    do i = n+1, size(isets)
-       if (present(mask)) then
-          if (.not.mask(i)) cycle
-       end if
-       oldr=r
-       r=mod(r+1,2)
-       call set_intersection(tmp_iset(r), tmp_iset(oldr), isets(i))
-       call deallocate(tmp_iset(oldr))
+    tmp_iset = isets(1)
+    do i = 2, size(isets)
+      call set_intersection(tmp_intersection, tmp_iset, isets(i))
+      call copy(tmp_iset, tmp_intersection)
+      call deallocate(tmp_intersection)
     end do
-
-    intersection = tmp_iset(r)
+    intersection = tmp_iset
     
   end subroutine set_intersection_multiple
   
@@ -307,20 +277,6 @@ module integer_set_module
     end do
   
   end subroutine integer_set_copy
-
-  subroutine integer_set_copy_multiple(iset_copy, iset)
-    type(integer_set), dimension(:), intent(out) :: iset_copy
-    type(integer_set), dimension(:), intent(in) :: iset
-
-    integer :: i
-
-    assert(size(iset)==size(iset_copy))
-
-    do i = 1, size(iset)
-       call integer_set_copy(iset_copy(i), iset(i))
-    end do
-
-  end subroutine integer_set_copy_multiple
 
   subroutine set_minus(minus, A, B)
   ! minus = A \ B
