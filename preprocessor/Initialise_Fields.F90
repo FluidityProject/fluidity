@@ -129,40 +129,46 @@ contains
          select case (format)
          case ("vtu")
             call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)
-            read_field => vtk_cache_read_scalar_field(filename, field_name)
-            vtk_position => vtk_cache_read_positions_field(filename)
-            if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
-              ! if the vtk mesh is the same mesh as the position%mesh, use position
-              ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
-              field_position=position
-              call incref(field_position)
-            else
-              ! otherwise the position mapped onto field%mesh
-              call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
-              call remap_field(position, field_position, stat=stat)
-              if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-                ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-                ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-                ewrite(-1,*) 'to remap them to a continuous field.'
-                FLAbort("Why are your coordinates discontinuous?")
+            read_field => vtk_cache_read_scalar_field(filename, field_name)            
+            
+            if (.not. field%mesh%periodic) then
+              ! check that the vtk mesh is the same as the derived mesh from state
+              ! by comparing its coordinate fields (currently not done for periodic meshes)
+              
+              vtk_position => vtk_cache_read_positions_field(filename)
+              ! get the right field to compare it with
+              if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
+                ! if the vtk mesh is the same mesh as the position%mesh, use position
+                ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
+                field_position=position
+                call incref(field_position)
+              else
+                ! otherwise the position mapped onto field%mesh
+                call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
+                call remap_field(position, field_position, stat=stat)
+                if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+                  ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+                  ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+                  ewrite(-1,*) 'to remap them to a continuous field.'
+                  FLAbort("Why are your coordinates discontinuous?")
+                end if
               end if
+              if (.not. mesh_compatible(vtk_position, field_position)) then
+                ! repeat, this to make sure it ends up in any error log
+                ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
+                ! give useful error message (make sure to blame the user)
+                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
+                   trim(field%mesh%name), &
+                  " specified under ", trim(field%mesh%option_path)
+                ! treat this as a user error!
+                call print_mesh_incompatibility(-1, vtk_position, field_position)
+                FLExit("Mesh from file and in state are not compatible")
+              end if
+              call deallocate(field_position)
             end if
+
+            call set(field, read_field)
             
-            if (mesh_compatible(vtk_position, field_position)) then
-              call set(field, read_field)
-            else
-              ! repeat, this to make sure it ends up in any error log
-              ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
-              ! give useful error message (make sure to blame the user)
-              ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
-                 trim(field%mesh%name), &
-                " specified under ", trim(field%mesh%option_path)
-              ! treat this as a user error!
-              call print_mesh_incompatibility(-1, vtk_position, field_position)
-              FLExit("Mesh from file and in state are not compatible")
-            end if
-            
-            call deallocate(field_position)
             
          case ("climatology (Boyer2005)")
            
@@ -261,41 +267,47 @@ contains
          select case (format)
          case ("vtu")
             call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)            
-            read_field => vtk_cache_read_vector_field(filename, field_name)
-            vtk_position => vtk_cache_read_positions_field(filename)
-            ! get the right field to compare it with
-            if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
-              ! if the vtk mesh is the same mesh as the position%mesh, use position
-              ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
-              field_position=position
-              call incref(field_position)
-            else
-              ! otherwise the position mapped onto field%mesh
-              call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
-              call remap_field(position, field_position, stat=stat)
-              if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-                ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-                ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-                ewrite(-1,*) 'to remap them to a continuous field.'
-                FLAbort("Why are your coordinates discontinuous?")
+            read_field => vtk_cache_read_vector_field(filename, field_name)        
+
+            if (.not. field%mesh%periodic) then
+              ! check that the vtk mesh is the same as the derived mesh from state
+              ! by comparing its coordinate fields (currently not done for periodic meshes)
+              
+              ! get the right field to compare it with
+              vtk_position => vtk_cache_read_positions_field(filename)
+              if (field%mesh==position%mesh .or. element_degree(field,1)==0) then
+                ! if the vtk mesh is the same mesh as the position%mesh, use position
+                ! (for P0 the vtk_position is that of the linear vertex mesh, so we also can directly use it)
+                field_position=position
+                call incref(field_position)
+              else
+                ! otherwise the position mapped onto field%mesh
+                call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
+                call remap_field(position, field_position, stat=stat)
+                if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+                  ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+                  ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+                  ewrite(-1,*) 'to remap them to a continuous field.'
+                  FLAbort("Why are your coordinates discontinuous?")
+                end if
               end if
+              
+              if (.not. mesh_compatible(vtk_position, field_position)) then
+                ! repeat, this to make sure it ends up in any error log
+                ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
+                ! give useful error message (make sure to blame the user)
+                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
+                   trim(field%mesh%name), &
+                  " specified under ", trim(field%mesh%option_path)
+                ! treat this as a user error!
+                call print_mesh_incompatibility(-1, vtk_position, field_position)
+                FLExit("Mesh from file and in state are not compatible")
+              end if
+              
+              call deallocate(field_position)
             end if
             
-            if (mesh_compatible(vtk_position, field_position)) then
-              call set(field, read_field)
-            else
-              ! repeat, this to make sure it ends up in any error log
-              ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
-              ! give useful error message (make sure to blame the user)
-              ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
-                 trim(field%mesh%name), &
-                " specified under ", trim(field%mesh%option_path)
-              ! treat this as a user error!
-              call print_mesh_incompatibility(-1, vtk_position, field_position)
-              FLExit("Mesh from file and in state are not compatible")
-            end if
-            
-            call deallocate(field_position)
+            call set(field, read_field)
             
          case default
             
