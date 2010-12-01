@@ -1176,9 +1176,6 @@ module zoltan_integration
 
     ierr = ZOLTAN_OK
     
-  contains
-    
-
   end subroutine zoltan_cb_unpack_fields
 
   function local_vertex_order(old_unns, new_gnns)
