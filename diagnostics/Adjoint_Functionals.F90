@@ -39,9 +39,65 @@ module adjoint_functionals
   implicit none
   
   private
-  public :: functional_derivative
+  public :: functional_derivative, functional
 
   contains
+
+  function functional(states, current_time, dt, n) result(J)
+    type(state_type), dimension(:,:), intent(in) :: states ! all the forward states, phases x time (or hopefully at least the ones we need!)
+    real, intent(in) :: current_time, dt 
+    integer, intent(in) :: n ! which forward state in states(:) corresponds to this time
+    real :: J
+
+    character(len=PYTHON_FUNC_LEN) :: code
+    integer, dimension(:), pointer :: temporal_dependencies
+    character(len = 30) :: buffer
+    integer :: i
+
+    call python_reset
+
+    call get_option("/adjoint/functional/algorithm", code)
+    call get_temporal_dependencies(code, temporal_dependencies)
+    ! If the temporal dependencies are
+    ! [-1, 0, 1]
+    ! then we want the user's n to be 1,
+    ! so that they are accessing state[0], state[1], and state[2]
+    ! and so on.
+    ! if they are [-2, -1, 0, 1], n = 2 means that the array of states the user is interested in starts from 0.
+    if (size(temporal_dependencies) == 0) then
+      ewrite(-1,*) "Could not find the temporal dependencies of your adjoint functional. Does the regular expression"
+      ewrite(-1,*) "states[...] match anything?"
+      ewrite(-1,*) "Try running python/fluidity/parse_functional.py on your python function."
+      FLExit("Sorry, can't proceed")
+    end if
+
+    ! Now let's add the states.
+    call python_run_string("megastates = [0] * " // int2str(size(temporal_dependencies)))
+    do i=1,size(temporal_dependencies)
+      call python_add_states(states(:, n + temporal_dependencies(i)))
+      ! So right now, state = to the i'th state to be considered.
+      ! Let's pack it into states[i-1]
+      call python_run_string("megastates[" // int2str(i-1) // "] = states; states = {}")
+    end do
+
+    call python_run_string("states = megastates; del megastates; del state")
+
+    ! Add a few wee variables for the user to use
+    call python_run_string("n = " // int2str(-1 * minval(temporal_dependencies)))
+    deallocate(temporal_dependencies)
+
+    write(buffer,*) current_time
+    call python_run_string("time = " // trim(buffer))
+
+    write(buffer, *) abs(dt)
+    call python_run_string("dt = " // trim(buffer))
+
+    ! I think we're ready!
+    call python_run_string(trim(code))
+
+    J = python_fetch_real("J")
+    call python_reset
+  end function functional
 
   subroutine functional_derivative(states, current_time, dt, n, derivatives)
     type(state_type), dimension(:,:), intent(in) :: states ! all the forward states, phases x time (or hopefully at least the ones we need!)
@@ -55,7 +111,6 @@ module adjoint_functionals
       call get_option("/adjoint/functional_derivative/algorithm", code)
       call functional_derivative_python(states, code, current_time, dt, n, derivatives)
     else if (have_option("/adjoint/functional")) then
-      ewrite(-1,*) "Use ISP here. Sorry!"
       FLAbort("Not implemented yet.")
     else
       FLExit("No /adjoint/functional or /adjoint/functional_derivative")
