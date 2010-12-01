@@ -55,8 +55,9 @@ module halos_communications
   end interface zero_halo_receives
   
   interface halo_update
-    module procedure halo_update_array_integer, halo_update_array_real, &
-      & halo_update_array_real_block, halo_update_array_real_block2, &
+    module procedure halo_update_array_integer, halo_update_array_integer_block, &
+      & halo_update_array_integer_block2, halo_update_array_integer_star, &
+      & halo_update_array_real, halo_update_array_real_block, halo_update_array_real_block2, &
       & halo_update_scalar_on_halo, halo_update_vector_on_halo, &
       & halo_update_tensor_on_halo, halo_update_scalar, halo_update_vector, &
       & halo_update_tensor
@@ -147,15 +148,52 @@ contains
     type(halo_type), intent(in) :: halo
     integer, dimension(:), intent(inout) :: integer_data
     
+    assert(size(integer_data, 1) >= max_halo_node(halo))
+    
+    call halo_update_array_integer_star(halo, integer_data, 1)
+    
+  end subroutine halo_update_array_integer
+  
+  subroutine halo_update_array_integer_block(halo, integer_data)
+    !!< Update the supplied array of integer data. Fortran port of
+    !!< FLComms::Update(...).
+    
+    type(halo_type), intent(in) :: halo
+    integer, dimension(:,:), intent(inout) :: integer_data
+    
+    assert(size(integer_data, 2) >= max_halo_node(halo))
+    
+    call halo_update_array_integer_star(halo, integer_data, size(integer_data,1))
+    
+  end subroutine halo_update_array_integer_block
+    
+  subroutine halo_update_array_integer_block2(halo, integer_data)
+    !!< Update the supplied array of integer data. Fortran port of
+    !!< FLComms::Update(...).
+    
+    type(halo_type), intent(in) :: halo
+    integer, dimension(:,:,:), intent(inout) :: integer_data
+    
+    assert(size(integer_data, 3) >= max_halo_node(halo))
+    
+    call halo_update_array_integer_star(halo, integer_data, size(integer_data,1)*size(integer_data,2))
+    
+  end subroutine halo_update_array_integer_block2
+  
+  subroutine halo_update_array_integer_star(halo, integer_data, block_size)
+    !!< Update the supplied array of integer data. Fortran port of
+    !!< FLComms::Update(...).
+    
+    type(halo_type), intent(in) :: halo
+    integer, dimension(*), intent(inout) :: integer_data
+    integer, intent(in) :: block_size
+    
 #ifdef HAVE_MPI
     integer :: communicator, i, ierr, nprocs, nreceives, nsends, rank
     integer, dimension(:), allocatable :: receive_types, requests, send_types, statuses
     integer tag
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
-
-    assert(lbound(integer_data, 1) <= min_halo_node(halo))
-    assert(ubound(integer_data, 1) >= max_halo_node(halo))
 
     nprocs = halo_proc_count(halo)
     communicator = halo_communicator(halo)
@@ -168,8 +206,8 @@ contains
     do i = 1, nprocs
       nsends = halo_send_count(halo, i)
       if(nsends > 0) then
-        call mpi_type_create_indexed_block(nsends, 1, &
-          & halo_sends(halo, i) - lbound(integer_data, 1), &
+        call mpi_type_create_indexed_block(nsends, block_size, &
+          & (halo_sends(halo, i) - 1)*block_size, &
           & getpinteger(), send_types(i), ierr)
         assert(ierr == MPI_SUCCESS)
         call mpi_type_commit(send_types(i), ierr)
@@ -178,8 +216,8 @@ contains
 
       nreceives = halo_receive_count(halo, i)
       if(nreceives > 0) then
-        call mpi_type_create_indexed_block(nreceives, 1, &
-          & halo_receives(halo, i) - lbound(integer_data, 1), &
+        call mpi_type_create_indexed_block(nreceives, block_size, &
+          & (halo_receives(halo, i) - 1)*block_size, &
           & getpinteger(), receive_types(i), ierr)
         assert(ierr == MPI_SUCCESS)
         call mpi_type_commit(receive_types(i), ierr)
@@ -234,7 +272,7 @@ contains
     end if
 #endif
 
-  end subroutine halo_update_array_integer
+  end subroutine halo_update_array_integer_star
     
   subroutine halo_update_array_real(halo, real_data)
     !!< Update the supplied array of real data. Fortran port of

@@ -35,6 +35,7 @@ module zoltan_integration
   use diagnostic_variables
   use hadapt_advancing_front
   use parallel_tools
+  use fields_halos
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
@@ -981,7 +982,7 @@ module zoltan_integration
     sz = 0
 
     do state_no=1,size(source_states)
-
+      
       do field_no=1,scalar_field_count(source_states(state_no))
         sfield => extract_scalar_field(source_states(state_no), field_no)
         sz = sz + ele_loc(sfield, 1)
@@ -999,7 +1000,8 @@ module zoltan_integration
 
     end do
     
-    sizes(1:num_ids) = sz * real_size
+    ! reserve space for sz scalar values and for sending old unns of the linear mesh
+    sizes(1:num_ids) = sz * real_size + ele_loc(zz_mesh, 1) * integer_size
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
@@ -1026,7 +1028,7 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr
 
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, state_no, field_no, loc
+    integer :: rhead, i, state_no, field_no, loc, sz
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -1036,7 +1038,9 @@ module zoltan_integration
 
     do i=1,num_ids
        
-       allocate(rbuf(sizes(i)/real_size))
+       ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
+       sz = (sizes(i) - ele_loc(zz_mesh, old_local_element_number) * integer_size) / real_size
+       allocate(rbuf(sz))
        
        old_universal_element_number = global_ids(i)
        old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
@@ -1062,24 +1066,24 @@ module zoltan_integration
           do field_no=1,tensor_field_count(source_states(state_no))
              tfield => extract_tensor_field(source_states(state_no), field_no)
              loc = ele_loc(tfield, old_local_element_number)
-             rbuf(rhead:rhead + loc*(product(tfield%dim)) - 1) &
-                  = reshape(ele_val(tfield, old_local_element_number), (/loc*(product(tfield%dim))/))
+             rbuf(rhead:rhead + loc*product(tfield%dim) - 1) &
+                  = reshape(ele_val(tfield, old_local_element_number), (/ loc*product(tfield%dim) /))
              rhead = rhead + loc * product(tfield%dim)
           end do
           
        end do
+         
+       assert(rhead==sz+1)
 
-   ! We have an issue here - buf is an assumed array - we need to let the
-   ! compiler know the dimensionality and size before we start copying bits
-   ! of memory around into it. Because it's of a different type to rbuf, we
-   ! need to use transfer. The first argument of transfer gives the size and
-   ! type (type 1) of what we want to transfer; the second gives the type (type 2) we want to
-   ! transfer to. This returns an array of type 2, which we can then pass
-   ! onto size() to work out how many elements of the destination are
-   ! required.
-       dataSize = size(transfer(rbuf, buf(idx(i):idx(i+1))))
+    ! At the start, write the old unns of this element
+       loc = ele_loc(zz_mesh, old_local_element_number)
+       buf(idx(i):idx(i) + loc -1) = halo_universal_number(zz_halo, ele_nodes(zz_mesh, old_local_element_number))
+       
+    ! Determine the size of the real data in integer_size units
+       dataSize = sz * real_size / integer_size
+       assert( dataSize==size(transfer(rbuf, buf(idx(i):idx(i)+1))) )
     ! Now we know the size, we can copy in the right amount of data.
-       buf(idx(i):idx(i) + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
+       buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
 
        deallocate(rbuf)
 
@@ -1099,54 +1103,64 @@ module zoltan_integration
     integer(zoltan_int), intent(in), dimension(*), target :: buf 
     integer(zoltan_int), intent(out) :: ierr  
 
-    real, dimension(:), allocatable :: rbuf ! easier to read reals 
-    integer :: rhead, i, state_no, field_no, loc
+    type(element_type), pointer :: eshape
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, new_local_element_number
-    integer :: dataSize
+    real, dimension(:), allocatable :: rbuf ! easier to read reals 
+    integer, dimension(:), pointer :: nodes
+    integer, dimension(1:ele_loc(new_positions,1)):: vertex_order
+    integer :: rhead, i, state_no, field_no, loc, sz, dataSize
+    integer :: old_universal_element_number, new_local_element_number, k
 
     do i=1,num_ids
        
-       allocate(rbuf(sizes(i)/real_size))
-
        old_universal_element_number = global_ids(i)
        new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
 
-       ! We know how big rbuf is (see above), but buf is of type Zoltan_Int - how
-       ! many elements do I need to ask for? The next line tells me...
-       ! Note this is the *other way around* from the actual data transfer
-       ! because we need to know how many bufs == 1 rbuf.
+       loc = ele_loc(new_positions, new_local_element_number)
+       ! work out the order of the send data, using the unns of the vertices in the send order
+       ! this returns the local (within the element) node numbers of the vertices in send order
+       vertex_order = local_vertex_order(buf(idx(i):idx(i) + loc -1), ele_nodes(new_positions, new_local_element_number))
        
-       dataSize = size(transfer(rbuf, buf(idx(i):idx(i)+1)))
-       ! ...then I can ask for the right amount of data
-       
-       rbuf = transfer(buf(idx(i):idx(i) + dataSize - 1), rbuf, size(rbuf))
+       ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
+       sz = (sizes(i) - ele_loc(zz_mesh, new_local_element_number) * integer_size) / real_size
+       allocate(rbuf(sz))
+    ! Determine the size of the real data in integer_size units
+       dataSize = sz * real_size / integer_size
+       rbuf = transfer(buf(idx(i) + loc:idx(i) + loc + dataSize - 1), rbuf, sz)
        
        rhead = 1
        
-       do state_no=1,size(target_states)
+       do state_no=1, size(target_states)
           
           do field_no=1,scalar_field_count(target_states(state_no))
              sfield => extract_scalar_field(target_states(state_no), field_no)
-             loc = ele_loc(sfield, new_local_element_number)
-             call set(sfield, ele_nodes(sfield, new_local_element_number), rbuf(rhead:rhead + loc - 1))
+             eshape => ele_shape(sfield, new_local_element_number)
+             nodes => ele_nodes(sfield, new_local_element_number)
+             loc = size(nodes)
+             call set(sfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
+                rbuf(rhead:rhead + loc - 1))
              rhead = rhead + loc
           end do
           
           do field_no=1,vector_field_count(target_states(state_no))
              vfield => extract_vector_field(target_states(state_no), field_no)
              if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
-             loc = ele_loc(vfield, new_local_element_number)
-             call set(vfield, ele_nodes(vfield, new_local_element_number), reshape(rbuf(rhead:rhead + loc*vfield%dim - 1), (/vfield%dim, loc/)))
+             eshape => ele_shape(vfield, new_local_element_number)
+             nodes => ele_nodes(vfield, new_local_element_number)
+             loc = size(nodes)
+             call set(vfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
+                reshape(rbuf(rhead:rhead + loc*vfield%dim - 1), (/vfield%dim, loc/)))
              rhead = rhead + loc * vfield%dim
           end do
           
           do field_no=1,tensor_field_count(target_states(state_no))
              tfield => extract_tensor_field(target_states(state_no), field_no)
-             loc = ele_loc(tfield, new_local_element_number)
-             call set(tfield, ele_nodes(tfield, new_local_element_number), &
+             eshape => ele_shape(tfield, new_local_element_number)
+             nodes => ele_nodes(tfield, new_local_element_number)
+             loc = size(nodes)
+             call set(tfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
                   reshape(rbuf(rhead:rhead + loc*product(tfield%dim) - 1), &
                   (/tfield%dim(1), tfield%dim(2), loc/)))
              rhead = rhead + loc * product(tfield%dim)
@@ -1154,14 +1168,46 @@ module zoltan_integration
           
        end do
        
+       assert(rhead==sz+1)
+       
        deallocate(rbuf)
 
     end do
 
     ierr = ZOLTAN_OK
+    
+  contains
+    
 
   end subroutine zoltan_cb_unpack_fields
 
+  function local_vertex_order(old_unns, new_gnns)
+    ! little auxilary function that works out the ordering of the send data
+    ! (which uses the old element ordering) in terms of new local (within the element)
+    ! node numbers of the vertices
+    ! old_unns are the unns of the vertices in the old ordering
+    ! new_gnss are the global (within the local domain) node numbers in the new ordering
+    integer, dimension(:), intent(in):: old_unns, new_gnns
+    integer, dimension(size(old_unns)):: local_vertex_order
+    integer:: i, j, gnn
+    
+    do i=1, size(old_unns)
+      gnn = fetch(universal_to_new_local_numbering, old_unns(i))
+      do j=1, size(new_gnns)
+        if (new_gnns(j)==gnn) exit
+      end do
+      if (j>size(new_gnns)) then
+        ! node in element send is not in receiving element
+        ewrite(0,*) i, gnn
+        ewrite(0,*) old_unns
+        ewrite(0,*) new_gnns
+        FLAbort("In zoltan redistribution: something went wrong in element reconstruction")
+      end if
+      local_vertex_order(i) = j
+    end do
+    
+  end function local_vertex_order
+  
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
     ignore_extrusion)
     type(state_type), dimension(:), intent(inout), target :: states
@@ -1295,6 +1341,14 @@ module zoltan_integration
       call reconstruct_senlist
       call reconstruct_halo(zz)
 
+      if (.not. verify_consistent_local_element_numbering(new_positions%mesh) ) then
+        ewrite(-1,*) "For the extruded mesh, the local element numbering of elements in the halo region" // &
+                     "is not consistent with that of the element owner. This is likely" // & 
+                     "due to a bug in zoltan. Please report" // &
+                     "to the fluidity mailing list"
+        FLExit("Need a consistent local element ordering in parallel")
+      end if
+      
       deallocate(universal_columns)
       call deallocate(universal_to_new_local_numbering_m1d)
     end if
@@ -2076,9 +2130,8 @@ module zoltan_integration
     integer :: i, j, k, ke, expected_loc, full_elements, connected_elements
     integer :: universal_number, new_local_number
     type(integer_set) :: new_elements_we_actually_have
-    type(integer_set), dimension(:), allocatable :: new_enlists
     integer, dimension(:), pointer:: neigh
-    integer :: old_universal_node_number
+    integer :: old_universal_node_number, old_element
     
     ewrite(1,*) "In reconstruct_enlist"
     
@@ -2101,9 +2154,6 @@ module zoltan_integration
           call insert(enlists(new_local_number), i)
        end do
     end do
-
-    call deallocate(new_nelist)
-    deallocate(new_nelist)
 
     call deallocate(uen_to_new_local_numbering)
     
@@ -2166,10 +2216,7 @@ module zoltan_integration
        allocate(new_positions%mesh%region_ids(connected_elements))
     end if
       
-    allocate(new_enlists(connected_elements))
-    call allocate(new_enlists)
-    
-    j = 1 ! index connected full elements
+    j = 1 ! index connected full elements (new local element numbering)
     k = 1 ! indexes full elements
     do i=1, key_count(new_elements)
        if (key_count(enlists(i)) == expected_loc) then
@@ -2184,10 +2231,6 @@ module zoltan_integration
              if(preserve_mesh_regions) then
                 new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
              end if
-             do ke = 1, key_count(enlists(i))
-                old_universal_node_number = fetch(new_nodes, fetch(enlists(i), ke))
-                call insert(new_enlists(j), old_universal_node_number)
-             end do
              j = j + 1
           end if
           k = k + 1
@@ -2202,16 +2245,8 @@ module zoltan_integration
     end do
         
     call deallocate(temporary_mesh)
-    
-    ! this needs to be done now with the universal numbers from the old mesh
-    ! to ensure that the field remaps don't get scrambled
-    call reorder_element_numbering(new_positions, use_unns=new_enlists)
-    
-    do i=1,size(new_enlists)
-       call deallocate(new_enlists(i))
-    end do
-    deallocate(new_enlists)
-    
+    call deallocate(new_nelist)
+    deallocate(new_nelist)
       
     ! New elements is no longer valid, as we have lost the degenerate elements
     call deallocate(new_elements)
@@ -2221,6 +2256,7 @@ module zoltan_integration
     
     ! Bingo! Our mesh has an enlist.
     ewrite(1,*) "Exiting reconstruct_enlist"
+    
   end subroutine reconstruct_enlist
     
   subroutine reconstruct_senlist
@@ -2478,6 +2514,8 @@ module zoltan_integration
     do i=1,size(sends)
        call deallocate(sends(i))
     end do
+      
+    call reorder_element_numbering(new_positions)
     
     ewrite(1,*) "Exiting reconstruct_halo"
     
@@ -2607,11 +2645,13 @@ module zoltan_integration
     type(zoltan_struct), pointer, intent(in) :: zz    
     
     integer :: old_ele
-    integer, dimension(:), pointer :: old_local_nodes
+    integer, dimension(:), pointer :: old_local_nodes, nodes
+    type(element_type), pointer :: eshape
     type(integer_set), dimension(halo_proc_count(zz_halo)) :: sends
     integer :: i, new_owner, universal_element_number
     type(integer_set) :: self_sends
     integer :: num_import, num_export
+    integer, dimension(:,:), allocatable :: vertex_order
     integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs, import_to_part
     integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
     integer :: head
@@ -2683,6 +2723,20 @@ module zoltan_integration
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)
     
+    ! for all self-send elements, establish the vertex order in the new element such
+    ! that it matches the local element ordering of the old element
+    allocate(vertex_order(1:ele_loc(new_positions,1), key_count(self_sends)))
+    do i=1, key_count(self_sends)
+      old_universal_element_number = fetch(self_sends, i)
+      new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+      old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+      ! this function takes the universal node numbers of the old element and the new global (over the local domain)
+      ! node numbers, to compute the vertex order
+      vertex_order(:,i) = local_vertex_order( &
+         halo_universal_number(zz_halo, ele_nodes(zz_positions, old_local_element_number)), &
+         ele_nodes(new_positions, new_local_element_number))
+    end do
+    
     do state_no=1,size(source_states)
        assert(scalar_field_count(source_states(state_no)) == scalar_field_count(target_states(state_no)))
        assert(vector_field_count(source_states(state_no)) == vector_field_count(target_states(state_no)))
@@ -2697,7 +2751,10 @@ module zoltan_integration
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
              old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-             call set(target_sfield, ele_nodes(target_sfield, new_local_element_number), ele_val(source_sfield, old_local_element_number))
+             eshape => ele_shape(target_sfield, new_local_element_number)
+             nodes => ele_nodes(target_sfield, new_local_element_number)
+             call set(target_sfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
+                               ele_val(source_sfield, old_local_element_number))
           end do
        end do
        
@@ -2711,7 +2768,10 @@ module zoltan_integration
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
              old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-             call set(target_vfield, ele_nodes(target_vfield, new_local_element_number), ele_val(source_vfield, old_local_element_number))
+             eshape => ele_shape(target_vfield, new_local_element_number)
+             nodes => ele_nodes(target_vfield, new_local_element_number)
+             call set(target_vfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
+                               ele_val(source_vfield, old_local_element_number))
           end do
        end do
        
@@ -2724,13 +2784,17 @@ module zoltan_integration
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
              old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-             call set(target_tfield, ele_nodes(target_tfield, new_local_element_number), ele_val(source_tfield, old_local_element_number))
+             eshape => ele_shape(target_tfield, new_local_element_number)
+             nodes => ele_nodes(target_tfield, new_local_element_number)
+             call set(target_tfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
+                               ele_val(source_tfield, old_local_element_number))
           end do
        end do
     end do
     
     call deallocate(self_sends)
     call deallocate(sends)
+    deallocate(vertex_order)    
     
     call halo_update(target_states)
     

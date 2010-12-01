@@ -313,8 +313,18 @@ contains
             if (no_active_processes == 1) then
               call create_empty_halo(position)
             else
-              call read_halos(mesh_file_name, position)
-              call reorder_element_numbering(position)              
+              call read_halos(mesh_file_name, position)              
+            end if
+            ! Local element ordering needs to be consistent between processes, otherwise
+            ! code in Halos_Repair (used in halo construction of derived meshes) will fail
+            if (.not. verify_consistent_local_element_numbering(position%mesh)) then
+              ewrite(-1,*) "The local element ordering is not the same between processes"
+              ewrite(-1,*) "that see the same element. This is a necessary condition on the"
+              ewrite(-1,*) "decomposed input meshes for fluidity. The fact that you've"
+              ewrite(-1,*) "obtained such meshes is likely a bug in fldecomp or the"
+              ewrite(-1,*) "checkpointing code. Please report to the fluidity mailing"
+              ewrite(-1,*) "list and state exactly how you've obtained your input files."
+              FLAbort("Inconsistent local element ordering")
             end if
             mesh = position%mesh
           end if
@@ -1260,10 +1270,9 @@ contains
     subroutine allocate_and_insert_irradiance(state)
       ! Allocate irradiance fields for 36 wavebands in PAR
       type(state_type), intent(inout) :: state
-      integer :: nwavelength, j
+      integer :: j
       real :: lambda
       character(len=OPTION_PATH_LEN) :: light_path, field_name
-      type(scalar_field), pointer :: irradiance
 
       ! Replicate irradiance template field for all wavebands
       light_path = "/ocean_biology/lagrangian_ensemble/hyperlight"      
@@ -2846,7 +2855,6 @@ contains
       call create_global_to_universal_numbering(position%mesh%element_halos(j))
       call create_ownership(position%mesh%element_halos(j))
     end do
-    call reorder_element_numbering(position)
     
   end subroutine create_empty_halo
 

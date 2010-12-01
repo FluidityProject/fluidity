@@ -34,7 +34,7 @@ implicit none
 
 private
 
-public:: make_mesh_unperiodic
+public:: make_mesh_unperiodic, verify_consistent_local_element_numbering
   
 contains
 
@@ -224,5 +224,30 @@ contains
     end do
     
   end subroutine make_mesh_unperiodic_fix_ele
-
+    
+  function verify_consistent_local_element_numbering(mesh) result (pass)
+    !!< Checks that the local element ordering is consistent between the owner
+    !!< of the element and all other processes that see it.
+    type(mesh_type), intent(in):: mesh
+    logical :: pass
+      
+    integer, dimension(:), allocatable:: eleunn, eleunn2
+    integer:: nloc
+    
+    if (.not. associated(mesh%element_halos)) then
+      FLAbort("Element halos not allocated in verify_local_element_numbering")
+    end if
+    
+    nloc=ele_loc(mesh,1)
+    assert(nloc*element_count(mesh)==size(mesh%ndglno))
+    
+    allocate( eleunn(1:size(mesh%ndglno)), eleunn2(1:size(mesh%ndglno)) )
+    eleunn = halo_universal_numbers(mesh%halos(2),mesh%ndglno)
+    eleunn2 = eleunn
+    call halo_update(mesh%element_halos(2), eleunn, block_size=nloc)
+    
+    pass = all(eleunn==eleunn2)
+    
+  end function verify_consistent_local_element_numbering
+  
 end module fields_halos
