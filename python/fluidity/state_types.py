@@ -65,13 +65,23 @@ class Field:
               self.val[ii]=vv
       except TypeError:
           self.val[node]=val
+
+  def __setitem__(self, node, val):
+    self.set(node, val)
      
   def node_val(self,node):
     return self.val[node]
 
+  def __getitem__(self, node):
+    if node != int(node):
+      raise TypeError
+    if node > self.node_count:
+      raise IndexError
+    return self.node_val(node)
+
   def ele_val(self,ele_number):
     # Return the values of field at the nodes of ele_number
-    return map(self.node_val,self.ele_nodes(ele_number))
+    return numpy.array(map(self.node_val,self.ele_nodes(ele_number)))
 
   def ele_val_at_quad(self,ele_number):
     # Return the values of field at the quadrature points of ele_number
@@ -79,7 +89,7 @@ class Field:
     ele_val = numpy.matrix(self.ele_val(ele_number))
     #print "ele_val:",ele_val.shape
     #print "shape_n:",shape_n.shape
-    return ele_val*shape_n
+    return numpy.array(ele_val*shape_n)
 
   def ele_region_id(self,ele_number):
     return self.mesh.ele_region_id(ele_number)
@@ -123,7 +133,7 @@ class Mesh:
     self.name = name
     self.option_path = option_path
     self.region_ids = region_ids
-    self.shape = Element(0,0,0,0,[],[],0,0,0,0)
+    self.shape = Element(0,0,0,0,[],[],0,0,0,0, "unknown")
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
@@ -151,7 +161,7 @@ class Mesh:
 
 class Element:
   "An element"
-  def __init__(self,dim,loc,ngi,degree,n,dn, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y):
+  def __init__(self,dim,loc,ngi,degree,n,dn, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y,family):
     self.dimension = dim  # 2d or 3d?
     self.loc = loc  # Number of nodes
     self.ngi = ngi  # Number of gauss points
@@ -160,6 +170,7 @@ class Element:
     # n is loc x ngi, dn is loc x ngi x dim
     self.n = n
     self.dn = dn
+    self.family = family
 
     # Initialize spoly and dspoly, make sure to transpose due to Fortran silliness
     self.spoly = [ [ Polynomial([],0) for inner in range(size_spoly_y) ] for outer in range(size_spoly_x)]
@@ -174,6 +185,15 @@ class Element:
       self.spoly[x-1][y-1] = poly
   def set_polynomial_ds(self,poly,x,y):
     self.dspoly[x-1][y-1] = poly
+
+  def eval_dshape(self, coord):
+    if self.family == "simplex":
+      return self.eval_dshape_simplex(coord)
+    else:
+      raise ValueError, "Implement eval_dshape_cube or whatever here!"
+
+  def eval_dshape_simplex(self, coord):
+    raise ValueError, "Sorry, I ended up not implementing this either"
 
 class Quadrature:
   "Quadrature"
@@ -290,7 +310,7 @@ class Transform:
       #self.grad(i,field.mesh.shape)
 
       for i in range(shape.loc):
-        a = numpy.array(self.invJ[gi]*(shape.dn[i,gi].reshape(2,1)))
+        a = numpy.array(self.invJ[gi]*(numpy.transpose(shape.dn[i,gi])))
         newshape.dn[i,gi,:] = numpy.array(a.reshape(1,shape.dimension)[0])
   
       #self.gradient = newshape.dn

@@ -38,6 +38,7 @@ module python_state
   public :: python_add_state, python_add_states
   public :: python_run_string, python_run_file
   public :: python_shell
+  public :: python_fetch_real
 
   interface
     !! Python init and end
@@ -172,15 +173,16 @@ module python_state
     end subroutine python_add_mesh
 
     subroutine python_add_element(dim,loc,ngi,degree,stname,slen,mname,mlen,n,nx,ny,dn,dnx,dny,dnz,&
-      &size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y)
+      &size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y, family_name, family_name_len)
       !! Add an element to the state with stname and mesh with mname
       implicit none
-      integer :: dim,loc,ngi,degree,slen,mlen,nx,ny,dnx,dny,dnz
+      integer :: dim,loc,ngi,degree,slen,mlen,nx,ny,dnx,dny,dnz, family_name_len
       integer :: size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y
       real,dimension(nx,ny) :: n
       real,dimension(dnx,dny,dnz) :: dn
       character(len=slen) :: stname
       character(len=mlen) :: mname
+      character(len=family_name_len) :: family_name
     end subroutine python_add_element
 
     subroutine python_add_quadrature(dim,loc,ngi,degree,weight,weight_size,locations,loc_size,surfacequad)
@@ -199,6 +201,12 @@ module python_state
       integer :: scoefs, degree, x,y,is_spoly
       real, dimension(scoefs) :: coefs
     end subroutine python_add_polynomial
+
+    subroutine python_fetch_real_c(name, len, output)
+      character(len=*), intent(in) :: name
+      integer, intent(in) :: len
+      real, intent(out) :: output
+    end subroutine python_fetch_real_c
 
     module procedure python_add_scalar_directly
     module procedure python_add_vector_directly
@@ -292,13 +300,24 @@ module python_state
     type(state_type) :: st
     integer :: snlen,mlen
     integer :: i, j
+    character(len=10) :: family_name
+
     snlen = len(trim(st%name))
     mlen = len(trim(M%name))
+
+    family_name = ""
+    if (E%numbering%family == FAMILY_SIMPLEX) then
+      family_name = "simplex"
+    else if (E%numbering%family == FAMILY_CUBE) then
+      family_name = "cube"
+    else
+      family_name = "unknown"
+    end if
 
     call python_add_element(E%dim, E%loc, E%ngi, E%degree,&   
       &trim(st%name),snlen,trim(M%name),mlen,&
       &E%n,size(E%n,1), size(E%n,2),E%dn, size(E%dn,1), size(E%dn,2), size(E%dn,3),&
-      &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2))
+      &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, len_trim(family_name))
 
     !! Add quadrature and surface_quadrature to this element
     call python_add_quadrature(E%quadrature%dim, E%quadrature%degree, E%quadrature%vertices,E%quadrature%ngi,&
@@ -515,5 +534,12 @@ module python_state
     end if
     
   end subroutine python_run_file
+
+  function python_fetch_real(name) result(output)
+    character(len=*), intent(in) :: name
+    real :: output
+
+    call python_fetch_real_c(name, len(name), output)
+  end function python_fetch_real
 
 end module python_state
