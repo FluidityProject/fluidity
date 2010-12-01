@@ -645,29 +645,7 @@ prognostic_velocity_field =
                      ##
                      ## where N_a and N_b are shape functions of the ath and bth node respectively and mu are the components of the viscosity tensor.
                      element stress_form {
-                        ## Use the legacy form of the stress tensor.
-                        ##
-                        ## If activated, the dim x dim (in this case
-                        ## 3d) stress matrix takes the form:
-                        ##
-                        ##  /   2*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,x*N_b,x*mu_xx
-                        ##  |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy                                             ...
-                        ##  \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
-                        ##
-                        ##      N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
-                        ##  ... N_a,x*N_b,x*mu_xx + 2*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,y*N_b,y*mu_yy   ...
-                        ##      N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
-                        ##
-                        ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                                             \
-                        ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                                             |
-                        ##      N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 2*N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz   /
-                        ##
-                        ## where N_a and N_b are shape functions of
-                        ## the ath and bth node respectively and mu
-                        ## are the components of the viscosity tensor.
-                      element legacy_stress_form {
                         empty
-                      }?
                     }
                   )
                },
