@@ -77,10 +77,9 @@
     logical :: diagonal_viscosity
     ! are we using the stress form of the viscosity terms?
     logical :: stress_form
+    logical :: partial_stress_form
     ! do we want to integrate the continuity matrix by parts?
     logical :: integrate_continuity_by_parts
-    ! assemble the viscosity as it used to be done in diff3d
-    logical :: legacy_stress
     ! exclude the advection or mass terms from the equation
     logical :: exclude_advection, exclude_mass
     ! integrate the advection term by parts
@@ -395,10 +394,14 @@
          stress_form=have_option(trim(u%option_path)//&
              &"/prognostic/spatial_discretisation/continuous_galerkin&
              &/stress_terms/stress_form")
+         partial_stress_form=have_option(trim(u%option_path)//&
+             &"/prognostic/spatial_discretisation/continuous_galerkin&
+             &/stress_terms/partial_stress_form")
       else
          isotropic_viscosity = .false.
          diagonal_viscosity = .false.
          stress_form = .false.
+         partial_stress_form = .false.
       end if
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
@@ -406,9 +409,6 @@
       low_re_p_correction_fix=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
           &/low_re_p_correction_fix")
-      legacy_stress = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/stress_terms/stress_form/legacy_stress_form")
       integrate_advection_by_parts = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation&
           &/continuous_galerkin/advection_terms/integrate_advection_by_parts")
@@ -1011,7 +1011,7 @@
       rhs_addto = 0.0
       ! we always want things added to the diagonal blocks
       ! but we must check if we have_coriolis to add things to the others
-      if(have_coriolis.or.(have_viscosity.and.stress_form)) then
+      if(have_coriolis.or.(have_viscosity.and.(stress_form.or.partial_stress_form))) then
         block_mask = .true.
       else
         block_mask = .false.
@@ -1710,12 +1710,12 @@
       !  /
       ! only valid when incompressible and viscosity tensor is isotropic
       viscosity_mat = 0.0
-      if(stress_form) then
+      if(stress_form.or.partial_stress_form) then
         ! add in the stress form entries of the element viscosity matrix
         !  /
         !  | B_A^T C B_B dV
         !  /
-        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei, legacy_stress)
+        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
       else
         if(isotropic_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
@@ -1743,7 +1743,7 @@
         rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(viscosity_mat(dim,dim,:,:), oldu_val(dim,:))
       
         ! off block diagonal viscosity terms
-        if(stress_form) then
+        if(stress_form.or.partial_stress_form) then
           do dimj = 1, u%dim
 
             if (dim==dimj) cycle ! already done this
@@ -1796,12 +1796,12 @@
       !  /
       ! only valid when incompressible and viscosity tensor is isotropic
       viscosity_mat = 0.0
-      if(stress_form) then
+      if(stress_form.or.partial_stress_form) then
         ! add in the stress form entries of the element viscosity matrix
         !  /
         !  | B_A^T C B_B dV
         !  /
-        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei, legacy_stress)
+        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
       else
         if(isotropic_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
@@ -1885,7 +1885,7 @@
       
     end subroutine add_geostrophic_pressure_element_cg
     
-    function stiffness_matrix(dshape1, tensor, dshape2, detwei, legacy) result (matrix)
+    function stiffness_matrix(dshape1, tensor, dshape2, detwei) result (matrix)
       !!< Calculates the stiffness matrix.
       !!< 
       !!<          /
@@ -1913,30 +1913,9 @@
       !!<              ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                                                               |
       !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz + (N_a,x*N_b,x*mu_xz + N_a,y*N_b,y*mu_yz + N_a,z*N_b,z*mu_zz) /
       !!< where the terms in brackets correspond to the tensor form entries I gradN_a^T row(symm(mu)) gradN_b (see below).
-      !!<
-      !!< The optional switch legacy controls whether the assembly follows the above multiplication
-      !!< form or uses the legacy version from subroutine diff3d, which cannot be assembled from
-      !!< any variation on the multiplication above.
-      !!<
-      !!< legacy implementation:
-      !!< b_a^T c b_b - I gradN_a^T diag(mu) gradN_b =
-      !!<               /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz)
-      !!<              |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy   ...
-      !!<              \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
-      !!<
-      !!<                  N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
-      !!<              ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz) ...
-      !!<                  N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
-      !!<
-      !!<                  N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                                                               \
-      !!<              ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                                                               |
-      !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz) /
-      !!< where the terms in brackets correspond to the tensor form entries I gradN_a^T diag(mu) gradN_b (see below).
-
       real, dimension(:,:,:), intent(in) :: dshape1, dshape2
       real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
       real, dimension(size(dshape1,2)), intent(in) :: detwei
-      logical, intent(in), optional :: legacy
 
       real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,1),size(dshape2,1)) :: matrix
 
@@ -1944,14 +1923,6 @@
 
       integer :: iloc,jloc, gi, i, j
       integer :: loc1, loc2, ngi, dim
-
-      logical :: l_legacy
-
-      if(present(legacy)) then
-        l_legacy = legacy
-      else
-        l_legacy = .false.
-      end if
 
       loc1=size(dshape1,1)
       loc2=size(dshape2,1)
@@ -1964,62 +1935,45 @@
       tensor_entries = 0.0
 
       matrix=0.0
-      if(l_legacy) then
-
-        !            /
-        ! matrix = I| gradN_a^T offdiag(mu) gradN_b dV
-        !           /
-        do i=1,dim
-          matrix(i,i,:,:) = dshape_diagtensor_dshape(dshape1, tensor, dshape2, detwei)
+      !            /
+      ! matrix = I| gradN_a^T row(symm(mu)) gradN_b dV
+      !           /
+      do i=1,dim
+        ! extract the relevent tensor entries into a vector
+        do j = 1, i-1
+          tensor_entries(j,:) = tensor(j,i,:)
         end do
-        
-        forall(i=1:dim)
-          tensor_diag(i,:) = tensor(i,i,:)
-        end forall
+        do j = i, dim
+          tensor_entries(j,:) = tensor(i,j,:)
+        end do
+        matrix(i,i,:,:) = dshape_vector_dshape(dshape1, tensor_entries, dshape2, detwei)
+      end do
 
-        ! matrix = matrix +  b_a^T c b_b - I gradN_a^T diag(mu) gradN_b =
-        !          matrix +  /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
-        !                    |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy   ...
-        !                    \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
+      if(partial_stress_form) then
+        ! matrix = matrix + b_a^T c b_b - I gradN_a^T row(symm(mu)) gradN_b
+        !        = matrix +  /  N_a,x*N_b,x*mu_xx
+        !                    |   N_a,x*N_b,y*mu_xy  ...
+        !                    \   N_a,x*N_b,z*mu_xz
         !
-        !                        N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
-        !                    ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy   ...
-        !                        N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
+        !                        N_a,y*N_b,x*mu_xy
+        !                    ... N_a,y*N_b,y*mu_yy   ...
+        !                        N_a,y*N_b,z*mu_yz
         !
-        !                        N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx   \
-        !                    ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy   |
-        !                        N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz  /
+        !                        N_a,z*N_b,x*mu_xz   \
+        !                    ... N_a,z*N_b,y*mu_yz   |
+        !                        N_a,z*N_b,z*mu_zz   /
         do gi=1,ngi
           forall(iloc=1:loc1,jloc=1:loc2)
               matrix(:,:,iloc,jloc) = matrix(:,:,iloc,jloc) &
                                       +(spread(dshape1(iloc,gi,:), 1, dim) &
                                        *spread(dshape2(jloc,gi,:), 2, dim) &
-                                       *tensor(:,:,gi) &
-                                       -spread(dshape1(iloc,gi,:), 2, dim) &
-                                       *spread(dshape2(jloc,gi,:), 1, dim) &
-                                       *(2./3.)*spread(tensor_diag(:,gi), 2, dim)) &
+                                       *tensor(:,:,gi)) &
                                       *detwei(gi)
           end forall
         end do
-
       else
-
-        !            /
-        ! matrix = I| gradN_a^T row(symm(mu)) gradN_b dV
-        !           /
-        do i=1,dim
-          ! extract the relevent tensor entries into a vector
-          do j = 1, i-1
-            tensor_entries(j,:) = tensor(j,i,:)
-          end do
-          do j = i, dim
-            tensor_entries(j,:) = tensor(i,j,:)
-          end do
-          matrix(i,i,:,:) = dshape_vector_dshape(dshape1, tensor_entries, dshape2, detwei)
-        end do
-
-        ! matrix = matrix + b_a^T c b_b - I gradN_a^T row(symm(mu)) gradN_b =
-        !          matrix +  /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
+        ! matrix = matrix + b_a^T c b_b - I gradN_a^T row(symm(mu)) gradN_b
+        !        = matrix +  /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
         !                    |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx   ...
         !                    \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
         !
@@ -2042,7 +1996,6 @@
                                       *detwei(gi)
           end forall
         end do
-
       end if
 
     end function stiffness_matrix
