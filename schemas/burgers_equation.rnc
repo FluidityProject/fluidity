@@ -229,6 +229,15 @@ material_phase =
                         prescribed_scalar_field_no_adapt,
                         recalculation_options?
                      }
+                  }?,
+                  # If enabled, save the right hand side of the discrete equations.
+                  element scalar_field {
+                     attribute name { "Rhs" },
+                     attribute rank { "0" },
+                     element diagnostic {
+                        empty
+                     },
+                     adjoint_storage
                   }?
                }
             },
@@ -297,15 +306,19 @@ adjoint_storage =
       element adjoint_storage {
          (
             ## Include the field in both the forward and adjoint states.
-            element include_in_both {
-               empty
+            element exists_in_both {
+               ## If enabled, this element tells the model that this field must be stored
+               ## through time in order to compute the adjoint model.
+               element record { empty }?
             }|
             ## Include the field only in the forward state.
-            element only_in_forward {
-               empty
+            element exists_in_forward {
+               ## If enabled, this element tells the model that this field must be stored
+               ## through time in order to compute the adjoint model.
+               element record { empty }?
             }|
             ## Include the field only in the adjoint state.
-            element only_in_adjoint {
+            element exists_in_adjoint {
                empty
             }
          )

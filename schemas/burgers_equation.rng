@@ -285,6 +285,21 @@ Recommended to be 0.5.</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <!-- If enabled, save the right hand side of the discrete equations. -->
+            <element name="scalar_field">
+              <attribute name="name">
+                <value>Rhs</value>
+              </attribute>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <element name="diagnostic">
+                <empty/>
+              </element>
+              <ref name="adjoint_storage"/>
+            </element>
+          </optional>
         </element>
       </element>
       <zeroOrMore>
@@ -367,15 +382,27 @@ This is cheaper especially if you are enforcing discrete properties on the field
 forward model, the adjoint model, or in both.
 If /adjoint is not enabled, this has no effect whatsoever.</a:documentation>
       <choice>
-        <element name="include_in_both">
+        <element name="exists_in_both">
           <a:documentation>Include the field in both the forward and adjoint states.</a:documentation>
-          <empty/>
+          <optional>
+            <element name="record">
+              <a:documentation>If enabled, this element tells the model that this field must be stored
+through time in order to compute the adjoint model.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
-        <element name="only_in_forward">
+        <element name="exists_in_forward">
           <a:documentation>Include the field only in the forward state.</a:documentation>
-          <empty/>
+          <optional>
+            <element name="record">
+              <a:documentation>If enabled, this element tells the model that this field must be stored
+through time in order to compute the adjoint model.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
-        <element name="only_in_adjoint">
+        <element name="exists_in_adjoint">
           <a:documentation>Include the field only in the adjoint state.</a:documentation>
           <empty/>
         </element>

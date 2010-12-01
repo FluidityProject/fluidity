@@ -111,7 +111,9 @@
         </viscosity>
         <stat/>
         <adjoint_storage>
-          <include_in_both/>
+          <exists_in_both>
+            <record/>
+          </exists_in_both>
         </adjoint_storage>
         <scalar_field name="Source" rank="0">
           <prescribed>
@@ -139,7 +141,7 @@
           </python>
         </value>
         <adjoint_storage>
-          <only_in_forward/>
+          <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
@@ -157,7 +159,7 @@ for i in range(field.node_count):
         </algorithm>
         <stat/>
         <adjoint_storage>
-          <only_in_forward/>
+          <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
@@ -173,7 +175,7 @@ for i in range(field.node_count):
           </python>
         </value>
         <adjoint_storage>
-          <only_in_adjoint/>
+          <exists_in_adjoint/>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
@@ -189,7 +191,7 @@ for i in range(field.node_count):
         </algorithm>
         <stat/>
         <adjoint_storage>
-          <only_in_adjoint/>
+          <exists_in_adjoint/>
         </adjoint_storage>
       </diagnostic>
     </scalar_field>

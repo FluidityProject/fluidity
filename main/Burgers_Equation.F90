@@ -77,6 +77,10 @@
 
     integer :: no_timesteps
 
+    type(scalar_field), pointer :: u, rhs
+    integer :: dump_no=0
+
+
     interface
       subroutine set_global_debug_level(n)
         integer, intent(in) :: n
@@ -164,7 +168,15 @@
       call get_option("/timestepping/steady_state/tolerance", tolerance)
     end if
 
-    if (.not. stationary_problem .and. adjoint) then
+    if ((.not. stationary_problem) .and. adjoint) then
+      ! We need a small amount of hackery. The initial Rhs should
+      ! be the initial condition for u.
+      u => extract_scalar_field(state(1), "Velocity")
+      rhs => extract_scalar_field(state(1), "VelocityRhs", stat=stat)
+      if (stat == 0) then
+        call set(rhs, u)
+      end if
+      call insert(state(1), u, "IteratedVelocity1")
       call copy_forward_state(state, forward_state(:,1))
     end if
 
@@ -184,15 +196,17 @@
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
-      if (.not. stationary_problem .and. adjoint) then
-        call copy_forward_state(state, forward_state(:,timestep+1))
-      end if
-
       if (simulation_completed(current_time, timestep)) exit timestep_loop
       if (stationary_problem) then
         if (change < tolerance) then
           exit timestep_loop
         end if
+      end if
+
+      if ((.not. stationary_problem) .and. adjoint) then
+        ! Why doesn't bounds checking in the compiler do this for me?
+        assert(timestep+1 <= size(forward_state, 2))
+        call copy_forward_state(state, forward_state(:,timestep+1))
       end if
 
       call advance_current_time(current_time, dt)
@@ -203,14 +217,15 @@
       end if
 
       call write_diagnostics(state, current_time, dt, timestep)
-       
+      call delete_iterated_fields(state)
+
     end do timestep_loop
 
     ! One last dump
     call output_state(state)
     call write_diagnostics(state, current_time, dt, timestep)
 
-    if (adjoint) then
+    if (adjoint .and. stationary_problem) then
       call copy_forward_state(state, forward_state(:,1))
     end if
 
@@ -233,8 +248,8 @@
       if (.not. have_option("/io/dump_period_in_timesteps/constant")) then
         call set_option('/io/dump_period_in_timesteps/constant', 1, stat=stat)
       end if
-      call adjoint_options_dictionary
       call mangle_forward_options_paths(forward_state)
+      call adjoint_options_dictionary
       call populate_state(state)
 
       ! Check the diagnostic field dependencies for circular dependencies
@@ -245,6 +260,8 @@
       allocate(adjoint_state(size(state), size(forward_state)))
       adjoint_state(:, size(forward_state)) = state
       deallocate(state)
+
+      dump_no = dump_no - 1
 
       call compute_adjoint(forward_state, adjoint_state)
 
@@ -297,19 +314,19 @@
 
       type(scalar_field) :: iterated_velocity
       type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference, stored_iterated_velocity
-      type(scalar_field) :: rhs
+      type(scalar_field) :: rhs, stored_iterated_srhs
 
       type(csr_matrix) :: advection_matrix
       type(csr_matrix) :: lhs_matrix
 
-      type(scalar_field), pointer :: u
+      type(scalar_field), pointer :: u, srhs
       type(vector_field), pointer :: x
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
 
       integer :: nonlinear_iterations, nit
       real :: theta
       real :: nonlin_change
-      logical :: adjoint
+      logical :: adjoint, save_rhs
       integer :: stat
 
       mass_matrix => extract_csr_matrix(state, "MassMatrix")
@@ -328,6 +345,7 @@
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
       adjoint = have_option("/adjoint")
+      save_rhs = have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/scalar_field::Rhs")
 
       call allocate(iterated_velocity, u%mesh, "IteratedVelocity")
       call set(iterated_velocity, u)
@@ -337,14 +355,23 @@
       call allocate(lhs_matrix, mass_matrix%sparsity, name="LeftHandSide")
       call allocate(advection_matrix, mass_matrix%sparsity, name="AdvectionMatrix")
       call allocate(rhs, u%mesh, "RightHandSide")
+      if (save_rhs) then
+       srhs => extract_scalar_field(state, "VelocityRhs")
+      end if
 
       nonlinear_loop: do nit=1,nonlinear_iterations
         call assemble_advection_matrix(advection_matrix, x, u, iterated_velocity)
 
         call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
-
+        if (save_rhs) then
+          call assemble_small_right_hand_side(srhs, mass_matrix, u)
+        end if
+        
         call apply_dirichlet_conditions(lhs_matrix, rhs, u)
+        if (save_rhs) then
+          call apply_dirichlet_conditions(lhs_matrix, srhs, u)  ! Put the values of the BCs on the right-hand side
+        end if
 
         call set(old_iterated_velocity, iterated_velocity)
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
@@ -361,8 +388,18 @@
           if (nit /= nonlinear_iterations) then
             call allocate(stored_iterated_velocity, iterated_velocity%mesh, "IteratedVelocity" // int2str(nit))
             call set(stored_iterated_velocity, iterated_velocity)
+            stored_iterated_velocity%option_path = u%option_path
             call insert(state, stored_iterated_velocity, trim(stored_iterated_velocity%name))
             call deallocate(stored_iterated_velocity)
+          end if
+
+          ! We might be also interested in the rhs of the forward state: For example in order to be able to compute <rhs, lambda>, which should give J(u)
+          if (save_rhs) then
+            call allocate(stored_iterated_srhs, srhs%mesh, "IteratedRhs" // int2str(nit))
+            call set(stored_iterated_srhs, srhs)
+            stored_iterated_srhs%option_path = srhs%option_path
+            call insert(state, stored_iterated_srhs, trim(stored_iterated_srhs%name))
+            call deallocate(stored_iterated_srhs)
           end if
         end if
 
@@ -496,6 +533,39 @@
 
     end subroutine assemble_right_hand_side
 
+    
+    ! The right hand side without the dependency of the old velocity field.
+    subroutine assemble_small_right_hand_side(rhs, mass_matrix, u) 
+      type(scalar_field), intent(inout) :: rhs
+      type(csr_matrix), intent(in) :: mass_matrix
+      type(scalar_field), intent(in), pointer :: u
+
+      type(scalar_field) :: tmp
+      type(scalar_field), pointer :: src
+      integer :: stat
+
+      type(vector_field), pointer :: x
+      type(mesh_type), pointer :: mesh
+
+      call zero(rhs)
+
+      mesh => u%mesh
+      call allocate(tmp, mesh, "TemporaryField")
+
+      x => extract_vector_field(state, "Coordinate")
+      call add_neumann_boundary_conditions(rhs, x, u)
+
+      src => extract_scalar_field(state, "VelocitySource", stat=stat)
+      if (stat == 0) then
+        call mult(tmp, mass_matrix, src)
+        call addto(rhs, tmp)
+      end if
+
+      call deallocate(tmp)
+
+    end subroutine assemble_small_right_hand_side
+    
+    
     subroutine add_neumann_boundary_conditions(rhs, x, u)
       type(scalar_field), intent(inout) :: rhs
       type(scalar_field), intent(in) :: u
@@ -545,15 +615,19 @@
 
     end subroutine advance_current_time
 
-    subroutine output_state(state)
+    subroutine output_state(state, adjoint)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
+      logical, intent(in), optional :: adjoint
+      integer :: increment
 
-      integer, save :: dump_no=0
+      if (present_and_true(adjoint)) then
+        increment = -1
+      else
+        increment = 1
+      end if
 
-      call write_state(dump_no, state)
-      !dump_no = dump_no + 1
-
+      call write_state(dump_no, state, increment)
     end subroutine output_state
 
     subroutine read_command_line()
@@ -819,7 +893,7 @@
         path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
         call get_option(trim(path)//"/name", field_name)
 
-        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/only_in_adjoint')) then
+        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/exists_in_adjoint')) then
           ! We can't actually delete it now, because if we have scalar_field[0,1,2]
           ! and delete scalar_field[1],
           ! now the numbering will be scalar_field[0,1]
@@ -858,7 +932,7 @@
         path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
         call get_option(trim(path)//"/name", field_name)
 
-        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/only_in_forward')) then
+        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/exists_in_forward')) then
           ! We can't actually delete it now, because if we have scalar_field[0,1,2]
           ! and delete scalar_field[1],
           ! now the numbering will be scalar_field[0,1]
@@ -935,7 +1009,7 @@
           do i=1,nfields
             sfield => extract_scalar_field(forward_state(phase, time), i)
             ! If we have a prognostic field
-            if (index(sfield%option_path, "prognostic") == 0) then
+            if (have_option(trim(sfield%option_path) // '/prognostic')) then
               idx = index(sfield%option_path, "_field::") + len("_field::") - 1
               assert(idx /= 0)
               new_path(1:idx) = sfield%option_path(1:idx)
@@ -950,7 +1024,7 @@
           do i=1,nfields
             vfield => extract_vector_field(forward_state(phase, time), i)
             ! If we have a prognostic field
-            if (index(vfield%option_path, "prognostic") == 0) then
+            if (have_option(trim(vfield%option_path) // '/prognostic')) then
               idx = index(vfield%option_path, "_field::") + len("_field::") - 1
               assert(idx /= 0)
               new_path(1:idx) = vfield%option_path(1:idx)
@@ -964,7 +1038,7 @@
           do i=1,nfields
             tfield => extract_tensor_field(forward_state(phase, time), i)
             ! If we have a prognostic field
-            if (index(tfield%option_path, "prognostic") == 0) then
+            if (have_option(trim(tfield%option_path) // '/prognostic')) then
               idx = index(tfield%option_path, "_field::") + len("_field::") - 1
               assert(idx /= 0)
               new_path(1:idx) = tfield%option_path(1:idx)
@@ -987,64 +1061,46 @@
       type(state_type), dimension(size(in_states)), intent(out) :: out_states
 
       type(mesh_type), pointer :: mesh
-      type(scalar_field), pointer :: u
-      type(scalar_field) :: u_cpy
       type(vector_field), pointer :: x
 
-      integer :: i, nonlinear_iterations
-      character(len=OPTION_PATH_LEN) :: path, field_name
+      integer :: i
+      integer :: state, field
+      type(scalar_field), pointer :: sfield
+      type(scalar_field) :: cpy
+      integer :: stat
 
-      u => extract_scalar_field(in_states(1), "Velocity")
-      if (.not. have_option(trim(u%option_path) // '/prognostic/adjoint_storage/include_in_both')) then
-        ewrite(-1,*) "In order to solve the adjoint system, you need to mark the Velocity as being included in"
-        ewrite(-1,*) "the forward and adjoint systems."
-        ewrite(-1,*) "Since I know you are wrong, I am ignoring you."
-      end if
-
-      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
-      call allocate(u_cpy, u%mesh, "Velocity")
-      call set(u_cpy, u)
-      call insert(out_states(1), u, "Velocity")
-      call insert(out_states(1), u, "IteratedVelocity" // int2str(nonlinear_iterations))
-      call deallocate(u_cpy)
-   
-      do i=1,nonlinear_iterations-1
-        u => extract_scalar_field(in_states(1), "IteratedVelocity" // int2str(i))
-        call allocate(u_cpy, u%mesh, trim(u%name))
-        call set(u_cpy, u)
-        call insert(out_states(1), u_cpy, trim(u%name))
-        call deallocate(u_cpy)
-      end do
-
-      do i=0,option_count("/material_phase[0]/scalar_field")-1
-        path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
-        call get_option(trim(path)//"/name", field_name)
-
-        if (trim(field_name) == "Velocity") then
-          cycle
-        end if
-
-        if (have_option(complete_field_path(trim(path)) // "/adjoint_storage/include_in_both")) then
-          u => extract_scalar_field(in_states(1), trim(field_name))
-          call allocate(u_cpy, u%mesh, trim(u%name))
-          call set(u_cpy, u)
-          call insert(out_states(1), u_cpy, trim(u%name))
-          call deallocate(u_cpy)
-        end if
-      end do
-
-      x => extract_vector_field(in_states(1), "Coordinate")
+      x => extract_vector_field(in_states, "Coordinate")
       if (have_option("/mesh_adaptivity")) then
         FLExit("Sorry, /adjoint and /mesh_adaptivity are currently incompatible")
       end if
-      call insert(out_states(1), x, "Coordinate")
+      call insert(out_states, x, "Coordinate")
+
+      do state=1,size(in_states)
+        do field=1,scalar_field_count(in_states(state))
+          sfield => extract_scalar_field(in_states(state), field)
+          if (have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // '/adjoint_storage/exists_in_both/record') .or. &
+              have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // '/adjoint_storage/exists_in_forward/record')) then
+            call allocate(cpy, sfield%mesh, trim(sfield%name))
+            call set(cpy, sfield)
+            cpy%option_path = sfield%option_path
+            call insert(out_states(state), cpy, trim(in_states(state)%scalar_names(field)))
+            call deallocate(cpy)
+          end if
+        end do
+      end do
+
+      call populate_boundary_conditions(out_states)
+      call set_boundary_conditions_values(out_states)
 
       do i=1,mesh_count(in_states(1))
         mesh => extract_mesh(in_states(1), i)
-        call insert(out_states(1), mesh, trim(mesh%name))
+        call insert(out_states, mesh, trim(mesh%name))
       end do
 
-      out_states(1)%name = trim(in_states(1)%name)
+      call insert(out_states, extract_csr_matrix(in_states(1), "MassMatrix"), "MassMatrix")
+      call insert(out_states, extract_csr_matrix(in_states(1), "DiffusionMatrix"), "DiffusionMatrix")
+
+      out_states%name = in_states%name
     end subroutine copy_forward_state
 
     subroutine mangle_dirichlet_rows(matrix, field, keep_diag)
@@ -1254,6 +1310,7 @@
       call deallocate(Vc)
       call deallocate(pVc)
       call deallocate(perturbed)
+      call deallocate(node_colour)
     end subroutine differentiate_V
 
     subroutine steady_state_adjoint(forward_state, adjoint_state)
@@ -1337,7 +1394,7 @@
       call calculate_diagnostic_variables_new(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
       call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
 
-      call output_state(adjoint_state(:, 1))
+      call output_state(adjoint_state(:, 1), adjoint=.true.)
     end subroutine steady_state_adjoint
 
     function iteration_count(state) result(count)
@@ -1353,6 +1410,7 @@
         i = count + 1
         iterated_velocity => extract_scalar_field(state, "IteratedVelocity" // int2str(i), stat=stat)
         if (stat /= 0) exit
+        count = i
       end do
     end function iteration_count
 
@@ -1360,11 +1418,67 @@
       ! material_phases x time
       type(state_type), intent(inout), dimension(:,:) :: forward_state
       type(state_type), intent(inout), dimension(:,:) :: adjoint_state
-      integer :: timesteps
+      integer :: timesteps, timestep
+      real :: current_time, dt, finish_time
+      real :: J
+      logical :: have_functional
 
       timesteps = size(forward_state, 2)
 
-      call compute_final_adjoint_state(forward_state, adjoint_state, timesteps)
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+
+      timestep = timesteps
+      have_functional = have_option("/adjoint/functional")
+
+      if (have_functional) then
+        J = functional(forward_state, current_time, dt, timestep)
+        write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+      end if
+
+      call compute_final_adjoint_state(forward_state, adjoint_state, timestep)
+
+      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      call output_state(adjoint_state(:, timestep), adjoint=.true.)
+
+      call advance_current_time(current_time, dt)
+      timestep = timestep - 1
+      call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
+
+      do while (timestep > 1)
+        FLAbort("Not implemented yet")
+        ! Rewind the nonlinear iterations
+        ! Solve for the AdjointVelocity at the timesteps
+        if (have_functional) then
+          J = functional(forward_state, current_time, dt, timestep)
+          write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+        end if
+
+        call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+        call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+        call output_state(adjoint_state(:, timestep), adjoint=.true.)
+
+        call advance_current_time(current_time, dt)
+        timestep = timestep - 1
+        call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
+      end do
+
+      if (have_functional) then
+        J = functional(forward_state, current_time, dt, timestep)
+        write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+      end if
+
+      call compute_initial_adjoint_state(forward_state, adjoint_state)
+
+      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      call output_state(adjoint_state(:, timestep), adjoint=.true.)
+      call get_option("/timestepping/finish_time", finish_time)
+      assert(current_time == finish_time)
     end subroutine time_dependent_adjoint
 
     subroutine compute_final_adjoint_state(forward_state, adjoint_state, timestep)
@@ -1378,7 +1492,9 @@
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
       type(csr_matrix) :: advection_matrix
       type(vector_field), pointer :: x
+      integer :: count
 
+      count = iteration_count(forward_state(1, timestep))
       u => extract_scalar_field(forward_state(1, timestep), "Velocity")
       adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
       x => extract_vector_field(forward_state(1, timestep), "Coordinate")
@@ -1393,14 +1509,15 @@
 
       call allocate(advection_matrix, diffusion_matrix%sparsity, name="AdvectionMatrix")
       u_left => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
-      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(iteration_count(forward_state(1, timestep))))
+      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(count))
 
       call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
 
+      call allocate(L, diffusion_matrix%sparsity, name="LeftHandSide")
       call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
       call deallocate(advection_matrix)
       call mangle_dirichlet_rows(L, u, keep_diag=.true.)
-      LT = transpose(L)
+      LT = transpose(L, symmetric_sparsity=.true.)
       call deallocate(L)
       call mangle_dirichlet_rows(LT, u, keep_diag=.true.)
 
@@ -1411,8 +1528,8 @@
       call petsc_solve(adjoint, LT, rhs)
       call compute_inactive_rows(adjoint, LT, rhs)
 
-      ! We'll also insert it as IteraredAdjointVelocityN
-      call insert(adjoint_state(1, timestep), adjoint, "IteratedAdjointVelocity" // int2str(iteration_count(forward_state(1, timestep))))
+      ! We'll also insert it as IteratedAdjointVelocityN
+      call insert(adjoint_state(1, timestep), adjoint, "IteratedAdjointVelocity" // int2str(count))
 
       call deallocate(derivatives)
       call deallocate(LT)
@@ -1469,7 +1586,7 @@
 
       call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, &
            & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"), output)
-      call addto(adjoint, output)
+      call addto(adjoint, output, scale=-1.0)
 
       ! Now loop over the others
       count = iteration_count(forward_state(1, timestep))
@@ -1481,7 +1598,7 @@
         call addto(contraction, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)), scale=theta)
         call differentiate_V(x, sparsity, u_left, u_right, -1, contraction, &
              & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)), output)
-        call addto(adjoint, output)
+        call addto(adjoint, output, scale=-1.0)
       end do
 
       call deallocate(contraction)
@@ -1500,8 +1617,8 @@
       call set(T, mass_matrix)
       call scale(T, 1.0/abs(dt))
 
-      call addto(T, diffusion_matrix)
-      call addto(T, advection_matrix)
+      call addto(T, diffusion_matrix, scale=theta-1.0)
+      call addto(T, advection_matrix, scale=theta-1.0)
       call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
       call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity1"))
@@ -1513,16 +1630,64 @@
 
         call set(T, mass_matrix)
         call scale(T, 1.0/abs(dt))
-        call addto(T, diffusion_matrix)
-        call addto(T, advection_matrix)
+        call addto(T, diffusion_matrix, scale=theta-1.0)
+        call addto(T, advection_matrix, scale=theta-1.0)
         call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
         call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)))
         call addto(adjoint, output)
       end do
+      
+      call deallocate(advection_matrix)
+      call deallocate(T)
+      call deallocate(output)
 
       ! Note that we don't need to invert any operators, because the top-left block is
-      ! just the identity matrix.
+      ! just the identity matrix. That's why we've been accumulating the right-hand side
+      ! into adjoint, not into an rhs variable, because the adjoint is the rhs.
       
     end subroutine compute_initial_adjoint_state
+
+    subroutine setup_adjoint_state(forward_state, adjoint_state)
+      type(state_type), dimension(:), intent(in) :: forward_state
+      type(state_type), dimension(:), intent(inout) :: adjoint_state
+
+      type(mesh_type), pointer :: external_mesh
+      type(vector_field), pointer :: x
+
+      external_mesh => get_external_mesh(forward_state)
+      x => extract_vector_field(forward_state, "Coordinate")
+      call insert(adjoint_state, external_mesh, name=trim(external_mesh%name))
+      call insert(adjoint_state, x, "Coordinate")
+      call insert_derived_meshes(adjoint_state)
+      call allocate_and_insert_fields(adjoint_state)
+      call set_prescribed_field_values(adjoint_state)
+    end subroutine setup_adjoint_state
+
+    subroutine delete_iterated_fields(states)
+      type(state_type), dimension(:), intent(inout) :: states
+      type(scalar_field), pointer :: sfield
+      integer :: field, state
+      character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete
+      integer :: nfields_to_delete
+
+      do state=1,size(states)
+        allocate(fields_to_delete(scalar_field_count(states(state))))
+        nfields_to_delete = 0
+
+        do field=1,scalar_field_count(states(state))
+          sfield => extract_scalar_field(states(state), field)
+          if (index(trim(sfield%name), "Iterated") /= 0) then
+            nfields_to_delete = nfields_to_delete + 1
+            fields_to_delete(nfields_to_delete) = trim(sfield%name)
+          end if
+        end do
+
+        do field=1,nfields_to_delete
+          call remove_scalar_field(states(state), trim(fields_to_delete(field)))
+        end do
+
+        deallocate(fields_to_delete)
+      end do
+    end subroutine delete_iterated_fields
   end program burgers_equation
