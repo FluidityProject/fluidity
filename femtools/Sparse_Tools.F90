@@ -4605,6 +4605,7 @@ contains
     else
       sparsity=transpose(A%sparsity)
       call allocate(AT, sparsity, name=trim(A%name) // "Transpose")
+      call deallocate(sparsity)
     end if
     
     ! we use the same insertion procedure as above in csr_sparsity_transpose
