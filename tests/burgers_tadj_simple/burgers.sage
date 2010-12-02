@@ -9,6 +9,9 @@ v = 1.0
 u = m * (x - a) * (x - b) # velocity, parameterised by a parameter m
 T = 0.01 * (x - a) * (x - b) # target velocity is achieved when m = 1
 
+dudm = diff(u, m)
+print "\partial u/\partial m: ", dudm
+
 # first, let's compute the source term for the forward model:
 src = simplify(expand(diff(u, t) + u * diff(u, x) - v * diff(u, x, 2)))
 

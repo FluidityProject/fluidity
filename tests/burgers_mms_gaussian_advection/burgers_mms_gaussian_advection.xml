@@ -3,7 +3,7 @@
 <testproblem>
   <name>Burgers Equation MMS</name>
   <owner userid="pef"/>
-  <tags>flml</tags>
+  <tags>burgers</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
   </problem_definition>

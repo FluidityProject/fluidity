@@ -196,6 +196,9 @@
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
+      call advance_current_time(current_time, dt)
+      call insert_time_in_state(state)
+
       if (simulation_completed(current_time, timestep)) exit timestep_loop
       if (stationary_problem) then
         if (change < tolerance) then
@@ -208,9 +211,6 @@
         assert(timestep+1 <= size(forward_state, 2))
         call copy_forward_state(state, forward_state(:,timestep+1))
       end if
-
-      call advance_current_time(current_time, dt)
-      call insert_time_in_state(state)
 
       if (do_write_state(current_time, timestep)) then
         call output_state(state)
@@ -225,8 +225,8 @@
     call output_state(state)
     call write_diagnostics(state, current_time, dt, timestep)
 
-    if (adjoint .and. stationary_problem) then
-      call copy_forward_state(state, forward_state(:,1))
+    if (adjoint) then
+      call copy_forward_state(state, forward_state(:,size(forward_state, 2)))
     end if
 
     call deallocate(state)
@@ -363,11 +363,13 @@
         call assemble_advection_matrix(advection_matrix, x, u, iterated_velocity)
 
         call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
+
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
         if (save_rhs) then
           call assemble_small_right_hand_side(srhs, mass_matrix, u)
         end if
         
+        call mangle_dirichlet_rows(lhs_matrix, u, keep_diag=.true., rhs=rhs)
         call apply_dirichlet_conditions(lhs_matrix, rhs, u)
         if (save_rhs) then
           call apply_dirichlet_conditions(lhs_matrix, srhs, u)  ! Put the values of the BCs on the right-hand side
@@ -1103,14 +1105,16 @@
       out_states%name = in_states%name
     end subroutine copy_forward_state
 
-    subroutine mangle_dirichlet_rows(matrix, field, keep_diag)
+    subroutine mangle_dirichlet_rows(matrix, field, keep_diag, rhs)
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(in) :: field
       logical, intent(in) :: keep_diag
+      type(scalar_field), intent(inout), optional :: rhs
 
       integer :: i, j, node
       character(len=FIELD_NAME_LEN) :: bctype
       integer, dimension(:), pointer :: node_list
+      type(scalar_field), pointer :: bc_field
 
       real,  dimension(:), pointer :: row
       real, pointer :: diag_ptr
@@ -1120,6 +1124,7 @@
         call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
 
         if (bctype /= "dirichlet") cycle
+        bc_field => extract_surface_field(field, i, "value")
 
         do j=1,size(node_list)
           node = node_list(j)
@@ -1128,7 +1133,11 @@
           row  => row_val_ptr(matrix, node)
           row = 0
           if (keep_diag) then
-            diag_ptr = diag
+            diag_ptr = 1.0
+          end if
+
+          if (present(rhs)) then
+            call set(rhs, node, node_val(bc_field, j))
           end if
         end do
       end do
@@ -1514,12 +1523,12 @@
       call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
 
       call allocate(L, diffusion_matrix%sparsity, name="LeftHandSide")
-      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
+
+      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
       call deallocate(advection_matrix)
       call mangle_dirichlet_rows(L, u, keep_diag=.true.)
       LT = transpose(L, symmetric_sparsity=.true.)
       call deallocate(L)
-      call mangle_dirichlet_rows(LT, u, keep_diag=.true.)
 
       call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
       rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
