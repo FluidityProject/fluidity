@@ -66,6 +66,9 @@ void python_reset_(void){
     // And run a garbage collection
     PyGC_Collect();
   }
+  else{
+    printf("Py_IsInitialized() returned false");
+  }
 #endif
 }
 

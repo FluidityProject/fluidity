@@ -69,6 +69,7 @@ contains
     call get_option(trim(s_field%option_path)&
          //"/diagnostic/algorithm/material_phase_support",material_phase_support)
 
+    ewrite(2,*) 'material_phase_support: '//trim(material_phase_support)
     select case(material_phase_support)
     case("single")
        call python_add_state(states(state_index))
