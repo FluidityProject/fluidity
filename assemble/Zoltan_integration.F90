@@ -1790,7 +1790,7 @@ module zoltan_integration
     lpreserve_columns = associated(full_mesh%columns)
     call allor(lpreserve_columns)
     if(lpreserve_columns) then
-       allocate(universal_columns(ele_count(full_mesh)))
+       allocate(universal_columns(node_count(full_mesh)))
        universal_columns = halo_universal_numbers(zz_halo, full_mesh%columns)
     end if
     

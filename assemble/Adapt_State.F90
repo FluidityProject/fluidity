@@ -1447,13 +1447,12 @@ contains
     if(have_option(base_path // "/write_adapted_mesh")) then
       ! Debug mesh output. These are output on every adapt iteration.
 
-      file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration)
+      file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no)
       call find_mesh_to_adapt(states(1), mesh)
       positions = get_coordinate_field(states(1), mesh)
       call write_mesh_files(file_name, positions)
       if(isparallel()) then
-        file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration, &
-                                                add_parallel = .false.)  ! parallel extension is added by write_halos
+        file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, add_parallel = .false.)  ! parallel extension is added by write_halos
         call write_halos(file_name, positions%mesh)
       end if
       call deallocate(positions)
@@ -1464,8 +1463,7 @@ contains
     if(have_option(base_path // "/write_adapted_state")) then
       ! Debug vtu output. These are output on every adapt iteration.
 
-      file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)
-      call vtk_write_state(file_name, state = states, write_region_ids=.true.)
+      call vtk_write_state("adapted_state", index=state_dump_no, state = states, write_region_ids=.true.)
 
       state_dump_no = state_dump_no + 1
     end if
@@ -1495,24 +1493,18 @@ contains
 
   contains
 
-    function adapt_state_debug_file_name(base_name, dump_no, adapt_iteration, max_adapt_iteration, add_parallel) result(file_name)
+    function adapt_state_debug_file_name(base_name, dump_no, add_parallel) result(file_name)
       !!< Form an adapt diagnostic output filename
 
       !! Filename base
       character(len = *), intent(in) :: base_name
       integer, intent(in) :: dump_no
-      !! The current iteration the adapt-re-load-balance loop
-      integer, intent(in) :: adapt_iteration
-      !! The total number of iterations to be performed in the
-      !! adapt-re-load-balance loop
-      integer, intent(in) :: max_adapt_iteration
       !! If present and .false., do not convert into a parallel file_name
       logical, optional, intent(in) :: add_parallel
 
-      character(len = len_trim(base_name) + 1 + int2str_len(dump_no) + 1 + int2str_len(adapt_iteration) + parallel_filename_len("")) :: file_name
+      character(len = len_trim(base_name) + 1 + int2str_len(dump_no) + 1 + parallel_filename_len("")) :: file_name
 
       file_name = trim(base_name) // "_" // int2str(dump_no)
-      if(max_adapt_iteration > 1) file_name = trim(file_name) // "_" // int2str(adapt_iteration)
       if(.not. present_and_false(add_parallel) .and. isparallel()) file_name = parallel_filename(file_name)
 
     end function adapt_state_debug_file_name

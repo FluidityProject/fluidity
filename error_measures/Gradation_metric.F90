@@ -25,7 +25,7 @@ module gradation_metric
   ! initialise_gradation_metric changes them for real code.
   ! Bottom line: if you want to change whether gradation is used
   ! or the gradation constant, CHANGE THE VALUES in INITIALISE_GRADATION_METRIC
-  logical :: use_gradation_metric = .true.
+  logical :: use_gradation_metric = .false.
   logical :: gradation_initialised = .false.
   real :: gamma0 = 1.5 !!< Gamma is a measure of the smoothness of the transition
                        !!< an edge. Gamma0 is the maximum allowed value for gamma.
@@ -41,11 +41,7 @@ module gradation_metric
 
   subroutine initialise_gradation_metric
   
-    if (have_option("/mesh_adaptivity/hr_adaptivity/disable_gradation")) then
-      use_gradation_metric = .false.
-    else
-      use_gradation_metric = .true.
-    end if
+    use_gradation_metric=have_option("/mesh_adaptivity/hr_adaptivity/enable_gradation")
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter")) then
       call get_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter", gamma0)
