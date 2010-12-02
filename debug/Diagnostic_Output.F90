@@ -68,3 +68,14 @@ function debug_level()
   debug_level=current_debug_level
 
 end function debug_level
+
+function get_global_debug_level()
+  ! Simply return the global debug level. This makes the debug level
+  ! effectively global.
+  use fldebug_parameters
+  implicit none  
+  integer :: get_global_debug_level
+  
+  get_global_debug_level=global_debug_level
+
+end function get_global_debug_level

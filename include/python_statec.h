@@ -53,3 +53,4 @@ void python_add_array_integer_1d(int *arr, int *size, char *name);
 void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name);
 void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, char *name);
 
+int get_global_debug_level_(void);

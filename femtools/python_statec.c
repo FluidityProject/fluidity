@@ -37,6 +37,12 @@ void init_vars(void){
     fprintf(stderr, "It will not otherwise affect the running of Fluidity.\n");
     PyErr_Clear();
   }
+  else{
+    if (get_global_debug_level_() > 1) {
+      printf("fluidity.state_types imported successfully; location: \n");
+      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+    }
+  }
   PyRun_SimpleString("states = dict()");
 #endif
 }
