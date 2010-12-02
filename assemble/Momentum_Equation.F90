@@ -71,6 +71,7 @@
     use diagnostic_fields, only: calculate_diagnostic_variable
     use dgtools, only: dg_apply_mass
     use slope_limiters_dg
+    use implicit_solids
     implicit none
 
     private
@@ -583,6 +584,12 @@
             has_boundary_condition(u, "log_law_of_wall")) then
          call wall_functions(big_m, mom_rhs, state(istate))
       end if
+
+      ! add mass source-absorption for implicit solids
+      if (have_option("/implicit_solids/two_way_coupling")) then
+         call add_mass_source_absorption(ct_rhs, state(istate))
+      end if
+
       call profiler_toc(u, "assembly")
 
       call profiler_tic(p, "assembly")

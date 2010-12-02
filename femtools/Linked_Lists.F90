@@ -54,7 +54,7 @@ module linked_lists
   end interface
 
   interface deallocate
-    module procedure flush_ilist, flush_elist, flush_ilist_v, flush_rlist
+    module procedure flush_ilist, flush_elist, flush_ilist_v, flush_rlist, flush_rlist_v
   end interface
 
   interface insert
@@ -130,13 +130,15 @@ contains
     end do
   end function ihas_value
 
-  subroutine iinsert_ascending(list, value)
+  subroutine iinsert_ascending(list, value, discard)
     ! Insert value in list in such a position as to ensure that list remains
     ! in ascending order. This assumes that list is in ascending order.
     ! Duplicate values are discarded!
     type(ilist), intent(inout) :: list
     integer, intent(in) :: value
     
+    logical, optional :: discard
+
     type(inode), pointer :: this_node, next_node
     integer :: pos
 
@@ -167,10 +169,13 @@ contains
        return
     end if
 
-    do pos=0,list%length
+    ! initialise discard logical
+    if (present(discard)) discard =.false.
 
+    do pos=0,list%length
        if(this_node%value==value) then
           ! Discard duplicates.
+          if (present(discard)) discard = .true.
           return
        end if
 
@@ -265,6 +270,15 @@ contains
       call flush_ilist(lists(i))
     end do
   end subroutine flush_ilist_v
+
+  subroutine flush_rlist_v(lists)
+    type(rlist), intent(inout), dimension(:) :: lists
+    integer :: i
+
+    do i=1,size(lists)
+      call flush_rlist(lists(i))
+    end do
+  end subroutine flush_rlist_v
   
   subroutine flush_ilist_array(lists)
     ! Remove all entries from an array of lists

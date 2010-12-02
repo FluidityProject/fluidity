@@ -76,7 +76,7 @@ module solidconfiguration
   real pie
   parameter(nloc=4,pie=3.1415926535897931)
 
-#ifdef USING_FEMDEM
+#ifdef USING_FEMDEM_LEGACY
   !  interface
   !     subroutine y3allocate_femdem(string)
   !       character(len=*) :: string
@@ -388,7 +388,7 @@ contains
        case("use_Y3D")
        case("use_2Dfemdem")
        case("use_3Dfemdem")
-#ifdef USING_FEMDEM
+#ifdef USING_FEMDEM_LEGACY
           !Initialize 3D femdem code
           !Read in quadratic-to-linear information
           call get_option(trim(dynamic_path)//'/quad2lin/file_name',quad2lin_filename)
@@ -956,7 +956,7 @@ contains
        case('use_y3D')
           FLExit('DEM not implemented yet')
        case('use_3Dfemdem')
-#ifdef USING_FEMDEM
+#ifdef USING_FEMDEM_LEGACY
           position2=extract_vector_field(state(1),"ParticleMeshCoordinate")
           particle_vector=extract_vector_field(state(1),"ParticleVector")
           particle_force=extract_vector_field(state(1),"ParticleForce")

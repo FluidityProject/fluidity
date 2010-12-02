@@ -2589,17 +2589,32 @@ requires a prognostic Temperature field. </a:documentation>
                   <a:documentation>Use a fixed temperature source for the solids.
 The temperature diffusivity should be set to diagnostic/internal with this option.</a:documentation>
                   <element name="solid_diffusivity">
-                    <a:documentation>Solid diffusivity. Isotropic for now.</a:documentation>
+                    <a:documentation>Solid diffusivity (k/(\rho c_p)). Isotropic for now.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="solid_conductivity">
+                    <a:documentation>Solid conductivity (k). Isotropic for now.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="fluid_diffusivity">
-                    <a:documentation>Fluid diffusivity. Isotropic for now.</a:documentation>
+                    <a:documentation>Fluid diffusivity (k/(\rho c_p)). Isotropic for now.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="fluid_conductivity">
+                    <a:documentation>Fluid conductivity (k). Isotropic for now.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="source_intensity">
                     <a:documentation>Solid source intensity.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="zone_radius">
+                      <a:documentation>Apply source to an inner zone of the particle rather than the whole particle.
+Assumes a spherical inner zone.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
                 <element name="temperature">
                   <a:documentation>Use a fixed temperature for the solids.</a:documentation>
