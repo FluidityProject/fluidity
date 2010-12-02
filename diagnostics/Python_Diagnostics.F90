@@ -62,6 +62,7 @@ contains
     character(len = OPTION_PATH_LEN) :: material_phase_support
     type(state_type), pointer :: this_state
     
+    ewrite(2,*) 'in calculate_scalar_python_diagnostic'
     ! Clean up to make sure that nothing else interferes
     call python_reset()
     
@@ -98,6 +99,8 @@ contains
 #else
     FLAbort("Python diagnostic fields require NumPy, which cannot be located.")
 #endif
+
+    ewrite(2,*) 'leaving calculate_scalar_python_diagnostic'
 
   end subroutine calculate_scalar_python_diagnostic
   
