@@ -143,7 +143,7 @@ implicit none
 contains
 
   subroutine allocate_mesh(mesh, nodes, elements, shape, name)
-    type(mesh_type), intent(inout) :: mesh
+    type(mesh_type), intent(out) :: mesh
     integer, intent(in) :: nodes, elements
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
@@ -188,7 +188,7 @@ contains
   end subroutine allocate_mesh
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
-    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(out) :: field
     type(mesh_type), intent(inout), target :: mesh
     character(len=*), intent(in),optional :: name
     integer, intent(in), optional :: field_type
@@ -283,7 +283,7 @@ contains
   end subroutine allocate_scalar_field
 
   subroutine allocate_vector_field(field, dim, mesh, name, field_type)
-    type(vector_field), intent(inout) :: field
+    type(vector_field), intent(out) :: field
     integer, intent(in) :: dim
     type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in), optional :: name
