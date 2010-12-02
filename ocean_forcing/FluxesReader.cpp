@@ -829,6 +829,14 @@ extern "C" {
     FluxesReader_global.GetScalars(*longitude, *latitude, scalars);
     return;
   }
+
+#define fluxes_getscalar_fc F77_FUNC_(fluxes_getscalar, FLUXES_GETSCALAR)
+  void fluxes_getscalar_fc(char *name, double *latitude,  double *longitude, double *scalar, int len){
+    char *str = new char[len+1]();
+    strncpy(str, name, len);
+    str[len] = '\0';
+    *scalar = FluxesReader_global.GetScalar(string(str), *longitude, *latitude);
+  }
   
 #define fluxes_registerdatafile_fc F77_FUNC_(fluxes_registerdatafile, FLUXES_REGISTERDATAFILE)
   void fluxes_registerdatafile_fc(char *_filename, int *len){
