@@ -1528,7 +1528,6 @@
       call mangle_dirichlet_rows(L, u, keep_diag=.true.)
       LT = transpose(L, symmetric_sparsity=.true.)
       call deallocate(L)
-      call mangle_dirichlet_rows(LT, u, keep_diag=.true.)
 
       call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
       rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
@@ -1566,15 +1565,14 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
 
-      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
+      mass_matrix => extract_csr_matrix(forward_state(1, 1), "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(forward_state(1, 1), "DiffusionMatrix")
       sparsity => mass_matrix%sparsity
-
 
       ! ---------------------------------------------------------------------------------
       ! dJ/du
       ! ---------------------------------------------------------------------------------
-      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
+      call functional_derivative(forward_state, current_time, dt, 1, derivatives)
       rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
       call addto(adjoint, rhs)
       call deallocate(derivatives)
@@ -1598,7 +1596,7 @@
       call addto(adjoint, output, scale=-1.0)
 
       ! Now loop over the others
-      count = iteration_count(forward_state(1, timestep))
+      count = iteration_count(forward_state(1, 2))
       do i=2,count
         u_right => extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i-1))
 
@@ -1626,11 +1624,11 @@
       call set(T, mass_matrix)
       call scale(T, 1.0/abs(dt))
 
-      call addto(T, diffusion_matrix, scale=theta-1.0)
-      call addto(T, advection_matrix, scale=theta-1.0)
+      call addto(T, diffusion_matrix, scale=1.0-theta)
+      call addto(T, advection_matrix, scale=1.0-theta)
       call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
-      call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity1"))
+      call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"))
       call addto(adjoint, output)
 
       do i=2,count
@@ -1639,11 +1637,11 @@
 
         call set(T, mass_matrix)
         call scale(T, 1.0/abs(dt))
-        call addto(T, diffusion_matrix, scale=theta-1.0)
-        call addto(T, advection_matrix, scale=theta-1.0)
+        call addto(T, diffusion_matrix, scale=1.0-theta)
+        call addto(T, advection_matrix, scale=1.0-theta)
         call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
-        call mult_T(output, T, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)))
+        call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)))
         call addto(adjoint, output)
       end do
       

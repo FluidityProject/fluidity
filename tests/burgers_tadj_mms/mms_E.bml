@@ -67,18 +67,18 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0">30</integer_value>
+              <integer_value rank="0">200</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-16</real_value>
+            <real_value rank="0">0.0</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1.0e-13</real_value>
           </absolute_error>
           <max_iterations>
-            <integer_value rank="0">30000</integer_value>
+            <integer_value rank="0">100000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -118,7 +118,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   theta = 0.5
   x = X[0]
   return x**3 - 6*theta*x - 100*x</string_value>
@@ -133,7 +133,7 @@
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="python" lines="20">import numpy
+          <string_value lines="20" type="python">import numpy
 
 # Multiply AdjointFinalSource by the mass matrix
 
@@ -159,7 +159,7 @@ for ele in range(field.element_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   theta = 0.5
   x = X[0]
   return x**3 + 6*theta*x - 106*x</string_value>
@@ -174,7 +174,7 @@ for ele in range(field.element_count):
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="python" lines="20">import numpy
+          <string_value lines="20" type="python">import numpy
 
 coord = state.vector_fields["Coordinate"]
 adjini = state.scalar_fields["AdjointInitialValue"] # still need to multiply this by M
@@ -192,8 +192,7 @@ elif time == 0.0:
     m = t.shape_shape(shape, shape)
     field.addto(field.ele_nodes(ele), numpy.dot(m, adjini.ele_val(ele)))
 else:
-  print "Warning: should only be called with time == 0.0 and time == 1.0!"
-</string_value>
+  print "Warning: should only be called with time == 0.0 and time == 1.0!"</string_value>
           <depends>
             <string_value lines="1">MAdjointFinalSource</string_value>
           </depends>
@@ -208,11 +207,14 @@ else:
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="python" lines="20">soln = state.scalar_fields["AdjointVelocity"]
+          <string_value lines="20" type="python">soln = state.scalar_fields["AdjointVelocity"]
 exact = state.scalar_fields["AnalyticalAdjointVelocity"]
 
 for node in range(field.node_count):
-  field[node] = soln[node] - exact[node]</string_value>
+  field[node] = soln[node] - exact[node]
+  
+# I don't know what the right boundary values for the adjoint are
+field[0] = 0.0; field[-1] = 0.0</string_value>
           <depends>
             <string_value lines="1">AnalyticalAdjointVelocity</string_value>
           </depends>
@@ -240,8 +242,7 @@ elif time == 1.0:
   du.val[:] = src.val
   du[0] = 0.0; du[-1] = 0.0
 else:
-  print "Warning: should only be called with time == 0.0 and time == 1.0!"
-  </string_value>
+  print "Warning: should only be called with time == 0.0 and time == 1.0!"</string_value>
       </algorithm>
     </functional_derivative>
   </adjoint>
