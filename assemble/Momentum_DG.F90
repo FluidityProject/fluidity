@@ -453,7 +453,7 @@ contains
          &/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
         &"/prognostic/vector_field::Absorption&
-        &/include_pressure_correction") .or. (have_vertical_stabilization.and.(.not.on_sphere))
+        &/include_pressure_correction") .or. (have_vertical_stabilization)
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -1238,6 +1238,7 @@ contains
 
     if(have_absorption.or.have_vertical_stabilization.or.have_wd_abs) then
 
+      absorption_gi=0.0
       tensor_absorption_gi=0.0
       absorption_gi = ele_val_at_quad(Abs, ele)
       if (on_sphere.and.have_absorption) then ! Rotate the absorption
@@ -1304,6 +1305,7 @@ contains
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
         tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
+        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
       else
         absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
       end if
@@ -1313,6 +1315,7 @@ contains
       if (on_sphere) then
 
         Abs_mat_sphere = shape_shape_tensor(U_shape, U_shape, detwei*rho_q, tensor_absorption_gi)
+        Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
         if (have_wd_abs) then
                FLExit("Wetting and drying absorption does currently not work on the sphere.")
         end if
@@ -1320,22 +1323,35 @@ contains
         if(lump_abs) then
 
           Abs_lump_sphere = sum(Abs_mat_sphere, 4)
-          do i = 1, ele_loc(U, ele)
-            do dim = 1, U%dim
-              do dim2 = 1, U%dim
+          do dim = 1, U%dim
+            do dim2 = 1, U%dim
+              do i = 1, ele_loc(U, ele)
                 big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
                   & dt*theta*Abs_lump_sphere(dim,dim2,i)
               end do
-              if (acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
-                ! off block diagonal absorption terms
-                do dim2 = 1, u%dim
-                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
-                end do
-              end if
             end do
+            if (acceleration) then
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
+              ! off block diagonal absorption terms
+              do dim2 = 1, u%dim
+                if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
+              end do
+            end if
           end do
+          if (present(inverse_masslump) .and. pressure_corrected_absorption) then
+            assert(lump_mass)
+            abs_lump = sum(Abs_mat, 3)
+            do dim = 1, u%dim             
+              if(have_mass) then
+                call set( inverse_masslump, dim, u_ele, &
+                  1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
+              else
+                call set( inverse_masslump, dim, u_ele, &
+                  1.0/(dt*theta*abs_lump(dim,:)) )            
+              end if
+            end do          
+          end if    
 
         else
 
@@ -1354,6 +1370,19 @@ contains
             end if
           end do
           Abs_lump_sphere = 0.0
+          if (present(inverse_mass) .and. pressure_corrected_absorption) then
+            assert(.not. lump_mass)
+            do dim = 1, u%dim              
+              if(have_mass) then
+                call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                  inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
+              else
+                call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                  inverse(dt*theta*Abs_mat(dim,:,:)))            
+              end if
+            end do
+          end if     
+
         end if
 
       else

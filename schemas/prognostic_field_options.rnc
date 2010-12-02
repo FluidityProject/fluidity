@@ -874,6 +874,8 @@ prognostic_velocity_field =
          element vertical_velocity_relaxation{
             ## This option scales the vertical velocity
             ## relaxation absorption by the chosen factor.
+            ## (Note: Typical value for a time step of 100s
+            ##  is ~ 0.0001. i.e. it probably needs to be small.)
             element scale_factor{
               real
             }

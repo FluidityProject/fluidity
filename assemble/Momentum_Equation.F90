@@ -255,6 +255,10 @@
       integer :: d
       type(scalar_field) :: u_cpt
 
+      logical :: on_sphere, have_absorption, have_vertical_stabilization, sphere_absorption
+      type(vector_field), pointer :: dummy_absorption
+
+
       ewrite(1,*) 'Entering solve_momentum'
 
       ! get the velocity
@@ -299,6 +303,14 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       diagonal_big_m = .not.have_coriolis.and.(.not.((have_viscosity.or.have_les).and.(stress_form.or.partial_stress_form)))
 
+      ! Do we want to rotate our equations to include absorption in a spherical geometry? 
+      on_sphere = have_option('/geometry/spherical_earth/')
+      dummy_absorption=>extract_vector_field(state(istate), "VelocityAbsorption", stat)
+      have_absorption = stat == 0
+      have_vertical_stabilization=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
+                                  have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
+      sphere_absorption=on_sphere.and.(have_absorption.or.have_vertical_stabilization)
+    
       reduced_model= have_option("/reduced_model/execute_reduced_model")
 
       ! get the pressure
@@ -612,6 +624,13 @@
         call rotate_momentum_equation(big_m, mom_rhs, u, state(istate))
         if (get_ct_m) call rotate_ct_m(ct_m, u)
       end if
+      if (sphere_absorption) then
+        ! On the sphere inverse_masslump can currently only be assembled
+        ! in the rotated frame. Thus we need to rotate anything that will
+        ! interact with this.
+        call rotate_momentum_to_sphere(big_m, mom_rhs, u, state(istate))
+        if (get_ct_m) call rotate_ct_m_sphere(state(istate), ct_m, u)
+      end if
 
       call apply_dirichlet_conditions(big_m, mom_rhs, u, dt)
       call profiler_toc(u, "assembly")
@@ -638,6 +657,9 @@
           end if
           if (have_rotated_bcs(u)) then
             call rotate_ct_m(ctp_m, u)
+          end if
+          if (sphere_absorption) then
+            call rotate_ct_m_sphere(state(istate), ctp_m, u)
           end if
         else
           ctp_m=>ct_m
@@ -698,7 +720,6 @@
            end if
         end if
 
-        ! assemble the C_{P}^{T} M^{-1} C matrix
         if(get_cmc_m) then
           call zero(cmc_m)
 
@@ -909,6 +930,9 @@
               if (have_rotated_bcs(u)) then
                 call rotate_velocity(old_u, state(istate))
               end if
+              if (sphere_absorption) then
+                call rotate_velocity_sphere(old_u, state(istate))
+              end if
               call set(delta_u, u, old_u, theta_pg)
               call mult(projec_rhs, ctp_m, delta_u)
               call deallocate(delta_u)
@@ -1003,6 +1027,7 @@
             call profiler_toc(p, "assembly")
 
             call profiler_tic(u, "assembly")
+
             ! correct velocity according to new delta_p
             if(full_schur) then
               call correct_velocity_cg(u, inner_m, ct_m, delta_p, state(istate))
@@ -1020,6 +1045,7 @@
               ! something's gone wrong in the code
               FLAbort("Don't know how to correct the velocity.")
            end if
+
             call profiler_toc(u, "assembly")
 
             call deallocate(kmk_rhs)
@@ -1083,6 +1109,9 @@
       if (have_rotated_bcs(u)) then
         call rotate_velocity_back(u, state(istate))
       end if
+      if (sphere_absorption) then
+        call rotate_velocity_back_sphere(u, state(istate))
+      end if
       if (subcycle) then
         ! filter wiggles from u
         do d =1, mesh_dim(u)
@@ -1116,6 +1145,10 @@
         else if (have_rotated_bcs(u)) then
           call rotate_velocity_back(old_u, state(istate))
         end if
+        if (sphere_absorption) then
+          call rotate_velocity_back_sphere(old_u, state(istate))
+        end if
+        
       end if
 
       call deallocate(mom_rhs)

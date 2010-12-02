@@ -275,6 +275,7 @@
       have_vertical_velocity_relaxation=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
       if (have_vertical_velocity_relaxation) then
         call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
+        ewrite(2,*) "vertical velocity relaxation scale_factor= ", vvr_sf
         dtt => extract_scalar_field(state, "DistanceToTop")
         dtb => extract_scalar_field(state, "DistanceToBottom")
         call allocate(depth, dtt%mesh, "Depth")
@@ -375,9 +376,12 @@
       abs_lump_on_submesh = have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
           &/lump_absorption/use_submesh")
+!       pressure_corrected_absorption=have_option(trim(u%option_path)//&
+!           &"/prognostic/vector_field::Absorption&
+!           &/include_pressure_correction") .or. (have_vertical_stabilization.and.(.not.on_sphere))
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
-          &/include_pressure_correction") .or. (have_vertical_stabilization.and.(.not.on_sphere))
+          &/include_pressure_correction") .or. (have_vertical_stabilization)
       if (pressure_corrected_absorption) then
          ! as we add the absorption into the mass matrix
          ! lump_absorption needs to match lump_mass
@@ -1481,7 +1485,12 @@
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       
       density_gi=ele_val_at_quad(density, ele)
-      absorption_gi = ele_val_at_quad(absorption, ele)
+      absorption_gi=0.0
+      tensor_absorption_gi=0.0
+
+      if (have_absorption) then
+        absorption_gi = ele_val_at_quad(absorption, ele)
+      end if
 
       if (on_sphere.and.have_absorption) then ! Rotate the absorption
         tensor_absorption_gi=rotate_diagonal_to_sphere_gi(positions, ele, absorption_gi)
@@ -1489,10 +1498,12 @@
 
       ! If we have any vertical stabilizing absorption terms, calculate them now
       if (have_vertical_stabilization) then
+        ! zero the vertical stab absorptions
         vvr_abs_diag=0.0
         vvr_abs=0.0
         ib_abs=0.0
         ib_abs_diag=0.0
+
         if (have_vertical_velocity_relaxation) then
         
           assert(ele_ngi(u, ele)==ele_ngi(density, ele))
@@ -1554,6 +1565,7 @@
         ! Add any vertical stabilization to the absorption term
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
+          absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
         else
           absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
         end if
@@ -1568,15 +1580,20 @@
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 
       if (on_sphere) then
+
         absorption_mat_sphere = shape_shape_tensor(test_function, ele_shape(u, ele), detwei*density_gi, tensor_absorption_gi)
+
         if(lump_absorption) then
+
           if(.not.abs_lump_on_submesh) then
             absorption_lump_sphere = sum(absorption_mat_sphere, 4)
-            do i = 1, ele_loc(u, ele)
+            
               do dim = 1, u%dim
                 do dim2 = 1, u%dim
-                  big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
-                    & dt*theta*absorption_lump_sphere(dim,dim2,i)
+                  do i = 1, ele_loc(u, ele)
+                    big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
+                      & dt*theta*absorption_lump_sphere(dim,dim2,i)
+                  end do
                 end do
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim,:)*oldu_val(dim,:)
                 ! off block diagonal absorption terms
@@ -1585,8 +1602,9 @@
                   rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim2,:)*oldu_val(dim2,:)
                 end do
               end do
-            end do
+
           end if
+
         else
           do dim = 1, u%dim
             do dim2 = 1, u%dim
@@ -1602,6 +1620,23 @@
           end do
           absorption_lump_sphere = 0.0
         end if
+
+        if (pressure_corrected_absorption) then
+          ! ct_m and u will later be rotated in this case, thus use a 'vector' absorption at
+          ! this stage.
+          absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
+          absorption_lump = sum(absorption_mat, 3)
+          if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
+            call addto(masslump, ele_nodes(u, ele), theta*absorption_lump)
+          end if
+          if (assemble_mass_matrix) then
+            do dim = 1, u%dim
+              call addto(mass, dim, dim, ele_nodes(u, ele), ele_nodes(u,ele), &
+                 theta*absorption_mat(dim,:,:))
+            end do
+          end if
+        end if
+
       else
 
         absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)

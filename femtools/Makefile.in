@@ -348,7 +348,7 @@ Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
   Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
   Halos_Numbering.o Parallel_Tools.o Profiler_Fortran.o
 
-Coordinates.o: Vector_Tools.o Fields.o
+Coordinates.o: Vector_Tools.o Fields.o Halos.o
 
 Superconvergence.o: Elements.o Vector_Tools.o
 
