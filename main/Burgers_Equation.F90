@@ -363,7 +363,6 @@
         call assemble_advection_matrix(advection_matrix, x, u, iterated_velocity)
 
         call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
-
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
         if (save_rhs) then
           call assemble_small_right_hand_side(srhs, mass_matrix, u)
@@ -1529,6 +1528,7 @@
       call mangle_dirichlet_rows(L, u, keep_diag=.true.)
       LT = transpose(L, symmetric_sparsity=.true.)
       call deallocate(L)
+      call mangle_dirichlet_rows(LT, u, keep_diag=.true.)
 
       call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
       rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
