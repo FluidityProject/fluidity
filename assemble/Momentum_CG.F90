@@ -129,6 +129,16 @@
     ! LES coefficients
     real :: smagorinsky_coefficient
 
+    ! wetting and drying switch
+    logical :: have_wd_abs
+
+    ! scale factor for the absorption
+    real :: vvr_sf 
+    ! scale factor for the free surface stabilisation
+    real :: fs_sf
+    ! min vertical density gradient for implicit buoyancy
+    real :: ib_min_grad
+
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
@@ -163,7 +173,7 @@
       ! the pressure gradient matrix (might be null if assemble_ct_matrix=.false.)
       type(block_csr_matrix), pointer :: ct_m
       ! the pressure gradient rhs
-      type(scalar_field), intent(inout), optional :: ct_rhs
+      type(scalar_field), intent(inout) :: ct_rhs
       ! the rhs
       type(vector_field), intent(inout) :: rhs
       ! bucket full of fields
@@ -209,17 +219,12 @@
       type(scalar_field), pointer :: dtt, dtb
       type(scalar_field) :: depth
       integer :: node
-      real :: vvr_sf ! A scale factor for the absorption
-      real :: fs_sf ! Scale factor for the free surface stabilisation
 
-      ! Min vertical density gradient for implicit buoyancy
-      real :: ib_min_grad
 
       !! Wetting and drying
       type(vector_field) :: Abs_wd
       type(scalar_field), pointer :: wettingdrying_alpha
       type(scalar_field) :: alpha_u_field
-      logical :: have_wd_abs
       real, dimension(u%dim) :: abs_wd_const
 
       ewrite(1,*) 'entering construct_momentum_cg'
@@ -261,9 +266,9 @@
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
       if (have_wd_abs) then
-       call allocate(Abs_wd, u%dim, u%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
+       call allocate(abs_wd, u%dim, u%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
-       call set(Abs_wd, abs_wd_const)
+       call set(abs_wd, abs_wd_const)
       end if
 
       ! Check if we have either implicit absorption term
@@ -287,11 +292,8 @@
       ! Implicit buoyancy (theta*g*dt*drho/dr)
       have_implicit_buoyancy=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
       if (have_implicit_buoyancy) then
-        if (have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient")) then
-          call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient", ib_min_grad)
-        else
-          ib_min_grad=0.0
-        end if
+        call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy/min_gradient", &
+                        ib_min_grad, default=0.0)
       end if
 
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
@@ -376,9 +378,6 @@
       abs_lump_on_submesh = have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
           &/lump_absorption/use_submesh")
-!       pressure_corrected_absorption=have_option(trim(u%option_path)//&
-!           &"/prognostic/vector_field::Absorption&
-!           &/include_pressure_correction") .or. (have_vertical_stabilization.and.(.not.on_sphere))
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
           &/include_pressure_correction") .or. (have_vertical_stabilization)
@@ -519,8 +518,8 @@
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               gp, surfacetension, &
-              assemble_ct_matrix, cg_pressure, on_sphere, depth=depth, have_wd_abs=have_wd_abs, &
-              alpha_u_field=alpha_u_field, Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
+              assemble_ct_matrix, cg_pressure, on_sphere, depth, &
+              alpha_u_field, abs_wd)
       end do element_loop
 
       if (have_wd_abs) then
@@ -570,7 +569,7 @@
                  inverse_masslump, x, u, nu, ug, density, p, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
-                 assemble_ct_matrix, cg_pressure, oldu, fs_sf=fs_sf)
+                 assemble_ct_matrix, cg_pressure, oldu)
             
          end do surface_element_loop
 
@@ -739,7 +738,7 @@
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix, cg_pressure,&
-                                                     oldu, fs_sf)
+                                                     oldu)
 
       integer, intent(in) :: sele
 
@@ -786,7 +785,6 @@
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
-      real, intent(in), optional :: fs_sf
 
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(p, sele)
@@ -943,8 +941,8 @@
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix, cg_pressure, on_sphere, depth, have_wd_abs, &
-                                            alpha_u_field, Abs_wd, vvr_sf, ib_min_grad)
+                                            assemble_ct_matrix, cg_pressure, on_sphere, depth, &
+                                            alpha_u_field, abs_wd)
 
     !!< Assembles the local element matrix contributions and places them in big_m
     !!< and rhs for the continuous galerkin momentum equations
@@ -958,29 +956,24 @@
       ! above we supply inverse_masslump, but we start assembling the non-inverted
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
+      ! low Re fix for pressure correction:
+      type(vector_field), intent(inout) :: visc_masslump
 
       type(vector_field), intent(in) :: x, u, oldu, nu 
       type(vector_field), pointer :: x_old, x_new, ug
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
-      type(tensor_field), intent(in) :: viscosity
+      type(tensor_field), intent(in) :: viscosity, grad_u
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
-      type(tensor_field), intent(in) :: grad_u
-      type(scalar_field), optional, intent(in) :: depth
 
       logical, intent(in) :: assemble_ct_matrix, cg_pressure, on_sphere
 
       ! Wetting and Drying
-      logical, intent(in), optional :: have_wd_abs
-      type(scalar_field), intent(in), optional :: alpha_u_field
-      type(vector_field), intent(in), optional :: Abs_wd
+      type(scalar_field), intent(in) :: depth
+      type(scalar_field), intent(in) :: alpha_u_field
+      type(vector_field), intent(in) :: abs_wd
 
-      ! Vertical velocity relaxation scale factor and ib min density grad
-      real, intent(in), optional :: vvr_sf, ib_min_grad
-      
-      ! low Re fix for pressure correction:
-      type(vector_field), intent(inout) :: visc_masslump
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1125,9 +1118,9 @@
       ! Absorption terms (sponges) and WettingDrying absorption
       if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs) then
        call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
-         absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
-         masslump, mass, depth=depth, gravity=gravity, buoyancy=buoyancy, &
-         have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
+                                      absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
+                                      masslump, mass, depth, gravity, buoyancy, &
+                                      alpha_u_field, abs_wd)
       end if
       
       ! Viscous terms
@@ -1193,7 +1186,7 @@
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: big_m_diag_addto
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
-      type(petsc_csr_matrix), intent(inout), optional :: mass
+      type(petsc_csr_matrix), intent(inout) :: mass
       type(vector_field), intent(inout) :: masslump
       
       integer :: dim
@@ -1436,7 +1429,11 @@
       
     end subroutine add_surfacetension_element_cg
     
-    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass, depth, gravity, buoyancy, have_wd_abs, alpha_u_field, Abs_wd, vvr_sf, ib_min_grad)
+    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, &
+                                         density, absorption, detwei, &
+                                         big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
+                                         masslump, mass, depth, gravity, buoyancy, &
+                                         alpha_u_field, abs_wd)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1449,11 +1446,13 @@
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
       type(vector_field), intent(inout) :: masslump
-      type(petsc_csr_matrix), optional, intent(inout) :: mass
+      type(petsc_csr_matrix), intent(inout) :: mass
+      type(scalar_field), intent(in) :: depth
+      type(vector_field), intent(in) :: gravity
+      type(scalar_field), intent(in) :: buoyancy
       ! Wetting and drying parameters
-      logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
-      type(scalar_field), intent(in), optional :: alpha_u_field
-      type(vector_field), intent(in), optional :: abs_wd
+      type(scalar_field), intent(in) :: alpha_u_field
+      type(vector_field), intent(in) :: abs_wd
     
       integer :: dim, dim2, i
       real, dimension(ele_ngi(u, ele)) :: density_gi
@@ -1464,18 +1463,12 @@
       real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat_sphere
 
-      type(vector_field), optional, intent(in) :: gravity
-
       ! Add vertical velocity relaxation to the absorption if present
-      real, intent(in), optional :: vvr_sf
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
       real, dimension(ele_ngi(u,ele)) :: depth_at_quads
-      type(scalar_field), optional, intent(in) :: depth
 
       ! Add implicit buoyancy to the absorption if present
-      real, intent(in), optional :: ib_min_grad
-      type(scalar_field), intent(in) :: buoyancy
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
       real, dimension(ele_loc(u,ele),ele_ngi(u,ele),mesh_dim(u)) :: dt_rho
