@@ -322,35 +322,35 @@ assert(ab_convergence_vel[0][0] &gt; 2.3)
     <test name="ab_convergence_vel_y: L2 order > 2.3" language="python">
 assert(ab_convergence_vel[1][0] &gt; 2.3)
     </test>
-    <test name="ab_convergence_p: L2 order > 1.9" language="python">
-assert(ab_convergence_p[0] &gt; 1.9)
+    <test name="ab_convergence_p: L2 order > 2.5" language="python">
+assert(ab_convergence_p[0] &gt; 2.5)
     </test>
     <test name="ab_convergence_t: L2 order > 2.0" language="python">
 assert(ab_convergence_t[0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_x: L2 order > 2.5" language="python">
-assert(bc_convergence_vel[0][0] &gt; 2.5)
+    <test name="bc_convergence_vel_x: L2 order > 2.2" language="python">
+assert(bc_convergence_vel[0][0] &gt; 2.2)
     </test>
-    <test name="bc_convergence_vel_y: L2 order > 2.5" language="python">
-assert(bc_convergence_vel[1][0] &gt; 2.5)
+    <test name="bc_convergence_vel_y: L2 order > 2.2" language="python">
+assert(bc_convergence_vel[1][0] &gt; 2.2)
     </test>
-    <test name="bc_convergence_p: L2 order > 1.9" language="python">
-assert(bc_convergence_p[0] &gt; 1.9)
+    <test name="bc_convergence_p: L2 order > 3.0" language="python">
+assert(bc_convergence_p[0] &gt; 3.0)
     </test>
-    <test name="bc_convergence_t: L2 order > 2.0" language="python">
-assert(bc_convergence_t[0] &gt; 2.0)
+    <test name="bc_convergence_t: L2 order > 2.5" language="python">
+assert(bc_convergence_t[0] &gt; 2.5)
     </test>
-    <test name="cd_convergence_vel_x: L2 order > 2.5" language="python">
-assert(cd_convergence_vel[0][0] &gt; 2.5)
+    <test name="cd_convergence_vel_x: L2 order > 3.0" language="python">
+assert(cd_convergence_vel[0][0] &gt; 3.0)
     </test>
-    <test name="cd_convergence_vel_y: L2 order > 2.5" language="python">
-assert(cd_convergence_vel[1][0] &gt; 2.5)
+    <test name="cd_convergence_vel_y: L2 order > 3.0" language="python">
+assert(cd_convergence_vel[1][0] &gt; 3.0)
     </test>
-    <test name="cd_convergence_p: L2 order > 1.5" language="python">
-assert(cd_convergence_p[0] &gt; 1.5)
+    <test name="cd_convergence_p: L2 order > 2.5" language="python">
+assert(cd_convergence_p[0] &gt; 2.5)
     </test>
-    <test name="cd_convergence_t: L2 order > 2.9" language="python">
-assert(cd_convergence_t[0] &gt; 2.9)
+    <test name="cd_convergence_t: L2 order > 3.0" language="python">
+assert(cd_convergence_t[0] &gt; 3.0)
     </test>
     <test name="checking A finished in less than 15" language="python">
 assert(a_finish_time -15 &lt; 1.E-10)

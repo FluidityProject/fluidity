@@ -200,7 +200,7 @@
               <exclude_advection_terms/>
             </advection_terms>
             <stress_terms>
-              <tensor_form/>
+              <partial_stress_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
@@ -302,8 +302,8 @@ for n in range(Temperature.node_count):
    rho = 1.0;
    x = XX[0];
    y = XX[1];
-   Su = 1.0/2.0*A*B*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(x)*cos(y)/(((x/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*deltaT*arctanh(0.500000000000000*B)) + 1.0/2.0*(A*B*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*arctanh(0.500000000000000*B)) - B/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*pi*arctanh(0.500000000000000*B)))*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(x)*sin(y)/deltaT + (sin(x)*sin(y)**2.0*cos(x) + sin(x)*cos(x)*cos(y)**2.0)*adv*rho + 2.0*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
-   Sv = 1.0/2.0*A*B*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*sin(x)*sin(y)/(((x/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*deltaT*arctanh(0.500000000000000*B)) + 1.0/2.0*(A*B*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*arctanh(0.500000000000000*B)) - B/(((y/pi - 0.500000000000000)**2.0*B**2.0 - 1.0)*pi*arctanh(0.500000000000000*B)))*b*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2.0*sin(y)*cos(y) + sin(y)*cos(x)**2.0*cos(y))*adv*rho - 2.0*exp(-1.0/2.0*(2.0*A*sin(1.0/2.0*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1.0)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
+   Su = A*B*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(x)*cos(y)/(((x/pi - 0.500000000000000)**2*B**2 - 1)*deltaT*arctanh(0.500000000000000*B)) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho + 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
+   Sv = (A*B*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)/(((y/pi - 0.5)**2*B**2 - 1)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2*B**2 - 1)*pi*arctanh(0.5*B)))*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
    return (Su, Sv)</string_value>
                 <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
 v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
@@ -320,21 +320,23 @@ u_y = diff(u,y)
 v_x = diff(v,x)
 v_y = diff(v,y)
 
-nuu_x = nu*u_x
-nuu_y = nu*u_y
-nuv_x = nu*v_x
-nuv_y = nu*v_y
+nu_u_x = nu*u_x
+nu_u_y = nu*u_y
+nu_v_x = nu*v_x
+nu_v_y = nu*v_y
 
-nuu_x_x = diff(nuu_x,x)
-nuu_y_y = diff(nuu_y,y)
-nuv_x_x = diff(nuv_x,x)
-nuv_y_y = diff(nuv_y,y)
+nu_u_xx = diff(nu_u_x,x)
+nu_u_yy = diff(nu_u_y,y)
+nu_v_xx = diff(nu_v_x,x)
+nu_v_yy = diff(nu_v_y,y)
+nu_v_yx = diff(nu_v_x,y)
+nu_u_xy = diff(nu_u_y,x)
 
 p_x = diff(p,x)
 p_y = diff(p,y)
 
-mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - nuu_x_x - nuu_y_y
-mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nuv_y_y</comment>
+mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - 2*nu_u_xx - nu_u_yy - nu_v_yx
+mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy - nu_v_xx - nu_u_xy</comment>
               </python>
             </value>
             <output/>
