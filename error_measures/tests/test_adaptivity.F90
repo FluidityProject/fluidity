@@ -13,6 +13,7 @@ subroutine test_adaptivity
   use adapt_state_unittest_module, only : adapt_state => adapt_state_unittest
   use form_metric_field
   use field_options
+  use populate_state_module, only: compute_domain_statistics
   implicit none
 #ifdef HAVE_MPI
   include "mpif.h"
@@ -55,7 +56,7 @@ subroutine test_adaptivity
     velocity%val(2,i) = y
     velocity%val(3,i) = z
   end do
-  
+
   call adaptivity_options(state, pressure, 1.0, .false.)
 
   call insert(state, pressure, "Pressure")
@@ -68,6 +69,8 @@ subroutine test_adaptivity
   call adaptivity_bounds(state, 0.01, 1.0)
 
   state_array(1) = state
+  call compute_domain_statistics(state_array)
+  
   call assemble_metric(state_array, metric)
   
   call allocate(edgelen, mesh, "Edge lengths")

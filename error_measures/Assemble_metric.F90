@@ -84,7 +84,7 @@ module metric_assemble
     call initialise_goal_metric
     call initialise_gradation_metric
     call initialise_anisotropic_gradation
-    call initialise_bounding_box_metric(positions)
+    call initialise_bounding_box_metric
     call initialise_boundary_metric
     call initialise_geometric_constraints_metric
     call initialise_metric_advection

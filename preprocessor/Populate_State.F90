@@ -2956,6 +2956,7 @@ contains
       deallocate(domain_bbox)
     end if
     allocate(domain_bbox(positions%dim, 2))
+    domain_bbox = 0.0
 
     do dim=1,positions%dim
       domain_bbox(dim, 1) = minval(positions%val(dim,:))

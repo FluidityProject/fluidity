@@ -37,6 +37,7 @@ subroutine test_adapt_mesh
   use state_module
   use unittest_tools
   use vtk_interfaces
+  use populate_state_module, only: compute_domain_statistics
   
   implicit none
 
@@ -86,6 +87,7 @@ subroutine test_adapt_mesh
 
   call allocate(metric, mesh, "Metric")
   state_array(1) = state
+  call compute_domain_statistics(state_array)
   call assemble_metric(state_array, metric)
   
   call adapt_mesh(input_mesh_field, metric, output_mesh_field)

@@ -14,6 +14,7 @@ subroutine test_vector_field_adaptivity
   use form_metric_field
   use field_options
   use spud
+  use populate_state_module, only: compute_domain_statistics
   implicit none
 #ifdef HAVE_MPI
   include "mpif.h"
@@ -53,6 +54,8 @@ subroutine test_vector_field_adaptivity
     vfield%val(2,i) = y
     vfield%val(3,i) = z
   end do
+
+  call compute_domain_statistics(state)
 
   vfield%option_path = "/whatever"
   call add_option("/whatever/virtual/adaptivity_options/absolute_measure", stat=stat)

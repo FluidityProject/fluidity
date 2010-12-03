@@ -1176,6 +1176,8 @@ contains
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
     end do
 
+    call compute_domain_statistics(states)
+
     ewrite(1, *) "Exiting adapt_state_internal"
 
   end subroutine adapt_state_internal

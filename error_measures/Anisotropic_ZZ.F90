@@ -247,6 +247,7 @@ module anisotropic_zz_module
     real, dimension(:), intent(in) :: g_evals
     real, dimension(size(g_evals)) :: edges, modified_g_evals, min_g
     real :: factor_a, factor_b, factor_c
+    real, dimension(size(domain_bbox,1)) :: domain_width
     real :: max_length
 
     integer :: dim, i, j
@@ -256,6 +257,9 @@ module anisotropic_zz_module
     ! FIXME: make this more general by computing
     ! max_length as the diameter of the domain.
     assert(bounding_box_initialised)
+    do i = 1, size(domain_bbox,1)
+      domain_width(i) = abs(domain_bbox(i,2)-domain_bbox(i,1))
+    end do
     max_length = maxval(domain_width)
     factor_a = ((tau**2) / (dim*eles*vol))**(1.0/dim)
     assert(factor_a > 0.0)

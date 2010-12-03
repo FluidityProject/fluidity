@@ -38,6 +38,7 @@ subroutine test_adapt_state_unittest
   use state_module
   use unittest_tools
   use vtk_interfaces
+  use populate_state_module, only: compute_domain_statistics
   
   implicit none
 
@@ -84,6 +85,7 @@ subroutine test_adapt_state_unittest
   call deallocate(velocity)
   
   state_array(1) = state
+  call compute_domain_statistics(state_array)
   
   call adaptivity_bounds(state_array(1), 0.01, 1.0, name = "CoordinateMesh")
 

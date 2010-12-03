@@ -14,18 +14,16 @@ module bounding_box_metric
   use metric_tools
   use fields
   use spud
+  use global_parameters, only: domain_bbox
   implicit none
 
   logical, save :: use_bounding_box_metric = .true.
   logical, save :: bounding_box_initialised = .false.
   real :: width_factor = 2.0
-  real, dimension(:), allocatable, save :: domain_width
 
   contains
 
-  subroutine initialise_bounding_box_metric(positions)
-    type(vector_field), intent(in) :: positions
-    integer :: i, dim
+  subroutine initialise_bounding_box_metric
 
     if (.not. bounding_box_initialised) then
       use_bounding_box_metric = .true.
@@ -35,12 +33,6 @@ module bounding_box_metric
         width_factor = 2.0
       end if
       bounding_box_initialised = .true.
-      dim = positions%dim
-      allocate(domain_width(dim))
-      do i=1,dim
-        ! Get the width of the bounding box.
-        domain_width(i) = abs(maxval(positions%val(i,:)) - minval(positions%val(i,:)))
-      end do
     end if
 
   end subroutine initialise_bounding_box_metric
@@ -53,7 +45,7 @@ module bounding_box_metric
     real, dimension(positions%dim, positions%dim) :: domain_metric
     integer :: i
     integer, save :: adaptcnt = 0
-    real, dimension(positions%dim) :: tmp_domain_width
+    real, dimension(positions%dim) :: domain_width
 
     type(scalar_field) :: edgelen
     logical :: debug_metric
@@ -63,12 +55,15 @@ module bounding_box_metric
 
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
 
-    tmp_domain_width = width_factor * domain_width
-    tmp_domain_width = eigenvalue_from_edge_length(tmp_domain_width)
+    do i = 1, positions%dim
+      domain_width(i) = abs(domain_bbox(i,2) - domain_bbox(i,1))
+    end do
+    domain_width = width_factor * domain_width
+    domain_width = eigenvalue_from_edge_length(domain_width)
 
     ! Now make the diagonal matrix out of it and merge.
     do i=1,error_metric%mesh%nodes
-      domain_metric = get_mat_diag(tmp_domain_width) ! domain_metric might change in merge_tensor
+      domain_metric = get_mat_diag(domain_width) ! domain_metric might change in merge_tensor
       call merge_tensor(error_metric%val(:, :, i), domain_metric)
       max_metric_nodes = node_val(max_metric, i)
       call merge_tensor(error_metric%val(:, :, i), max_metric_nodes)
@@ -78,7 +73,7 @@ module bounding_box_metric
       call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
       call get_edge_lengths(error_metric, edgelen)
       call vtk_write_fields("bounding_box", adaptcnt, positions, positions%mesh, &
-                            sfields=(/edgelen/), tfields=(/error_metric/))
+                            sfields=(/edgelen/), tfields=(/error_metric, max_metric/))
       call deallocate(edgelen)
     endif
 

@@ -39,6 +39,7 @@ subroutine test_adapt_state_3d
   use unittest_tools
   use vtk_interfaces
   use global_parameters
+  use populate_state_module, only: compute_domain_statistics
   
   implicit none
 
@@ -88,6 +89,7 @@ subroutine test_adapt_state_3d
   call deallocate(velocity)
 
   state_array(1) = state
+  call compute_domain_statistics(state_array)
   call create_reserve_state(state_array)
 
   call set_option_attribute("/geometry/mesh/name", "CoordinateMesh", stat = stat)
