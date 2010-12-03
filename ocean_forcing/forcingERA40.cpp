@@ -89,14 +89,14 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
      *
     ERA40 field | Index | Physical meaning
     ------------+-------+-----------------
-    10u         |   0   | 10 metre U wind component
-    10v         |   1   | 10 metre V wind component
+    u10         |   0   | 10 metre U wind component
+    v10         |   1   | 10 metre V wind component
     ssrd        |   2   | Surface solar radiation
     strd        |   3   | Surface thermal radiation 
     ro          |   4   | Runoff
     tp          |   5   | Total precipitation
-    2d          |   6   | Dewpoint temp at 2m
-    2t          |   7   | Air temp at 2m
+    d2m         |   6   | Dewpoint temp at 2m
+    t2m         |   7   | Air temp at 2m
     msl         |   8   | Mean sea level pressure
 
     */
