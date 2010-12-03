@@ -328,7 +328,7 @@ contains
              
        ! Get file name
        call get_option(trim(path)//"/from_netcdf/file_name", filename)
-       call fluxes_registerdatafile(filename, len_trim(filename))
+       call fluxes_registerdatafile(trim(filename))
 
        ! Get current time
        call get_option("/timestepping/current_time", current_time)
@@ -337,10 +337,10 @@ contains
        spherical_earth = have_option("/geometry/spherical_earth")
 
        call get_option(trim(path)//"/from_netcdf/east_west", varname1)
-       call fluxes_addfieldofinterest(trim(varname1), 4)
+       call fluxes_addfieldofinterest(trim(varname1))
 
        call get_option(trim(path)//"/from_netcdf/north_south", varname2)
-       call fluxes_addfieldofinterest(trim(varname2), 4)
+       call fluxes_addfieldofinterest(trim(varname2))
        
        do i=1, node_count(position)
           if(spherical_earth) then
