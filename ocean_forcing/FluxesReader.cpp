@@ -809,11 +809,10 @@ FluxesReader FluxesReader_global;
 
 extern "C" {
 #define fluxes_addfieldofinterest_fc F77_FUNC_(fluxes_addfieldofinterest, FLUXES_ADDFIELDOFINTEREST)
-  void fluxes_addfieldofinterest_fc(char *_scalar, int *len){
-    char scalar[1024];
-    assert(*len<1023);
-    strncpy(scalar, _scalar, *len);
-    scalar[*len] = '\0';
+  void fluxes_addfieldofinterest_fc(char *_scalar, int len){
+    char *scalar = new char[len+1]();
+    strncpy(scalar, _scalar, len);
+    scalar[len] = '\0';
     FluxesReader_global.AddFieldOfInterest(string(scalar));
     return;
   }
@@ -831,20 +830,29 @@ extern "C" {
   }
 
 #define fluxes_getscalar_fc F77_FUNC_(fluxes_getscalar, FLUXES_GETSCALAR)
-  void fluxes_getscalar_fc(char *name, double *latitude,  double *longitude, double *scalar, int len){
-    char *str = new char[len+1]();
-    strncpy(str, name, len);
-    str[len] = '\0';
-    *scalar = FluxesReader_global.GetScalar(string(str), *longitude, *latitude);
+  void fluxes_getscalar_fc(char *_name, double *longitude,  double *latitude, double *scalar, int len){
+    char *name = new char[len+1]();
+    strncpy(name, _name, len);
+    name[len] = '\0';
+    *scalar = FluxesReader_global.GetScalar(string(name), *longitude, *latitude);
+    return;
   }
   
 #define fluxes_registerdatafile_fc F77_FUNC_(fluxes_registerdatafile, FLUXES_REGISTERDATAFILE)
-  void fluxes_registerdatafile_fc(char *_filename, int *len){
-    char filename[4096];
-    assert(*len<4095);
-    strncpy(filename, _filename, *len);
-    filename[*len] = '\0';
+  void fluxes_registerdatafile_fc(char *_filename, int len){
+    char *filename = new char[len+1]();
+    strncpy(filename, _filename, len);
+    filename[len] = '\0';
     FluxesReader_global.RegisterDataFile(string(filename));
+    return;
+  }
+
+#define fluxes_setsimulationtimeunits_fc F77_FUNC_(fluxes_setsimulationtimeunits, FLUXES_SETSIMULATIONTIMEUNITS)
+  void fluxes_setsimulationtimeunits_fc(char *_units, int len){
+    char *units = new char[len+1]();
+    strncpy(units, _units, len);
+    units[len] = '\0';
+    FluxesReader_global.SetSimulationTimeUnits(string(units));  
     return;
   }
   
