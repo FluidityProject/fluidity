@@ -472,6 +472,16 @@ prognostic_velocity_field =
                      ## similar to the original WALE model
                      element wale{empty}
                   }
+               }?,
+               ## A gauss point viscosity, calculated in such a way that it depends
+               ## upon temperature. This is only valid when you have a temperature field.
+               element temperature_dependent_viscosity {
+                   element reference_viscosity {
+                    real
+                   },
+                   element activation_energy {
+                    real
+                   }
                }?
             }|
             ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide

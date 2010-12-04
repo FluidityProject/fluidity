@@ -3619,20 +3619,43 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     integer :: i
     character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
     character(len=FIELD_NAME_LEN) :: schur_preconditioner      
+    logical :: exclude_mass, exclude_advection
+    real :: theta
 
     velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
     if (have_option(trim(velocity_path))) then
 
-       ! Check to see that mass terms are switched off:
-       if(.not.have_option(trim(velocity_path)//'/spatial_discretisation/continuous_galerkin/mass_terms/exclude_mass_terms')) then
-          ewrite(0,*) "Mass terms are invalid for a Stokes flow problem"
-          FLExit("For Stokes problems you need to exclude the mass matrix.")
+       ! Check that mass and advective terms are excluded:
+
+       exclude_mass = have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/continuous_galerkin/mass_terms&
+            &/exclude_mass_terms").or.&
+                      have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/discontinuous_galerkin/mass_terms&
+            &/exclude_mass_terms")
+
+       exclude_advection = have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/continuous_galerkin/advection_terms&
+            &/exclude_advection_terms").or.&
+                           have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/discontinuous_galerkin/advection_scheme&
+            &/exclude_advection_terms") 
+
+       ewrite(2,*) 'MASS RHOD = ',exclude_mass
+       ewrite(2,*) 'ADVECTION RHOD = ',exclude_advection
+
+       if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
+          FLExit("For Stokes problems you need to exclude the mass and advection terms.")
        end if
 
-       ! Check to see that advection terms are switched off:
-       if(.not.have_option(trim(velocity_path)//'/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms')) then
-          ewrite(0,*) "Advection terms are invalid for a Stokes flow problem"
-          FLExit("For Stokes problems you need to exclude the advection terms.")    
+       ! Check that theta = 1 (we must be implicit as we have no time term!)
+       call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
+       if(theta /= 1.) then
+          FLExit("For Stokes problems, theta (under velocity) must = 1")
        end if
 
        ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
@@ -3661,10 +3684,9 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
                 select case(schur_preconditioner)
                 case("ScaledPressureMassMatrix")
-                   ewrite(-1,*) "At present, the viscosity scaling for the pressure mass matrix is only"
-                   ewrite(-1,*) "valid for isotropic viscosity tensors. Please use another preconditioner"
-                   ewrite(-1,*) "for the Full Projection solve"
-                   FLExit("Sorry!")
+                   ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
+                   ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
+                   ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
                 end select
 
              end if

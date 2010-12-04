@@ -571,6 +571,18 @@ requires a fine mesh to perform well</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="temperature_dependent_viscosity">
+              <a:documentation>A gauss point viscosity, calculated in such a way that it depends
+upon temperature. This is only valid when you have a temperature field.</a:documentation>
+              <element name="reference_viscosity">
+                <ref name="real"/>
+              </element>
+              <element name="activation_energy">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide

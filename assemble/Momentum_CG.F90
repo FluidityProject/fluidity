@@ -104,6 +104,7 @@
     logical :: have_surfacetension
     logical :: have_coriolis
     logical :: have_geostrophic_pressure
+    logical :: have_temperature_dependent_viscosity
     logical :: have_les
     logical :: have_surface_fs_stabilisation
     logical :: les_fourth_order, wale
@@ -128,6 +129,10 @@
     
     ! LES coefficients
     real :: smagorinsky_coefficient
+
+    ! Temperature dependent viscosity coefficients:
+    real :: reference_viscosity
+    real :: activation_energy
 
     ! wetting and drying switch
     logical :: have_wd_abs
@@ -212,6 +217,9 @@
 
       ! for 4th order les:
       type(tensor_field):: grad_u
+
+      ! for temperature dependent viscosity :
+      type(scalar_field), pointer :: temperature
 
       integer :: stat, dim, ele, sele, dim2
 
@@ -352,6 +360,22 @@
          end if
       end if
       
+
+      have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic/&
+         &spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
+      if (have_temperature_dependent_viscosity) then
+         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+              &/continuous_galerkin/temperature_dependent_viscosity/reference_viscosity", &
+              reference_viscosity)
+         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+              &/continuous_galerkin/temperature_dependent_viscosity/activation_energy", &
+              activation_energy)
+         ! Extract temperature field from state:
+         temperature => extract_scalar_field(state,"Temperature")
+      else
+         temperature => dummyscalar
+      end if
+
       have_geostrophic_pressure = has_scalar_field(state, "GeostrophicPressure")
       if(have_geostrophic_pressure) then
         gp => extract_scalar_field(state, "GeostrophicPressure")
@@ -519,7 +543,7 @@
               viscosity, grad_u, &
               gp, surfacetension, &
               assemble_ct_matrix, cg_pressure, on_sphere, depth, &
-              alpha_u_field, abs_wd)
+              alpha_u_field, abs_wd, temperature)
       end do element_loop
 
       if (have_wd_abs) then
@@ -942,7 +966,7 @@
                                             viscosity, grad_u, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix, cg_pressure, on_sphere, depth, &
-                                            alpha_u_field, abs_wd)
+                                            alpha_u_field, abs_wd, temperature)
 
     !!< Assembles the local element matrix contributions and places them in big_m
     !!< and rhs for the continuous galerkin momentum equations
@@ -974,6 +998,8 @@
       type(scalar_field), intent(in) :: alpha_u_field
       type(vector_field), intent(in) :: abs_wd
 
+      ! Temperature dependent viscosity:
+      type(scalar_field), intent(in) :: temperature
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1126,7 +1152,7 @@
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto)
+           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature)
       end if
       
       ! Get only the viscous terms
@@ -1674,7 +1700,7 @@
     end subroutine add_absorption_element_cg
       
     subroutine add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto)
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
@@ -1685,6 +1711,9 @@
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
+
+      ! Temperature dependent viscosity:
+      type(scalar_field), intent(in) :: temperature
     
       integer :: dim, dimj, gi, iloc
       real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
@@ -1694,11 +1723,24 @@
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele)) :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele)) :: grad_u_nodes
       
-      if (have_viscosity) then
+      if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
       else
          ! if we don't have viscosity but maybe LES
          viscosity_gi = 0.0
+      end if
+
+      ! Account for temperature dependence, if requested:
+      if(have_temperature_dependent_viscosity) then
+         viscosity_gi = 0.0
+         if(stress_form.or.partial_stress_form) then
+            do dim=1, u%dim
+               do dimj = 1, u%dim
+                  viscosity_gi(dim,dimj,:) = reference_viscosity * &
+                   exp(-activation_energy*(ele_val_at_quad(temperature,ele)))
+               end do
+            end do
+         end if
       end if
 
       ! add in LES viscosity

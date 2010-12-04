@@ -1276,6 +1276,36 @@
 
         end if
 
+        if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic/&
+             &spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")) then
+
+           if(.not.have_option("/material_phase["//int2str(i)//"]/scalar_field::Temperature")) then
+              FLExit("You must have a temperature field to have a temperature dependent viscosity.")
+           end if
+
+           ewrite(-1,*) "Warning - any viscosity values set under tensor_field::Viscosity will be"
+           ewrite(-1,*) "overwritten by a calculated temperature dependent viscosity. Nonetheless,"
+           ewrite(-1,*) "to ensure that the viscosity tensor is simulated in the correct form, please"
+           ewrite(-1,*) "select a form under tensor_field::Viscosity. Note that only partial stress and"
+           ewrite(-1,*) "stress form are valid for a spatially varying viscosity field."
+
+           if(have_option("/material_phase["//int2str(i)//&
+                "]/vector_field::Velocity/prognostic&
+                &/tensor_field::Viscosity/prescribed/value&
+                &/isotropic").or.&
+                have_option("/material_phase["//int2str(i)//&
+                "]/vector_field::Velocity/prognostic&
+                &/tensor_field::Viscosity/prescribed/value&
+                &/diagonal")) then
+              
+              ewrite(-1,*) "A spatially varying viscosity (for example a viscosity that depends"
+              ewrite(-1,*) "upon a spatiall varying temperature field) is only valid with stress"
+              ewrite(-1,*) "or partial stress form viscosity"
+              FLExit("For a spatially varying viscosity field, use stress or partial stress form viscosity")
+           end if
+
+        end if
+        
         if(have_option("/material_phase["//int2str(i)//&
              "]/vector_field::Velocity/prognostic&
              &/tensor_field::Viscosity/prescribed/value&
@@ -1301,10 +1331,9 @@
 
                 select case(schur_preconditioner)
                 case("ScaledPressureMassMatrix")
-                   ewrite(-1,*) "At present, the viscosity scaling for the pressure mass matrix is only"
-                   ewrite(-1,*) "valid for isotropic viscosity tensors. Please use another preconditioner"
-                   ewrite(-1,*) "for the Full Projection solve"
-                   FLExit("Sorry!")
+                   ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
+                   ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
+                   ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
                 end select
 
              end if
