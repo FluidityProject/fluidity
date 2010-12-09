@@ -178,7 +178,7 @@ contains
         cv_options%ptheta = cv_options%theta
       end if
     else
-      call get_option(trim(complete_field_path(option_path, stat))//&
+      call get_option(trim(complete_field_path(option_path, stat=stat))//&
                           "/temporal_discretisation&
                           &/control_volumes/pivot_theta", &
                           cv_options%ptheta, default=1.0)

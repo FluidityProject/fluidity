@@ -1837,16 +1837,16 @@ contains
           new_fields(mesh, field) = extract_scalar_field(new_fields_state(mesh), field)
           call zero(new_fields(mesh, field))
           bounded(mesh, field) = l_force_bounded.or.&
-                          have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) // &
+                          have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                 "/galerkin_projection/continuous/bounded[0]")
-          lumped(mesh, field) = have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) // &
+          lumped(mesh, field) = have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                 "/galerkin_projection/continuous/lump_mass_matrix")
-          call get_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) // &
+          call get_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                 "/galerkin_projection/supermesh_conservation/tolerance", tmp_tol, default = 0.001)
           ! Let's check for a relative area/volume loss of 0.1% if none is specified
           conservation_tolerance = min(conservation_tolerance, tmp_tol)
 
-          force_bc(mesh, field) = have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
+          force_bc(mesh, field) = have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) &
             & // "/galerkin_projection/honour_strong_boundary_conditions")
           if (force_bc(mesh, field)) then
 
@@ -2085,7 +2085,7 @@ contains
                   call apply_dirichlet_conditions(M_B(mesh), rhs(mesh, field), new_fields(mesh, field))
               end if
               call petsc_solve(new_fields(mesh, field), M_B(mesh), rhs(mesh, field), &
-                & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
+                & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) &
                 & // "/galerkin_projection/continuous")
               if (force_bc(mesh, field))  then
                 ! clean up the rows made inactive for the strong bcs
@@ -2171,7 +2171,7 @@ contains
               allocate(coupled(named_counts(name)))
               coupled = .false.
               do field = 1, named_counts(name)
-                coupled(field) = have_option(trim(complete_field_path(named_fields(name,field)%option_path, statp))// &
+                coupled(field) = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound/coupled")
               end do
           
@@ -2180,18 +2180,18 @@ contains
                 ewrite(2,*) 'Bounding field:', trim(named_fields(name,field)%name)
             
                 ! Step 0. Compute bounds
-                call get_option(trim(complete_field_path(named_fields(name,field)%option_path, statp))// &
+                call get_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound", &
                   & upper_bound, default=huge(0.0)*epsilon(0.0))
                   
-                u_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, statp))// &
+                u_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound/apply_globally")
                   
-                call get_option(trim(complete_field_path(named_fields(name,field)%option_path, statp))// &
+                call get_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/lower_bound", &
                   & lower_bound, default=-huge(0.0)*epsilon(0.0))
                   
-                l_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, statp))// &
+                l_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/lower_bound/apply_globally")
                 
                 if((.not.u_apply_globally).or.(coupled(field))) then
@@ -2273,13 +2273,13 @@ contains
         end if
       
         do field = 1, field_counts(mesh)
-          if(have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) // &
+          if(have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                 "/galerkin_projection/supermesh_conservation/print_field_integral")) then
             int_old = field_integral(old_fields(mesh,field), old_position)
             int_new = field_integral(new_fields(mesh,field), new_position)
             cons_err = abs(int_old-int_new)/abs(int_old)
             ewrite(2,*) "relative change in field integral: ", cons_err, " for field ", trim(new_fields(mesh,field)%name)
-            call get_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) // &
+            call get_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                   "/galerkin_projection/supermesh_conservation/print_field_integral/tolerance", &
                                                   tmp_tol)
             if (cons_err > tmp_tol) then
