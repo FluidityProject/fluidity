@@ -22,4 +22,5 @@ Other specific make rules are also available. These are:
 all		      - Make everything 
 fltools		  - Builds a set of tools that can be used on FLUIDITY data.
 clean	      - Removes all libaries associated with current build.
+clean_light - Keep the external libraries, but clean fluidity
 help	      - Prints out a small help message
