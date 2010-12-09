@@ -1363,7 +1363,6 @@
       call mangle_dirichlet_rows(A, u, keep_diag=.true.)
       AT = transpose(A, symmetric_sparsity=.true.)
       call deallocate(A)
-      call mangle_dirichlet_rows(AT, u, keep_diag=.true.)
 
       ! OK! Now to compute G^T.
       if (.not. have_option(trim(u%option_path) // "/prognostic/remove_advection_term")) then

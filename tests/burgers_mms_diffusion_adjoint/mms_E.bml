@@ -187,8 +187,12 @@ for i in range(field.node_count):
           <string_value lines="20" type="python">soln = state.scalar_fields["AdjointVelocity"]
 exact = state.scalar_fields["AnalyticalAdjointSolution"]
 
-for i in range(field.node_count):
-  field.set(i, soln.node_val(i) - exact.node_val(i))</string_value>
+field.val[:] = soln.val - exact.val
+
+# I don't know what the boundary value should be, so we'll
+# set the error there to 0
+field.val[0] = 0.0
+field.val[-1] = 0.0</string_value>
         </algorithm>
         <stat/>
         <adjoint_storage>
