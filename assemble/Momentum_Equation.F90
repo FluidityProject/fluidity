@@ -785,7 +785,7 @@
           call allocate(poisson_rhs, p%mesh, "PoissonRHS")
 
           if (full_schur) then
-            call assemble_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, big_m, u, dt, theta_pg)
+            call assemble_poisson_rhs(poisson_rhs, ctp_m, mom_rhs, ct_rhs, inner_m, u, dt, theta_pg)
           else
             ! get the rhs for the poisson pressure equation...
             if(dg.and.(.not.lump_mass)) then
