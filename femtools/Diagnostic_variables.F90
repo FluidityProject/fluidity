@@ -683,14 +683,14 @@ contains
            end do
 
            ! drag calculation
-           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
+           if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
              do j = 1, mesh_dim(vfield%mesh)
                column = column + 1
                buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
                // int2str(j), material_phase_name=material_phase_name)
                write(diag_unit, '(a)') trim(buffer)
              end do
-             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
+             if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
                do j = 1, mesh_dim(vfield%mesh)
                  column = column + 1
                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
@@ -706,7 +706,7 @@ contains
              end if
            end if
 
-           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+           if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%min", material_phase_name=material_phase_name)
               write(diag_unit, '(a)') trim(buffer)
@@ -722,7 +722,7 @@ contains
            end if
 
            ! momentum conservation error calculation
-           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+           if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/calculate_momentum_conservation_error")) then
              do j = 1, mesh_dim(vfield%mesh)
                column = column + 1
                buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
@@ -1782,11 +1782,11 @@ contains
          end do
 
          ! drag calculation
-         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
+         if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
            call write_body_forces(state(phase), vfield)  
          end if
 
-         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+         if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
            call divergence_field_stats(vfield, Xfield, fmin, fmax, fnorm2, fintegral)
            if(getprocno() == 1) then
              write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
@@ -1795,7 +1795,7 @@ contains
          end if
 
          ! momentum conservation error calculation
-         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+         if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/calculate_momentum_conservation_error")) then
            call write_momentum_conservation_error(state(phase), vfield)
          end if
          
@@ -1827,7 +1827,7 @@ contains
       integer :: i
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
     
-      if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
+      if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
         ! calculate the forces on the surface
         call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)   
         if(getprocno() == 1) then

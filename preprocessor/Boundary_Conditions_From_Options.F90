@@ -2093,7 +2093,7 @@ contains
 
     integer :: reference_node, stat, stat2
 
-    call get_option(trim(complete_field_path(option_path, stat2))//&
+    call get_option(trim(complete_field_path(option_path, stat=stat2))//&
         &"/reference_node", reference_node, &
         & stat=stat)
     if (stat==0) then
@@ -2116,7 +2116,7 @@ contains
 
     integer :: reference_node, stat, stat2
 
-    call get_option(trim(complete_field_path(option_path, stat2))//&
+    call get_option(trim(complete_field_path(option_path, stat=stat2))//&
         &"/reference_node", reference_node, &
         & stat=stat)
     if (stat==0) then

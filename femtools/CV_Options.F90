@@ -152,14 +152,14 @@ contains
                         "/face_value[0]/use_potential_flux")
 
     ! temporal discretisation options
-    cv_options%limit_theta = have_option(trim(complete_field_path(option_path, stat))//&
+    cv_options%limit_theta = have_option(trim(complete_field_path(option_path, stat=stat))//&
                         "/temporal_discretisation&
                         &/control_volumes/limit_theta")
-    call get_option(trim(complete_field_path(option_path, stat))//&
+    call get_option(trim(complete_field_path(option_path, stat=stat))//&
                         "/temporal_discretisation&
                         &/theta", cv_options%theta)
     if (cv_options%facevalue==CV_FACEVALUE_FIRSTORDERUPWIND) then
-      call get_option(trim(complete_field_path(option_path, stat))//&
+      call get_option(trim(complete_field_path(option_path, stat=stat))//&
                           "/temporal_discretisation&
                           &/control_volumes/pivot_theta", &
                           cv_options%ptheta, stat=stat)
@@ -189,7 +189,7 @@ contains
       ! initialise it to something insane to make sure it will be noticed if used.
       cv_options%beta = -666.0
     else
-      call get_option(trim(complete_field_path(option_path, stat))//&
+      call get_option(trim(complete_field_path(option_path, stat=stat))//&
                           "/spatial_discretisation&
                           &/conservative_advection", &
                           cv_options%beta)

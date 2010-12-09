@@ -100,7 +100,7 @@ module bound_field_module
     character(len=FIELD_NAME_LEN) :: algorithm_type
     integer :: statp
   
-    call get_option(trim(complete_field_path(field%option_path, statp))// &
+    call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/name", &
                     algorithm_type, default="Diffuse")
                     ! have to give it a default as this is unit tested
@@ -143,11 +143,11 @@ module bound_field_module
   call allocate(deviation, field%mesh, "BoundedDeviation")
   call allocate(diffused, field%mesh, "DiffusedDeviation")
 
-  call get_option(trim(complete_field_path(field%option_path, statp))// &
+  call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/boundedness_iterations", &
                   & iters, default=1000)
           
-  call get_option(trim(complete_field_path(field%option_path, statp))// &
+  call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/boundedness_iterations/tolerance", &
                   & bound_tol, default=epsilon(0.0))
           
@@ -191,10 +191,10 @@ module bound_field_module
   ewrite(2,*) "Before final diffusion:"
   ewrite(2,*) "maxval(deviation): ", maxval(deviation), "; minval(deviation): ", minval(deviation)
   
-  if(have_option(trim(complete_field_path(field%option_path, statp))// &
+  if(have_option(trim(complete_field_path(field%option_path, stat=statp))// &
     & "/galerkin_projection/continuous/bounded[0]/repair_deviations")) then
                 
-      call get_option(trim(complete_field_path(field%option_path, statp))// &
+      call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/repair_deviations/tolerance", &
                   & repair_tol, default=epsilon(0.0))
 
@@ -433,7 +433,7 @@ module bound_field_module
 
     ewrite(1,*) 'In bound_field_algencan'
     
-    call get_option(trim(complete_field_path(field%option_path, statp))// &
+    call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/functional[0]/name", &
                     functional_name, default="L2")
                     
@@ -451,7 +451,7 @@ module bound_field_module
       FLAbort("Unrecognised functional type.")
     end select
 
-    call get_option(trim(complete_field_path(field%option_path, statp))// &
+    call get_option(trim(complete_field_path(field%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/functional[0]/weight", &
                     weight, default=1.0)
     

@@ -448,7 +448,7 @@ contains
     ! if we get here the field is not aliased and has an option_path
     ! now we let the user decide!
     
-    output_option_path=trim(complete_field_path(field%option_path))//'/output'
+    output_option_path=trim(complete_field_path(field%option_path, name=trim(field_name)))//'/output'
     
     if (is_old_field) then
       include_scalar_field_in_vtu=have_option(trim(output_option_path)//'/include_previous_time_step')

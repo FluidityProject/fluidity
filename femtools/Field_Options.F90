@@ -161,12 +161,13 @@ contains
 
   end function complete_mesh_path
 
-   character(len=OPTION_PATH_LEN) function complete_field_path(path, stat)
+   character(len=OPTION_PATH_LEN) function complete_field_path(path, name, stat)
    !!< Auxillary function to add  prognostic/diagnostic/prescribed
    !!< to field option path. This version flaborts as opposed to the one
    !!< in populate_state_module.
     
    character(len=*), intent(in) :: path
+   character(len=*), intent(in), optional :: name
    integer, intent(out), optional :: stat
 
     if (present(stat)) then
@@ -191,7 +192,12 @@ contains
         stat = 1
         complete_field_path=trim(path)
       else
-        ewrite(0,*) "For field option path:", trim(path)
+        ewrite(0,*) "Error completing field path given the option path:", trim(path)
+        if (present(name)) then
+          ewrite(0,*) "for field name:", trim(name)
+        else
+          ewrite(0,*) "Note field name not available.  Modify the call to include this for a more informative error message."
+        end if
         FLAbort("Error: unknown field type or wrong field option path.")
       end if
     end if
@@ -824,7 +830,7 @@ contains
   
     integer :: stat
     
-    do_not_recalculate = have_option(trim(complete_field_path(option_path, stat))//"/do_not_recalculate")
+    do_not_recalculate = have_option(trim(complete_field_path(option_path, stat=stat))//"/do_not_recalculate")
   
   end function do_not_recalculate
   

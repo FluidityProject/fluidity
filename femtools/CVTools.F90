@@ -55,22 +55,22 @@ contains
     character(len=*), intent(in) :: path
     integer :: stat
 
-    if (have_option(trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+    if (have_option(trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/control_volumes")) then
 
-       complete_cv_field_path=trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+       complete_cv_field_path=trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/control_volumes"
 
-    elseif (have_option(trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+    elseif (have_option(trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/legacy_mixed_cv_cg")) then
 
-       complete_cv_field_path=trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+       complete_cv_field_path=trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/legacy_mixed_cv_cg"
 
-    elseif (have_option(trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+    elseif (have_option(trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/coupled_cv")) then
 
-       complete_cv_field_path=trim(complete_field_path(path, stat)) // "/spatial_discretisation&
+       complete_cv_field_path=trim(complete_field_path(path, stat=stat)) // "/spatial_discretisation&
                                   &/coupled_cv"
 
     else

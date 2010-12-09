@@ -56,9 +56,9 @@ module solenoidal_interpolation_module
       v_field => extract_vector_field(state, i)
       if(trim(v_field%name)=="Coordinate") cycle
       
-      if(have_option(trim(complete_field_path(v_field%option_path, stat))//&
+      if(have_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
                      "/enforce_discrete_properties/solenoidal/lagrange_multiplier/update_scalar_field")) then
-        call get_option(trim(complete_field_path(v_field%option_path, stat))//&
+        call get_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
                      "/enforce_discrete_properties/solenoidal/lagrange_multiplier/update_scalar_field/name", &
                      update_field_name)
         s_field=> extract_scalar_field(state, trim(update_field_name))
@@ -66,7 +66,7 @@ module solenoidal_interpolation_module
         s_field=>null()
       end if
       
-      call get_option(trim(complete_field_path(v_field%option_path, stat))//&
+      call get_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
                     "/enforce_discrete_properties/solenoidal/lagrange_multiplier/mesh/name", &
                     mesh_name)
       lagrange_mesh=>extract_mesh(state, trim(mesh_name))

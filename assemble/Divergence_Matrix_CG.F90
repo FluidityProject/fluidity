@@ -137,13 +137,13 @@ contains
 
       coordinate=>extract_vector_field(state, "Coordinate")
 
-      integrate_by_parts=have_option(trim(complete_field_path(l_option_path, stat))//&
+      integrate_by_parts=have_option(trim(complete_field_path(l_option_path, stat=stat))//&
           &"/spatial_discretisation/continuous_galerkin/integrate_continuity_by_parts")&
-          .or. have_option(trim(complete_field_path(l_option_path, stat))//&
+          .or. have_option(trim(complete_field_path(l_option_path, stat=stat))//&
           &"/integrate_divergence_by_parts")&
-          .or. have_option(trim(complete_field_path(l_option_path, stat))//&
+          .or. have_option(trim(complete_field_path(l_option_path, stat=stat))//&
           &"/spatial_discretisation/continuous_galerkin/integrate_divergence_by_parts")&
-          .or. have_option(trim(complete_field_path(l_option_path, stat))//&
+          .or. have_option(trim(complete_field_path(l_option_path, stat=stat))//&
           &"/spatial_discretisation/discontinuous_galerkin")
 
       ewrite(2,*) "Divergence is integrated by parts: ", integrate_by_parts
@@ -380,9 +380,9 @@ contains
       velocity=>extract_vector_field(state, "Velocity")
       nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
       
-      integrate_by_parts=have_option(trim(complete_field_path(density%option_path, stat))//&
+      integrate_by_parts=have_option(trim(complete_field_path(density%option_path, stat=stat))//&
           &"/spatial_discretisation/continuous_galerkin/advection_terms/integrate_advection_by_parts")&
-          .or. have_option(trim(complete_field_path(velocity%option_path, stat))//&
+          .or. have_option(trim(complete_field_path(velocity%option_path, stat=stat))//&
           &"/spatial_discretisation/discontinuous_galerkin")
 
       ewrite(2,*) "Compressible divergence is integrated by parts: ", integrate_by_parts
@@ -410,7 +410,7 @@ contains
         stabilisation_scheme = STABILISATION_NONE
       end if
 
-      call get_option(trim(complete_field_path(density%option_path, stat))//&
+      call get_option(trim(complete_field_path(density%option_path, stat=stat))//&
           &"/temporal_discretisation/theta", theta)
       call get_option("/timestepping/timestep", dt)
       

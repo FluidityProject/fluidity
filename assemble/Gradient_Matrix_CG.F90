@@ -113,7 +113,7 @@ contains
 
       x=>extract_vector_field(state, "Coordinate")
 
-      integrate_by_parts=have_option(trim(complete_field_path(l_option_path, stat))//&
+      integrate_by_parts=have_option(trim(complete_field_path(l_option_path, stat=stat))//&
           &"/integrate_gradient_by_parts")
 
       ! Clear memory of arrays being designed
