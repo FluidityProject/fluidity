@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 __author__ = "Patrick Farrell"
+__license__ = "LGPL"
 
 import re
 
