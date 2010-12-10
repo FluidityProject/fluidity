@@ -210,8 +210,7 @@ def val(X, t):
 dFdm = state.scalar_fields["MdFdm"]
 adjoint = state.scalar_fields["AdjointVelocity"]
 
-result = numpy.dot(dFdm.val, adjoint.val)
-print "dJ/dm: ", result
+result = -numpy.dot(dFdm.val, adjoint.val)
 
 # result is a scalar, but we currently can't do dynamic
 # scalar diagnostics. Sooo .. put it in every location
@@ -243,11 +242,23 @@ coord = state.vector_fields["Coordinate"]
 
 field.val[:] = 0.0
 
-for ele in range(field.element_count):
-  t = Transform(ele, coord)
-  shape = dFdm.ele_shape(ele)
-  m = t.shape_shape(shape, shape)
-  field.addto(field.ele_nodes(ele), numpy.dot(m, dFdm.ele_val(ele)))</string_value>
+# This is supposed to be the partial derivative of the equations
+# wrt m. For timestep 0, the rhs is the initial condition,
+# and so the derivative is the derivative of the initial condition
+# wrt m. Which we conveniently have already in dudm ..
+if time == 0.0:
+  dudm = state.scalar_fields["dudm"]
+  field.val[:] = -1 * dudm.val
+  
+elif time == 1.0:
+  for ele in range(field.element_count):
+    t = Transform(ele, coord)
+    shape = dFdm.ele_shape(ele)
+    m = t.shape_shape(shape, shape)
+    field.addto(field.ele_nodes(ele), numpy.dot(m, dFdm.ele_val(ele)))
+  
+  # and we zero the first and last, because that is where the Dirichlet BCs are imposed
+  field[0] = 0.0; field[-1] = 0.0</string_value>
         </algorithm>
         <stat/>
         <adjoint_storage>
@@ -260,15 +271,15 @@ for ele in range(field.element_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   x = X[0]
   return (x + 10) * (x - 10)</string_value>
           </python>
         </value>
         <adjoint_storage>
-          <exists_in_forward>
+          <exists_in_both>
             <record/>
-          </exists_in_forward>
+          </exists_in_both>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
@@ -311,8 +322,7 @@ if time == 1.0:
     t = Transform(ele, coord)
     du.addto(du.ele_nodes(ele), numpy.dot(integrand, t.detwei))
     
-print "\partial J/\partial u: ", du.val
-print "&lt;dJ/du, du/dm&gt;: ", numpy.dot(du.val, dudm.val)</string_value>
+#print "&lt;dJ/du, du/dm&gt;: ", numpy.dot(du.val, dudm.val)</string_value>
       </algorithm>
     </functional_derivative>
   </adjoint>
