@@ -972,6 +972,9 @@
         assert(stat == SPUD_NO_ERROR)
         ! Delete any sources specified for the forward model -- we deal with these ourselves
         call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/scalar_field::Source", stat=stat)
+        ! And delete any initial conditions -- we will also specify these
+        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/initial_condition", stat=stat)
+        call set_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/initial_condition/constant", 0.0, stat=stat)
       end do
 
       deallocate(fields_to_move)
@@ -1614,6 +1617,9 @@
       ! ---------------------------------------------------------------------------------
       ! Again, the first T-block is a special case.
 
+      ! Remember, 
+      ! T = M/dt + (theta - 1) * V + (theta - 1) * D
+
       call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
       u_left => u
       u_right => u
@@ -1623,8 +1629,8 @@
       call set(T, mass_matrix)
       call scale(T, 1.0/abs(dt))
 
-      call addto(T, diffusion_matrix, scale=1.0-theta)
-      call addto(T, advection_matrix, scale=1.0-theta)
+      call addto(T, diffusion_matrix, scale=theta-1.0)
+      call addto(T, advection_matrix, scale=theta-1.0)
       call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
       call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"))
@@ -1636,8 +1642,8 @@
 
         call set(T, mass_matrix)
         call scale(T, 1.0/abs(dt))
-        call addto(T, diffusion_matrix, scale=1.0-theta)
-        call addto(T, advection_matrix, scale=1.0-theta)
+        call addto(T, diffusion_matrix, scale=theta-1.0)
+        call addto(T, advection_matrix, scale=theta-1.0)
         call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
         call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)))
