@@ -38,8 +38,10 @@ void init_vars(void){
     PyErr_Clear();
   }
   else{
-    printf("fluidity.state_types imported successfully; location: \n");
-    PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+    if (get_global_debug_level_() > 1) {
+      printf("fluidity.state_types imported successfully; location: \n");
+      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+    }
   }
   PyRun_SimpleString("states = dict()");
 #endif
@@ -65,9 +67,6 @@ void python_reset_(void){
 
     // And run a garbage collection
     PyGC_Collect();
-  }
-  else{
-    printf("Py_IsInitialized() returned false");
   }
 #endif
 }
