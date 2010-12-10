@@ -2,6 +2,7 @@
 
 __author__ = "Patrick Farrell"
 __license__ = "LGPL"
+__credits__ = ["Patrick Farrell", "David Ham"]
 
 import re
 
