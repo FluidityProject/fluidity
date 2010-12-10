@@ -14,16 +14,16 @@ def polar2cart(r):
 
 def cart2polar():
     #convert Cartesian coordinates to polar coordinates with r=1
-    from math import arcsin,atan2,pi,sqrt
+    from math import asin,atan2,pi,sqrt
     from numpy import array
     def val(X,t):
         x = X[0]
         y = X[1]
         z = X[2]
         r = sqrt(x**2 + y**2 + z**2)
-        phi = arcsin(z/r)
+        phi = asin(z/r)
         theta = atan2(y,x)
-        return 360*array([theta,phi])
+        return 360/(2*pi)*array([theta,phi])
     return val
 
 
