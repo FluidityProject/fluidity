@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+__author__ = "Patrick Farrell"
+
 import re
 
 def parse(code):
