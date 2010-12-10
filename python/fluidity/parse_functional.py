@@ -3,6 +3,7 @@
 __author__ = "Patrick Farrell"
 __license__ = "LGPL"
 __credits__ = ["Patrick Farrell", "David Ham"]
+__blame__ = ["Patrick Farrell"]
 
 import re
 
