@@ -125,6 +125,11 @@ module advection_diffusion_DG
   logical :: CDG_switch_in
   logical :: remove_CDG_fluxes
   logical :: CDG_penalty
+  
+  ! RT0 masslumping for diffusion
+  integer :: rt0_masslumping_scheme=0 ! choice from values below:
+  integer, parameter :: RT0_MASSLUMPING_ARBOGAST=1
+  integer, parameter :: RT0_MASSLUMPING_CIRCUMCENTRED=2
 
   ! Are we on a sphere?
   logical :: on_sphere
@@ -334,6 +339,17 @@ contains
          &discontinuous_galerkin/diffusion_scheme&
          &/masslumped_rt0")) then
        diffusion_scheme=MASSLUMPED_RT0
+       if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/diffusion_scheme&
+         &/masslumped_rt0/arbogast")) then
+         rt0_masslumping_scheme=RT0_MASSLUMPING_ARBOGAST
+       else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/diffusion_scheme&
+         &/masslumped_rt0/circumcentred")) then
+         rt0_masslumping_scheme=RT0_MASSLUMPING_CIRCUMCENTRED
+       else
+         FLAbort("Unknown rt0 masslumping for P0 diffusion.")
+       end if
     else
        FLAbort("Unknown diffusion scheme for DG Advection Diffusion")
     end if
@@ -912,9 +928,7 @@ contains
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
-
-
-
+    
     ! Drop any extra field references.
     if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
     call deallocate(Diffusivity)
@@ -1656,7 +1670,14 @@ contains
        case(BASSI_REBAY)
           call local_assembly_bassi_rebay
        case(MASSLUMPED_RT0)
-          call local_assembly_masslumped_rt0
+          select case (rt0_masslumping_scheme)
+          case (RT0_MASSLUMPING_ARBOGAST)
+            call local_assembly_masslumped_rt0
+          case (RT0_MASSLUMPING_CIRCUMCENTRED)
+            call local_assembly_masslumped_rt0_circumcentred
+          case default
+            FLAbort("Unknown rt0 masslumping for P0 diffusion.")
+          end select
        end select
 
        if (boundary_element) then
@@ -2083,8 +2104,8 @@ contains
    
     subroutine local_assembly_masslumped_rt0
       
-      if (size(diffusivity_ele,3)/=1 .or. size(diffusivity_mat,1)/=4) then
-        FLExit("Masslumped RT0 diffusivity scheme only works with P0 fields with P0 diffusivity")
+      if (any(shape(diffusivity_ele)/=(/ 2,2,1 /)) .or. size(diffusivity_mat,1)/=4) then
+        FLExit("Masslumped RT0 diffusivity scheme only works with P0 fields with P0 diffusivity in 2D.")
       end if
       
       diffusivity_mat=0.0
@@ -2097,6 +2118,97 @@ contains
 
     end subroutine local_assembly_masslumped_rt0
 
+      
+    subroutine local_assembly_masslumped_rt0_circumcentred
+      
+      real:: cot(1:3)
+      real:: coef
+      integer:: i, m, lface_2
+      
+      if (any(shape(diffusivity_ele)/=(/ 2,2,1 /)) .or. size(diffusivity_mat,1)/=4) then
+        FLExit("Masslumped RT0 diffusivity scheme only works with P0 fields with P0 diffusivity in 2D.")
+      end if
+      
+      diffusivity_mat = 0.0
+      
+      do i=1, size(neigh)
+        ele_2 = neigh(i)
+        ! compute the cotangent of the angle in ele opposite to the edge between ele and ele_2
+        ! we will make use of cot=2*dx/l, where dx is the distance between the circumcentre and
+        ! the edge, and l is the length of the edge
+        cot(i) = compute_face_cotangent(x_val, i)
+        if (ele_2>0) then
+          face_2 = ele_face(T, ele_2, ele)
+          lface_2 = local_face_number(T, face_2)
+          ! the same for the opposite angle inside ele_2, so that
+          ! cot=2*(dx_ele+dx_ele_2)/l
+          cot(i) = cot(i) + compute_face_cotangent(ele_val(x,ele_2), lface_2)
+        end if
+      end do
+        
+      if (minval(abs(cot))<1e-16) then
+        ! if the distance between adjacent circumcentres is too small (this is relative to the edge length)
+        ! then we merge this cell with its neighbour. The diffusive fluxes will be equally split
+        ! between this cell and its neighbour, so that when we add its two associated rows we get the
+        ! right answer for the merged control volume. This is achieved by adding the fluxes between 'ele'
+        ! and its other neighbours that we compute here to the neighbour we're merging with. The other
+        ! half of that flux will be added to this 'ele' when these contributions are calculated from inside
+        ! the other neighbours
+        
+        ! merge with neighbour m (+1 so we get the diffusivity_mat index)
+        m = 1 + minloc(abs(cot), dim=1)
+      else
+        m = 1
+      end if
+      
+      diffusivity_mat = 0.0
+      
+      do i=1, size(neigh)
+        ! only when merging, i.e m>1: no fluxes between ele and the to be merged neighbour
+        if (i+1==m) cycle
+        ! the diffusive flux integrated over the edge between 'ele' and neighbour i is simply
+        ! deltaT/dx*l - coef only adds in half of this flux as the exact same contribution will be
+        ! added when assembling the contributions from neighbour i
+        coef = diffusivity_ele(1,1,1) / abs(cot(i))
+        
+        ! when merging with a neighbour, these fluxes go to the merged neighbour
+        diffusivity_mat(m,1+i) = -coef
+        diffusivity_mat(1+i,m) = -coef
+        diffusivity_mat(1+i,1+i) = coef
+        diffusivity_mat(m,m) = diffusivity_mat(m,m) + coef
+        
+        ! if this is the boundary flux, we need to add in both halfs of that flux
+        ! (when merging half of it has gone to the neighbour, and we now add half for ourselves)
+        if (neigh(i)<=0) then
+          diffusivity_mat(1,1+i) = -coef
+          diffusivity_mat(1+i,1) = -coef
+          diffusivity_mat(1+i,1+i) = coef
+          diffusivity_mat(1,1) = diffusivity_mat(1,1) + coef
+        end if
+      end do
+      
+    end subroutine local_assembly_masslumped_rt0_circumcentred
+      
+    function compute_face_cotangent(x_ele, lface) result (cot)
+      ! computes the cotangent of the angle opposite an edge in a triangle
+      ! (dim x 3) location of the vertices
+      real, dimension(:,:):: x_ele
+      ! local face number of the edge
+      integer, intent(in):: lface
+      real:: cot
+    
+      integer, dimension(1:5), parameter:: cycle=(/ 1, 2, 3, 1, 2 /)
+      real, dimension(size(x_ele,1)):: edge_prev, edge_next
+      
+      ! two opposite edges pointing from opposite vertex to the vertices on this edge
+      edge_prev = x_ele(:,cycle(lface+1)) - x_ele(:,lface)
+      edge_next = x_ele(:,cycle(lface+2)) - x_ele(:,lface)
+      
+      ! cotangent of opposite angle, given by ratio of dot and cross product of these edges
+      cot = dot_product(edge_prev, edge_next) / cross_product2(edge_prev, edge_next)
+    
+    end function compute_face_cotangent
+    
   end subroutine construct_adv_diff_element_dg
   
   subroutine construct_adv_diff_interface_dg(ele, face, face_2, &

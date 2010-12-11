@@ -223,8 +223,26 @@ Use 2x distance to face centre on boundaries</a:documentation>
                 </element>
               </element>
               <element name="masslumped_rt0">
-                <a:documentation>EXPERIMENTAL, DO NOT USE!!!</a:documentation>
-                <empty/>
+                <a:documentation>EXPERIMENTAL, DO NOT USE!!!
+Only works for P0 in 2d.</a:documentation>
+                <choice>
+                  <element name="arbogast">
+                    <a:documentation>Use the masslumping based on T. Arbogast and Z. Chen, Math. of Comp. 
+vol.64 nr. 211, 1995. This assumes a homeomorphism between the triangular 
+mesh and an equilateral mesh (true for structured 2d meshes in which all 
+across edges that split up the quads are oriented in the same way). Gives 
+accurate results for such meshes, gives very inaccurate results for other meshes.</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="circumcentred">
+                    <a:documentation>Use the distance between circumcentres of the triangles. This comes down to a finite
+volume scheme where the diffusive fluxes are computed taking the difference in 
+adjacent circumcentres, divided by the difference in these centres. Smaller stencil
+and works better for non-structured triangular meshes, but the accuracy still depends
+on the mesh quality (obtuse triangles reduce the accuracy).</a:documentation>
+                    <empty/>
+                  </element>
+                </choice>
               </element>
             </choice>
           </element>
