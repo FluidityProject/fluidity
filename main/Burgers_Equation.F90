@@ -1432,6 +1432,8 @@
       real :: current_time, dt, finish_time
       real :: J
       logical :: have_functional
+      integer :: iteration
+      integer :: count
 
       timesteps = size(forward_state, 2)
 
@@ -1453,23 +1455,42 @@
       call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
       call output_state(adjoint_state(:, timestep), adjoint=.true.)
 
+      ! Rewind any nonlinear iterations, na ja?
+      ! These neither cause evaluations of the functional, nor the functional derivative,
+      ! nor diagnostics, nor output dumps, nor lines in the stat file, nor do they
+      ! rewind time. But we still have to do them! 
+      count = iteration_count(forward_state(1, timestep))
+      do iteration=count-1,1,-1
+        call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
+      end do
+
       call advance_current_time(current_time, dt)
       timestep = timestep - 1
       call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
 
       do while (timestep > 1)
-        FLAbort("Not implemented yet")
-        ! Rewind the nonlinear iterations
-        ! Solve for the AdjointVelocity at the timesteps
         if (have_functional) then
           J = functional(forward_state, current_time, dt, timestep)
           write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
         end if
 
+        FLAbort("Not implemented yet")
+        ! Now compute the AdjointVelocity at the timestep itself
+        !call compute_adjoint_timestep(forward_state, adjoint_state, timestep)
+
         call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
         call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
         call output_state(adjoint_state(:, timestep), adjoint=.true.)
+
+        ! Rewind any nonlinear iterations, na ja?
+        ! These neither cause evaluations of the functional, nor the functional derivative,
+        ! nor diagnostics, nor output dumps, nor lines in the stat file, nor do they
+        ! rewind time. But we still have to do them! 
+        count = iteration_count(forward_state(1, timestep))
+        do iteration=count-1,1,-1
+          call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
+        end do
 
         call advance_current_time(current_time, dt)
         timestep = timestep - 1
@@ -1659,6 +1680,73 @@
       ! into adjoint, not into an rhs variable, because the adjoint is the rhs.
       
     end subroutine compute_initial_adjoint_state
+
+    subroutine rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
+      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
+      integer, intent(in) :: timestep, iteration
+
+      type(scalar_field) :: rhs, contraction
+      type(scalar_field), pointer :: adjoint, u, u_left, u_right
+      real :: dt, theta
+      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
+      type(vector_field), pointer :: x
+      type(csr_sparsity), pointer :: sparsity
+      type(csr_matrix) :: advection_matrix, L, LT
+
+      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity" // int2str(iteration))
+      u => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
+      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
+      x => extract_vector_field(adjoint_state(1, timestep), "Coordinate")
+      sparsity => diffusion_matrix%sparsity
+
+      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call get_option("/timestepping/timestep", dt)
+
+      ! Assemble the right-hand side. This is the relevant G-block multiplied by the last value
+      ! of the adjoint velocity that we've just computed.
+
+      call allocate(rhs, adjoint%mesh, "NonlinearIterationRightHandSide")
+      call zero(rhs)
+      call allocate(contraction, adjoint%mesh, "ContractionVector")
+      call set(contraction, u)
+      call scale(contraction, (1.0 - theta))
+      call addto(contraction, extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration+1)), scale=theta)
+
+      u_left => u
+      u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration))
+
+      call differentiate_V(x, sparsity, u_left, u_right, 1, contraction, &
+           & extract_scalar_field(adjoint_state(1, timestep), "IteratedAdjointVelocity" // int2str(iteration+1)), rhs)
+      call scale(rhs, -1.0)
+
+      call deallocate(contraction)
+
+      ! OK. Now we have to assemble the operator. This is the relevant operator we solved
+      ! for IteratedVelocity // int2str(iteration), transposed.
+      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
+      u_left => u
+      if (iteration == 1) then
+        u_right => u
+      else
+        u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration-1))
+      end if
+      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+      call allocate(L, sparsity, name="LeftHandSide")
+      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
+      call deallocate(advection_matrix)
+      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
+      LT = transpose(L, symmetric_sparsity=.true.)
+      call deallocate(L)
+
+      call set_inactive_rows(LT, u)
+      call petsc_solve(adjoint, LT, rhs)
+      call compute_inactive_rows(adjoint, LT, rhs)
+
+      call deallocate(LT)
+      call deallocate(rhs)
+    end subroutine rewind_nonlinear_iteration
 
     subroutine setup_adjoint_state(forward_state, adjoint_state)
       type(state_type), dimension(:), intent(in) :: forward_state
