@@ -162,7 +162,7 @@ for ele in range(field.element_count):
             <string_value lines="20" type="python">def val(X, t):
   theta = 0.5
   x = X[0]
-  return x**3 + 6*theta*x - 106*x</string_value>
+  return x**3 - 6*theta*x - 94*x</string_value>
           </python>
         </value>
         <adjoint_storage>
