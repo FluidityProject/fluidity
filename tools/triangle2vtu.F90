@@ -55,12 +55,14 @@ subroutine triangle2vtu(filename, filename_len)
   if (stat == 0) then
     call vtk_write_fields(filename, position=positions, &
          model=positions%mesh, sfields=(/mapA, mapB/), vfields=(/positions/))
-  else
+  else if (associated(positions%mesh%region_ids)) then
     regions=piecewise_constant_field(positions%mesh, name="Regions")
     regions%val=float(positions%mesh%region_ids)
     call vtk_write_fields(filename, position=positions, &
          model=positions%mesh, vfields=(/positions/), sfields=(/ regions /))
     call deallocate(regions)
+  else
+    call vtk_write_fields(filename, position=positions, model=positions%mesh)
   end if
   
   call deallocate(positions)
