@@ -2146,7 +2146,7 @@ contains
         end if
       end do
         
-      if (minval(abs(cot))<1e-16) then
+      if (minval(cot)<1e-16) then
         ! if the distance between adjacent circumcentres is too small (this is relative to the edge length)
         ! then we merge this cell with its neighbour. The diffusive fluxes will be equally split
         ! between this cell and its neighbour, so that when we add its two associated rows we get the
@@ -2180,9 +2180,9 @@ contains
         ! if this is the boundary flux, we need to add in both halfs of that flux
         ! (when merging half of it has gone to the neighbour, and we now add half for ourselves)
         if (neigh(i)<=0) then
-          diffusivity_mat(1,1+i) = -coef
-          diffusivity_mat(1+i,1) = -coef
-          diffusivity_mat(1+i,1+i) = coef
+          diffusivity_mat(1,1+i) = diffusivity_mat(1,1+i)-coef
+          diffusivity_mat(1+i,1) = diffusivity_mat(1+i,1)-coef
+          diffusivity_mat(1+i,1+i) = diffusivity_mat(1+i,1+i) + coef
           diffusivity_mat(1,1) = diffusivity_mat(1,1) + coef
         end if
       end do
