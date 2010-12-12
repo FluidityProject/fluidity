@@ -2,7 +2,7 @@ Point(1) = {0.1,-0.3,0,0.005};
 Point(2) = {0.6,-0.3,0,0.005};
 Line (1) = {1, 2};
 Extrude {0,0.4,0} {
-  Line{1}; Layers{80};
+  Line{1};
 }
 // y const
 Physical Line(7) = {1};
