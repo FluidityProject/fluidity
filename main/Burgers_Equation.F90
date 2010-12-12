@@ -1450,11 +1450,6 @@
 
       call compute_final_adjoint_state(forward_state, adjoint_state, timestep)
 
-      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-      call output_state(adjoint_state(:, timestep), adjoint=.true.)
-
       ! Rewind any nonlinear iterations, na ja?
       ! These neither cause evaluations of the functional, nor the functional derivative,
       ! nor diagnostics, nor output dumps, nor lines in the stat file, nor do they
@@ -1463,6 +1458,11 @@
       do iteration=count-1,1,-1
         call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
       end do
+
+      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      call output_state(adjoint_state(:, timestep), adjoint=.true.)
 
       call advance_current_time(current_time, dt)
       timestep = timestep - 1
@@ -1523,9 +1523,10 @@
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
       type(csr_matrix) :: advection_matrix
       type(vector_field), pointer :: x
-      integer :: count
+      integer :: count, old_count
 
       count = iteration_count(forward_state(1, timestep))
+      old_count = iteration_count(forward_state(1, timestep-1))
       u => extract_scalar_field(forward_state(1, timestep), "Velocity")
       adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
       x => extract_vector_field(forward_state(1, timestep), "Coordinate")
@@ -1540,7 +1541,7 @@
 
       call allocate(advection_matrix, diffusion_matrix%sparsity, name="AdvectionMatrix")
       u_left => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
-      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(count))
+      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(old_count))
 
       call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
 
@@ -1685,16 +1686,18 @@
       type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
       integer, intent(in) :: timestep, iteration
 
-      type(scalar_field) :: rhs, contraction
-      type(scalar_field), pointer :: adjoint, u, u_left, u_right
+      type(scalar_field) :: rhs, contraction, adjoint
+      type(scalar_field), pointer :: u, u_left, u_right
       real :: dt, theta
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
       type(vector_field), pointer :: x
       type(csr_sparsity), pointer :: sparsity
       type(csr_matrix) :: advection_matrix, L, LT
 
-      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity" // int2str(iteration))
       u => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
+      call allocate(adjoint, u%mesh, "IteratedAdjointVelocity" // int2str(iteration))
+      adjoint%option_path = u%option_path
+      call zero(adjoint)
       mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
       diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
       x => extract_vector_field(adjoint_state(1, timestep), "Coordinate")
@@ -1746,6 +1749,9 @@
 
       call deallocate(LT)
       call deallocate(rhs)
+
+      call insert(adjoint_state(1, timestep), adjoint, trim(adjoint%name))
+      call deallocate(adjoint)
     end subroutine rewind_nonlinear_iteration
 
     subroutine setup_adjoint_state(forward_state, adjoint_state)
