@@ -1474,19 +1474,15 @@
           write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
         end if
 
-        FLAbort("Not implemented yet")
         ! Now compute the AdjointVelocity at the timestep itself
-        !call compute_adjoint_timestep(forward_state, adjoint_state, timestep)
+        call compute_adjoint_timestep(forward_state, adjoint_state, timestep)
 
         call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
         call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
         call output_state(adjoint_state(:, timestep), adjoint=.true.)
 
-        ! Rewind any nonlinear iterations, na ja?
-        ! These neither cause evaluations of the functional, nor the functional derivative,
-        ! nor diagnostics, nor output dumps, nor lines in the stat file, nor do they
-        ! rewind time. But we still have to do them! 
+        ! Rewind any nonlinear iterations
         count = iteration_count(forward_state(1, timestep))
         do iteration=count-1,1,-1
           call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
@@ -1753,6 +1749,144 @@
       call insert(adjoint_state(1, timestep), adjoint, trim(adjoint%name))
       call deallocate(adjoint)
     end subroutine rewind_nonlinear_iteration
+
+    subroutine compute_adjoint_timestep(forward_state, adjoint_state, timestep)
+      type(state_type), dimension(:,:), intent(in) :: forward_state
+      type(state_type), dimension(:,:), intent(inout) :: adjoint_state
+      integer :: timestep
+
+      type(state_type), dimension(size(forward_state,1)) :: derivatives
+      type(scalar_field), pointer :: djdu, adjoint, u, u_left, u_right
+      real :: current_time, dt, theta
+      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
+      type(vector_field), pointer :: x
+      type(scalar_field) :: output, contraction, rhs
+      type(csr_sparsity), pointer :: sparsity
+      type(csr_matrix) :: advection_matrix, T, L, LT
+      integer :: count, i
+
+      u => extract_scalar_field(forward_state(1, timestep), "Velocity")
+      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
+      x => extract_vector_field(forward_state(1, timestep), "Coordinate")
+      call zero(adjoint)
+
+      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+
+      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
+      sparsity => mass_matrix%sparsity
+
+      call allocate(rhs, u%mesh, "AdjointTimestepRightHandSide")
+      call zero(rhs)
+
+      ! ---------------------------------------------------------------------------------
+      ! dJ/du
+      ! ---------------------------------------------------------------------------------
+      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
+      djdu => extract_scalar_field(derivatives(1), "VelocityDerivative")
+      call addto(rhs, djdu)
+      call deallocate(derivatives)
+
+      call allocate(output, u%mesh, "OutputVector")
+      call allocate(contraction, u%mesh, "ContractionVector")
+
+      ! ---------------------------------------------------------------------------------
+      ! the G-blocks multiplying the adjoint RHS
+      ! ---------------------------------------------------------------------------------
+      ! The first G-block is a special case.
+      u_left => u
+      u_right => u
+
+      call set(contraction, u)
+      call scale(contraction, 1-theta)
+      call addto(contraction, extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity1"), scale=theta)
+
+      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, &
+           & extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1"), output)
+      call addto(rhs, output, scale=-1.0)
+
+      ! Now loop over the others
+      count = iteration_count(forward_state(1, timestep+1))
+      do i=2,count
+        u_right => extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i-1))
+
+        call set(contraction, u)
+        call scale(contraction, 1-theta)
+        call addto(contraction, extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i)), scale=theta)
+        call differentiate_V(x, sparsity, u_left, u_right, -1, contraction, &
+             & extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity" // int2str(i)), output)
+        call addto(rhs, output, scale=-1.0)
+      end do
+
+      call deallocate(contraction)
+
+      ! ---------------------------------------------------------------------------------
+      ! the transpose of the forward timestepping operators
+      ! ---------------------------------------------------------------------------------
+      ! Again, the first T-block is a special case.
+
+      ! Remember, 
+      ! T = M/dt + (theta - 1) * V + (theta - 1) * D
+
+      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
+      u_left => u
+      u_right => u
+      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+      call allocate(T, sparsity, name="TimesteppingOperator")
+      call set(T, mass_matrix)
+      call scale(T, 1.0/abs(dt))
+
+      call addto(T, diffusion_matrix, scale=theta-1.0)
+      call addto(T, advection_matrix, scale=theta-1.0)
+      call mangle_dirichlet_rows(T, u, keep_diag=.false.)
+
+      call mult_T(output, T, extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1"))
+      call addto(rhs, output)
+
+      do i=2,count
+        u_right => extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i-1))
+        call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+        call set(T, mass_matrix)
+        call scale(T, 1.0/abs(dt))
+        call addto(T, diffusion_matrix, scale=theta-1.0)
+        call addto(T, advection_matrix, scale=theta-1.0)
+        call mangle_dirichlet_rows(T, u, keep_diag=.false.)
+
+        call mult_T(output, T, extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity" // int2str(i)))
+        call addto(rhs, output)
+      end do
+      
+      call deallocate(T)
+      call deallocate(output)
+
+      ! OK! All of those terms have been assembling the RHS.
+      ! Now we need to assemble the operator to invert onto RHS.
+      u_left => extract_scalar_field(forward_state(1,timestep-1), "Velocity")
+      count = iteration_count(forward_state(1, timestep))
+      u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(max(count-1, 1)))
+      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
+
+      call allocate(L, sparsity, name="LeftHandSide")
+      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
+      call deallocate(advection_matrix)
+      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
+      LT = transpose(L, symmetric_sparsity=.true.)
+      call deallocate(L)
+
+      call set_inactive_rows(LT, u)
+      call petsc_solve(adjoint, LT, rhs)
+      call compute_inactive_rows(adjoint, LT, rhs)
+
+      call deallocate(LT)
+      call deallocate(rhs)
+
+      call insert(adjoint_state(1,timestep), adjoint, "IteratedAdjointVelocity" // int2str(count))
+      
+    end subroutine compute_adjoint_timestep
 
     subroutine setup_adjoint_state(forward_state, adjoint_state)
       type(state_type), dimension(:), intent(in) :: forward_state
