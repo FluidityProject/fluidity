@@ -66,7 +66,6 @@ module implicit_solids
   use vector_tools
   use tensors
   use fetools
-  use sparse_tools
   use interpolation_module
   use adjacency_lists
   use sparse_matrices_fields
@@ -489,7 +488,8 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    type(vector_field), pointer :: source, positions, velocity
+    type(vector_field), pointer :: source, positions
+    type(vector_field), pointer :: velocity, absorption
     type(scalar_field), pointer :: Tsource
     integer :: i, j, particle
     real :: x0, y0, z0, x, y, z, sigma
@@ -499,14 +499,15 @@ contains
     if (two_way_coupling) then
 
        velocity => extract_vector_field(state, "Velocity")
+       absorption => extract_vector_field(state, "VelocityAbsorption")
 
        source => extract_vector_field(state, "VelocitySource")
        call zero(source)
 
        do i = 1, node_count(source)
-          sigma = node_val(solid_local, i)*beta/dt
           do j = 1, source%dim
-             call set(source, j, i, sigma * node_val(velocity, j, i) &
+             call set(source, j, i, &
+                    node_val(absorption, j, i) * node_val(velocity, j, i) &
                   - node_val(fl_pos_solid_force, j, i)/dt)
           end do
        end do
@@ -525,6 +526,7 @@ contains
           ewrite(3, *) "  source intensity", source_intensity
 
           if (have_radius) then
+
              ewrite(3, *) "  using an inner zone", radius
 
              positions => extract_vector_field(state, "Coordinate")
@@ -1149,7 +1151,7 @@ contains
     character(len=*), intent(in) :: operation
     type(state_type), intent(in) :: state
 
-    type(state_type) :: alg_ext, alg_fl
+    type(state_type) :: alg_ext_v, alg_fl_v, alg_ext_s, alg_fl_s
     type(mesh_type), pointer :: fl_mesh
     type(vector_field) :: fl_positions
     type(vector_field), pointer :: field_ext_v, field_fl_v, solid_velocity
@@ -1165,15 +1167,19 @@ contains
 
     ! read in femdem data into alg_ext state
     ! all data is on the femdem mesh
-    call insert(alg_ext, external_positions%mesh, "Mesh")
-    call insert(alg_ext, external_positions, "Coordinate")
+    call insert(alg_ext_v, external_positions%mesh, "Mesh")
+    call insert(alg_ext_v, external_positions, "Coordinate")
+    call insert(alg_ext_s, external_positions%mesh, "Mesh")
+    call insert(alg_ext_s, external_positions, "Coordinate")
 
     ! read in fluidity data into alg_new state
     ! all data is on the fluidity mesh
     fl_mesh => extract_mesh(state, "CoordinateMesh")
     fl_positions = extract_vector_field(state, "Coordinate")
-    call insert(alg_fl, fl_mesh, "Mesh")
-    call insert(alg_fl, fl_positions, "Coordinate")
+    call insert(alg_fl_v, fl_mesh, "Mesh")
+    call insert(alg_fl_v, fl_positions, "Coordinate")
+    call insert(alg_fl_s, fl_mesh, "Mesh")
+    call insert(alg_fl_s, fl_positions, "Coordinate")
 
 !    call set_solver_options(path, &
 !            ksptype = "cg", &
@@ -1204,11 +1210,11 @@ contains
        ! this will be used to set the source term...
        field_fl_v => fl_pos_solid_force
        call zero(field_fl_v)
-       call insert(alg_fl, field_fl_v, "SolidForce")
+       call insert(alg_fl_v, field_fl_v, "SolidForce")
 
        ! this is the solid velocity on the solid mesh
        field_ext_v => ext_pos_solid_force
-       call insert(alg_ext, field_ext_v, "SolidForce")
+       call insert(alg_ext_v, field_ext_v, "SolidForce")
 
     else if (operation == "out") then
 
@@ -1219,21 +1225,21 @@ contains
        ! this will be returned to femdem...
        field_ext_v => ext_pos_fluid_vel
        call zero(field_ext_v)
-       call insert(alg_ext, field_ext_v, "Velocity")
+       call insert(alg_ext_v, field_ext_v, "Velocity")
 
        ! this is the fluid velocity on the fluidity mesh
        field_fl_v => extract_vector_field(state, "Velocity")
-       call insert(alg_fl, field_fl_v, "Velocity")
+       call insert(alg_fl_v, field_fl_v, "Velocity")
 
        ! this is the solid concentration on the solid mesh
        ! this will be returned to femdem...
        field_ext_s => ext_pos_solid
        call zero(field_ext_s)
-       call insert(alg_ext, field_ext_s, "SolidConcentration")
+       call insert(alg_ext_s, field_ext_s, "SolidConcentration")
 
        ! this is the solid concentration on the fluidity mesh
        field_fl_s => extract_scalar_field(state, "SolidConcentration")
-       call insert(alg_fl, field_fl_s, "SolidConcentration")
+       call insert(alg_fl_s, field_fl_s, "SolidConcentration")
 
     end if
 
@@ -1242,7 +1248,7 @@ contains
   
        ! interpolate the solid velocity from
        ! the solid mesh to the fluidity mesh
-       call interpolation_galerkin_femdem(alg_ext, alg_fl, field=solid_local)
+       call interpolation_galerkin_femdem(alg_ext_v, alg_fl_v, field=solid_local)
 
        ewrite_minmax(ext_pos_solid_force%val(1,:))
        ewrite_minmax(ext_pos_solid_force%val(2,:))
@@ -1259,7 +1265,8 @@ contains
 
        ! interpolate the fluid velocity and the solid concentration from
        ! the fluid mesh to the solid mesh
-       call interpolation_galerkin_femdem(alg_fl, alg_ext, femdem_out=.true.)
+       call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
+       call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
 
        ewrite_minmax(field_fl_v%val(1,:))
        ewrite_minmax(field_fl_v%val(2,:))
@@ -1269,12 +1276,15 @@ contains
        ewrite_minmax(ext_pos_fluid_vel%val(2,:))
        ewrite_minmax(ext_pos_fluid_vel%val(3,:))
 
+       ewrite_minmax(field_fl_s)
+       ewrite_minmax(field_ext_s)
+
     else
        FLAbort("Don't know what to interpolate...")
     end if
 
-    call deallocate(alg_ext)
-    call deallocate(alg_fl)
+    call deallocate(alg_ext_v); call deallocate(alg_ext_s)
+    call deallocate(alg_fl_v); call deallocate(alg_fl_s)
 
   end subroutine femdem_interpolation
 
