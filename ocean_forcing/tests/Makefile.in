@@ -47,7 +47,7 @@ CTESTS= $(basename $(wildcard *.c)) $(basename $(wildcard *.cpp))
 TESTS=$(CTESTS) $(FORTRANTESTS)
 
 # the test binaries NOT to be built
-DISABLED_TESTS= test_main test_coare_ocean_fluxes test_ncar_ocean_fluxes test_kara_ocean_fluxes
+DISABLED_TESTS= test_main
 
 # the test programs to be built:
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(TESTS))
