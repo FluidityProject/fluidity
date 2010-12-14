@@ -1099,6 +1099,7 @@ module field_derivatives
           ewrite(0,*) "If the following error is directly due to user input"
           ewrite(0,*) "a check and a more helpful error message should be inserted in"
           ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+          ewrite(0,*) "Error has occured in differentiate_field_lumped_multiple, with field, ", trim(infields(i)%name)
           FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
         end if
       end do
@@ -1294,6 +1295,7 @@ module field_derivatives
         ewrite(0,*) "If the following error is directly due to user input"
         ewrite(0,*) "a check and a more helpful error message should be inserted in"
         ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+        ewrite(0,*) "Error has occured in differentiate_field_discontinuous, with field, ", trim(infield%name)
         FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
       end if
       
