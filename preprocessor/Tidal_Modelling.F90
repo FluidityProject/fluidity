@@ -28,19 +28,22 @@
 
 module Tidal_module
 
-use FLDebug
-use fields
-use state_module
-use spud
-use coordinates
-use sparse_matrices_fields
-
-implicit none
-
-private
-
-public :: find_chi, equilibrium_tide, get_tidal_frequency, compute_pressure_and_tidal_gradient
-
+   use FLDebug
+   use fields
+   use state_module
+   use spud
+   use coordinates
+   use sparse_matrices_fields
+   use state_module
+   
+   implicit none
+   
+   private
+   
+   public :: find_chi, equilibrium_tide, get_tidal_frequency, &
+             &compute_pressure_and_tidal_gradient, &
+             &calculate_diagnostic_equilibrium_pressure
+   
 contains
 
   function get_tidal_frequency(constituent) result(frequency)
@@ -261,102 +264,211 @@ contains
       ENDIF
 
     END FUNCTION EQUILIBRIUM_TIDE
-    
-    subroutine compute_pressure_and_tidal_gradient(delta_u, ct_m, p_theta, position)
+
+    subroutine calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(inout) :: equilibrium_pressure
+      
+      type(vector_field), pointer :: positions, positions_mapped_to_equilibrium_pressure_space
+      integer :: node
+      real :: ep, ep_amplitude, depthsign, shelfdepth
+      real, dimension(mesh_dim(equilibrium_pressure)) :: x
+      real :: shelflength, shelfslopeheight, minoceandepth, oceandepth
+      real :: gravity_magnitude, saline_contraction_coefficient, pressure_from_ice, density_change_of_ice, salinity_change_constant
+      logical :: include_density_change_of_ice
+
+      oceandepth = 0.0
+      ep_amplitude = 0.0
+      depthsign = 1.0
+
+      call get_option('/material_phase::Water/equation_of_state/fluids/linear/salinity_dependency/saline_contraction_coefficient', saline_contraction_coefficient)
+      call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
+
+      positions => extract_vector_field(state, "Coordinate")
+
+      if(positions%mesh == equilibrium_pressure%mesh) then
+        positions_mapped_to_equilibrium_pressure_space => positions
+      else
+        allocate(positions_mapped_to_equilibrium_pressure_space)
+        call allocate(positions_mapped_to_equilibrium_pressure_space, mesh_dim(equilibrium_pressure%mesh), &
+          & equilibrium_pressure%mesh, "Coordinate")
+        call remap_field(positions, positions_mapped_to_equilibrium_pressure_space)
+      end if
+
+      if (have_option('/ocean_forcing/shelf/amplitude')) then
+         call get_option('/ocean_forcing/shelf/amplitude', ep_amplitude)
+      else
+         ep_amplitude = 1.0
+      end if
+      if (have_option('/ocean_forcing/shelf/y_sign')) then
+         depthsign = -1.0
+      else
+         depthsign = 1.0
+      end if
+      if (have_option('/ocean_forcing/shelf/add_pressure_from_ice')) then
+         pressure_from_ice = 1.0
+      else
+         pressure_from_ice = 0.0
+      end if
+      if (have_option('/ocean_forcing/shelf/salinity_change_constant')) then
+         call get_option('/ocean_forcing/shelf/salinity_change_constant', salinity_change_constant)
+      else
+         salinity_change_constant = 0.0
+      end if
+      include_density_change_of_ice=have_option('/ocean_forcing/shelf/include_density_change_of_ice')
+
+      ewrite(3,*) "shelfparam: sign, amp", oceandepth,  ep_amplitude
+
+      call zero(equilibrium_pressure)
+      shelflength      =  500000
+      shelfslopeheight =  900
+      minoceandepth    =  100
+      oceandepth       = 1000
+
+      ewrite(3,*) "shelfparam2: g, beta, deltaS, p_from_ice", gravity_magnitude, saline_contraction_coefficient, salinity_change_constant, pressure_from_ice
+      do node=1,node_count(positions_mapped_to_equilibrium_pressure_space)
+         x = node_val(positions_mapped_to_equilibrium_pressure_space,node)
+         if (x(1) .le. shelflength) then
+           shelfdepth = depthsign * ( ((x(1)/shelflength) * shelfslopeheight + minoceandepth) - oceandepth )
+         else
+           shelfdepth = 0.0
+         end if
+         if (include_density_change_of_ice) then
+            density_change_of_ice = ( shelfdepth/2.0 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
+         else
+            density_change_of_ice = 1.0
+         end if
+         ewrite(3,*) "shelfdench:", density_change_of_ice
+
+         ep = - ep_amplitude * gravity_magnitude * shelfdepth * ( - saline_contraction_coefficient * salinity_change_constant * density_change_of_ice + pressure_from_ice )
+         !ep = - ep_amplitude * 9.8               * ( -7.59E-4) * 1.5 * shelfdepth * ( shelfdepth/2 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
+         call set(equilibrium_pressure, node, ep)
+         ewrite(3,*) "shelfep: x, ep value", x, ep, node_val(equilibrium_pressure, node)
+      end do
+
+      if(.not. positions%mesh == equilibrium_pressure%mesh) then
+        call deallocate(positions_mapped_to_equilibrium_pressure_space)
+        deallocate(positions_mapped_to_equilibrium_pressure_space)
+      end if
+
+    end subroutine calculate_diagnostic_equilibrium_pressure
+
+    subroutine compute_pressure_and_tidal_gradient(state, delta_u, ct_m, p_theta, position)
       ! computes gradient of pressure and tidal forcing term
       ! to be added to the momentum rhs
+      type(state_type), intent(inout):: state
       type(vector_field), intent(inout):: delta_u
       type(block_csr_matrix), intent(in):: ct_m
       type(scalar_field), target, intent(in):: p_theta
       type(vector_field), intent(in):: position
-
-      logical :: on_sphere      
+      
       type(mesh_type), pointer:: p_mesh
       type(scalar_field) :: tidal_pressure, combined_p
-      type(vector_field) :: pressure_coordinate
+      type(vector_field) :: positions_mapped_to_pressure_space
       logical, dimension(11) :: which_tide
       integer :: node, stat
       real :: eqtide, long, lat, height, love_number, current_time, gravity_magnitude
+      type(scalar_field) :: equilibrium_pressure
 
-       p_mesh => p_theta%mesh
+      p_mesh => p_theta%mesh
 
-       on_sphere = have_option('/geometry/spherical_earth/')    
-       
-       which_tide=.false.
-       if (have_option('/ocean_forcing/tidal_forcing/all_tidal_components')) then
-          which_tide=.true.
-       else
-          if (have_option('/ocean_forcing/tidal_forcing/M2')) &
-               & which_tide(1)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/S2')) &
-               & which_tide(2)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/N2')) &
-               & which_tide(3)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/K2')) &
-               & which_tide(4)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/K1')) &
-               & which_tide(5)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/O1')) &
-               & which_tide(6)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/P1')) &
-               & which_tide(7)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/Q1')) &
-               & which_tide(8)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/Mf')) &
-               & which_tide(9)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/Mm')) &
-               & which_tide(10)=.true.
-          if (have_option('/ocean_forcing/tidal_forcing/Ssa')) &
-               & which_tide(11)=.true.
-       end if
-       if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
-            & then
-         call get_option('/ocean_forcing/tidal_forcing/love_number/v&
-              &alue', love_number)
+      call allocate(combined_p, p_mesh, "CombinedPressure")
+      call allocate(tidal_pressure, p_mesh, "TidalPressure")
+      call zero(combined_p)
+      call zero(tidal_pressure)
+
+      if (have_option('/ocean_forcing/shelf/calculate_only')) then
+         call allocate(equilibrium_pressure, p_mesh, "EquilibriumPressure")
+         call zero(equilibrium_pressure)
       else
-         love_number=1.0
+         equilibrium_pressure=extract_scalar_field(state, "EquilibriumPressure", stat=stat)
+         if (stat/=0) then
+            call allocate(equilibrium_pressure, p_mesh, "EquilibriumPressure")
+            call zero(equilibrium_pressure)
+         else
+            call incref(equilibrium_pressure)
+         end if
       end if
 
       ! Get node positions on the pressure mesh (this remap is a bit naughty)
-      call allocate(pressure_coordinate, position%dim, p_mesh, name="PressureCoordinate")
-      call zero(pressure_coordinate)
-      call remap_field(position, pressure_coordinate, stat=stat)
+      call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")
+      call zero(positions_mapped_to_pressure_space)
+      call remap_field(position, positions_mapped_to_pressure_space, stat=stat)
 
-      call allocate(tidal_pressure, p_mesh, "TidalPressure")
-      call allocate(combined_p, p_mesh, "CombinedPressure")
-      call zero(tidal_pressure); call zero(combined_p)
-      call get_option("/timestepping/current_time", current_time)
-      call get_option('/physical_parameters/gravity/magnitude',&
-           & gravity_magnitude)
-
-      do node=1,node_count(pressure_coordinate)
-        if (on_sphere) then
-          call LongitudeLatitude(node_val(pressure_coordinate,node), long,&
-               & lat, height)
+      if (have_option('/ocean_forcing/tidal_forcing')) then
+         ! Tidal forcing
+         which_tide=.false.
+         if (have_option('/ocean_forcing/tidal_forcing/all_tidal_components')) then
+            which_tide=.true.
+         else
+            if (have_option('/ocean_forcing/tidal_forcing/M2')) &
+                 & which_tide(1)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/S2')) &
+                 & which_tide(2)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/N2')) &
+                 & which_tide(3)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/K2')) &
+                 & which_tide(4)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/K1')) &
+                 & which_tide(5)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/O1')) &
+                 & which_tide(6)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/P1')) &
+                 & which_tide(7)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/Q1')) &
+                 & which_tide(8)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/Mf')) &
+                 & which_tide(9)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/Mm')) &
+                 & which_tide(10)=.true.
+            if (have_option('/ocean_forcing/tidal_forcing/Ssa')) &
+                 & which_tide(11)=.true.
+         end if
+         if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
+              & then
+           call get_option('/ocean_forcing/tidal_forcing/love_number/v&
+                &alue', love_number)
         else
-           ewrite(-1,*) "Tidal forcing in non spherical geometries&
-                &is yet to be added. Would you like &
-                &to add this functionality?"
-           FLExit('Exiting as code missing')
+           love_number=1.0
         end if
-        eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
-               &,long*acos(-1.0)/180.0,current_time,1.0)
-        eqtide=love_number*eqtide
-        call set(tidal_pressure, node, eqtide*gravity_magnitude)
-      end do
 
-      do node=1,node_count(pressure_coordinate)
-         call set(combined_p, node, node_val(p_theta, node)&
-              &-node_val(tidal_pressure, node))
+        call get_option("/timestepping/current_time", current_time)
+        call get_option('/physical_parameters/gravity/magnitude',&
+             & gravity_magnitude)
+
+        if (have_option('/ocean_forcing/tidal_forcing')) then
+           if (have_option('/geometry/spherical_earth/')) then
+             do node=1,node_count(positions_mapped_to_pressure_space)
+                call LongitudeLatitude(node_val(positions_mapped_to_pressure_space,node), long,&
+                     & lat, height)
+                eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
+                     &,long*acos(-1.0)/180.0,current_time,1.0)
+                eqtide=love_number*eqtide
+                call set(tidal_pressure, node, eqtide*gravity_magnitude)
+              end do
+           else
+              ewrite(-1,*) "Tidal forcing in non spherical geometries&
+                   &is yet to be added. Would you like &
+                   &to add this functionality?"
+              FLExit('Exiting as code missing')
+           end if
+        end if
+      end if 
+
+      do node=1,node_count(positions_mapped_to_pressure_space)
+         call set(combined_p, node, node_val(p_theta, node) - node_val(tidal_pressure, node))
+         call set(combined_p, node, node_val(p_theta, node) - node_val(tidal_pressure, node) &
+          & - node_val(equilibrium_pressure, node) )
       end do
 
       call mult_T(delta_u, ct_m, combined_p)
 
-      call deallocate(tidal_pressure)
       call deallocate(combined_p)
-      call deallocate(pressure_coordinate)
+      call deallocate(tidal_pressure)
+      call deallocate(equilibrium_pressure)
+      call deallocate(positions_mapped_to_pressure_space)
               
     end subroutine compute_pressure_and_tidal_gradient
     
-  end module Tidal_module
+end module Tidal_module
 

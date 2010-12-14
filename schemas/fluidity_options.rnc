@@ -4167,6 +4167,24 @@ scalar_field_choice =
                }
             )
          }|
+         ## The equilibrium pressure perturbation 
+         ## 
+         ## Further details to be added
+         ## Currently a test field
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "EquilibriumPressure" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  pressure_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## Discontinuity detector
          ##
          ## takes value 1 where detector is triggered
@@ -6130,6 +6148,34 @@ forcing =
   (
     ## Force the boundary conditions of various fields in ocean simulations
     element ocean_forcing{
+        element shelf {
+           ## Multiplying factor on equilibrium pressure
+           element amplitude {
+             real
+           }?,
+           ## Change sign of depth / perturbation from original eta_0
+           element y_sign {
+             empty
+           }?,
+           ## Only calculate the field, don't add to pressure (RHS of Momentum)
+           element calculate_only {
+             empty
+           }?,
+           ## DeltaS for constant change over ocean,
+           ## or the difference between min and max for a linear variation in S
+           element salinity_change_constant {
+             real
+           }?,
+           ## If the ice shelf is not included in the original mesh and a free-surface initial condition is used to generate the shelf, the hydrostatic pressure where the shelf now exists needs to be included
+           element add_pressure_from_ice {
+             empty
+           }?,
+           ## If using a linear variation in S, include the associated change in density of the ice shelf
+           ## NOT arranged to work with add_pressure_from_ice - TODO
+           element include_density_change_of_ice {
+             empty
+           }?
+        }?,
         ## Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
         ## and photosynthetic radiation to be set using data obtained from
         ## the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)

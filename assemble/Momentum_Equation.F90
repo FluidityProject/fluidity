@@ -867,8 +867,10 @@
             ! despite multiplying pressure by a nonlocal operator
             ! a halo_update isn't necessary as this is just a rhs
             ! contribution
-            if (have_option('/ocean_forcing/tidal_forcing')) then
-              call compute_pressure_and_tidal_gradient(delta_u, ct_m, p_theta, x)
+            if (have_option('/ocean_forcing/tidal_forcing') .or. &
+                &have_option('/ocean_forcing/shelf')) then
+              call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m, p_theta, x)
+              ewrite(3,*) "shelf: Entering compute_pressure_and_tidal_gradient"
             else
               call mult_T(delta_u, ct_m, p_theta)
             end if

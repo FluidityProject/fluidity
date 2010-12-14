@@ -5367,6 +5367,28 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>The equilibrium pressure perturbation 
+
+Further details to be added
+Currently a test field</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>EquilibriumPressure</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="pressure_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>Discontinuity detector
 
 takes value 1 where detector is triggered
@@ -7749,6 +7771,48 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
   <define name="forcing">
     <element name="ocean_forcing">
       <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
+      <optional>
+        <element name="shelf">
+          <optional>
+            <element name="amplitude">
+              <a:documentation>Multiplying factor on equilibrium pressure</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="y_sign">
+              <a:documentation>Change sign of depth / perturbation from original eta_0</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="calculate_only">
+              <a:documentation>Only calculate the field, don't add to pressure (RHS of Momentum)</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="salinity_change_constant">
+              <a:documentation>DeltaS for constant change over ocean,
+or the difference between min and max for a linear variation in S</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="add_pressure_from_ice">
+              <a:documentation>If the ice shelf is not included in the original mesh and a free-surface initial condition is used to generate the shelf, the hydrostatic pressure where the shelf now exists needs to be included</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="include_density_change_of_ice">
+              <a:documentation>If using a linear variation in S, include the associated change in density of the ice shelf
+NOT arranged to work with add_pressure_from_ice - TODO</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
       <optional>
         <element name="bulk_formulae">
           <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
