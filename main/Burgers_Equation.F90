@@ -883,6 +883,7 @@
       integer :: i, nfields, nfields_to_delete
       character(len=OPTION_PATH_LEN) :: path, field_name
       character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete
+      integer :: stat
 
       nfields = option_count("/material_phase[0]/scalar_field")
       allocate(fields_to_delete(nfields))
@@ -910,6 +911,10 @@
       end do
 
       deallocate(fields_to_delete)
+
+      ! We delete this because if it exists in the forward run,
+      ! write_diagnostics wants to print it out in the stat file.
+      call delete_option("/adjoint/functional", stat=stat)
 
     end subroutine forward_options_dictionary
 
@@ -1342,6 +1347,7 @@
       type(csr_sparsity), pointer :: sparsity
 
       real :: current_time, dt
+      real :: J
 
       u => extract_scalar_field(forward_state(1,1), "Velocity")
       adjoint  => extract_scalar_field(adjoint_state(1,1), "AdjointVelocity")
@@ -1403,7 +1409,13 @@
 
       call calculate_diagnostic_variables(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
-      call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
+
+      if (have_option("/adjoint/functional")) then
+        J = functional(forward_state, current_time, dt, 1)
+        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1, functional_value=J)
+      else
+        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
+      end if
 
       call output_state(adjoint_state(:, 1), adjoint=.true.)
     end subroutine steady_state_adjoint
@@ -1444,11 +1456,6 @@
       timestep = timesteps
       have_functional = have_option("/adjoint/functional")
 
-      if (have_functional) then
-        J = functional(forward_state, current_time, dt, timestep)
-        write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-      end if
-
       call compute_final_adjoint_state(forward_state, adjoint_state, timestep)
 
       ! Rewind any nonlinear iterations, na ja?
@@ -1462,7 +1469,15 @@
 
       call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+
+      if (have_functional) then
+        J = functional(forward_state, current_time, dt, timestep)
+        !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+      else
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      end if
+
       call output_state(adjoint_state(:, timestep), adjoint=.true.)
 
       call advance_current_time(current_time, dt)
@@ -1470,17 +1485,18 @@
       call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
 
       do while (timestep > 1)
-        if (have_functional) then
-          J = functional(forward_state, current_time, dt, timestep)
-          write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-        end if
-
         ! Now compute the AdjointVelocity at the timestep itself
         call compute_adjoint_timestep(forward_state, adjoint_state, timestep)
 
         call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+        if (have_functional) then
+          J = functional(forward_state, current_time, dt, timestep)
+          !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+        else
+          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+        end if
         call output_state(adjoint_state(:, timestep), adjoint=.true.)
 
         ! Rewind any nonlinear iterations
@@ -1494,16 +1510,17 @@
         call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
       end do
 
-      if (have_functional) then
-        J = functional(forward_state, current_time, dt, timestep)
-        write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-      end if
-
       call compute_initial_adjoint_state(forward_state, adjoint_state)
 
       call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      if (have_functional) then
+        J = functional(forward_state, current_time, dt, timestep)
+        !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+      else
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
+      end if
       call output_state(adjoint_state(:, timestep), adjoint=.true.)
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)

@@ -511,6 +511,12 @@ contains
       buffer=field_tag(name="ElapsedWallTime", column=column, statistic="value")
       write(diag_unit, '(a)') trim(buffer)
 
+      if (have_option("/adjoint/functional")) then
+        column=column+1
+        buffer=field_tag(name="AdjointFunctional", column=column, statistic="value")
+        write(diag_unit, '(a)') trim(buffer)
+      end if
+
       do i = 1, size(mesh_list)
         ! Headers for output statistics for each mesh
         mesh => extract_mesh(state(1), mesh_list(i))
@@ -1603,12 +1609,13 @@ contains
 
   end function constant_tag
   
-  subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet)
+  subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet, functional_value)
     !!< Write the diagnostics to the previously opened diagnostics file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
     logical, intent(in), optional :: not_to_move_det_yet 
+    real, intent(in), optional :: functional_value ! Adjoint functionals
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
     character(len = OPTION_PATH_LEN) :: func
@@ -1640,6 +1647,15 @@ contains
       write(diag_unit, trim(format), advance="no") time
       write(diag_unit, trim(format), advance="no") dt
       write(diag_unit, trim(format), advance="no") elapsed_walltime()
+    end if
+
+    if (have_option("/adjoint/functional")) then
+      if (.not. present(functional_value)) then
+        ewrite(-1,*) "You have an /adjoint/functional in your options tree, and so want to print it out."
+        ewrite(-1,*) "But you haven't supplied write_diagnostics with its value."
+        FLAbort("Supply functional_value to write_diagnostics.")
+      end if
+      write(diag_unit, trim(format), advance="no") functional_value
     end if
 
     do i = 1, size(mesh_list)
