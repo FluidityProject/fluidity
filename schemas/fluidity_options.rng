@@ -5389,6 +5389,28 @@ Currently a test field</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>The equilibrium pressure perturbation 
+
+Further details to be added
+Currently a test field</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>PressureRelativeToExternal</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="pressure_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>Discontinuity detector
 
 takes value 1 where detector is triggered

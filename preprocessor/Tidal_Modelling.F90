@@ -42,7 +42,8 @@ module Tidal_module
    
    public :: find_chi, equilibrium_tide, get_tidal_frequency, &
              &compute_pressure_and_tidal_gradient, &
-             &calculate_diagnostic_equilibrium_pressure
+             &calculate_diagnostic_equilibrium_pressure,&
+             &calculate_shelf_depth
    
 contains
 
@@ -265,6 +266,21 @@ contains
 
     END FUNCTION EQUILIBRIUM_TIDE
 
+    function calculate_shelf_depth(x) result (depth)
+       real, intent(in) :: x  
+       real :: depth  
+       real :: shelflength      =  500000
+       real :: shelfslopeheight =  900
+       real :: minoceandepth    =  100
+       real :: oceandepth       = 1000
+
+       if (x .le. shelflength) then
+         depth = ( ((x/shelflength) * shelfslopeheight + minoceandepth) - oceandepth )
+       else
+         depth = 0.0
+       end if
+    end function calculate_shelf_depth
+
     subroutine calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: equilibrium_pressure
@@ -377,18 +393,16 @@ contains
       call zero(combined_p)
       call zero(tidal_pressure)
 
-      if (have_option('/ocean_forcing/shelf/calculate_only')) then
+  
+
+      equilibrium_pressure=extract_scalar_field(state, "EquilibriumPressure", stat=stat)
+      if (stat/=0) then
          call allocate(equilibrium_pressure, p_mesh, "EquilibriumPressure")
          call zero(equilibrium_pressure)
       else
-         equilibrium_pressure=extract_scalar_field(state, "EquilibriumPressure", stat=stat)
-         if (stat/=0) then
-            call allocate(equilibrium_pressure, p_mesh, "EquilibriumPressure")
-            call zero(equilibrium_pressure)
-         else
-            call incref(equilibrium_pressure)
-         end if
+         call incref(equilibrium_pressure)
       end if
+      call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
 
       ! Get node positions on the pressure mesh (this remap is a bit naughty)
       call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")

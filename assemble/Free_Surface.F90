@@ -41,6 +41,7 @@ use eventcounter
 use integer_set_module
 use field_options
 use physics_from_options
+use tidal_module, only: calculate_diagnostic_equilibrium_pressure
 implicit none
 
 private
@@ -528,9 +529,9 @@ contains
     type(vector_field), pointer:: iterated_positions
     type(scalar_field), pointer:: p
     type(vector_field), target :: local_grid_u
-    type(scalar_field), target:: linear_p
+    type(scalar_field), target:: p_mapped_to_coordinate_space
     character(len=FIELD_NAME_LEN):: bctype
-    real g, dt, rho0, gravity_magnitude
+    real g, dt, rho0, gravity_magnitude, atmospheric_pressure
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
     integer i, j, k, node, sele, stat
@@ -540,8 +541,12 @@ contains
     !type(scalar_field), save :: fracdis
     type(scalar_field) :: fracdis
     type(scalar_field) :: extrapolated_p
+    ! The pressure difference, i.e. p relative to external pressures
+    ! (such as atmospheric pressure and pressure due to the weight of an ice shelf)
+    type(scalar_field), target :: p_relative
     
     logical :: l_initialise, have_wd
+    type(scalar_field), pointer :: equilibrium_pressure
     
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
@@ -570,9 +575,42 @@ contains
     call get_reference_density_from_options(rho0, state%option_path)
     
     p => extract_scalar_field(state, "Pressure")
+    if (have_option(trim(p%option_path)//'/prognostic/atmospheric_pressure') .or. have_option('/ocean_forcing/shelf')) then
+       call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', atmospheric_pressure, default=0.0)
+
+       p_relative=extract_scalar_field(state, "PressureRelativeToExternal", stat=stat)
+       if (stat/=0) then
+          call allocate(p_relative, p%mesh, "PressureRelativeToExternal")
+          call zero(p_relative)
+       else
+          if (.not. p_relative%mesh==p%mesh) then
+             FLExit("The diagnostic field PressureRelativeToExternal is required to be on the pressure mesh.")
+          end if
+          call incref(p_relative)
+       end if
+
+       call set(p_relative, p)
+       ! Set the p solved for relative to external pressures, i.e. p => p_relative = p - atmospheric_pressure
+       call addto(p_relative, - atmospheric_pressure)
+
+       if (have_option('/ocean_forcing/shelf') .and. .not. have_option('/ocean_forcing/shelf/calculate_only')) then
+         equilibrium_pressure=>extract_scalar_field(state, "EquilibriumPressure", stat=stat)
+         if (stat/=0) then
+            FLExit("EquilibriumPressure diagnostic field required with shelf ocean forcing and mesh movement at the moment.")
+         end if
+         if (.not. equilibrium_pressure%mesh==p%mesh) then
+            FLExit("The diagnostic field EquilibriumPressure is required to be on the pressure mesh.")
+         end if
+         call calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+         call addto(p_relative, equilibrium_pressure, scale=-1.0)
+       end if
+
+       p => p_relative
+    end if
+
     if (.not. p%mesh==positions%mesh) then
-      call allocate(linear_p, positions%mesh)
-      call remap_field(p, linear_p, stat=stat)
+      call allocate(p_mapped_to_coordinate_space, positions%mesh)
+      call remap_field(p, p_mapped_to_coordinate_space, stat=stat)
       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
         ewrite(-1,*) "Just remapped from a discontinuous to a continuous field when using free_surface mesh movement."
         ewrite(-1,*) "This suggests the pressure is discontinuous, which isn't supported."
@@ -581,11 +619,12 @@ contains
         FLAbort("Something went wrong mapping pressure to the CoordinateMesh")
       end if
       ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
-      p => linear_p
+      if (associated(p, p_relative)) then
+         call deallocate(p_relative)
+      end if
+      p => p_mapped_to_coordinate_space
     end if
-    
-    
-    
+   
     if(.not.l_initialise) then
     ! if we're initialising then the grid velocity stays as zero
       grid_u => extract_vector_field(state, "GridVelocity")
@@ -694,8 +733,10 @@ contains
       end do      
     end if
     
-    if (associated(p, linear_p)) then
-       call deallocate(p)
+    if (associated(p, p_mapped_to_coordinate_space)) then
+       call deallocate(p_mapped_to_coordinate_space)
+    else if (associated(p, p_relative)) then
+       call deallocate(p_relative)
     end if
 
   end subroutine move_free_surface_nodes

@@ -4185,6 +4185,24 @@ scalar_field_choice =
                }
             )
          }|
+         ## The equilibrium pressure perturbation 
+         ## 
+         ## Further details to be added
+         ## Currently a test field
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "PressureRelativeToExternal" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  pressure_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## Discontinuity detector
          ##
          ## takes value 1 where detector is triggered
