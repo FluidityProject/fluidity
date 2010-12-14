@@ -196,7 +196,7 @@ contains
     integer :: loc, sloc
     type(mesh_type) :: mesh
     integer :: numNodes, numElements, numFaces
-    logical :: haveBounds, haveInternalBounds
+    logical :: haveBounds, haveElementOwners, haveRegionIDs
     integer :: numDimen, effDimen
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
@@ -240,26 +240,51 @@ contains
 
     numNodes = size(nodes)
     numFaces = size(faces)
+    numElements = size(elements)
 
     ! NOTE:  similar function 'boundaries' variable in Read_Triangle.F90
     ! ie. flag for boundaries and internal boundaries (period mesh bounds)
-    haveBounds=.false.
-    haveInternalBounds=.false.
-
-    do f=1, size(faces)
-       if(faces(f)%numTags > 0) then
-          ! We have boundaries,
-          haveBounds=.true.
-
-          ! We have internal boundaries (at the join of a period mesh)
-          if(faces(f)%numTags >= 4) then
-             if(faces(4)%tags(4) > 0) haveInternalBounds=.true.
-          end if
-       end if
-    end do
-
-    numElements = size(elements)
-
+    
+    if (numFaces>0) then
+      ! do we have physical surface ids?
+      haveBounds= faces(1)%numTags>0
+      ! do we have element owners of faces?
+      haveElementOwners = faces(1)%numTags==4
+      
+      ! if any (the first face) has them, then all should have them
+      do f=2, numFaces
+         if(faces(f)%numTags/=faces(1)%numTags) then
+           ewrite(0,*) "In your gmsh input files all faces (3d)/edges (2d) should" // &
+              & "  have the same number of tags"
+           FLExit("Inconsistent number of face tags")
+         end if
+      end do
+        
+    else
+    
+      haveBounds=.false.
+      haveElementOwners=.false.
+      
+    end if
+    
+    if (numElements>0) then
+      
+      haveRegionIDs = elements(1)%numTags>0
+      ! if any (the first face) has them, then all should have them
+      do e=2, numElements
+         if(elements(e)%numTags/=elements(1)%numTags) then
+           ewrite(0,*) "In your gmsh input files all elements should" // &
+              & "  have the same number of tags"
+           FLExit("Inconsistent number of element tags")
+         end if
+      end do
+      
+    else
+    
+      haveRegionIDs = .false.
+    
+    end if
+    
     if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
        effDimen = numDimen+1
     else
@@ -273,7 +298,9 @@ contains
 
     ! Now construct within Fluidity data structures
 
-    allocate( field%mesh%region_ids(numElements) )
+    if (haveRegionIDs) then
+      allocate( field%mesh%region_ids(numElements) )
+    end if
     if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
 
     loc = size( elements(1)%nodeIDs )
@@ -302,26 +329,30 @@ contains
     end do
 
     ! Copy elements to field
-    forall (e=1:numElements)
+    do e=1, numElements
        field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
-       field%mesh%region_ids(e) = elements(e)%physicalID
-    end forall
+       if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+    end do
 
     ! Now faces
     allocate(sndglno(1:numFaces*sloc))
     sndglno=0
-    allocate(boundaryIDs(1:numFaces))
-    if(haveInternalBounds) allocate(faceOwner(1:numFaces))
+    if(haveBounds) then
+      allocate(boundaryIDs(1:numFaces))
+    end if
+    if(haveElementOwners) then
+      allocate(faceOwner(1:numFaces))
+    end if
 
     do f=1, numFaces
        sndglno((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
-       boundaryIDs(f) = faces(f)%physicalID
-       if(haveInternalBounds) faceOwner(f) = faces(f)%owner
+       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
+       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
     end do
 
     ! If we've got boundaries, do something
     if( haveBounds ) then
-       if ( haveInternalBounds ) then
+       if ( haveElementOwners ) then
           call add_faces( field%mesh, &
                sndgln = sndglno(1:numFaces*sloc), &
                boundary_ids = boundaryIDs(1:numFaces), &
@@ -338,8 +369,8 @@ contains
 
     ! Deallocate arrays
     deallocate(sndglno)
-    deallocate(boundaryIDs)
-    if (haveInternalBounds) deallocate(faceOwner)
+    if (haveBounds) deallocate(boundaryIDs)
+    if (haveElementOwners) deallocate(faceOwner)    
 
     deallocate(nodes)
     deallocate(faces)
@@ -763,22 +794,6 @@ contains
 
     ! Now we've got all our elements in memory, do some housekeeping.
     do e=1, numAllElements
-
-       ! These two are apparently standard tags
-       if( allElements(e)%numTags >= 1) then
-          allElements(e)%physicalID = allElements(e)%tags(1)
-       end if
-
-       ! No idea what this is, but GMSH generates it - may come in handy later.
-       if( allElements(e)%numTags >= 2) then
-          allElements(e)%elementary = allElements(e)%tags(2)
-       end if
-
-       ! Fourth tag is for element owner - used in periodic meshes
-       if( allElements(e)%numTags >= 4) then
-          allElements(e)%owner = allElements(e)%tags(4)
-       end if
-
 
        call toFluidityElementNodeOrdering( allElements(e)%nodeIDs, &
             allElements(e)%type )

@@ -291,15 +291,13 @@ contains
 
   ! --------------------------------------------------------------------------
 
-  subroutine write_positions_to_file(filename, positions, &
-       print_internal_faces, format )
-    ! Write out the mesh given by the position field in mesh files
-    ! In parallel, empty trailing processes are not written.
+  subroutine write_positions_to_file(filename, positions, format)
+    !!< Write out the mesh given by the position field in mesh files
+    !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
-    character(len=*), intent(in), optional :: format
-
     type(vector_field), intent(in):: positions
-    logical, intent(in), optional :: print_internal_faces
+    !! "triangle" or "gmsh"
+    character(len=*), intent(in), optional :: format
 
     character(len=option_path_len) :: meshFormat
 
@@ -312,12 +310,10 @@ contains
 
     select case( trim(meshFormat) )
     case("triangle")
-       call write_triangle_files( trim(filename), positions, &
-            print_internal_faces )
+       call write_triangle_files( trim(filename), positions)
 
     case("gmsh")
-       call write_gmsh_file( trim(filename), positions, &
-            print_internal_faces )
+       call write_gmsh_file( trim(filename), positions)
 
        ! Additional mesh format subroutines go here
 

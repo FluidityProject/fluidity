@@ -86,13 +86,13 @@ contains
 
 
 
-  subroutine write_positions_to_gmsh(filename, positions, print_internal_faces)
+  subroutine write_positions_to_gmsh(filename, positions)
     !!< Write out the mesh given by the position field in GMSH file:
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
-    character(len=longStringLen) :: meshFile
     type(vector_field), intent(in):: positions
-    logical, intent(in), optional :: print_internal_faces
+    
+    character(len=longStringLen) :: meshFile
     integer :: numParts, fileDesc
 
     ! How many processes contain data?
@@ -110,13 +110,6 @@ contains
            action="write", err=101 )
       
     end if
-
-    ! this needs to be called by all processes
-    if (present_and_true(print_internal_faces) &
-         .and. .not. has_faces(positions%mesh) ) then
-       call add_faces(positions%mesh)
-    end if
-
 
     if( getprocno() <= numParts ) then
        ! Writing GMSH file header
@@ -189,7 +182,7 @@ contains
   ! Write out GMSH nodes
 
   subroutine write_gmsh_nodes( fd, lfilename, field, useBinaryGMSH )
-    !!< Writes out nodes for the given position field
+    ! Writes out nodes for the given position field
     integer fd
     character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
@@ -316,18 +309,6 @@ contains
        FLExit("Unknown combination of elements and faces.")
     end if
 
-    ! Number of tags associated with elements
-    if(associated(mesh%region_ids)) then
-       if(periodicMesh) then
-          numTags = 4
-       else
-          numTags = 2
-       end if
-    else
-       numTags = 0
-    end if
-
-
     ! Write out element label
     call ascii_formatting(fd, lfilename, "write")
     write(fd, "(A)") "$Elements"
@@ -337,6 +318,16 @@ contains
     write(fd, "(I0)" ) numGMSHElems
 
     ! Faces written out first
+    
+    ! Number of tags associated with elements
+    if(periodicMesh) then
+      ! write surface id and element owner
+      numTags = 4
+    else
+      ! only surface id
+      numTags = 2
+    end if
+
     if(useBinaryGMSH) then
        call binary_formatting( fd, lfilename, "write" )
        write(fd) faceType, numFaces, numTags
@@ -354,37 +345,33 @@ contains
        ! Output face data
        select case(numTags)
 
-       case (4)
-          if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, &
-                  face_ele(mesh, f), lnodelist
-          else
-             write(fd, 6969, err=301) f, faceType, numTags, &
-                  surface_element_id(mesh,f), 0, 0, face_ele(mesh,f), lnodelist
-          end if
-
        case (2)
+
           if(useBinaryGMSH) then
              write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
           else
              write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
           end if
-
-       case default
+          
+       case (4)
+         
           if(useBinaryGMSH) then
-             write(fd, err=301) f, lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, face_ele(mesh, f), lnodelist
           else
-             write(fd, 6969, err=301) f, faceType, lnodelist
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), 0, 0, &
+                  face_ele(mesh,f), lnodelist
           end if
+          
        end select
 
        deallocate(lnodelist)
     end do
 
+    ! Then regular GMSH elements (i.e. the real volume elements)
 
-    ! Then regular elements
     if(useBinaryGMSH) then
-       write(fd) elemType, numElements, numTags
+       ! we always write 2 taqs - without region ids we just write an extra 0
+       write(fd) elemType, numElements, 2
     end if
 
     do e=1, numElements
@@ -395,31 +382,25 @@ contains
        call toGMSHElementNodeOrdering(lnodelist, elemType)
 
        ! Output element data
-       select case(numTags)
-
-       case (4)
-          if(useBinaryGMSH) then
-             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, 0, 0, lnodelist
-          else
-             write(fd, 6969, err=301) elemID, elemType, numTags, &
-                  ele_region_id(mesh, e), 0, 0, 0, lnodelist
-          end if
-
-       case (2)
+       if(associated(mesh%region_ids)) then
+         
           if(useBinaryGMSH) then
              write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
           else
-             write(fd, 6969, err=301) elemID, elemType, numTags, &
+             write(fd, 6969, err=301) elemID, elemType, 2, &
                   ele_region_id(mesh, e), 0, lnodelist
           end if
+          
+       else
 
-       case default
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, lnodelist
+             write(fd, err=301) elemID, 0, 0, lnodelist
           else
-             write(fd, 6969, err=301) elemID,elemType,lnodelist
+             write(fd, 6969, err=301) elemID, elemType, 2, &
+                  0, 0, lnodelist
           end if
-       end select
+
+       end if
 
        deallocate(lnodelist)
     end do
@@ -427,8 +408,7 @@ contains
     if(useBinaryGMSH) then
        write(fd, err=301) newLineChar
     end if
-
-
+    
     ! Back to ASCII for end of elements section
     call ascii_formatting( fd, lfilename, "write" )
     write(fd, "(A)") "$EndElements"
