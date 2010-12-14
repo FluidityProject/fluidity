@@ -14,6 +14,7 @@ print "\partial u/\partial m: ", dudm
 
 # first, let's compute the source term for the forward model:
 src = simplify(expand(diff(u, t) + u * diff(u, x) - v * diff(u, x, 2)))
+#src = simplify(expand(diff(u, t) + - v * diff(u, x, 2)))
 
 print "Source term for forward model: ", src
 print "\partial F/ \partial m: ", -1 * diff(src, m)

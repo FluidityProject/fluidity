@@ -1259,6 +1259,7 @@
       call colour_graph(sparsity, mesh, node_colour, no_colours)
       call allocate(perturbed, mesh, "PerturbedArgument")
       call zero(perturbed)
+      perturbed%option_path = u_left%option_path
 
       do colour=1,no_colours
 
@@ -1756,7 +1757,7 @@
       integer :: timestep
 
       type(state_type), dimension(size(forward_state,1)) :: derivatives
-      type(scalar_field), pointer :: djdu, adjoint, u, u_left, u_right
+      type(scalar_field), pointer :: djdu, adjoint, u, u_left, u_right, next_adjoint
       real :: current_time, dt, theta
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
       type(vector_field), pointer :: x
@@ -1767,6 +1768,7 @@
 
       u => extract_scalar_field(forward_state(1, timestep), "Velocity")
       adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
+      next_adjoint => extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1")
       x => extract_vector_field(forward_state(1, timestep), "Coordinate")
       call zero(adjoint)
 
@@ -1803,8 +1805,7 @@
       call scale(contraction, 1-theta)
       call addto(contraction, extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity1"), scale=theta)
 
-      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, &
-           & extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1"), output)
+      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, next_adjoint, output)
       call addto(rhs, output, scale=-1.0)
 
       ! Now loop over the others
@@ -1843,7 +1844,7 @@
       call addto(T, advection_matrix, scale=theta-1.0)
       call mangle_dirichlet_rows(T, u, keep_diag=.false.)
 
-      call mult_T(output, T, extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1"))
+      call mult_T(output, T, next_adjoint)
       call addto(rhs, output)
 
       do i=2,count
@@ -1867,7 +1868,11 @@
       ! Now we need to assemble the operator to invert onto RHS.
       u_left => extract_scalar_field(forward_state(1,timestep-1), "Velocity")
       count = iteration_count(forward_state(1, timestep))
-      u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(max(count-1, 1)))
+      if (count > 1) then
+        u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(count-1))
+      else
+        u_right => extract_scalar_field(forward_state(1,timestep-1), "Velocity")
+      end if
       call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
 
       call allocate(L, sparsity, name="LeftHandSide")
