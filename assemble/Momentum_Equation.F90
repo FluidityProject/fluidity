@@ -869,8 +869,8 @@
             ! contribution
             if (have_option('/ocean_forcing/tidal_forcing') .or. &
                 &have_option('/ocean_forcing/shelf')) then
+              ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
               call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m, p_theta, x)
-              ewrite(3,*) "shelf: Entering compute_pressure_and_tidal_gradient"
             else
               call mult_T(delta_u, ct_m, p_theta)
             end if

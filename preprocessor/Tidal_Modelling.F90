@@ -269,6 +269,7 @@ contains
     function calculate_shelf_depth(x) result (depth)
        real, intent(in) :: x  
        real :: depth  
+      ! TODO (asc): clean up these values
        real :: shelflength      =  500000
        real :: shelfslopeheight =  900
        real :: minoceandepth    =  100
@@ -306,16 +307,12 @@ contains
         positions_mapped_to_equilibrium_pressure_space => positions
       else
         allocate(positions_mapped_to_equilibrium_pressure_space)
-        call allocate(positions_mapped_to_equilibrium_pressure_space, mesh_dim(equilibrium_pressure%mesh), &
-          & equilibrium_pressure%mesh, "Coordinate")
+        call allocate(positions_mapped_to_equilibrium_pressure_space, positions%dim, &
+          & equilibrium_pressure%mesh, "CoordinateMappedToEquilibriumPressureSpace")
         call remap_field(positions, positions_mapped_to_equilibrium_pressure_space)
       end if
 
-      if (have_option('/ocean_forcing/shelf/amplitude')) then
-         call get_option('/ocean_forcing/shelf/amplitude', ep_amplitude)
-      else
-         ep_amplitude = 1.0
-      end if
+      call get_option('/ocean_forcing/shelf/amplitude', ep_amplitude, default=1.0)
       if (have_option('/ocean_forcing/shelf/y_sign')) then
          depthsign = -1.0
       else
@@ -326,16 +323,13 @@ contains
       else
          pressure_from_ice = 0.0
       end if
-      if (have_option('/ocean_forcing/shelf/salinity_change_constant')) then
-         call get_option('/ocean_forcing/shelf/salinity_change_constant', salinity_change_constant)
-      else
-         salinity_change_constant = 0.0
-      end if
+      call get_option('/ocean_forcing/shelf/salinity_change_constant', salinity_change_constant, default=0.0)
       include_density_change_of_ice=have_option('/ocean_forcing/shelf/include_density_change_of_ice')
 
       ewrite(3,*) "shelfparam: sign, amp", oceandepth,  ep_amplitude
 
       call zero(equilibrium_pressure)
+      ! TODO (asc): clean up these values
       shelflength      =  500000
       shelfslopeheight =  900
       minoceandepth    =  100
@@ -350,6 +344,7 @@ contains
            shelfdepth = 0.0
          end if
          if (include_density_change_of_ice) then
+            ! TODO (asc): clean up these values
             density_change_of_ice = ( shelfdepth/2.0 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
          else
             density_change_of_ice = 1.0
@@ -359,6 +354,7 @@ contains
          ep = - ep_amplitude * gravity_magnitude * shelfdepth * ( - saline_contraction_coefficient * salinity_change_constant * density_change_of_ice + pressure_from_ice )
          !ep = - ep_amplitude * 9.8               * ( -7.59E-4) * 1.5 * shelfdepth * ( shelfdepth/2 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
          call set(equilibrium_pressure, node, ep)
+         ! TODO (asc): clean up - logging in node loop
          ewrite(3,*) "shelfep: x, ep value", x, ep, node_val(equilibrium_pressure, node)
       end do
 
@@ -393,8 +389,6 @@ contains
       call zero(combined_p)
       call zero(tidal_pressure)
 
-  
-
       equilibrium_pressure=extract_scalar_field(state, "EquilibriumPressure", stat=stat)
       if (stat/=0) then
          call allocate(equilibrium_pressure, p_mesh, "EquilibriumPressure")
@@ -404,10 +398,10 @@ contains
       end if
       call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
 
-      ! Get node positions on the pressure mesh (this remap is a bit naughty)
+      ! Find node positions on the pressure mesh
       call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")
       call zero(positions_mapped_to_pressure_space)
-      call remap_field(position, positions_mapped_to_pressure_space, stat=stat)
+      call remap_field(position, positions_mapped_to_pressure_space)
 
       if (have_option('/ocean_forcing/tidal_forcing')) then
          ! Tidal forcing
