@@ -119,6 +119,10 @@ int main(int argc, char **argv){
   
   petsc_readnsolve_();
   PetscFinalize();
+#ifdef HAVE_MPI
+  MPI::Finalize();
+#endif
+ 
   return 0;
 #else
   cerr << "ERROR: Not configured with PETSc, so petsc_readnsolve is not gonna work!" << endl; 
