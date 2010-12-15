@@ -65,7 +65,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
   Diagnostic_Fields.o SampleNetCDF_fortran.o \
   AuxilaryOptions.o MeshDiagnostics.o VTK_interfaces.o Surface_Labels.o	\
-  ISCopyIndices.o \
+  ISCopyIndices.o Colouring.o \
   Field_derivatives.o Node_boundary.o Parallel_fields.o \
   Vector_set.o Element_set.o vecset.o intvecset.o eleset.o \
   Matrix_Norms.o embed_python.o Embed_Python_Fortran.o \
@@ -486,3 +486,5 @@ Read_GMSH.o: GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o \
 Write_GMSH.o: GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o \
 	Field_Options.o
 GMSH_Common.o: Futils.o
+
+Colouring.o: Fields_Base.o Sparse_Tools.o Data_structures.o 
