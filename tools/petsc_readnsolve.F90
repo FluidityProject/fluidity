@@ -427,23 +427,9 @@ contains
         
       else if (mod(n, universal_nodes)==0) then
         
-        components=n/universal_nodes
-        ewrite(1,*) "Number of nodes in the mesh is an integer multiple of the matrixdump size"
-        ewrite(1,*) "Assuming it's a vector field with"
-        ewrite(1,*) components, " components and ", universal_nodes, " nodes."
-        
-        ! redo the petsc_numbering, this time with the right n/o nodes
-        ! (at the moment we're still treating it as a scalar field)
-        call deallocate(petsc_numbering)
-        if (isparallel()) then
-           call allocate(petsc_numbering, node_count(mesh)*components, 1,&
-                & my_halo)
-        else
-           call allocate(petsc_numbering, node_count(mesh)*components, 1)
-        end if
-        call allocate(shape, 1, 1, 1, 1)
-        call allocate(mesh, node_count(mesh)*components, 1, shape, mesh_name)
-      
+        components=universal_nodes/n
+        call petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs)
+              
       else
       
         ewrite(1,*) "Number of nodes in specified mesh: ", universal_nodes
@@ -465,22 +451,104 @@ contains
       
     end if
     
-    if (IsParallel()) then
+    if (components==1) then
       
-      call redistribute_matrix(matrix, x, rhs, petsc_numbering)
+      if (IsParallel()) then
+        
+        call redistribute_matrix(matrix, x, rhs, petsc_numbering)
 
+      end if    
+    
+      call allocate(A, matrix, petsc_numbering, petsc_numbering, "PetscReadNSolveMatrix")
+
+      ! this might not be the full name, but it's only for log output:
+      call get_option(trim(option_path)//'/name', field_name)
+      call allocate(x_field, mesh, field_name)
+      x_field%option_path=option_path
+      call allocate(rhs_field, mesh, "RHS") 
+      
+      call petsc2field(x, petsc_numbering, x_field, rhs_field)
+      call petsc2field(rhs, petsc_numbering, rhs_field, rhs_field)
+      
+      call VecDestroy(rhs, ierr)
+      call VecDestroy(x, ierr)
+
+      ! prevent rewriting the matrixdump on failure
+      call add_option(trim(complete_solver_option_path(x_field%option_path))//'/no_matrixdump', stat=stat)
+      
+      ewrite(1,*) 'Going into petsc_solve'
+      ewrite(1,*) '-------------------------------------------------------------'
+      
+      if (read_state .and. components==1) then
+         call petsc_solve(x_field, A, rhs_field, states(istate))
+      else
+         call petsc_solve(x_field, A, rhs_field)
+      end if
+      
+      ewrite_minmax(x_field%val)
+      
+      ewrite(1,*) '-------------------------------------------------------------'
+      ewrite(1,*) 'Finished petsc_solve'
+      
+      call deallocate(A)
+      call deallocate(x_field)
+      call deallocate(rhs_field)
+    
+    end if
+
+    if (associated(states)) then
+      do istate=1, size(states)
+        call deallocate(states(istate))
+      end do
+    else
+      call deallocate(mesh)
+    end if
+    call deallocate(petsc_numbering)
+    
+  end subroutine petsc_readnsolve_flml
+    
+  subroutine petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs)
+    
+    type(mesh_type), intent(inout):: mesh
+    integer, intent(in):: n ! matrixdump size
+    integer, intent(in):: universal_nodes ! mesh size
+    character(len=*), intent(in):: option_path
+    Mat, intent(inout):: matrix
+    Vec, intent(inout):: x, rhs
+    
+    type(petsc_csr_matrix):: A
+    type(halo_type), pointer:: halo
+    type(vector_field):: x_field, rhs_field
+    type(petsc_numbering_type):: petsc_numbering
+    character(len=FIELD_NAME_LEN):: field_name
+    PetscErrorCode:: ierr
+    integer:: components, stat
+    
+    components=n/universal_nodes
+    ewrite(1,*) "Number of nodes in the mesh is an integer multiple of the matrixdump size"
+    ewrite(1,*) "Assuming it's a vector field with"
+    ewrite(1,*) components, " components and ", universal_nodes, " nodes."
+    
+    ! redo the petsc_numbering, this time with the right n/o nodes and components
+    if (isparallel()) then
+       halo => mesh%halos(halo_count(mesh)) 
+       call allocate(petsc_numbering, node_count(mesh), components, &
+            & halo)
+       call redistribute_matrix(matrix, x, rhs, petsc_numbering)
+    else
+       call allocate(petsc_numbering, node_count(mesh), components)
     end if
     
     call allocate(A, matrix, petsc_numbering, petsc_numbering, "PetscReadNSolveMatrix")
 
     ! this might not be the full name, but it's only for log output:
     call get_option(trim(option_path)//'/name', field_name)
-    call allocate(x_field, mesh, field_name)
+    call allocate(x_field, components, mesh, name=field_name)
     x_field%option_path=option_path
-    call allocate(rhs_field, mesh, "RHS") 
+    call allocate(rhs_field, components, mesh, "RHS") 
     
-    call petsc2field(x, petsc_numbering, x_field, rhs_field)
-    call petsc2field(rhs, petsc_numbering, rhs_field, rhs_field)
+    call petsc2field(x, petsc_numbering, x_field)
+    call petsc2field(rhs, petsc_numbering, rhs_field)
     
     call VecDestroy(rhs, ierr)
     call VecDestroy(x, ierr)
@@ -491,11 +559,7 @@ contains
     ewrite(1,*) 'Going into petsc_solve'
     ewrite(1,*) '-------------------------------------------------------------'
     
-    if (read_state .and. components==1) then
-       call petsc_solve(x_field, A, rhs_field, states(istate))
-    else
-       call petsc_solve(x_field, A, rhs_field)
-    end if
+    call petsc_solve(x_field, A, rhs_field)
     
     ewrite_minmax(x_field%val)
     
@@ -503,18 +567,12 @@ contains
     ewrite(1,*) 'Finished petsc_solve'
     
     call deallocate(A)
-    if (associated(states)) then
-      do istate=1, size(states)
-        call deallocate(states(istate))
-      end do
-    else
-      call deallocate(x_field)
-      call deallocate(rhs_field)
-      call deallocate(mesh)
-    end if
+    
+    call deallocate(x_field)
+    call deallocate(rhs_field)
     call deallocate(petsc_numbering)
     
-  end subroutine petsc_readnsolve_flml
+  end subroutine petsc_readnsolve_vector
     
   function workout_option_path(field, fail)
   character(len=OPTION_PATH_LEN):: workout_option_path
@@ -673,13 +731,21 @@ contains
     Mat new_matrix
     Vec new_x, new_rhs
     PetscErrorCode ierr
-    integer, dimension(:), allocatable:: allcols
-    integer i, n, m
+    integer, dimension(:), allocatable:: allcols, unns
+    integer i, n, m, ncomponents
+    
+    integer mm,nn
     
     n=petsc_numbering%nprivatenodes ! local length
+    ncomponents=size(petsc_numbering%gnn2unn, 2)
+    allocate(unns(1:n*ncomponents))
+    unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
     call ISCreateGeneral(MPI_COMM_WORLD, &
-       n, petsc_numbering%gnn2unn(1:n,1), row_indexset, ierr)
+       size(unns), unns, row_indexset, ierr)
        
+#if PETSC_VERSION_MINOR==0    
+    ! in petsc 3.0 we have to ask for all columns
+    ! so we need to create an index set with all universal node numbers(!)
     m=petsc_numbering%universal_length ! global length
     allocate( allcols(1:m) )
     allcols=(/ ( i, i=0, m-1) /)
@@ -688,20 +754,29 @@ contains
     call ISSetIdentity(col_indexset, ierr)
        
     ! redistribute matrix by asking for owned rows and all columns
-    ! n is number of local columns
-#if PETSC_VERSION_MINOR==0    
-    call MatGetSubMatrix(matrix, row_indexset, col_indexset, n, &
+    ! n*components is the number of columns we own
+    call MatGetSubMatrix(matrix, row_indexset, col_indexset, n*ncomponents, &
        MAT_INITIAL_MATRIX, new_matrix, ierr)
+    call ISDestroy(col_indexset, ierr)
 #else
-    call MatGetSubMatrix(matrix, row_indexset, col_indexset, &
+    ! in petsc 3.1 we only ask for owned columns (although presumably
+    ! still all columns of owned rows are stored locally)
+    ! we only deal with square matrices (same d.o.f. for rows and columns)
+    ! in fluidity, so we can simply reuse row_indexset as the col_indexset
+    call MatGetSubMatrix(matrix, row_indexset, row_indexset, &
        MAT_INITIAL_MATRIX, new_matrix, ierr)
 #endif
     ! destroy the old read-in matrix and replace by the new one
     call MatDestroy(matrix, ierr)
     matrix=new_matrix
     
+    call matgetsize(matrix, mm, nn, ierr)
+    ewrite(2,*) "Matrix global size", mm, nn
+    call matgetlocalsize(matrix, mm, nn, ierr)
+    ewrite(2,*) "Matrix local size", mm, nn
+    
     ! create a Vec according to the proper partioning:
-    call VecCreateMPI(MPI_COMM_WORLD, n, m, new_x, ierr)
+    call VecCreateMPI(MPI_COMM_WORLD, n*ncomponents, m, new_x, ierr)
     ! fill it with values from the read x by asking for its row numbers
     call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL, &
        scatter, ierr)
@@ -723,8 +798,7 @@ contains
     rhs=new_rhs
     
     call VecScatterDestroy(scatter, ierr)
-    call ISDestroy(row_indexset, ierr)
-    call ISDestroy(col_indexset, ierr)
+    call ISDestroy(row_indexset, ierr)    
     
   end subroutine redistribute_matrix
 

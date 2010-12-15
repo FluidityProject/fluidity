@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>petsc_readnsolve</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml &gt;&amp; /dev/null;
+mv matrixdump velocity_matrixdump;
+mkdir -p velocity_logs;
+mv fluidity.log* fluidity.err* velocity_logs/;
+mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure.flml &gt;&amp; /dev/null;
+mv matrixdump pressure_matrixdump;
+rm matrixdump.info;
+mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave.flml Velocity;
+mv petsc_readnsolve.err* petsc_readnsolve.log* velocity_logs/;
+mpiexec -n 3 petsc_readnsolve -v -l -prns_filename pressure_matrixdump  standing_wave.flml Pressure;
+rm -rf fluidity.err-*<comment>Note we use ; and no &amp;&amp; as most of these commands will actually fail (on purpose). Also removing fluidity.err-* from "failing solve runs" to prevent noise in testharness output. For same reason redirecting mpiexec output of failing fluidity runs to the bin.</comment></command_line>
+    <comment>This is a lie: we're actually using nprocs=3.</comment>
+  </problem_definition>
+  <variables>
+    <variable name="velocity_solve_failed" language="python">from numpy import array
+import re
+
+f=file('velocity_logs/fluidity.log-0')
+log=f.read()
+f.close()
+
+reason_lines=re.findall('.*reason.*', log, re.MULTILINE)
+reason_fields=array([i.split(' ')[0] for i in reason_lines])
+reason_numbers=array([eval(i.split(':')[1]) for i in reason_lines])
+velocity_solve_failed = reason_fields.compress(reason_numbers&lt;=0)[0]=='DeltaU'
+<comment>Check that the first solve that failed was indeed the velocity ('DeltaU') solve</comment></variable>
+    <variable name="pressure_solve_failed" language="python">from numpy import array
+import re
+
+f=file('fluidity.log-0')
+log=f.read()
+f.close()
+
+reason_lines=re.findall('.*reason.*', log, re.MULTILINE)
+reason_fields=array([i.split(' ')[0] for i in reason_lines])
+reason_numbers=array([eval(i.split(':')[1]) for i in reason_lines])
+pressure_solve_failed = reason_fields.compress(reason_numbers&lt;=0)[0]=='PressureTheta'
+</variable>
+    <variable name="prns_velocity_solve_success" language="python">from numpy import array
+import re
+
+f=file('velocity_logs/petsc_readnsolve.log-0')
+log=f.read()
+f.close()
+
+reason_lines=re.findall('.*reason.*', log, re.MULTILINE)
+reason_number=eval(reason_lines[0].split(':')[1])
+prns_velocity_solve_success= reason_number&gt;1
+</variable>
+    <variable name="prns_pressure_solve_success" language="python">from numpy import array
+import re
+
+f=file('petsc_readnsolve.log-0')
+log=f.read()
+f.close()
+
+reason_lines=re.findall('.*reason.*', log, re.MULTILINE)
+reason_number=eval(reason_lines[0].split(':')[1])
+prns_pressure_solve_success= reason_number&gt;1
+</variable>
+    <variable name="no_new_matrixdump" language="python">import os
+files = os.listdir("./")
+no_new_matrixdump = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+  </variables>
+  <pass_tests>
+    <test name="check_velocity_solve_failed" language="python">assert velocity_solve_failed</test>
+    <test name="check_pressure_solve_failed" language="python">assert pressure_solve_failed</test>
+    <test name="check_prns_velocity_solve_success" language="python">assert prns_velocity_solve_success</test>
+    <test name="check_prns_pressure_solve_success" language="python">assert prns_pressure_solve_success</test>
+    <test name="check_no_new_matrixdump" language="python">assert no_new_matrixdump</test>
+  </pass_tests>
+  <comment>This test tests petsc_readnsolve by making fluidity do a run with a failing Velocity, resp. a failing Pressure solve, and run petsc_readnsolve afterwards from the matrixdump - this time succeeding the solve due to different solver settings.</comment>
+</testproblem>
