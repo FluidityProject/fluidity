@@ -66,13 +66,31 @@ prns_pressure_solve_success= reason_number&gt;1
     <variable name="no_new_matrixdump" language="python">import os
 files = os.listdir("./")
 no_new_matrixdump = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-  </variables>
+  <variable name="velocity_error_logs" language="python">import glob
+velocity_error_logs=[]
+for logname in glob.glob('velocity_logs/petsc_readnsolve.err-*'):
+  f=file(logname)
+  velocity_error_logs.append(f.read())
+  f.close()
+</variable>
+<variable name="pressure_error_logs" language="python">import glob
+pressure_error_logs=[]
+for logname in glob.glob('petsc_readnsolve.err-*'):
+  f=file(logname)
+  pressure_error_logs.append(f.read())
+  f.close()
+</variable>
+    </variables>  
   <pass_tests>
     <test name="check_velocity_solve_failed" language="python">assert velocity_solve_failed</test>
     <test name="check_pressure_solve_failed" language="python">assert pressure_solve_failed</test>
     <test name="check_prns_velocity_solve_success" language="python">assert prns_velocity_solve_success</test>
     <test name="check_prns_pressure_solve_success" language="python">assert prns_pressure_solve_success</test>
     <test name="check_no_new_matrixdump" language="python">assert no_new_matrixdump</test>
+    <test name="empty_velocity_error_logs" language="python">assert ''.join(velocity_error_logs).strip() == ''
+</test>
+    <test name="empty_pressure_error_logs" language="python">assert ''.join(pressure_error_logs).strip() == ''
+</test>
   </pass_tests>
   <comment>This test tests petsc_readnsolve by making fluidity do a run with a failing Velocity, resp. a failing Pressure solve, and run petsc_readnsolve afterwards from the matrixdump - this time succeeding the solve due to different solver settings.</comment>
 </testproblem>
