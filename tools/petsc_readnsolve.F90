@@ -743,10 +743,11 @@ contains
     call ISCreateGeneral(MPI_COMM_WORLD, &
        size(unns), unns, row_indexset, ierr)
        
+    m=petsc_numbering%universal_length ! global length
+       
 #if PETSC_VERSION_MINOR==0    
     ! in petsc 3.0 we have to ask for all columns
-    ! so we need to create an index set with all universal node numbers(!)
-    m=petsc_numbering%universal_length ! global length
+    ! so we need to create an index set with all universal node numbers(!)    
     allocate( allcols(1:m) )
     allcols=(/ ( i, i=0, m-1) /)
     call ISCreateGeneral(MPI_COMM_WORLD, &
