@@ -494,6 +494,13 @@ contains
             exclude_interpolated=.true., &
             exclude_nonreprescribed=.true.)
 
+#ifdef HAVE_HYPERLIGHT
+       ! Calculate multispectral irradiance fields from hyperlight
+       if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
+          call set_irradiance_from_hyperlight(state(1))
+       end if
+#endif
+
        ! nonlinear_iterations=maximum no of iterations within a time step
 
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
