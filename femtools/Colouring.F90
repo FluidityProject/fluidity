@@ -57,7 +57,7 @@ contains
        cols => row_m_ptr(sparsity, node)
        do i=1, size(cols)
           if(cols(i)<node) then
-          call insert(neigh_colours, colours(cols(i)))
+            call insert(neigh_colours, colours(cols(i)))
           end if
        end do
 
@@ -74,7 +74,7 @@ contains
     
     ! Stuff this into an integer_set
     call allocate(colour_sets(max_colour))
-    do node=1, size(sparsity)
+    do node=1, size(sparsity,1)
        call insert(colour_sets(colours(node)), node)
     end do
     
