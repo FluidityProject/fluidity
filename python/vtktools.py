@@ -233,6 +233,15 @@ class vtu:
       new_z = eval (projection_z)
       self.ugrid.GetPoints ().SetPoint (i, new_x, new_y, new_z)
 
+  def ApplyCoordinateTransformation(self,f):
+    """Applys a coordinate transformation to the grid coordinates. This overwrites the existing values."""
+    npoints = self.ugrid.GetNumberOfPoints ()
+    
+    for i in range (npoints):
+      (x,y,z) = self.ugrid.GetPoint (i)
+      newX = f(arr([x,y,z]),t=0)
+      self.ugrid.GetPoints ().SetPoint (i, newX[0], newX[1], newX[2])
+
   def ApplyEarthProjection(self):
     """ Assume the input geometry is the Earth in Cartesian geometry and project to longatude, latitude, depth."""
     npoints = self.ugrid.GetNumberOfPoints ()

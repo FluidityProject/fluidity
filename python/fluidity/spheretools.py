@@ -26,5 +26,12 @@ def cart2polar():
         return 360/(2*pi)*array([theta,phi])
     return val
 
-
-
+def spherical_basis_vecs():
+    #return unit vectors in theta, phi
+    from math import sin, cos, pi
+    from numpy import array
+    def val(X,t):
+        theta = 2*pi*X[0]/360
+        phi = 2*pi*X[1]/360
+        return array([[-sin(theta), cos(theta), 0.0],[-cos(theta)*sin(phi), -sin(theta)*sin(phi), cos(phi)]])
+    return val

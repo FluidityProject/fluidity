@@ -36,7 +36,6 @@
     use FLDebug
     use populate_state_module
     use write_state_module
-    use populate_state_module
     use timeloop_utilities
     use sparsity_patterns_meshes
     use sparse_matrices_fields
@@ -44,7 +43,7 @@
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
-    use global_parameters, only: option_path_len, current_time, dt
+    use global_parameters, only: option_path_len, python_func_len, current_time, dt
     use adapt_state_prescribed_module
     use memory_diagnostics
     use reserve_state_module
@@ -80,7 +79,7 @@
     character(len = OPTION_PATH_LEN) :: simulation_name
     
     !! Flag for the debug with Helmholtz equation option.
-    logical :: helmholtz
+    logical :: helmholtz, on_manifold
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -96,6 +95,14 @@
 
     call populate_state(state)
     call insert_time_in_state(state)
+
+    ! Find out if we are on an embedded manifold, e.g. the surface of 
+    ! the sphere. If we are, then set up a 3D coordinate field and
+    ! velocity field from the 2D coordinate space
+    on_manifold=have_option("/geometry/embedded_manifold")
+    if(on_manifold) then
+       call setup_cartesian_vector_fields(state(1))
+    end if
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
@@ -140,7 +147,7 @@
     end if
 
     ! Always output the initial conditions.
-    call output_state(state)
+    call output_state(state, on_manifold)
 
     !! Helmholtz operator test.
     helmholtz=have_option("/material_phase::Fluid/scalar_field::HelmholtzRHS")
@@ -174,7 +181,7 @@
        call advance_current_time(current_time, dt)
 
        if (do_write_state(current_time, timestep)) then
-          call output_state(state)
+          call output_state(state, on_manifold)
        end if
 
        call write_diagnostics(state,current_time,dt, timestep)
@@ -200,7 +207,7 @@
     end do timestep_loop
 
     ! One last dump
-    call output_state(state)
+    call output_state(state, on_manifold)
 
     call write_diagnostics(state,current_time,dt,timestep)
 
@@ -301,8 +308,8 @@
 
       dim = mesh_dim(u)
 
-      call execute_timestep_setup(D,X,U,d_rhs,u_rhs,advecting_u, &
-           old_u,old_d,delta_d,delta_u,state)
+      call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
+           old_u,old_d,delta_d,delta_u)
 
       call insert(state,advecting_u,"NonlinearVelocity")
 
@@ -378,7 +385,6 @@
 
       !Update the variables
 
-
       call get_energy(u,d,d0,g,u_mass_mat,h_mass_mat)
 
       call deallocate(d_rhs)
@@ -442,13 +448,12 @@
       call deallocate(Mu)
     end subroutine get_energy
 
-    subroutine execute_timestep_setup(D,X,U,d_rhs,u_rhs,advecting_u, &
-         old_u,old_d,delta_d,delta_u,state)
+    subroutine execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
+         old_u,old_d,delta_d,delta_u)
       implicit none
-      type(state_type), intent(inout) :: state
       type(scalar_field), pointer :: D
       type(scalar_field), intent(inout) :: D_rhs, delta_d, old_d
-      type(vector_field), intent(inout), pointer :: U,X
+      type(vector_field), intent(inout), pointer :: U
       type(vector_field), intent(inout) :: U_rhs, delta_u, advecting_u, old_u
       integer :: dim
 
@@ -541,12 +546,16 @@
 
     end subroutine advance_current_time
 
-    subroutine output_state(state)
+    subroutine output_state(state, on_manifold)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
+      logical, intent(in) :: on_manifold
 
       integer, save :: dump_no=0
 
+      if(on_manifold) then
+         call map_to_manifold(state(1))
+      end if
       call write_state(dump_no, state)
 
     end subroutine output_state
@@ -636,6 +645,118 @@
       end do
       
     end subroutine invert_coriolis
+
+    subroutine setup_cartesian_vector_fields(state)
+      ! sets up the cartesian coordinate and velocity fields using the
+      ! mappings provided in the .swml
+      implicit none
+
+      type(state_type), intent(inout):: state
+
+      type(vector_field), pointer :: X, U
+      type(vector_field) :: X_manifold, U_manifold
+      type(vector_field) :: X_cartesian, U_cartesian
+      type(tensor_field) :: map
+      type(mesh_type), pointer :: x_mesh
+      integer :: node
+      character(len=PYTHON_FUNC_LEN) :: projection, vector_map
+
+      ewrite(1,*) "In setup_cartesian_vector_fields"
+
+      X => extract_vector_field(state, "Coordinate")
+      U => extract_vector_field(state, "Velocity")
+      x_mesh => extract_mesh(state, "CoordinateMesh")
+
+      ! allocate fields
+      call allocate(X_manifold, mesh_dim(X), x_mesh, "ManifoldCoords")
+      call allocate(U_manifold, mesh_dim(X), x_mesh, "ManifoldVelocity")
+      call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoords")
+      call allocate(U_cartesian, mesh_dim(X)+1, x_mesh, "CartesianVelocity")
+      call allocate(map, x_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
+
+      ! insert fields into state
+      call insert(state, X_manifold, "ManifoldCoords")
+      call insert(state, U_manifold, "ManifoldVelocity")
+      call insert(state, X_cartesian, "CartesianCoords")
+      call insert(state, U_cartesian, "CartesianVelocity")
+      call insert(state, map, "VectorMap")
+
+      ! set original field values using mappings from .swml
+      call get_option("/geometry/embedded_manifold/projection", projection)
+      call set_from_python_function(X_cartesian, projection, X, time=0.0)
+
+      call get_option("/geometry/embedded_manifold/vector_map", vector_map)
+      call set_from_python_function(map, vector_map, X, time=0.0)
+
+      do node=1, node_count(U_cartesian)
+         call set_cartesian_velocity(U_cartesian, U, map, node)
+      end do
+
+      ! deallocate fields
+      call deallocate(X_manifold)
+      call deallocate(U_manifold)
+      call deallocate(X_cartesian)
+      call deallocate(U_cartesian)
+
+    end subroutine setup_cartesian_vector_fields
+
+    subroutine set_cartesian_velocity(U_cartesian, U, map, node)
+      implicit none
+
+      type(vector_field), intent(inout) :: U_cartesian
+      type(vector_field), intent(in) :: U
+      type(tensor_field), intent(in) :: map
+      integer, intent(in) :: node
+
+      real, dimension(U%dim) :: U_val
+      real, dimension(U_cartesian%dim, U%dim) :: map_val
+
+      U_val = node_val(U, node)
+      map_val = node_val(map, node)
+
+      call set(U_cartesian, node, matmul(map_val,U_val))
+
+    end subroutine set_cartesian_velocity
+
+    subroutine map_to_manifold(state)
+      ! maps velocity field back to the manifold for output using the
+      ! mapping provided in the .swml
+      implicit none
+
+      type(state_type), intent(in) :: state
+
+      type(vector_field), pointer :: U_cartesian, U_manifold
+      type(tensor_field), pointer :: map
+      integer :: node
+
+      U_cartesian => extract_vector_field(state, "CartesianVelocity")
+      U_manifold => extract_vector_field(state, "ManifoldVelocity")
+      map => extract_tensor_field(state, "VectorMap")
+
+      do node=1, node_count(U_manifold)
+         call set_manifold_velocity(U_manifold, U_cartesian, map, node)
+      end do
+
+    end subroutine map_to_manifold
+
+    subroutine set_manifold_velocity(U_manifold, U_cartesian, map, node)
+      implicit none
+
+      type(vector_field), intent(inout) :: U_manifold
+      type(vector_field), intent(in) :: U_cartesian
+      type(tensor_field), intent(in) :: map
+      integer, intent(in) :: node
+
+      real, dimension(U_cartesian%dim, U_manifold%dim) :: map_val
+      integer :: d
+
+      map_val = node_val(map, node)
+
+      do d=1, U_manifold%dim
+         call set(U_manifold, d, node, dot_product(node_val(U_cartesian, node), map_val(:,d)))
+      end do
+
+    end subroutine set_manifold_velocity
 
     subroutine read_command_line()
       implicit none

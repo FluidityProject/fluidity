@@ -4,6 +4,7 @@ from optparse import OptionParser
 import re
 import sys
 import os.path
+from numpy import array
 
 #####################################################################
 # Script starts here.
@@ -57,20 +58,16 @@ if nodecount<0:
   sys.exit(1)
 
 dim=options.dim
-nodefile=file(basename+".node", 'w')
-nodefile.write(`nodecount`+" "+`dim`+" 0 0\n")
 
 gmsh_node_map = {}
+nodefile_linelist = []
 for i in range(nodecount):
     # Node syntax
     line = mshfile.readline().split()
     gmsh_node = line[0] # the node number that gmsh has assigned, which might
                         # not be consecutive
     gmsh_node_map[gmsh_node] = str(i+1)
-    nodefile.write(" ".join( [str(i+1)] + line[1:dim+1] )+"\n")
-
-nodefile.write("# Produced by: "+" ".join(argv)+"\n")
-nodefile.close()
+    nodefile_linelist.append( line[1:dim+1] )
 
 assert(mshfile.readline().strip()=="$EndNodes")
 
@@ -157,6 +154,41 @@ else:
     sys.stderr.write("Unable to determine dimension of problem\n")
     sys.exit(1)
 
+# Get rid of isolated nodes
+mask=[False for i in range(nodecount)]
+for ele in elements:
+    for i in range(loc):
+        mask[int(gmsh_node_map[ele[i]])-1] = True
+
+isolated=[]
+for i, m in enumerate(mask):
+    if not(m):
+        isolated.append(i+1)
+
+isolated=array(isolated)
+for i in range(nodecount):
+    j = str(i+1)
+    if any(int(gmsh_node_map[j]) == isolated):
+        gmsh_node_map[j] = -666
+    else:
+        gmsh_node_map[j] = int(gmsh_node_map[j])
+        gmsh_node_map[j] -= sum(gmsh_node_map[j] > k for k in isolated)
+        gmsh_node_map[j] = str(gmsh_node_map[j])
+
+newnodecount = nodecount-len(isolated)
+
+nodefile=file(basename+".node", 'w')
+nodefile.write(`newnodecount`+" "+`options.dim`+" 0 0\n")
+j=0
+for i in range(nodecount):    
+    if not(any(i+1 == isolated)):
+        j=j+1
+        nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
+
+nodefile.write("# Produced by: "+" ".join(argv)+"\n")
+nodefile.close()
+
+nodecount=newnodecount
 
 # Output ele file
 elefile.write(`len(elements)`+" "+`loc`+" 1\n")

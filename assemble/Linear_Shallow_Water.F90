@@ -440,7 +440,7 @@ contains
       dim = mesh_dim(U)
 
       u_shape=ele_shape(u, ele)
-      d_shape=ele_shape(d, ele)
+      D_shape=ele_shape(d, ele)
 
       D_ele => ele_nodes(D, ele)
       U_ele => ele_nodes(U, ele)
@@ -452,7 +452,7 @@ contains
            & D_shape , dshape=dm_t, detwei=detwei)
 
       call addto(h_mass_mat, D_ele, D_ele, &
-           shape_shape(d_shape,d_shape,detwei))
+           shape_shape(D_shape,D_shape,detwei))
       call addto(u_mass_mat, u_ele, u_ele, &
            shape_shape(u_shape,u_shape,detwei))
       call addto(coriolis_mat,u_ele,u_ele, &
