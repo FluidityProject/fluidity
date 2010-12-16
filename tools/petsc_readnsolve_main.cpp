@@ -118,6 +118,12 @@ int main(int argc, char **argv){
 #endif
   
   petsc_readnsolve_();
+  
+#ifdef HAVE_PYTHON
+  // Finalize the Python Interpreter
+  python_end_();
+#endif
+
   PetscFinalize();
 #ifdef HAVE_MPI
   MPI::Finalize();
