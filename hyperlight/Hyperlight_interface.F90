@@ -37,11 +37,11 @@ contains
   subroutine set_irradiance_from_hyperlight(state)
     type(state_type), intent(inout) :: state
     type(vector_field),pointer  :: coord
-    type(scalar_field),pointer :: chlorophyll, irradiance_field, time
+    type(scalar_field),pointer :: chlorophyll, irradiance_field
     character(len=OPTION_PATH_LEN) :: field_name
     character(len=1024) :: time_units
     integer :: node, date, f
-    real :: x, y, z, lat_long(2), chl, bf_chl, cdom, wind, wind_u, wind_v, cloud
+    real :: x, y, z, lat_long(2), chl, bf_chl, cdom, wind, wind_u, wind_v, cloud, time
     real :: irradiance, lambda, timestep, scalar, scalars(9), euphotic_ratio
 
     ewrite(1,*) "Running Hyperlight"
@@ -50,8 +50,8 @@ contains
 
     ! passing current and start time to Hyperlight
     call get_option("/timestepping/current_time/time_units/date", time_units)
-    time=>extract_scalar_field(state, "Time")
-    call hyperlight_set_date_time(node_val(time,1), trim(time_units))
+    call get_option("/timestepping/current_time", time)
+    call hyperlight_set_date_time(time, trim(time_units))
 
     ! passing lat long (single position only, for now...)
     if (have_option("/ocean_forcing/bulk_formulae/position/single_location")) then
