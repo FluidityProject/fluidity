@@ -8349,20 +8349,43 @@ to be derived from these fixed bands.</a:documentation>
           <attribute name="name">
             <value>IrradiancePAR</value>
           </attribute>
-          <element name="prescribed">
+          <element name="diagnostic">
             <ref name="velocity_mesh_choice"/>
-            <ref name="prescribed_scalar_field"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </element>
       </optional>
-      <element name="cdom">
+      <element name="CDOM">
         <a:documentation>F, the ratio for correlated CDOM</a:documentation>
         <ref name="real"/>
       </element>
-      <element name="bf_chl">
+      <element name="BF_chl">
         <a:documentation>BF_chl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="CloudCover">
+          <a:documentation>Parameter for GC sky irradiance model - 
+if provided this overwrites the values from the forcing routines.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="WindSpeed">
+          <a:documentation>Parameter for GC sky irradiance model - 
+if provided this overwrites the values from the forcing routines.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="EuphoticRatio">
+          <a:documentation>Optional performance parameter that determines the percentage of 
+surface irradiance at which the model stops computing.
+Default is 0.01 = 1% (standard definition of euphotic depth)</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="recalculation_options">

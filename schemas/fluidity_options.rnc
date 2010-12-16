@@ -6598,19 +6598,36 @@ hyperlight =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "IrradiancePAR" },
-            element prescribed {
+            element diagnostic {
                velocity_mesh_choice,
-               prescribed_scalar_field
+               scalar_python_diagnostic_algorithm,
+               diagnostic_scalar_field_no_adapt
             }
          }?,
          ## F, the ratio for correlated CDOM
-         element cdom {
+         element CDOM {
             real
          },
          ## BF_chl, the backscatter fraction for chlorophyll-bearing particles
-         element bf_chl {
+         element BF_chl {
             real
-         }
+         },
+         ## Parameter for GC sky irradiance model - 
+         ## if provided this overwrites the values from the forcing routines.
+         element CloudCover {
+            real
+         }?,
+         ## Parameter for GC sky irradiance model - 
+         ## if provided this overwrites the values from the forcing routines.
+         element WindSpeed {
+            real
+         }?,
+         ## Optional performance parameter that determines the percentage of 
+         ## surface irradiance at which the model stops computing.
+         ## Default is 0.01 = 1% (standard definition of euphotic depth)
+         element EuphoticRatio {
+            real
+         }?
       }
    )
 
