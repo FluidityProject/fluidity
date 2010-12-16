@@ -17,6 +17,20 @@ rm -rf fluidity.err-*<comment>Note we use ; and no &amp;&amp; as most of these c
     <comment>This is a lie: we're actually using nprocs=3.</comment>
   </problem_definition>
   <variables>
+  <variable name="velocity_error_logs" language="python">import glob
+velocity_error_logs=[]
+for logname in glob.glob('velocity_logs/petsc_readnsolve.err-*'):
+  f=file(logname)
+  velocity_error_logs.append(f.read())
+  f.close()
+</variable>
+<variable name="pressure_error_logs" language="python">import glob
+pressure_error_logs=[]
+for logname in glob.glob('petsc_readnsolve.err-*'):
+  f=file(logname)
+  pressure_error_logs.append(f.read())
+  f.close()
+</variable>
     <variable name="velocity_solve_failed" language="python">from numpy import array
 import re
 
@@ -66,20 +80,6 @@ prns_pressure_solve_success= reason_number&gt;1
     <variable name="no_new_matrixdump" language="python">import os
 files = os.listdir("./")
 no_new_matrixdump = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-  <variable name="velocity_error_logs" language="python">import glob
-velocity_error_logs=[]
-for logname in glob.glob('velocity_logs/petsc_readnsolve.err-*'):
-  f=file(logname)
-  velocity_error_logs.append(f.read())
-  f.close()
-</variable>
-<variable name="pressure_error_logs" language="python">import glob
-pressure_error_logs=[]
-for logname in glob.glob('petsc_readnsolve.err-*'):
-  f=file(logname)
-  pressure_error_logs.append(f.read())
-  f.close()
-</variable>
     </variables>  
   <pass_tests>
     <test name="check_velocity_solve_failed" language="python">assert velocity_solve_failed</test>
