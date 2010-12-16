@@ -27,6 +27,7 @@
 #include "fdebug.h"
 
 module hyperlight
+  use spud
   use state_module
   use fields
   use global_parameters, only:   OPTION_PATH_LEN
@@ -35,39 +36,64 @@ contains
 
   subroutine set_irradiance_from_hyperlight(state)
     type(state_type), intent(inout) :: state
-    type(vector_field) :: coord
-    type(scalar_field) :: chlorophyll
-    type(scalar_field) :: irradiance_field
+    type(vector_field),pointer  :: coord
+    type(scalar_field),pointer :: chlorophyll, irradiance_field, time
     character(len=OPTION_PATH_LEN) :: field_name
+    character(len=1024) :: time_units
     integer :: node, date, f
-    real :: x, y, z, chl, time, lat, long, bf_chl, cdom, wind, cloud
-    real :: irradiance, lambda
+    real :: x, y, z, lat_long(2), chl, bf_chl, cdom, wind, wind_u, wind_v, cloud
+    real :: irradiance, lambda, timestep, scalar, scalars(9), euphotic_ratio
 
     ewrite(1,*) "Running Hyperlight"
     call hyperlight_reset()
     ewrite(2,*) "Hyperlight: setting default parameters"
 
-    !!! some default configuration, for now ...
-    date = 19970114
-    time = 17.0
-    call hyperlight_set_date_time(date, time)
+    ! passing current and start time to Hyperlight
+    call get_option("/timestepping/current_time/time_units/date", time_units)
+    time=>extract_scalar_field(state, "Time")
+    call hyperlight_set_date_time(node_val(time,1), trim(time_units))
 
-    lat = 31.6960
-    long = -64.1650
-    call hyperlight_set_coords(lat, long)
+    ! passing lat long (single position only, for now...)
+    if (have_option("/ocean_forcing/bulk_formulae/position/single_location")) then
+       call hyperlight_set_single_position(1)
+       call get_option("/ocean_forcing/bulk_formulae/position", lat_long)
+       call hyperlight_set_coords(lat_long(1), lat_long(2))
+    else
+       ewrite(-1,*) "Hyperlight currently requires ocean forcing with single_location!"
+       FLExit("Hyperlight: Incorrect latitude and longitude specified.")
+    end if
 
-    bf_chl = 0.0185
-    cdom = 0.0
-    wind =5.0
-    cloud = 0.3
+    ! passing BF and CDOM ratio as specified
+    call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/BF_chl", bf_chl)
+    call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/CDOM", cdom)
+
+    ! getting windspeed and cloudcover
+    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/CloudCover")) then
+       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/CloudCover", cloud)
+    else
+       call fluxes_getscalar("tcc", lat_long(2), lat_long(1), cloud)
+    end if
+    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/WindSpeed")) then
+       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/WindSpeed", wind)
+    else
+       call fluxes_getscalar("u10", lat_long(2), lat_long(1), wind_u)
+       call fluxes_getscalar("v10", lat_long(2), lat_long(1), wind_v)
+       wind =  sqrt(wind_u**2.0 + wind_v**2.0);
+    end if
     call hyperlight_set_params(bf_chl, cdom, wind, cloud)
-    !!!
 
+    ! Performance parameter: set the percentage of surface irradiance after which Hyperlight stops computing
+    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/EuphoticRatio")) then
+       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/EuphoticRatio", euphotic_ratio)
+       call hyperlight_set_euphotic_ratio(euphotic_ratio)
+    else
+       call hyperlight_set_euphotic_ratio(0.0)
+    end if
 
     ! set nodes on Hyperlight grid
     ewrite(2,*) "Hyperlight: creating grid"
-    coord=extract_vector_field(state, "Coordinate")
-    chlorophyll=extract_scalar_field(state, "Chlorophyll")
+    coord=>extract_vector_field(state, "Coordinate")
+    chlorophyll=>extract_scalar_field(state, "Chlorophyll")
     do node=1,node_count(coord)
        chl = node_val(chlorophyll, node)
        call hyperlight_set_node(node_val(coord, node), chl)
@@ -79,42 +105,21 @@ contains
 
     ! copy Hyperlight result to irradiance fields
     ewrite(2,*) "Hyperlight: setting irradiance fields"
-    do node=1,node_count(coord)
-       frequency_field_loop: do f=0,35
-         lambda = 350.0 + (f * 10.0)
+    frequency_field_loop: do f=0,35
+       lambda = 350.0 + (f * 10.0)
+       field_name="Irradiance_"//int2str(NINT(lambda))
+       irradiance_field=>extract_scalar_field(state, field_name)
+       node_loop: do node=1,node_count(coord)
          call hyperlight_query_node(node_val(coord, node), lambda, irradiance)
-
-         field_name="Irradiance_"//int2str(NINT(lambda))
-         irradiance_field=extract_scalar_field(state, field_name)
          call set(irradiance_field, node, irradiance)
-       end do frequency_field_loop
-    end do
+       end do node_loop
+    end do frequency_field_loop
 
   end subroutine set_irradiance_from_hyperlight
 
   subroutine hyperlight_init()
-    call hyperlight_grid_init_c
+    call hyperlight_grid_init
   end subroutine hyperlight_init
-
-  subroutine hyperlight_reset()
-    call hyperlight_grid_reset_c
-  end subroutine hyperlight_reset
-  
-  subroutine hyperlight_set_date_time(date, time_gmt)
-    integer, intent(in)::date
-    real, intent(in)::time_gmt
-    call hyperlight_grid_set_date_time_c(date, time_gmt)
-  end subroutine hyperlight_set_date_time
-
-  subroutine hyperlight_set_coords(latitude, longitude)
-    real, intent(in)::latitude, longitude
-    call hyperlight_grid_set_coords_c(latitude, longitude)
-  end subroutine hyperlight_set_coords
-
-  subroutine hyperlight_set_params(bf_chl, cdom_ratio, windspeed, cloudcover)
-    real, intent(in)::bf_chl, cdom_ratio, windspeed, cloudcover
-    call hyperlight_grid_set_params_c(bf_chl, cdom_ratio, windspeed, cloudcover)
-  end subroutine hyperlight_set_params
 
   subroutine hyperlight_set_node(coord, chl)
     real, intent(in) :: chl
@@ -126,12 +131,8 @@ contains
     if (z .lt. 0.0) then
         z = -coord(3)
     end if
-    call hyperlight_grid_set_node_c(coord(1), coord(2), z, chl)
+    call hyperlight_grid_set_node(coord(1), coord(2), z, chl)
   end subroutine hyperlight_set_node
-
-  subroutine hyperlight_run()
-    call hyperlight_grid_run_c()
-  end subroutine hyperlight_run
 
   subroutine hyperlight_query_node(coord, lambda, irradiance)
     real, intent(in) :: lambda
@@ -144,7 +145,7 @@ contains
     if (z .lt. 0.0) then
         z = -coord(3)
     end if
-    call hyperlight_grid_query_node_c(coord(1), coord(2), z, lambda, irradiance)
+    call hyperlight_grid_query_node(coord(1), coord(2), z, lambda, irradiance)
   end subroutine hyperlight_query_node
 
 end module hyperlight
