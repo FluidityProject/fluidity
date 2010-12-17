@@ -428,7 +428,8 @@ contains
       else if (mod(n, universal_nodes)==0) then
         
         components=universal_nodes/n
-        call petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs)
+        call petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs, &
+            states(istate), read_state)
               
       else
       
@@ -479,7 +480,7 @@ contains
       ewrite(1,*) 'Going into petsc_solve'
       ewrite(1,*) '-------------------------------------------------------------'
       
-      if (read_state .and. components==1) then
+      if (read_state) then
          call petsc_solve(x_field, A, rhs_field, states(istate))
       else
          call petsc_solve(x_field, A, rhs_field)
@@ -507,7 +508,8 @@ contains
     
   end subroutine petsc_readnsolve_flml
     
-  subroutine petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs)
+  subroutine petsc_readnsolve_vector(mesh, n, universal_nodes, option_path, x, matrix, rhs, &
+      state, read_state)
     
     type(mesh_type), intent(inout):: mesh
     integer, intent(in):: n ! matrixdump size
@@ -515,6 +517,8 @@ contains
     character(len=*), intent(in):: option_path
     Mat, intent(inout):: matrix
     Vec, intent(inout):: x, rhs
+    type(state_type), intent(in):: state
+    logical, intent(in):: read_state ! have we actually called populate state fully?
     
     type(petsc_csr_matrix):: A
     type(halo_type), pointer:: halo
@@ -559,7 +563,11 @@ contains
     ewrite(1,*) 'Going into petsc_solve'
     ewrite(1,*) '-------------------------------------------------------------'
     
-    call petsc_solve(x_field, A, rhs_field)
+    if (read_state) then
+      call petsc_solve(x_field, A, rhs_field, state=state)
+    else
+      call petsc_solve(x_field, A, rhs_field)
+    end if
     
     ewrite_minmax(x_field%val)
     
