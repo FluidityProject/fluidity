@@ -7,6 +7,7 @@ import re
 import commands
 import matplotlib.pyplot as plt
 import getopt
+import csv
 
 from scipy.special import erf
 from numpy import poly1d
@@ -18,10 +19,11 @@ from fluidity_tools import stat_parser
 
 def usage():
         print 'Usage:'
-        print 'plotfs_detec.py -v timestep --file=detector_filename --save=filenamebase -t timestepsize(optional)\n'
+        print 'plotfs_detec.py -v timestep --file=detector_filename --cvs=basename(optional) --save=filenamebase -t timestepsize(optional)\n'
         print 'Specifying a timestepsize will change the timestep for the analytical solution only.'
         print '--save=true will save the plots as images instead of plotting them on the screen.'
         print '-v timestep will print some verbos information about the given timestep and then exit.'
+        print '--cvs=baseame instead of the detectors use cvs files created with paraview (see code for more info)'
 
 
 def analytic_solution(r, t):
@@ -46,19 +48,21 @@ def analytic_solution(r, t):
 def bathymetry_function(X):
   h0=50
   R=430620
-  Rmesh=450000
+  Rmesh=440000
   r2=X[0]**2+X[1]**2
   # The last term is an offset term
-  return h0*(R**2-r2)/(R**2)+0.5-h0*(R**2-Rmesh**2)/(R**2)
+  return h0*(R**2-r2)/(R**2)+0.5-h0*(R**2-Rmesh**2)/(R**2) # positive number
 
 ################# Main ###########################
 def main(argv=None):
 
-        Rmesh=450000
+        Rmesh=440000
         filename=''
+        cvsbasename=''
         timestep_ana=0.0
-        dzero=0.5
+        dzero=0.8
         save='' # If nonempty, we save the plots as images instead if showing them
+        handoffset=2.7
 
         global debug
         debug=False
@@ -67,13 +71,16 @@ def main(argv=None):
         verbose_timestep=-1
 
         try:                                
-                opts, args = getopt.getopt(sys.argv[1:], "v:t:", ['file=','save='])
+                opts, args = getopt.getopt(sys.argv[1:], "v:t:", ['file=','cvs=','save='])
         except getopt.GetoptError:  
+                print "Getopterror :("
                 usage()                     
                 sys.exit(2)                     
         for opt, arg in opts:                
                 if opt == '--file':      
                         filename=arg
+                if opt == '--cvs':      
+                        cvsbasename=arg
                 elif opt == '--save':
                         save=arg
                 elif opt == '-t':
@@ -112,46 +119,101 @@ def main(argv=None):
         ax2 = fig2.add_subplot(111)
 
         for t in range(0,len(timesteps)):
-                if verbose and verbose_timestep!=t:
-#                        verbose_timestep=verbose_timestep-1
+
+                if not t%10==0:
                         continue
 
                 fsvalues=[]
                 xcoords=[]
-                for name, item in fs.iteritems():
-                        #print name
-                        xcoords.append(s[name]['position'][0][0])
-                        #print xcoord
-                        fsvalues.append(fs[name][t])
 
-                # sort coords and values 
-                temp=[]
-                for i in range(0,len(xcoords)):
-                        temp.append([xcoords[i], fsvalues[i]])
-                temp.sort()
-                xcoords=[]
-                fsvalues=[]
-                for i in range(0,len(temp)):
-                        xcoords.append(temp[i][0])
-                        fsvalues.append(temp[i][1])
+                # check if we want to use detector (or vtu probe) data
+                if cvsbasename=='':
+                        minfs=1000
+                        for name, item in fs.iteritems():
+                                xcoords.append(s[name]['position'][0][0])
+                                
+                                fsvalues.append(fs[name][t])
+                                # alternativly: Probe data with vtktools:
+                                # d0=1.0
+                                # fsvalues.append(probe_fs(filename, [xcoords[-1],0, -bathymetry_function([xcoords[-1],0])+d0/2], t))
 
-                # Plot result of one timestep
-                ax2.plot(xcoords,fsvalues,'ro', label='Numerical solution')
-                plt.ylim(-10,0)
+                                print 'Time: ', t, ', Name: ',name, ', X-Coord: ', s[name]['position'][0][0], ', FS: ', fs[name][t]
+                                if minfs>fs[name][t]:
+                                        minfs=fs[name][t]
+                        print 'Minfs: ', minfs
+
+                        # sort coords and values 
+                        temp=[]
+                        for i in range(0,len(xcoords)):
+                                temp.append([xcoords[i], fsvalues[i]])
+                        temp.sort()
+                        xcoords=[]
+                        fsvalues=[]
+                        for i in range(0,len(temp)):
+                                xcoords.append(temp[i][0])
+                                fsvalues.append(temp[i][1])
+
+                        # Plot result of one timestep
+                        ax2.plot(xcoords,fsvalues,'r.', label='Numerical solution')
+                        plt.ylim(-10,0)
+
+                # use cvs data
+                else:
+                        cvsreader=csv.reader(open(cvsbasename+'.'+str(t)+'.csv', 'rb'), delimiter=',', quotechar='|')
+                        firstrow=True
+                        fs_id=-1
+                        pos_x_id=-1
+                        pos_y_id=-1
+                        # get indices
+                        for row in cvsreader:
+                                if firstrow:
+                                        firstrow=False
+                                        for i in range(0,len(row)):
+                                                if row[i]=='"FreeSurface"':
+                                                        fs_id=i
+                                                elif row[i]=='"Points:0"':
+                                                        pos_x_id=i
+                                                elif row[i]=='"Points:1"':
+                                                        pos_y_id=i
+                                        assert(fs_id>=0 and pos_x_id>=0 and pos_y_id>=0)        
+                                        continue
+                                if abs(float(row[pos_y_id]))>=1e-5:
+                                        print 'You didnt save the cvs file on a slice on the x axis!'
+                                        exit()
+                                xcoords.append(float(row[pos_x_id]))
+                                fsvalues.append(float(row[fs_id])+handoffset)
+
+                        # sort coords and values 
+                        temp=[]
+                        for i in range(0,len(xcoords)):
+                                temp.append([xcoords[i], fsvalues[i]])
+                        temp.sort()
+                        xcoords=[]
+                        fsvalues=[]
+                        for i in range(0,len(temp)):
+                                xcoords.append(temp[i][0])
+                                fsvalues.append(temp[i][1])
+                        # Plot result of one timestep
+                        ax2.plot(xcoords,fsvalues,'-', label='Numerical solution')
+                        plt.ylim(-10,0)
+
+
+
                 
                 # Plot Analytical solution
                 fsvalues_ana=[]
+                xcoords=[]
                 
                 offset=-bathymetry_function([0.0,0.0])+50.0+dzero
 
-                xcoords.sort()
-                for x in xcoords:
-                        fsvalues_ana.append(analytic_solution(x, t*timestep_ana)+offset)
+                for i in range(-250,250): # number of points for the analytical solution
+                        xcoords.append(Rmesh*float(i)/250)
+                        fsvalues_ana.append(analytic_solution(xcoords[-1], t*timestep_ana)+offset+handoffset)
 
                 ax2.plot(xcoords, fsvalues_ana, label='Analytical solution')
-                plt.ylim(-10,0)
+#                plt.ylim(-10,0)
 
-                plt.title('d_min=2.5m, Time='+ str(t*timestep)+'s')
+               # plt.title('d_min=2.5m, Time='+ str(t*timestep)+'s')
                 plt.xlabel('X position [m]')
                 plt.ylabel('Free surface [m]')
                 plt.legend()
@@ -178,15 +240,60 @@ def main(argv=None):
                 t=t+1
         if verbose:
                 print 'Ups, program ended unexpected. Are you sure you specified the correct time for the -v argument?'
-        
-# Make video from the images:
-        
-# mencoder "mf://*.png" -mf type=png:fps=30 -ovc lavc -o output.avi
 
 
+
+# tries to retrieve the values with vtu probes. does not work :(
+def probe_fs(filename, coords, t):
+        import sys
+        import vtktools
+        vtu=vtktools.vtu(filename[:-10]+'_'+str(t)+'.pvtu') 
+        vtu.ApplyProjection('x', 'y', '0')   # Set the third component to zero. 
+        #Xlist = arange(0.0,4.001,0.01)# x co-ordinates of the desired array shape
+        #Ylist = arange(0.0,2.001,0.01)# y co-ordinates of the desired array shape
+        #[X,Y] = meshgrid(Xlist,Ylist) 
+        #Z = 0.0*X # This is 2d so z is an array of zeros.
+        #X = reshape(X,(size(X),))
+        #Y = reshape(Y,(size(Y),))
+        #Z = reshape(Z,(size(Z),))
+        #zip(X,Y,Z)
+        #pts = zip(X,Y,Z)
+        print "coords: ", coords
+        pts = vtktools.arr([coords])
+        # create arrays of velocity and temperature values at the desired points
+        fs = vtu.ProbeData(pts, 'FreeSurface')
+        return fs[0]
+
+
+# reads the free surface values saved in cvs files. for that you have to open paraview, apply a slice filter and then "save data" for all timesteps as csv.
+def cvs_reader(filename, coords, t):
+        import sys
+        import vtktools
+        vtu=vtktools.vtu(filename[:-10]+'_'+str(t)+'.pvtu') 
+        vtu.ApplyProjection('x', 'y', '0')   # Set the third component to zero. 
+        #Xlist = arange(0.0,4.001,0.01)# x co-ordinates of the desired array shape
+        #Ylist = arange(0.0,2.001,0.01)# y co-ordinates of the desired array shape
+        #[X,Y] = meshgrid(Xlist,Ylist) 
+        #Z = 0.0*X # This is 2d so z is an array of zeros.
+        #X = reshape(X,(size(X),))
+        #Y = reshape(Y,(size(Y),))
+        #Z = reshape(Z,(size(Z),))
+        #zip(X,Y,Z)
+        #pts = zip(X,Y,Z)
+        print "coords: ", coords
+        pts = vtktools.arr([coords])
+        # create arrays of velocity and temperature values at the desired points
+        fs = vtu.ProbeData(pts, 'FreeSurface')
+        return fs[0]
 
 
 if __name__ == "__main__":
     main()
 
+
+
+        
+# Make video from the images:
+        
+# mencoder "mf://*.png" -mf type=png:fps=30 -ovc lavc -o output.avi
 

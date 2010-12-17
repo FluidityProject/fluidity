@@ -1,49 +1,48 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>wetting_and_drying_thacker_dg_parallel</name>
+  <name>wetting_and_drying_thacker_cg_parallel</name>
   <owner userid="sf1409"/>
-  <problem_definition length="special" nprocs="4">
-    <command_line>mpiexec -n 4 fluidity thacker.flml</command_line>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>mpiexec -n 4 fluidity thacker_B_d0=1.0.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="integralerror" language="python">import os
-meastimestep=82
-timestep=650
-f=os.popen("./plotfs_detec.py -v "+str(meastimestep)+" -t "+str(timestep)+" --file=onedomain_2plus1.detectors | grep 'Integral error'")
-output=f.readline()
-integralerror=float(output.split()[-1])<comment>The specified meastimestep should be the timestep after 1 1/4 waves, that is when the waterlevel is almost constant.
-The timestep value must be adjusted so that the oscillation speed of numerical and analytical solution are equal (try and error by running ./plotfs_detec.py -t 650 --file=onedomain_2plus1.detectors</comment></variable>
-    <variable name="domaincentererror" language="python">import os
-meastimestep=82
-timestep=650
-f=os.popen("./plotfs_detec.py -v "+str(meastimestep)+" -t "+str(timestep)+" --file=onedomain_2plus1.detectors | grep 'Error in the domain center'")
-output=f.readline()
-domaincentererror=float(output.split()[-1])<comment>The specified meastimestep should be the timestep after 1 1/4 waves, that is when the waterlevel is almost constant.
-The timestep value must be adjusted so that the oscillation speed of numerical and analytical solution are equal (try and error by running ./plotfs_detec.py -t 650 --file=onedomain_2plus1.detectors</comment></variable>
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
-s = stat_parser("onedomain_2plus1.detectors")
+s = stat_parser("thacker_B_d0=1.0.stat")
 ElapsedTime=s["ElapsedTime"]["value"]</variable>
-    <variable name="damping" language="python">import os
-starttimestep=0
-endtimestep=136
-# Get central fs position at beginning
-f=os.popen("./plotfs_detec.py -v "+str(starttimestep)+" --file=onedomain_2plus1.detectors | grep 'Numerical position at domain center'")
-output=f.readline()
-startpos=float(output.split()[-1])
-# Get central fs position after 2 waves
-f=os.popen("./plotfs_detec.py -v "+str(endtimestep)+" --file=onedomain_2plus1.detectors | grep 'Numerical position at domain center'")
-output=f.readline()
-endpos=float(output.split()[-1])
-damping=abs(startpos-endpos)<comment>starttimestep should be 0
-endtimestep should be after 2 waves</comment></variable>
+    <variable name="fs_error_l2" language="python">from fluidity_tools import stat_parser
+s = stat_parser("thacker_B_d0=1.0.stat")
+fs_error_l2=s["water"]["fs_error_abs"]["l2norm"]</variable>
+    <variable name="fs_error_max" language="python">from fluidity_tools import stat_parser
+s = stat_parser("thacker_B_d0=1.0.stat")
+fs_error_max=s["water"]["fs_error_abs"]["max"]</variable>
+    <variable name="vel_error_l2" language="python">from fluidity_tools import stat_parser
+s = stat_parser("thacker_B_d0=1.0.stat")
+vel_error_l2=s["water"]["vel_error%magnitude"]["l2norm"]</variable>
+    <variable name="vel_error_max" language="python">from fluidity_tools import stat_parser
+s = stat_parser("thacker_B_d0=1.0.stat")
+vel_error_max=s["water"]["vel_error%magnitude"]["max"]</variable>
+    <variable name="volume" language="python">from fluidity_tools import stat_parser
+s = stat_parser("thacker_B_d0=1.0.stat")
+volume=s["water"]["Density"]["integral"]</variable>
   </variables>
   <pass_tests>
-    <test name="endtime" language="python">assert(ElapsedTime[-1]==90000.0)</test>
-    <test name="integralerror" language="python">print 'Error after 1 1/4 waves integrated over a slice through the domain: ', integralerror
-assert(integralerror&lt;=50000.0)<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).</comment></test>
-    <test name="domaincentererror" language="python">print 'Error after 1 1/4 waves in domain center: ', domaincentererror
-assert(domaincentererror&lt;=0.2)</test>
-    <test name="daming" language="python">print 'Damping after 2 waves: '+str(damping)+'m.'
-assert(damping&lt;=0.5)</test>
+    <test name="endtime" language="python">print "Checking simulation endtime"
+assert(ElapsedTime[-1]==86400.0)</test>
+    <test name="fs_error" language="python">tol_l2=1500000
+tol_max=0.5
+print "Checking fs_error_l2 &lt; ", tol_l2
+for val in fs_error_l2:
+  assert(val&lt;tol_l2)
+print "Checking fs_error_max &lt; ", tol_max
+for val in fs_error_max:
+  assert(val&lt;tol_max)</test>
+    <test name="vel_error" language="python">tol_l2=1000000
+tol_max=3.0
+print "Checking vel_error_l2 &lt; ", tol_l2
+for val in vel_error_l2:
+  assert(val&lt;tol_l2)
+print "Checking vel_error_max &lt; ", tol_max
+for val in vel_error_max:
+  assert(val&lt;tol_max)</test>
   </pass_tests>
 </testproblem>
