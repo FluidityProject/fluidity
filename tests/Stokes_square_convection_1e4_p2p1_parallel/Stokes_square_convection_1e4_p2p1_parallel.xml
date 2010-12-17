@@ -39,8 +39,8 @@ assert(abs(nu_top-4.65) &lt; 0.15)
 assert(abs(rms_vel-42.5) &lt; 1.5)
 </test>
 
-<test name="Divergence small .lt. 1.0E-3" language="python">
-assert(max_div &lt; 1.0E-3)
+<test name="Divergence small .lt. 5.0E-6" language="python">
+assert(max_div &lt; 5.0E-6)
 </test>
 
 </pass_tests>                                                                                                                                                                                                

@@ -44,23 +44,11 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.1</real_value>
+        <real_value rank="0">0.5</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
-    <detectors>
-      <static_detector name="MidPoint">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.5</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="LeftBoundaryMidHeight">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
-        </location>
-      </static_detector>
-    </detectors>
   </io>
   <timestepping>
     <current_time>
@@ -76,8 +64,8 @@
       <requested_cfl>
         <real_value rank="0">3.0</real_value>
       </requested_cfl>
-      <courant_number name="ControlVolumeCFLNumber">
-        <mesh name="CoordinateMesh"/>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
       </courant_number>
       <increase_tolerance>
         <real_value rank="0">1.1</real_value>
@@ -85,7 +73,7 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.0e-4</real_value>
+        <real_value rank="0">1.0e-5</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -151,9 +139,9 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="sor"/>
+                  <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.0E-10</real_value>
+                    <real_value rank="0">1.0E-12</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">1000</integer_value>
@@ -173,7 +161,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="jacobi"/>
           <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -231,12 +219,12 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-12</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">1000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -315,27 +303,21 @@
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
-          <control_volumes>
-            <number_advection_iterations>
-              <integer_value rank="0">3</integer_value>
-            </number_advection_iterations>
-          </control_volumes>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
