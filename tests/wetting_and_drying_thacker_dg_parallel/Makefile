@@ -5,6 +5,7 @@ input: clean
 	cd mesh; ./makemesh_parallel.sh
 
 clean:
-	rm -f  *.ele *.edge *.node *.poly *vtu *.s *.d.1 *.stat *.msh *.detectors matrixdump* *.pdf *.dat 
+	rm -f  *.ele *.edge *.node *.poly *vtu *.s *.d.1 *.stat *.msh *.detectors matrixdump* *.pdf *.dat *.pyc 
+	rm -R thacker_B_d0=1.0_*
 	cd mesh; rm -f  *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat *.msh *.detectors matrixdump* *.halo 
 
