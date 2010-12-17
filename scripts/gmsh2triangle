@@ -4,7 +4,6 @@ from optparse import OptionParser
 import re
 import sys
 import os.path
-from numpy import array
 
 #####################################################################
 # Script starts here.
@@ -155,20 +154,14 @@ else:
     sys.exit(1)
 
 # Get rid of isolated nodes
-mask=[False for i in range(nodecount)]
+isolated=set(range(1,nodecount+1))
 for ele in elements:
     for i in range(loc):
-        mask[int(gmsh_node_map[ele[i]])-1] = True
+        isolated.discard(int(gmsh_node_map[ele[i]]))
 
-isolated=[]
-for i, m in enumerate(mask):
-    if not(m):
-        isolated.append(i+1)
-
-isolated=array(isolated)
 for i in range(nodecount):
     j = str(i+1)
-    if any(int(gmsh_node_map[j]) == isolated):
+    if int(gmsh_node_map[j]) in isolated:
         gmsh_node_map[j] = -666
     else:
         gmsh_node_map[j] = int(gmsh_node_map[j])
@@ -181,7 +174,7 @@ nodefile=file(basename+".node", 'w')
 nodefile.write(`newnodecount`+" "+`options.dim`+" 0 0\n")
 j=0
 for i in range(nodecount):    
-    if not(any(i+1 == isolated)):
+    if not(i+1 in isolated):
         j=j+1
         nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
 
