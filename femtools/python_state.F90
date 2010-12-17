@@ -298,7 +298,7 @@ module python_state
     type(element_type) :: E
     type(mesh_type) :: M
     type(state_type) :: st
-    integer :: snlen,mlen
+    integer :: snlen,mlen,flen
     integer :: i, j
     character(len=10) :: family_name
 
@@ -313,11 +313,12 @@ module python_state
     else
       family_name = "unknown"
     end if
+    flen=len_trim(family_name)
 
     call python_add_element(E%dim, E%loc, E%ngi, E%degree,&   
       &trim(st%name),snlen,trim(M%name),mlen,&
       &E%n,size(E%n,1), size(E%n,2),E%dn, size(E%dn,1), size(E%dn,2), size(E%dn,3),&
-      &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, len_trim(family_name))
+      &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, flen)
 
     !! Add quadrature and surface_quadrature to this element
     call python_add_quadrature(E%quadrature%dim, E%quadrature%degree, E%quadrature%vertices,E%quadrature%ngi,&
