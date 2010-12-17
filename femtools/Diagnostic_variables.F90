@@ -1077,16 +1077,12 @@ contains
     total_dete=static_dete+lagrangian_dete+python_dete
     total_num_det=total_dete
 
-!    allocate(detector_list(total_dete))
-    
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
  
     allocate(name_of_detector_groups_in_read_order(total_dete_groups))
     allocate(number_det_in_each_group(total_dete_groups))
     allocate(name_of_detector_in_read_order(total_dete))
     
-!   if (size(detector_list)==0) return
-
     if (total_dete==0) return
 
     vfield=>extract_vector_field(state(1), "Coordinate")
@@ -2250,58 +2246,44 @@ contains
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
-    xfield=>extract_vector_field(state(1), "Coordinate")
-
+    !Computing the global number of detectors. This is to prevent hanging
+    !when there are no detectors on any processor
     check_no_det=1
     if (detector_list%length==0) then
        check_no_det=0
     end if
-
     call allmax(check_no_det)
-
     if (check_no_det==0) then
        return
     end if
 
+    !Pull some information from state
+    xfield=>extract_vector_field(state(1), "Coordinate")
     vfield => extract_vector_field(state(1),"Velocity")
     halo_level = element_halo_count(vfield%mesh)
-
     shape=>ele_shape(xfield,1)
 
     ! Calculate the location of the detectors in the mesh.
-
+    ! CJC comment: I think this is unnecessary as the detectors should 
+    ! know where they are
     if (detector_list%length/=0) then
-
        if ((.not.zoltan_drive_call).or.(timestep<=1)) then
-
-          ewrite(2,*) "Checking when entering here"
-
-          ewrite(2,*) "timestep", timestep
-
           call search_for_detectors(detector_list, xfield)
-
        end if
-
     end if
 
+    ! This section of code is very strange. node%local is set to true in 
+    ! both cases, and the initial_owner is getting changed, not sure 
+    ! what initial_owner really means
     node => detector_list%firstnode
-
     do i = 1, detector_list%length
-         
       if (node%element<0) then
-
          node%local = .true.
-
       else
-
          node%initial_owner=getprocno()
-
          node%local = .true.
-     
       end if 
-
       node => node%next
-
    end do
 
     !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED BEFORE CALLING MPI_ALL_MAX() 
