@@ -290,7 +290,7 @@ contains
     real :: reference_density, p_0, ratio_specific_heats, c_p, c_v
     real :: bulk_sound_speed_squared, atmospheric_pressure
     real :: drhodp_node, power
-    real, parameter :: R=8.314472
+    real :: R
     type(scalar_field) :: drhodp_local, energy_remap, pressure_remap, density_remap, &
                           & temperature_remap
     logical :: incompressible
@@ -422,14 +422,16 @@ contains
         call get_option(trim(eos_path)//'/compressible/giraldo/C_P', &
                         c_p, stat=gstat)
         if(gstat/=0) then
-          c_p=5.0
+          c_p=1.0
         end if
         
         call get_option(trim(eos_path)//'/compressible/giraldo/C_V', &
                         c_v, stat=cstat)
         if(cstat/=0) then
-          c_v=3.0
+          c_v=1.0
         end if
+
+        R=c_p-c_v
         
         incompressible = ((gstat/=0).or.(cstat/=0))
         if(incompressible) then
@@ -472,6 +474,7 @@ contains
               
             call set(density, pressure_remap)
             call scale(density, drhodp_local)
+            call scale(density, 1.0/(1.0+power))
               
             call deallocate(pressure_remap)
           end if
@@ -496,6 +499,7 @@ contains
               call set(pressure, drhodp_local)
               call invert(pressure)
               call scale(pressure, density_remap)
+              call scale(pressure, (1.0+power))
               
               call deallocate(density_remap)
             else
