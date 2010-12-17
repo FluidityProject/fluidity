@@ -50,7 +50,7 @@ LDFLAGS   = @LDFLAGS@
 LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@ \
 		  ../lib/libvtkfortran.a ../lib/libspatialindex.a ../lib/libspud.a ../lib/libjudy.a
 
-OBJS = NetCDF_reader.o SampleNetCDF2.o import_bath_data.o
+OBJS = NetCDF_reader.o SampleNetCDF2.o import_bath_data.o read_netcdf_interface.o
 
 .SUFFIXES: .c .o .cpp .F90 .a .so
 

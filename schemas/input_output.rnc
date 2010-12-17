@@ -169,6 +169,19 @@ input_choice_initial_condition_real =
                   "Temperature"|"Salinity"|"Free-surface height"
               }
           }
+      }|
+      ## Initialize a single field from data contained within a NetCDF file.
+      ## Data should be in the form x,y,z where where x and y are the coordinates
+      ## (either cartesian or longitude-latitude) and z is the value of the intial
+      ## condition to be imposed. 
+      ## Note: This option currently only supports 'single layer' data sets.
+      element from_netcdf {
+          attribute file_name { xsd:string },
+          element format {
+              element string_value {
+                  "Free-surface height"|"other"
+              }
+          }
       }
    )
 
@@ -218,6 +231,19 @@ input_choice_initial_condition_pressure =
           element format {
               element string_value {
                   "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }|
+      ## Initialize a single field from data contained within a NetCDF file.
+      ## Data should be in the form x,y,z where where x and y are the coordinates
+      ## (either cartesian or longitude-latitude) and z is the value of the intial
+      ## condition to be imposed. 
+      ## Note: This option currently only supports 'single layer' data sets.
+      element from_netcdf {
+          attribute file_name { xsd:string },
+          element format {
+              element string_value {
+                  "Free-surface height"|"other"
               }
           }
       }

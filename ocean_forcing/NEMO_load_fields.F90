@@ -152,6 +152,8 @@ subroutine load_nemo_values(state)
   real :: current_time
   logical*1 :: on_sphere
 
+  real :: gravity_magnitude
+
   ! Temporary arrays to store the data read from the netCDF
   real, dimension(3) :: temp_vector_3D
   real, dimension(:), allocatable :: X, Y, Z, Temperature, Salinity
@@ -187,8 +189,9 @@ subroutine load_nemo_values(state)
 
   call get_option("/timestepping/current_time",current_time)
   on_sphere=have_option('/geometry/spherical_earth')
+  call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
 
-    call get_nemo_variables(current_time, X, Y, Z, depth, Temperature, Salinity, U, V, W, &
+  call get_nemo_variables(current_time, X, Y, Z, depth, Temperature, Salinity, U, V, W, &
                           SSH, NNodes)
 
   call allocate(temperature_t, input_mesh, name="temperature")
@@ -199,7 +202,7 @@ subroutine load_nemo_values(state)
   do i=1,NNodes
      call set(temperature_t,i,Temperature(i))
      call set(salinity_t,i,Salinity(i))
-     call set(pressure_t,i,9.81*SSH(i))
+     call set(pressure_t,i,gravity_magnitude*SSH(i))
   enddo
 
   do i=1,NNodes

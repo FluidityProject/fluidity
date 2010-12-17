@@ -218,6 +218,24 @@ be set to use this option.</a:documentation>
           </element>
         </element>
       </element>
+      <element name="from_netcdf">
+        <a:documentation>Initialize a single field from data contained within a NetCDF file.
+Data should be in the form x,y,z where where x and y are the coordinates
+(either cartesian or longitude-latitude) and z is the value of the intial
+condition to be imposed. 
+Note: This option currently only supports 'single layer' data sets.</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <element name="string_value">
+            <choice>
+              <value>Free-surface height</value>
+              <value>other</value>
+            </choice>
+          </element>
+        </element>
+      </element>
     </choice>
   </define>
   <define name="input_choice_initial_condition_pressure">
@@ -271,6 +289,24 @@ be set to use this option.</a:documentation>
               <value>Temperature</value>
               <value>Salinity</value>
               <value>Free-surface height</value>
+            </choice>
+          </element>
+        </element>
+      </element>
+      <element name="from_netcdf">
+        <a:documentation>Initialize a single field from data contained within a NetCDF file.
+Data should be in the form x,y,z where where x and y are the coordinates
+(either cartesian or longitude-latitude) and z is the value of the intial
+condition to be imposed. 
+Note: This option currently only supports 'single layer' data sets.</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <element name="string_value">
+            <choice>
+              <value>Free-surface height</value>
+              <value>other</value>
             </choice>
           </element>
         </element>
