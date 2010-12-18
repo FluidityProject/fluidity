@@ -224,14 +224,14 @@ def main(argv=None):
 
 
         # Plot result of all timesteps
-        ax2.plot(timeplot_xvalue,timeplot_yvalue,'-', label='Numerical solution')
+        ax2.plot(timeplot_xvalue,timeplot_yvalue,'--', label='Numerical solution')
         ax2.plot(timeplot_xvalue,timeplot_yvalue_analytical,'-', label='Analytical solution')
 
         #plt.ylim(-10,0)
 
         plt.xlabel('Time [h]')
         plt.ylabel('Free surface [m]')
-        plt.legend()
+        plt.legend(loc='center right')
 
         plt.draw()
         raw_input("Please press Enter")

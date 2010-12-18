@@ -17,13 +17,15 @@ from matplotlib.mlab import stineman_interp
 from numpy import exp, cos
 from fluidity_tools import stat_parser
 
+# This script plots the 
+
 def usage():
         print 'Usage:'
-        print 'plotfs_detec.py -v timestep --file=detector_filename --cvs=basename(optional) --save=filenamebase -t timestepsize(optional)\n'
+        print 'plotfs_detec.py -t timestep --file=detector_filename --csv=basename(optional) --save=filenamebase\n'
         print 'Specifying a timestepsize will change the timestep for the analytical solution only.'
         print '--save=true will save the plots as images instead of plotting them on the screen.'
-        print '-v timestep will print some verbos information about the given timestep and then exit.'
-        print '--cvs=baseame instead of the detectors use cvs files created with paraview (see code for more info)'
+        print '-t timestep will only plot the specified timestep.'
+        print '--csv=basename instead of the detectors use csv files created with paraview (see code for more info)'
 
 
 def analytic_solution(r, t):
@@ -58,7 +60,7 @@ def main(argv=None):
 
         Rmesh=440000
         filename=''
-        cvsbasename=''
+        csvbasename=''
         timestep_ana=0.0
         dzero=0.8
         save='' # If nonempty, we save the plots as images instead if showing them
@@ -71,7 +73,7 @@ def main(argv=None):
         verbose_timestep=-1
 
         try:                                
-                opts, args = getopt.getopt(sys.argv[1:], "v:t:", ['file=','cvs=','save='])
+                opts, args = getopt.getopt(sys.argv[1:], "t:h:", ['file=','csv=','save='])
         except getopt.GetoptError:  
                 print "Getopterror :("
                 usage()                     
@@ -79,14 +81,11 @@ def main(argv=None):
         for opt, arg in opts:                
                 if opt == '--file':      
                         filename=arg
-                if opt == '--cvs':      
-                        cvsbasename=arg
+                elif opt == '--csv':      
+                        csvbasename=arg
                 elif opt == '--save':
                         save=arg
                 elif opt == '-t':
-                    timestep_ana = float(arg)
-                elif opt == '-v':
-                        verbose=True
                         verbose_timestep=int(arg)
                 elif opt == '-h' or opt == '--help':
                     usage()                     
@@ -99,7 +98,7 @@ def main(argv=None):
         
         ####################### Print time plot  ###########################
         print 'Generating time plot'
-      
+              
         s = stat_parser(filename)
 
         timesteps=s["ElapsedTime"]["value"]
@@ -119,15 +118,15 @@ def main(argv=None):
         ax2 = fig2.add_subplot(111)
 
         for t in range(0,len(timesteps)):
-
-                if not t%10==0:
+                if verbose_timestep>-1 and verbose_timestep!=t:
                         continue
-
+                #if not t%10==0:
+                #        continue
                 fsvalues=[]
                 xcoords=[]
-
+                print "csvbasename", csvbasename
                 # check if we want to use detector (or vtu probe) data
-                if cvsbasename=='':
+                if csvbasename=='':
                         minfs=1000
                         for name, item in fs.iteritems():
                                 xcoords.append(s[name]['position'][0][0])
@@ -157,15 +156,15 @@ def main(argv=None):
                         ax2.plot(xcoords,fsvalues,'r.', label='Numerical solution')
                         plt.ylim(-10,0)
 
-                # use cvs data
+                # use csv data
                 else:
-                        cvsreader=csv.reader(open(cvsbasename+'.'+str(t)+'.csv', 'rb'), delimiter=',', quotechar='|')
+                        csvreader=csv.reader(open(csvbasename+'.'+str(t)+'.csv', 'rb'), delimiter=',', quotechar='|')
                         firstrow=True
                         fs_id=-1
                         pos_x_id=-1
                         pos_y_id=-1
                         # get indices
-                        for row in cvsreader:
+                        for row in csvreader:
                                 if firstrow:
                                         firstrow=False
                                         for i in range(0,len(row)):
@@ -178,7 +177,7 @@ def main(argv=None):
                                         assert(fs_id>=0 and pos_x_id>=0 and pos_y_id>=0)        
                                         continue
                                 if abs(float(row[pos_y_id]))>=1e-5:
-                                        print 'You didnt save the cvs file on a slice on the x axis!'
+                                        print 'You didnt save the csv file on a slice on the x axis!'
                                         exit()
                                 xcoords.append(float(row[pos_x_id]))
                                 fsvalues.append(float(row[fs_id])+handoffset)
@@ -191,10 +190,10 @@ def main(argv=None):
                         xcoords=[]
                         fsvalues=[]
                         for i in range(0,len(temp)):
-                                xcoords.append(temp[i][0])
+                                xcoords.append(temp[i][0]/1000) # in km
                                 fsvalues.append(temp[i][1])
                         # Plot result of one timestep
-                        ax2.plot(xcoords,fsvalues,'-', label='Numerical solution')
+                        ax2.plot(xcoords,fsvalues, label='Numerical solution', linestyle='--')
                         plt.ylim(-10,0)
 
 
@@ -203,20 +202,20 @@ def main(argv=None):
                 # Plot Analytical solution
                 fsvalues_ana=[]
                 xcoords=[]
-                
+                        
                 offset=-bathymetry_function([0.0,0.0])+50.0+dzero
 
                 for i in range(-250,250): # number of points for the analytical solution
-                        xcoords.append(Rmesh*float(i)/250)
-                        fsvalues_ana.append(analytic_solution(xcoords[-1], t*timestep_ana)+offset+handoffset)
+                        xcoords.append(Rmesh*float(i)/250/1000) # in km
+                        fsvalues_ana.append(analytic_solution(xcoords[-1]*1000, t*timestep_ana)+offset+handoffset)
 
-                ax2.plot(xcoords, fsvalues_ana, label='Analytical solution')
-#                plt.ylim(-10,0)
+                ax2.plot(xcoords, fsvalues_ana, label='Analytical solution', linestyle='-')
+                #       plt.ylim(-10,0)
 
-               # plt.title('d_min=2.5m, Time='+ str(t*timestep)+'s')
-                plt.xlabel('X position [m]')
+                       # plt.title('d_min=2.5m, Time='+ str(t*timestep)+'s')
+                plt.xlabel('Position [km]')
                 plt.ylabel('Free surface [m]')
-                plt.legend()
+                plt.legend(loc='lower center')
 
                 if verbose:
                         print 'Current time: ', timesteps[t]
@@ -265,8 +264,8 @@ def probe_fs(filename, coords, t):
         return fs[0]
 
 
-# reads the free surface values saved in cvs files. for that you have to open paraview, apply a slice filter and then "save data" for all timesteps as csv.
-def cvs_reader(filename, coords, t):
+# reads the free surface values saved in csv files. for that you have to open paraview, apply a slice filter and then "save data" for all timesteps as csv.
+def csv_reader(filename, coords, t):
         import sys
         import vtktools
         vtu=vtktools.vtu(filename[:-10]+'_'+str(t)+'.pvtu') 
