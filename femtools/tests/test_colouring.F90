@@ -26,35 +26,36 @@
 !    USA
 #include "fdebug.h"
   
-  subroutine test_colouring(sparsity, colour_sets)
+  subroutine test_colouring
   use fields_manipulation
   use state_module
   use vtk_interfaces
   use colouring
-  use sparsity_patterns_meshes
+  use sparsity_patterns
   use unittest_tools
+  use read_triangle
   implicit none
 
-  type(state_type) :: state
-  type(mesh_type), pointer  :: mesh, p0_mesh
-  type(csr_sparsity), pointer :: sparsity
-  type(integer_set), dimension(:), pointer, intent(out) :: colour_sets
+  type(vector_field) :: positions
+  type(mesh_type)  :: pwc_mesh
+  type(csr_sparsity) :: sparsity
   integer :: maxdgr, i
   logical :: fail
+  type(integer_set), dimension(:), pointer :: colour_sets
 
+  positions = read_triangle_files("data/pslgA", quad_degree=4)
+  pwc_mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
+  sparsity = make_sparsity_compactdgdouble(pwc_mesh, "cdG Sparsity")
 
-!  call vtk_read_state("data/anisotropic.vtu", state)
-!  mesh => extract_mesh(state, "Mesh")
-!  p0_mesh = piecewise_constant_mesh(mesh, "P0Mesh")
-!  sparsity => get_csr_sparsity_compactdgdouble(state, p0_mesh)
+  ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes 
+  assert(size(sparsity,1)==size(sparsity,2))
 
-!  maxdgr=0
-!  do i=1, size(sparsity, 1)
-!     maxdgr=max(maxdgr, row_length(sparsity, i))
-!  enddo
-
-!  call allocate(colour_sets)
-!  call colour_sparsity(sparsity, colour_sets)
+  maxdgr=0
+  do i=1, size(sparsity, 1)
+     maxdgr=max(maxdgr, row_length(sparsity, i))
+  enddo
+  !call allocate(colour_sets)
+  call colour_sparsity(sparsity, colour_sets)
 
 !  if (size(colour_sets) > maxdgr+1 ) fail = .true.
 !  call report_test("colour sets", fail, .false., "colour sets should not be greater than max degree")
