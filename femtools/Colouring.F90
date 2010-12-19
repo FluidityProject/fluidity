@@ -75,6 +75,7 @@ contains
              if(i>no_colours) then
                 no_colours = i
              end if
+             exit
           end if
        end do
        call deallocate(neigh_colours)
@@ -105,7 +106,7 @@ contains
       my_colour=node_val(node_colour, node)
       ! Each nonzero column is a neighbour of node, so lets make sure that they do not have the same colour.
       do i=1, size(cols)
-        if (i/=node .and. my_colour==node_val(node_colour, i)) then
+        if (cols(i)<node .and. my_colour==node_val(node_colour, cols(i))) then
           valid=.false.
         end if
       end do

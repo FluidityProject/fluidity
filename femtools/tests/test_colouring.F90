@@ -44,7 +44,8 @@
   type(scalar_field) :: node_colour
   integer :: no_colours
 
-  positions = read_triangle_files("data/pslgA", quad_degree=4)
+  !positions = read_triangle_files("data/pslgA", quad_degree=4)
+  positions = read_triangle_files('data/square-cavity-2d', quad_degree=4)
   mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
@@ -57,8 +58,8 @@
   enddo
   call colour_sparsity(sparsity, mesh, node_colour, no_colours)
 
-  if (no_colours > maxdgr+1 ) fail = .true.
-  call report_test("colour sets", fail, .false., "there are more colours than max degree")
+  if (no_colours > maxdgr+1) fail = .true. ! The +1 is needed for sparsities with zeros on the diagonal
+  call report_test("colour sets", fail, .false., "there are more colours than the degree of the graph")
 
   fail=.not. verify_colour_sparsity(sparsity, node_colour)
   call report_test("colour sets", fail, .false., "the colouring is not valid")
