@@ -487,4 +487,4 @@ Write_GMSH.o: GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o \
 	Field_Options.o
 GMSH_Common.o: Futils.o
 
-Colouring.o: Fields_Base.o Sparse_Tools.o Data_structures.o 
+Colouring.o: Fields.o Fields_Manipulation.o Fields_Base.o Sparse_Tools.o Data_structures.o 
