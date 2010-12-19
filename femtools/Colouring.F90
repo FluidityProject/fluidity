@@ -34,11 +34,11 @@ module colouring
   use sparse_tools
   implicit none
 
-  public :: colour_sparsity
+  public :: colour_sparsity, verify_colour_sparsity
   
 contains
 
-  ! This routine coulours a graph using the greedy approach. 
+  ! This routine colours a graph using the greedy approach. 
   ! It takes as argument the sparsity of the adjacency matrix of the graph 
   ! (i.e. the matrix is node X nodes and symmetric for undirected graphs).
   subroutine colour_sparsity(sparsity, mesh, node_colour, no_colours)
@@ -91,35 +91,26 @@ contains
 
   
   ! Checks if a sparsity colouring is valid. 
-  function test_sparsity_colouring(sparsity, colour_sets) result(valid)
+  function verify_colour_sparsity(sparsity, node_colour) result(valid)
     type(csr_sparsity), intent(in) :: sparsity
-    type(integer_set), dimension(:), pointer, intent(in) :: colour_sets
-    integer :: valid
-    integer :: i, j, row, c
+    type(scalar_field), intent(in) :: node_colour
+    logical :: valid
+    integer :: i, node 
+    real :: my_colour
     integer, dimension(:), pointer:: cols
-   
-    do row=1, size(sparsity, 1)
-      cols => row_m_ptr(sparsity, row)
-      ! Nodes associated with these columns are neigbours, so lets make sure that they are not in the same colour set.
-      do i=1, size(cols) 
-        do c=1, size(colour_sets)
-          if (has_value(colour_sets(c), cols(i))) then
-            ! Node associated with cols(i) is in colour_sets(c). Make sure that no neighbour node is in there.
-            do j=i+1, size(cols)
-               if (has_value(colour_sets(c), cols(j))) then
-                  FLAbort('Found invalid sparsity colouring: Two neigbhour nodes are in the same colour set.')
-                  return
-               end if
-            end do
-          end if
-        end do
+  
+    valid=.true. 
+    do node=1, size(sparsity, 1)
+      cols => row_m_ptr(sparsity, node)
+      my_colour=node_val(node_colour, node)
+      ! Each nonzero column is a neighbour of node, so lets make sure that they do not have the same colour.
+      do i=1, size(cols)
+        if (i/=node .and. my_colour==node_val(node_colour, i)) then
+          valid=.false.
+        end if
       end do
-
-      ! TODO: Check that no node is not in more than one colour set
-
     end do
-    valid=1
-  end function test_sparsity_colouring
+  end function verify_colour_sparsity
 
 
 end module colouring

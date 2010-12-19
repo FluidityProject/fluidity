@@ -58,6 +58,10 @@
   call colour_sparsity(sparsity, mesh, node_colour, no_colours)
 
   if (no_colours > maxdgr+1 ) fail = .true.
-  call report_test("colour sets", fail, .false., "colour sets should not be greater than max degree")
+  call report_test("colour sets", fail, .false., "there are more colours than max degree")
+
+  fail=.not. verify_colour_sparsity(sparsity, node_colour)
+  call report_test("colour sets", fail, .false., "the colouring is not valid")
+
   
   end subroutine test_colouring
