@@ -133,7 +133,7 @@ class Mesh:
     self.name = name
     self.option_path = option_path
     self.region_ids = region_ids
-    self.shape = Element(0,0,0,0,[],[],0,0,0,0, "unknown")
+    self.shape = Element(0,0,0,0,[],[],0,0,0,0)
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
@@ -161,7 +161,7 @@ class Mesh:
 
 class Element:
   "An element"
-  def __init__(self,dim,loc,ngi,degree,n,dn, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y,family):
+  def __init__(self,dim,loc,ngi,degree,n,dn, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y):
     self.dimension = dim  # 2d or 3d?
     self.loc = loc  # Number of nodes
     self.ngi = ngi  # Number of gauss points
@@ -170,7 +170,6 @@ class Element:
     # n is loc x ngi, dn is loc x ngi x dim
     self.n = n
     self.dn = dn
-    self.family = family
 
     # Initialize spoly and dspoly, make sure to transpose due to Fortran silliness
     self.spoly = [ [ Polynomial([],0) for inner in range(size_spoly_y) ] for outer in range(size_spoly_x)]
@@ -185,15 +184,6 @@ class Element:
       self.spoly[x-1][y-1] = poly
   def set_polynomial_ds(self,poly,x,y):
     self.dspoly[x-1][y-1] = poly
-
-  def eval_dshape(self, coord):
-    if self.family == "simplex":
-      return self.eval_dshape_simplex(coord)
-    else:
-      raise ValueError, "Implement eval_dshape_cube or whatever here!"
-
-  def eval_dshape_simplex(self, coord):
-    raise ValueError, "Sorry, I ended up not implementing this either"
 
 class Quadrature:
   "Quadrature"
