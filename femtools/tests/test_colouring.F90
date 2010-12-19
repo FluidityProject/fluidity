@@ -37,15 +37,16 @@
   implicit none
 
   type(vector_field) :: positions
-  type(mesh_type)  :: pwc_mesh
+  type(mesh_type)  :: mesh
   type(csr_sparsity) :: sparsity
   integer :: maxdgr, i
-  logical :: fail
-  type(integer_set), dimension(:), pointer :: colour_sets
+  logical :: fail=.false.
+  type(scalar_field) :: node_colour
+  integer :: no_colours
 
   positions = read_triangle_files("data/pslgA", quad_degree=4)
-  pwc_mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
-  sparsity = make_sparsity_compactdgdouble(pwc_mesh, "cdG Sparsity")
+  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
+  sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
   ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes 
   assert(size(sparsity,1)==size(sparsity,2))
@@ -54,10 +55,9 @@
   do i=1, size(sparsity, 1)
      maxdgr=max(maxdgr, row_length(sparsity, i))
   enddo
-  !call allocate(colour_sets)
-  call colour_sparsity(sparsity, colour_sets)
+  call colour_sparsity(sparsity, mesh, node_colour, no_colours)
 
-!  if (size(colour_sets) > maxdgr+1 ) fail = .true.
-!  call report_test("colour sets", fail, .false., "colour sets should not be greater than max degree")
+  if (no_colours > maxdgr+1 ) fail = .true.
+  call report_test("colour sets", fail, .false., "colour sets should not be greater than max degree")
   
   end subroutine test_colouring

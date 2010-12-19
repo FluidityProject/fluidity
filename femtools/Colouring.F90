@@ -27,6 +27,8 @@
 #include "fdebug.h"
 
 module colouring
+  use fields
+  use fields_manipulation
   use fields_base
   use data_structures
   use sparse_tools
@@ -39,45 +41,47 @@ contains
   ! This routine coulours a graph using the greedy approach. 
   ! It takes as argument the sparsity of the adjacency matrix of the graph 
   ! (i.e. the matrix is node X nodes and symmetric for undirected graphs).
-  subroutine colour_sparsity(sparsity, colour_sets)
+  subroutine colour_sparsity(sparsity, mesh, node_colour, no_colours)
     type(csr_sparsity), intent(in) :: sparsity    
-    type(integer_set), dimension(:), pointer, intent(inout) :: colour_sets
-    
-    integer, dimension(size(sparsity,1)) :: colours ! contains the color for each node
-!    integer, dimension(1) :: colours ! contains the color for each node
+    type(mesh_type), intent(inout) :: mesh
+    type(scalar_field), intent(out) :: node_colour                                                                                                                                                           
+    integer, intent(out) :: no_colours
 
     integer, dimension(:), pointer:: cols
     type(integer_set) :: neigh_colours
-    integer :: i, node, max_colour
+    integer :: i, node
+
+    call allocate(node_colour, mesh, "NodeColouring")
 
     ! Set the first node colour
-    colours(1) = 1
-    max_colour = 1
+    call set(node_colour, 1, 1.0)
+    no_colours = 1
 
-    call allocate(neigh_colours)
     ! Colour remaining nodes.
     do node=2, size(sparsity,1)
+       call allocate(neigh_colours)
        ! Determine colour of neighbours.
        cols => row_m_ptr(sparsity, node)
        do i=1, size(cols)
           if(cols(i)<node) then
-            call insert(neigh_colours, colours(cols(i)))
+            call insert(neigh_colours, nint(node_val(node_colour,cols(i))))
           end if
        end do
 
        ! Find the lowest unused colour in neighbourhood.
-       do i=1, max_colour+1
+       do i=1, no_colours+1
           if(.not.has_value(neigh_colours, i)) then
-             colours(node) = i
-             if(i>max_colour) then
-                max_colour = i
+             call set(node_colour, node, float(i))
+             if(i>no_colours) then
+                no_colours = i
              end if
           end if
        end do
+       call deallocate(neigh_colours)
     end do
     
     ! Stuff this into an integer_set
-    !call allocate(colour_sets(max_colour))
+    !call allocate(colour_sets(no_colour))
     !do node=1, size(sparsity,1)
     !   call insert(colour_sets(colours(node)), node)
     !end do
