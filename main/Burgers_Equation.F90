@@ -48,6 +48,7 @@
     use reserve_state_module
     use boundary_conditions_from_options
     use boundary_conditions
+    use colouring
       use diagnostic_fields_new, only : &
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
@@ -832,6 +833,22 @@
       type(csr_sparsity), intent(in) :: sparsity
       type(mesh_type), intent(inout) :: mesh
 
+      type(csr_sparsity) :: isp_sparsity
+      type(scalar_field), intent(out) :: node_colour
+      integer, intent(out) :: no_colours
+
+      isp_sparsity=mat_sparsity_to_isp_sparsity(sparsity)                                                                                                                                                    
+      call colour_sparsity(isp_sparsity, mesh, node_colour, no_colours)
+      call deallocate(isp_sparsity)
+      ewrite(1, *) "Using ", no_colours, " colours"
+
+    end subroutine colour_graph
+
+
+    subroutine colour_graph_manual(sparsity, mesh, node_colour, no_colours)
+      type(csr_sparsity), intent(in) :: sparsity
+      type(mesh_type), intent(inout) :: mesh
+
       type(scalar_field), intent(out) :: node_colour
       integer, intent(out) :: no_colours
 
@@ -854,7 +871,7 @@
       do i=1,node_count(mesh)
         call set(node_colour, i, float(mod(i-1, 3) + 1))
       end do
-    end subroutine colour_graph
+    end subroutine colour_graph_manual
 
     function get_number_of_timesteps() result(no_timesteps)
       integer :: no_timesteps
