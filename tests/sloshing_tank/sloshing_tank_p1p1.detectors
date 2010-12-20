@@ -1,0 +1,28 @@
+<header>
+<constant name="FluidityVersion" type="string" value="15105M" />
+<constant name="CompileTime" type="string" value="Dec  4 2010 18:45:31" />
+<constant name="StartTime" type="string" value="20101220 171234.275+0000" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="left" statistic="position" components="3"/>
+<field column="6" name="middle" statistic="position" components="3"/>
+<field column="9" name="Density" statistic="left" material_phase="water"/>
+<field column="10" name="Density" statistic="middle" material_phase="water"/>
+<field column="11" name="FreeSurface" statistic="left" material_phase="water"/>
+<field column="12" name="FreeSurface" statistic="middle" material_phase="water"/>
+<field column="13" name="FreeSurface_Analytical" statistic="left" material_phase="water"/>
+<field column="14" name="FreeSurface_Analytical" statistic="middle" material_phase="water"/>
+<field column="15" name="FreeSurface_Error" statistic="left" material_phase="water"/>
+<field column="16" name="FreeSurface_Error" statistic="middle" material_phase="water"/>
+<field column="17" name="DistanceToTop" statistic="left" material_phase="water"/>
+<field column="18" name="DistanceToTop" statistic="middle" material_phase="water"/>
+<field column="19" name="DistanceToBottom" statistic="left" material_phase="water"/>
+<field column="20" name="DistanceToBottom" statistic="middle" material_phase="water"/>
+<field column="21" name="Velocity" statistic="left" material_phase="water" components="3"/>
+<field column="24" name="Velocity" statistic="middle" material_phase="water" components="3"/>
+<field column="27" name="GridVelocity" statistic="left" material_phase="water" components="3"/>
+<field column="30" name="GridVelocity" statistic="middle" material_phase="water" components="3"/>
+</header>
+  0.200000E+000  0.200000E+000  0.000000E+000  0.000000E+000  0.000000E+000  0.500000E+000  0.000000E+000  0.000000E+000  0.100000E+001  0.100000E+001  0.936741E-002  0.220288E-005  0.938593E-002 -0.268557E-015 -0.185184E-004  0.220288E-005  0.100937E+001  0.100000E+001  0.000000E+000  0.000000E+000  0.328802E-004  0.184264E-006 -0.377980E-004  0.509290E-003 -0.333740E-006 -0.277563E-005  0.000000E+000  0.000000E+000  0.000000E+000  0.000000E+000  0.000000E+000  0.000000E+000

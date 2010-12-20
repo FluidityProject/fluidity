@@ -1,0 +1,12 @@
+For nicer results you might one to decrease the timestep.
+
+The result shows a phase difference between the analytical solution and the numerical solution exits and grows up with time.
+This might be due to the missing viscous stress on the free surface as described in 
+
+Computation of free surface flows with a projection FEM in a moving mesh framework, Sylvain Rabier, Marc Medale
+
+But test gave also these relations:
+- smaller timesteps improve the results. 
+- theta=1.0 damps too much, even with tiny timesteps (dt=0.01).
+
+

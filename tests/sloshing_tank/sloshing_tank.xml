@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Sloshing tank with analytical solution</name>
+  <owner userid="sf1409"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l sloshing_tank_p1p1.flml; fluidity -v2 -l sloshing_tank_p1dgp2.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="area_cons_error_p1p1" language="python">from fluidity_tools import stat_parser as stat
+area_cons_error_p1p1 = max(abs(stat("sloshing_tank_p1p1.stat")["water"]["Density"]["integral"]-stat("sloshing_tank_p1p1.stat")["water"]["Density"]["integral"][0]))*100/stat("sloshing_tank_p1p1.stat")["water"]["Density"]["integral"][0]</variable>
+    <variable name="freesurface_error_p1p1" language="python">from fluidity_tools import stat_parser as stat
+freesurface_error_p1p1 = max(abs(stat("sloshing_tank_p1p1.stat")["water"]["FreeSurface_Error"]["l2norm"]))</variable>
+    <variable name="area_cons_error_p1dgp2" language="python">from fluidity_tools import stat_parser as stat
+area_cons_error_p1dgp2 = max(abs(stat("sloshing_tank_p1dgp2.stat")["water"]["Density"]["integral"]-stat("sloshing_tank_p1dgp2.stat")["water"]["Density"]["integral"][0]))*100/stat("sloshing_tank_p1dgp2.stat")["water"]["Density"]["integral"][0]</variable>
+    <variable name="freesurface_error_p1dgp2" language="python">from fluidity_tools import stat_parser as stat
+freesurface_error_p1dgp2 = max(abs(stat("sloshing_tank_p1dgp2.stat")["water"]["FreeSurface_Error"]["l2norm"]))</variable>
+  </variables>
+  <pass_tests>
+    <test name="area conservation error" language="python">assert(area_cons_error_p1p1 &lt; 1.E-11)
+assert(area_cons_error_p1dgp2 &lt; 1.E-10)</test>
+    <test name="FreeSurface_Error" language="python">assert(freesurface_error_p1p1 &lt; 1.E-3)
+assert(freesurface_error_p1dgp2 &lt; 1.E-4)</test>
+  </pass_tests>
+</testproblem>
