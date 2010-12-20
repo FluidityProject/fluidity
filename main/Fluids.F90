@@ -219,7 +219,7 @@ contains
     if (have_option("/reduced_model/execute_reduced_model")) then
        call read_pod_basis(POD_state, state)
     else
-       ! need something to pass into momentum_loop
+       ! need something to pass into solve_momentum
        allocate(POD_state(1:0))
     end if
 
@@ -729,10 +729,10 @@ contains
 
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
-             call momentum_loop(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
-             call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
 
           if(nonlinear_iterations > 1) then
