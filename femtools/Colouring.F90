@@ -34,9 +34,28 @@ module colouring
   use sparse_tools
   implicit none
 
-  public :: colour_sparsity, verify_colour_sparsity
+  public :: colour_sparsity, verify_colour_sparsity, verify_colour_ispsparsity
   
 contains
+  
+
+
+  ! Converts the matrix sparsity to an isp sparsity which can then be coloured to reduce the number 
+  ! of function evaluations needed to compute a (sparse) Jacobian via differencing.
+  ! This function returns S^T*S if S is the given sparsity matrix.
+  ! The resulting sparsity matrix is symmetric. 
+  function mat_sparsity_to_isp_sparsity(sparsity_in) result(sparsity_out)
+    type(csr_sparsity), intent(in) :: sparsity_in
+    type(csr_sparsity) :: sparsity_out
+    type(csr_sparsity) :: sparsity_in_T
+
+    sparsity_in_T=transpose(sparsity_in)
+    sparsity_out=matmul(sparsity_in_T, sparsity_in)
+    call deallocate(sparsity_in_T)
+
+  end function mat_sparsity_to_isp_sparsity 
+
+
 
   ! This routine colours a graph using the greedy approach. 
   ! It takes as argument the sparsity of the adjacency matrix of the graph 
@@ -81,16 +100,8 @@ contains
        call deallocate(neigh_colours)
     end do
     
-    ! Stuff this into an integer_set
-    !call allocate(colour_sets(no_colour))
-    !do node=1, size(sparsity,1)
-    !   call insert(colour_sets(colours(node)), node)
-    !end do
-    
   end subroutine colour_sparsity
 
-
-  
   ! Checks if a sparsity colouring is valid. 
   function verify_colour_sparsity(sparsity, node_colour) result(valid)
     type(csr_sparsity), intent(in) :: sparsity
@@ -113,5 +124,29 @@ contains
     end do
   end function verify_colour_sparsity
 
+  ! Checks if a sparsity colouring of a matrix is valid for isp.
+  ! This method checks that no two columns of the same colour have 
+  ! nonzeros at the same positions. 
+  function verify_colour_ispsparsity(mat_sparsity, node_colour) result(valid)
+    type(csr_sparsity), intent(in) :: mat_sparsity
+    type(scalar_field), intent(in) :: node_colour
+    logical :: valid
+    integer :: i, row 
+    integer, dimension(:), pointer:: cols
+    type(integer_set) :: neigh_colours
+  
+    valid=.true. 
+    do row=1, size(mat_sparsity, 1)
+      call allocate(neigh_colours)
+      cols => row_m_ptr(mat_sparsity, row)
+      do i=1, size(cols)
+        if (has_value(neigh_colours, nint(node_val(node_colour, cols(i))))) then
+          valid=.false.
+        end if
+        call insert(neigh_colours, nint(node_val(node_colour,cols(i))))
+      end do
+      call deallocate(neigh_colours)
+    end do
+  end function verify_colour_ispsparsity
 
 end module colouring
