@@ -3,5 +3,5 @@ input: clean
 	
 
 clean:
-	rm -rf *.d.* *.s* *.vtu *.log *.node *.ele *.face *.vtu matrixdump* *.pyc src/*.msh fluidity.*
+	rm -rf *.d.* *.s* *.vtu *.log *.node *.ele *.face *.vtu matrixdump* *.pyc src/*.msh fluidity.* *.detectors
 
