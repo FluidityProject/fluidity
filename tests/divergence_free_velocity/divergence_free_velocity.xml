@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Checks that velocity is divergence free</name>
+  <owner userid="sf1409"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l divergence_free_velocity.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="divu" language="python">from fluidity_tools import stat_parser as stat
+divu = max(abs(stat("divergence_free_velocity.stat")["water"]["divu"]["l2norm"]))</variable>
+    <variable name="FiniteElementDivergence" language="python">from fluidity_tools import stat_parser as stat
+FiniteElementDivergence = max(abs(stat("divergence_free_velocity.stat")["water"]["FiniteElementDivergence"]["l2norm"]))</variable>
+  </variables>
+  <pass_tests>
+    <test name="divutest" language="python">assert(divu &lt; 1)
+assert(FiniteElementDivergence &lt; 1)</test>
+  </pass_tests>
+</testproblem>
