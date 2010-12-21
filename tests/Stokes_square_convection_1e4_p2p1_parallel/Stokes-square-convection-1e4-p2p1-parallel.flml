@@ -73,7 +73,7 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.0e-5</real_value>
+        <real_value rank="0">1.0e-4</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
