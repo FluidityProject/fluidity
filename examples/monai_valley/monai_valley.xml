@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Monai Valley</name>
+  <owner userid="sf1409"/>
+  <problem_definition length="special" nprocs="4">
+    <command_line>fluidity MonaiValley_C.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="gage_integral_error" language="python">import tools
+gage_integral_error=tools.gage_error_integral("MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2.detectors")</variable>
+  </variables>
+  <pass_tests>
+    <test name="gage_integral_error_test" language="python">assert(gage_integral_error[0]&lt;100000.0)
+assert(gage_integral_error[1]&lt;100000.0)
+assert(gage_integral_error[2]&lt;100000.0)</test>
+  </pass_tests>
+</testproblem>
