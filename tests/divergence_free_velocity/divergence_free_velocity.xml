@@ -14,6 +14,6 @@ FiniteElementDivergence = max(abs(stat("divergence_free_velocity.stat")["water"]
   </variables>
   <pass_tests>
     <test name="divutest" language="python">assert(divu &lt; 1)
-assert(FiniteElementDivergence &lt; 1)</test>
+assert(FiniteElementDivergence &lt; 1e-12)</test>
   </pass_tests>
 </testproblem>

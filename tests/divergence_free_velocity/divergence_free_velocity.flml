@@ -310,6 +310,7 @@
       <diagnostic field_name="Velocity">
         <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
+        <integrate_divergence_by_parts/>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
