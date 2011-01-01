@@ -2605,7 +2605,9 @@ The temperature diffusivity should be set to diagnostic/internal with this optio
                     <ref name="real"/>
                   </element>
                   <element name="source_intensity">
-                    <a:documentation>Solid source intensity.</a:documentation>
+                    <a:documentation>Solid source intensity.
+The non-dimensional source is: [D_h / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
+Here, the source intensity is defined as: [D_h / (u_ref T_ref)] S.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
@@ -2687,6 +2689,19 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
                 <attribute name="file_name">
                   <data type="string"/>
                 </attribute>
+              </element>
+              <element name="fluids_scheme">
+                <a:documentation>Choose which velocity the fluids model will solve for. </a:documentation>
+                <choice>
+                  <element name="use_fluid_velocity">
+                    <a:documentation>Solve for the fluid velocity. </a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="use_bulk_velocity">
+                    <a:documentation>Solve for the bulk velocity.</a:documentation>
+                    <empty/>
+                  </element>
+                </choice>
               </element>
               <optional>
                 <element name="print_diagnostics">

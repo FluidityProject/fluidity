@@ -95,9 +95,10 @@ module implicit_solids
   end interface
 
   interface 
-     subroutine y3dfemdem(ext_mesh_name, dt, rho_f, &
+     subroutine y3dfemdem(ext_mesh_name, dt, rho_f, ibulk, &
           xs, ys, zs, fxs, fys, fzs, uf, vf, wf, as)
        real, intent(in) :: dt, rho_f
+       integer, intent(in) :: ibulk
        character(len=*), intent(in) :: ext_mesh_name
        real, dimension(*), intent(out) :: xs, ys, zs
        real, dimension(*), intent(out) :: fxs, fys, fzs
@@ -129,6 +130,7 @@ module implicit_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, do_calculate_volume_fraction, do_print_drag
   logical, save :: have_fixed_temperature, have_fixed_temperature_source, have_radius
+  logical, save :: use_bulk_velocity, use_fluid_velocity
 
   type(ilist), dimension(:), allocatable, save :: node_to_particle
   type(ilist), save :: surface_nodes, surface_faces
@@ -138,8 +140,6 @@ module implicit_solids
        &   remove_dummy_field, add_mass_source_absorption 
 
 contains
-
-
 
   subroutine solids(state, its, itinoi)
 
@@ -212,7 +212,7 @@ contains
             call calculate_temperature_diffusivity(state)
 
        if ((do_print_diagnostics .or. do_print_drag) .and. its==itinoi) &
-            call print_diagnostics_one_way(state)
+            call one_way_print_diagnostics(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -248,10 +248,11 @@ contains
           ! store previous time step volume fraction
           call set(old_solid_local, solid_local)
 
-          ! interpolate the fluid velocity from
+          ! interpolate the fluid or bulk velocity from
           ! the fluidity mesh to the femdem mesh
           call zero(ext_pos_fluid_vel)
-          call zero(ext_pos_solid)
+          !call zero(ext_pos_solid)
+          call set(ext_pos_solid, 1.)
           call femdem_interpolation(state, "out")
 
           ! update          : 1. external_positions
@@ -291,9 +292,6 @@ contains
        ! set source and absorption
        call set_source(state)
        call set_absorption_coefficient(state)
-
-       ! print the total solid drag force
-       !if (do_print_diagnostics .and. its==itinoi) call print_diagnostics_femdem(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -338,15 +336,15 @@ contains
     ! translate coordinates for multiple solids...
     if (one_way_coupling .and. multiple_solids) then
        do i = 1, node_count(external_positions)
-          external_positions_local%val(1,i) = &
-               external_positions%val(1,i) + &
+          external_positions_local%val(1, i) = &
+               external_positions%val(1, i) + &
                translation_coordinates(1, solid_number)
-          external_positions_local%val(2,i) = &
-               external_positions%val(2,i) + &
+          external_positions_local%val(2, i) = &
+               external_positions%val(2, i) + &
                translation_coordinates(2, solid_number)
           if (external_positions%dim == 3) then
-             external_positions_local%val(3,i) = &
-                  external_positions%val(3,i) + &
+             external_positions_local%val(3, i) = &
+                  external_positions%val(3, i) + &
                   translation_coordinates(3, solid_number)
           end if
        end do
@@ -491,7 +489,7 @@ contains
     type(vector_field), pointer :: source, positions
     type(vector_field), pointer :: velocity, absorption
     type(scalar_field), pointer :: Tsource
-    integer :: i, j, particle
+    integer :: i, particle
     real :: x0, y0, z0, x, y, z, sigma
 
     ewrite(2, *) "inside set_source"
@@ -504,12 +502,11 @@ contains
        source => extract_vector_field(state, "VelocitySource")
        call zero(source)
 
+       ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
        do i = 1, node_count(source)
-          do j = 1, source%dim
-             call set(source, j, i, &
-                    node_val(absorption, j, i) * node_val(velocity, j, i) &
-                  - node_val(fl_pos_solid_force, j, i)/dt)
-          end do
+          call set(source, i, &
+               node_val(absorption, i) * node_val(velocity, i) &
+               - node_val(fl_pos_solid_force, i)/dt)
        end do
 
     end if
@@ -541,7 +538,7 @@ contains
                    x0 = translation_coordinates(1, particle); x = node_val(positions, 1, i)
                    y0 = translation_coordinates(2, particle); y = node_val(positions, 2, i)
                    z0 = translation_coordinates(3, particle); z = node_val(positions, 3, i)
-                   
+
                    if ((x-x0)**2 + (y-y0)**2 + (z-z0)**2 > radius**2) &
                         sigma = 0.
                 end if
@@ -608,7 +605,7 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine print_diagnostics_one_way(state)
+  subroutine one_way_print_diagnostics(state)
 
     type(state_type), intent(in) :: state
 
@@ -624,7 +621,7 @@ contains
     character(len=FIELD_NAME_LEN) :: FMT1, FMT2, FMT3
     type(inode), pointer :: node1, node2
     real, dimension(:, :), allocatable :: temperature_grad_at_quad, normal
-    real, dimension(:), allocatable :: detwei, T_grad_dot_n
+    real, dimension(:), allocatable :: detwei, T_grad_dot_n_at_quad
     type(element_type), pointer :: T_f_shape
     real :: T_w_avg, q_avg, k_f
 
@@ -703,7 +700,8 @@ contains
        wall_temperature = wall_temperature / solid_mass
 
        ! calculate the solid-fluid interface heat transfer rate
-       call allocate(temperature_grad, positions%dim, temperature%mesh, "TemperatureGradient")
+       call allocate(temperature_grad, positions%dim, &
+            temperature%mesh, "TemperatureGradient")
        call zero(temperature_grad)
        call grad(temperature, positions, temperature_grad)
 
@@ -717,7 +715,7 @@ contains
        allocate(temperature_grad_at_quad(positions%dim, face_ngi(temperature, 1)))
        allocate(detwei(face_ngi(temperature, 1)))
        allocate(normal(positions%dim, face_ngi(temperature, 1)))
-       allocate(T_grad_dot_n(face_ngi(temperature, 1)))
+       allocate(T_grad_dot_n_at_quad(face_ngi(temperature, 1)))
 
        node1 => surface_faces%firstnode
        do while (associated(node1))
@@ -731,13 +729,14 @@ contains
                detwei_f=detwei, normal=normal)
           T_f_shape => face_shape(temperature, i)
 
-          T_grad_dot_n = 0.
+          T_grad_dot_n_at_quad = 0.
           do gi = 1, face_ngi(temperature, i)
-             T_grad_dot_n(gi) = dot_product(temperature_grad_at_quad(:, gi), normal(:, gi))
+             T_grad_dot_n_at_quad(gi) = &
+                  dot_product(temperature_grad_at_quad(:, gi), normal(:, gi))
           end do
 
           q(particle) = q(particle) + &
-               sum(shape_rhs(T_f_shape, detwei*T_grad_dot_n*k_f))
+               sum(shape_rhs(T_f_shape, detwei*T_grad_dot_n_at_quad*k_f))
 
           node1 => node1%next
        end do
@@ -778,7 +777,6 @@ contains
                   (q(i), i = 1, number_of_solids)
              close(1454)
           end if
-
        end if
 
        if (do_print_drag) then
@@ -789,65 +787,16 @@ contains
        end if
     end if
 
-    deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n)
-    call deallocate(temperature_grad)
+    if (have_temperature) then
+       deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
+       call deallocate(temperature_grad)
+    end if
     deallocate(face_nodes, particle_drag, drag, wall_temperature, solid_mass, q)
     call deallocate(lumped_mass)
 
     ewrite(2, *) "leaving print_diagnostics"
 
-  end subroutine print_diagnostics_one_way
-
-  !----------------------------------------------------------------------------
-
-  subroutine print_diagnostics_femdem(state)
-
-    type(state_type), intent(in) :: state
-
-    integer :: i, j
-    real, dimension(:), allocatable :: drag
-    type(scalar_field) :: lumped_mass
-    type(vector_field), pointer :: solid_velocity, velocity, positions, absorption
-    type(scalar_field), pointer :: solid
-    real :: rho_f
-
-    ! Calculate the total drag force of the solids...
-    !       /
-    ! F_D = | \sigma_f ( u_s - ( \hat{u_s} + \hat{u_f} ) dV,
-    !       /
-    ! where \sigma_f = \alpha_s rho_f / dt and \hat{u_k} = \alpha_k u_k
-
-    velocity => extract_vector_field(state, "Velocity")
-    solid_velocity => extract_vector_field(state, "SolidVelocity")
-    solid => extract_scalar_field(state, "SolidConcentration")
-    absorption => extract_vector_field(state, "VelocityAbsorption")
-    positions => extract_vector_field(state, "Coordinate")
-
-    call get_option("/material_phase::"//trim(state%name)// &
-         "/equation_of_state/fluids/linear/reference_density", rho_f)
-
-    call allocate(lumped_mass, positions%mesh, "LumpedMass")
-    call compute_lumped_mass(positions, lumped_mass)
-
-    allocate(drag(positions%dim)); drag = 0.
-
-    do i = 1, nowned_nodes(positions)
-       do j = 1, positions%dim
-          drag(j) = drag(j) + &
-               node_val(absorption, j, i) * rho_f * &
-               ( (1.-node_val(solid, i)) * node_val(solid_velocity, j, i) - &
-               node_val(velocity, j, i) ) * node_val(lumped_mass, i)
-       end do
-    end do
-
-    call allsumv(drag)
-
-    ewrite(2, *) "fluids drag:", drag
-
-    deallocate(drag)
-    call deallocate(lumped_mass)
-
-  end subroutine print_diagnostics_femdem
+  end subroutine one_way_print_diagnostics
 
   !----------------------------------------------------------------------------
 
@@ -913,11 +862,16 @@ contains
     have_fixed_temperature = have_option("/implicit_solids/source/temperature")
 
     if (have_fixed_temperature_source) then
-       call get_option("/implicit_solids/source/temperature_source/solid_diffusivity", solid_diffusivity)
-       call get_option("/implicit_solids/source/temperature_source/solid_conductivity", solid_conductivity)
-       call get_option("/implicit_solids/source/temperature_source/fluid_diffusivity", fluid_diffusivity)
-       call get_option("/implicit_solids/source/temperature_source/fluid_conductivity", fluid_conductivity)
-       call get_option("/implicit_solids/source/temperature_source/source_intensity", source_intensity)
+       call get_option("/implicit_solids/source/temperature_source/solid_diffusivity", &
+            solid_diffusivity)
+       call get_option("/implicit_solids/source/temperature_source/solid_conductivity", &
+            solid_conductivity)
+       call get_option("/implicit_solids/source/temperature_source/fluid_diffusivity", &
+            fluid_diffusivity)
+       call get_option("/implicit_solids/source/temperature_source/fluid_conductivity", &
+            fluid_conductivity)
+       call get_option("/implicit_solids/source/temperature_source/source_intensity", &
+            source_intensity)
        call get_option("/implicit_solids/source/temperature_source/zone_radius", radius, stat)
        have_radius = stat == 0
     end if
@@ -980,6 +934,8 @@ contains
     call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
          external_mesh_name)
     call get_option("/geometry/quadrature/degree", quad_degree)
+    use_bulk_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_bulk_velocity")
+    use_fluid_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")
 
     ! femdem only supports tets
     loc = 4
@@ -1046,13 +1002,13 @@ contains
 
     external_positions%dim=3
 
-    ! this is the solid velocity 
+    ! this is the solid force
     ! on the solid mesh
     call allocate(ext_pos_solid_force, external_positions%dim, &
          external_positions%mesh, name="SolidForce")
     call zero(ext_pos_solid_force)
 
-    ! this is the interpolated fluid velocity
+    ! this is the interpolated fluid or bulk velocity
     ! on the solid mesh
     call allocate(ext_pos_fluid_vel, external_positions%dim, &
          external_positions%mesh, name="Velocity")
@@ -1120,6 +1076,7 @@ contains
 
     real, save :: rho_f
     character(len=FIELD_NAME_LEN), save :: external_mesh_name
+    integer, save :: use_bulk
     logical, save :: init=.false.
 
     if (.not. init) then
@@ -1127,19 +1084,29 @@ contains
             external_mesh_name)
        call get_option("/material_phase::"//trim(state%name)// &
             "/equation_of_state/fluids/linear/reference_density", rho_f)
+
+       if (use_bulk_velocity) then
+          use_bulk = 1
+       elseif (use_fluid_velocity) then
+          use_bulk = 0
+       else
+          FLAbort("Don't recognise fluids scheme...")
+       end if
+
        init=.true.
     end if
 
 #ifdef USING_FEMDEM
     ! in  :: ext_pos_fluid_vel, ext_pos_fluid = 1. - ext_pos_solid 
     ! out :: updated external_positions and ext_pos_solid_force
-    call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho_f, &
+    call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho_f, use_bulk, &
          external_positions%val(1,:), external_positions%val(2,:), &
          external_positions%val(3,:), &
          ext_pos_solid_force%val(1,:), ext_pos_solid_force%val(2,:), &
          ext_pos_solid_force%val(3,:), &
          ext_pos_fluid_vel%val(1,:), ext_pos_fluid_vel%val(2,:), &
-         ext_pos_fluid_vel%val(3,:), 1.-ext_pos_solid%val(:))
+         ext_pos_fluid_vel%val(3,:), &
+         1.-ext_pos_solid%val(:))
 #endif
 
   end subroutine femdem_update
@@ -1158,12 +1125,12 @@ contains
     type(scalar_field), pointer :: field_ext_s, field_fl_s
     character(len=OPTION_PATH_LEN) :: &
          path = "/tmp/galerkin_projection/continuous"
-!    integer :: stat
+    !integer :: stat
 
-    ! this subroutine interpolates velocities
+    ! this subroutine interpolates forces and velocities
     ! between fluidity and femdem meshes
-    ! if operation == "in"  : interpolate femdem into fluidity
-    ! if operation == "out" : interpolate fluidity into femdem
+    ! if operation == "in"  : interpolate from femdem to fluidity
+    ! if operation == "out" : interpolate from fluidity to femdem
 
     ! read in femdem data into alg_ext state
     ! all data is on the femdem mesh
@@ -1181,17 +1148,17 @@ contains
     call insert(alg_fl_s, fl_mesh, "Mesh")
     call insert(alg_fl_s, fl_positions, "Coordinate")
 
-!    call set_solver_options(path, &
-!            ksptype = "cg", &
-!            pctype = "hypre", &
-!            rtol = 1.e-10, &
-!            atol = 0., &
-!            max_its = 10000)
-!
-!    call add_option( &
-!         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
-!    call set_option( &
-!         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+    !call set_solver_options(path, &
+    !        ksptype = "cg", &
+    !        pctype = "hypre", &
+    !        rtol = 1.e-10, &
+    !        atol = 0., &
+    !        max_its = 10000)
+    !
+    !call add_option( &
+    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    !call set_option( &
+    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
 
     call set_solver_options(path, &
             ksptype = "cg", &
@@ -1219,22 +1186,21 @@ contains
     else if (operation == "out") then
 
        ext_pos_fluid_vel%option_path = path
-       ext_pos_solid%option_path = path
 
-       ! this is the fluid velocity on the solid mesh
+       ! this is the fluid or bulk velocity on the solid mesh
        ! this will be returned to femdem...
        field_ext_v => ext_pos_fluid_vel
        call zero(field_ext_v)
        call insert(alg_ext_v, field_ext_v, "Velocity")
 
-       ! this is the fluid velocity on the fluidity mesh
+       ! this is the fluid or bulk velocity on the fluidity mesh
        field_fl_v => extract_vector_field(state, "Velocity")
        call insert(alg_fl_v, field_fl_v, "Velocity")
 
        ! this is the solid concentration on the solid mesh
        ! this will be returned to femdem...
        field_ext_s => ext_pos_solid
-       call zero(field_ext_s)
+       if (use_fluid_velocity) call zero(field_ext_s)
        call insert(alg_ext_s, field_ext_s, "SolidConcentration")
 
        ! this is the solid concentration on the fluidity mesh
@@ -1246,7 +1212,7 @@ contains
     ! perform interpolations
     if (operation == "in") then
   
-       ! interpolate the solid velocity from
+       ! interpolate the solid force from
        ! the solid mesh to the fluidity mesh
        call interpolation_galerkin_femdem(alg_ext_v, alg_fl_v, field=solid_local)
 
@@ -1263,10 +1229,12 @@ contains
 
     else if (operation == "out") then
 
-       ! interpolate the fluid velocity and the solid concentration from
+       ! interpolate the fluid or bulk velocity and the solid concentration from
        ! the fluid mesh to the solid mesh
        call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
-       call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
+
+       if (use_fluid_velocity) &
+          call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
 
        ewrite_minmax(field_fl_v%val(1,:))
        ewrite_minmax(field_fl_v%val(2,:))
@@ -1294,7 +1262,7 @@ contains
 
     type(state_type), intent(in) :: state
 
-    if (one_way_coupling) call print_diagnostics_one_way(state)
+    if (one_way_coupling) call one_way_print_diagnostics(state)
 
     if (do_adapt_mesh(current_time, timestep)) then
        if (one_way_coupling) then
@@ -1391,6 +1359,12 @@ contains
     type(element_type) :: test_function
     integer :: ele
 
+    ! if solving for the bulk
+    ! velocity nothing to be done
+    if (use_bulk_velocity) return
+
+    ewrite(2, *) "inside add_mass_source_absorption"
+
     solid => extract_scalar_field(state, "SolidConcentration")
     old_solid => extract_scalar_field(state, "OldSolidConcentration")
     x => extract_vector_field(state, "Coordinate")
@@ -1404,34 +1378,36 @@ contains
             p_shape, x, p, solid, old_solid, ct_rhs)
     end do
 
-    contains
+    ewrite(2, *) "leaving add_mass_source_absorption"
 
-      subroutine add_ct_rhs_element_cg(ele, test_function, &
-           p_shape, x, p, solid, old_solid, ct_rhs)
+  contains
 
-        type(scalar_field), intent(inout) :: ct_rhs
-        integer, intent(in) :: ele
-        type(element_type), intent(in) :: test_function, p_shape
-        type(vector_field), intent(in) :: x
-        type(scalar_field), intent(in) :: solid, old_solid, p
+    subroutine add_ct_rhs_element_cg(ele, test_function, &
+         p_shape, x, p, solid, old_solid, ct_rhs)
 
-        real, dimension(ele_ngi(p, ele)) :: detwei
-        real, dimension(ele_loc(p, ele), ele_ngi(p, ele), x%dim) :: dp_t
-        integer, dimension(:), pointer :: p_ele
-        real, dimension(ele_loc(x, ele)) :: ds, mat
+      type(scalar_field), intent(inout) :: ct_rhs
+      integer, intent(in) :: ele
+      type(element_type), intent(in) :: test_function, p_shape
+      type(vector_field), intent(in) :: x
+      type(scalar_field), intent(in) :: solid, old_solid, p
 
-        call transform_to_physical(x, ele, &
-             p_shape, dshape=dp_t, detwei=detwei)
+      real, dimension(ele_ngi(p, ele)) :: detwei
+      real, dimension(ele_loc(p, ele), ele_ngi(p, ele), x%dim) :: dp_t
+      integer, dimension(:), pointer :: p_ele
+      real, dimension(ele_loc(x, ele)) :: ds, mat
 
-        mat = shape_rhs(test_function, detwei)
-        ds = ele_val(solid, ele) - ele_val(old_solid, ele)
-        p_ele => ele_nodes(p, ele)
+      call transform_to_physical(x, ele, &
+           p_shape, dshape=dp_t, detwei=detwei)
 
-        call addto(ct_rhs, p_ele, mat*ds/dt)
+      mat = shape_rhs(test_function, detwei)
+      ds = ele_val(solid, ele) - ele_val(old_solid, ele)
+      p_ele => ele_nodes(p, ele)
 
-      end subroutine add_ct_rhs_element_cg
+      call addto(ct_rhs, p_ele, mat*ds/dt)
 
-    end subroutine add_mass_source_absorption
+    end subroutine add_ct_rhs_element_cg
+
+  end subroutine add_mass_source_absorption
 
   !----------------------------------------------------------------------------
 

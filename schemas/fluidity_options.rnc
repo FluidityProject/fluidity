@@ -1884,6 +1884,8 @@ start =
                          ## Fluid conductivity (k). Isotropic for now.
                          element fluid_conductivity{ real },
                          ## Solid source intensity.
+                         ## The non-dimensional source is: [D_h / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
+                         ## Here, the source intensity is defined as: [D_h / (u_ref T_ref)] S.
                          element source_intensity { real },
                          ## Apply source to an inner zone of the particle rather than the whole particle.
                          ## Assumes a spherical inner zone.
@@ -1932,6 +1934,15 @@ start =
                       ##
                       ## Y3D FEMDEM mesh format only supported.
                       element mesh{ attribute file_name {xsd:string} },
+                      ## Choose which velocity the fluids model will solve for. 
+                      element fluids_scheme{
+                           (
+                              ## Solve for the fluid velocity. 
+                              element use_fluid_velocity { empty }|
+                              ## Solve for the bulk velocity.
+                              element use_bulk_velocity { empty }
+                           )
+                      },
                       ## Calculate diagnostic variables associated with the solids.
                       element print_diagnostics { empty }?
                  }
