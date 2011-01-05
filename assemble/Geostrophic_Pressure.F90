@@ -2696,7 +2696,9 @@ contains
       if(aux_p) then
         ! Decompose the Pressure
       
-        old_aux_p_decomp(1) = old_aux_p
+        call allocate(old_aux_p_decomp(1), old_aux_p%mesh, old_aux_p%name)
+        call set(old_aux_p_decomp(1), old_aux_p)
+        old_aux_p_decomp(1)%option_path = old_aux_p%option_path
         call allocate(old_aux_p_decomp(2), old_aux_p%mesh, trim(old_aux_p%name) // gi_p_decomp_postfix)
         old_aux_p_decomp(2)%option_path = old_aux_p%option_path
         
@@ -2740,7 +2742,9 @@ contains
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
 
-        old_aux_p = old_aux_p_decomp(1)
+        call set(old_aux_p, old_aux_p_decomp(1))
+        call deallocate(old_aux_p_decomp(1))
+        old_aux_p_decomp(1) = old_aux_p
         call insert_for_interpolation(old_state, old_aux_p_decomp(2))
         new_aux_p = new_aux_p_decomp(1)
         call insert_for_interpolation(new_state, new_aux_p_decomp(2))
