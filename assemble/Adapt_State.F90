@@ -232,14 +232,18 @@ contains
 
       ! Step c). Adapt the mesh, locking appropriately, and interpolate the metric
       ! mesh_0: incoming unwrapped mesh
-      call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
-      call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
+        call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
+      end if
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, &
                 & force_preserve_regions=force_preserve_regions, &
                 & lock_faces=lock_faces, allow_boundary_elements=.true.)
       ! mesh_1: first adapted mesh
-      call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
-      call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
+        call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
+      end if
       call allocate(unwrapped_metric_B, unwrapped_positions_B%mesh, trim(metric%name))
       call linear_interpolation(unwrapped_metric_A, unwrapped_positions_A, unwrapped_metric_B, unwrapped_positions_B)
       call deallocate(lock_faces)
@@ -256,9 +260,11 @@ contains
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
       assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
       ! mesh_2: first adapted mesh, periodised
-      call vtk_write_fields("mesh", 2, position=intermediate_positions, model=intermediate_positions%mesh)
-      call vtk_write_surface_mesh("surface", 2, intermediate_positions)
-
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 2, position=intermediate_positions, model=intermediate_positions%mesh)
+        call vtk_write_surface_mesh("surface", 2, intermediate_positions)
+      end if
+      
       ! Step e). Advance a front in the new mesh using the unwrapped nelist from the aliased boundary
       ! until the front contains no nodes on the boundary; this forms the new cut
       nelist => extract_nelist(unwrapped_positions_B)
@@ -435,14 +441,20 @@ contains
 
       ! deallocate the old faces, and rebuild
       ! mesh_3: first adapted mesh, periodised with moving front nodes moved over
-      call vtk_write_fields("mesh", 3, position=intermediate_positions, model=intermediate_positions%mesh)
-      call vtk_write_surface_mesh("surface", 3, intermediate_positions)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 3, position=intermediate_positions, model=intermediate_positions%mesh)
+        call vtk_write_surface_mesh("surface", 3, intermediate_positions)
+      end if
+
       call deallocate_faces(intermediate_positions%mesh)
       call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
       intermediate_metric%mesh = intermediate_positions%mesh
       ! mesh_4: first adapted mesh, periodised with moving front nodes moved over and surface mesh relabeled
-      call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh)
-      call vtk_write_surface_mesh("surface", 4, intermediate_positions)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh)
+        call vtk_write_surface_mesh("surface", 4, intermediate_positions)
+      end if
+
       deallocate(sndgln)
       deallocate(element_owners)
       deallocate(boundary_ids)
@@ -454,8 +466,10 @@ contains
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
 
       ! mesh_5: adapted once, moved up, ready to adapt again
-      call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
-      call vtk_write_surface_mesh("surface", 5, unwrapped_positions_A)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
+        call vtk_write_surface_mesh("surface", 5, unwrapped_positions_A)
+      end if
 
       call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
       call remap_field(intermediate_metric, unwrapped_metric_A)
@@ -503,8 +517,10 @@ contains
                   & lock_faces=lock_faces, allow_boundary_elements=.true.)
       call deallocate(lock_faces)
       ! mesh_7: after second adapt
-      call vtk_write_fields("mesh", 7, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
-      call vtk_write_surface_mesh("surface", 7, unwrapped_positions_B)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 7, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
+        call vtk_write_surface_mesh("surface", 7, unwrapped_positions_B)
+      end if
 
       call allocate(unwrapped_metric_B, unwrapped_positions_B%mesh, trim(metric%name))
       call linear_interpolation(unwrapped_metric_A, unwrapped_positions_A, unwrapped_metric_B, unwrapped_positions_B)
@@ -591,12 +607,16 @@ contains
         end do
 
         ! mesh_8: after second adapt, showing elements to be moved back into bounding box
-        call vtk_write_fields("mesh", 8, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
-        call vtk_write_surface_mesh("surface", 8, unwrapped_positions_B)
+        if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+          call vtk_write_fields("mesh", 8, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
+          call vtk_write_surface_mesh("surface", 8, unwrapped_positions_B)
+        end if
 
         ! mesh_8: same thing periodised
-        call vtk_write_fields("mesh", 9, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
-        call vtk_write_surface_mesh("surface", 9, intermediate_positions)
+        if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+          call vtk_write_fields("mesh", 9, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
+          call vtk_write_surface_mesh("surface", 9, intermediate_positions)
+        end if
 
         ! OK. Now we know which elements we are mapping, it is very similar to the shuffling
         ! around we did earlier. The two main subtasks are to
@@ -698,7 +718,9 @@ contains
           l = l + 1
         end do
         assert(l == size(boundary_ids) + 1)
-        !call vtk_write_internal_face_mesh("surface", 11, unwrapped_positions_B, face_sets=(/new_physical_faces, new_aliased_faces/))
+        if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+          call vtk_write_internal_face_mesh("surface", 11, unwrapped_positions_B, face_sets=(/new_physical_faces, new_aliased_faces/))
+        end if
         assert(key_count(new_physical_faces) == key_count(new_aliased_faces))
 
         call deallocate(new_physical_faces)
@@ -708,7 +730,10 @@ contains
         ! deallocate the old faces, and rebuild
         call deallocate_faces(intermediate_positions%mesh)
         call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
-        call vtk_write_surface_mesh("surface", 12, intermediate_positions)
+        if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+          call vtk_write_surface_mesh("surface", 12, intermediate_positions)
+        end if
+
         intermediate_metric%mesh = intermediate_positions%mesh
         deallocate(sndgln)
         deallocate(element_owners)
@@ -749,8 +774,10 @@ contains
       deallocate(aliased_colours)
 
       ! mesh_10: final mesh
-      call vtk_write_fields("mesh", 10, position=intermediate_positions, model=intermediate_positions%mesh)
-      call vtk_write_surface_mesh("surface", 10, intermediate_positions)
+      if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+        call vtk_write_fields("mesh", 10, position=intermediate_positions, model=intermediate_positions%mesh)
+        call vtk_write_surface_mesh("surface", 10, intermediate_positions)
+      end if
 
       call deallocate(other_surface_ids)
     end do
@@ -763,11 +790,16 @@ contains
 
     call deallocate(intermediate_metric)
 
-    call vtk_write_fields("adapted_mesh", delete_me, position=new_positions, model=new_positions%mesh)
+    if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+      call vtk_write_fields("adapted_mesh", delete_me, position=new_positions, model=new_positions%mesh)
+    end if
 
     unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)))
-    call vtk_write_fields("adapted_mesh_unwrapped", delete_me, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
-    call vtk_write_surface_mesh("adapted_surface_unwrapped", delete_me, unwrapped_positions_A)
+    if(have_option("/mesh_adaptivity/hr_adaptivity/debug/write_periodic_adapted_mesh")) then
+      call vtk_write_fields("adapted_mesh_unwrapped", delete_me, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
+      call vtk_write_surface_mesh("adapted_surface_unwrapped", delete_me, unwrapped_positions_A)
+    end if
+
     call deallocate(unwrapped_positions_A)
     delete_me = delete_me + 1
 
