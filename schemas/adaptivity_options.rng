@@ -1267,6 +1267,14 @@ adapt iteration.</a:documentation>
             </element>
           </optional>
           <optional>
+            <element name="write_periodic_adapted_mesh">
+              <a:documentation>Write periodic meshes and surface IDs to vtus at each stage of the processing
+pipeline. This can be very useful in diagnosing why
+adaptivity is doing something you don't expect.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
             <element name="checkpoint">
               <a:documentation>Checkpoint the simulation after every adapt. In parallel, a
 checkpoint will be written &lt;b&gt;only&lt;/b&gt; after the final adapt

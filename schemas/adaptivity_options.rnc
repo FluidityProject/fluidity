@@ -1066,6 +1066,12 @@ hr_adaptivity =
             element write_adapted_state {
                comment
             }?,
+            ## Write periodic meshes and surface IDs to vtus at each stage of the processing
+            ## pipeline. This can be very useful in diagnosing why
+            ## adaptivity is doing something you don't expect.
+            element write_periodic_adapted_mesh {
+               comment
+            }?,
             ## Checkpoint the simulation after every adapt. In parallel, a
             ## checkpoint will be written <b>only</b> after the final adapt
             ## iteration. Checkpoints are postfixed with "adapt_checkpoint".
