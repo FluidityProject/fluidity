@@ -27,7 +27,7 @@ ElapsedTime = stat_parser("Implicit_cylinder3d_fs.detectors")["ElapsedTime"]["va
   </variables>
   <pass_tests>
   <test name="Drag force is correct." language="python">
-assert(abs(force[-1]+0.01312) &lt; 1e-4)
+assert(abs(force[-1]+0.01312) &lt; 1e-3)
   </test>
   <test name="Surface elevation is correct." language="python">
 assert(abs(hmin+0.04282) &lt; 1e-4) 
