@@ -96,8 +96,8 @@
       <requested_cfl>
         <real_value rank="0">3.0</real_value>
       </requested_cfl>
-      <courant_number name="ControlVolumeCFLNumber">
-        <mesh name="CoordinateMesh"/>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
       </courant_number>
       <increase_tolerance>
         <real_value rank="0">1.1</real_value>
@@ -113,7 +113,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">10000.</real_value>
+        <real_value rank="0">1e4</real_value>
         <comment>Rayleigh number</comment>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
@@ -171,9 +171,9 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="sor"/>
+                  <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.0E-10</real_value>
+                    <real_value rank="0">1.0e-10</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">1000</integer_value>
@@ -191,7 +191,22 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="jacobi"/>
+          <preconditioner name="ksp">
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-18</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">10000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
@@ -251,7 +266,7 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -332,30 +347,26 @@
     </vector_field>
     <scalar_field name="Temperature" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+          </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
-          <control_volumes>
-            <number_advection_iterations>
-              <integer_value rank="0">3</integer_value>
-            </number_advection_iterations>
-          </control_volumes>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
