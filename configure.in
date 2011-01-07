@@ -1166,9 +1166,9 @@ if test -d libspud ; then
        AC_MSG_NOTICE([Building on hector xt4; disabling shared libraries])
        SHFLAG=--disable-shared
     else
-       # Check if we're on hector xt6
-       if echo $(hostname) | grep -q "^hector-xt6"; then
-         AC_MSG_NOTICE([Building on hector xt6; disabling shared libraries])
+       # Check if we're on hector xe6
+       if echo $(hostname) | grep -q "^hector-xe6"; then
+         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
          SHFLAG=--disable-shared
        else
          SHFLAG=--enable-shared

@@ -13564,10 +13564,10 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 $as_echo "$as_me: Building on hector xt4; disabling shared libraries" >&6;}
        SHFLAG=--disable-shared
     else
-       # Check if we're on hector xt6
-       if echo $(hostname) | grep -q "^hector-xt6"; then
-         { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xt6; disabling shared libraries" >&5
-$as_echo "$as_me: Building on hector xt6; disabling shared libraries" >&6;}
+       # Check if we're on hector xe6
+       if echo $(hostname) | grep -q "^hector-xe6"; then
+         { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
+$as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
          SHFLAG=--disable-shared
        else
          SHFLAG=--enable-shared
