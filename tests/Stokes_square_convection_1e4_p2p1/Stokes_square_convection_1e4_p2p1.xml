@@ -3,7 +3,6 @@
 <testproblem>
   <name>p2p1-Stokes-square-convection-1e4</name>
   <owner userid="rhodrid"/>
-
   <tags>flml</tags>
 
   <problem_definition length="medium" nprocs="1">

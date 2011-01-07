@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Stokes-3d-busse-1a-p2p1</name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l Stokes-3d-busse-1a-p2p1.flml </command_line>
+  </problem_definition>
+
+<variables>  
+
+a=1.0079
+b=0.6283
+h=1.
+area=a*b
+vol=a*b*h
+svol=1./math.sqrt(vol) 
+
+<variable name="nu_top" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top = -(stat("Busse_3D_C1.stat")["Mantle"]["Temperature"]["surface_integral%Top"][-1]) / 0.63326357
+</variable>
+
+<variable name="rms_vel" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel=(stat("Busse_3D_C1.stat")["Mantle"]["Velocity%magnitude"]["l2norm"][-1]) * 1.256630937
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Surface Nusselt Number Validity: 3.6 .lt. Nu .lt. 3.7" language="python">
+assert(abs(nu_top-3.65) &lt; 0.05)
+</test>
+
+<test name="RMS Velocity Validity: 40.9 .lt. V_RMS .lt. 41.0" language="python">
+assert(abs(rms_vel-40.95) &lt; 0.05)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
