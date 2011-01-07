@@ -124,7 +124,6 @@ def main(argv=None):
                 #        continue
                 fsvalues=[]
                 xcoords=[]
-                print "csvbasename", csvbasename
                 # check if we want to use detector (or vtu probe) data
                 if csvbasename=='':
                         minfs=1000
