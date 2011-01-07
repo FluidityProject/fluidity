@@ -11,13 +11,6 @@
 
 <variables>  
 
-a=1.0079
-b=0.6283
-h=1.
-area=a*b
-vol=a*b*h
-svol=1./math.sqrt(vol) 
-
 <variable name="nu_top" language="python">
 from fluidity_tools import stat_parser as stat
 nu_top = -(stat("Busse_3D_C1.stat")["Mantle"]["Temperature"]["surface_integral%Top"][-1]) / 0.63326357
