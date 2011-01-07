@@ -1312,7 +1312,7 @@ contains
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix.")
+          FLAbort("Failed to deallocate matrix.")
        end if
     end if    
 
@@ -1388,7 +1388,7 @@ contains
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix.")
+          FLAbort("Failed to deallocate matrix.")
        end if
     end if    
 

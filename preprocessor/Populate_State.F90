@@ -2428,6 +2428,23 @@ contains
 
           end if
 
+          if(trim(sfield%name)=="MaterialVolumeFraction") then
+
+            if(iterations>1) then
+               call allocate(aux_sfield, sfield%mesh, "Nonlinear"//trim(sfield%name))
+               call zero(aux_sfield)
+               call insert(states(p), aux_sfield, trim(aux_sfield%name))
+               call deallocate(aux_sfield)
+            else
+               aux_sfield = extract_scalar_field(states(p), trim(sfield%name))
+               aux_sfield%name = "Nonlinear"//trim(sfield%name)
+               aux_sfield%option_path=""
+               aux_sfield%aliased = .true.
+               call insert(states(p), aux_sfield, trim(aux_sfield%name))
+            end if
+
+          end if
+
         end if
 
       end do
