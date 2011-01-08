@@ -6,8 +6,8 @@
 
   <tags>flml</tags>
 
-  <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v2 -l Stokes-Subduction-VK-Case-1b.flml</command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v1 -l Stokes-Subduction-VK-Case-1b.flml</command_line>
   </problem_definition>
 
 <variables>  

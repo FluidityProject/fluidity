@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 -optimize Subduction_Mesh.msh src/Subduction_Mesh.geo
+	cp src/Subduction_Mesh.msh ./
 	../../scripts/gmsh2triangle --2d -i Subduction_Mesh.msh
 
 clean:
