@@ -17,9 +17,9 @@ ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 else 
-	@if [ ! -e ../../bin/fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
+	@if [ ! -e $(BIN)/fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	../../bin/fldecomp -n $(NPROCS) -s med 
+	$(BIN)fldecomp -n $(NPROCS) -s med 
 endif
 run:
 ifndef ($(NPROCS))
