@@ -30,8 +30,8 @@ ElapsedTime = stat_parser("Implicit_cylinder3d_fs.detectors")["ElapsedTime"]["va
 assert(abs(force[-1]+0.01312) &lt; 1e-3)
   </test>
   <test name="Surface elevation is correct." language="python">
-assert(abs(hmin+0.04282) &lt; 1e-4) 
-assert(abs(hmax-0.01545) &lt; 1e-4)
+assert(abs(hmin+0.04282) &lt; 1e-3) 
+assert(abs(hmax-0.01545) &lt; 1e-3)
   </test>
   <test name="End time is correct." language="python">
 assert(ElapsedTime[-1] - 1.1 &lt; 1e-4)
