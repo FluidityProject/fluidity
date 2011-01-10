@@ -1553,7 +1553,12 @@ module zoltan_integration
     else         
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
-    
+
+    if (iteration /= max_adapt_iteration) then
+        ! ignore large load imbalances when on intermediate adapt iterations
+        ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.9"); assert(ierr == ZOLTAN_OK)
+    end if
+
     ! If we are not an active process, then let's set the number of local parts to be zero
     if (no_active_processes > 0) then
        if (getprocno() > no_active_processes) then
