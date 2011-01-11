@@ -89,8 +89,8 @@ contains
     subroutine make_halo_dg(element, element_halo, new_halo)
       !!< This routine constructs a node halo given an element halo.
       type(element_type), intent(in) :: element
-      type(halo_type), intent(in), optional :: element_halo
-      type(halo_type), intent(out), optional :: new_halo
+      type(halo_type), intent(in) :: element_halo
+      type(halo_type), intent(out) :: new_halo
       
       integer, dimension(size(element_halo%sends)) :: nsends
       integer, dimension(size(element_halo%receives)) :: nreceives

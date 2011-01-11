@@ -704,7 +704,7 @@ contains
     !!<
     !!< The stat argument, if present, returns 1 if the node is outside the
     !!< range of the halo and 0 otherwise. 
-    type(halo_type), intent(in) :: halo
+    type(halo_type), intent(inout) :: halo
     integer, intent(in) :: node, universal_number
     integer, intent(out), optional :: stat
 
