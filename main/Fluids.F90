@@ -301,6 +301,10 @@ contains
           FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
        end if
        call CalculateTopBottomDistance(state(1))
+       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+          call insert_original_distance_to_bottom(state(1))
+       end if
     end if
 
     ! move mesh according to inital free surface:
@@ -393,6 +397,8 @@ contains
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
+
+
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
 
     not_to_move_det_yet=.false.
@@ -405,11 +411,6 @@ contains
     ! Initialise k_epsilon
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_init(state(1))
-    end if
-
-    ! Initialise wetting and drying
-    if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-       call initialize_wetting_and_drying(state(1))
     end if
 
     ! ******************************
