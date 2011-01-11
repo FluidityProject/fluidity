@@ -2272,63 +2272,61 @@ contains
        end if
     end if
 
-    ! This section of code is very strange. node%local is set to true in 
-    ! both cases, and the initial_owner is getting changed, not sure 
-    ! what initial_owner really means
+    ! (CJC comment): This section of code is very strange. node%local is set
+    ! to true in both cases, and the initial_owner is getting changed, not
+    ! sure what initial_owner really means. I think this means that 
+    ! 
     node => detector_list%firstnode
     do i = 1, detector_list%length
-      if (node%element<0) then
-         node%local = .true.
-      else
-         node%initial_owner=getprocno()
-         node%local = .true.
-      end if 
-      node => node%next
-   end do
+       if (node%element<0) then
+          node%local = .true.
+       else
+          node%initial_owner=getprocno()
+          node%local = .true.
+       end if
+       node => node%next
+    end do
 
-    !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED BEFORE CALLING MPI_ALL_MAX() 
-    !!! TO SOLVE THE CONFLICT OF OWNERSHIP OF THE DETECTORS.
-    !!! AFTERWARDS UPDATE THE DETECTOR_LIST BY REMOVING THE DETECTORS (NODES IN THE LIST) WHERE GETPROCNO()/=GDC(i)
-    !!! THIS IS ONLY NEEDED AT THE BEGINNING OF THE SIMULATION, at the first time step, 
-    !!! ONCE WE HAVE DISTRIBUTED INITIALLY THE DETECTORS
-    !!! AMONG THE DIFFERENT PROCESSORS, WE DON'T NEED TO DO THIS ANY MORE
+    !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED
+    !!! BEFORE CALLING MPI_ALL_MAX() TO SOLVE THE CONFLICT OF OWNERSHIP OF
+    !!! THE DETECTORS.  AFTERWARDS UPDATE THE DETECTOR_LIST BY REMOVING THE
+    !!! DETECTORS (NODES IN THE LIST) WHERE GETPROCNO()/=GDC(i) THIS IS ONLY
+    !!! NEEDED AT THE BEGINNING OF THE SIMULATION, at the first time step,
+    !!! ONCE WE HAVE DISTRIBUTED INITIALLY THE DETECTORS AMONG THE DIFFERENT
+    !!! PROCESSORS, WE DON'T NEED TO DO THIS ANY MORE
+
+    !Code to distribute the detectors amongst the processors.
+    !This is only called after initialisation.
+    !THIS TASK SHOULD PROBABLY BE PERFORMED IN INITIALISE DETECTORS THEREFORE!
+    !Several processors may lay claim to a detector, so make a list which 
+    !gives the processor number that owns the detector, this is then
+    !allmax-ed so that the processor with the largest processor number gets
+    !the detector.
 
     if (detector_list%length/=0) then
-
         if (timestep==1) then
 
           allocate(global_det_count(detector_list%length))
-
           node => detector_list%firstnode
-
           do i = 1, detector_list%length
-
             global_det_count(i)=node%initial_owner
-
             node => node%next
-           
           end do
 
-          node => detector_list%firstnode
-          
           do i = 1, size(global_det_count)
-
              call allmax(global_det_count(i))
-
-             node => node%next
-
           end do
 
           node => detector_list%firstnode
 
           do i = 1, size(global_det_count)
-
              if (global_det_count(i)/=node%initial_owner) then
-
                temp_node => node
-              
-               if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-               !!this checks if the current node that we are going to remove from the list is the first one in the list but not the only node in the list
+               if ((.not.associated(node%previous))&
+                    &.and.(detector_list%length/=1)) then
+               !!this checks if the current node that we are going to remove
+               !!from the list is the first one in the list but not the only
+               !!node in the list
          
                   node%next%previous => null()
 
@@ -2606,7 +2604,7 @@ contains
 
      deallocate(types_det)
       
-    end do
+  end do
    !do_until_all_send_lists_between_processors_are_empty
 
     deallocate(send_list_array)
