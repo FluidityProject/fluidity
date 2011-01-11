@@ -120,8 +120,8 @@ module implicit_solids
   type(scalar_field), save :: solid_local, old_solid_local, interface_local
   type(vector_field), save :: external_positions
 
-  real, save :: beta, source_intensity, solid_diffusivity, solid_conductivity
-  real, save :: fluid_diffusivity, fluid_conductivity, radius
+  real, save :: beta, radius, source_intensity
+  real, save :: solid_peclet_number, fluid_peclet_number
 
   real, dimension(:, :), allocatable, save :: translation_coordinates
 
@@ -529,7 +529,7 @@ contains
              positions => extract_vector_field(state, "Coordinate")
 
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_local, i)*solid_diffusivity/solid_conductivity
+                sigma = node_val(solid_local, i)
 
                 if (associated(node_to_particle(i)%firstnode)) then
 
@@ -539,8 +539,7 @@ contains
                    y0 = translation_coordinates(2, particle); y = node_val(positions, 2, i)
                    z0 = translation_coordinates(3, particle); z = node_val(positions, 3, i)
 
-                   if ((x-x0)**2 + (y-y0)**2 + (z-z0)**2 > radius**2) &
-                        sigma = 0.
+                   if ((x-x0)**2 + (y-y0)**2 + (z-z0)**2 > radius**2) sigma = 0.
                 end if
 
                 call set(Tsource, i, sigma * source_intensity)
@@ -549,7 +548,7 @@ contains
           else
 
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_local, i)*solid_diffusivity/solid_conductivity
+                sigma = node_val(solid_local, i)
                 call set(Tsource, i, sigma * source_intensity)
              end do
 
@@ -588,11 +587,11 @@ contains
 
     do i = 1, node_count(diffusivity)
 
-       l = node_val(solid_local, i)*solid_diffusivity + &
-            (1.-node_val(solid_local, i))*fluid_diffusivity
+       l = node_val(solid_local, i)/solid_peclet_number + &
+            (1.-node_val(solid_local, i))/fluid_peclet_number
 
        do j = 1, diffusivity%dim(1)
-          do k = 1, diffusivity%dim(2)           
+          do k = 1, diffusivity%dim(2)
              if (j==k) call set (diffusivity, j ,k, i, l)
           end do
        end do
@@ -705,10 +704,10 @@ contains
        call zero(temperature_grad)
        call grad(temperature, positions, temperature_grad)
 
+       temperature_conductivity => extract_tensor_field(state, "TemperatureDiffusivity")
        if (have_fixed_temperature_source) then
-          k_f = fluid_conductivity
+          k_f = minval(temperature_conductivity%val(1,1,:))
        else
-          temperature_conductivity => extract_tensor_field(state, "TemperatureDiffusivity")
           k_f = node_val(temperature_conductivity, 1, 1, 1)
        end if
 
@@ -862,14 +861,10 @@ contains
     have_fixed_temperature = have_option("/implicit_solids/source/temperature")
 
     if (have_fixed_temperature_source) then
-       call get_option("/implicit_solids/source/temperature_source/solid_diffusivity", &
-            solid_diffusivity)
-       call get_option("/implicit_solids/source/temperature_source/solid_conductivity", &
-            solid_conductivity)
-       call get_option("/implicit_solids/source/temperature_source/fluid_diffusivity", &
-            fluid_diffusivity)
-       call get_option("/implicit_solids/source/temperature_source/fluid_conductivity", &
-            fluid_conductivity)
+       call get_option("/implicit_solids/source/temperature_source/solid_Peclet_number", &
+            solid_peclet_number)
+       call get_option("/implicit_solids/source/temperature_source/fluid_Peclet_number", &
+            fluid_peclet_number)
        call get_option("/implicit_solids/source/temperature_source/source_intensity", &
             source_intensity)
        call get_option("/implicit_solids/source/temperature_source/zone_radius", radius, stat)

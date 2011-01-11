@@ -1875,17 +1875,12 @@ start =
                     ## Use a fixed temperature source for the solids.
                     ## The temperature diffusivity should be set to diagnostic/internal with this option.
                     element temperature_source{
-                         ## Solid diffusivity (k/(\rho c_p)). Isotropic for now.
-                         element solid_diffusivity{ real },
-                         ## Solid conductivity (k). Isotropic for now.
-                         element solid_conductivity{ real },
-                         ## Fluid diffusivity (k/(\rho c_p)). Isotropic for now.
-                         element fluid_diffusivity{ real },
-                         ## Fluid conductivity (k). Isotropic for now.
-                         element fluid_conductivity{ real },
+                         ## Fluid Peclet number.
+                         element fluid_Peclet_number{ real },
+                         ## Solid Peclet number.
+                         element solid_Peclet_number{ real },
                          ## Solid source intensity.
-                         ## The non-dimensional source is: [D_h / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
-                         ## Here, the source intensity is defined as: [D_h / (u_ref T_ref)] S.
+                         ## The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
                          element source_intensity { real },
                          ## Apply source to an inner zone of the particle rather than the whole particle.
                          ## Assumes a spherical inner zone.
