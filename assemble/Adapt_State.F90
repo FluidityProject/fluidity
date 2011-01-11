@@ -73,6 +73,7 @@ module adapt_state_module
   use pickers
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
+  use mpi_interfaces
 #endif
 
   use mesh_files
@@ -957,6 +958,10 @@ contains
     type(tensor_field) :: full_metric
     logical :: vertically_structured_adaptivity
 
+    ! Zoltan with detectors stuff
+    integer :: my_num_detectors, total_num_detectors_before_zoltan, total_num_detectors_after_zoltan
+    integer :: ierr
+
     ewrite(1, *) "In adapt_state_internal"
 
     nullify(node_ownership)
@@ -1144,7 +1149,16 @@ contains
 
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
+
+#ifdef DDEBUG
         ! Re-load-balance using zoltan
+        my_num_detectors = detector_list%length
+         
+        call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_before_zoltan, 1, getPINTEGER(), &
+              MPI_SUM, MPI_COMM_WORLD, ierr)
+        assert(ierr == MPI_SUCCESS)
+#endif
+
         if(vertically_structured_adaptivity) then
           ! if we're doing vertically strucvtured adaptivity then we need to pass zoltan the
           ! horizontal metric, so let's derive that again but this time off the full metric
@@ -1181,6 +1195,17 @@ contains
           zoltan_drive_call=.true.
 
         end if
+        
+#ifdef DDEBUG
+        my_num_detectors = detector_list%length
+
+        call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_after_zoltan, 1, getPINTEGER(), &
+             MPI_SUM, MPI_COMM_WORLD, ierr)
+        assert(ierr == MPI_SUCCESS)
+        
+        assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
+#endif
+
 #else
         ! Re-load-balance using libsam
         call sam_drive(states, sam_options(i, max_adapt_iteration), metric = metric)
