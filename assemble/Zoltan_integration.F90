@@ -31,6 +31,7 @@ module zoltan_integration
   use halos_ownership
   use memory_diagnostics
   use detector_data_types
+  use detector_tools
   use pickers
   use diagnostic_variables
   use hadapt_advancing_front

@@ -1049,7 +1049,7 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
-    logical :: detectors_checkpoint_done=.false,detectors_from_file_initially=.false.
+    logical :: detectors_checkpoint_done=.false.,detectors_from_file_initially=.false.
 
     type(detector_type), pointer :: node
 
