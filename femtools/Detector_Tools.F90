@@ -42,10 +42,6 @@ module detector_tools
      module procedure insert_into_detector_list
   end interface
 
-  interface remove
-     module procedure remove_from_detector_list
-  end interface
-
   interface deallocate
      module procedure detector_deallocate
   end interface
