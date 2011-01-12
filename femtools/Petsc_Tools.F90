@@ -517,7 +517,7 @@ contains
   !!< Assembles contiguis petsc array using the specified numbering from the given fields.
   type(scalar_field), dimension(:), intent(in):: fields
   type(petsc_numbering_type), intent(in):: petsc_numbering
-  Vec, intent(out) :: vec
+  Vec, intent(inout) :: vec
   
     integer ierr, nnodp, b, nfields, nnodes
     integer :: insert_rows, insert_action
