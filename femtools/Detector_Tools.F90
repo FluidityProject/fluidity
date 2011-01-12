@@ -36,10 +36,14 @@ module detector_tools
   
   private
 
-  public :: insert, deallocate
+  public :: insert, deallocate, remove
 
   interface insert
-     module procedure detector_list_insert
+     module procedure insert_into_detector_list
+  end interface
+
+  interface remove
+     module procedure remove_from_detector_list
   end interface
 
   interface deallocate
@@ -55,13 +59,16 @@ module detector_tools
          if(allocated(detector%local_coords)) then
             deallocate(detector%local_coords)
          end if
+         if(allocated(detector%position)) then
+            deallocate(detector%position)
+         end if
          deallocate(detector)
       end if
       detector => null()
 
     end subroutine detector_deallocate
 
-    subroutine detector_list_insert(current_list,node)
+    subroutine insert_into_detector_list(current_list,node)
 
       type(detector_linked_list), intent(inout) :: current_list
       type(detector_type), pointer :: node
@@ -88,6 +95,6 @@ module detector_tools
 
       end if
 
-    end subroutine detector_list_insert
+    end subroutine insert_into_detector_list
   
 end module detector_tools
