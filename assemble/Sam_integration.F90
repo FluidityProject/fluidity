@@ -52,6 +52,7 @@ module sam_integration
   
   use data_structures
   use detector_data_types
+  use detector_tools
   use diagnostic_variables
   use pickers
   use ieee_arithmetic
@@ -1588,7 +1589,7 @@ module sam_integration
         allocate(node%local_coords(new_positions%dim + 1))
         node%initial_owner = procno
         
-        call insert_det(detector_list, node)
+        call insert(detector_list, node)
       end do
       
       deallocate(ireceive_data(i)%ptr)

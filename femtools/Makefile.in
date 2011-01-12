@@ -85,7 +85,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
-  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
+  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o Detector_Tools.o \
   Detector_Data_Types.o Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
@@ -194,7 +194,8 @@ Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
    Write_State.o Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
    Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
    State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
-   Memory_Diagnostics.o Parallel_Tools.o Profiler_Fortran.o
+   Memory_Diagnostics.o Parallel_Tools.o Profiler_Fortran.o \
+   Detector_Tools.o
 Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
 
 Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
@@ -221,6 +222,8 @@ Shape_Functions.o: Polynomials.o Elements.o Element_Numbering.o Superconvergence
 
 Dgtools.o: Elements.o Sparse_Tools.o Vector_Tools.o Fields.o FETools.o \
    Transform_elements.o Sparsity_Patterns.o Boundary_Conditions.o
+
+Detector_Tools.o: Detector_Data_Types.o
 
 Detector_Data_Types.o: Global_Parameters.o
 

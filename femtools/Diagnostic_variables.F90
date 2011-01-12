@@ -50,6 +50,7 @@ module diagnostic_variables
   use surface_integrals
   use vtk_interfaces
   use detector_data_types
+  use detector_tools
   use embed_python
   use eventcounter
   use pickers
@@ -73,6 +74,7 @@ module diagnostic_variables
   use mpi_interfaces
   use parallel_tools
   use fields_manipulation
+  use detector_tools
 
   implicit none
 
@@ -83,7 +85,7 @@ module diagnostic_variables
        & test_and_write_convergence, initialise_detectors, write_detectors, &
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
-       & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det, &
+       & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
        & uninitialise_diagnostics
 
@@ -109,10 +111,6 @@ module diagnostic_variables
      module procedure detector_value_scalar, detector_value_vector
   end interface
 
-  interface insert_det
-     module procedure detector_list_insert
-  end interface
-
   ! Idempotency variable
   logical, save :: initialised=.false.
 
@@ -134,7 +132,7 @@ module diagnostic_variables
   logical, save :: write_steady_state_file = .false.
   logical, save :: binary_steady_state_output = .false.
 
-  !! Are we continuing from a detector checkpoint file?
+ !! Are we continuing from a detector checkpoint file?
   logical, save :: detectors_checkpoint_done = .false.
 
   !The following variable will switch to true if call to zoltan_drive for the re-load balance occur.
@@ -1039,7 +1037,7 @@ contains
     character(len=PYTHON_FUNC_LEN) :: func
 
     ! Idempotency variable
-    logical, save :: initialised=.false.
+    logical, save :: detectors_initialised=.false.
 
     integer :: column, i, j, k, phase, m, IERROR
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
@@ -1051,15 +1049,15 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
-    logical :: detectors_checkpoint_done=.false., detectors_from_file_initially=.false.
+    logical :: detectors_checkpoint_done=.false,detectors_from_file_initially=.false.
 
     type(detector_type), pointer :: node
 
     type(element_type), pointer :: shape
 
     ! Idempotency check
-    if (initialised) return
-    initialised=.true.
+    if (detectors_initialised) return
+    detectors_initialised=.true.
 
     ! Check whether there are actually any detectors.
     static_dete = option_count("/io/detectors/static_detector")
@@ -1110,7 +1108,7 @@ contains
                "/io/detectors/static_detector[",i-1,"]"
          
              allocate(node)
-             call insert_det(detector_list,node) 
+             call insert(detector_list,node) 
 
              call get_option(trim(buffer)//"/name", node%name)
              shape_option=option_shape(trim(buffer)//"/location")
@@ -1144,7 +1142,7 @@ contains
                "/io/detectors/lagrangian_detector[",i-1,"]"
 
              allocate(node)
-             call insert_det(detector_list,node) 
+             call insert(detector_list,node) 
 
              call get_option(trim(buffer)//"/name", node%name)
              shape_option=option_shape(trim(buffer)//"/location")
@@ -1200,7 +1198,7 @@ contains
                  do j=1,ndete
 
                      allocate(node)
-                     call insert_det(detector_list,node)
+                     call insert(detector_list,node)
 
                      write(node%name, fmt) trim(funcnam)//"_", j
 
@@ -1240,7 +1238,7 @@ contains
                  do j=1,ndete
 
                      allocate(node)
-                     call insert_det(detector_list,node)
+                     call insert(detector_list,node)
 
                      write(node%name, fmt) trim(funcnam)//"_", j
 
@@ -1309,7 +1307,7 @@ contains
                  if (name_of_detector_groups_in_read_order(j)==temp_name) then
 
                      allocate(node)
-                     call insert_det(detector_list,node)
+                     call insert(detector_list,node)
                      node%name=temp_name
                      allocate(node%position(dim))
                      read(detector_checkpoint_unit) node%position
@@ -1337,7 +1335,7 @@ contains
 
 
                      allocate(node)
-                     call insert_det(detector_list,node)
+                     call insert(detector_list,node)
                      node%name=temp_name
                      allocate(node%position(dim))
                      read(detector_checkpoint_unit) node%position
@@ -1380,7 +1378,7 @@ contains
                     do m=1,number_det_in_each_group(j)
 
                       allocate(node)
-                      call insert_det(detector_list,node)
+                      call insert(detector_list,node)
 
                       write(node%name, fmt) trim(temp_name)//"_", m
                       allocate(node%position(dim))
@@ -2287,14 +2285,6 @@ contains
        node => node%next
     end do
 
-    !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED
-    !!! BEFORE CALLING MPI_ALL_MAX() TO SOLVE THE CONFLICT OF OWNERSHIP OF
-    !!! THE DETECTORS.  AFTERWARDS UPDATE THE DETECTOR_LIST BY REMOVING THE
-    !!! DETECTORS (NODES IN THE LIST) WHERE GETPROCNO()/=GDC(i) THIS IS ONLY
-    !!! NEEDED AT THE BEGINNING OF THE SIMULATION, at the first time step,
-    !!! ONCE WE HAVE DISTRIBUTED INITIALLY THE DETECTORS AMONG THE DIFFERENT
-    !!! PROCESSORS, WE DON'T NEED TO DO THIS ANY MORE
-
     !Code to distribute the detectors amongst the processors.
     !This is only called after initialisation.
     !THIS TASK SHOULD PROBABLY BE PERFORMED IN INITIALISE DETECTORS THEREFORE!
@@ -2321,6 +2311,7 @@ contains
 
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=node%initial_owner) then
+                !we need to remove the detector from this processor
                temp_node => node
                if ((.not.associated(node%previous))&
                     &.and.(detector_list%length/=1)) then
@@ -3380,7 +3371,7 @@ contains
 
           node_rec%name=name_of_detector_in_read_order(node_rec%id_number)
 
-          call insert_det(receive_list_array(i),node_rec) 
+          call insert(receive_list_array(i),node_rec) 
           
        end do
 
@@ -3423,7 +3414,7 @@ contains
 
        end if
 
-       call insert_det(detector_list,node) 
+       call insert(detector_list,node) 
 
        receive_list%length = receive_list%length-1  
 
@@ -3868,38 +3859,9 @@ contains
 
      end if
 
-    call insert_det(send_list,node)  
+    call insert(send_list,node)  
 
   end subroutine move_det_to_send_list            
-
-  subroutine detector_list_insert(current_list,node)
-
-    type(detector_linked_list), intent(inout) :: current_list
-    type(detector_type), pointer :: node
-
-    if (current_list%length == 0) then
-
-      current_list%firstnode => node 
-      current_list%lastnode => node 
-
-      current_list%firstnode%previous => null()
-      current_list%lastnode%next => null()
-      
-      current_list%length = 1
-
-    else
-  
-      node%previous => current_list%lastnode
-      current_list%lastnode%next => node
-      current_list%lastnode => node
-
-      current_list%lastnode%next => null()
-      
-      current_list%length = current_list%length+1
-    
-    end if 
-
-  end subroutine detector_list_insert
 
   subroutine move_detectors_subtime_step(this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, previous_element,index_next_face)

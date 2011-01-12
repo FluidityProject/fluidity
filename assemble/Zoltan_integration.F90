@@ -1356,7 +1356,7 @@ module zoltan_integration
                    ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
                    ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", new_local_element_number
 
-                   call insert_det(unpacked_detectors_list, detector)
+                   call insert(unpacked_detectors_list, detector)
                    detector => null()
                    
                 end if
@@ -2929,7 +2929,7 @@ module zoltan_integration
 
           ! Add allocated detector to send list
           ewrite(3,*) "Adding detector ", detector%id_number, "(ID) to the detector_send_list"
-          call insert_det(detector_send_list, send_detector)
+          call insert(detector_send_list, send_detector)
 
           ! Remove detector from detector list
           delete_detector => detector
@@ -3032,7 +3032,7 @@ module zoltan_integration
                       ewrite(3,*) "Unpacked detector%position: ", detector%position
                       ewrite(3,*) "Unpacked detector given new_local_element_number: ", detector%element
 
-                      call insert_det(detector_list, detector)
+                      call insert(detector_list, detector)
 
                    end if
                 end if
@@ -3186,7 +3186,7 @@ module zoltan_integration
 
        delete_detector => detector
        detector => detector%next
-       call insert_det(detector_list, add_detector)
+       call insert(detector_list, add_detector)
        call remove_det_from_current_det_list(unpacked_detectors_list, delete_detector)
        deallocate(delete_detector)
     end do
