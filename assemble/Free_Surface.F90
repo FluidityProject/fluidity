@@ -850,7 +850,7 @@ contains
   !!< calculates a 3D field (constant over the vertical) of the free surface elevation
   !!< This can be added as a diagnostic field in the flml.
   type(state_type), intent(in):: state
-  type(scalar_field), intent(inout):: free_surface
+  type(scalar_field), target, intent(inout):: free_surface
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
@@ -870,7 +870,7 @@ contains
      assert(free_surface%mesh==p%mesh)
 
      call get_option('/physical_parameters/gravity/magnitude', g)
-
+     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
      u => extract_vector_field(state, "Velocity")
      call get_reference_density_from_options(rho0, state%option_path)
           
@@ -882,7 +882,26 @@ contains
          surface_element_list=surface_element_list)
          
        vertical_normal => extract_vector_field(state, "GravityDirection")
-     
+    
+ 
+       ! Do the wetting and drying corrections: In dry regions, the free surface is not coupled to 
+       ! the pressure but is fixed to -OriginalCoordinate+d0
+       if (have_wd) then
+          call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+          original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
+          ! We need the OriginalDistanceToBottom on the pressure mesh
+          call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
+          call remap_field(original_bottomdist, original_bottomdist_remap)
+          call addto(original_bottomdist_remap, -d0)
+          call scale(original_bottomdist_remap, -g*rho0)
+          call set(free_surface, p)
+          !call set(p, free_surface)
+          !call set(original_bottomdist_remap, -0.3)
+          call bound(free_surface, lower_bound=original_bottomdist_remap)
+          call deallocate(original_bottomdist_remap)
+          p=>free_surface
+       end if      
+
        ! vertically extrapolate pressure values at the free surface downwards
        ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
        call VerticalExtrapolation(p, free_surface, x, &
@@ -918,26 +937,6 @@ contains
           
        end do      
      end if
-
-     ! Do the wetting and drying corrections
-     ! Note: This will give the correct answer only in the free surface. 
-     ! To fix this, one would have to extrapolate the bottomdist downwards before 
-     ! executing the bound rountines. 
-     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-     if (have_wd) then
-        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-        original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-        call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-        call remap_field(original_bottomdist, original_bottomdist_remap)
-        call addto(original_bottomdist_remap, -d0)
-        call scale(free_surface, -1.0)
-        call bound(free_surface, upper_bound=original_bottomdist_remap)
-        call scale(free_surface, -1.0)
-        call deallocate(original_bottomdist_remap)
-    end if
-
-
-    
   end subroutine calculate_diagnostic_free_surface
 
  subroutine update_wettingdrying_alpha(state)
@@ -1057,7 +1056,7 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
 
 
   function calculate_volume_by_surface_integral(state) result(volume)
-      type(state_type), intent(inout) :: state
+      type(state_type), intent(in) :: state
       real :: dt
       
       type(vector_field), pointer:: positions, u, gravity_normal
@@ -1112,7 +1111,6 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
           end do
         end if
       end do
-      !print *, "Volume: ", volume
 
       if (have_wd) then
         call deallocate(original_bottomdist_remap)
@@ -1170,6 +1168,8 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
        
     end function calculate_volume_by_surface_integral_element
   end function calculate_volume_by_surface_integral
+
+
 
 
   subroutine free_surface_module_check_options
