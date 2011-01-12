@@ -355,7 +355,7 @@
               coriolis_mat,div_mat)
          
          !Construct explicit parts of h rhs in wave equation
-         call get_d_rhs(d_rhs,u_rhs,D,U,h_mass_mat,div_mat,big_mat,D0,dt,theta)
+         call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
          !Solve wave equation for D update
          delta_d%option_path = d%option_path
          call petsc_solve(delta_d, wave_mat, d_rhs)
@@ -551,10 +551,13 @@
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: on_manifold
 
+      type(vector_field), pointer :: X
       integer, save :: dump_no=0
 
       if(on_manifold) then
-         call map_to_manifold(state(1))
+         X=>extract_vector_field(state(1), "CartesianCoordinate")
+         call insert(state(1), X, "Coordinate")
+!         call map_to_manifold(state(1))
       end if
       call write_state(dump_no, state)
 
@@ -668,16 +671,17 @@
       x_mesh => extract_mesh(state, "CoordinateMesh")
 
       ! allocate fields
-      call allocate(X_manifold, mesh_dim(X), x_mesh, "ManifoldCoords")
+      call allocate(X_manifold, mesh_dim(X), x_mesh, "ManifoldCoordinate")
       call allocate(U_manifold, mesh_dim(X), x_mesh, "ManifoldVelocity")
-      call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoords")
+      call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoordinate")
       call allocate(U_cartesian, mesh_dim(X)+1, x_mesh, "CartesianVelocity")
+      U_cartesian%option_path=""
       call allocate(map, x_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
 
       ! insert fields into state
-      call insert(state, X_manifold, "ManifoldCoords")
+      call insert(state, X_manifold, "ManifoldCoordinate")
       call insert(state, U_manifold, "ManifoldVelocity")
-      call insert(state, X_cartesian, "CartesianCoords")
+      call insert(state, X_cartesian, "CartesianCoordinate")
       call insert(state, U_cartesian, "CartesianVelocity")
       call insert(state, map, "VectorMap")
 

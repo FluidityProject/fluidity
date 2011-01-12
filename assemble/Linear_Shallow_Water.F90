@@ -64,8 +64,6 @@ contains
     !! velocity.
     type(vector_field), pointer :: U,X
     integer :: dim, ele
-    ! inverse of big_mat for testing
-    type(block_csr_matrix) :: inverse_big_mat
 
     ewrite(2,*) 'dt',dt,'theta',theta
     ewrite(2,*) 'D0',D0,'g',g
@@ -96,14 +94,11 @@ contains
     call allocate(big_mat,u_sparsity,(/dim,dim/))
     call zero(big_mat)
 
-    call allocate(inverse_big_mat,u_sparsity,(/dim,dim/))
-    call zero(big_mat)
-
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_shallow_water_matrices_ele(D,U,X,ele, &
             h_mass_mat,u_mass_mat,coriolis_mat,div_mat,big_mat,&
-            inverse_big_mat,f0,beta,dt,theta,D0)
+            f0,beta,dt,theta)
     end do
 
     if(have_option("/debug/check_inverse_coriolis_matrix")) then
@@ -119,8 +114,6 @@ contains
 
     call scale(wave_mat,dt*dt*theta*theta*g*D0)
     call addto(wave_mat,h_mass_mat)
-
-    call deallocate(inverse_big_mat)
 
   end subroutine setup_wave_matrices
 
@@ -328,19 +321,16 @@ contains
 
     end subroutine update_u_rhs
 
-    subroutine get_d_rhs(d_rhs,u_rhs,D,U,h_mass_mat,div_mat,big_mat,D0,dt,theta)
+    subroutine get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
       implicit none
       type(scalar_field), intent(inout) :: d_rhs
       type(vector_field), intent(inout) :: u_rhs,U
       type(scalar_field), intent(inout) :: D
-      type(csr_matrix), intent(in) :: h_mass_mat
       type(block_csr_matrix), intent(in) :: div_mat, big_mat
       real, intent(in) :: D0, dt, theta
       !Construct the contribution to the right-hand side of the D wave eqn
       type(scalar_field) :: rhs2
-      integer :: d1,d2,dim
-      type(scalar_field) :: U_cpt
-      type(csr_matrix) :: M_cpt
+      integer :: dim
       type(vector_field) :: vec
       !
       dim = mesh_dim(D)
@@ -377,7 +367,7 @@ contains
       !of the u equation
 
       type(scalar_field) :: rhs2
-      integer :: d1,d2, dim
+      integer :: dim
       type(scalar_field) :: U_cpt
       type(vector_field) :: vec
 
@@ -413,16 +403,15 @@ contains
     end subroutine get_u_rhs
 
     subroutine assemble_shallow_water_matrices_ele(D,U,X,ele, &
-         h_mass_mat,u_mass_mat,coriolis_mat,div_mat,big_mat,inverse_big_mat&
-         &,f0,beta,dt,theta,D0)
+         h_mass_mat,u_mass_mat,coriolis_mat,div_mat,big_mat,&
+         &f0,beta,dt,theta)
       implicit none
       type(scalar_field), intent(in) :: D
       type(vector_field), intent(in) :: U,X
       type(csr_matrix), intent(inout) :: coriolis_mat, h_mass_mat, u_mass_mat
       type(block_csr_matrix), intent(inout) :: div_mat, big_mat
       integer, intent(in) :: ele
-      type(block_csr_matrix), intent(inout), optional :: inverse_big_mat
-      real, intent(in) :: f0,dt,theta,D0
+      real, intent(in) :: f0,dt,theta
       real, intent(in), dimension(:) :: beta
       !Assemble h_mass_mat, u_mass_mat, coriolis_mat, div_mat
       !and then big_mat
