@@ -34,15 +34,18 @@
   use sparsity_patterns
   use unittest_tools
   use read_triangle
+  use data_structures
+
   implicit none
 
   type(vector_field) :: positions
   type(mesh_type)  :: mesh
   type(csr_sparsity) :: sparsity
-  integer :: maxdgr, i
+  integer :: maxdgr, i, j, len, sum1, sum2
   logical :: fail=.false.
   type(scalar_field) :: node_colour
   integer :: no_colours
+  type(integer_set), dimension(:), allocatable :: clr_sets
 
   !positions = read_triangle_files("data/pslgA", quad_degree=4)
   positions = read_triangle_files('data/square-cavity-2d', quad_degree=4)
@@ -64,5 +67,27 @@
   fail=.not. verify_colour_sparsity(sparsity, node_colour)
   call report_test("colour sets", fail, .false., "the colouring is not valid")
 
+  fail= .false.
+  allocate(clr_sets(no_colours))
+  call allocate(clr_sets)
+  clr_sets=colour_sets(sparsity, node_colour, no_colours)
+
+  sum1=0
+  sum2=0
+  do i=1, size(sparsity, 1)
+     sum1=sum1+i
+  enddo
+
+  do i=1, no_colours
+     len=key_count(clr_sets(i))
+     do j= 1, len
+        sum2=sum2+fetch(clr_sets(i), j)
+     enddo
+  enddo
+
+  fail = .not.(sum1 .eq. sum2) 
+  call report_test("colour sets", fail, .false., "there are something wrong in  construction of colour_sets")
+  call deallocate(clr_sets)
+  deallocate(clr_sets)
   
   end subroutine test_colouring

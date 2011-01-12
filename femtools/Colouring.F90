@@ -35,6 +35,7 @@ module colouring
   implicit none
 
   public :: colour_sparsity, verify_colour_sparsity, verify_colour_ispsparsity
+  public :: colour_sets
   
 contains
   
@@ -148,5 +149,21 @@ contains
       call deallocate(neigh_colours)
     end do
   end function verify_colour_ispsparsity
+
+  ! with above colour_sparsity, we get map:node_id --> colour
+  ! now we want map: colour --> node_ids 
+  function colour_sets(sparsity, node_colour, no_colours) result(clr_sets)
+    type(csr_sparsity), intent(in) :: sparsity    
+    type(scalar_field), intent(in) :: node_colour
+    integer, intent(in) :: no_colours
+    type(integer_set), dimension(no_colours) :: clr_sets
+    integer :: node
+
+    call allocate(clr_sets)
+    do node=1, size(sparsity, 1)
+       call insert(clr_sets(nint(node_val(node_colour, node))), node)
+    end do
+
+  end function colour_sets
 
 end module colouring
