@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">100</integer_value>
         <comment>was 10 for test</comment>
       </constant>
     </dump_period_in_timesteps>
@@ -78,7 +78,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">1.0</real_value>
@@ -201,11 +201,16 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
+          <discontinuous_galerkin>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.1</real_value>
+            </maximum_courant_number_per_subcycle>
+          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -292,6 +297,9 @@
           <discontinuous_galerkin>
             <advection_scheme>
               <upwind/>
+              <project_velocity_to_continuous>
+                <mesh name="CoordinateMesh"/>
+              </project_velocity_to_continuous>
               <integrate_advection_by_parts>
                 <twice/>
               </integrate_advection_by_parts>
@@ -299,6 +307,7 @@
             <diffusion_scheme>
               <compact_discontinuous_galerkin/>
             </diffusion_scheme>
+            <slope_limiter name="Vertex_Based"/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -306,8 +315,13 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
+          <discontinuous_galerkin>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.1</real_value>
+            </maximum_courant_number_per_subcycle>
+          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -464,6 +478,23 @@
         </convergence>
         <detectors>
           <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DG_CourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
         </detectors>
         <steady_state>
           <include_in_steady_state/>

@@ -68,7 +68,7 @@ def convergence(dx):
     error = numpy.zeros(dx.size)
 
     binary="../../bin/shallow_water"
-    project = "inertia_gravity_cjc"
+    project = "inertia_gravity"
 
     dt=0.0125
     for x in enumerate(dx):
