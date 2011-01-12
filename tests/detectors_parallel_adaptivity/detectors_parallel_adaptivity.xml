@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Detectors with adaptivity in parallel</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/fluidity -l detectors.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+s= stat_parser("detectors.stat")
+ElapsedTime=s["ElapsedTime"]["value"]
+</variable>
+  </variables>
+  <pass_tests>
+    <test name="Finished" language="python">
+assert ElapsedTime[-1] &gt; 2.9999
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
