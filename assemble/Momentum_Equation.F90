@@ -1366,8 +1366,9 @@
 
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
-         type(vector_field), intent(inout) :: x, u, old_u
-         type(scalar_field), intent(inout) :: p, old_p, delta_p, p_theta
+         type(vector_field), pointer :: x, u, old_u
+         type(scalar_field), pointer :: p, old_p, p_theta
+         type(scalar_field), intent(inout) :: delta_p
 
          integer, intent(in) :: prognostic_p_istate
 
