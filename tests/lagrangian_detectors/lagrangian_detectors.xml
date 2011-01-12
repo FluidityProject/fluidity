@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_detectors</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>
+../../bin/fluidity lagrangian_detectors.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Locations" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("lagrangian_detectors.detectors")
+Locations = s["position"]["value"]
+    </variable>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
