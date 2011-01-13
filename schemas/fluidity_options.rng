@@ -40,6 +40,7 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>porous_media</value>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
+            <value>implicit_solids</value>
           </choice>
         </element>
         <ref name="comment"/>

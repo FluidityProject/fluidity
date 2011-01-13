@@ -3714,4 +3714,30 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
   end subroutine check_stokes_options
 
+  subroutine check_implicit_solids_options
+
+    integer :: nmat, i
+    logical :: have_scon, have_spha, have_oneway, have_twoway
+
+    nmat = option_count("/material_phase")
+
+    do i = 0, nmat-1
+       have_scon = have_option("/material_phase["//int2str(i)//&
+            "]/scalar_field::SolidConcentration")
+       have_spha = have_option("/material_phase["//int2str(i)//&
+            "]/scalar_field::SolidPhase")
+       if((.not.have_scon).or.(.not.have_spha)) then
+          FLExit("An implicit solid needs a SolidConcentration and a SolidPhase.")
+       end if
+    end do
+    
+    have_oneway = have_option("/material_phase/one_way_coupling")
+    have_twoway = have_option("/material_phase/two_way_coupling")
+
+    if((.not.have_oneway).or.(.not.have_twoway)) then
+       FLExit("Implicit_solids should be run with either a one-way coupling or a two-way coupling.")
+    end if
+       
+  end subroutine check_implicit_solids_options
+  
 end module populate_state_module
