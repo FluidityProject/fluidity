@@ -2308,33 +2308,26 @@ contains
           end do
 
           node => detector_list%firstnode
-
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=node%initial_owner) then
                 call remove(detector_list,node)
-                call delete(node)
+                !call deallocate(node)
              else 
-
                node => node%next
-
             end if
            
           end do   
 
           deallocate(global_det_count)
 
+          !Any detectors that have the -1 as owner means that 
+          !nobody owns that detector. Make it static.
           node => detector_list%firstnode
-
           do i = 1, detector_list%length
-
             if (node%initial_owner==-1) then
-
                node%type = STATIC_DETECTOR
-     
             end if
-
             node => node%next
-            
           end do
 
        end if
@@ -2414,9 +2407,9 @@ contains
     call deallocate(ihash_inverse) 
 
     do i=1, key_count(ihash_neigh_ele)
-
+    
        call fetch_pair(ihash_neigh_ele, i, target_proc_a, mapped_val_a)
-
+    
     end do
 
     call deallocate(ihash_neigh_ele)
