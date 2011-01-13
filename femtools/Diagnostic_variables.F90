@@ -2312,6 +2312,7 @@ contains
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=node%initial_owner) then
                 call remove(detector_list,node)
+                call delete(node)
              else 
 
                node => node%next
