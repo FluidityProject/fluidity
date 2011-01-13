@@ -1820,8 +1820,9 @@ mesh_adaptivity_options =
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
                  element dry_absorption {real_dim_vector}?,
-                 ## Use a smooth maximum operator discretisation. This is deprecated and will be removed soon.
-                 element smooth_max_discretisation {real}?
+                 ## With this option volume conservation is satisfied by evaluating the maximum operator only at the nodal positions. 
+                 ## Without the options the maximum operators gets evaluated at each gaussian point.
+                 element satisfy_volume_conservation {void}?
                }?
             }|
             ## Enable movement of mesh by an imposed Grid Velocity.

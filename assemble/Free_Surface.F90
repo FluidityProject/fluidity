@@ -115,7 +115,7 @@ contains
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
       logical:: addto_cmc
-      logical:: have_wd
+      logical:: have_wd, have_wd_node_int
       
       real, save :: coef_old = 0.0
       
@@ -139,6 +139,7 @@ contains
       ! reference density
       call get_reference_density_from_options(rho0, state%option_path)
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+      have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/satisfy_volume_conservation")
       if (have_wd) then
         if (.not. get_cmc) then
              FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
@@ -220,6 +221,8 @@ contains
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_wd, mass_ele_old, mass_ele_old_wd
       real, dimension(face_ngi(p, sele)):: detwei, alpha_wetdry_quad, alpha_wetdry_quad_prevp
+      real, dimension(face_loc(p, sele)):: alpha_wetdry, alpha_wetdry_prevp
+
       
       if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
@@ -232,37 +235,27 @@ contains
       
 
       if (have_wd) then
-          assert(coef_old==0.0)  ! wetting and drying needs to reassemble constantly at the moment.
-          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/smooth_max_discretisation")) then
-              FLAbort("Wetting and drying with smoothmax is not supported any more")
-          else
-              ! Calculate alpha_wetdry_quad. The resulting array is 0 if the quad point is wet (p > -g d_0) and 1 if the quad point is dry (p <= -g d_0)
-             alpha_wetdry_quad = -face_val_at_quad(p, sele)-face_val_at_quad(original_bottomdist_remap, sele)*g+d0*g
-             do i=1, size(alpha_wetdry_quad)
-                 if (alpha_wetdry_quad(i)>0.0)  then
-                     alpha_wetdry_quad(i)=1.0
-                 else
-                     alpha_wetdry_quad(i)=0.0
-                 end if
-             end do
-             ! Calculate alpha_wetdry_quad_prev. Same as alpha_wetdry_quad but for the previous pressure.
-             alpha_wetdry_quad_prevp = -face_val_at_quad(prevp, sele)-face_val_at_quad(original_bottomdist_remap, sele)*g+d0*g
-             do i=1, size(alpha_wetdry_quad_prevp)
-                 if (alpha_wetdry_quad_prevp(i)>0.0)  then
-                     alpha_wetdry_quad_prevp(i)=1.0
-                 else
-                     alpha_wetdry_quad_prevp(i)=0.0
-                 end if
-             end do
-          end if
-
+        if (have_wd_node_int) then
+           call compute_alpha_wetdry(p, sele, alpha_wetdry)
+           call compute_alpha_wetdry(prevp, sele, alpha_wetdry_prevp)
+        else
+           call compute_alpha_wetdry_quad(p, sele, alpha_wetdry_quad)
+           call compute_alpha_wetdry_quad(prevp, sele, alpha_wetdry_quad_prevp)
+        end if
       end if
       
-      if (have_wd) then
+      if (have_wd .and. .not. have_wd_node_int) then
         mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei*(1.0-alpha_wetdry_quad))
         mass_ele_wd=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei*alpha_wetdry_quad)
       else
         mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
+        if (have_wd .and. have_wd_node_int) then
+          mass_ele_wd=mass_ele
+          do i=1,size(mass_ele,1)
+            mass_ele(i,:)=mass_ele(i,:)*(1.0-alpha_wetdry)
+            mass_ele_wd(i,:)=mass_ele_wd(i,:)*alpha_wetdry
+          end do
+        end if
       end if
 
       if (addto_cmc) then
@@ -279,13 +272,20 @@ contains
            & normal=normals)
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
-        if (have_wd) then
+        if (have_wd .and. .not. have_wd_node_int) then
              mass_ele_old=shape_shape(face_shape(prevp, sele), face_shape(prevp, sele), detwei*(1.0-alpha_wetdry_quad_prevp))
              mass_ele_old_wd=shape_shape(face_shape(prevp, sele), face_shape(prevp, sele), detwei*alpha_wetdry_quad_prevp)
         else
              mass_ele_old=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
+             if (have_wd .and. have_wd_node_int) then
+                mass_ele_old_wd=mass_ele_old
+                do i=1,size(mass_ele_old,1)
+                  mass_ele_old(i,:)=mass_ele_old(i,:)*(1.0-alpha_wetdry_prevp)
+                  mass_ele_old_wd(i,:)=mass_ele_old_wd(i,:)*alpha_wetdry_prevp
+                end do
+            end if
         end if
-       
+
         if(present(rhs)) then
            call addto(rhs, face_global_nodes(p, sele), &
                 -(matmul(mass_ele, face_val(p, sele)) &
@@ -306,6 +306,41 @@ contains
       end if
       
     end subroutine add_free_surface_element
+
+    ! Computes alpha_wetdry. The resulting array is 0 if the node point is wet (p > -g d_0) and 1 if the node point is dry (p <= -g d_0)
+    subroutine compute_alpha_wetdry(p, sele, alpha_wetdry)
+      type(scalar_field), pointer, intent(in) :: p
+      integer, intent(in) :: sele
+      real, dimension(:), intent(inout) :: alpha_wetdry
+      integer :: i
+
+      alpha_wetdry = -face_val(p, sele)-face_val(original_bottomdist_remap, sele)*g+d0*g
+       do i=1, size(alpha_wetdry)
+           if (alpha_wetdry(i)>0.0)  then
+               alpha_wetdry(i)=1.0
+           else
+               alpha_wetdry(i)=0.0
+           end if
+      end do
+    end subroutine compute_alpha_wetdry
+ 
+    ! Computes alpha_wetdry at each quadrature point. The resulting array is 0 if the quad point is wet (p > -g d_0) and 1 if the quad point is dry (p <= -g d_0)
+    subroutine compute_alpha_wetdry_quad(p, sele, alpha_wetdry_quad)
+      type(scalar_field), pointer, intent(in) :: p
+      integer, intent(in) :: sele
+      real, dimension(:), intent(inout) :: alpha_wetdry_quad
+      integer :: i
+
+      alpha_wetdry_quad = -face_val_at_quad(p, sele)-face_val_at_quad(original_bottomdist_remap, sele)*g+d0*g
+       do i=1, size(alpha_wetdry_quad)
+           if (alpha_wetdry_quad(i)>0.0)  then
+               alpha_wetdry_quad(i)=1.0
+           else
+               alpha_wetdry_quad(i)=0.0
+           end if
+      end do
+    end subroutine compute_alpha_wetdry_quad
+ 
     
   end subroutine add_free_surface_to_cmc_projection
     

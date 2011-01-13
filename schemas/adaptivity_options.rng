@@ -2158,9 +2158,10 @@ Note: If you double d0, this value has to be doubled as well to achieve the same
                     </element>
                   </optional>
                   <optional>
-                    <element name="smooth_max_discretisation">
-                      <a:documentation>Use a smooth maximum operator discretisation. This is deprecated and will be removed soon.</a:documentation>
-                      <ref name="real"/>
+                    <element name="satisfy_volume_conservation">
+                      <a:documentation>With this option volume conservation is satisfied by evaluating the maximum operator only at the nodal positions. 
+Without the options the maximum operators gets evaluated at each gaussian point.</a:documentation>
+                      <ref name="void"/>
                     </element>
                   </optional>
                 </element>
