@@ -77,9 +77,7 @@
     !! U momentum matrix 
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
-    
-    !! Flag for the debug with Helmholtz equation option.
-    logical :: helmholtz, on_manifold
+    logical :: on_manifold
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -94,6 +92,7 @@
     call read_command_line()
 
     call populate_state(state)
+ 
     call insert_time_in_state(state)
 
     ! Find out if we are on an embedded manifold, e.g. the surface of 
@@ -121,36 +120,8 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
-    call get_option("/timestepping/current_time", current_time)
-    call get_option("/timestepping/timestep", dt)
-    call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-         h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
-         dt,theta,D0,g,f0,beta)
-
-    call get_option("/timestepping/nonlinear_iterations"&
-         &,nonlinear_iterations)
-    exclude_pressure_advection = &
-         have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
-         &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
-         &/exclude_advection_terms")
-    exclude_velocity_advection = &
-         have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-         &ic/spatial_discretisation/discontinuous_galerkin/advection_scheme/&
-         &none")
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
-         &gnostic/temporal_discretisation/relaxation",itheta)
-    ! Geostrophic balanced initial condition, if required    
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
-         &/initial_condition::WholeMesh/balanced")) then       
-       call set_velocity_from_geostrophic_balance(state(1), &
-            div_mat,coriolis_mat)
-    end if
-
     ! Always output the initial conditions.
     call output_state(state, on_manifold)
-
-    !! Helmholtz operator test.
-    helmholtz=have_option("/material_phase::Fluid/scalar_field::HelmholtzRHS")
 
     timestep=0
     timestep_loop: do 
@@ -165,18 +136,14 @@
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
 
-       if (helmholtz) then
-          call execute_helmholtz(state(1))
-       else
-          call execute_timestep(state(1), dt)
-       end if
+       call execute_timestep(state(1), dt)
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep).or.helmholtz) exit timestep_loop     
+       if (simulation_completed(current_time, timestep)) exit timestep_loop     
 
        call advance_current_time(current_time, dt)
 
@@ -186,24 +153,6 @@
 
        call write_diagnostics(state,current_time,dt, timestep)
        
-       if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-         if(do_adapt_state_prescribed(current_time)) then                       
-            call adapt_state_prescribed(state, current_time)
-
-            call deallocate(h_mass_mat)
-            call deallocate(u_mass_mat)
-            call deallocate(coriolis_mat)
-            call deallocate(div_mat)
-            call deallocate(wave_mat)
-            call deallocate(big_mat)
-
-            call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-                 h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
-                 dt,theta,D0,g,f0,beta)
-            call insert_time_in_state(state)
-         end if
-       end if
-
     end do timestep_loop
 
     ! One last dump
@@ -263,6 +212,32 @@
       !D0
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
            &rognostic/mean_layer_thickness",D0)
+
+      call get_option("/timestepping/current_time", current_time)
+      call get_option("/timestepping/timestep", dt)
+      call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
+           h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
+           dt,theta,D0,g,f0,beta)
+      
+      call get_option("/timestepping/nonlinear_iterations"&
+           &,nonlinear_iterations)
+      exclude_pressure_advection = &
+           have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+           &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
+           &/exclude_advection_terms")
+      exclude_velocity_advection = &
+           have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/spatial_discretisation/discontinuous_galerkin/advection_scheme/&
+           &none")
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+           &gnostic/temporal_discretisation/relaxation",itheta)
+      ! Geostrophic balanced initial condition, if required    
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
+           &/initial_condition::WholeMesh/balanced")) then       
+         call set_velocity_from_geostrophic_balance(state(1), &
+              div_mat,coriolis_mat)
+      end if
+      
     end subroutine get_parameters
     
     subroutine insert_time_in_state(state)
@@ -396,28 +371,6 @@
       call deallocate(advecting_u)
 
     end subroutine execute_timestep
-
-    subroutine execute_helmholtz(state)
-      type(state_type), intent(inout) :: state
-      
-      type(scalar_field),pointer :: RHS,D
-      type(vector_field),pointer :: X
-
-      type(scalar_field) :: D_RHS
-
-      RHS=>extract_scalar_field(state, "HelmholtzRHS")
-      D=>extract_scalar_field(state, "LayerThickness")
-      X=>extract_vector_field(state, "Coordinate")
-
-      call allocate(D_RHS, D%mesh, "LayerThickness_RHS")
-
-      call mult(D_RHS, h_mass_mat, RHS)
-
-      call petsc_solve(D, wave_mat, D_RHS)
-      
-      call deallocate(D_RHS)
-
-    end subroutine execute_helmholtz
 
     subroutine get_energy(u,d,d0,g,u_mass_mat,h_mass_mat)
       type(scalar_field), intent(inout) :: d
