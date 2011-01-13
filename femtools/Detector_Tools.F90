@@ -124,64 +124,80 @@ module detector_tools
       
     end subroutine detector_copy
     
-    subroutine remove_from_detector_list(list,detector)
-      type(detector_linked_list), intent(inout) :: list
+    subroutine remove_from_detector_list(detector_list,detector)
+      type(detector_linked_list), intent(inout) :: detector_list
       type(detector_type), pointer, intent(inout) :: detector
       !
       logical :: firstnode,lastnode
       type(detector_type), pointer :: temp_detector
       
+      !we need to remove the detector from this processor
       temp_detector => detector
       if ((.not.associated(detector%previous))&
-           &.and.(list%length/=1)) then
-         !!this checks if the current detector that we are going to remove
+           &.and.(detector_list%length/=1)) then
+         !!this checks if the current node that we are going to remove
          !!from the list is the first one in the list but not the only
-         !!detector in the list
+         !!node in the list
+         
          detector%next%previous => null()
+         
          detector => detector%next
+         
          temp_detector%previous => null()
          temp_detector%next => null()
-         list%firstnode => detector
-         list%firstnode%previous => null()
-         list%length = list%length-1   
+         
+         detector_list%firstnode => detector
+         detector_list%firstnode%previous => null()
+         
+         detector_list%length = detector_list%length-1   
+
       else 
-
-         if ((detector%id_number==list%length).and.&
-              &(associated(detector%previous))) then
-
-            !!this takes into account the case when the detector is the last
-            !!one in the list but not the only one
+         
+         if (.not.(associated(detector%next))&
+              &.and.(associated(detector%previous))) then
+            !!this takes into account the case when the node is the last one in the list but not the only one
             
-            detector%previous%next => null()            
-            list%lastnode => detector%previous
+            detector%previous%next => null()
+            
+            detector_list%lastnode => detector%previous
+            
             temp_detector%previous => null()
             temp_detector%next => null()
-            list%lastnode%next => null()
-            list%length = list%length-1    
+            
+            detector_list%lastnode%next => null()
+            
+            detector_list%length = detector_list%length-1    
             
          else    
             
-            if (list%length==1) then
+            if (detector_list%length==1) then
 !!!This case takes into account if the list has only one node. 
                
                temp_detector%previous => null()
                temp_detector%next => null()
-               list%firstnode => null()
-               list%lastnode => null()
-               list%length = list%length-1    
+               
+               detector_list%firstnode => null()
+               detector_list%lastnode => null()
+               
+               detector_list%length = detector_list%length-1    
                
             else
                !!case when the node is in the middle of the double linked list
                
                detector%previous%next => detector%next
+               
                detector%next%previous => detector%previous
+               
                detector => detector%next
+               
                temp_detector%previous => null()
                temp_detector%next => null()
-               list%length = list%length-1    
+               
+               detector_list%length = detector_list%length-1    
                
             end if
          end if
+         
       end if
       
     end subroutine remove_from_detector_list

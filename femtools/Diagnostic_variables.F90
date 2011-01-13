@@ -2311,73 +2311,7 @@ contains
 
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=node%initial_owner) then
-                !we need to remove the detector from this processor
-               temp_node => node
-               if ((.not.associated(node%previous))&
-                    &.and.(detector_list%length/=1)) then
-               !!this checks if the current node that we are going to remove
-               !!from the list is the first one in the list but not the only
-               !!node in the list
-         
-                  node%next%previous => null()
-
-                  node => node%next
-
-                  temp_node%previous => null()
-                  temp_node%next => null()
-
-                  detector_list%firstnode => node
-                  detector_list%firstnode%previous => null()
-
-                  detector_list%length = detector_list%length-1   
-
-               else 
-
-                   if ((node%id_number==size(global_det_count)).and.(associated(node%previous))) then
-                   !!this takes into account the case when the node is the last one in the list but not the only one
-
-                        node%previous%next => null()
-
-                        detector_list%lastnode => node%previous
-
-                        temp_node%previous => null()
-                        temp_node%next => null()
-
-                        detector_list%lastnode%next => null()
-
-                        detector_list%length = detector_list%length-1    
-
-                   else    
-
-                        if (detector_list%length==1) then
-                        !!!This case takes into account if the list has only one node. 
-
-                        temp_node%previous => null()
-                        temp_node%next => null()
-
-                        detector_list%firstnode => null()
-                        detector_list%lastnode => null()
-
-                        detector_list%length = detector_list%length-1    
-
-                        else
-                        !!case when the node is in the middle of the double linked list
-
-                           node%previous%next => node%next
-
-                           node%next%previous => node%previous
-
-                           node => node%next
-
-                           temp_node%previous => null()
-                           temp_node%next => null()
-
-                           detector_list%length = detector_list%length-1    
-
-                        end if
-                     end if
-                end if
-
+                call remove(detector_list,node)
              else 
 
                node => node%next
