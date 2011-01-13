@@ -2956,23 +2956,19 @@ module zoltan_integration
           ! We're going to put it into a send list and count how many detectors we're sending
           send_count = send_count + 1
 
-          call allocate(send_detector, detector)
-          call copy(send_detector, detector)
+          send_detector => detector
+          detector => detector%next
+          
           ! Store the old universal element number for unpacking to new local at the receive
           send_detector%element = old_universal_element_number
 
-          ! Add allocated detector to send list
-          ewrite(3,*) "Adding detector ", detector%id_number, "(ID) to the detector_send_list"
-          call insert(detector_send_list, send_detector)
-
           ! Remove detector from detector list
-          delete_detector => detector
-          detector => detector%next
-          ewrite(3,*) "Removing detector ", delete_detector%id_number, "(ID) from the detector_list"
-          call remove_det_from_current_det_list(detector_list, delete_detector)
-          
-          ! Deallocate memory for that detector
-          call deallocate(delete_detector)
+          ewrite(3,*) "Removing detector ", send_detector%id_number, "(ID) from the detector_list"
+          call remove_det_from_current_det_list(detector_list, send_detector)
+
+          ! Add allocated detector to send list
+          ewrite(3,*) "Adding detector ", send_detector%id_number, "(ID) to the detector_send_list"
+          call insert(detector_send_list, send_detector)
 
        end if
     end do
