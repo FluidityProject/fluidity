@@ -122,7 +122,7 @@ module zoltan_integration
   subroutine unpack_detector(detector, buff)
     ! Unpacks the element, position, id_number and type of the
     ! detector from buff
-    type(detector_type), pointer, intent(in) :: detector
+    type(detector_type), pointer, intent(inout) :: detector
     real, intent(in) :: buff(ndata_per_det)
 
     detector%element = buff(1)
@@ -136,7 +136,7 @@ module zoltan_integration
     ! Updates the local, inital_owner and local_coords for a
     ! detector based off other information from the detector
     ! and the vector field of positions
-    type(detector_type), pointer, intent(in) :: detector
+    type(detector_type), pointer, intent(inout) :: detector
     type(vector_field), intent(in) :: positions
 
     detector%local = .true.
