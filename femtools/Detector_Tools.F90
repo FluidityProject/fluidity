@@ -36,10 +36,14 @@ module detector_tools
   
   private
 
-  public :: insert, allocate, deallocate, copy
+  public :: insert, allocate, deallocate, copy, remove
 
   interface insert
      module procedure insert_into_detector_list
+  end interface
+
+  interface remove
+     module procedure remove_from_detector_list
   end interface
 
   interface allocate
@@ -89,7 +93,7 @@ module detector_tools
     
     subroutine detector_deallocate(detector)
       type(detector_type), pointer :: detector
-
+      
       if(associated(detector)) then
          if(allocated(detector%local_coords)) then
             deallocate(detector%local_coords)
@@ -120,6 +124,68 @@ module detector_tools
       
     end subroutine detector_copy
     
+    subroutine remove_from_detector_list(list,detector)
+      type(detector_linked_list), intent(inout) :: list
+      type(detector_type), pointer, intent(inout) :: detector
+      !
+      logical :: firstnode,lastnode
+      type(detector_type), pointer :: temp_detector
+      
+      temp_detector => detector
+      if ((.not.associated(detector%previous))&
+           &.and.(list%length/=1)) then
+         !!this checks if the current detector that we are going to remove
+         !!from the list is the first one in the list but not the only
+         !!detector in the list
+         detector%next%previous => null()
+         detector => detector%next
+         temp_detector%previous => null()
+         temp_detector%next => null()
+         list%firstnode => detector
+         list%firstnode%previous => null()
+         list%length = list%length-1   
+      else 
+
+         if ((detector%id_number==list%length).and.&
+              &(associated(detector%previous))) then
+
+            !!this takes into account the case when the detector is the last
+            !!one in the list but not the only one
+            
+            detector%previous%next => null()            
+            list%lastnode => detector%previous
+            temp_detector%previous => null()
+            temp_detector%next => null()
+            list%lastnode%next => null()
+            list%length = list%length-1    
+            
+         else    
+            
+            if (list%length==1) then
+!!!This case takes into account if the list has only one node. 
+               
+               temp_detector%previous => null()
+               temp_detector%next => null()
+               list%firstnode => null()
+               list%lastnode => null()
+               list%length = list%length-1    
+               
+            else
+               !!case when the node is in the middle of the double linked list
+               
+               detector%previous%next => detector%next
+               detector%next%previous => detector%previous
+               detector => detector%next
+               temp_detector%previous => null()
+               temp_detector%next => null()
+               list%length = list%length-1    
+               
+            end if
+         end if
+      end if
+      
+    end subroutine remove_from_detector_list
+
     subroutine insert_into_detector_list(current_list,node)
 
       type(detector_linked_list), intent(inout) :: current_list

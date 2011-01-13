@@ -2292,7 +2292,7 @@ contains
     !gives the processor number that owns the detector, this is then
     !allmax-ed so that the processor with the largest processor number gets
     !the detector.
-
+  
     if (detector_list%length/=0) then
         if (timestep==1) then
 
@@ -2374,15 +2374,15 @@ contains
 
                            detector_list%length = detector_list%length-1    
 
-                        end if 
-                   end if
-               end if
+                        end if
+                     end if
+                end if
 
              else 
 
                node => node%next
 
-             end if
+            end if
            
           end do   
 

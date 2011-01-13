@@ -63,7 +63,7 @@ module detector_data_types
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
-  
+
   type detector_linked_list
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
