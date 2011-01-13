@@ -806,6 +806,11 @@ contains
 
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
+       ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
+       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+          ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
+       end if 
+
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
 
