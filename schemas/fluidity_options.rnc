@@ -1876,9 +1876,9 @@ start =
                     ## The temperature diffusivity should be set to diagnostic/internal with this option.
                     element temperature_source{
                          ## Fluid Peclet number.
-                         element fluid_Peclet_number{ real },
+                         element fluid_peclet_number{ real },
                          ## Solid Peclet number.
-                         element solid_Peclet_number{ real },
+                         element solid_peclet_number{ real },
                          ## Solid source intensity.
                          ## The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
                          element source_intensity { real },
@@ -2381,7 +2381,8 @@ diagnostic_vector_field =
       diagnostic_detector_options,
       vector_steady_state_options,      
       adaptivity_options_vector_field,
-      recalculation_options?
+      recalculation_options?,
+      interpolation_algorithm_vector?
    )
 
 

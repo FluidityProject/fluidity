@@ -861,9 +861,9 @@ contains
     have_fixed_temperature = have_option("/implicit_solids/source/temperature")
 
     if (have_fixed_temperature_source) then
-       call get_option("/implicit_solids/source/temperature_source/solid_Peclet_number", &
+       call get_option("/implicit_solids/source/temperature_source/solid_peclet_number", &
             solid_peclet_number)
-       call get_option("/implicit_solids/source/temperature_source/fluid_Peclet_number", &
+       call get_option("/implicit_solids/source/temperature_source/fluid_peclet_number", &
             fluid_peclet_number)
        call get_option("/implicit_solids/source/temperature_source/source_intensity", &
             source_intensity)

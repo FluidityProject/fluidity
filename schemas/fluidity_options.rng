@@ -2589,11 +2589,11 @@ requires a prognostic Temperature field. </a:documentation>
                 <element name="temperature_source">
                   <a:documentation>Use a fixed temperature source for the solids.
 The temperature diffusivity should be set to diagnostic/internal with this option.</a:documentation>
-                  <element name="fluid_Peclet_number">
+                  <element name="fluid_peclet_number">
                     <a:documentation>Fluid Peclet number.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <element name="solid_Peclet_number">
+                  <element name="solid_peclet_number">
                     <a:documentation>Solid Peclet number.</a:documentation>
                     <ref name="real"/>
                   </element>
@@ -3266,6 +3266,9 @@ i.e. the free surface or rigid lid.</a:documentation>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
       <ref name="recalculation_options"/>
+    </optional>
+    <optional>
+      <ref name="interpolation_algorithm_vector"/>
     </optional>
   </define>
   <define name="diagnostic_vector_field_bed_shear_stress">
