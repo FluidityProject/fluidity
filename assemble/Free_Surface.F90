@@ -59,13 +59,14 @@ public free_surface_module_check_options
 contains
 
   subroutine insert_original_distance_to_bottom(state)
-    ! s subroutine needs to be called before the first timestep in order to get the correct OriginalDistanceToBottom field.
+    !!< Adds the OriginalDistanceToBottom field into the state. 
+    !!< Note: In order to to get the correct values, this subroutine 
+    !!< has to be called before the first timestep.
     type(state_type), intent(inout) :: state
-    logical,save  :: initialized=.false.
     type(scalar_field), pointer :: bottomdist
     type(scalar_field) :: original_bottomdist
 
-    if (.not. initialized) then
+    if (.not. has_scalar_field(state, "OriginalDistanceToBottom")) then
        ewrite(2, *), "Inserting OriginalDistanceToBottom field into state."   
        bottomdist => extract_scalar_field(state, "DistanceToBottom")
        call allocate(original_bottomdist, bottomdist%mesh, "OriginalDistanceToBottom")
@@ -142,7 +143,8 @@ contains
       have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/satisfy_volume_conservation")
       if (have_wd) then
         if (.not. get_cmc) then
-             FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
+             FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in &
+                   & diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
         end if
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
         original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
@@ -1176,7 +1178,8 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
         
 
         if (have_wd) then
-            ! Calculate alpha_wetdry_quad. The resulting array is 0 if the quad point is wet (p > -g d_0) and 1 if the quad point is dry (p <= -g d_0)
+            ! Calculate alpha_wetdry_quad. The resulting array is 0 if the quad point is wet (p > -g d_0)  
+            ! and 1 if the quad point is dry (p <= -g d_0)
             alpha_wetdry_quad = -face_val_at_quad(p, sele)-face_val_at_quad(original_bottomdist_remap, sele)*g + d0 * g
             do i=1, size(alpha_wetdry_quad)
                 if (alpha_wetdry_quad(i)>0.0)  then
