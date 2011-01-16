@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Checks the geometrical colume conservation of  wetting and drying.</name>
+  <owner userid="sf1409"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l geometric_volume_conservation_p1p1.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="area_cons_error_p1p1" language="python">from fluidity_tools import stat_parser as stat
+area_cons_error_p1p1 = max(abs(stat("geometric_volume_conservation_p1p1.stat")["water"]["Density"]["integral"]-stat("geometric_volume_conservation_p1p1.stat")["water"]["Density"]["integral"][0]))/stat("geometric_volume_conservation_p1p1.stat")["water"]["Density"]["integral"][0]</variable>
+    <variable name="endtime_p1p1" language="python">from fluidity_tools import stat_parser as stat
+endtime_p1p1 = stat("geometric_volume_conservation_p1p1.stat")['ElapsedTime']['value'][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="area conservation error" language="python">assert(area_cons_error_p1p1 &lt; 2.E-14)</test>
+    <test name="endtime" language="python">assert(endtime_p1p1&gt;=4.0)</test>
+  </pass_tests>
+</testproblem>

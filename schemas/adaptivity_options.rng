@@ -2158,9 +2158,11 @@ Note: If you double d0, this value has to be doubled as well to achieve the same
                     </element>
                   </optional>
                   <optional>
-                    <element name="satisfy_volume_conservation">
-                      <a:documentation>With this option volume conservation is satisfied by evaluating the maximum operator only at the nodal positions. 
-Without the options the maximum operators gets evaluated at each gaussian point.</a:documentation>
+                    <element name="conserve_geometric_volume">
+                      <a:documentation>With wetting and drying the free surface is the maximum of two functions in the pressure finite element space. The result is in general not a function of the finite element space and 
+can therefore not represented exactely on the pressure mesh.
+This option enables geometrical volume conservation by evaluating the maximum operator only at the nodal positions (instead of at each quadrature point),
+on the cost of a worse internal representation of the wetting and drying interface.</a:documentation>
                       <ref name="void"/>
                     </element>
                   </optional>

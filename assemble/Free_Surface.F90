@@ -140,7 +140,7 @@ contains
       ! reference density
       call get_reference_density_from_options(rho0, state%option_path)
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-      have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/satisfy_volume_conservation")
+      have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/conserve_geometric_volume")
       if (have_wd) then
         if (.not. get_cmc) then
              FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in &
@@ -561,19 +561,19 @@ contains
     type(vector_field), pointer:: positions, u, original_positions
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
     type(vector_field), pointer:: iterated_positions
-    type(scalar_field), pointer:: p, original_bottomdist
+    type(scalar_field), pointer:: p, iter_p, original_bottomdist, preiter_p
     type(vector_field), target :: local_grid_u
     type(scalar_field), target:: p_mapped_to_coordinate_space
     character(len=FIELD_NAME_LEN):: bctype
     real g, dt, rho0, atmospheric_pressure, d0
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
+    integer, dimension(:), pointer :: surface_node_list
     integer i, j, k, node, sele, stat
 
     ! some fields for when moving the entire mesh
     type(scalar_field), pointer :: topdis, bottomdis
-    !type(scalar_field), save :: fracdis
-    type(scalar_field) :: fracdis
+    type(scalar_field), pointer :: fracdis
     type(scalar_field) :: extrapolated_p
     ! The pressure difference, i.e. p relative to external pressures
     ! (such as atmospheric pressure and pressure due to the weight of an ice shelf)
@@ -594,9 +594,20 @@ contains
     call get_option('/timestepping/timestep', dt)
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
     if (have_wd) then
-        original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-    end if
+     original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
+     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+     iter_p => extract_scalar_field(state, "IteratedPressure")
+     if (.not. has_scalar_field(state, "PreIteratedPressure")) then
+       ewrite(2, *), "Inserting PreIteratedPressure field into state."   
+       allocate(preiter_p)
+       call allocate(preiter_p, iter_p%mesh, "PreIteratedPressure")
+       call set(preiter_p, iter_p)
+       call insert(state, preiter_p, name="PreIteratedPressure")
+       call deallocate(preiter_p)
+       deallocate(preiter_p)
+     end if
+     preiter_p => extract_scalar_field(state, "PreIteratedPressure")
+   end if
  
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
@@ -683,34 +694,50 @@ contains
       
       ! first we need to extrapolate the pressure down from the surface
       call allocate(extrapolated_p, p%mesh, "ExtrapolatedPressure")
-    
+
       call get_boundary_condition(topdis, 1, &
-        surface_element_list=surface_element_list)
+        surface_node_list=surface_node_list, surface_element_list=surface_element_list)
         
       ! Vertically extrapolate pressure values at the free surface downwards
       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
       ! The use of Coordinate here (as opposed to IteratedCoordinate or OldCoordinate)
       ! doesn't affect anything as nodes only move in the vertical.
-      call VerticalExtrapolation(p, extrapolated_p, positions, &
-        gravity_normal, surface_element_list=surface_element_list, &
-        surface_name="DistanceToTop")
-
-      if (have_wd) then
-        do node=1, node_count(extrapolated_p)
-            call set(extrapolated_p, node, &
-                  max(node_val(extrapolated_p, node),-g*node_val(original_bottomdist, node)+g*d0))
+      if (.not. have_wd) then
+        call VerticalExtrapolation(p, extrapolated_p, positions, &
+          gravity_normal, surface_element_list=surface_element_list, &
+          surface_name="DistanceToTop")
+      else
+        ! With wetting and drying we set the minimum depth to -OriginalDistanceToBottom+d0
+        call set(extrapolated_p, p)
+        do node=1, size(surface_node_list)
+          if (node_val(preiter_p, surface_node_list(node))>-g*node_val(original_bottomdist, surface_node_list(node))+g*d0) then
+            call set(extrapolated_p, surface_node_list(node), node_val(extrapolated_p, surface_node_list(node)))
+          else
+            call set(extrapolated_p, surface_node_list(node), -g*node_val(original_bottomdist, surface_node_list(node))+g*d0)
+          end if
         end do
+        call VerticalExtrapolation(extrapolated_p, extrapolated_p, positions, &
+                gravity_normal, surface_element_list=surface_element_list, &
+                        surface_name="DistanceToTop")
       end if
 
-      ! then we need to scale it by its fractional distance from the bottom
-      call allocate(fracdis, topdis%mesh, "FractionalDistance")      
-      call set(fracdis, topdis)
-      call addto(fracdis, bottomdis)
-      call invert(fracdis)
-      call scale(fracdis, bottomdis)
+      ! Then we need to scale it by its fractional distance from the bottom
+      ! Since the fractional distance is constant in time, we compute it once and save it.
+      if (.not. has_scalar_field(state, "FractionalDistance")) then
+        allocate(fracdis)
+        call allocate(fracdis, topdis%mesh, "FractionalDistance")     
+        call set(fracdis, topdis)
+        call addto(fracdis, bottomdis)
+        call invert(fracdis)
+        call scale(fracdis, bottomdis)
+        call insert(state, fracdis, name="FractionalDistance")
+        call deallocate(fracdis)
+        deallocate(fracdis)
+      end if
+      fracdis => extract_scalar_field(state, "FractionalDistance")
+
       call scale(extrapolated_p, fracdis)
-      call deallocate(fracdis)
-    
+        
       do node=1, node_count(positions)
         call set(iterated_positions, node, &
                   node_val(original_positions, node)- &
@@ -741,9 +768,17 @@ contains
                 node=face_nodes(k)
                 ! compute new surface node position:
                 if (have_wd) then
-                  call set(iterated_positions, node, &
-                    max(node_val(original_positions, node)- &
-                    node_val(p, node)*node_val(gravity_normal, node)/g/rho0, -node_val(original_bottomdist, node)+d0))
+                  ! The maximum operator is evaluated at the last iteration to obtain volume conservation
+                  if (node_val(preiter_p, node)/g/rho0 > -node_val(original_bottomdist, node)+d0) then
+                    call set(iterated_positions, node, &
+                      node_val(original_positions, node)- &
+                      node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
+                  else
+                    call set(iterated_positions, node, &
+                           & node_val(original_positions, node) + &
+                           & (node_val(original_bottomdist, node)-d0)*node_val(gravity_normal, node))
+                  end if
+
                 else
                   call set(iterated_positions, node, &
                     node_val(original_positions, node)- &
@@ -761,7 +796,12 @@ contains
       end do
       
     end if
-    
+   
+    if (has_scalar_field(state, "PreIteratedPressure")) then
+      ! Update PreIteratedPressure
+      call set(preiter_p, iter_p)
+    end if
+
     if (l_initialise) then
       call set(positions, iterated_positions)
       call set(old_positions, iterated_positions)

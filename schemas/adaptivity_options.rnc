@@ -1820,9 +1820,11 @@ mesh_adaptivity_options =
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
                  element dry_absorption {real_dim_vector}?,
-                 ## With this option volume conservation is satisfied by evaluating the maximum operator only at the nodal positions. 
-                 ## Without the options the maximum operators gets evaluated at each gaussian point.
-                 element satisfy_volume_conservation {void}?
+                 ## With wetting and drying the free surface is the maximum of two functions in the pressure finite element space. The result is in general not a function of the finite element space and 
+                 ## can therefore not represented exactely on the pressure mesh.
+                 ## This option enables geometrical volume conservation by evaluating the maximum operator only at the nodal positions (instead of at each quadrature point),
+                 ## on the cost of a worse internal representation of the wetting and drying interface.
+                 element conserve_geometric_volume {void}?
                }?
             }|
             ## Enable movement of mesh by an imposed Grid Velocity.
