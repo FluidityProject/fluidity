@@ -153,6 +153,24 @@
 
        call write_diagnostics(state,current_time,dt, timestep)
        
+       if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
+          if(do_adapt_state_prescribed(current_time)) then                       
+             call adapt_state_prescribed(state, current_time)
+             
+             call deallocate(h_mass_mat)
+             call deallocate(u_mass_mat)
+             call deallocate(coriolis_mat)
+             call deallocate(div_mat)
+             call deallocate(wave_mat)
+             call deallocate(big_mat)
+             
+             call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
+                  h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
+                  dt,theta,D0,g,f0,beta)
+             call insert_time_in_state(state)
+          end if
+       end if
+
     end do timestep_loop
 
     ! One last dump
