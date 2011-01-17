@@ -264,7 +264,41 @@ helmholtz_smoothed_scalar_algorithm =
          }
       }
    )
-
+helmholtz_smoothed_vector_algorithm =
+   (
+      ## Smooth a vector field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_smoothed_vector" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## The characteristic length scale used by the smoother.
+         element smoothing_length_scale {
+             real_dim_symmetric_tensor
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+lumped_mass_smoothed_scalar_algorithm =
+   (
+      ## Smooth a scalar field by inverting the lumped mass: ML {S_smooth}=M {S} .
+      element algorithm {
+         attribute name { "lumped_mass_smoothed_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+lumped_mass_smoothed_vector_algorithm =
+   (
+      ## Smooth a vector field by inverting the lumped mass: ML {V_smooth}=M {V}.
+      element algorithm {
+         attribute name { "lumped_mass_smoothed_vector" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
 # Binary operators
 scalar_sum_algorithm =
    (
@@ -536,7 +570,15 @@ tensor_second_invariant_algorithm =
          tensor_source_field
       }
    )
-
+hessian_algorithm =
+   (
+      ## algorithm for the Hessian (2nd derivative) of a scalar field
+       element algorithm {
+         attribute name { "hessian" },
+         attribute material_phase_support { "single "},
+         scalar_source_field
+      }
+   )
    
 # Surface diagnostics
 grad_normal_algorithm =
@@ -1118,6 +1160,7 @@ scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
+scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
@@ -1142,6 +1185,8 @@ scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
+vector_diagnostic_algorithms |= helmholtz_smoothed_vector_algorithm
+vector_diagnostic_algorithms |= lumped_mass_smoothed_vector_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
 vector_diagnostic_algorithms |= perp_algorithm
@@ -1159,3 +1204,4 @@ tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
+tensor_diagnostic_algorithms |= hessian_algorithm

@@ -41,6 +41,8 @@ module field_copies_diagnostics
   use spud
   use state_module
   use transform_elements
+  use state_fields_module
+  use sparse_matrices_fields
 
   implicit none
   
@@ -49,7 +51,8 @@ module field_copies_diagnostics
   public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
   public :: calculate_extract_scalar_component
   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
-  public :: calculate_helmholtz_smoothed_scalar
+  public :: calculate_helmholtz_smoothed_scalar, calculate_helmholtz_smoothed_vector
+  public :: calculate_lumped_mass_smoothed_scalar, calculate_lumped_mass_smoothed_vector
   
 contains
 
@@ -403,5 +406,103 @@ contains
     ewrite(1, *) "Exiting calculate_helmholtz_smoothed_scalar"
     
   end subroutine calculate_helmholtz_smoothed_scalar
+
+  subroutine calculate_helmholtz_smoothed_vector(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer, dimension(2) :: alpha_shape
+    real, dimension(:, :), allocatable :: alpha
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+    
+    ewrite(1, *) "In calculate_helmholtz_smoothed_vector"
+    
+    source_field => vector_source_field(state, v_field)
+    positions => extract_vector_field(state, "Coordinate")
+    
+    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+    alpha_shape = option_shape(trim(path) // "/smoothing_length_scale")
+    allocate(alpha(alpha_shape(1), alpha_shape(2)))
+    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
+    
+    !ewrite_minmax(source_field%val)
+    call smooth_vector(source_field, positions, v_field, alpha, path)
+    ewrite_minmax(v_field%val)
+    
+    deallocate(alpha)
+    !deallocate(source_field)
+    
+    ewrite(1, *) "Exiting calculate_helmholtz_smoothed_vector"
+    
+  end subroutine calculate_helmholtz_smoothed_vector
+
+  subroutine calculate_lumped_mass_smoothed_scalar(state, s_field)
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+    type(scalar_field), pointer :: source_field, lumpedmass
+    type(scalar_field) :: inverse_lumpedmass
+    type(csr_matrix), pointer :: mass
+    logical :: allocated
+
+    ewrite(1, *) "In calculate_lumped_mass_smoothed_scalar"
+    
+    source_field => scalar_source_field(state, s_field, allocated = allocated)
+
+    ! Apply smoothing filter
+    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, source_field%mesh)
+    lumpedmass => get_lumped_mass(state, source_field%mesh)
+    call invert(lumpedmass, inverse_lumpedmass)
+    call mult( s_field, mass, source_field)
+    call scale(s_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+    call deallocate(inverse_lumpedmass)
+    if(allocated) deallocate(source_field)
+
+    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_scalar"
+
+  end subroutine calculate_lumped_mass_smoothed_scalar
+
+  subroutine calculate_lumped_mass_smoothed_vector(state, v_field)
+
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    type(vector_field), pointer :: source_field
+    type(scalar_field), pointer :: lumpedmass
+    type(scalar_field) :: inverse_lumpedmass
+    type(csr_matrix), pointer :: mass
+    
+    ewrite(1, *) "In calculate_lumped_mass_smoothed_vector"
+    
+    source_field => vector_source_field(state, v_field)
+
+    ! Apply smoothing filter
+    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, source_field%mesh)
+    lumpedmass => get_lumped_mass(state, source_field%mesh)
+    call invert(lumpedmass, inverse_lumpedmass)
+    call mult( v_field, mass, source_field)
+    call scale(v_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+    call deallocate(inverse_lumpedmass)
+
+    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_vector"
+
+  end subroutine calculate_lumped_mass_smoothed_vector
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 end module field_copies_diagnostics
