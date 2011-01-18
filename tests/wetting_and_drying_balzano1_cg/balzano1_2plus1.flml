@@ -217,12 +217,8 @@
           <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <vertical_lumping>
-              <internal_smoother/>
-            </vertical_lumping>
-          </preconditioner>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -314,14 +310,8 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">500</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="asm">
-            <preconditioner name="lu"/>
-          </preconditioner>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
