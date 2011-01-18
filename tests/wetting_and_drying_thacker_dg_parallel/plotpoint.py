@@ -211,10 +211,10 @@ def main(argv=None):
                                         r_index=i
                                 else:
                                         break
-                          if i==len(xcoords)-1:
+                        if i==len(xcoords)-1:
                                 print "The radius specified is too big!"
                                 exit
-                         print "Evaluating at x=", xcoords[i]
+                        print "Evaluating at x=", xcoords[i]
                         timeplot_xvalue.append(timesteps[t]/60/60)
                         timeplot_yvalue.append(fsvalues[i])
                         offset=-ana_sol.bathymetry_function(0.0)+50.0+dzero
