@@ -1242,7 +1242,7 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
         end if
         
         volume=dot_product(one,matmul(mass_ele, face_val(original_bottomdist_remap, sele)) &
-          +matmul(mass_ele_wd, face_val(original_bottomdist, sele)))
+          +matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)))
    
         volume=volume-dt*dot_product(one,-matmul(mass_ele, face_val(p, sele))*alpha &
           +matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)-d0)*alpha*g)
