@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">balzano1_2plus1</string_value>
+    <string_value lines="1">balzano2_2plus1</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -229,12 +229,8 @@
           <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <vertical_lumping>
-              <internal_smoother/>
-            </vertical_lumping>
-          </preconditioner>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -326,14 +322,8 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">500</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="asm">
-            <preconditioner name="lu"/>
-          </preconditioner>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
