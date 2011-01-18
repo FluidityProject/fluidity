@@ -711,8 +711,11 @@ contains
         call set(extrapolated_p, p)
         do node=1, size(surface_node_list)
           if (node_val(preiter_p, surface_node_list(node))>-g*node_val(original_bottomdist, surface_node_list(node))+g*d0) then
-            call set(extrapolated_p, surface_node_list(node), node_val(extrapolated_p, surface_node_list(node)))
+            ! Wet node: Pressure and free-surface are coupled.
+            call set(extrapolated_p, surface_node_list(node), max(node_val(extrapolated_p, surface_node_list(node)), &
+                                                                & -g*node_val(original_bottomdist, surface_node_list(node))+g*d0))
           else
+            ! Dry node: Set to the -OriginalDistanceToBottom+d0
             call set(extrapolated_p, surface_node_list(node), -g*node_val(original_bottomdist, surface_node_list(node))+g*d0)
           end if
         end do
