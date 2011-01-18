@@ -2411,7 +2411,8 @@ diagnostic_vector_field_bed_shear_stress =
 diagnostic_tensor_field =
    (
       diagnostic_output_options,
-      adaptivity_options_tensor_field
+      adaptivity_options_tensor_field,
+      interpolation_algorithm_vector?
    )
    
 # Richardson number field. This is a normal diagnostic scalar field, but with

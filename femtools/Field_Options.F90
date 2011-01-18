@@ -653,6 +653,7 @@ contains
     type(mesh_type), pointer :: mesh    
     type(scalar_field), pointer:: sfield => null()
     type(vector_field), pointer:: vfield => null()
+    type(tensor_field), pointer:: tfield => null()
     integer :: stat
     
     interpolate_state%name = state%name
@@ -670,7 +671,7 @@ contains
     end do
     
     ! Select all prognostic and prescribed scalar fields that do not have interpolation
-    ! disabled
+    ! disabled. In addition, select diagnostic scalar fields that have interpolation enabled.
     do i = 1, scalar_field_count(state)
       sfield => extract_scalar_field(state, i)      
       if (interpolate_field(sfield, first_time_step=first_time_step)) then
@@ -680,7 +681,7 @@ contains
     end do
     
     ! Select all prognostic and prescribed vector fields that do not have interpolation
-    ! disabled
+    ! disabled. In addition, select diagnostic vector fields that have interpolation enabled.
     do i = 1, vector_field_count(state)
       vfield => extract_vector_field(state, i)
       if (interpolate_field(vfield, first_time_step=first_time_step)) then
@@ -689,6 +690,16 @@ contains
       end if
     end do
     
+    ! Select all prognostic and prescribed tensor fields that do not have interpolation
+    ! disabled. In addition, select diagnostic tensor fields that have interpolation enabled.
+    do i = 1, tensor_field_count(state)
+      tfield => extract_tensor_field(state, i)
+      if (interpolate_field(tfield, first_time_step=first_time_step)) then
+        ewrite(2,*) 'selecting to interpolate ', trim(tfield%name)
+        call insert(interpolate_state, tfield, tfield%name)
+      end if
+    end do
+
     if (.not. present_and_true(no_positions)) then
       ! Need coordinate for interpolation
       vfield => extract_vector_field(state, "Coordinate")

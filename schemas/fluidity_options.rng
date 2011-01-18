@@ -3291,6 +3291,9 @@ i.e. the free surface or rigid lid.</a:documentation>
   <define name="diagnostic_tensor_field">
     <ref name="diagnostic_output_options"/>
     <ref name="adaptivity_options_tensor_field"/>
+    <optional>
+      <ref name="interpolation_algorithm_vector"/>
+    </optional>
   </define>
   <!--
     Richardson number field. This is a normal diagnostic scalar field, but with
