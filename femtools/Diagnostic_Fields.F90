@@ -3040,7 +3040,11 @@ contains
     
     coordinate => extract_vector_field(state, "Coordinate")
     
-    call remap_field(coordinate, field)
+    if (.not. field%mesh%periodic) then
+      call remap_field(coordinate, field)
+    else
+      field = get_nodal_coordinate_field(state, field%mesh)
+    end if
    
    end subroutine calculate_diagnostic_coordinate_field
    
