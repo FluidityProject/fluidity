@@ -1295,12 +1295,16 @@ contains
     !!< Return the number of adapt / re-load-balance iterations
 
     integer :: adapt_iterations
+    
+    integer :: adapt_iterations_default
 
     if(isparallel()) then
-      adapt_iterations = 3
+      adapt_iterations_default = 3
     else
-      adapt_iterations = 1
+      adapt_iterations_default = 1
     end if
+    call get_option('/mesh_adaptivity/hr_adaptivity/adapt_iterations', adapt_iterations, &
+        default=adapt_iterations_default)
 
   end function adapt_iterations
 

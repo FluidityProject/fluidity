@@ -805,7 +805,7 @@ hr_adaptivity =
          element aspect_ratio_bound {
            real
          }?,
-               ## Adapt at first timestep
+         ## Adapt at first timestep
          element adapt_at_first_timestep {
             ## Number of adapts done after initialisation but
             ## before the actual simulation starts
@@ -1045,6 +1045,17 @@ hr_adaptivity =
                }?,
                comment
             }
+         }?,
+         ## Number of times the adaptivity library is called. In parallel elements
+         ## near the local domain boundary are locked during the mesh adaptation. The mesh
+         ## is then redistributed in such a way that these locked regions are moved into the
+         ## interior of local domains and adaptivity is called again to adapt these not-yet-adapted
+         ## regions. By default, in parallel, the number of times the adaptivity library is called
+         ## in this way is three. If a relatively small mesh is distributed among a large number
+         ## of processors, a large proportion of the mesh is locked during adaptivity and more
+         ## iterations may be necessary.
+         element adapt_iterations {
+            integer
          }?,
          ## hr adptivity debugging options
          element debug {
