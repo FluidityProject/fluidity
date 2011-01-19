@@ -606,11 +606,12 @@ contains
               & .and. (have_option(trim(s_field%option_path) // "/prognostic") &
               & .or. (have_option(trim(s_field%option_path) // "/prescribed") &
                 & .and. interpolate_field(s_field))) &
-              & .and. .not. aliased(s_field)) then
+              & .and. .not. aliased(s_field) &
+              & .or. have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint") ) then
               if(have_option(trim(complete_field_path(s_field%option_path)) // "/exclude_from_checkpointing")) cycle
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
               if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(s_field)) cycle
-                            
+
               ewrite(2, *) "Checkpointing field " // trim(s_field%name) // " in state " // trim(state(i)%name)
 
               n_ps_fields_on_mesh = n_ps_fields_on_mesh + 1
@@ -621,6 +622,9 @@ contains
               else if (have_option(trim(s_field%option_path) // "/prescribed").and.&
                        interpolate_field(s_field)) then
                 call update_value_options(trim(s_field%option_path), trim(vtu_filename), "vtu")
+              else if (have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint").and.&
+                       interpolate_field(s_field)) then
+                ewrite(2, *) "... diagnostic field"
               else
                 FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
@@ -634,11 +638,12 @@ contains
               & .and. (have_option(trim(v_field%option_path) // "/prognostic") &
               & .or. (have_option(trim(v_field%option_path) // "/prescribed") &
                 & .and. interpolate_field(v_field, first_time_step=keep_initial_data))) &
-              & .and. .not. aliased(v_field)) then
+              & .and. .not. aliased(v_field) &
+              & .or. have_option(trim(v_field%option_path) // "/diagnostic/output/checkpoint") ) then
               if(have_option(trim(complete_field_path(v_field%option_path)) // "/exclude_from_checkpointing")) cycle
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
               if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(v_field)) cycle
-            
+
               ewrite(2, *) "Checkpointing field " // trim(v_field%name) // " in state " // trim(state(i)%name)
 
               n_pv_fields_on_mesh = n_pv_fields_on_mesh + 1
@@ -649,6 +654,9 @@ contains
               else if (have_option(trim(v_field%option_path) // "/prescribed").and.&
                        interpolate_field(v_field)) then
                 call update_value_options(trim(v_field%option_path), trim(vtu_filename), "vtu")
+              else if (have_option(trim(v_field%option_path) // "/diagnostic/output/checkpoint").and.&
+                       interpolate_field(v_field)) then
+                ewrite(2, *) "... diagnostic field"
               else
                 FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
@@ -662,7 +670,8 @@ contains
               & .and. (have_option(trim(t_field%option_path) // "/prognostic") &
               & .or. (have_option(trim(t_field%option_path) // "/prescribed") &
                 & .and. interpolate_field(t_field, first_time_step=keep_initial_data))) &
-              & .and. .not. aliased(s_field)) then
+              & .and. .not. aliased(s_field) &
+              & .or. have_option(trim(t_field%option_path) // "/diagnostic/output/checkpoint") ) then
               if(have_option(trim(complete_field_path(t_field%option_path)) // "/exclude_from_checkpointing")) cycle
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
               if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(t_field)) cycle
@@ -677,6 +686,9 @@ contains
               else if (have_option(trim(t_field%option_path) // "/prescribed").and.&
                        interpolate_field(t_field)) then
                 call update_value_options(trim(t_field%option_path), trim(vtu_filename), "vtu")
+              else if (have_option(trim(t_field%option_path) // "/diagnostic/output/checkpoint").and.&
+                       interpolate_field(t_field)) then
+                ewrite(2, *) "... diagnostic field"
               else
                 FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if

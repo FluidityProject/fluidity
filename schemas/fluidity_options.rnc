@@ -2940,6 +2940,10 @@ field_output_options =
          ## Exclude this field from dump files.
          element exclude_from_vtu {
             comment
+         }?,
+         ## To be used with time-averaged diagnostic fields so that they can be checkpointed.
+         element checkpoint {
+            empty
          }?
       }
    )

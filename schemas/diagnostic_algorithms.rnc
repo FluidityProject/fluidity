@@ -1166,7 +1166,9 @@ scalar_time_averaged_algorithm =
          attribute material_phase_support { "single" },
          scalar_source_field,
          ## When to start sampling? Defaults to simulation start time.
-         element start_time {real}?
+         element spin_up_time {
+            real
+         }?
       }
    )
 
@@ -1179,7 +1181,9 @@ scalar_squared_time_averaged_algorithm =
          attribute material_phase_support { "single" },
          scalar_source_field,
          ## When to start sampling? Defaults to simulation start time.
-         element start_time {real}?
+         element spin_up_time {
+            real
+         }?
       }
    )
 
@@ -1192,7 +1196,9 @@ vector_time_averaged_algorithm =
          attribute material_phase_support { "single" },
          vector_source_field,
          ## When to start sampling?  Defaults to simulation start time.
-         element start_time {real}?
+         element spin_up_time {
+            real
+         }?
       }
    )
 
@@ -1206,7 +1212,9 @@ vector_squared_time_averaged_algorithm =
          attribute material_phase_support { "single" },
          vector_source_field,
          ## When to start sampling?  Defaults to simulation start time.
-         element start_time {real}?
+         element spin_up_time {
+            real
+         }?
       }
    )
 
@@ -1220,7 +1228,9 @@ vector_scalar_time_averaged_algorithm =
          vector_source_field_1,
          scalar_source_field_2,
          ## When to start sampling?  Defaults to simulation start time.
-         element start_time {real}?
+         element spin_up_time {
+            real
+         }?
       }
    )
 

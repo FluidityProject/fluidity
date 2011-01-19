@@ -34,12 +34,19 @@ module simple_diagnostics
   use initialise_fields_module
   use fields
   use fldebug
-  use global_parameters, only : timestep, current_time, dt, OPTION_PATH_LEN
+  use global_parameters, only : timestep, OPTION_PATH_LEN
   use spud
   use state_fields_module
   use state_module
+  use vtk_cache_module
 
   implicit none
+
+  interface initialise_diagnostic_from_checkpoint
+    module procedure initialise_diagnostic_scalar_from_checkpoint, &
+                     initialise_diagnostic_vector_from_checkpoint, &
+                     initialise_diagnostic_tensor_from_checkpoint
+  end interface
 
   private
 
@@ -144,15 +151,23 @@ contains
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: source_field
-    real :: a, b, start_time
+    real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/start_time", start_time, stat)
-    if (stat /=0) start_time=0.
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(s_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
     source_field => scalar_source_field(state, s_field)
 
-    if (current_time>start_time .and. current_time>0.) then
-      a = (current_time-dt)/current_time; b = dt/current_time
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
       ! s_field = a*s_field + b*source_field
       call scale(s_field, a)
       call addto(s_field, source_field, b)
@@ -166,15 +181,23 @@ contains
     type(vector_field), intent(inout) :: v_field
 
     type(vector_field), pointer :: source_field
-    real :: a, b, start_time
+    real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/start_time", start_time, stat)
-    if (stat /=0) start_time=0.
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(v_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
     source_field => vector_source_field(state, v_field)
 
-    if (current_time>start_time .and. current_time>0.) then
-      a = (current_time-dt)/current_time; b = dt/current_time
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
       ! v_field = a*v_field + b*source_field
       call scale(v_field, a)
       call addto(v_field, source_field, b)
@@ -189,19 +212,27 @@ contains
 
     type(scalar_field), pointer :: source_field
     type(scalar_field) :: l_field
-    real :: a, b, start_time
+    real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/start_time", start_time, stat)
-    if (stat /=0) start_time=0.
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(s_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
     source_field => scalar_source_field(state, s_field)
 
     call allocate(l_field, source_field%mesh, "LocalField")
     call set(l_field, source_field)
     call scale(l_field, source_field)
 
-    if (current_time>start_time .and. current_time>0.) then
-      a = (current_time-dt)/current_time; b = dt/current_time
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
       ! s_field = a*s_field + b*source_field**2
       call scale(s_field, a)
       call addto(s_field, l_field, b)
@@ -217,11 +248,19 @@ contains
 
     type(vector_field), pointer :: source_field
     type(tensor_field) :: l_field
-    real :: a, b, start_time
+    real :: a, b, spin_up_time, current_time, dt
     integer :: i, j, stat
 
-    call get_option(trim(t_field%option_path)//"/diagnostic/algorithm/start_time", start_time, stat)
-    if (stat /=0) start_time=0.
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(t_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option(trim(t_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
     source_field => vector_source_field(state, t_field)
 
     call allocate(l_field, source_field%mesh, "LocalField")
@@ -235,8 +274,8 @@ contains
       end do
     end do
 
-    if (current_time>start_time .and. current_time>0.) then
-      a = (current_time-dt)/current_time; b = dt/current_time
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
       ! t_field = a*t_field + b*source_field**2
       call scale(t_field, a)
       call addto(t_field, l_field, b)
@@ -253,11 +292,19 @@ contains
     type(vector_field), pointer :: v_source_field
     type(scalar_field), pointer :: s_source_field
     type(vector_field) :: l_field
-    real :: a, b, start_time
+    real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/start_time", start_time, stat)
-    if (stat /=0) start_time=0.
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(v_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
     v_source_field => vector_source_field(state, v_field, index=1)
     s_source_field => scalar_source_field(state, v_field, index=2)
 
@@ -265,8 +312,8 @@ contains
     call set(l_field, v_source_field)
     call scale(l_field, s_source_field)
 
-    if (current_time>start_time .and. current_time>0.) then
-      a = (current_time-dt)/current_time; b = dt/current_time
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
       ! v_field = a*v_field + b*v_source_field*s_source_field
       call scale(v_field, a)
       call addto(v_field, l_field, b)
@@ -275,5 +322,71 @@ contains
     end if
     call deallocate(l_field)
   end subroutine calculate_time_averaged_vector_times_scalar
+
+  subroutine initialise_diagnostic_scalar_from_checkpoint(s_field) 
+    type(scalar_field), intent(inout) :: s_field
+
+    type(scalar_field), pointer :: read_field
+    character(len = OPTION_PATH_LEN) :: path, filename
+    logical :: checkpoint_exists
+    
+    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
+    call get_option(trim(path), filename)
+    if(isparallel()) then
+      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+    else
+      filename = trim(filename) // ".vtu"
+    end if
+    inquire(file=trim(filename), exist=checkpoint_exists)
+    
+    if (checkpoint_exists) then
+      read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
+      call set(s_field, read_field)
+    end if
+  end subroutine initialise_diagnostic_scalar_from_checkpoint
+
+  subroutine initialise_diagnostic_vector_from_checkpoint(v_field) 
+    type(vector_field), intent(inout) :: v_field
+
+    type(vector_field), pointer :: read_field
+    character(len = OPTION_PATH_LEN) :: path, filename
+    logical :: checkpoint_exists
+    
+    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
+    call get_option(trim(path), filename)
+    if(isparallel()) then
+      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+    else
+      filename = trim(filename) // ".vtu"
+    end if
+    inquire(file=trim(filename), exist=checkpoint_exists)
+    
+    if (checkpoint_exists) then
+      read_field => vtk_cache_read_vector_field(filename, trim(v_field%name))
+      call set(v_field, read_field)
+    end if
+  end subroutine initialise_diagnostic_vector_from_checkpoint
+
+  subroutine initialise_diagnostic_tensor_from_checkpoint(t_field) 
+    type(tensor_field), intent(inout) :: t_field
+
+    type(tensor_field), pointer :: read_field
+    character(len = OPTION_PATH_LEN) :: path, filename
+    logical :: checkpoint_exists
+    
+    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
+    call get_option(trim(path), filename)
+    if(isparallel()) then
+      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+    else
+      filename = trim(filename) // ".vtu"
+    end if
+    inquire(file=trim(filename), exist=checkpoint_exists)
+    
+    if (checkpoint_exists) then
+      read_field => vtk_cache_read_tensor_field(filename, trim(t_field%name))
+      call set(t_field, read_field)
+    end if
+  end subroutine initialise_diagnostic_tensor_from_checkpoint
 
  end module simple_diagnostics

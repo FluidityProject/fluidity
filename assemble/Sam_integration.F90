@@ -1087,7 +1087,7 @@ module sam_integration
              end do
            end do
 
-           field_t => extract_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
+           field_t => extract_tensor_field(states(state), trim(namelist_t(state, field)))
            deallocate(field_t%val)
            allocate(field_t%val(dim, dim, node_count(field_t%mesh)))
 #ifdef HAVE_MEMORY_STATS
