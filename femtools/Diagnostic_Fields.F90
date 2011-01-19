@@ -3036,15 +3036,11 @@ contains
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: field
     
-    type(vector_field), pointer :: coordinate
-    
-    coordinate => extract_vector_field(state, "Coordinate")
-    
-    if (.not. field%mesh%periodic) then
-      call remap_field(coordinate, field)
-    else
-      field = get_nodal_coordinate_field(state, field%mesh)
-    end if
+    type(vector_field) :: coordinate_field
+      
+    coordinate_field = get_nodal_coordinate_field(state, field%mesh)
+    call set(field, coordinate_field)
+    call deallocate(coordinate_field)
    
    end subroutine calculate_diagnostic_coordinate_field
    
