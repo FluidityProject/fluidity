@@ -714,6 +714,12 @@ contains
             ! Wet node: Pressure and free-surface are coupled.
             call set(extrapolated_p, surface_node_list(node), max(node_val(extrapolated_p, surface_node_list(node)), &
                                                                 & -g*node_val(original_bottomdist, surface_node_list(node))+g*d0))
+#ifdef DDEBUG                                                          
+            if (node_val(extrapolated_p, surface_node_list(node)) < -g*node_val(original_bottomdist, surface_node_list(node))+g*d0) then
+              ewrite(1, *) "Ups, wetting and drying added a little bit of non-pyhsical volume to the simulatoin :( & 
+                          & - If this is critical for you, either decrease the timestep or increase d0."
+            end if
+#endif
           else
             ! Dry node: Set to the -OriginalDistanceToBottom+d0
             call set(extrapolated_p, surface_node_list(node), -g*node_val(original_bottomdist, surface_node_list(node))+g*d0)
