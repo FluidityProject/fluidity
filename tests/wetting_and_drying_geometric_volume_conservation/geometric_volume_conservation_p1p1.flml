@@ -131,7 +131,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.25</real_value>
+      <real_value rank="0">0.2</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">4</real_value>
