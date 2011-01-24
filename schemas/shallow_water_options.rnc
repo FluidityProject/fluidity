@@ -713,7 +713,14 @@ prognostic_velocity_field =
                   )
                }
             }
-         )
+         ),
+         ## Conservative discretisation of field advection equation
+         ##  TBETA=1. -- conservative (divergence form)
+         ##  TBETA=0. -- non-conservative
+         ##  0. < TBETA < 1.
+         element conservative_advection {
+            real
+         }         
       },
       ## Solver
       element solver {
@@ -777,8 +784,15 @@ prognostic_layerthickness_field =
                   }?
                },
                comment
+            },
+            ## Conservative discretisation of field advection equation
+            ##  TBETA=1. -- conservative (divergence form)
+            ##  TBETA=0. -- non-conservative
+            ##  0. < TBETA < 1.
+            element conservative_advection {
+               real
             }
-         )
+       )
       },
       ## Temporal discretisation options
       element temporal_discretisation {

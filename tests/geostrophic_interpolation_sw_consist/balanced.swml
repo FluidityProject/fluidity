@@ -116,6 +116,9 @@
               <none/>
             </advection_scheme>
           </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.</real_value>
+          </conservative_advection>
         </spatial_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -224,6 +227,9 @@
               <exclude_advection_terms/>
             </advection_terms>
           </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.</real_value>
+          </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
