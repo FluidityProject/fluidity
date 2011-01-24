@@ -386,48 +386,6 @@ this option to these these internal algorithms.</a:documentation>
       </element>
     </element>
   </define>
-  <define name="helmholtz_anisotropic_smoothed_scalar_algorithm">
-    <element name="algorithm">
-      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator.</a:documentation>
-      <attribute name="name">
-        <value>helmholtz_anisotropic_smoothed_scalar</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-      <ref name="scalar_source_field"/>
-      <element name="smoothing_length_scale">
-        <a:documentation>The scale factor used by the smoother, applied to the mesh size tensor.
-2 is recommended.</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="solver">
-        <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
-      </element>
-    </element>
-  </define>
-  <define name="helmholtz_anisotropic_smoothed_vector_algorithm">
-    <element name="algorithm">
-      <a:documentation>Smooth a vector field by inverting a Helmholtz operator.</a:documentation>
-      <attribute name="name">
-        <value>helmholtz_anisotropic_smoothed_vector</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-      <ref name="vector_source_field"/>
-      <element name="smoothing_length_scale">
-        <a:documentation>The scale factor used by the smoother, applied to the mesh size tensor.
-2 is recommended.</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="solver">
-        <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
-      </element>
-    </element>
-  </define>
   <define name="lumped_mass_smoothed_scalar_algorithm">
     <element name="algorithm">
       <a:documentation>Smooth a scalar field by inverting the lumped mass: ML {S_smooth}=M {S} .</a:documentation>
@@ -1756,9 +1714,6 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="helmholtz_smoothed_scalar_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="helmholtz_anisotropic_smoothed_scalar_algorithm"/>
-  </define>
-  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -1832,9 +1787,6 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="helmholtz_smoothed_vector_algorithm"/>
-  </define>
-  <define name="vector_diagnostic_algorithms" combine="choice">
-    <ref name="helmholtz_anisotropic_smoothed_vector_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="lumped_mass_smoothed_vector_algorithm"/>
