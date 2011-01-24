@@ -471,7 +471,10 @@ prognostic_velocity_field =
                    |
                      ## similar to the original WALE model
                      element wale{empty}
-                  }
+                   |
+                     ## [UNDER DEVELOPMENT] Like a Smagorinsky model with a variable coefficient
+                     element dynamic_les{empty}
+                   }
                }?,
                ## A gauss point viscosity, calculated in such a way that it depends
                ## upon temperature. This is only valid when you have a temperature field.

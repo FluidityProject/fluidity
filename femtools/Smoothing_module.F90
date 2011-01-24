@@ -10,7 +10,7 @@ module smoothing_module
   
   private
   
-  public :: smooth_scalar, smooth_vector
+  public :: smooth_scalar, smooth_vector, anisotropic_smooth_scalar, anisotropic_smooth_vector, length_scale_tensor
 
   contains
 
@@ -226,5 +226,174 @@ module smoothing_module
 
   end subroutine assemble_smooth_vector
 
-end module smoothing_module
+  subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+    type(csr_matrix), intent(inout) :: M
+    type(scalar_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: field_in
+    real, intent(in) :: alpha
+    integer, intent(in) :: ele
+    real :: beta
+    ! value of field_in at quad points
+    real, dimension(ele_ngi(positions,ele)) :: field_in_quad
+    ! Locations of quadrature points
+    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
+    ! smoothing tensor at quadrature points real,
+    real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
+         &:: mesh_tensor_quad
+    ! Derivatives of shape function:
+    real, dimension(ele_loc(field_in,ele), &
+         ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
+    ! Coordinate transform * quadrature weights.
+    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    ! Node numbers of field_in element.
+    integer, dimension(:), pointer :: ele_field_in
+    ! Shape functions.
+    type(element_type), pointer :: shape_field_in
+    ! Local Helmholtz matrix 
+    real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
+         & :: field_in_mat
+    ! Local right hand side.
+    real, dimension(ele_loc(field_in, ele)) :: lrhsfield
 
+    ele_field_in=>ele_nodes(field_in, ele)
+    shape_field_in=>ele_shape(field_in, ele)
+
+    ! Locations of quadrature points. Fields evaluated at quads.
+    X_quad=ele_val_at_quad(positions, ele)
+    field_in_quad = ele_val_at_quad(field_in, ele)
+
+    ! Transform derivatives and weights into physical space.
+    call transform_to_physical(positions, ele, shape_field_in, dshape&
+         &=dshape_field_in, detwei=detwei)
+
+    ! mesh size tensor = gamma * (mesh size)**2
+    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
+    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
+    ! Factor of 1/24 comes from Geurts & Holm, 2002
+    beta=1.0/24.0
+    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    ewrite (1,*) "alpha*beta*mesh_tensor_quad: ",mesh_tensor_quad
+
+    ! Local assembly:
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
+         dshape_field_in, detwei) + shape_shape(shape_field_in&
+         &,shape_field_in, detwei)
+    !ewrite (1,*) "Mesh tensor shape_tensor_rhs: ", shape_tensor_rhs(shape_field_in, mesh_tensor_quad, detwei)
+
+    lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
+
+    ! Global assembly:
+    call addto(M, ele_field_in, ele_field_in, field_in_mat)
+
+    call addto(rhsfield, ele_field_in, lrhsfield)
+
+  end subroutine assemble_anisotropic_smooth_scalar
+
+  subroutine assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
+    type(csr_matrix), intent(inout) :: M
+    type(vector_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(in) :: field_in
+    real, intent(in) :: alpha
+    integer, intent(in) :: ele
+    real :: beta
+
+    ! value of field_in at quad points
+    real, dimension(positions%dim,ele_ngi(positions,ele)) :: field_in_quad
+    ! Locations of quadrature points
+    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
+    ! smoothing tensor at quadrature points real,
+    real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
+         &:: mesh_tensor_quad
+    ! Derivatives of shape function:
+    real, dimension(ele_loc(field_in,ele), &
+         ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
+    ! Coordinate transform * quadrature weights.
+    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    ! Node numbers of field_in element.
+    integer, dimension(:), pointer :: ele_field_in
+    ! Shape functions.
+    type(element_type), pointer :: shape_field_in
+    ! Local Helmholtz matrix 
+    real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
+         & :: field_in_mat
+    ! Local right hand side.
+    real, dimension(positions%dim, ele_loc(field_in, ele)) :: lrhsfield
+
+    ele_field_in=>ele_nodes(field_in, ele)
+    shape_field_in=>ele_shape(field_in, ele)
+
+    ! Locations of quadrature points. Fields evaluated at quads.
+    X_quad=ele_val_at_quad(positions, ele)
+    field_in_quad = ele_val_at_quad(field_in, ele)
+
+    ! Transform derivatives and weights into physical space.
+    call transform_to_physical(positions, ele, shape_field_in, dshape&
+         &=dshape_field_in, detwei=detwei)
+
+    ! mesh size tensor = gamma * (mesh size)**2
+    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
+    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
+    ! Factor of 1/24 comes from Geurts & Holm, 2002
+    beta=1.0/24.0
+    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    ewrite (1,*) "alpha*beta*mesh_tensor_quad: ",mesh_tensor_quad
+
+    ! Local assembly:
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
+         dshape_field_in, detwei) + shape_shape(shape_field_in&
+         &,shape_field_in, detwei)
+    !ewrite (1,*) "Mesh tensor shape_tensor_rhs: ", shape_tensor_rhs(shape_field_in, mesh_tensor_quad, detwei)
+
+    lrhsfield=shape_vector_rhs(shape_field_in, field_in_quad, detwei)
+
+    ! Global assembly:
+    call addto(M, ele_field_in, ele_field_in, field_in_mat)
+
+    call addto(rhsfield, ele_field_in, lrhsfield)
+
+  end subroutine assemble_anisotropic_smooth_vector
+
+  function length_scale_tensor(du_t, shape) result(t)
+    !! Computes a length scale tensor to be used in LES (units are in length^2)
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! the resulting tensor (dim x dim x ngi)
+    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t
+    !! for a simplex if degree==1 the tensor is the same for all gaussian points
+    type(element_type), intent(in):: shape
+
+    real, dimension(size(t,1), size(t,2)):: M
+    real r
+    integer gi, loc, i
+    integer dim, ngi, nloc, compute_ngi
+
+    t=0.0
+
+    nloc=size(du_t,1)
+    ngi=size(du_t,2)
+    dim=size(du_t,3)
+
+    if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
+       compute_ngi=1
+    else
+       compute_ngi=ngi
+    end if
+
+    do gi=1, compute_ngi
+       do loc=1, nloc
+          call outer_product( du_t(loc,gi,:), du_t(loc,gi,:), M)
+          r=sum( (/ ( M(i,i), i=1, dim) /) )
+          t(:,:,gi)=t(:,:,gi)+M/(r**2)
+       end do
+    end do
+
+    ! copy the rest
+    do gi=compute_ngi+1, ngi
+       t(:,:,gi)=t(:,:,1)
+    end do
+
+  end function length_scale_tensor
+
+end module smoothing_module

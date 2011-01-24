@@ -567,6 +567,10 @@ requires a fine mesh to perform well</a:documentation>
                     <a:documentation>similar to the original WALE model</a:documentation>
                     <empty/>
                   </element>
+                  <element name="dynamic_les">
+                    <a:documentation>[UNDER DEVELOPMENT] Like a Smagorinsky model with a variable coefficient</a:documentation>
+                    <empty/>
+                  </element>
                 </choice>
               </element>
             </element>

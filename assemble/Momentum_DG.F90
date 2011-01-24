@@ -57,6 +57,7 @@ module momentum_DG
   use diagnostic_fields
   use slope_limiters_dg
   use les_viscosity_module
+  use smoothing_module
   use fields_manipulation
   use field_options
 
@@ -996,7 +997,7 @@ contains
       call transform_to_physical(X, ele, &
            u_cg_shape, dshape=du_t_cg, detwei=detwei_cg)
 
-      les_tensor_gi=les_length_scale_tensor(du_t_cg, ele_shape(u_cg, ele))
+      les_tensor_gi=length_scale_tensor(du_t_cg, ele_shape(u_cg, ele))
       les_coef_gi=les_viscosity_strength(du_t_cg, ele_val(u_nl_cg, ele))
 
       do gi=1, ele_ngi(u_cg, ele)

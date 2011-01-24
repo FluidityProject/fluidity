@@ -50,6 +50,7 @@
     use fetools
     use upwind_stabilisation
     use les_viscosity_module
+    use smoothing_module
     use metric_tools
     use field_derivatives
     use state_fields_module
@@ -354,10 +355,19 @@
               &/continuous_galerkin/les_model/model/fourth_order")
          wale=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
               &/continuous_galerkin/les_model/model/wale")
+!         dynamic_les=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+!              &/continuous_galerkin/les_model/model/dynamic_les")
          if (les_fourth_order) then
             call allocate( grad_u, u%mesh, "VelocityGradient")
             call differentiate_field_lumped( nu, x, grad_u)
          end if
+!         if(dynamic_les) then
+
+!            call allocate(nu_test, nu%mesh, "Smoothed" // trim(nu%name))
+!            call zero(nu_test)
+!            call smooth_velocity(nu, nu_test)
+
+!         end if
       end if
       
 
@@ -1746,7 +1756,7 @@
       ! add in LES viscosity
       if (have_les) then
          if (wale) then
-            les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
             wale_coef_gi=wale_viscosity_strength(du_t, ele_val(nu, ele))
             do gi=1, size(les_coef_gi)
@@ -1755,7 +1765,7 @@
                     max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
             end do
          else
-            les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
             do gi=1, size(les_coef_gi)
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
@@ -1851,7 +1861,7 @@
       
       if (have_les) then
          ! add in LES viscosity
-         les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
+         les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
          les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
          do gi=1, size(les_coef_gi)
             les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
