@@ -101,6 +101,90 @@ module smoothing_module
 
   end subroutine smooth_vector
 
+  subroutine anisotropic_smooth_scalar(field_in,positions,field_out,alpha, path)
+    implicit none
+    !smoothing length tensor
+    real, intent(in) :: alpha
+    !input field
+    type(scalar_field), intent(inout) :: field_in
+    !coordinates field
+    type(vector_field), intent(in) :: positions
+    !output field, should have same mesh as input field
+    type(scalar_field), intent(inout) :: field_out
+    character(len=*), intent(in) :: path
+    
+    !local variables
+    type(csr_matrix) :: M
+    type(csr_sparsity) :: M_sparsity
+    type(scalar_field) :: RHSFIELD
+    integer :: ele
+
+    !allocate smoothing matrix
+    M_sparsity=make_sparsity(field_in%mesh, &
+         & field_in%mesh, name='HelmholtzScalarSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")   
+    call deallocate(M_sparsity) 
+    call zero(M)
+    
+    !allocate RHSFIELD
+    call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
+    call zero(rhsfield)
+
+    ! Assemble M element by element.
+    do ele=1, element_count(field_in)
+       call assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+    end do
+
+    call zero(field_out)
+    call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
+
+    call deallocate(rhsfield)
+    call deallocate(M)
+
+  end subroutine anisotropic_smooth_scalar
+
+  subroutine anisotropic_smooth_vector(field_in,positions,field_out,alpha, path)
+    implicit none
+    !smoothing length tensor
+    real, intent(in) :: alpha
+    !input field
+    type(vector_field), intent(inout) :: field_in
+    !coordinates field
+    type(vector_field), intent(in) :: positions
+    !output field, should have same mesh as input field
+    type(vector_field), intent(inout) :: field_out
+    character(len=*), intent(in) :: path
+    
+    !local variables
+    type(csr_matrix) :: M
+    type(csr_sparsity) :: M_sparsity
+    type(vector_field) :: RHSFIELD
+    integer :: ele
+
+    !allocate smoothing matrix
+    M_sparsity=make_sparsity(field_in%mesh, &
+         & field_in%mesh, name='HelmholtzVectorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")   
+    call deallocate(M_sparsity) 
+    call zero(M)
+    
+    !allocate RHSFIELD
+    call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
+    call zero(rhsfield)
+
+    ! Assemble M element by element.
+    do ele=1, element_count(field_in)
+       call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
+    end do
+
+    call zero(field_out)
+    call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
+
+    call deallocate(rhsfield)
+    call deallocate(M)
+
+  end subroutine anisotropic_smooth_vector
+
   subroutine assemble_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
     type(scalar_field), intent(inout) :: RHSFIELD
@@ -273,7 +357,6 @@ module smoothing_module
     ! Factor of 1/24 comes from Geurts & Holm, 2002
     beta=1.0/24.0
     mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
-    ewrite (1,*) "alpha*beta*mesh_tensor_quad: ",mesh_tensor_quad
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -338,7 +421,6 @@ module smoothing_module
     ! Factor of 1/24 comes from Geurts & Holm, 2002
     beta=1.0/24.0
     mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
-    ewrite (1,*) "alpha*beta*mesh_tensor_quad: ",mesh_tensor_quad
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
