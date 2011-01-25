@@ -281,6 +281,42 @@ helmholtz_smoothed_vector_algorithm =
          }
       }
    )
+helmholtz_anisotropic_smoothed_scalar_algorithm =
+   (
+      ## Smooth a scalar field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_anisotropic_smoothed_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## 2 is recommended.
+         element smoothing_length_scale {
+             real
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+helmholtz_anisotropic_smoothed_vector_algorithm =
+   (
+      ## Smooth a vector field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_anisotropic_smoothed_vector" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## 2 is recommended.
+         element smoothing_length_scale {
+             real
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
 lumped_mass_smoothed_scalar_algorithm =
    (
       ## Smooth a scalar field by inverting the lumped mass: ML {S_smooth}=M {S} .
@@ -578,8 +614,7 @@ hessian_algorithm =
          attribute material_phase_support { "single "},
          scalar_source_field
       }
-   )
-   
+   ) 
 # Surface diagnostics
 grad_normal_algorithm =
    (
@@ -1244,6 +1279,7 @@ scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
+scalar_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
@@ -1270,6 +1306,7 @@ vector_diagnostic_algorithms |= vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= helmholtz_smoothed_vector_algorithm
+vector_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_vector_algorithm
 vector_diagnostic_algorithms |= lumped_mass_smoothed_vector_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
