@@ -76,37 +76,53 @@
       implicit none
 
       private
-      public :: solve_momentum, solve_poisson_pressure, advance_velocity, correct_pressure, momentum_equation_check_options
+      public :: solve_momentum, momentum_equation_check_options
 
       ! The timestep
       real :: dt
 
+      ! Are we going to form the Diagonal Schur complement preconditioner?
+      logical :: get_diag_schur
+      ! Do we need the scaled pressure mass matrix?
+      logical :: get_scaled_pressure_mass_matrix
+      ! Do we need an auxiliary matrix for full_projection solve?
+      logical :: assemble_schur_auxiliary_matrix
+
+      ! Do we want to use the compressible projection method?
+      logical :: use_compressible_projection
       ! Are we doing a full schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
       logical :: lump_mass
-      ! Do we need an auxiliary matrix for full_projection solve?
-      logical :: assemble_schur_auxiliary_matrix
-
-      ! True if advection-subcycling is performed
-      logical :: subcycle
-
-      ! Are we using a discontinuous Galerkin discretisation?
-      logical :: dg
-
-      ! Do we want to use the compressible projection method?
-      logical :: use_compressible_projection
       ! Pressure gradient matrix using cv or cg?
       logical :: cv_pressure, cg_pressure
 
       ! Do we want to apply a theta weighting to the pressure gradient term?
       logical :: use_theta_pg
 
-      logical :: sphere_absorption
+      ! Are we using a discontinuous Galerkin discretisation?
+      logical :: dg
+      ! True if advection-subcycling is performed
+      logical :: subcycle
 
+      ! Apply/assemble KMK stabilisation?
+      logical :: apply_kmk, assemble_kmk
+
+      logical :: have_viscosity, have_les, stress_form, partial_stress_form, have_coriolis, diagonal_big_m
       logical :: pressure_debugging_vtus
+      !! True if the momentum equation should be solved with the reduced model.
+      logical :: reduced_model
+
+      ! Add viscous terms to inverse_masslump for low Re which is only used for pressure correction
+      logical :: low_re_p_correction_fix
+
       ! Increased each call to momentum equation, used as index for pressure debugging vtus
       integer, save :: pdv_count = -1
+
+      logical :: on_sphere, have_absorption, have_vertical_stabilization, sphere_absorption
+
+      ! Are we running a multi-phase simulation?
+      logical :: multiphase
 
    contains
 
@@ -138,15 +154,11 @@
          ! Momentum LHS
          type(petsc_csr_matrix), dimension(:), allocatable, target :: big_m
          ! Matrix for split explicit advection
-         type(block_csr_matrix) :: subcycle_m
+         type(block_csr_matrix), dimension(:), allocatable :: subcycle_m
          ! Pointer to matrix for full projection solve:
-         type(petsc_csr_matrix), pointer :: inner_m
+         type(petsc_csr_matrix_pointer), dimension(:), allocatable :: inner_m
          ! Pointer to preconditioner matrix for full projection solve:
          type(csr_matrix), pointer :: full_projection_preconditioner
-         ! Are we going to form the Diagonal Schur complement preconditioner?
-         logical :: get_diag_schur
-         ! Do we need the scaled pressure mass matrix?
-         logical :: get_scaled_pressure_mass_matrix
          ! Auxiliary matrix for full_projection solve
          type(csr_sparsity), pointer :: schur_auxiliary_matrix_sparsity
          type(csr_matrix) :: schur_auxiliary_matrix
@@ -154,18 +166,19 @@
          type(csr_matrix), target :: scaled_pressure_mass_matrix
          type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity
          ! Compressible pressure gradient operator/left hand matrix of CMC
-         type(block_csr_matrix), pointer :: ctp_m
+         type(block_csr_matrix_pointer), dimension(:), allocatable :: ctp_m
          ! The lumped mass matrix (may vary per component as absorption could be included)
          type(vector_field), dimension(:), allocatable :: inverse_masslump, visc_inverse_masslump
          ! Mass matrix
          type(petsc_csr_matrix), target :: mass
          ! For DG:
-         type(block_csr_matrix) :: inverse_mass
+         type(block_csr_matrix), dimension(:), allocatable :: inverse_mass
 
          ! Momentum RHS
          type(vector_field), dimension(:), allocatable :: mom_rhs
          ! Projection RHS
-         type(scalar_field) :: ct_rhs, kmk_rhs
+         type(scalar_field) :: kmk_rhs, projec_rhs, temp_projec_rhs, compress_projec_rhs
+         type(scalar_field), dimension(:), allocatable :: ct_rhs
 
          ! Change in pressure
          type(scalar_field) :: delta_p
@@ -199,15 +212,6 @@
 
          integer :: i, stat
 
-         logical :: apply_kmk, assemble_kmk
-         logical :: have_viscosity, have_les, stress_form, partial_stress_form, have_coriolis, diagonal_big_m
-         logical :: pressure_debugging_vtus
-         !! True if the momentum equation should be solved with the reduced model.
-         logical :: reduced_model
-
-         ! Add viscous terms to inverse_masslump for low Re which is only used for pressure correction
-         logical :: low_re_p_correction_fix
-
          ! The list of stiff nodes
          ! This is saved because the list is only formed when cmc is assembled, which
          ! isn't necessarily every time this subroutine is called but the list is
@@ -221,11 +225,7 @@
          integer :: d
          type(scalar_field) :: u_cpt
 
-         logical :: on_sphere, have_absorption, have_vertical_stabilization
-         type(vector_field), pointer :: dummy_absorption
-
          !! Variables for multi-phase flow model
-         logical :: multiphase
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
          logical :: prognostic_p = .false.
@@ -256,9 +256,14 @@
          ! Allocate arrays for the N states/phases
          allocate(big_m(size(state)))
          allocate(mom_rhs(size(state)))
+         allocate(ct_rhs(size(state)))
+         allocate(inverse_mass(size(state)))
          allocate(inverse_masslump(size(state)))
          allocate(visc_inverse_masslump(size(state)))
          allocate(ct_m(size(state)))
+         allocate(ctp_m(size(state)))
+         allocate(subcycle_m(size(state)))
+         allocate(inner_m(size(state)))
 
          nullify(cmc_global)
 
@@ -291,54 +296,8 @@
 
                x => extract_vector_field(state(istate), "Coordinate")
 
-               !! Get some velocity options:
-               dg = have_option(trim(u%option_path)//&
-                                 "/prognostic/spatial_discretisation&
-                                 &/discontinuous_galerkin")
-
-               subcycle = have_option(trim(u%option_path)//&
-                  "/prognostic/temporal_discretisation/&
-                  &discontinuous_galerkin/maximum_courant_number_per_subcycle")
-
-               ! Are we lumping the mass matrix?
-               lump_mass = have_option(trim(u%option_path)//&
-                                 "/prognostic/spatial_discretisation&
-                                 &/continuous_galerkin/mass_terms&
-                                 &/lump_mass_matrix").or.&
-                           have_option(trim(u%option_path)//&
-                                 "/prognostic/spatial_discretisation&
-                                 &/discontinuous_galerkin/mass_terms&
-                                 &/lump_mass_matrix")
-
-               ! Here is where we try to decide how big big_m should be
-               have_viscosity = have_option(trim(u%option_path)//&
-                  &"/prognostic/tensor_field::Viscosity")
-
-               ! The following should include a dg option when a stress form version gets implemented
-               stress_form = have_option(trim(u%option_path)//&
-                  &"/prognostic/spatial_discretisation/continuous_galerkin&
-                  &/stress_terms/stress_form")
-
-               partial_stress_form = have_option(trim(u%option_path)//&
-                  &"/prognostic/spatial_discretisation/continuous_galerkin&
-                  &/stress_terms/partial_stress_form")
-
-               have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-                  &/continuous_galerkin/les_model").or.(have_option(trim(u%option_path)//&
-                  &"/prognostic/spatial_discretisation/discontinuous_galerkin/les_model"))
-
-               have_coriolis = have_option("/physical_parameters/coriolis")
-
-               diagonal_big_m = .not.have_coriolis.and.(.not.((have_viscosity.or.have_les).and.(stress_form.or.partial_stress_form)))
-
-               ! Do we want to rotate our equations to include absorption in a spherical geometry? 
-               on_sphere = have_option('/geometry/spherical_earth/')
-               dummy_absorption => extract_vector_field(state(istate), "VelocityAbsorption", stat)
-               have_absorption = stat == 0
-               have_vertical_stabilization = have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
-                                          have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
-               sphere_absorption=on_sphere.and.(have_absorption.or.have_vertical_stabilization)
-               
+               ! Get some velocity options
+               call get_velocity_options(state, istate, u)
 
                ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
                p=>extract_scalar_field(state(istate), "Pressure", stat)
@@ -372,11 +331,12 @@
                   ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=get_ct_m) ! Sets get_ct_m to true if it does not already exist in state(i) 
 
                   ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
-                  cmc_m => get_pressure_poisson_matrix(state, get_cmc=get_cmc_m) ! ...and similarly for get_cmc_m
+                  cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=get_cmc_m) ! ...and similarly for get_cmc_m
                   call profiler_toc(p, "assembly")
                end if
                ewrite_minmax(p%val)
 
+               ! Allocate dummy fields
                allocate(dummydensity)
                call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
                call set(dummydensity, 1.0)
@@ -404,40 +364,9 @@
                end select
                ewrite_minmax(density%val)
 
-               !! Get some pressure options:
-               ! Are we using a compressible projection?
-               use_compressible_projection = have_option(trim(p%option_path)//&
-                                             "/prognostic/scheme&
-                                             &/use_compressible_projection_method")
+               !! Get some pressure options
+               call get_pressure_options(p, get_ct_m, get_cmc_m)               
 
-               get_cmc_m = get_cmc_m .or. &
-                           have_option(trim(p%option_path)//&
-                           "/prognostic/scheme/update_discretised_equation") .or. &
-                           use_compressible_projection
-
-               get_ct_m = get_ct_m .or. &
-                           have_option(trim(p%option_path)//&
-                           "/prognostic/scheme/update_discretised_equation")
-
-               pressure_debugging_vtus = have_option(trim(p%option_path)// &
-                           "/prognostic/output/debugging_vtus")
-               if (pressure_debugging_vtus) then
-                  pdv_count = pdv_count+1
-               end if
-
-
-               ! If we are using the reduced model then there is no pressure projection.
-               if (reduced_model) then
-                  get_cmc_m=.false.
-               end if
-
-               get_diag_schur = .false.
-               get_scaled_pressure_mass_matrix = .false.
-               assemble_schur_auxiliary_matrix = .false.
-
-               full_schur = have_option(trim(p%option_path)//&
-                                       &"/prognostic/scheme&
-                                       &/use_projection_method/full_schur_complement")
                if(full_schur) then
                   ! Check to see whether pressure cmc_m preconditioning matrix is needed:
                   call get_option(trim(p%option_path)//&
@@ -468,29 +397,17 @@
                               &/full_schur_complement/inner_matrix[0]/name", schur_scheme)
                   select case(schur_scheme)
                      case("FullMassMatrix")
-                        inner_m => mass
+                        inner_m(istate)%ptr => mass
                      case("FullMomentumMatrix")
-                        inner_m => big_m(istate)
+                        inner_m(istate)%ptr => big_m(istate)
                      case default
                         ! Developer error... out of sync options input and code
                         FLAbort("Unknown Matrix Type for Full_Projection")
                   end select
                end if
 
-               ! Low Re fix for pressure correction?
-               low_re_p_correction_fix=have_option(trim(p%option_path)//&
-                           &"/prognostic/spatial_discretisation/continuous_galerkin&
-                           &/low_re_p_correction_fix")
-
-               ! Are we getting the pressure gradient matrix using control volumes?
-               cv_pressure = (have_option(trim(p%option_path)//&
-                                 "/prognostic/spatial_discretisation/control_volumes"))
-               ! or using cg (we do this in every case of not having a control volume
-               ! option so that prescribed pressures will work as well)
-               cg_pressure = (.not.cv_pressure)
-
                if (has_boundary_condition(u, "free_surface").or.use_compressible_projection) then
-                  ! with free surface pressures are at integer time levels
+                  ! With free surface pressures are at integer time levels
                   ! and we apply a theta weighting to the pressure gradient term
                   call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
                         theta_pg, default=1.0)
@@ -498,7 +415,7 @@
                   ewrite(2,*) "Continuity equation and pressure gradient are evaluated at n+theta_pg"
                   ewrite(2,*) "theta_pg: ", theta_pg
                else
-                  ! pressures are as usual staggered in time with the velocities
+                  ! Pressures are as usual staggered in time with the velocities
                   use_theta_pg=.false.
                end if
 
@@ -509,15 +426,6 @@
                   ! p_theta = theta*p + (1-theta)*old_p
                   call set(p_theta, p, old_p, theta_pg)
                   p_theta%option_path=p%option_path ! use p's solver options
-                  old_u => extract_vector_field(state(istate), "OldVelocity")
-                  if (old_u%aliased) then
-                     ! in the case of one non-linear iteration, there is no OldVelocity,
-                     ! it's just aliased to Velocity, therefore we make temp. version
-                     allocate(old_u)
-                     ! give it a distinct name, so we know to deallocate it
-                     call allocate(old_u, u%dim, u%mesh, "TempOldVelocity")
-                     call set(old_u, u)
-                  end if
                else
                   p_theta => p
                   theta_pg=1.0
@@ -530,7 +438,7 @@
                   if(subcycle) then
                      u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
                      ! subcycle_m currently only contains advection, so diagonal=.true.
-                     call allocate(subcycle_m, u_sparsity, (/u%dim, u%dim/), &
+                     call allocate(subcycle_m(istate), u_sparsity, (/u%dim, u%dim/), &
                         diagonal=.true., name = "subcycle_m")
                   end if
                else
@@ -541,6 +449,7 @@
                                           diagonal=diagonal_big_m, name="BIG_m")
                end if
 
+               ! Initialise big_m and ct_m matrices
                call zero(big_m(istate))
                if(get_ct_m) then
                   call zero(ct_m(istate)%ptr)
@@ -550,8 +459,8 @@
                call allocate(mom_rhs(istate), u%dim, u%mesh, "MomentumRHS")
                call zero(mom_rhs(istate))
                ! Allocate the ct RHS
-               call allocate(ct_rhs, p_mesh, "DivergenceRHS")
-               call zero(ct_rhs)
+               call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
+               call zero(ct_rhs(istate))
                call profiler_toc(u, "assembly")
 
                if(has_scalar_field(state(istate), hp_name)) then
@@ -571,14 +480,14 @@
                      call construct_momentum_dg(u, p, density, x, &
                         big_m(istate), mom_rhs(istate), state(istate), &
                         inverse_masslump=inverse_masslump(istate), &
-                        inverse_mass=inverse_mass, &
+                        inverse_mass=inverse_mass(istate), &
                         cg_pressure=cg_pressure, &
-                        &subcycle_m=subcycle_m)
+                        &subcycle_m=subcycle_m(istate))
                   else
                      call construct_momentum_dg(u, p, density, x, &
                         big_m(istate), mom_rhs(istate), state(istate), &
                         inverse_masslump=inverse_masslump(istate), &
-                        inverse_mass=inverse_mass, &
+                        inverse_mass=inverse_mass(istate), &
                         cg_pressure=cg_pressure)
                   end if
                   if(has_scalar_field(state(istate), gp_name)) then
@@ -587,7 +496,7 @@
                else
                   call construct_momentum_cg(u, p, density, x, &
                         big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, &
-                        ct_rhs, mass, inverse_masslump(istate), visc_inverse_masslump(istate), &
+                        ct_rhs(istate), mass, inverse_masslump(istate), visc_inverse_masslump(istate), &
                         state(istate), &
                         assemble_ct_matrix=get_ct_m, &
                         cg_pressure=cg_pressure)
@@ -622,14 +531,14 @@
 
                ! Add mass source-absorption for implicit solids
                if (have_option("/implicit_solids/two_way_coupling")) then
-                  call add_mass_source_absorption(ct_rhs, state(istate))
+                  call add_mass_source_absorption(ct_rhs(istate), state(istate))
                end if
 
                call profiler_toc(u, "assembly")
 
                call profiler_tic(p, "assembly")
                if(cv_pressure) then
-                  call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs, &
+                  call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                                                 test_mesh=p%mesh, field=u, get_ct=get_ct_m)
                end if
 
@@ -637,7 +546,7 @@
                ! At the moment cg does its own ct assembly. We might change this in
                ! the future.
                if(cg_pressure.and.dg) then
-                  call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs, &
+                  call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                   test_mesh=p%mesh, field=u, get_ct=get_ct_m)
                end if
                call profiler_toc(p, "assembly")
@@ -680,31 +589,31 @@
                   end if
 
                   if(use_compressible_projection) then
-                     allocate(ctp_m)
-                     call allocate(ctp_m, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
-                  if(cv_pressure) then
-                     call assemble_compressible_divergence_matrix_cv(ctp_m, state, ct_rhs)
-                  else if(cg_pressure) then
-                     call assemble_compressible_divergence_matrix_cg(ctp_m, state, ct_rhs)
+                     allocate(ctp_m(istate)%ptr)
+                     call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
+                     if(cv_pressure) then
+                        call assemble_compressible_divergence_matrix_cv(ctp_m(istate)%ptr, state, ct_rhs(istate))
+                     else if(cg_pressure) then
+                        call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, ct_rhs(istate))
+                     else
+                        ! Developer error... out of sync options input and code
+                        FLAbort("Unknown pressure discretisation for compressible projection.")
+                     end if
+                     if (have_rotated_bcs(u)) then
+                        call rotate_ct_m(ctp_m(istate)%ptr, u)
+                     end if
+                     if (sphere_absorption) then
+                        call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
+                     end if
                   else
-                     ! Developer error... out of sync options input and code
-                     FLAbort("Unknown pressure discretisation for compressible projection.")
+                     ctp_m(istate)%ptr=>ct_m(istate)%ptr  ! Incompressible scenario
                   end if
-                  if (have_rotated_bcs(u)) then
-                     call rotate_ct_m(ctp_m, u)
-                  end if
-                  if (sphere_absorption) then
-                     call rotate_ct_m_sphere(state(istate), ctp_m, u)
-                  end if
-                  else
-                     ctp_m=>ct_m(istate)%ptr  ! Incompressible scenario
-                  end if
-                  do i = 1, ctp_m%blocks(2)
-                     ewrite_minmax(ctp_m%val(1,i)%ptr(:))
+                  do i = 1, ctp_m(istate)%ptr%blocks(2)
+                     ewrite_minmax(ctp_m(istate)%ptr%val(1,i)%ptr(:))
                   end do
-                  ewrite_minmax(ct_rhs%val)
+                  ewrite_minmax(ct_rhs(istate)%val)
 
-                  ! Allocate the RHS
+                  ! Allocate the KMK RHS
                   call allocate(kmk_rhs, p%mesh, "KMKRHS")
                   call zero(kmk_rhs)
 
@@ -722,7 +631,7 @@
                            have_option("/mesh_adaptivity/mesh_movement"))
 
 
-                  ! Assemble kmk stabilization matrix if required:
+                  ! Assemble KMK stabilisation matrix if required:
                   if(assemble_kmk) then
                      ewrite(2,*) "Assembling P1-P1 stabilisation"
                      call assemble_kmk_matrix(state(istate), p%mesh, x, theta_pg)
@@ -753,7 +662,7 @@
                         if (has_boundary_condition(u, "free_surface")) then
                            ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
                            call add_free_surface_to_cmc_projection(state(istate), &
-                                             schur_auxiliary_matrix, dt, theta_pg, get_cmc=.true., rhs=ct_rhs)
+                                             schur_auxiliary_matrix, dt, theta_pg, get_cmc=.true., rhs=ct_rhs(istate))
                         end if
                      end if
                   end if
@@ -763,17 +672,17 @@
                      call zero(cmc_m)
 
                      if(dg.and.(.not.lump_mass)) then
-                        call assemble_cmc_dg(cmc_m, ctp_m, ct_m(istate)%ptr, inverse_mass)
+                        call assemble_cmc_dg(cmc_m, ctp_m(istate)%ptr, ct_m(istate)%ptr, inverse_mass(istate))
                      elseif(lump_mass .and. low_re_p_correction_fix .and. timestep/=1) then
                         ewrite(2,*) "Assembling CMC_M with visc_inverse_masslump"
-                        call assemble_masslumped_cmc(cmc_m, ctp_m, visc_inverse_masslump(istate), ct_m(istate)%ptr)
+                        call assemble_masslumped_cmc(cmc_m, ctp_m(istate)%ptr, visc_inverse_masslump(istate), ct_m(istate)%ptr)
                         ! P1-P1 stabilisation
                         if (apply_kmk) then
                            ewrite(2,*) "Adding P1-P1 stabilisation matrix to cmc_m"
                            call add_kmk_matrix(state(istate), cmc_m)
                         end if
                      else
-                        call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump(istate), ct_m(istate)%ptr)
+                        call assemble_masslumped_cmc(cmc_m, ctp_m(istate)%ptr, inverse_masslump(istate), ct_m(istate)%ptr)
 
                         ! P1-P1 stabilisation
                         if (apply_kmk) then
@@ -790,12 +699,12 @@
 
                   if (has_boundary_condition(u, "free_surface")) then
                      call add_free_surface_to_cmc_projection(state(istate), &
-                              cmc_m, dt, theta_pg, get_cmc=get_cmc_m, rhs=ct_rhs)
+                              cmc_m, dt, theta_pg, get_cmc=get_cmc_m, rhs=ct_rhs(istate))
                   end if
                   
                   if(get_diag_schur) then
                      ! Assemble diagonal schur complement preconditioner:
-                     call assemble_diagonal_schur(cmc_m, u, inner_m, ctp_m, ct_m(istate)%ptr)
+                     call assemble_diagonal_schur(cmc_m, u, inner_m(istate)%ptr, ctp_m(istate)%ptr, ct_m(istate)%ptr)
                      ! P1-P1 stabilisation:
                      if (apply_kmk) then
                         ewrite(2,*) "Adding P1-P1 stabilisation to diagonal schur complement preconditioner matrix"
@@ -818,21 +727,17 @@
                      call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
                   end if
 
-                  !! Add individual phase CMC matrix to 'global' CMC matrix
-                  if(multiphase) then
-                     if(.not.associated(cmc_global)) then
-                        ! If not yet allocated, allocate it here using the current CMC's sparsity pattern
-                        ! Assumes the same sparsity throughout (i.e. the same velocity and pressure mesh is used for each velocity field)
-                        allocate(cmc_global)
-                        call allocate(cmc_global, cmc_m%sparsity) 
-                        call zero(cmc_global)
-                     end if
-                     call addto(cmc_global, cmc_m)
-                  end if
-
                end if ! end of prognostic pressure
                call profiler_toc(p, "assembly")
      
+               if (associated(dummypressure)) then
+                  call deallocate(dummypressure)
+                  deallocate(dummypressure)
+               end if
+               call deallocate(dummydensity)
+               deallocate(dummydensity)
+               call deallocate(dummyscalar)
+               deallocate(dummyscalar)
     
             end if ! end of prognostic velocity field
 
@@ -853,6 +758,7 @@
          if(prognostic_p .and. .not.reduced_model) then
 
             u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
+            x => extract_vector_field(state(prognostic_p_istate), "Coordinate")
 
             ! Are we solving a Poisson pressure equation for a pressure guess p^{*}?
             call get_option(trim(p%option_path)//&
@@ -877,10 +783,9 @@
                                            inverse_masslump, cmc_m, full_projection_preconditioner, schur_auxiliary_matrix)              
             end if ! end of Poisson pressure solution
 
-            if (apply_kmk) then
-               call add_kmk_rhs(state(prognostic_p_istate), kmk_rhs, p_theta, dt)
-            end if
-            ewrite_minmax(kmk_rhs%val)
+            ! Allocate RHS for pressure correction step
+            call allocate(projec_rhs, p%mesh, "ProjectionRHS")
+            call zero(projec_rhs)
 
          end if ! end of prognostic pressure
          call profiler_toc(p, "assembly")
@@ -889,12 +794,12 @@
          if (.not.reduced_model) then
 
             !! Advance velocity from u^{n} to an intermediate velocity u^{*}
-
             call profiler_tic("velocity_solve_loop")
             velocity_solve_loop: do istate = 1, size(state)
 
                ! Get the velocity u^{n}
                u => extract_vector_field(state(istate), "Velocity", stat)
+               x => extract_vector_field(state(istate), "Coordinate")
 
                ! If there's no velocity then cycle
                if(stat/=0) cycle
@@ -908,8 +813,41 @@
                   have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
                                        &/discontinuous_galerkin")) then
       
+                  ! Get the old velocity
+                  if(use_theta_pg) then
+                     old_u => extract_vector_field(state(istate), "OldVelocity")
+                     if (old_u%aliased) then
+                        ! In the case of one non-linear iteration, there is no OldVelocity,
+                        ! it's just aliased to Velocity, therefore we make temp. version
+                        allocate(old_u)
+                        ! Give it a distinct name, so we know to deallocate it
+                        call allocate(old_u, u%dim, u%mesh, "TempOldVelocity")
+                        call set(old_u, u)
+                     end if
+                  end if
+
+                  ! Advance the velocity
                   call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
                                         mom_rhs, subcycle_m, inverse_mass)
+
+                  ! Assemble the RHS and CMC matrix for the projection solve step below
+                  if(prognostic_p) then
+                     call assemble_projection(state, istate, u, old_u, delta_u, p, cmc_m, cmc_global, ctp_m, &
+                                              get_ct_m, get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
+                  end if
+
+                  ! Deallocate the old velocity field
+                  if(use_theta_pg) then
+                     if (old_u%name == "TempOldVelocity") then
+                        call deallocate(old_u)
+                        deallocate(old_u)
+                     else if (have_rotated_bcs(u)) then
+                        call rotate_velocity_back(old_u, state(istate))
+                     end if
+                     if (sphere_absorption) then
+                        call rotate_velocity_back_sphere(old_u, state(istate))
+                     end if
+                  end if
 
                end if ! end of prognostic velocity
 
@@ -917,20 +855,22 @@
             call profiler_toc("velocity_solve_loop")
 
 
-            !! Solve for delta_p -- the pressure correction term
-            call profiler_tic(p, "assembly")
+            !! Solve for delta_p (the pressure correction term)
             if(prognostic_p) then
-
                ! Get the intermediate velocity u^{*} and the coordinate vector field
                u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
                x=>extract_vector_field(state(prognostic_p_istate), "Coordinate")
 
-               call correct_pressure(state, prognostic_p_istate, x, u, old_u, p, old_p, delta_p, p_theta, &
-                                    theta_pg, cmc_m, get_cmc_m, ct_m, ctp_m, ct_rhs, kmk_rhs, inner_m, &
+               if(multiphase) then
+                  cmc_m => cmc_global ! Use the sum over all individual phase CMC matrices
+               end if
+
+               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, &
+                                    theta_pg, cmc_m, ct_m, ctp_m, projec_rhs, inner_m, &
                                     full_projection_preconditioner, schur_auxiliary_matrix, stiff_nodes_list)
 
+               call deallocate(projec_rhs)
             end if
-            call profiler_toc(p, "assembly")
 
 
             !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
@@ -958,7 +898,7 @@
 
                      ! Correct velocity according to new delta_p
                      if(full_schur) then
-                        call correct_velocity_cg(u, inner_m, ct_m(istate)%ptr, delta_p, state(istate))
+                        call correct_velocity_cg(u, inner_m(istate)%ptr, ct_m(istate)%ptr, delta_p, state(istate))
                      else if(lump_mass .and. (.not.low_re_p_correction_fix)) then
                         call correct_masslumped_velocity(u, inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
                      else if(lump_mass .and. low_re_p_correction_fix) then
@@ -968,7 +908,7 @@
                            call correct_masslumped_velocity(u, visc_inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
                         endif
                      else if(dg) then
-                        call correct_velocity_dg(u, inverse_mass, ct_m(istate)%ptr, delta_p)
+                        call correct_velocity_dg(u, inverse_mass(istate), ct_m(istate)%ptr, delta_p)
                      else
                         ! Something's gone wrong in the code
                         FLAbort("Don't know how to correct the velocity.")
@@ -976,28 +916,28 @@
 
                      call profiler_toc(u, "assembly")
 
-                     call deallocate(kmk_rhs)
-                     call deallocate(delta_p)
-
-                     if(assemble_schur_auxiliary_matrix) then
-                        ! Deallocate schur_auxiliary_matrix:
-                        call deallocate(schur_auxiliary_matrix)
-                     end if
-
-                     if(get_scaled_pressure_mass_matrix) then
-                        ! Deallocate scaled pressure mass matrix:
-                        call deallocate(scaled_pressure_mass_matrix)
-                     end if
-
                      if(use_compressible_projection) then
-                        call deallocate(ctp_m)
-                        deallocate(ctp_m)
+                        call deallocate(ctp_m(istate)%ptr)
+                        deallocate(ctp_m(istate)%ptr)
                      end if
 
                   end if ! prognostic velocity
 
                end do velocity_correction_loop
                call profiler_toc("velocity_correction_loop")
+
+               !! Deallocate some memory reserved for the pressure solve 
+               call deallocate(delta_p)
+
+               if(assemble_schur_auxiliary_matrix) then
+                  ! Deallocate schur_auxiliary_matrix:
+                  call deallocate(schur_auxiliary_matrix)
+               end if
+
+               if(get_scaled_pressure_mass_matrix) then
+                  ! Deallocate scaled pressure mass matrix:
+                  call deallocate(scaled_pressure_mass_matrix)
+               end if
 
             end if ! prognostic pressure
 
@@ -1030,7 +970,7 @@
                   delta_u%option_path = trim(u%option_path)
                   call zero(delta_u)
 
-                  call solve_momentum_reduced(delta_u, delta_p, big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs, timestep, POD_state)
+                  call solve_momentum_reduced(delta_u, delta_p, big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), timestep, POD_state)
 
                   snapmean_velocity => extract_vector_field(POD_state(1), "SnapmeanVelocity")
                   snapmean_pressure => extract_scalar_field(POD_state(1), "SnapmeanPressure")
@@ -1059,7 +999,6 @@
          end if ! end of 'if .not.reduced_model'
 
 
-
          !! Finalisation and memory deallocation
          call profiler_tic("finalisation_loop")
          finalisation_loop: do istate = 1, size(state)
@@ -1079,76 +1018,29 @@
                have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
                                     &/discontinuous_galerkin")) then
 
-               call profiler_tic(u, "assembly")
-               if (have_rotated_bcs(u)) then
-                  call rotate_velocity_back(u, state(istate))
-               end if
-               if (sphere_absorption) then
-                  call rotate_velocity_back_sphere(u, state(istate))
-               end if
-               if (subcycle) then
-                  ! Filter wiggles from u
-                  do d =1, mesh_dim(u)
-                     u_cpt = extract_scalar_field_from_vector_field(u,d)
-                     call limit_vb(state(istate),u_cpt)
-                  end do
-               end if
-               call profiler_toc(u, "assembly")
-
-               if(dg) then
-                  if(lump_mass) then
-                     call deallocate(inverse_masslump(istate))
-                  else
-                     call deallocate(inverse_mass)
-                  end if
-               else
-                  call deallocate_cg_mass(mass, inverse_masslump(istate))
-                  if (low_re_p_correction_fix) then
-                     call deallocate(visc_inverse_masslump(istate))
-                  end if
-               end if
-
-               if(use_theta_pg) then
-                  call deallocate(p_theta)
-                  deallocate(p_theta)
-                  if (old_u%name == "TempOldVelocity") then
-                     call deallocate(old_u)
-                     deallocate(old_u)
-                  else if (have_rotated_bcs(u)) then
-                     call rotate_velocity_back(old_u, state(istate))
-                  end if
-                  if (sphere_absorption) then
-                     call rotate_velocity_back_sphere(old_u, state(istate))
-                  end if
-               end if
-
-               call deallocate(mom_rhs(istate))
-               call deallocate(ct_rhs)
-
-               if (associated(dummypressure)) then
-                  call deallocate(dummypressure)
-                  deallocate(dummypressure)
-               end if
-               call deallocate(dummydensity)
-               deallocate(dummydensity)
-               call deallocate(dummyscalar)
-               deallocate(dummyscalar)
-
-               call deallocate(big_m(istate))
-               if(subcycle) then
-                  call deallocate(subcycle_m)
-               end if
+               call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
+                                   visc_inverse_masslump, big_m, mom_rhs, subcycle_m)
 
             end if
 
          end do finalisation_loop
          call profiler_toc("finalisation_loop")
 
+         if(use_theta_pg) then
+            call deallocate(p_theta)
+            deallocate(p_theta)
+         end if
+
          deallocate(big_m)
          deallocate(mom_rhs)
+         deallocate(ct_rhs)
+         deallocate(inverse_mass)
          deallocate(inverse_masslump)
          deallocate(visc_inverse_masslump)
          deallocate(ct_m)
+         deallocate(ctp_m)
+         deallocate(subcycle_m)
+         deallocate(inner_m)
 
          if(multiphase .and. associated(cmc_global)) then
             call deallocate(cmc_global)
@@ -1158,6 +1050,127 @@
       end subroutine solve_momentum
 
 
+      subroutine get_velocity_options(state, istate, u)
+         !!< Gets some velocity options from the options tree
+
+         ! An array of buckets full of fields
+         type(state_type), dimension(:), intent(inout) :: state
+         integer, intent(in) :: istate
+
+         type(vector_field), pointer :: u
+
+         ! Local variables
+         integer :: stat
+         type(vector_field), pointer :: dummy_absorption
+
+         ewrite(1,*) 'Entering get_velocity_options'
+
+
+         dg = have_option(trim(u%option_path)//&
+                           "/prognostic/spatial_discretisation&
+                           &/discontinuous_galerkin")
+
+         subcycle = have_option(trim(u%option_path)//&
+            "/prognostic/temporal_discretisation/&
+            &discontinuous_galerkin/maximum_courant_number_per_subcycle")
+
+         ! Are we lumping the mass matrix?
+         lump_mass = have_option(trim(u%option_path)//&
+                           "/prognostic/spatial_discretisation&
+                           &/continuous_galerkin/mass_terms&
+                           &/lump_mass_matrix").or.&
+                     have_option(trim(u%option_path)//&
+                           "/prognostic/spatial_discretisation&
+                           &/discontinuous_galerkin/mass_terms&
+                           &/lump_mass_matrix")
+
+         ! Here is where we try to decide how big big_m should be
+         have_viscosity = have_option(trim(u%option_path)//&
+            &"/prognostic/tensor_field::Viscosity")
+
+         ! The following should include a dg option when a stress form version gets implemented
+         stress_form = have_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin&
+            &/stress_terms/stress_form")
+
+         partial_stress_form = have_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin&
+            &/stress_terms/partial_stress_form")
+
+         have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+            &/continuous_galerkin/les_model").or.(have_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation/discontinuous_galerkin/les_model"))
+
+         have_coriolis = have_option("/physical_parameters/coriolis")
+
+         diagonal_big_m = .not.have_coriolis.and.(.not.((have_viscosity.or.have_les).and.(stress_form.or.partial_stress_form)))
+
+         ! Do we want to rotate our equations to include absorption in a spherical geometry? 
+         on_sphere = have_option('/geometry/spherical_earth/')
+         dummy_absorption => extract_vector_field(state(istate), "VelocityAbsorption", stat)
+         have_absorption = stat == 0
+         have_vertical_stabilization = have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
+                                    have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
+         sphere_absorption=on_sphere.and.(have_absorption.or.have_vertical_stabilization)
+               
+      end subroutine get_velocity_options
+
+
+      subroutine get_pressure_options(p, get_ct_m, get_cmc_m)
+         !!< Gets some pressure options from the options tree
+
+         type(scalar_field), pointer :: p
+         logical, intent(inout) :: get_ct_m, get_cmc_m
+
+         ewrite(1,*) 'Entering get_pressure_options'
+
+
+         ! Are we using a compressible projection?
+         use_compressible_projection = have_option(trim(p%option_path)//&
+                                       "/prognostic/scheme&
+                                       &/use_compressible_projection_method")
+
+         get_cmc_m = get_cmc_m .or. &
+                     have_option(trim(p%option_path)//&
+                     "/prognostic/scheme/update_discretised_equation") .or. &
+                     use_compressible_projection
+
+         get_ct_m = get_ct_m .or. &
+                     have_option(trim(p%option_path)//&
+                     "/prognostic/scheme/update_discretised_equation")
+
+         pressure_debugging_vtus = have_option(trim(p%option_path)// &
+                     "/prognostic/output/debugging_vtus")
+         if (pressure_debugging_vtus) then
+            pdv_count = pdv_count+1
+         end if
+
+         ! If we are using the reduced model then there is no pressure projection.
+         if (reduced_model) then
+            get_cmc_m=.false.
+         end if
+
+         get_diag_schur = .false.
+         get_scaled_pressure_mass_matrix = .false.
+         assemble_schur_auxiliary_matrix = .false.
+
+         full_schur = have_option(trim(p%option_path)//&
+                                 &"/prognostic/scheme&
+                                 &/use_projection_method/full_schur_complement")
+
+         ! Low Re fix for pressure correction?
+         low_re_p_correction_fix = have_option(trim(p%option_path)//&
+                     &"/prognostic/spatial_discretisation/continuous_galerkin&
+                     &/low_re_p_correction_fix")
+
+         ! Are we getting the pressure gradient matrix using control volumes?
+         cv_pressure = (have_option(trim(p%option_path)//&
+                           "/prognostic/spatial_discretisation/control_volumes"))
+         ! or using cg (we do this in every case of not having a control volume
+         ! option so that prescribed pressures will work as well)
+         cg_pressure = (.not.cv_pressure)
+
+      end subroutine get_pressure_options
 
 
       subroutine solve_poisson_pressure(state, prognostic_p_istate, x, u, p, old_p, p_theta, theta_pg, ct_m, ctp_m, &
@@ -1170,24 +1183,24 @@
 
          integer, intent(in) :: prognostic_p_istate
 
-         type(block_csr_matrix), intent(in) :: inverse_mass
+         type(block_csr_matrix), dimension(:), intent(in) :: inverse_mass
          type(vector_field), dimension(:), intent(in) :: inverse_masslump
 
          type(scalar_field), pointer :: p, p_theta, old_p
          type(vector_field), pointer :: x, u
 
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
-         type(scalar_field), intent(inout) :: ct_rhs
+         type(scalar_field), dimension(:), intent(inout) :: ct_rhs
 
          type(csr_matrix), pointer :: cmc_m
 
          ! The pressure gradient matrices (extracted from state)
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ct_m
          ! Compressible pressure gradient operator/left hand matrix of CMC
-         type(block_csr_matrix), pointer :: ctp_m
+         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
 
          ! Pointer to matrix for full projection solve:
-         type(petsc_csr_matrix), pointer :: inner_m
+         type(petsc_csr_matrix_pointer), dimension(:), intent(inout) :: inner_m
          ! Pointer to preconditioner matrix for full projection solve:
          type(csr_matrix), pointer :: full_projection_preconditioner
 
@@ -1203,17 +1216,17 @@
          call allocate(poisson_rhs, p%mesh, "PoissonRHS")
 
          if (full_schur) then
-            call assemble_poisson_rhs(poisson_rhs, ctp_m, mom_rhs(prognostic_p_istate), ct_rhs, inner_m, u, dt, theta_pg)
+            call assemble_poisson_rhs(poisson_rhs, ctp_m(prognostic_p_istate)%ptr, mom_rhs(prognostic_p_istate), ct_rhs(prognostic_p_istate), inner_m(prognostic_p_istate)%ptr, u, dt, theta_pg)
          else
             ! Get the RHS for the Poisson pressure equation...
             if(dg .and. .not.lump_mass) then
-               call assemble_poisson_rhs_dg(poisson_rhs, ctp_m, inverse_mass, mom_rhs(prognostic_p_istate), ct_rhs, u, dt, theta_pg)
+               call assemble_poisson_rhs_dg(poisson_rhs, ctp_m(prognostic_p_istate)%ptr, inverse_mass(prognostic_p_istate), mom_rhs(prognostic_p_istate), ct_rhs(prognostic_p_istate), u, dt, theta_pg)
             else
                ! Here we assume that we're using mass lumping if we're not using dg
                ! if this isn't true then this leads to inconsistent mass matrices in poisson_rhs and cmc_m
                ! but as we're only hoping to get a guesstimate of the pressure hopefully this won't be too
                ! bad.
-               call assemble_masslumped_poisson_rhs(poisson_rhs, ctp_m, mom_rhs(prognostic_p_istate), ct_rhs, inverse_masslump(prognostic_p_istate), u, dt, theta_pg)
+               call assemble_masslumped_poisson_rhs(poisson_rhs, ctp_m(prognostic_p_istate)%ptr, mom_rhs(prognostic_p_istate), ct_rhs(prognostic_p_istate), inverse_masslump(prognostic_p_istate), u, dt, theta_pg)
             end if
          end if
 
@@ -1229,11 +1242,11 @@
          call profiler_toc(p, "assembly") ! Don't include Poisson solve
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
-               call petsc_solve_full_projection(p_theta, ctp_m, inner_m, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
+               call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
                   full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
                   auxiliary_matrix=schur_auxiliary_matrix)
             else
-               call petsc_solve_full_projection(p_theta, ctp_m, inner_m, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
+               call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
                   full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
             end if
          else
@@ -1264,9 +1277,6 @@
       subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, inverse_mass)
          !!< Solve momentum equation using pressure guess and advance velocity from u^{n} to u^{*}
 
-         ! Loop invariant
-         integer :: i
-
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
          integer, intent(in) :: istate
@@ -1277,18 +1287,20 @@
          ! Momentum LHS
          type(petsc_csr_matrix), dimension(:), target, intent(inout) :: big_m
 
-         type(block_csr_matrix), intent(inout) :: inverse_mass
+         type(block_csr_matrix), dimension(:), intent(inout) :: inverse_mass
 
          ! The pressure gradient matrix (extracted from state)
-         type(block_csr_matrix_pointer), dimension(:) :: ct_m
+         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ct_m
 
          type(vector_field), dimension(:), intent(inout) :: mom_rhs
 
          ! Matrix for split explicit advection
-         type(block_csr_matrix), intent(in) :: subcycle_m
+         type(block_csr_matrix), dimension(:), intent(in) :: subcycle_m
 
+         !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
+         integer :: i
 
          ewrite(1,*) 'Entering advance_velocity'
 
@@ -1300,7 +1312,7 @@
 
          ! Apply advection subcycling
          if(subcycle) then
-            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m, inverse_mass, state(istate))
+            call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), inverse_mass(istate), state(istate))
          end if
 
          if (associated(ct_m(istate)%ptr)) then
@@ -1357,81 +1369,85 @@
 
       end subroutine advance_velocity
 
-
-
-      subroutine correct_pressure(state, prognostic_p_istate, x, u, old_u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, get_cmc_m, &
-                                 ct_m, ctp_m, ct_rhs, kmk_rhs, inner_m, full_projection_preconditioner, &
-                                 schur_auxiliary_matrix, stiff_nodes_list)
-         !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
+     
+      subroutine assemble_projection(state, istate, u, old_u, delta_u, p, cmc_m, cmc_global, ctp_m, &
+                                     get_ct_m, get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
+         !!< Assembles the RHS for the projection solve step and, if required, the 'global' CMC matrix for multi-phase simulations.
+         !!< Note that in the case of multi-phase simulations, projec_rhs contains the sum of ct_m*u over each prognostic velocity field,
+         !!< and cmc_global contains the sum of the individual phase CMC matrices.
 
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
-         type(vector_field), pointer :: x, u, old_u
-         type(scalar_field), pointer :: p, old_p, p_theta
-         type(scalar_field), intent(inout) :: delta_p
+         integer, intent(in) :: istate
 
-         integer, intent(in) :: prognostic_p_istate
+         type(vector_field), pointer :: u, old_u
+         type(scalar_field), pointer :: p, p_theta
 
-         real, intent(inout) :: theta_pg
-
-         ! The pressure projection matrix (extracted from state)
-         type(csr_matrix), pointer :: cmc_m
-         logical, intent(inout) :: get_cmc_m
-
-         ! The pressure gradient matrix (extracted from state)
-         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ct_m
          ! Compressible pressure gradient operator/left hand matrix of CMC
-         type(block_csr_matrix), pointer :: ctp_m
+         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
+         ! The pressure projection matrix (extracted from state)
+         type(csr_matrix), pointer :: cmc_m, cmc_global
+         
+         logical, intent(in) :: get_ct_m, get_cmc_m
 
-         ! Projection RHS
-         type(scalar_field) :: projec_rhs, compress_projec_rhs
-         type(scalar_field), intent(inout) :: ct_rhs, kmk_rhs
+         type(scalar_field), dimension(:), intent(inout) :: ct_rhs
+         type(scalar_field), intent(inout) :: projec_rhs
 
-         ! Pointer to matrix for full projection solve:
-         type(petsc_csr_matrix), pointer :: inner_m
-         ! Pointer to preconditioner matrix for full projection solve:
-         type(csr_matrix), pointer :: full_projection_preconditioner
+         real, intent(in) :: theta_pg
 
-         type(csr_matrix), intent(in) :: schur_auxiliary_matrix
-
-         type(ilist), intent(inout) :: stiff_nodes_list
-
+         ! Local variables
+         type(scalar_field) :: kmk_rhs, temp_projec_rhs, compress_projec_rhs
          type(vector_field) :: delta_u
+         integer :: stat
 
-         ewrite(1,*) 'Entering correct_pressure'
+         ewrite(1,*) 'Entering assemble_projection'
 
 
-         call allocate(projec_rhs, p%mesh, "ProjectionRHS")
-         call zero(projec_rhs)
-
-         ! Assemble the rhs
+         call profiler_tic(p, "assembly")
+         ! Assemble the RHS of the projection solve step below
          ! If we are adding the P1-P1 stabilisation,
          ! this will have to have KMK * P added to it;
          !
          ! Despite multiplying velocity by a nonlocal operator
          ! a halo_update isn't necessary as this is just a rhs
          ! contribution
+         call allocate(temp_projec_rhs, p%mesh, "TempProjectionRHS")
+         call zero(temp_projec_rhs)
          if (.not. use_theta_pg) then
             ! Continuity is evaluated at the end of the time step
-            call mult(projec_rhs, ctp_m, u)
+            call mult(temp_projec_rhs, ctp_m(istate)%ptr, u)
          else
             ! Evaluate continuity at n+theta
             ! compute theta*u+(1-theta)*old_u
             call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
             if (have_rotated_bcs(u)) then
-               call rotate_velocity(old_u, state(prognostic_p_istate))
+               call rotate_velocity(old_u, state(istate))
             end if
             if (sphere_absorption) then
-               call rotate_velocity_sphere(old_u, state(prognostic_p_istate))
+               call rotate_velocity_sphere(old_u, state(istate))
             end if
             call set(delta_u, u, old_u, theta_pg)
-            call mult(projec_rhs, ctp_m, delta_u)
+            call mult(temp_projec_rhs, ctp_m(istate)%ptr, delta_u)
             call deallocate(delta_u)
          end if
-         call addto(projec_rhs, kmk_rhs)
-         call scale(projec_rhs, -1.0)
-         call addto(projec_rhs, ct_rhs)
-         ewrite_minmax(projec_rhs%val(:))
+
+         ! Allocate the RHS for KMK stabilisation
+         call allocate(kmk_rhs, p%mesh, "KMKRHS")
+         call zero(kmk_rhs)
+
+         if (apply_kmk) then
+            call add_kmk_rhs(state(istate), kmk_rhs, p_theta, dt)
+         end if
+         ewrite_minmax(kmk_rhs%val)
+
+         call addto(temp_projec_rhs, kmk_rhs)
+         call scale(temp_projec_rhs, -1.0)
+         call addto(temp_projec_rhs, ct_rhs(istate))
+         ewrite_minmax(temp_projec_rhs%val(:))
+
+         call deallocate(kmk_rhs)
+
+         cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
 
          if(use_compressible_projection) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
@@ -1450,11 +1466,72 @@
             ewrite_minmax(compress_projec_rhs%val)
             ewrite_minmax(cmc_m%val)
 
-            call addto(projec_rhs, compress_projec_rhs)
+            call addto(temp_projec_rhs, compress_projec_rhs)
 
             call deallocate(compress_projec_rhs)
          end if
 
+         !! Add individual phase CMC matrix to the 'global' CMC matrix
+         if(multiphase) then
+            if(.not.associated(cmc_global)) then
+               ! If not yet allocated, allocate it here using the current CMC's sparsity pattern
+               ! Assumes the same sparsity throughout (i.e. the same velocity and pressure mesh is used for each velocity field)
+               allocate(cmc_global)
+               call allocate(cmc_global, cmc_m%sparsity) 
+               call zero(cmc_global)
+            end if
+            call addto(cmc_global, cmc_m)
+         end if
+
+         call addto(projec_rhs, temp_projec_rhs)
+         ewrite_minmax(projec_rhs%val(:))
+
+         call deallocate(temp_projec_rhs)
+
+         call profiler_toc(p, "assembly")
+
+      end subroutine assemble_projection
+
+
+      subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, &
+                                 ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
+                                 schur_auxiliary_matrix, stiff_nodes_list)
+         !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
+
+         ! An array of buckets full of fields
+         type(state_type), dimension(:), intent(inout) :: state
+         type(vector_field), pointer :: x, u
+         type(scalar_field), pointer :: p, old_p, p_theta
+         type(scalar_field), intent(inout) :: delta_p
+
+         integer, intent(in) :: prognostic_p_istate
+
+         real, intent(inout) :: theta_pg
+
+         ! The pressure projection matrix (extracted from state)
+         type(csr_matrix), pointer :: cmc_m
+
+         ! The pressure gradient matrix (extracted from state)
+         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ct_m
+         ! Compressible pressure gradient operator/left hand matrix of CMC
+         type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
+
+         ! Projection RHS
+         type(scalar_field), intent(inout) :: projec_rhs
+
+         ! Pointer to matrix for full projection solve:
+         type(petsc_csr_matrix_pointer), dimension(:), intent(inout) :: inner_m
+         ! Pointer to preconditioner matrix for full projection solve:
+         type(csr_matrix), pointer :: full_projection_preconditioner
+
+         type(csr_matrix), intent(in) :: schur_auxiliary_matrix
+
+         type(ilist), intent(inout) :: stiff_nodes_list
+
+         ewrite(1,*) 'Entering correct_pressure'
+
+
+         call profiler_tic(p, "assembly")
          ! Apply strong Dirichlet conditions
          ! we're solving for "delta_p"=theta_pg**2*dp*dt, where dp=p_final-p_current
          ! apply_dirichlet_condition however assumes we're solving for
@@ -1472,16 +1549,17 @@
          if(have_option(trim(p%option_path)//"/prognostic/repair_stiff_nodes")) then
             call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
          end if
+
          call profiler_toc(p, "assembly")
 
          ! Solve for the change in pressure, delta_p
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
-               call petsc_solve_full_projection(delta_p, ctp_m, inner_m, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
+               call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
                full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
                auxiliary_matrix=schur_auxiliary_matrix)
             else
-               call petsc_solve_full_projection(delta_p, ctp_m, inner_m, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
+               call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
                full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
             end if
          else
@@ -1515,11 +1593,77 @@
          if(use_compressible_projection) then
                call update_compressible_density(state)
          end if
-
-         call deallocate(projec_rhs)
+         call profiler_toc(p, "assembly")
 
       end subroutine correct_pressure
 
+
+      subroutine finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
+                                visc_inverse_masslump, big_m, mom_rhs, subcycle_m)
+         !!< Does some finalisation steps to the velocity field and deallocates some memory
+         !!< allocated for the specified state.
+
+         ! An array of buckets full of fields
+         type(state_type), dimension(:), intent(inout) :: state
+
+         integer, intent(in) :: istate
+         type(vector_field), pointer :: u
+
+         ! Mass matrix
+         type(petsc_csr_matrix), target, intent(inout) :: mass
+         ! For DG:
+         type(block_csr_matrix), dimension(:), intent(inout) :: inverse_mass
+         ! The lumped mass matrix (may vary per component as absorption could be included)
+         type(vector_field), dimension(:), intent(inout) :: inverse_masslump, visc_inverse_masslump
+
+         ! Momentum LHS
+         type(petsc_csr_matrix), dimension(:), target, intent(inout) :: big_m
+         ! Momentum RHS
+         type(vector_field), dimension(:), intent(inout) :: mom_rhs
+         ! Matrix for split explicit advection
+         type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
+
+         ! Local variables
+         integer :: d
+         type(scalar_field) :: u_cpt
+
+         call profiler_tic(u, "assembly")
+         if (have_rotated_bcs(u)) then
+            call rotate_velocity_back(u, state(istate))
+         end if
+         if (sphere_absorption) then
+            call rotate_velocity_back_sphere(u, state(istate))
+         end if
+         if (subcycle) then
+            ! Filter wiggles from u
+            do d = 1, mesh_dim(u)
+               u_cpt = extract_scalar_field_from_vector_field(u, d)
+               call limit_vb(state(istate), u_cpt)
+            end do
+         end if
+         call profiler_toc(u, "assembly")
+
+         if(dg) then
+            if(lump_mass) then
+               call deallocate(inverse_masslump(istate))
+            else
+               call deallocate(inverse_mass(istate))
+            end if
+         else
+            call deallocate_cg_mass(mass, inverse_masslump(istate))
+            if (low_re_p_correction_fix) then
+               call deallocate(visc_inverse_masslump(istate))
+            end if
+         end if
+
+         call deallocate(mom_rhs(istate))
+         call deallocate(big_m(istate))
+
+         if(subcycle) then
+            call deallocate(subcycle_m(istate))
+         end if
+
+      end subroutine finalise_state
 
 
       subroutine momentum_equation_check_options
