@@ -52,7 +52,7 @@ module zoltan_integration
   type(vector_field), save :: zz_positions
   type(mesh_type), save :: tmp_mesh
   integer :: tmp_mesh_nhalos
-  type(csr_sparsity), pointer :: zz_sparsity_one, zz_sparsity_two, zz_nelist
+  type(csr_sparsity), pointer :: zz_sparsity_two, zz_nelist
   type(halo_type), pointer :: zz_ele_halo 
   type(detector_linked_list), target, save :: unpacked_detectors_list, to_pack_detectors_list
   type(vector_field), save :: new_positions
@@ -106,42 +106,6 @@ module zoltan_integration
 
   contains
 
-  subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids
-    integer(zoltan_int), intent(out),dimension(*) :: num_edges
-    integer(zoltan_int), intent(out) :: ierr  
-
-    integer :: count
-    integer :: node
-    character (len = OPTION_PATH_LEN) :: filename
-
-    ewrite(1,*) "In zoltan_cb_get_num_edges"
-
-    assert(num_gid_entries == 1)
-    assert(num_lid_entries == 1)
-
-    count = zoltan_global_zz_halo%nowned_nodes
-    assert(count == num_obj)
-
-    do node=1,count
-      num_edges(node) = row_length(zz_sparsity_one, local_ids(node))
-    end do
-
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
-       write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
-       open(666, file = filename)
-       do node=1,count
-          write(666,*) num_edges(node)
-       end do
-       close(666)
-    end if
-
-    ierr = ZOLTAN_OK
-  end subroutine zoltan_cb_get_num_edges
-
   subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
                                   &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)
     integer(zoltan_int), intent(in) :: data 
@@ -191,7 +155,7 @@ module zoltan_integration
         head = 1
         do node=1,count
             ! find nodes neighbours
-            neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
+            neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
             ! check the number of neighbours matches the number of edges
             assert(size(neighbours) == num_edges(node))
             ! find global ids for each neighbour
@@ -218,7 +182,7 @@ module zoltan_integration
     do node=1,count
 
        ! find nodes neighbours
-       neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
+       neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
 
        ! check the number of neighbours matches the number of edges
        assert(size(neighbours) == num_edges(node))
@@ -300,7 +264,7 @@ module zoltan_integration
     if (output_edge_weights) then
         head = 1
             do node=1,count
-                neighbours => row_m_ptr(zz_sparsity_one, local_ids(node))
+                neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
                 value = maxval(ewgts(head:head+size(neighbours)-1))
                 call set(max_edge_weight_on_node,local_ids(node),value)
                 head = head + size(neighbours)
@@ -339,7 +303,7 @@ module zoltan_integration
     do i=1,num_ids
       node = local_ids(i)
       sizes(i) = zz_positions%dim * real_size + &
-                1 * integer_size + row_length(zz_sparsity_one, node) * integer_size + &
+                1 * integer_size + row_length(zoltan_global_zz_sparsity_one, node) * integer_size + &
                 1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
                 1 * integer_size + row_length(zz_nelist, node) * integer_size + &
                 1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
@@ -394,11 +358,11 @@ module zoltan_integration
         head = head + 1
       end if
       
-      buf(head) = row_length(zz_sparsity_one, node)
+      buf(head) = row_length(zoltan_global_zz_sparsity_one, node)
       head = head + 1
 
-      buf(head:head+row_length(zz_sparsity_one, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zz_sparsity_one, node))
-      head = head + row_length(zz_sparsity_one, node)
+      buf(head:head+row_length(zoltan_global_zz_sparsity_one, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_one, node))
+      head = head + row_length(zoltan_global_zz_sparsity_one, node)
 
       buf(head) = row_length(zz_sparsity_two, node)
       head = head + 1
@@ -1582,7 +1546,7 @@ module zoltan_integration
     assert(nhalos >= 1)
     zz_ele_halo => zz_mesh%element_halos(nhalos)
     
-    zz_sparsity_one => get_csr_sparsity_firstorder(states, zz_mesh, zz_mesh)
+    zoltan_global_zz_sparsity_one => get_csr_sparsity_firstorder(states, zz_mesh, zz_mesh)
     zz_sparsity_two => get_csr_sparsity_secondorder(states, zz_mesh, zz_mesh)
     
     allocate(owned_nodes(halo_nowned_nodes(zoltan_global_zz_halo)))
@@ -1840,7 +1804,7 @@ module zoltan_integration
     
     call deallocate(zz_mesh)
     call deallocate(zz_positions)
-    zz_sparsity_one => null()
+    zoltan_global_zz_sparsity_one => null()
     zz_sparsity_two => null()
     zoltan_global_zz_halo => null()
     zz_ele_halo => null()

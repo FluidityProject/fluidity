@@ -17,4 +17,7 @@ module zoltan_global_variables
   type(csr_sparsity), save :: zoltan_global_columns_sparsity
   logical, save :: zoltan_global_migrate_extruded_mesh
 
+  ! Needed for zoltan_cb_get_num_edges
+  type(csr_sparsity), pointer :: zoltan_global_zz_sparsity_one
+
 end module zoltan_global_variables
