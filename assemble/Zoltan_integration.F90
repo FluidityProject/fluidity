@@ -40,7 +40,9 @@ module zoltan_integration
 
 ! adding to use the ele_owner function
   use halos_derivation
-
+  
+  use zoltan_global_variables
+  use zoltan_callbacks
   use zoltan_detectors
 
   implicit none
@@ -51,7 +53,7 @@ module zoltan_integration
   type(mesh_type), save :: tmp_mesh
   integer :: tmp_mesh_nhalos
   type(csr_sparsity), pointer :: zz_sparsity_one, zz_sparsity_two, zz_nelist
-  type(halo_type), pointer :: zz_halo, zz_ele_halo
+  type(halo_type), pointer :: zz_ele_halo 
   type(detector_linked_list), target, save :: unpacked_detectors_list, to_pack_detectors_list
   type(vector_field), save :: new_positions
 
@@ -107,20 +109,6 @@ module zoltan_integration
 
   contains
 
-  function zoltan_cb_owned_node_count(data, ierr) result(count)
-    integer(zoltan_int) :: count
-    integer(zoltan_int), dimension(*) :: data ! not used
-    integer(zoltan_int), intent(out) :: ierr
-
-    ewrite(1,*) "In zoltan_cb_owned_node_count"
-
-    count = halo_nowned_nodes(zz_halo)
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
-       ewrite(1,*) "zoltan_cb_owned_node_count found: ", count, " nodes"
-    end if
-    ierr = ZOLTAN_OK
-  end function zoltan_cb_owned_node_count
-
   subroutine zoltan_cb_get_owned_nodes(data, num_gid_entries, num_lid_entries, global_ids, local_ids, wgt_dim, obj_wgts, ierr)
     integer(zoltan_int), dimension(*), intent(in) :: data ! not used
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries 
@@ -139,10 +127,10 @@ module zoltan_integration
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
 
-    count = halo_nowned_nodes(zz_halo)
+    count = halo_nowned_nodes(zoltan_global_zz_halo)
 
-    call get_owned_nodes(zz_halo, local_ids(1:count))
-    global_ids(1:count) = halo_universal_number(zz_halo, local_ids(1:count))
+    call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
+    global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
        ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
@@ -186,7 +174,7 @@ module zoltan_integration
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
 
-    count = zz_halo%nowned_nodes
+    count = zoltan_global_zz_halo%nowned_nodes
     assert(count == num_obj)
 
     do node=1,count
@@ -241,7 +229,7 @@ module zoltan_integration
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
 
-    count = zz_halo%nowned_nodes
+    count = zoltan_global_zz_halo%nowned_nodes
     assert(count == num_obj)
 
     my_num_edges = sum(num_edges(1:num_obj))
@@ -258,9 +246,9 @@ module zoltan_integration
             ! check the number of neighbours matches the number of edges
             assert(size(neighbours) == num_edges(node))
             ! find global ids for each neighbour
-            nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
+            nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
             ! find owning proc for each neighbour
-            nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
+            nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
             head = head + size(neighbours)
        end do 
        ierr = ZOLTAN_OK
@@ -287,10 +275,10 @@ module zoltan_integration
        assert(size(neighbours) == num_edges(node))
 
        ! find global ids for each neighbour
-       nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
+       nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
 
        ! find owning proc for each neighbour
-       nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
+       nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
 
        ! get elements associated with current node
        my_nelist => row_m_ptr(zz_nelist, local_ids(node))
@@ -446,7 +434,7 @@ module zoltan_integration
     do i=1,num_ids
       head = idx(i)
       node = local_ids(i)
-      assert(halo_universal_number(zz_halo, node) == global_ids(i))
+      assert(halo_universal_number(zoltan_global_zz_halo, node) == global_ids(i))
       do j=1,zz_positions%dim
         buf(head:head+ratio-1) = transfer(node_val(zz_positions, j, node), buf(head:head+ratio-1))
         head = head + ratio
@@ -460,16 +448,16 @@ module zoltan_integration
       buf(head) = row_length(zz_sparsity_one, node)
       head = head + 1
 
-      buf(head:head+row_length(zz_sparsity_one, node)-1) = halo_universal_number(zz_halo, row_m_ptr(zz_sparsity_one, node))
+      buf(head:head+row_length(zz_sparsity_one, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zz_sparsity_one, node))
       head = head + row_length(zz_sparsity_one, node)
 
       buf(head) = row_length(zz_sparsity_two, node)
       head = head + 1
 
-      buf(head:head+row_length(zz_sparsity_two, node)-1) = halo_universal_number(zz_halo, row_m_ptr(zz_sparsity_two, node))
+      buf(head:head+row_length(zz_sparsity_two, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zz_sparsity_two, node))
       head = head + row_length(zz_sparsity_two, node)
 
-      buf(head:head+row_length(zz_sparsity_two, node)-1) = halo_node_owners(zz_halo, row_m_ptr(zz_sparsity_two, node))
+      buf(head:head+row_length(zz_sparsity_two, node)-1) = halo_node_owners(zoltan_global_zz_halo, row_m_ptr(zz_sparsity_two, node))
       head = head + row_length(zz_sparsity_two, node)
 
       buf(head) = row_length(zz_nelist, node)
@@ -532,7 +520,7 @@ module zoltan_integration
     ! All the nodes we currently have and still own, in universal numbering
     do i=1,key_count(nodes_we_are_keeping)
       old_local_number = fetch(nodes_we_are_keeping, i)
-      call insert(new_nodes, halo_universal_number(zz_halo, old_local_number), changed=changed)
+      call insert(new_nodes, halo_universal_number(zoltan_global_zz_halo, old_local_number), changed=changed)
     end do
 
     ! All the nodes we are receiving from other people and are going to own
@@ -547,10 +535,10 @@ module zoltan_integration
     do i=1,key_count(nodes_we_are_keeping)
       neighbours => row_m_ptr(zz_sparsity_two, fetch(nodes_we_are_keeping, i))
       do j=1,size(neighbours)
-        universal_number = halo_universal_number(zz_halo, neighbours(j))
+        universal_number = halo_universal_number(zoltan_global_zz_halo, neighbours(j))
         call insert(new_nodes, universal_number, changed=changed)
         if (changed) then ! so it is a halo node
-          old_owner = halo_node_owner(zz_halo, neighbours(j)) - 1
+          old_owner = halo_node_owner(zoltan_global_zz_halo, neighbours(j)) - 1
           assert(old_owner < getnprocs())
           if (old_owner == rank) then
             call insert(halo_nodes_we_currently_own, neighbours(j))
@@ -564,7 +552,7 @@ module zoltan_integration
     ! not own later, and will become our halo nodes.
     do i=1,key_count(halo_nodes_we_currently_own)
       old_local_number = fetch(halo_nodes_we_currently_own, i)
-      universal_number = halo_universal_number(zz_halo, old_local_number)
+      universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
       call insert(new_nodes, universal_number)
     end do
 
@@ -631,7 +619,7 @@ module zoltan_integration
     ! Nodes we are keeping
     do i=1,key_count(nodes_we_are_keeping)
       old_local_number = fetch(nodes_we_are_keeping, i)
-      universal_number = halo_universal_number(zz_halo, old_local_number)
+      universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
       new_local_number = fetch(universal_to_new_local_numbering, universal_number)
       call insert(new_nodes_we_have_recorded, universal_number)
       call set(new_positions, new_local_number, node_val(zz_positions, old_local_number))
@@ -660,7 +648,7 @@ module zoltan_integration
     ! Set the positions and nelist of halo_nodes_we_currently_own
     do i=1,key_count(halo_nodes_we_currently_own)
       old_local_number = fetch(halo_nodes_we_currently_own, i)
-      universal_number = halo_universal_number(zz_halo, old_local_number)
+      universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
       new_local_number = fetch(universal_to_new_local_numbering, universal_number)
       call set(new_positions, new_local_number, node_val(zz_positions, old_local_number))
 
@@ -1223,7 +1211,7 @@ module zoltan_integration
        
        ! At the start, write the old unns of this element
        loc = ele_loc(zz_mesh, old_local_element_number)
-       buf(idx(i):idx(i) + loc -1) = halo_universal_number(zz_halo, ele_nodes(zz_mesh, old_local_element_number))
+       buf(idx(i):idx(i) + loc -1) = halo_universal_number(zoltan_global_zz_halo, ele_nodes(zz_mesh, old_local_element_number))
        
        ! Determine the size of the real data in integer_size units
        dataSize = sz * real_size / integer_size
@@ -1639,7 +1627,7 @@ module zoltan_integration
     
     nhalos = halo_count(zz_mesh)
     assert(nhalos == 2)
-    zz_halo => zz_mesh%halos(nhalos)
+    zoltan_global_zz_halo => zz_mesh%halos(nhalos)
     
     nhalos = element_halo_count(zz_mesh)
     assert(nhalos >= 1)
@@ -1648,11 +1636,11 @@ module zoltan_integration
     zz_sparsity_one => get_csr_sparsity_firstorder(states, zz_mesh, zz_mesh)
     zz_sparsity_two => get_csr_sparsity_secondorder(states, zz_mesh, zz_mesh)
     
-    allocate(owned_nodes(halo_nowned_nodes(zz_halo)))
+    allocate(owned_nodes(halo_nowned_nodes(zoltan_global_zz_halo)))
     call allocate(universal_to_old_local_numbering)
-    call get_owned_nodes(zz_halo, owned_nodes)
+    call get_owned_nodes(zoltan_global_zz_halo, owned_nodes)
     do i=1,size(owned_nodes)
-       call insert(universal_to_old_local_numbering, halo_universal_number(zz_halo, owned_nodes(i)), owned_nodes(i))
+       call insert(universal_to_old_local_numbering, halo_universal_number(zoltan_global_zz_halo, owned_nodes(i)), owned_nodes(i))
     end do
     deallocate(owned_nodes)
 
@@ -1663,7 +1651,7 @@ module zoltan_integration
        call insert(old_local_numbering_to_uen, i, halo_universal_number(zz_ele_halo, i))
     end do
     
-    allocate(receives(halo_proc_count(zz_halo)))
+    allocate(receives(halo_proc_count(zoltan_global_zz_halo)))
     do i=1,size(receives)
        call allocate(receives(i))
     end do
@@ -1905,7 +1893,7 @@ module zoltan_integration
     call deallocate(zz_positions)
     zz_sparsity_one => null()
     zz_sparsity_two => null()
-    zz_halo => null()
+    zoltan_global_zz_halo => null()
     zz_ele_halo => null()
     call Zoltan_Destroy(zz)
     
@@ -1957,7 +1945,7 @@ module zoltan_integration
     
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
-       assert(node_owned(zz_halo, node))
+       assert(node_owned(zoltan_global_zz_halo, node))
     end do
   end subroutine zoltan_load_balance
 
@@ -2011,7 +1999,7 @@ module zoltan_integration
     call allor(lpreserve_columns)
     if(lpreserve_columns) then
        allocate(universal_columns(node_count(full_mesh)))
-       universal_columns = halo_universal_numbers(zz_halo, full_mesh%columns)
+       universal_columns = halo_universal_numbers(zoltan_global_zz_halo, full_mesh%columns)
     end if
     
     ewrite(1,*) 'exiting derive_full_export_lists'
@@ -2051,7 +2039,7 @@ module zoltan_integration
     p1_export_global_ids = 0
     
     do i=1,p1_num_export
-       p1_export_global_ids(i) = halo_universal_number(zz_halo, p1_export_local_ids(i))
+       p1_export_global_ids(i) = halo_universal_number(zoltan_global_zz_halo, p1_export_local_ids(i))
     end do
     assert(all(p1_export_global_ids>0))
     
@@ -2079,7 +2067,7 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_procs
 
     integer :: node, i
-    integer, dimension(halo_nowned_nodes(zz_halo)) :: owned_nodes
+    integer, dimension(halo_nowned_nodes(zoltan_global_zz_halo)) :: owned_nodes
     
     call allocate(nodes_we_are_sending)
     call allocate(nodes_we_are_keeping)
@@ -2088,7 +2076,7 @@ module zoltan_integration
        call insert(nodes_we_are_sending, p1_export_local_ids(i), p1_export_procs(i))
     end do
     
-    call get_owned_nodes(zz_halo, owned_nodes)
+    call get_owned_nodes(zoltan_global_zz_halo, owned_nodes)
     do i=1,size(owned_nodes)
        node = owned_nodes(i)
        if (.not. has_key(nodes_we_are_sending, node)) then
@@ -2154,7 +2142,7 @@ module zoltan_integration
     ! Need to allocate new_nodes, new_elements, new_positions, new_nelist, universal_to_new_local_numbering
     do i=1,key_count(nodes_we_are_keeping)
        old_local_number = fetch(nodes_we_are_keeping, i)
-       call insert(new_nodes, halo_universal_number(zz_halo, old_local_number), changed=changed)
+       call insert(new_nodes, halo_universal_number(zoltan_global_zz_halo, old_local_number), changed=changed)
     end do
     
     call allocate(halo_nodes_we_need_to_know_about)
@@ -2167,10 +2155,10 @@ module zoltan_integration
        old_local_number = fetch(nodes_we_are_keeping, i)
        neighbours => row_m_ptr(zz_sparsity_two, old_local_number)
        do j=1,size(neighbours)
-          universal_number = halo_universal_number(zz_halo, neighbours(j))
+          universal_number = halo_universal_number(zoltan_global_zz_halo, neighbours(j))
           call insert(new_nodes, universal_number, changed=changed)
           if (changed) then
-             old_owner = halo_node_owner(zz_halo, neighbours(j)) - 1
+             old_owner = halo_node_owner(zoltan_global_zz_halo, neighbours(j)) - 1
              if (old_owner == rank) then
                 call insert(halo_nodes_we_currently_own, neighbours(j))
              else
@@ -2184,7 +2172,7 @@ module zoltan_integration
     ! We need to process these too -- nodes we own now, but will
     ! not own later, and will become our halo nodes.
     do i=1,key_count(halo_nodes_we_currently_own)
-       universal_number = halo_universal_number(zz_halo, fetch(halo_nodes_we_currently_own, i))
+       universal_number = halo_universal_number(zoltan_global_zz_halo, fetch(halo_nodes_we_currently_own, i))
        call insert(new_nodes, universal_number)
     end do
 
@@ -2209,7 +2197,7 @@ module zoltan_integration
     
     do i=1,key_count(nodes_we_are_keeping)
        old_local_number = fetch(nodes_we_are_keeping, i)
-       universal_number = halo_universal_number(zz_halo, old_local_number)
+       universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
        new_local_number = fetch(universal_to_new_local_numbering, universal_number)
        call set(new_positions, new_local_number, node_val(zz_positions, old_local_number))
        
@@ -2236,7 +2224,7 @@ module zoltan_integration
     ! Set the positions and nelist of halo_nodes_we_currently_own
     do i=1,key_count(halo_nodes_we_currently_own)
        old_local_number = fetch(halo_nodes_we_currently_own, i)
-       universal_number = halo_universal_number(zz_halo, old_local_number)
+       universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
        new_local_number = fetch(universal_to_new_local_numbering, universal_number)
        call set(new_positions, new_local_number, node_val(zz_positions, old_local_number))
        
@@ -2671,10 +2659,10 @@ module zoltan_integration
     call allocate(new_positions%mesh%halos(2), &
          nsends = nsends, &
          nreceives = nreceives, &
-         name = halo_name(zz_halo), &
-         communicator = halo_communicator(zz_halo), &
+         name = halo_name(zoltan_global_zz_halo), &
+         communicator = halo_communicator(zoltan_global_zz_halo), &
          nowned_nodes = key_count(new_nodes) - num_import, &
-         data_type = halo_data_type(zz_halo))
+         data_type = halo_data_type(zoltan_global_zz_halo))
 
     do i=1,size(receives)
        call set_halo_sends(new_positions%mesh%halos(2), i, fetch(universal_to_new_local_numbering, set2vector(sends(i))))
@@ -2893,7 +2881,7 @@ module zoltan_integration
     do i=1, original_detector_list_length
 
        ewrite(3,*) "Updating detector%id_number:", detector%id_number
-       ewrite(3,*) "Old element owner of ", detector%id_number, "(ID): ", ele_owner(detector%element, zz_mesh, zz_halo)
+       ewrite(3,*) "Old element owner of ", detector%id_number, "(ID): ", ele_owner(detector%element, zz_mesh, zoltan_global_zz_halo)
        ewrite(3,*) "Old element number of ", detector%id_number, "(ID): ", detector%element
 
        old_local_element_number = detector%element
@@ -3043,7 +3031,7 @@ module zoltan_integration
     integer :: old_ele
     integer, dimension(:), pointer :: old_local_nodes, nodes
     type(element_type), pointer :: eshape
-    type(integer_set), dimension(halo_proc_count(zz_halo)) :: sends
+    type(integer_set), dimension(halo_proc_count(zoltan_global_zz_halo)) :: sends
     integer :: i, j, new_owner, universal_element_number
     type(integer_set) :: self_sends
     integer :: num_import, num_export
@@ -3073,10 +3061,10 @@ module zoltan_integration
     do old_ele=1,ele_count(zz_positions)
        universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
        old_local_nodes => ele_nodes(zz_positions, old_ele)
-       if (.not. any(nodes_owned(zz_halo, old_local_nodes))) cycle
+       if (.not. any(nodes_owned(zoltan_global_zz_halo, old_local_nodes))) cycle
        do i=1,size(old_local_nodes)
           if (has_value(nodes_we_are_keeping, old_local_nodes(i))) then
-             assert(node_owned(zz_halo, old_local_nodes(i)))
+             assert(node_owned(zoltan_global_zz_halo, old_local_nodes(i)))
              call insert(self_sends, universal_element_number)
           else if (has_key(nodes_we_are_sending,  old_local_nodes(i))) then
              new_owner = fetch(nodes_we_are_sending, old_local_nodes(i))
@@ -3174,7 +3162,7 @@ module zoltan_integration
       ! this function takes the universal node numbers of the old element and the new global (over the local domain)
       ! node numbers, to compute the vertex order
       vertex_order(:,i) = local_vertex_order( &
-         halo_universal_number(zz_halo, ele_nodes(zz_positions, old_local_element_number)), &
+         halo_universal_number(zoltan_global_zz_halo, ele_nodes(zz_positions, old_local_element_number)), &
          ele_nodes(new_positions, new_local_element_number))
     end do
     
@@ -3326,7 +3314,7 @@ module zoltan_integration
     
     call allocate(unn, zz_mesh, "OldUniversalNodeNumber")
     do i=1,node_count(unn)
-       call set(unn, i, float(halo_universal_number(zz_halo, i)))
+       call set(unn, i, float(halo_universal_number(zoltan_global_zz_halo, i)))
     end do
     
     positions = get_coordinate_field(states(1), zz_mesh)
