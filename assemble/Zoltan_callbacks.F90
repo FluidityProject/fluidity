@@ -6,8 +6,8 @@ module zoltan_callbacks
   use zoltan_global_variables
 
   ! Needed for zoltan_cb_owned_node_count
-  use halos_ownership
-  use metric_tools  
+  use halos, only: halo_nowned_nodes
+  use metric_tools
 
   implicit none
   

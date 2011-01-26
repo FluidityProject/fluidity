@@ -1,6 +1,8 @@
 module zoltan_global_variables
 
-  use halos
+  use halos, only: halo_type
+
+  implicit none
 
   public
 
