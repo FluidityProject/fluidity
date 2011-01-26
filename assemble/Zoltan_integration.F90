@@ -83,9 +83,6 @@ module zoltan_integration
   logical, save :: preserve_mesh_regions
   type(integer_hash_table) :: universal_element_number_to_region_id
 
-  logical, save :: migrate_extruded_mesh
-  type(csr_sparsity), save :: columns_sparsity
-
   logical, save :: preserve_columns=.false.
   integer, dimension(:), allocatable, save :: universal_columns
   type(integer_hash_table), save :: universal_to_new_local_numbering_m1d
@@ -108,54 +105,6 @@ module zoltan_integration
   private
 
   contains
-
-  subroutine zoltan_cb_get_owned_nodes(data, num_gid_entries, num_lid_entries, global_ids, local_ids, wgt_dim, obj_wgts, ierr)
-    integer(zoltan_int), dimension(*), intent(in) :: data ! not used
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries 
-    integer(zoltan_int), intent(out), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(out), dimension(*) :: local_ids 
-    integer(zoltan_int), intent(in) :: wgt_dim 
-    real(zoltan_float), intent(out), dimension(*) :: obj_wgts 
-    integer(zoltan_int), intent(out) :: ierr
-
-    integer :: count, i
-    real(zoltan_float) :: max_obj_wgt
-
-    ewrite(1,*) "In zoltan_cb_get_owned_nodes"
-
-    assert(num_gid_entries == 1)
-    assert(num_lid_entries == 1)
-    assert(wgt_dim == 1)
-
-    count = halo_nowned_nodes(zoltan_global_zz_halo)
-
-    call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
-    global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
-
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
-       ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
-       ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
-    end if
-
-    if(migrate_extruded_mesh) then
-      ! weight the nodes according to the number of nodes in the column beneath it
-      max_obj_wgt = 1.0
-      do i=1,count
-        obj_wgts(i) = float(row_length(columns_sparsity, i))
-        max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
-      end do
-      ! normalise according to the most nodes in a column
-      do i=1,count
-        obj_wgts(i) = obj_wgts(i)/max_obj_wgt
-      end do
-    else
-      do i=1,count
-        obj_wgts(i) = 1.0
-      end do
-    end if
-
-    ierr = ZOLTAN_OK
-  end subroutine zoltan_cb_get_owned_nodes
 
   subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)  
     integer(zoltan_int), dimension(*), intent(in) :: data 
@@ -1439,7 +1388,7 @@ module zoltan_integration
 
     ewrite(1,*) "In zoltan_drive"
 
-    migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
+    zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
     call setup_module_variables(states, iteration, max_adapt_iteration, zz)
@@ -1464,7 +1413,7 @@ module zoltan_integration
       return
     end if
 
-    if(migrate_extruded_mesh) then
+    if(zoltan_global_migrate_extruded_mesh) then
       call derive_full_export_lists(states, p1_num_export, p1_export_local_ids, p1_export_procs, &
            & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full)
     end if
@@ -1495,7 +1444,7 @@ module zoltan_integration
     call reconstruct_senlist
     call reconstruct_halo(zz)
     
-    if(migrate_extruded_mesh) then
+    if(zoltan_global_migrate_extruded_mesh) then
       new_positions_m1d = new_positions ! save a reference to the horizontal mesh you've just load balanced
       call copy(universal_to_new_local_numbering_m1d, universal_to_new_local_numbering)
       
@@ -1558,7 +1507,7 @@ module zoltan_integration
     call transfer_fields(zz)
 
     call deallocate(new_positions)
-    if(migrate_extruded_mesh) then
+    if(zoltan_global_migrate_extruded_mesh) then
       call deallocate(new_positions_m1d)
     end if
 
@@ -1734,9 +1683,9 @@ module zoltan_integration
     end do
     call halo_update(node_quality)
 
-    if(migrate_extruded_mesh) then
+    if(zoltan_global_migrate_extruded_mesh) then
        full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
-       call create_columns_sparsity(columns_sparsity, full_mesh)
+       call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
     end if
     
   end subroutine setup_quality_module_variables
@@ -1904,8 +1853,8 @@ module zoltan_integration
     ! This routine deallocates the module quality fields.
     call deallocate(element_quality)
     call deallocate(node_quality)
-    if(migrate_extruded_mesh) then
-       call deallocate(columns_sparsity)
+    if(zoltan_global_migrate_extruded_mesh) then
+       call deallocate(zoltan_global_columns_sparsity)
     end if
   end subroutine cleanup_quality_module_variables
 
@@ -1972,7 +1921,7 @@ module zoltan_integration
     p1_num_export_full = 0
     do i = 1, p1_num_export
        column = p1_export_local_ids(i)
-       p1_num_export_full = p1_num_export_full + row_length(columns_sparsity, column)
+       p1_num_export_full = p1_num_export_full + row_length(zoltan_global_columns_sparsity, column)
     end do
       
     allocate(p1_export_local_ids_full(p1_num_export_full))
@@ -1983,7 +1932,7 @@ module zoltan_integration
     last_full_node = 1
     do i = 1, p1_num_export
        column = p1_export_local_ids(i)
-       column_nodes => row_m_ptr(columns_sparsity, column)
+       column_nodes => row_m_ptr(zoltan_global_columns_sparsity, column)
        
        p1_export_local_ids_full(last_full_node:last_full_node+size(column_nodes)-1) = column_nodes
        p1_export_procs_full(last_full_node:last_full_node+size(column_nodes)-1) = p1_export_procs(i)
@@ -2766,7 +2715,7 @@ module zoltan_integration
     no_meshes = 0
     do i=1, mesh_count(interpolate_states(1))
        mesh => extract_mesh(interpolate_states(1), i)
-       if (migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
+       if (zoltan_global_migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
        no_meshes = no_meshes + 1
        mesh_names(no_meshes) = mesh%name
     end do
@@ -2789,7 +2738,7 @@ module zoltan_integration
     
     ! Put the new positions mesh into states
     
-    if(migrate_extruded_mesh) then
+    if(zoltan_global_migrate_extruded_mesh) then
        if (mesh_periodic(zz_mesh)) then
           new_positions_m1d%mesh%periodic = .true.
        end if
