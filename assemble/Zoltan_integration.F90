@@ -41,6 +41,8 @@ module zoltan_integration
 ! adding to use the ele_owner function
   use halos_derivation
 
+  use zoltan_detectors
+
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
@@ -104,50 +106,6 @@ module zoltan_integration
   private
 
   contains
-
-  subroutine pack_detector(detector, buff)
-    ! Packs the element, position, id_number and type of the
-    ! detector into buff
-    type(detector_type), pointer, intent(in) :: detector
-    real, intent(out) :: buff(ndata_per_det)
-
-    buff(1) = detector%element
-    buff(2:ndims+1) = detector%position
-    buff(ndims+2) = detector%id_number
-    buff(ndims+3) = detector%type
-    
-  end subroutine pack_detector
-
-  subroutine unpack_detector(detector, buff)
-    ! Unpacks the element, position, id_number and type of the
-    ! detector from buff
-    type(detector_type), pointer, intent(inout) :: detector
-    real, intent(in) :: buff(ndata_per_det)
-
-    detector%element = buff(1)
-    detector%position = reshape(buff(2:ndims+1),(/ndims/))
-    detector%id_number = buff(ndims+2)
-    detector%type = buff(ndims+3)
-    
-  end subroutine unpack_detector
-
-  subroutine update_detector(detector, positions)
-    ! Updates the local, inital_owner and local_coords for a
-    ! detector based off other information from the detector
-    ! and the vector field of positions
-    type(detector_type), pointer, intent(inout) :: detector
-    type(vector_field), intent(in) :: positions
-
-    detector%local = .true.
-    if (detector%type == STATIC_DETECTOR) then
-       detector%initial_owner=-1
-    else
-       detector%initial_owner=getprocno()
-    end if
-    detector%local_coords=local_coords(positions,detector%element,detector%position)
-    detector%name=name_of_detector_in_read_order(detector%id_number)    
-    
-  end subroutine update_detector
 
   function zoltan_cb_owned_node_count(data, ierr) result(count)
     integer(zoltan_int) :: count
@@ -1244,7 +1202,8 @@ module zoltan_integration
           ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
 
           ! pack the detector
-          call pack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1))
+          call pack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1), &
+               ndims, ndata_per_det)
 
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
@@ -1392,7 +1351,8 @@ module zoltan_integration
                    ewrite(3,*) "Successfully allocated a new detector."
 
                    ! unpack detector information 
-                   call unpack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1))
+                   call unpack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1), &
+                        ndims, ndata_per_det)
                    detector%element = new_local_element_number
 
                    ! update other detector data
@@ -2995,7 +2955,8 @@ module zoltan_integration
     detector => detector_send_list%firstnode
     do i=1,send_count
        ! Pack the detector information
-       call pack_detector(detector, send_buff(i, 1:ndata_per_det))
+       call pack_detector(detector, send_buff(i, 1:ndata_per_det), &
+            ndims, ndata_per_det)
 
        delete_detector => detector
        detector => detector%next
@@ -3038,7 +2999,8 @@ module zoltan_integration
                       shape=>ele_shape(new_positions,1)                     
                       call allocate(detector, ndims, local_coord_count(shape))
 
-                      call unpack_detector(detector, recv_buff(j, 1:ndata_per_det))
+                      call unpack_detector(detector, recv_buff(j, 1:ndata_per_det), &
+                           ndims, ndata_per_det)
                       detector%element = new_local_element_number
 
                       call update_detector(detector, new_positions)
