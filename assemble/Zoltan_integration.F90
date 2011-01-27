@@ -52,7 +52,7 @@ module zoltan_integration
   type(vector_field), save :: zz_positions
   type(mesh_type), save :: tmp_mesh
   integer :: tmp_mesh_nhalos
-  type(csr_sparsity), pointer :: zz_sparsity_two, zz_nelist
+  type(csr_sparsity), pointer :: zz_sparsity_two
   type(halo_type), pointer :: zz_ele_halo 
   type(detector_linked_list), target, save :: unpacked_detectors_list, to_pack_detectors_list
   type(vector_field), save :: new_positions
@@ -87,17 +87,10 @@ module zoltan_integration
   integer, dimension(:), allocatable, save :: universal_columns
   type(integer_hash_table), save :: universal_to_new_local_numbering_m1d
 
-  type(scalar_field), save :: element_quality, node_quality
+  type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
-  type(scalar_field), pointer :: max_edge_weight_on_node
-  logical :: output_edge_weights = .false.
-!   elements with quality greater than this value are ok
-!   those with element quality below it need to be adapted
-  real, save :: quality_tolerance
-  integer :: zoltan_iteration
-  integer :: zoltan_max_adapt_iteration
 
-! Global variables for storing detector data
+  ! Global variables for storing detector data
   integer :: ndims, ndata_per_det
   integer, dimension(:), allocatable :: ndets_in_ele
  
@@ -106,184 +99,6 @@ module zoltan_integration
 
   contains
 
-  subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
-                                  &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)
-    integer(zoltan_int), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids
-    integer(zoltan_int), intent(in), dimension(*) :: num_edges
-    integer(zoltan_int), intent(out), dimension(*) :: nbor_global_id
-    integer(zoltan_int), intent(out), dimension(*) :: nbor_procs
-    integer(zoltan_int), intent(in) :: wgt_dim
-    real(zoltan_float), intent(out), dimension(*) :: ewgts
-    integer(zoltan_int), intent(out) :: ierr 
-    integer :: count, err
-    integer :: node, i, j
-    integer :: head
-    integer, dimension(:), pointer :: neighbours
-    character (len = OPTION_PATH_LEN) :: filename    
-
-!   variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality, my_min_quality
-
-!   variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
-    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
-
-    integer, dimension(:), pointer :: my_nelist, nbor_nelist
-    
-    integer :: total_num_edges, my_num_edges
-
-    real :: value
-
-    ewrite(1,*) "In zoltan_cb_get_edge_list"
-    
-    assert(num_gid_entries == 1)
-    assert(num_lid_entries == 1)
-    assert(wgt_dim == 1)
-
-    count = zoltan_global_zz_halo%nowned_nodes
-    assert(count == num_obj)
-
-    my_num_edges = sum(num_edges(1:num_obj))
-
-    if (zoltan_iteration==zoltan_max_adapt_iteration) then
-      
-        ! last iteration - hopefully the mesh is of sufficient quality by now
-        ! we only want to optimize the edge cut to minimize halo communication
-        ewgts(1:my_num_edges) = 1.0       
-        head = 1
-        do node=1,count
-            ! find nodes neighbours
-            neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
-            ! check the number of neighbours matches the number of edges
-            assert(size(neighbours) == num_edges(node))
-            ! find global ids for each neighbour
-            nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
-            ! find owning proc for each neighbour
-            nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
-            head = head + size(neighbours)
-       end do 
-       ierr = ZOLTAN_OK
-       return
-    else
-        call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
-        MPI_COMM_WORLD,err)
-    end if
-
-
-    head = 1
-    
-    ! Aim is to assign high edge weights to poor quality elements
-    ! so that when we load balance poor quality elements are placed
-    ! in the centre of partitions and can be adapted
-
-    ! loop over the nodes you own
-    do node=1,count
-
-       ! find nodes neighbours
-       neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
-
-       ! check the number of neighbours matches the number of edges
-       assert(size(neighbours) == num_edges(node))
-
-       ! find global ids for each neighbour
-       nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
-
-       ! find owning proc for each neighbour
-       nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
-
-       ! get elements associated with current node
-       my_nelist => row_m_ptr(zz_nelist, local_ids(node))
-
-       my_min_quality = 1.0
-
-       ! find quality of worst element node is associated with
-       do i=1,size(my_nelist)
-          quality = minval(ele_val(element_quality, my_nelist(i)))
-
-          if (quality .LT. my_min_quality) then
-             my_min_quality = quality
-          end if
-       end do
-
-       ! loop over all neighbouring nodes
-       do j=1,size(neighbours)
-
-          min_quality = my_min_quality
-
-          ! get elements associated with neighbour node
-          nbor_nelist => row_m_ptr(zz_nelist, neighbours(j))
-
-          ! loop over all the elements of the neighbour node
-          do i=1, size(nbor_nelist)
-             ! determine the quality of the element
-             quality = minval(ele_val(element_quality, nbor_nelist(i)))
-
-             ! store the element quality if it's less (worse) than any previous elements
-             if (quality .LT. min_quality) then
-                min_quality = quality
-             end if
-          end do
-
-          ! check if the quality is within the tolerance         
-         if (min_quality .GT. quality_tolerance) then
-            ! if it is
-            ewgts(head + j - 1) = 1.0
-         else
-            ! if it's not
-            ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
-        end if
-      end do
-
-      value = maxval(ewgts(head:head+size(neighbours)-1))
-      head = head + size(neighbours)
-   end do
-
-   assert(head == sum(num_edges(1:num_obj))+1)
-
-   ! calculate the local maximum edge weight
-   my_max_weight = maxval(ewgts(1:head-1))
-
-   ! calculate the local minimum edge weight
-   min_weight = minval(ewgts(1:head-1))
-   call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, MPI_COMM_WORLD,err)
-   ! calculate the local 90th percentile edge weight   
-   ninety_weight = max_weight * 0.90
-
-   ! don't want to adjust the weights if all the elements are of a similar quality
-    if (min_weight < ninety_weight) then
-       ! make the worst 10% of elements uncuttable
-        do i=1,head-1
-            if (ewgts(i) .GT. ninety_weight) then
-                ewgts(i) = total_num_edges + 1
-             end if
-        end do
-    end if
-    
-    if (output_edge_weights) then
-        head = 1
-            do node=1,count
-                neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
-                value = maxval(ewgts(head:head+size(neighbours)-1))
-                call set(max_edge_weight_on_node,local_ids(node),value)
-                head = head + size(neighbours)
-            end do
-    end if   
-    
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
-      write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
-      open(666, file = filename)
-      do i=1,head-1
-         write(666,*) ewgts(i)
-      end do
-      close(666)
-    end if
-
-   
-   ierr = ZOLTAN_OK
- end subroutine zoltan_cb_get_edge_list
-  
 
   ! Here is how we pack nodal positions for phase one migration:
   ! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -305,10 +120,10 @@ module zoltan_integration
       sizes(i) = zz_positions%dim * real_size + &
                 1 * integer_size + row_length(zoltan_global_zz_sparsity_one, node) * integer_size + &
                 1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
-                1 * integer_size + row_length(zz_nelist, node) * integer_size + &
+                1 * integer_size + row_length(zoltan_global_zz_nelist, node) * integer_size + &
                 1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
       if(preserve_mesh_regions) then
-        sizes(i) = sizes(i) + row_length(zz_nelist, node) * integer_size
+        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size
       end if
       if(preserve_columns) then
         sizes(i) = sizes(i) + integer_size
@@ -373,16 +188,16 @@ module zoltan_integration
       buf(head:head+row_length(zz_sparsity_two, node)-1) = halo_node_owners(zoltan_global_zz_halo, row_m_ptr(zz_sparsity_two, node))
       head = head + row_length(zz_sparsity_two, node)
 
-      buf(head) = row_length(zz_nelist, node)
+      buf(head) = row_length(zoltan_global_zz_nelist, node)
       head = head + 1
 
-      buf(head:head+row_length(zz_nelist,node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node))
-      head = head + row_length(zz_nelist, node)
+      buf(head:head+row_length(zoltan_global_zz_nelist,node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node))
+      head = head + row_length(zoltan_global_zz_nelist, node)
 
       if(preserve_mesh_regions) then
         ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
-        buf(head:head+row_length(zz_nelist,node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node)))
-        head = head + row_length(zz_nelist, node)
+        buf(head:head+row_length(zoltan_global_zz_nelist,node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node)))
+        head = head + row_length(zoltan_global_zz_nelist, node)
       end if
 
       buf(head) = key_count(old_snelist(node))
@@ -543,7 +358,7 @@ module zoltan_integration
       end if
 
       ! Record the nelist information
-      neighbours => row_m_ptr(zz_nelist, old_local_number)
+      neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
       do j=1,size(neighbours)
         call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
         call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
@@ -570,7 +385,7 @@ module zoltan_integration
                                                              universal_columns(old_local_number))
       end if
 
-      neighbours => row_m_ptr(zz_nelist, old_local_number)
+      neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
       do j=1,size(neighbours)
         call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
         call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
@@ -657,7 +472,7 @@ module zoltan_integration
         end if
 
         ! Record the nelist information
-        neighbours => row_m_ptr(zz_nelist, old_local_number)
+        neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
         do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
@@ -716,10 +531,10 @@ module zoltan_integration
     do i=1,num_ids
       node = fetch(universal_to_old_local_numbering, global_ids(i))
       sizes(i) = zz_positions%dim * real_size + &
-                2 * integer_size + row_length(zz_nelist, node) * integer_size + &
+                2 * integer_size + row_length(zoltan_global_zz_nelist, node) * integer_size + &
                 1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
       if(preserve_mesh_regions) then
-        sizes(i) = sizes(i) + row_length(zz_nelist, node) * integer_size 
+        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size 
       end if
       if(preserve_columns) then
         sizes(i) = sizes(i) + integer_size
@@ -780,16 +595,16 @@ module zoltan_integration
       current_buf(head) = new_owner
       head = head + 1
 
-      current_buf(head) = row_length(zz_nelist, node)
+      current_buf(head) = row_length(zoltan_global_zz_nelist, node)
       head = head + 1
 
-      current_buf(head:head+row_length(zz_nelist, node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node))
-      head = head + row_length(zz_nelist, node)
+      current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node))
+      head = head + row_length(zoltan_global_zz_nelist, node)
 
       if(preserve_mesh_regions) then
         ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
-        current_buf(head:head+row_length(zz_nelist, node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node)))
-        head = head + row_length(zz_nelist, node)
+        current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node)))
+        head = head + row_length(zoltan_global_zz_nelist, node)
       end if
 
       current_buf(head) = key_count(old_snelist(node))
@@ -1502,23 +1317,23 @@ module zoltan_integration
     
     !call find_mesh_to_adapt(states(1), zz_mesh)
     
-    zoltan_iteration = iteration
-    zoltan_max_adapt_iteration = max_adapt_iteration
+    zoltan_global_zoltan_iteration = iteration
+    zoltan_global_zoltan_max_adapt_iteration = max_adapt_iteration
     
-    max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
+    zoltan_global_max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
     if (stat == 0) then
-       output_edge_weights = .true.
+       zoltan_global_output_edge_weights = .true.
     end if
     
     ! set quality_tolerance
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff")) then
-       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", quality_tolerance)
+       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", zoltan_global_quality_tolerance)
        ! check that the value is reasonable
-       if (quality_tolerance < 0. .or. quality_tolerance > 1.) then
+       if (zoltan_global_quality_tolerance < 0. .or. zoltan_global_quality_tolerance > 1.) then
           FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.6")
        end if
     else
-       quality_tolerance = 0.6
+       zoltan_global_quality_tolerance = 0.6
     end if
 
     if(present(mesh_name)) then
@@ -1534,7 +1349,7 @@ module zoltan_integration
     end if
     call incref(zz_positions)
     
-    zz_nelist => extract_nelist(zz_mesh)
+    zoltan_global_zz_nelist => extract_nelist(zz_mesh)
     
     zz => Zoltan_Create(halo_communicator(zz_mesh))
     
@@ -1627,21 +1442,21 @@ module zoltan_integration
     
     ! And the element quality measure
     if (present(metric)) then
-       call element_quality_p0(zz_positions, metric, element_quality)
+       call element_quality_p0(zz_positions, metric, zoltan_global_element_quality)
     else
        pwc_mesh = piecewise_constant_mesh(zz_mesh, "PWCMesh")
-       call allocate(element_quality, pwc_mesh, "ElementQuality", field_type=FIELD_TYPE_CONSTANT)
-       call set(element_quality, 1.0)
+       call allocate(zoltan_global_element_quality, pwc_mesh, "ElementQuality", field_type=FIELD_TYPE_CONSTANT)
+       call set(zoltan_global_element_quality, 1.0)
        call deallocate(pwc_mesh)
     end if
     
     call allocate(node_quality, zz_mesh, "NodeQuality")
     call zero(node_quality)
     do i=1,node_count(node_quality)
-       eles => row_m_ptr(zz_nelist, i)  
+       eles => row_m_ptr(zoltan_global_zz_nelist, i)  
        qual = 1.0
        do j=1,size(eles)
-          qual = min(qual, node_val(element_quality, eles(j)))
+          qual = min(qual, node_val(zoltan_global_element_quality, eles(j)))
        end do
        call set(node_quality, i, qual)
     end do
@@ -1815,7 +1630,7 @@ module zoltan_integration
   
   subroutine cleanup_quality_module_variables
     ! This routine deallocates the module quality fields.
-    call deallocate(element_quality)
+    call deallocate(zoltan_global_element_quality)
     call deallocate(node_quality)
     if(zoltan_global_migrate_extruded_mesh) then
        call deallocate(zoltan_global_columns_sparsity)
@@ -2119,7 +1934,7 @@ module zoltan_integration
                universal_columns(old_local_number))
        end if
        
-       neighbours => row_m_ptr(zz_nelist, old_local_number)
+       neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
        do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
@@ -2146,7 +1961,7 @@ module zoltan_integration
                universal_columns(old_local_number))
        end if
 
-       neighbours => row_m_ptr(zz_nelist, old_local_number)
+       neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
        do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))

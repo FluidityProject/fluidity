@@ -6,6 +6,9 @@ module zoltan_global_variables
   ! Needed for zoltan_cb_get_owned_nodes
   use sparse_tools, only: csr_sparsity
 
+  ! Needed for zoltan_cb_get_edge_list
+  use fields, only: scalar_field
+
   implicit none
 
   public
@@ -18,6 +21,16 @@ module zoltan_global_variables
   logical, save :: zoltan_global_migrate_extruded_mesh
 
   ! Needed for zoltan_cb_get_num_edges
-  type(csr_sparsity), pointer :: zoltan_global_zz_sparsity_one
+  type(csr_sparsity), save, pointer :: zoltan_global_zz_sparsity_one
+
+  ! Needed for zoltan_cb_get_edge_list
+  integer, save :: zoltan_global_zoltan_iteration, zoltan_global_zoltan_max_adapt_iteration
+  ! elements with quality greater than this value are ok
+  ! those with element quality below it need to be adapted
+  real, save :: zoltan_global_quality_tolerance
+  type(scalar_field), save :: zoltan_global_element_quality
+  type(scalar_field), save, pointer :: zoltan_global_max_edge_weight_on_node
+  logical, save :: zoltan_global_output_edge_weights = .false.
+  type(csr_sparsity), save, pointer :: zoltan_global_zz_nelist
 
 end module zoltan_global_variables
