@@ -7,7 +7,11 @@ module zoltan_global_variables
   use sparse_tools, only: csr_sparsity
 
   ! Needed for zoltan_cb_get_edge_list
-  use fields, only: scalar_field
+  use fields, only: scalar_field, vector_field
+
+  ! Needed for zoltan_cb_pack_node_sizes
+  use zoltan, only: zoltan_int
+  use data_structures, only: integer_set
 
   implicit none
 
@@ -32,5 +36,14 @@ module zoltan_global_variables
   type(scalar_field), save, pointer :: zoltan_global_max_edge_weight_on_node
   logical, save :: zoltan_global_output_edge_weights = .false.
   type(csr_sparsity), save, pointer :: zoltan_global_zz_nelist
+
+  ! Needed for zoltan_cb_pack_node_sizes
+  ! - added vector_field to use fields
+  type(vector_field), save :: zoltan_global_zz_positions
+  integer, parameter :: integer_size = bit_size(0_zoltan_int)/8
+  logical, save :: zoltan_global_preserve_columns=.false.
+  logical, save :: zoltan_global_preserve_mesh_regions
+  type(csr_sparsity), save, pointer :: zoltan_global_zz_sparsity_two
+  type(integer_set), save, dimension(:), allocatable :: zoltan_global_old_snelist
 
 end module zoltan_global_variables

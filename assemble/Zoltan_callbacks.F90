@@ -14,12 +14,16 @@ module zoltan_callbacks
   use sparse_tools, only: row_length
 
   ! Needed for zoltan_cb_get_num_edges
-  use global_parameters, only: OPTION_PATH_LEN
+  use global_parameters, only: real_size, OPTION_PATH_LEN
   use parallel_tools, only: getrank
 
   ! Needed for zoltan_cb_get_edge_list
   ! - added halo_node_owners to use halos
   use mpi_interfaces
+
+  ! Needed for zoltan_cb_pack_node_sizes
+  ! - added real_size to use global_parameters
+  use data_structures, only: key_count
 
   implicit none
   
@@ -305,5 +309,49 @@ contains
     
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
- 
+
+
+  ! Here is how we pack nodal positions for phase one migration:
+  ! --------------------------------------------------------------------------------------------------------------
+  ! | position | sz of lv-1 nnlist | lv-1 nnlist | sz of lv-2 nnlist | lv-2 nnlist | owners of level-2 nnlist | 
+  ! | sz of nelist | nelist | sz of snelist | snelist | snelist ids | containing element of snelist |
+  ! --------------------------------------------------------------------------------------------------------------
+  subroutine zoltan_cb_pack_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
+    integer(zoltan_int), intent(out), dimension(*) :: sizes 
+    integer(zoltan_int), intent(out) :: ierr  
+
+    integer :: i, node
+    character (len = OPTION_PATH_LEN) :: filename
+
+    ewrite(1,*) "In zoltan_cb_pack_node_sizes"
+    do i=1,num_ids
+      node = local_ids(i)
+      sizes(i) = zoltan_global_zz_positions%dim * real_size + &
+                1 * integer_size + row_length(zoltan_global_zz_sparsity_one, node) * integer_size + &
+                1 * integer_size + row_length(zoltan_global_zz_sparsity_two, node) * integer_size * 2 + &
+                1 * integer_size + row_length(zoltan_global_zz_nelist, node) * integer_size + &
+                1 * integer_size + key_count(zoltan_global_old_snelist(node)) * integer_size * 3
+      if(zoltan_global_preserve_mesh_regions) then
+        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size
+      end if
+      if(zoltan_global_preserve_columns) then
+        sizes(i) = sizes(i) + integer_size
+      end if
+    end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
+       write(filename, '(A,I0,A)') 'node_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
+
+    ierr = ZOLTAN_OK
+  end subroutine zoltan_cb_pack_node_sizes
+
 end module zoltan_callbacks
