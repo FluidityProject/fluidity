@@ -1893,6 +1893,8 @@ start =
                     }
                  )
               }?,
+              ## Pressure gradient for periodic domains.
+              element pressure_gradient{ real_dim_vector }?,
               (
                  element one_way_coupling{
                       ## The solid mesh.

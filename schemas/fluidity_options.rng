@@ -2620,6 +2620,12 @@ Assumes a spherical inner zone.</a:documentation>
               </choice>
             </element>
           </optional>
+          <optional>
+            <element name="pressure_gradient">
+              <a:documentation>Pressure gradient for periodic domains.</a:documentation>
+              <ref name="real_dim_vector"/>
+            </element>
+          </optional>
           <choice>
             <element name="one_way_coupling">
               <element name="mesh">

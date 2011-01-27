@@ -123,6 +123,7 @@ module implicit_solids
   real, save :: beta, radius, source_intensity
   real, save :: solid_peclet_number, fluid_peclet_number
 
+  real, dimension(:), allocatable, save :: pressure_gradient
   real, dimension(:, :), allocatable, save :: translation_coordinates
 
   integer, save :: number_of_solids
@@ -130,7 +131,7 @@ module implicit_solids
   logical, save :: have_temperature, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, do_calculate_volume_fraction, do_print_drag
   logical, save :: have_fixed_temperature, have_fixed_temperature_source, have_radius
-  logical, save :: use_bulk_velocity, use_fluid_velocity
+  logical, save :: use_bulk_velocity, use_fluid_velocity, have_pressure_gradient
 
   type(ilist), dimension(:), allocatable, save :: node_to_particle
   type(ilist), save :: surface_nodes, surface_faces
@@ -511,6 +512,12 @@ contains
 
     end if
 
+    if (have_pressure_gradient) then
+       source => extract_vector_field(state, "VelocitySource")
+       call zero(source)
+       call set(source, pressure_gradient)
+    end if
+
     if (have_temperature) then
 
        ewrite(3, *) "  set source for temperature"
@@ -873,6 +880,12 @@ contains
 
     if (have_fixed_temperature) then
        call get_option("/implicit_solids/source/temperature/temperature", source_intensity)
+    end if
+
+    have_pressure_gradient = have_option("/implicit_solids/pressure_gradient")
+    if (have_pressure_gradient) then
+       allocate(pressure_gradient(positions%dim))
+       call get_option("/implicit_solids/pressure_gradient/", pressure_gradient)
     end if
 
     ! figure out if we want to print out diagnostics and initialise files
