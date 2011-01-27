@@ -23,7 +23,10 @@ module zoltan_callbacks
 
   ! Needed for zoltan_cb_pack_node_sizes
   ! - added real_size to use global_parameters
-  use data_structures, only: key_count
+  use data_structures
+
+  ! Needed for zoltan_cb_pack_nodes
+  ! - use the whole of data structures now
 
   implicit none
   
@@ -353,5 +356,78 @@ contains
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_node_sizes
+
+
+  subroutine zoltan_cb_pack_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: dest
+    integer(zoltan_int), intent(in), dimension(*) :: sizes 
+    integer(zoltan_int), intent(in), dimension(*) :: idx 
+    integer(zoltan_int), intent(out), dimension(*) :: buf 
+    integer(zoltan_int), intent(out) :: ierr
+
+    integer :: i, j, node, ratio, head
+
+    ewrite(1,*) "In zoltan_cb_pack_nodes"
+    ratio = real_size / integer_size
+    assert(int(float(real_size) / float(integer_size)) == ratio) ! that ratio really is an int
+
+    do i=1,num_ids
+      head = idx(i)
+      node = local_ids(i)
+      assert(halo_universal_number(zoltan_global_zz_halo, node) == global_ids(i))
+      do j=1,zoltan_global_zz_positions%dim
+        buf(head:head+ratio-1) = transfer(node_val(zoltan_global_zz_positions, j, node), buf(head:head+ratio-1))
+        head = head + ratio
+      end do
+      
+      if(zoltan_global_preserve_columns) then
+        buf(head) = zoltan_global_universal_columns(node)
+        head = head + 1
+      end if
+      
+      buf(head) = row_length(zoltan_global_zz_sparsity_one, node)
+      head = head + 1
+
+      buf(head:head+row_length(zoltan_global_zz_sparsity_one, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_one, node))
+      head = head + row_length(zoltan_global_zz_sparsity_one, node)
+
+      buf(head) = row_length(zoltan_global_zz_sparsity_two, node)
+      head = head + 1
+
+      buf(head:head+row_length(zoltan_global_zz_sparsity_two, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_two, node))
+      head = head + row_length(zoltan_global_zz_sparsity_two, node)
+
+      buf(head:head+row_length(zoltan_global_zz_sparsity_two, node)-1) = halo_node_owners(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_two, node))
+      head = head + row_length(zoltan_global_zz_sparsity_two, node)
+
+      buf(head) = row_length(zoltan_global_zz_nelist, node)
+      head = head + 1
+
+      buf(head:head+row_length(zoltan_global_zz_nelist,node)-1) = halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node))
+      head = head + row_length(zoltan_global_zz_nelist, node)
+
+      if(zoltan_global_preserve_mesh_regions) then
+        ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
+        buf(head:head+row_length(zoltan_global_zz_nelist,node)-1) = fetch(zoltan_global_universal_element_number_to_region_id, halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node)))
+        head = head + row_length(zoltan_global_zz_nelist, node)
+      end if
+
+      buf(head) = key_count(zoltan_global_old_snelist(node))
+      head = head + 1
+      buf(head:head + key_count(zoltan_global_old_snelist(node)) - 1) = set2vector(zoltan_global_old_snelist(node))
+      head = head + key_count(zoltan_global_old_snelist(node))
+      buf(head:head + key_count(zoltan_global_old_snelist(node)) - 1) = fetch(zoltan_global_universal_surface_number_to_surface_id, set2vector(zoltan_global_old_snelist(node)))
+      head = head + key_count(zoltan_global_old_snelist(node))
+      buf(head:head + key_count(zoltan_global_old_snelist(node)) - 1) = fetch(zoltan_global_universal_surface_number_to_element_owner, set2vector(zoltan_global_old_snelist(node)))
+      head = head + key_count(zoltan_global_old_snelist(node))
+
+      !assert(head == idx(i) + (sizes(i)/integer_size) - 1)
+    end do
+    ierr = ZOLTAN_OK
+  end subroutine zoltan_cb_pack_nodes
 
 end module zoltan_callbacks

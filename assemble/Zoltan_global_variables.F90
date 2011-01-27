@@ -11,7 +11,7 @@ module zoltan_global_variables
 
   ! Needed for zoltan_cb_pack_node_sizes
   use zoltan, only: zoltan_int
-  use data_structures, only: integer_set
+  use data_structures, only: integer_set, integer_hash_table
 
   implicit none
 
@@ -45,5 +45,12 @@ module zoltan_global_variables
   logical, save :: zoltan_global_preserve_mesh_regions
   type(csr_sparsity), save, pointer :: zoltan_global_zz_sparsity_two
   type(integer_set), save, dimension(:), allocatable :: zoltan_global_old_snelist
+
+  ! Needed for zoltan_cb_pack_nodes
+  type(integer_hash_table), save :: zoltan_global_universal_element_number_to_region_id
+  type(integer_hash_table), save :: zoltan_global_universal_surface_number_to_element_owner
+  type(integer_hash_table), save :: zoltan_global_universal_surface_number_to_surface_id
+  integer, dimension(:), allocatable, save :: zoltan_global_universal_columns
+  type(halo_type), save, pointer :: zoltan_global_zz_ele_halo 
 
 end module zoltan_global_variables
