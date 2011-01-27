@@ -222,7 +222,6 @@
          type(vector_field), pointer :: snapmean_velocity
          type(scalar_field), pointer :: snapmean_pressure
          integer :: d
-         type(scalar_field) :: u_cpt
 
          !! Variables for multi-phase flow model
          integer :: prognostic_count
@@ -826,7 +825,7 @@
 
                   if(prognostic_p) then
                      call assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                     get_ct_m, get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
+                                              get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
                   end if
 
                   ! Deallocate the old velocity field
@@ -860,9 +859,9 @@
                   cmc_m => cmc_global ! Use the sum over all individual phase CMC matrices
                end if
 
-               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, get_cmc_m, &
-                                 ct_m, ctp_m, ct_rhs, projec_rhs, inner_m, full_projection_preconditioner, &
-                                 schur_auxiliary_matrix, stiff_nodes_list)
+               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, &
+                                    ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
+                                    schur_auxiliary_matrix, stiff_nodes_list)
 
                call deallocate(projec_rhs)
 
@@ -1370,7 +1369,7 @@
 
 
       subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                     get_ct_m, get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
+                                     get_cmc_m, ct_rhs, projec_rhs, p_theta, theta_pg)
          !!< Assembles the RHS for the projection solve step and, if required, the 'global' CMC matrix for multi-phase simulations.
          !!< Note that in the case of multi-phase simulations, projec_rhs contains the sum of ct_m*u over each prognostic velocity field,
          !!< and cmc_global contains the sum of the individual phase CMC matrices.
@@ -1387,7 +1386,7 @@
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m, cmc_global
          
-         logical, intent(in) :: get_ct_m, get_cmc_m
+         logical, intent(in) :: get_cmc_m
 
          type(scalar_field), dimension(:), intent(inout) :: ct_rhs
          type(scalar_field), intent(inout) :: projec_rhs
@@ -1493,14 +1492,14 @@
       end subroutine assemble_projection
 
 
-      subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, get_cmc_m, &
-                                 ct_m, ctp_m, ct_rhs, projec_rhs, inner_m, full_projection_preconditioner, &
+      subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, &
+                                 ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                  schur_auxiliary_matrix, stiff_nodes_list)
          !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
 
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
-         type(vector_field), pointer :: x, u, old_u
+         type(vector_field), pointer :: x, u
          type(scalar_field), pointer :: p, old_p, p_theta
          type(scalar_field), intent(inout) :: delta_p
 
@@ -1510,7 +1509,6 @@
 
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
-         logical, intent(inout) :: get_cmc_m
 
          ! The pressure gradient matrix (extracted from state)
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ct_m
@@ -1518,7 +1516,6 @@
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
 
          ! Projection RHS
-         type(scalar_field), dimension(:), intent(inout) :: ct_rhs
          type(scalar_field), intent(inout) :: projec_rhs
 
          ! Pointer to matrix for full projection solve:
@@ -1529,9 +1526,6 @@
          type(csr_matrix), intent(in) :: schur_auxiliary_matrix
 
          type(ilist), intent(inout) :: stiff_nodes_list
-
-         !! Local variables
-         type(vector_field) :: delta_u
 
          ewrite(1,*) 'Entering correct_pressure'
 
@@ -1626,7 +1620,7 @@
          ! Matrix for split explicit advection
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
 
-         ! Local variables
+         ! Local variables for reduced model
          integer :: d
          type(scalar_field) :: u_cpt
 
