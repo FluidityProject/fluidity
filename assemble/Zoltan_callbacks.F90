@@ -1,6 +1,9 @@
 #include "fdebug.h"
+#include "confdefs.h"
 
 module zoltan_callbacks
+
+#ifdef HAVE_ZOLTAN
 
   use zoltan
   use zoltan_global_variables
@@ -771,5 +774,7 @@ contains
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_halo_node_sizes
- 
+
+#endif
+  
 end module zoltan_callbacks

@@ -1,4 +1,8 @@
+#include "confdefs.h"
+
 module zoltan_global_variables
+
+#ifdef HAVE_ZOLTAN
 
   ! Needed for zoltan_cb_owned_node_count
   use halos, only: halo_type
@@ -74,5 +78,7 @@ module zoltan_global_variables
   integer(zoltan_int), save, dimension(:), pointer :: zoltan_global_my_import_global_ids => null()
   integer(zoltan_int), save :: zoltan_global_my_num_import
   type(integer_set), save, dimension(:), allocatable :: zoltan_global_receives
+
+#endif
 
 end module zoltan_global_variables

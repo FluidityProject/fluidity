@@ -1,4 +1,8 @@
+#include "confdefs.h"
+
 module zoltan_detectors
+
+#ifdef HAVE_ZOLTAN
 
   use detector_data_types
   use detector_tools
@@ -59,5 +63,7 @@ module zoltan_detectors
     detector%name=name_of_detector_in_read_order(detector%id_number)    
     
   end subroutine update_detector
+
+#endif
   
 end module zoltan_detectors
