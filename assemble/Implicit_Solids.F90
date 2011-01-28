@@ -513,9 +513,15 @@ contains
     end if
 
     if (have_pressure_gradient) then
+
        source => extract_vector_field(state, "VelocitySource")
        call zero(source)
        call set(source, pressure_gradient)
+       ! remove the source from the solids
+       do i = 1, source%dim
+          source%val(i,:) = source%val(i,:) * (1. - solid_local%val)
+       end do
+
     end if
 
     if (have_temperature) then
