@@ -204,9 +204,11 @@
 
     subroutine get_parameters()
       implicit none
+      integer :: dim
       !Get some parameters
       !Coriolis
-      allocate(beta(2))
+      call get_option("/geometry/dimension",dim)
+      allocate(beta(dim))
       if(have_option("/physical_parameters/coriolis")) then
          if(have_option("/physical_parameters/coriolis/f_plane")) then
             call get_option("/physical_parameters/coriolis/f_plane/f",f0)

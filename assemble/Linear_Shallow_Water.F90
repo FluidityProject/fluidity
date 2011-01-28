@@ -396,7 +396,9 @@ contains
       call addto(u_rhs,vec,scale=-dt*g)
 
       ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(1,:)))
-      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2,:)))
+      if (dim==2) then
+        ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2,:)))
+      end if
 
       call deallocate(rhs2)
       call deallocate(vec)
