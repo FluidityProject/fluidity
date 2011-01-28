@@ -6,7 +6,7 @@ module zoltan_callbacks
   use zoltan_global_variables
 
   ! Needed for zoltan_cb_owned_node_count
-  use halos, only: halo_nowned_nodes, halo_node_owners, get_owned_nodes, halo_universal_number
+  use halos, only: halo_nowned_nodes, halo_node_owner, halo_node_owners, get_owned_nodes, halo_universal_number
   use metric_tools
 
   ! Needed for zoltan_cb_get_owned_nodes
@@ -15,7 +15,7 @@ module zoltan_callbacks
 
   ! Needed for zoltan_cb_get_num_edges
   use global_parameters, only: real_size, OPTION_PATH_LEN
-  use parallel_tools, only: getrank
+  use parallel_tools, only: getrank, getnprocs
 
   ! Needed for zoltan_cb_get_edge_list
   ! - added halo_node_owners to use halos
@@ -430,4 +430,303 @@ contains
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_nodes
 
+
+  subroutine zoltan_cb_unpack_nodes(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
+    integer(zoltan_int), dimension(*), intent(inout) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries 
+    integer(zoltan_int), intent(in) :: num_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids
+    integer(zoltan_int), intent(in), dimension(*) :: sizes 
+    integer(zoltan_int), intent(in), dimension(*) :: idx 
+    integer(zoltan_int), intent(in), dimension(*), target :: buf 
+    integer(zoltan_int), intent(out) :: ierr  
+
+    integer :: i, ratio, head, sz, j
+    type(integer_set) :: new_nodes_we_have_recorded, new_nodes_we_still_need, halo_nodes_we_currently_own
+    type(mesh_type) :: new_mesh
+    integer, dimension(:), pointer :: neighbours
+    logical :: changed
+    integer :: old_local_number, new_local_number, universal_number
+    real, dimension(zoltan_global_zz_positions%dim) :: new_coord
+    type(integer_hash_table) :: universal_number_to_old_owner
+    integer :: old_owner, new_owner
+    integer, dimension(:), pointer :: current_buf
+    integer :: rank
+    
+    ewrite(1,*) "In zoltan_cb_unpack_nodes"
+    ! assert new linear mesh and positions not allocated
+    assert(.not. associated(new_mesh%refcount))
+    assert(.not. associated(zoltan_global_new_positions%refcount))
+    rank = getrank()
+
+    ! Figure out the nodes we are going to know about
+    call allocate(zoltan_global_new_nodes)
+
+    ! All the nodes we currently have and still own, in universal numbering
+    do i=1,key_count(zoltan_global_nodes_we_are_keeping)
+       old_local_number = fetch(zoltan_global_nodes_we_are_keeping, i)
+       call insert(zoltan_global_new_nodes, halo_universal_number(zoltan_global_zz_halo, old_local_number), changed=changed)
+    end do
+
+    ! All the nodes we are receiving from other people and are going to own
+    do i=1,num_ids
+       call insert(zoltan_global_new_nodes, global_ids(i))
+    end do
+
+    call allocate(universal_number_to_old_owner)
+    call allocate(halo_nodes_we_currently_own)
+
+    ! All the halos of (the nodes we currently have and still own), in universal numbering
+    do i=1,key_count(zoltan_global_nodes_we_are_keeping)
+       neighbours => row_m_ptr(zoltan_global_zz_sparsity_two, fetch(zoltan_global_nodes_we_are_keeping, i))
+       do j=1,size(neighbours)
+          universal_number = halo_universal_number(zoltan_global_zz_halo, neighbours(j))
+          call insert(zoltan_global_new_nodes, universal_number, changed=changed)
+          if (changed) then ! so it is a halo node
+             old_owner = halo_node_owner(zoltan_global_zz_halo, neighbours(j)) - 1
+             assert(old_owner < getnprocs())
+             if (old_owner == rank) then
+                call insert(halo_nodes_we_currently_own, neighbours(j))
+             end if
+             call insert(universal_number_to_old_owner, universal_number, old_owner)
+          end if
+       end do
+    end do
+
+    ! We need to process these too -- nodes we own now, but will
+    ! not own later, and will become our halo nodes.
+    do i=1,key_count(halo_nodes_we_currently_own)
+       old_local_number = fetch(halo_nodes_we_currently_own, i)
+       universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
+       call insert(zoltan_global_new_nodes, universal_number)
+    end do
+
+    ! All the other nodes that will form the halo of the new nodes we are receiving 
+    ratio = real_size / integer_size
+    do i=1,num_ids
+       current_buf => buf(idx(i):idx(i) + sizes(i)/integer_size)
+       head = ratio * zoltan_global_zz_positions%dim + 1
+       if(zoltan_global_preserve_columns) then
+          head = head + 1
+       end if
+       ! current_buf(head) is the size of the level-1 nnlist, which we want to skip over for now
+       ! we will however sum up the sizes so that we can allocate the csr sparsity later
+       head = head + current_buf(head) + 1
+       ! now current_buf(head) is the size of the level-2 nnlist, which we want to process
+       ! and we will also sum up the sizes so that we can allocate the csr sparsity later
+       sz = current_buf(head)
+       do j=1,sz
+          universal_number = current_buf(head + j)
+          old_owner = current_buf(head + j + sz) - 1
+          assert(old_owner < getnprocs())
+          call insert(zoltan_global_new_nodes, universal_number) ! the sparsity for a node includes itself
+          call insert(universal_number_to_old_owner, universal_number, old_owner)
+       end do
+    end do
+
+    ! Now zoltan_global_new_nodes implicitly defines a mapping
+    ! between 1 .. key_count(zoltan_global_new_nodes) [these are the new local node numbers]
+    ! and the universal node numbers of the nodes.
+    ! We're going to invert that to create the hash table of universal node numbers -> local node numbers
+    ! to facilitate the transfer of field information later.
+    call invert_set(zoltan_global_new_nodes, zoltan_global_universal_to_new_local_numbering)
+
+    ! allocate the new objects
+    ! We know the number of nodes, but not the number of elements .. hmm.
+    ! We will allocate it with 0 elements for now, and work it out when we
+    ! invert the nnlist to compute an enlist later.
+    call allocate(new_mesh, key_count(zoltan_global_new_nodes), 0, zoltan_global_zz_mesh%shape, trim(zoltan_global_zz_mesh%name))
+    new_mesh%option_path = zoltan_global_zz_mesh%option_path
+    if(zoltan_global_preserve_columns) then
+       allocate(new_mesh%columns(key_count(zoltan_global_new_nodes)))
+    end if
+    call allocate(zoltan_global_new_positions, zoltan_global_zz_positions%dim, new_mesh, trim(zoltan_global_zz_positions%name))
+    zoltan_global_new_positions%option_path = zoltan_global_zz_positions%option_path
+    call deallocate(new_mesh)
+    allocate(zoltan_global_new_snelist(key_count(zoltan_global_new_nodes)))
+    call allocate(zoltan_global_new_snelist)
+
+    ! aaaand unpack, recording which universal ids we have received
+    ! so that we can figure out which ones we haven't received yet
+    ! so that we can ask their old owner to send on the new details
+    ! a) build a set of the nodes we have recorded
+    ! b) from that, build a set of the nodes we haven't yet recorded
+    ! c) figure out who owns those nodes, so we can build the import list for zoltan
+
+    allocate(zoltan_global_new_nelist(key_count(zoltan_global_new_nodes)))
+    do i=1,key_count(zoltan_global_new_nodes)
+       call allocate(zoltan_global_new_nelist(i))
+    end do
+    call allocate(zoltan_global_new_elements)
+    call allocate(zoltan_global_new_surface_elements)
+
+    call allocate(new_nodes_we_have_recorded)
+    ! Nodes we are keeping
+    do i=1,key_count(zoltan_global_nodes_we_are_keeping)
+       old_local_number = fetch(zoltan_global_nodes_we_are_keeping, i)
+       universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
+       new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, universal_number)
+       call insert(new_nodes_we_have_recorded, universal_number)
+       call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
+
+       if(zoltan_global_preserve_columns) then
+          zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
+               zoltan_global_universal_columns(old_local_number))
+       end if
+
+       ! Record the nelist information
+       neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
+       do j=1,size(neighbours)
+          call insert(zoltan_global_new_nelist(new_local_number), halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+          call insert(zoltan_global_new_elements, halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+          ! don't need to do anything to zoltan_global_universal_element_number_to_region_id because we already have it
+       end do
+
+       ! and record the snelist information
+       do j=1,key_count(zoltan_global_old_snelist(old_local_number))
+          call insert(zoltan_global_new_snelist(new_local_number), fetch(zoltan_global_old_snelist(old_local_number), j))
+          call insert(zoltan_global_new_surface_elements, fetch(zoltan_global_old_snelist(old_local_number), j))
+          ! we don't need to add anything to the zoltan_global_universal_surface_number_to_surface_id because we already have it
+       end do
+    end do
+
+    ! Set the positions and nelist of halo_nodes_we_currently_own
+    do i=1,key_count(halo_nodes_we_currently_own)
+       old_local_number = fetch(halo_nodes_we_currently_own, i)
+       universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
+       new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, universal_number)
+       call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
+
+       if(zoltan_global_preserve_columns) then
+          zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
+               zoltan_global_universal_columns(old_local_number))
+       end if
+
+       neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
+       do j=1,size(neighbours)
+          call insert(zoltan_global_new_nelist(new_local_number), halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+          call insert(zoltan_global_new_elements, halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+          ! don't need to do anything to zoltan_global_universal_element_number_to_region_id because we already have it
+       end do
+
+       call insert(new_nodes_we_have_recorded, universal_number)
+
+       new_owner = fetch(zoltan_global_nodes_we_are_sending, old_local_number)
+       call insert(zoltan_global_receives(new_owner+1), universal_number)
+
+       ! and record the snelist information
+       do j=1,key_count(zoltan_global_old_snelist(old_local_number))
+          call insert(zoltan_global_new_snelist(new_local_number), fetch(zoltan_global_old_snelist(old_local_number), j))
+          call insert(zoltan_global_new_surface_elements, fetch(zoltan_global_old_snelist(old_local_number), j))
+       end do
+    end do
+    call deallocate(halo_nodes_we_currently_own)
+
+    ! Nodes we are gaining
+    do i=1,num_ids
+       call insert(new_nodes_we_have_recorded, global_ids(i))
+       new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, global_ids(i))
+       new_coord = 0
+       head = idx(i)
+       do j=1,zoltan_global_zz_positions%dim
+          new_coord(j) = transfer(buf(head:head+ratio-1), new_coord(j))
+          head = head + ratio
+       end do
+       call set(zoltan_global_new_positions, new_local_number, new_coord)
+
+       if(zoltan_global_preserve_columns) then
+          zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, buf(head)) 
+          head = head + 1
+       end if
+
+       ! Record the nelist information
+       sz = buf(head) ! level-1 nnlist
+       head = head + sz + 1
+       sz = buf(head) ! level-2 nnlist
+       head = head + 2*sz + 1
+       sz = buf(head) ! nelist
+       do j=1,sz
+          call insert(zoltan_global_new_nelist(new_local_number), buf(head + j))
+          call insert(zoltan_global_new_elements, buf(head + j))
+          if(zoltan_global_preserve_mesh_regions) then
+             call insert(zoltan_global_universal_element_number_to_region_id, buf(head + j), buf(head + j + sz))
+          end if
+       end do
+       if(zoltan_global_preserve_mesh_regions) then
+          head = head + 2*sz + 1
+       else
+          head = head + sz + 1
+       end if
+
+       ! And record the snelist information
+       sz = buf(head)
+       do j=1,sz
+          call insert(zoltan_global_new_snelist(new_local_number), buf(head + j))
+          call insert(zoltan_global_universal_surface_number_to_surface_id, buf(head + j), buf(head + j + sz))
+          call insert(zoltan_global_universal_surface_number_to_element_owner, buf(head + j), buf(head + j + 2*sz))
+          call insert(zoltan_global_new_surface_elements, buf(head + j))
+       end do
+       head = head + 3*sz + 1
+    end do
+
+    ! At this point, there might still be nodes that we have not yet recorded but
+    ! we own, so we can fill them in now.
+    call allocate(new_nodes_we_still_need)
+    do i=1,key_count(zoltan_global_new_nodes)
+       universal_number = fetch(zoltan_global_new_nodes, i)
+       if (has_value(new_nodes_we_have_recorded, universal_number)) cycle
+
+       old_owner = fetch(universal_number_to_old_owner, universal_number)
+       if (old_owner == rank) then
+          call insert(new_nodes_we_have_recorded, universal_number)
+          old_local_number = fetch(zoltan_global_universal_to_old_local_numbering, universal_number)
+          new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, universal_number)
+          call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
+
+          if(zoltan_global_preserve_columns) then
+             zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
+                  zoltan_global_universal_columns(old_local_number))
+          end if
+
+          ! Record the nelist information
+          neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
+          do j=1,size(neighbours)
+             call insert(zoltan_global_new_nelist(new_local_number), halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+             call insert(zoltan_global_new_elements, halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
+             ! don't need to do anything to zoltan_global_universal_element_number_to_region_id because we already have it
+          end do
+
+          ! and record the snelist information
+          do j=1,key_count(zoltan_global_old_snelist(old_local_number))
+             call insert(zoltan_global_new_snelist(new_local_number), fetch(zoltan_global_old_snelist(old_local_number), j))
+             call insert(zoltan_global_new_surface_elements, fetch(zoltan_global_old_snelist(old_local_number), j))
+             ! we don't need to add anything to the zoltan_global_universal_surface_number_to_surface_id because we already have it
+          end do
+
+          ! and record the node in the zoltan_global_receives
+          new_owner = fetch(zoltan_global_nodes_we_are_sending, old_local_number)
+          call insert(zoltan_global_receives(new_owner+1), universal_number)
+       else
+          call insert(new_nodes_we_still_need, universal_number)
+       end if
+    end do
+
+    ! And build the import list ...
+    zoltan_global_my_num_import = key_count(new_nodes_we_still_need)
+    allocate(zoltan_global_my_import_procs(zoltan_global_my_num_import))
+    allocate(zoltan_global_my_import_global_ids(zoltan_global_my_num_import))
+    do i=1,zoltan_global_my_num_import
+       universal_number = fetch(new_nodes_we_still_need, i)
+       zoltan_global_my_import_global_ids(i) = universal_number
+       zoltan_global_my_import_procs(i) = fetch(universal_number_to_old_owner, universal_number)
+       assert(zoltan_global_my_import_procs(i) /= rank)
+    end do
+
+    call deallocate(new_nodes_we_have_recorded)
+    call deallocate(new_nodes_we_still_need)
+    call deallocate(universal_number_to_old_owner)
+
+    ierr = ZOLTAN_OK
+  end subroutine zoltan_cb_unpack_nodes
+  
 end module zoltan_callbacks

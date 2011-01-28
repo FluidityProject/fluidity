@@ -7,7 +7,7 @@ module zoltan_global_variables
   use sparse_tools, only: csr_sparsity
 
   ! Needed for zoltan_cb_get_edge_list
-  use fields, only: scalar_field, vector_field
+  use fields, only: scalar_field, vector_field, mesh_type
 
   ! Needed for zoltan_cb_pack_node_sizes
   use zoltan, only: zoltan_int
@@ -27,6 +27,7 @@ module zoltan_global_variables
   ! Needed for zoltan_cb_get_num_edges
   type(csr_sparsity), save, pointer :: zoltan_global_zz_sparsity_one
 
+
   ! Needed for zoltan_cb_get_edge_list
   integer, save :: zoltan_global_zoltan_iteration, zoltan_global_zoltan_max_adapt_iteration
   ! elements with quality greater than this value are ok
@@ -37,6 +38,7 @@ module zoltan_global_variables
   logical, save :: zoltan_global_output_edge_weights = .false.
   type(csr_sparsity), save, pointer :: zoltan_global_zz_nelist
 
+
   ! Needed for zoltan_cb_pack_node_sizes
   ! - added vector_field to use fields
   type(vector_field), save :: zoltan_global_zz_positions
@@ -46,11 +48,31 @@ module zoltan_global_variables
   type(csr_sparsity), save, pointer :: zoltan_global_zz_sparsity_two
   type(integer_set), save, dimension(:), allocatable :: zoltan_global_old_snelist
 
+
   ! Needed for zoltan_cb_pack_nodes
   type(integer_hash_table), save :: zoltan_global_universal_element_number_to_region_id
   type(integer_hash_table), save :: zoltan_global_universal_surface_number_to_element_owner
   type(integer_hash_table), save :: zoltan_global_universal_surface_number_to_surface_id
   integer, dimension(:), allocatable, save :: zoltan_global_universal_columns
   type(halo_type), save, pointer :: zoltan_global_zz_ele_halo 
+
+
+  ! Needed for zoltan_cb_unpack_nodes
+  type(vector_field), save :: zoltan_global_new_positions
+  type(mesh_type), save :: zoltan_global_zz_mesh
+  type(integer_hash_table), save :: zoltan_global_nodes_we_are_sending ! in old local numbers
+  type(integer_set), save :: zoltan_global_nodes_we_are_keeping ! in old local numbers
+  type(integer_hash_table), save :: zoltan_global_universal_to_new_local_numbering
+  type(integer_hash_table), save :: zoltan_global_universal_to_old_local_numbering
+  type(integer_set), save :: zoltan_global_new_nodes
+  type(integer_hash_table), save :: zoltan_global_universal_to_new_local_numbering_m1d
+  type(integer_set), save, dimension(:), allocatable :: zoltan_global_new_snelist
+  type(integer_set), save :: zoltan_global_new_surface_elements
+  type(integer_set), save, dimension(:), allocatable :: zoltan_global_new_nelist
+  type(integer_set), save :: zoltan_global_new_elements
+  integer(zoltan_int), save, dimension(:), pointer :: zoltan_global_my_import_procs => null()
+  integer(zoltan_int), save, dimension(:), pointer :: zoltan_global_my_import_global_ids => null()
+  integer(zoltan_int), save :: zoltan_global_my_num_import
+  type(integer_set), save, dimension(:), allocatable :: zoltan_global_receives
 
 end module zoltan_global_variables
