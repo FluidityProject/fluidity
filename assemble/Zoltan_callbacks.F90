@@ -728,5 +728,48 @@ contains
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_unpack_nodes
-  
+
+
+  ! Here is how we pack halo nodes for phase two migration:
+  ! -------------------------------------------------------------------------------------
+  ! | position | new owner | size of nelist | nelist | size of snelist | 
+  ! | snelist | surface ids | the containing volume element for each surface element |
+  ! -------------------------------------------------------------------------------------
+  subroutine zoltan_cb_pack_halo_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
+    integer(zoltan_int), intent(out), dimension(*) :: sizes 
+    integer(zoltan_int), intent(out) :: ierr  
+
+    integer :: i, node
+    character (len = OPTION_PATH_LEN) :: filename
+
+    ewrite(1,*) "In zoltan_cb_pack_halo_node_sizes"
+
+    do i=1,num_ids
+      node = fetch(zoltan_global_universal_to_old_local_numbering, global_ids(i))
+      sizes(i) = zoltan_global_zz_positions%dim * real_size + &
+                2 * integer_size + row_length(zoltan_global_zz_nelist, node) * integer_size + &
+                1 * integer_size + key_count(zoltan_global_old_snelist(node)) * 3 * integer_size
+      if(zoltan_global_preserve_mesh_regions) then
+        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size 
+      end if
+      if(zoltan_global_preserve_columns) then
+        sizes(i) = sizes(i) + integer_size
+      end if
+    end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
+       write(filename, '(A,I0,A)') 'halo_node_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
+
+    ierr = ZOLTAN_OK
+  end subroutine zoltan_cb_pack_halo_node_sizes
+ 
 end module zoltan_callbacks
