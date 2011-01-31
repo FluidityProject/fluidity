@@ -96,13 +96,15 @@ module implicit_solids
 
   interface 
      subroutine y3dfemdem(ext_mesh_name, dt, rho_f, ibulk, &
-          xs, ys, zs, fxs, fys, fzs, uf, vf, wf, as)
+          xs, ys, zs, fxs, fys, fzs, uf, vf, wf, us, vs, ws, af)
        real, intent(in) :: dt, rho_f
        integer, intent(in) :: ibulk
        character(len=*), intent(in) :: ext_mesh_name
+       real, dimension(*), intent(in) :: uf, vf, wf, af
        real, dimension(*), intent(out) :: xs, ys, zs
        real, dimension(*), intent(out) :: fxs, fys, fzs
-       real, dimension(*), intent(in) :: uf, vf, wf, as
+       real, dimension(*), intent(out) :: us, vs, ws
+
      end subroutine y3dfemdem
   end interface
 #endif
@@ -113,7 +115,7 @@ module implicit_solids
           interpolation_galerkin_multiple_states_femdem
   end interface
 
-  type(vector_field), target, save :: ext_pos_fluid_vel
+  type(vector_field), target, save :: ext_pos_fluid_vel, ext_pos_solid_vel
   type(vector_field), target, save :: ext_pos_solid_force, fl_pos_solid_force
   type(scalar_field), target, save :: ext_pos_solid
 
@@ -252,14 +254,13 @@ contains
           ! interpolate the fluid or bulk velocity from
           ! the fluidity mesh to the femdem mesh
           call zero(ext_pos_fluid_vel)
-          !call zero(ext_pos_solid)
           call set(ext_pos_solid, 1.)
           call femdem_interpolation(state, "out")
 
           ! update          : 1. external_positions
-          !                   2. ext_pos_solid_force
-          ! return to femdem: 1. ext_pos_fluid_vel
-          !                   2. ext_pos_fluid
+          !                   2. ext_pos_solid_force (F_s)
+          ! return to femdem: 1. ext_pos_fluid_vel (fluid or bulk velocity)
+          !                   2. ext_pos_fluid (\alpha_f)
           call femdem_update(state)
  
           !ewrite_minmax(external_positions%val(1,:))
@@ -943,7 +944,7 @@ contains
     integer, dimension(:), allocatable :: sndglno, boundary_ids
     integer :: boundaries
 
-    ewrite(2, *) "inside femdem_two_way_initialise"
+    ewrite(2, *) "inside femdem_initialise"
 
     call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
          external_mesh_name)
@@ -1028,6 +1029,12 @@ contains
          external_positions%mesh, name="Velocity")
     call zero(ext_pos_fluid_vel)
 
+    ! this is the interpolated solid velocity
+    ! on the solid mesh
+    call allocate(ext_pos_solid_vel, external_positions%dim, &
+         external_positions%mesh, name="Velocity")
+    call zero(ext_pos_solid_vel)
+
     ! this is the interpolated fluid volume fraction
     ! on the solid mesh
     call allocate(ext_pos_solid, &
@@ -1103,7 +1110,8 @@ contains
           use_bulk = 1
        elseif (use_fluid_velocity) then
           use_bulk = 0
-       else
+          call addto(ext_pos_fluid_vel, ext_pos_solid_vel)
+      else
           FLAbort("Don't recognise fluids scheme...")
        end if
 
@@ -1112,7 +1120,7 @@ contains
 
 #ifdef USING_FEMDEM
     ! in  :: ext_pos_fluid_vel, ext_pos_fluid = 1. - ext_pos_solid 
-    ! out :: updated external_positions and ext_pos_solid_force
+    ! out :: updated external_positions, ext_pos_solid_force
     call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho_f, use_bulk, &
          external_positions%val(1,:), external_positions%val(2,:), &
          external_positions%val(3,:), &
@@ -1120,6 +1128,8 @@ contains
          ext_pos_solid_force%val(3,:), &
          ext_pos_fluid_vel%val(1,:), ext_pos_fluid_vel%val(2,:), &
          ext_pos_fluid_vel%val(3,:), &
+         ext_pos_solid_vel%val(1,:), ext_pos_solid_vel%val(2,:), &
+         ext_pos_solid_vel%val(3,:), &
          1.-ext_pos_solid%val(:))
 #endif
 
