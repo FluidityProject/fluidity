@@ -17,6 +17,10 @@ module zoltan_global_variables
   use zoltan, only: zoltan_int
   use data_structures, only: integer_set, integer_hash_table
 
+  ! Needed for zoltan_cb_pack_field_size
+  use state_module, only: state_type
+  use detector_data_types, only: detector_linked_list
+
   implicit none
 
   public
@@ -86,7 +90,13 @@ module zoltan_global_variables
   type(integer_hash_table), save :: zoltan_global_old_local_numbering_to_uen
   type(mesh_type), save :: zoltan_global_tmp_mesh
   integer, save :: zoltan_global_tmp_mesh_nhalos
-  
+
+  ! Needed for zoltan_cb_pack_field_sizes
+  type(state_type), save, dimension(:), allocatable :: zoltan_global_source_states
+  integer, save, dimension(:), allocatable :: zoltan_global_ndets_in_ele  
+  integer, save :: zoltan_global_ndata_per_det
+  type(detector_linked_list), target, save :: zoltan_global_to_pack_detectors_list
+
 #endif
 
 end module zoltan_global_variables

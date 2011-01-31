@@ -48,89 +48,22 @@ module zoltan_integration
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
-  type(detector_linked_list), target, save :: unpacked_detectors_list, to_pack_detectors_list
+  type(detector_linked_list), target, save :: unpacked_detectors_list
 
-  type(state_type), dimension(:), allocatable :: source_states, target_states
+  type(state_type), dimension(:), allocatable :: target_states
   
   type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
 
   ! Global variables for storing detector data
-  integer :: ndims, ndata_per_det
-  integer, dimension(:), allocatable :: ndets_in_ele
+  integer :: ndims
+
  
   public :: zoltan_drive
   private
 
   contains
 
-  subroutine zoltan_cb_pack_field_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
-    integer(zoltan_int), intent(out), dimension(*) :: sizes 
-    integer(zoltan_int), intent(out) :: ierr  
-    
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
-    integer :: state_no, field_no, sz, i
-    character (len = OPTION_PATH_LEN) :: filename
-    
-    ewrite(1,*) "In zoltan_cb_pack_field_sizes"
-    
-    ! if there are some detectors on this process
-    if (detector_list%length .GT. 0) then
-       ! create two arrays, one with the number of detectors in each element to be transferred
-       ! and one with the data for the detectors being transferred
-       call prepare_detectors_for_packing(ndets_in_ele, detector_list, to_pack_detectors_list, num_ids, global_ids)
-    end if
-        
-    ! The person doing this for mixed meshes in a few years time: this is one of the things
-    ! you need to change. Make it look at the loc for each element.
-    
-    sz = 0
-    
-    do state_no=1,size(source_states)
-       
-       do field_no=1,scalar_field_count(source_states(state_no))
-          sfield => extract_scalar_field(source_states(state_no), field_no)
-          sz = sz + ele_loc(sfield, 1)
-       end do
-       
-       do field_no=1,vector_field_count(source_states(state_no))
-          vfield => extract_vector_field(source_states(state_no), field_no)
-          sz = sz + ele_loc(vfield, 1) * vfield%dim
-       end do
-       
-       do field_no=1,tensor_field_count(source_states(state_no))
-          tfield => extract_tensor_field(source_states(state_no), field_no)
-          sz = sz + ele_loc(tfield, 1) * product(tfield%dim)
-       end do
-       
-    end do
-    
-    
-    do i=1,num_ids    
-       ! fields data + number of detectors in element + detector data +
-       ! reserve space for sz scalar values and for sending old unns of the linear mesh
-       sizes(i) = (sz * real_size) + real_size + (ndets_in_ele(i) * ndata_per_det * real_size) &
-            + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
-    end do
-    
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
-       write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
-       open(666, file = filename)
-       do i=1,num_ids
-          write(666,*) sizes(i)
-       end do
-       close(666)
-    end if
-    
-    ierr = ZOLTAN_OK
-    
-  end subroutine zoltan_cb_pack_field_sizes
-  
   subroutine zoltan_cb_pack_fields(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
     integer(zoltan_int), dimension(*), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
@@ -155,8 +88,8 @@ module zoltan_integration
     
     ewrite(3,*) "Length of detector list BEFORE packing fields: ", detector_list%length
     
-    if(to_pack_detectors_list%length /= 0) then
-       detector => to_pack_detectors_list%firstnode
+    if(zoltan_global_to_pack_detectors_list%length /= 0) then
+       detector => zoltan_global_to_pack_detectors_list%firstnode
     end if
 
     do i=1,num_ids
@@ -170,24 +103,24 @@ module zoltan_integration
        
        rhead = 1
        
-       do state_no=1,size(source_states)
-          do field_no=1,scalar_field_count(source_states(state_no))
-             sfield => extract_scalar_field(source_states(state_no), field_no)
+       do state_no=1,size(zoltan_global_source_states)
+          do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
+             sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
              loc = ele_loc(sfield, old_local_element_number)
              rbuf(rhead:rhead + loc - 1) = ele_val(sfield, old_local_element_number)
              rhead = rhead + loc
           end do
           
-          do field_no=1,vector_field_count(source_states(state_no))
-             vfield => extract_vector_field(source_states(state_no), field_no)
+          do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
+             vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
              if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
              loc = ele_loc(vfield, old_local_element_number)
              rbuf(rhead:rhead + loc*vfield%dim - 1) = reshape(ele_val(vfield, old_local_element_number), (/loc*vfield%dim/))
              rhead = rhead + loc * vfield%dim
           end do
           
-          do field_no=1,tensor_field_count(source_states(state_no))
-             tfield => extract_tensor_field(source_states(state_no), field_no)
+          do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
+             tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
              loc = ele_loc(tfield, old_local_element_number)
              rbuf(rhead:rhead + loc*product(tfield%dim) - 1) &
                   = reshape(ele_val(tfield, old_local_element_number), (/ loc*product(tfield%dim) /))
@@ -197,17 +130,17 @@ module zoltan_integration
        end do
        
        ! packing the number of detectors in the element
-       rbuf(rhead) = ndets_in_ele(i)
+       rbuf(rhead) = zoltan_global_ndets_in_ele(i)
        rhead = rhead + 1
 
        ! packing the detectors in that element
-       do j=1,ndets_in_ele(i)
+       do j=1,zoltan_global_ndets_in_ele(i)
           
           ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
 
           ! pack the detector
-          call pack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1), &
-               ndims, ndata_per_det)
+          call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
+               ndims, zoltan_global_ndata_per_det)
 
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
@@ -215,12 +148,12 @@ module zoltan_integration
           detector => detector%next
           
           ! remove the detector we just packed from the to_pack list
-          call remove_det_from_current_det_list(to_pack_detectors_list, detector_to_delete)          
+          call remove_det_from_current_det_list(zoltan_global_to_pack_detectors_list, detector_to_delete)          
 
           ! deallocate the memory of the packed detector
           call deallocate(detector_to_delete)
 
-          rhead = rhead + ndata_per_det
+          rhead = rhead + zoltan_global_ndata_per_det
        end do
        
        assert(rhead==sz+1)
@@ -239,7 +172,7 @@ module zoltan_integration
        
     end do
     
-    assert(to_pack_detectors_list%length == 0)
+    assert(zoltan_global_to_pack_detectors_list%length == 0)
 
     ewrite(3,*) "Length of detector list AFTER packing fields: ", detector_list%length
     
@@ -355,8 +288,8 @@ module zoltan_integration
                    ewrite(3,*) "Successfully allocated a new detector."
 
                    ! unpack detector information 
-                   call unpack_detector(detector, rbuf(rhead:rhead+ndata_per_det-1), &
-                        ndims, ndata_per_det)
+                   call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
+                        ndims, zoltan_global_ndata_per_det)
                    detector%element = new_local_element_number
 
                    ! update other detector data
@@ -371,7 +304,7 @@ module zoltan_integration
                 end if
              end if
              
-             rhead = rhead + ndata_per_det
+             rhead = rhead + zoltan_global_ndata_per_det
              
           end do
           
@@ -1761,7 +1694,7 @@ module zoltan_integration
     
     ewrite(1,*) 'in initialise_transfer'
     
-    ! Set up source_states
+    ! Set up zoltan_global_source_states
     do i=1,size(states)
        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
             first_time_step=initialise_fields)
@@ -1787,12 +1720,12 @@ module zoltan_integration
        mesh_names(no_meshes) = mesh%name
     end do
     
-    allocate(source_states(no_meshes))
+    allocate(zoltan_global_source_states(no_meshes))
     call halo_update(interpolate_states, level=1)
-    ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
-    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), source_states)
+    ! Place the fields we've picked out to interpolate onto the correct meshes of zoltan_global_source_states
+    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_source_states)
     
-    ! Finished with interpolate_states for setting up source_states
+    ! Finished with interpolate_states for setting up zoltan_global_source_states
     do i=1,size(interpolate_states)
        call deallocate(interpolate_states(i))
     end do
@@ -1954,13 +1887,13 @@ module zoltan_integration
     ewrite(3,*) "             ndets_being_sent: ", ndets_being_sent
 
     ! Allocate memory for all the detectors you're going to send
-    allocate(send_buff(send_count,ndata_per_det))
+    allocate(send_buff(send_count,zoltan_global_ndata_per_det))
 
     detector => detector_send_list%firstnode
     do i=1,send_count
        ! Pack the detector information
-       call pack_detector(detector, send_buff(i, 1:ndata_per_det), &
-            ndims, ndata_per_det)
+       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), &
+            ndims, zoltan_global_ndata_per_det)
 
        delete_detector => detector
        detector => detector%next
@@ -1977,15 +1910,15 @@ module zoltan_integration
           if (i == getprocno()) then
              ! Broadcast the detectors you want to send
              ewrite(3,*) "Broadcasting the ", send_count, " detectors in detector_send_list"
-             call mpi_bcast(send_buff,send_count*ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
+             call mpi_bcast(send_buff,send_count*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
              assert(ierr == MPI_SUCCESS)
           else
              ! Allocate memory to receive into
-             allocate(recv_buff(ndets_being_sent(i),ndata_per_det))
+             allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det))
              
              ! Receive broadcast
              ewrite(3,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
-             call mpi_bcast(recv_buff,ndets_being_sent(i)*ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
+             call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
              assert(ierr == MPI_SUCCESS)
 
              ! Unpack detector if you own it
@@ -2003,8 +1936,8 @@ module zoltan_integration
                       shape=>ele_shape(zoltan_global_new_positions,1)                     
                       call allocate(detector, ndims, local_coord_count(shape))
 
-                      call unpack_detector(detector, recv_buff(j, 1:ndata_per_det), &
-                           ndims, ndata_per_det)
+                      call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), &
+                           ndims, zoltan_global_ndata_per_det)
                       detector%element = new_local_element_number
 
                       call update_detector(detector, zoltan_global_new_positions)
@@ -2094,13 +2027,13 @@ module zoltan_integration
     allocate(export_procs(num_export))
 
     ! allocate array for storing the number of detectors in each of the elements to be transferred
-    allocate(ndets_in_ele(num_export))
-    ndets_in_ele(:) = 0
+    allocate(zoltan_global_ndets_in_ele(num_export))
+    zoltan_global_ndets_in_ele(:) = 0
 
     ! calculate the amount of data to be transferred per detector
     ndims = zoltan_global_zz_positions%dim
-    ndata_per_det = ndims + 3
-    ewrite(3,*) "Amount of data to be transferred per detector: ", ndata_per_det
+    zoltan_global_ndata_per_det = ndims + 3
+    ewrite(3,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1
     do i=1,size(sends)
@@ -2134,7 +2067,7 @@ module zoltan_integration
     deallocate(export_procs)
     deallocate(export_global_ids)
 
-    deallocate(ndets_in_ele)
+    deallocate(zoltan_global_ndets_in_ele)
     
     call deallocate(zoltan_global_tmp_mesh)
 
@@ -2182,13 +2115,13 @@ module zoltan_integration
          ele_nodes(zoltan_global_new_positions, new_local_element_number))
     end do
     
-    do state_no=1,size(source_states)
-       assert(scalar_field_count(source_states(state_no)) == scalar_field_count(target_states(state_no)))
-       assert(vector_field_count(source_states(state_no)) == vector_field_count(target_states(state_no)))
-       assert(tensor_field_count(source_states(state_no)) == tensor_field_count(target_states(state_no)))
+    do state_no=1,size(zoltan_global_source_states)
+       assert(scalar_field_count(zoltan_global_source_states(state_no)) == scalar_field_count(target_states(state_no)))
+       assert(vector_field_count(zoltan_global_source_states(state_no)) == vector_field_count(target_states(state_no)))
+       assert(tensor_field_count(zoltan_global_source_states(state_no)) == tensor_field_count(target_states(state_no)))
        
-       do field_no=1,scalar_field_count(source_states(state_no))
-          source_sfield => extract_scalar_field(source_states(state_no), field_no)
+       do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
+          source_sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
           target_sfield => extract_scalar_field(target_states(state_no), field_no)
           assert(trim(source_sfield%name) == trim(target_sfield%name))
           
@@ -2203,8 +2136,8 @@ module zoltan_integration
           end do
        end do
        
-       do field_no=1,vector_field_count(source_states(state_no))
-          source_vfield => extract_vector_field(source_states(state_no), field_no)
+       do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
+          source_vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
           target_vfield => extract_vector_field(target_states(state_no), field_no)
           assert(trim(source_vfield%name) == trim(target_vfield%name))
           if (source_vfield%name == zoltan_global_new_positions%name) cycle
@@ -2220,8 +2153,8 @@ module zoltan_integration
           end do
        end do
        
-       do field_no=1,tensor_field_count(source_states(state_no))
-          source_tfield => extract_tensor_field(source_states(state_no), field_no)
+       do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
+          source_tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
           target_tfield => extract_tensor_field(target_states(state_no), field_no)
           assert(trim(source_tfield%name) == trim(target_tfield%name))
           
@@ -2269,11 +2202,11 @@ module zoltan_integration
        call halo_update(metric)
     end if
     
-    do i=1,size(source_states)
-       call deallocate(source_states(i))
+    do i=1,size(zoltan_global_source_states)
+       call deallocate(zoltan_global_source_states(i))
        call deallocate(target_states(i))
     end do
-    deallocate(source_states)
+    deallocate(zoltan_global_source_states)
     deallocate(target_states)
   end subroutine finalise_transfer
 

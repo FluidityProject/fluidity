@@ -31,6 +31,11 @@ module zoltan_callbacks
   ! Needed for zoltan_cb_pack_nodes
   ! - use the whole of data structures now
 
+  ! Needed for zoltan_cb_pack_field_sizes
+  use diagnostic_variables, only: detector_list
+  use state_module
+  use zoltan_detectors
+  
   implicit none
   
   public
@@ -915,6 +920,74 @@ contains
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_unpack_halo_nodes
 
+
+  subroutine zoltan_cb_pack_field_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
+    integer(zoltan_int), intent(out), dimension(*) :: sizes 
+    integer(zoltan_int), intent(out) :: ierr  
+    
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    integer :: state_no, field_no, sz, i
+    character (len = OPTION_PATH_LEN) :: filename
+    
+    ewrite(1,*) "In zoltan_cb_pack_field_sizes"
+    
+    ! if there are some detectors on this process
+    if (detector_list%length .GT. 0) then
+       ! create two arrays, one with the number of detectors in each element to be transferred
+       ! and one with the data for the detectors being transferred
+       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, detector_list, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
+    end if
+    
+    ! The person doing this for mixed meshes in a few years time: this is one of the things
+    ! you need to change. Make it look at the loc for each element.
+    
+    sz = 0
+    
+    do state_no=1,size(zoltan_global_source_states)
+       
+       do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
+          sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
+          sz = sz + ele_loc(sfield, 1)
+       end do
+       
+       do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
+          vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
+          sz = sz + ele_loc(vfield, 1) * vfield%dim
+       end do
+       
+       do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
+          tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
+          sz = sz + ele_loc(tfield, 1) * product(tfield%dim)
+       end do
+       
+    end do
+    
+    
+    do i=1,num_ids    
+       ! fields data + number of detectors in element + detector data +
+       ! reserve space for sz scalar values and for sending old unns of the linear mesh
+       sizes(i) = (sz * real_size) + real_size + (zoltan_global_ndets_in_ele(i) * zoltan_global_ndata_per_det * real_size) &
+            + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
+    end do
+    
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
+       write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
+    
+    ierr = ZOLTAN_OK
+    
+  end subroutine zoltan_cb_pack_field_sizes
+  
 #endif
   
 end module zoltan_callbacks
