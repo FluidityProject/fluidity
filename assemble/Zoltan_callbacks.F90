@@ -775,6 +775,75 @@ contains
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_halo_node_sizes
 
+
+  subroutine zoltan_cb_pack_halo_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: dest
+    integer(zoltan_int), intent(in), dimension(*) :: sizes 
+    integer(zoltan_int), intent(in), dimension(*) :: idx 
+    integer(zoltan_int), intent(out), dimension(*), target :: buf 
+    integer(zoltan_int), intent(out) :: ierr
+    
+    integer :: i, j, node, ratio, head, new_owner, rank
+    integer, dimension(:), pointer :: current_buf
+    
+    ewrite(1,*) "In zoltan_cb_pack_halo_nodes"
+    ratio = real_size / integer_size
+    rank = getrank()
+    
+    do i=1,num_ids
+       current_buf => buf(idx(i):idx(i)+sizes(i)/integer_size)
+       head = 1
+       node = fetch(zoltan_global_universal_to_old_local_numbering, global_ids(i))
+       do j=1,zoltan_global_zz_positions%dim
+          current_buf(head:head+ratio-1) = transfer(node_val(zoltan_global_zz_positions, j, node), current_buf(head:head+ratio-1))
+          head = head + ratio
+       end do
+       
+       if(zoltan_global_preserve_columns) then
+          current_buf(head) = zoltan_global_universal_columns(node)
+          head = head + 1
+       end if
+       
+       ! Now compute the new owner
+       if (has_key(zoltan_global_nodes_we_are_sending, node)) then
+          new_owner = fetch(zoltan_global_nodes_we_are_sending, node)
+       else
+          new_owner = rank
+       end if
+       
+       current_buf(head) = new_owner
+       head = head + 1
+       
+       current_buf(head) = row_length(zoltan_global_zz_nelist, node)
+       head = head + 1
+       
+       current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node))
+       head = head + row_length(zoltan_global_zz_nelist, node)
+       
+       if(zoltan_global_preserve_mesh_regions) then
+          ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
+          current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = fetch(zoltan_global_universal_element_number_to_region_id, halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node)))
+          head = head + row_length(zoltan_global_zz_nelist, node)
+       end if
+       
+       current_buf(head) = key_count(zoltan_global_old_snelist(node))
+       head = head + 1
+       current_buf(head:head+key_count(zoltan_global_old_snelist(node))-1) = set2vector(zoltan_global_old_snelist(node))
+       head = head + key_count(zoltan_global_old_snelist(node))
+       current_buf(head:head+key_count(zoltan_global_old_snelist(node))-1) = fetch(zoltan_global_universal_surface_number_to_surface_id, set2vector(zoltan_global_old_snelist(node)))
+       head = head + key_count(zoltan_global_old_snelist(node))
+       current_buf(head:head+key_count(zoltan_global_old_snelist(node))-1) = fetch(zoltan_global_universal_surface_number_to_element_owner, set2vector(zoltan_global_old_snelist(node)))
+       head = head + key_count(zoltan_global_old_snelist(node))
+       
+       !assert(head == (sizes(i)/integer_size)+1)
+    end do
+    ierr = ZOLTAN_OK
+  end subroutine zoltan_cb_pack_halo_nodes
+  
 #endif
   
 end module zoltan_callbacks
