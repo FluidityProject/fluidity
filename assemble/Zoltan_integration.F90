@@ -47,189 +47,14 @@ module zoltan_integration
 
   implicit none
 
-  ! Module-level so that the Zoltan callback functions can access it
-  type(detector_linked_list), target, save :: unpacked_detectors_list
-
-  type(state_type), dimension(:), allocatable :: target_states
-  
   type(scalar_field), save :: node_quality
-  integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
+  integer, save :: max_coplanar_id, max_size
 
   public :: zoltan_drive
   private
 
   contains
 
-  subroutine zoltan_cb_unpack_fields(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
-    integer(zoltan_int), dimension(*), intent(inout) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries 
-    integer(zoltan_int), intent(in) :: num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(in), dimension(*), target :: buf 
-    integer(zoltan_int), intent(out) :: ierr  
-    
-    type(element_type), pointer :: eshape
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
-    real, dimension(:), allocatable :: rbuf ! easier to read reals 
-    integer, dimension(:), pointer :: nodes
-    integer, dimension(1:ele_loc(zoltan_global_new_positions,1)):: vertex_order
-    integer :: rhead, i, state_no, field_no, loc, sz, dataSize
-    integer :: old_universal_element_number, new_local_element_number
-    integer :: ndetectors_in_ele, det, new_ele_owner
-    type(detector_type), pointer :: detector => null()
-    type(element_type), pointer :: shape => null()
-    
-    ewrite(1,*) "In zoltan_cb_unpack_fields"
-    
-    ewrite(3,*) "Length of detector list BEFORE unpacking fields: ", detector_list%length
-    
-    do i=1,num_ids
-       
-       old_universal_element_number = global_ids(i)
-       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-       
-       loc = ele_loc(zoltan_global_new_positions, new_local_element_number)
-       ! work out the order of the send data, using the unns of the vertices in the send order
-       ! this returns the local (within the element) node numbers of the vertices in send order
-       vertex_order = local_vertex_order(buf(idx(i):idx(i) + loc -1), ele_nodes(zoltan_global_new_positions, new_local_element_number))
-       
-       ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
-       sz = (sizes(i) - ele_loc(zoltan_global_zz_mesh, new_local_element_number) * integer_size) / real_size
-       allocate(rbuf(sz))
-       ! Determine the size of the real data in integer_size units
-       dataSize = sz * real_size / integer_size
-       rbuf = transfer(buf(idx(i) + loc:idx(i) + loc + dataSize - 1), rbuf, sz)
-       
-       rhead = 1
-       
-       do state_no=1, size(target_states)
-          
-          do field_no=1,scalar_field_count(target_states(state_no))
-             sfield => extract_scalar_field(target_states(state_no), field_no)
-             eshape => ele_shape(sfield, new_local_element_number)
-             nodes => ele_nodes(sfield, new_local_element_number)
-             loc = size(nodes)
-             call set(sfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
-                  rbuf(rhead:rhead + loc - 1))
-             rhead = rhead + loc
-          end do
-          
-          do field_no=1,vector_field_count(target_states(state_no))
-             vfield => extract_vector_field(target_states(state_no), field_no)
-             if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
-             eshape => ele_shape(vfield, new_local_element_number)
-             nodes => ele_nodes(vfield, new_local_element_number)
-             loc = size(nodes)
-             call set(vfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
-                  reshape(rbuf(rhead:rhead + loc*vfield%dim - 1), (/vfield%dim, loc/)))
-             rhead = rhead + loc * vfield%dim
-          end do
-          
-          do field_no=1,tensor_field_count(target_states(state_no))
-             tfield => extract_tensor_field(target_states(state_no), field_no)
-             eshape => ele_shape(tfield, new_local_element_number)
-             nodes => ele_nodes(tfield, new_local_element_number)
-             loc = size(nodes)
-             call set(tfield, nodes(ele_local_num(vertex_order, eshape%numbering)), &
-                  reshape(rbuf(rhead:rhead + loc*product(tfield%dim) - 1), &
-                  (/tfield%dim(1), tfield%dim(2), loc/)))
-             rhead = rhead + loc * product(tfield%dim)
-          end do
-          
-       end do
-       
-       ndetectors_in_ele = rbuf(rhead)
-       rhead = rhead + 1
-       
-       ! check if there are any detectors associated with this element
-       if(ndetectors_in_ele .GT. 0) then
-          
-          do det=1,ndetectors_in_ele
-             
-             old_universal_element_number = rbuf(rhead)
-             
-             ewrite(3,*) "Unpacking detector from rbuf for old_universal_element_number: ", old_universal_element_number
-             
-             if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
-                new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos))
-                
-                if (new_ele_owner == getprocno()) then
-                   
-                   ! allocate a detector
-                   shape=>ele_shape(zoltan_global_new_positions,1)
-                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-                   ewrite(3,*) "Successfully allocated a new detector."
-
-                   ! unpack detector information 
-                   call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-                        zoltan_global_ndims, zoltan_global_ndata_per_det)
-                   detector%element = new_local_element_number
-
-                   ! update other detector data
-                   call update_detector(detector, zoltan_global_new_positions)
-
-                   ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
-                   ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", new_local_element_number
-
-                   call insert(unpacked_detectors_list, detector)
-                   detector => null()
-                   
-                end if
-             end if
-             
-             rhead = rhead + zoltan_global_ndata_per_det
-             
-          end do
-          
-       end if
-       
-       assert(rhead==sz+1)
-       
-       deallocate(rbuf)
-       
-    end do
-    
-    ewrite(3,*) "Length of detector list AFTER unpacking fields: ", detector_list%length
-    ewrite(3,*) "Length of unpacked_detectors_list to be merged in AFTER unpacking fields: ", unpacked_detectors_list%length
-    
-    ewrite(1,*) "Exiting zoltan_cb_unpack_fields"
-    
-    ierr = ZOLTAN_OK
-    
-  end subroutine zoltan_cb_unpack_fields
-  
-  function local_vertex_order(old_unns, new_gnns)
-    ! little auxilary function that works out the ordering of the send data
-    ! (which uses the old element ordering) in terms of new local (within the element)
-    ! node numbers of the vertices
-    ! old_unns are the unns of the vertices in the old ordering
-    ! new_gnss are the global (within the local domain) node numbers in the new ordering
-    integer, dimension(:), intent(in):: old_unns, new_gnns
-    integer, dimension(size(old_unns)):: local_vertex_order
-    integer:: i, j, gnn
-    
-    do i=1, size(old_unns)
-      gnn = fetch(zoltan_global_universal_to_new_local_numbering, old_unns(i))
-      do j=1, size(new_gnns)
-        if (new_gnns(j)==gnn) exit
-      end do
-      if (j>size(new_gnns)) then
-        ! node in element send is not in receiving element
-        ewrite(0,*) i, gnn
-        ewrite(0,*) old_unns
-        ewrite(0,*) new_gnns
-        FLAbort("In zoltan redistribution: something went wrong in element reconstruction")
-      end if
-      local_vertex_order(i) = j
-    end do
-    
-  end function local_vertex_order
-  
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
     ignore_extrusion)
     type(state_type), dimension(:), intent(inout), target :: states
@@ -1649,7 +1474,7 @@ module zoltan_integration
     call allocate_and_insert_fields(states)
     call restore_reserved_fields(states)
     
-    ! And set up target_states based on states
+    ! And set up zoltan_global_target_states based on states
     do i=1,size(states)
        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
             first_time_step=initialise_fields)
@@ -1660,10 +1485,10 @@ module zoltan_integration
        call insert(interpolate_states(1), new_metric, "ErrorMetric")
     end if
     
-    allocate(target_states(no_meshes))
-    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), target_states)
+    allocate(zoltan_global_target_states(no_meshes))
+    call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_target_states)
       
-    ! Finished with interpolate states for setting up target_states
+    ! Finished with interpolate states for setting up zoltan_global_target_states
     do i=1,size(interpolate_states)
        call deallocate(interpolate_states(i))
     end do
@@ -1862,7 +1687,7 @@ module zoltan_integration
     integer :: i, j, new_owner, universal_element_number
     type(integer_set) :: self_sends
     integer :: num_import, num_export
-    integer :: original_unpacked_detectors_list_length
+    integer :: original_zoltan_global_unpacked_detectors_list_length
     integer, dimension(:,:), allocatable :: vertex_order
     integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs, import_to_part
     integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
@@ -1952,13 +1777,13 @@ module zoltan_integration
     ! update the detector%element for each detector in the detector_list
     call update_detector_list_element(detector_list)
 
-    ewrite(3,*) "Merging unpacked_detectors_list with detector_list"
+    ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with detector_list"
 
     ! Merge in any detectors we received as part of the transfer to our detector list
-    detector => unpacked_detectors_list%firstnode
-    original_unpacked_detectors_list_length = unpacked_detectors_list%length
+    detector => zoltan_global_unpacked_detectors_list%firstnode
+    original_zoltan_global_unpacked_detectors_list_length = zoltan_global_unpacked_detectors_list%length
 
-    do j=1, original_unpacked_detectors_list_length
+    do j=1, original_zoltan_global_unpacked_detectors_list_length
 
        call allocate(add_detector, detector)
        call copy(add_detector, detector)
@@ -1966,13 +1791,13 @@ module zoltan_integration
        delete_detector => detector
        detector => detector%next
        call insert(detector_list, add_detector)
-       call remove_det_from_current_det_list(unpacked_detectors_list, delete_detector)
+       call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, delete_detector)
 
        call deallocate(delete_detector)
 
     end do
 
-    ewrite(3,*) "Finished merging unpacked_detectors_list with detector_list"
+    ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with detector_list"
 
     ewrite(3,*) "After migrate and merge, detector_list%length: ", detector_list%length
 
@@ -1994,13 +1819,13 @@ module zoltan_integration
     end do
     
     do state_no=1,size(zoltan_global_source_states)
-       assert(scalar_field_count(zoltan_global_source_states(state_no)) == scalar_field_count(target_states(state_no)))
-       assert(vector_field_count(zoltan_global_source_states(state_no)) == vector_field_count(target_states(state_no)))
-       assert(tensor_field_count(zoltan_global_source_states(state_no)) == tensor_field_count(target_states(state_no)))
+       assert(scalar_field_count(zoltan_global_source_states(state_no)) == scalar_field_count(zoltan_global_target_states(state_no)))
+       assert(vector_field_count(zoltan_global_source_states(state_no)) == vector_field_count(zoltan_global_target_states(state_no)))
+       assert(tensor_field_count(zoltan_global_source_states(state_no)) == tensor_field_count(zoltan_global_target_states(state_no)))
        
        do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
           source_sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
-          target_sfield => extract_scalar_field(target_states(state_no), field_no)
+          target_sfield => extract_scalar_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_sfield%name) == trim(target_sfield%name))
           
           do i=1,key_count(self_sends)
@@ -2016,7 +1841,7 @@ module zoltan_integration
        
        do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
           source_vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
-          target_vfield => extract_vector_field(target_states(state_no), field_no)
+          target_vfield => extract_vector_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_vfield%name) == trim(target_vfield%name))
           if (source_vfield%name == zoltan_global_new_positions%name) cycle
           
@@ -2033,7 +1858,7 @@ module zoltan_integration
        
        do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
           source_tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
-          target_tfield => extract_tensor_field(target_states(state_no), field_no)
+          target_tfield => extract_tensor_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_tfield%name) == trim(target_tfield%name))
           
           do i=1,key_count(self_sends)
@@ -2052,7 +1877,7 @@ module zoltan_integration
     call deallocate(sends)
     deallocate(vertex_order)    
     
-    call halo_update(target_states)
+    call halo_update(zoltan_global_target_states)
     
     ewrite(1,*) 'exiting transfer_fields'
     
@@ -2082,10 +1907,10 @@ module zoltan_integration
     
     do i=1,size(zoltan_global_source_states)
        call deallocate(zoltan_global_source_states(i))
-       call deallocate(target_states(i))
+       call deallocate(zoltan_global_target_states(i))
     end do
     deallocate(zoltan_global_source_states)
-    deallocate(target_states)
+    deallocate(zoltan_global_target_states)
   end subroutine finalise_transfer
 
   subroutine dump_linear_mesh
