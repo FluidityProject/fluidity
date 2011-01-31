@@ -79,6 +79,14 @@ module zoltan_global_variables
   integer(zoltan_int), save :: zoltan_global_my_num_import
   type(integer_set), save, dimension(:), allocatable :: zoltan_global_receives
 
+
+  ! Needed for prepare_detectors_for_packing
+  type(integer_hash_table), save :: zoltan_global_uen_to_new_local_numbering
+  type(integer_hash_table), save :: zoltan_global_uen_to_old_local_numbering
+  type(integer_hash_table), save :: zoltan_global_old_local_numbering_to_uen
+  type(mesh_type), save :: zoltan_global_tmp_mesh
+  integer, save :: zoltan_global_tmp_mesh_nhalos
+  
 #endif
 
 end module zoltan_global_variables

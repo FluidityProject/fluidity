@@ -48,13 +48,9 @@ module zoltan_integration
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
-  type(mesh_type), save :: tmp_mesh
-  integer :: tmp_mesh_nhalos
   type(detector_linked_list), target, save :: unpacked_detectors_list, to_pack_detectors_list
 
   type(state_type), dimension(:), allocatable :: source_states, target_states
-  
-  type(integer_hash_table), save :: uen_to_new_local_numbering, uen_to_old_local_numbering, old_local_numbering_to_uen
   
   type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
@@ -67,91 +63,6 @@ module zoltan_integration
   private
 
   contains
-
-  subroutine populate_detector_arrays(num_ids, global_ids)
-    ! Plan is to first count how many detectors are in each element we're sending
-    ! While doing this if we find a detector which will need to be sent, we remove
-    ! it from detectors_list and add it to the end of the to_pack_detectors_list
-    ! It's important it goes on the end of this list as we're relying on the 
-    ! counting being done in the same order as we'll do the packing
-
-    integer(zoltan_int), intent(in) :: num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    
-    integer :: i, j
-    integer :: old_universal_element_number, old_local_element_number, new_local_element_number
-    integer :: new_ele_owner
-    
-    type(detector_type), pointer :: detector => null(), detector_to_move => null()
-    
-    integer :: original_detector_list_length
-    
-    ewrite(1,*) "In populate_detector_arrays"
-    
-    ewrite(3,*) "Length of detector list BEFORE populating arrays: ", detector_list%length
-    
-    assert(num_ids == size(ndets_in_ele))
-    
-    ! loop over all the elements we're interested in
-    do i=1, num_ids
-       
-       ! work out some details about the current element
-       old_universal_element_number = global_ids(i)
-       old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
-       
-       if (has_key(uen_to_new_local_numbering, old_universal_element_number)) then
-          new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-          new_ele_owner = ele_owner(new_local_element_number, tmp_mesh, tmp_mesh%halos(tmp_mesh_nhalos))
-       else
-          new_ele_owner = -1
-       end if
-       
-       if (new_ele_owner == getprocno()) then
-          ndets_in_ele(i) = 0
-       else
-          ! start at the beginning of the detector list
-          detector => detector_list%firstnode
-          
-          original_detector_list_length = detector_list%length
-          
-          ! search through all the detectors on this processor
-          do j=1, original_detector_list_length
-             ! check whether detector is in this element
-             if (detector%element == old_local_element_number) then
-                ! increment the number of detectors in that element
-                ndets_in_ele(i) = ndets_in_ele(i) + 1
-                
-                detector_to_move => detector
-                detector => detector%next
-
-                ! Update detector%element to be universal element number
-                ! so we can unpack to new element number
-                detector_to_move%element = old_universal_element_number
-               
-                ! remove the detector from detector_list
-                call remove_det_from_current_det_list(detector_list, detector_to_move)
-
-                ! add detector to list of detectors we need to pack
-                call insert(to_pack_detectors_list, detector_to_move)
-
-                ewrite(3,*) "Detector ", detector_to_move%id_number, "(ID) removed from detector_list and added to to_pack_detectors_list."
-
-                detector_to_move => null()
-
-             end if
-          end do
-          assert(detector_list%length == (original_detector_list_length - ndets_in_ele(i)))
-       end if
-       
-    end do
-
-    assert(sum(ndets_in_ele(:)) == to_pack_detectors_list%length)
-    
-    ewrite(3,*) "Length of detector list AFTER populating arrays: ", detector_list%length
-    
-    ewrite(1,*) "Exiting populate_detector_arrays"
-    
-  end subroutine populate_detector_arrays
 
   subroutine zoltan_cb_pack_field_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
     integer(zoltan_int), dimension(*), intent(in) :: data 
@@ -172,7 +83,7 @@ module zoltan_integration
     if (detector_list%length .GT. 0) then
        ! create two arrays, one with the number of detectors in each element to be transferred
        ! and one with the data for the detectors being transferred
-       call populate_detector_arrays(num_ids, global_ids)
+       call prepare_detectors_for_packing(ndets_in_ele, detector_list, to_pack_detectors_list, num_ids, global_ids)
     end if
         
     ! The person doing this for mixed meshes in a few years time: this is one of the things
@@ -255,7 +166,7 @@ module zoltan_integration
        allocate(rbuf(sz))
        
        old_universal_element_number = global_ids(i)
-       old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+       old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
        
        rhead = 1
        
@@ -368,7 +279,7 @@ module zoltan_integration
     do i=1,num_ids
        
        old_universal_element_number = global_ids(i)
-       new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
        
        loc = ele_loc(zoltan_global_new_positions, new_local_element_number)
        ! work out the order of the send data, using the unns of the vertices in the send order
@@ -432,9 +343,9 @@ module zoltan_integration
              
              ewrite(3,*) "Unpacking detector from rbuf for old_universal_element_number: ", old_universal_element_number
              
-             if (has_key(uen_to_new_local_numbering, old_universal_element_number)) then
-                new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-                new_ele_owner = ele_owner(new_local_element_number, tmp_mesh, tmp_mesh%halos(tmp_mesh_nhalos))
+             if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
+                new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos))
                 
                 if (new_ele_owner == getprocno()) then
                    
@@ -749,11 +660,11 @@ module zoltan_integration
     end do
     deallocate(owned_nodes)
 
-    call allocate(uen_to_old_local_numbering)
-    call allocate(old_local_numbering_to_uen)
+    call allocate(zoltan_global_uen_to_old_local_numbering)
+    call allocate(zoltan_global_old_local_numbering_to_uen)
     do i=1,ele_count(zoltan_global_zz_positions)
-       call insert(uen_to_old_local_numbering, halo_universal_number(zoltan_global_zz_ele_halo, i), i)
-       call insert(old_local_numbering_to_uen, i, halo_universal_number(zoltan_global_zz_ele_halo, i))
+       call insert(zoltan_global_uen_to_old_local_numbering, halo_universal_number(zoltan_global_zz_ele_halo, i), i)
+       call insert(zoltan_global_old_local_numbering_to_uen, i, halo_universal_number(zoltan_global_zz_ele_halo, i))
     end do
     
     allocate(zoltan_global_receives(halo_proc_count(zoltan_global_zz_halo)))
@@ -989,8 +900,8 @@ module zoltan_integration
     deallocate(zoltan_global_receives)
     
     call deallocate(zoltan_global_universal_to_old_local_numbering)
-    call deallocate(uen_to_old_local_numbering)
-    call deallocate(old_local_numbering_to_uen)
+    call deallocate(zoltan_global_uen_to_old_local_numbering)
+    call deallocate(zoltan_global_old_local_numbering_to_uen)
     
     zoltan_global_new_positions%refcount => null()
     
@@ -1019,7 +930,7 @@ module zoltan_integration
     call deallocate(zoltan_global_nodes_we_are_keeping)
     call deallocate(zoltan_global_universal_to_new_local_numbering)
     call deallocate(zoltan_global_new_nodes)
-    call deallocate(uen_to_new_local_numbering)
+    call deallocate(zoltan_global_uen_to_new_local_numbering)
   end subroutine cleanup_other_module_variables
 
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -1448,7 +1359,7 @@ module zoltan_integration
     ! we don't fully have and won't be in the final mesh.
     ! So uen_to_new_local_numbering here is just temporary -- we will
     ! construct the proper version later.
-    call invert_set(zoltan_global_new_elements, uen_to_new_local_numbering)
+    call invert_set(zoltan_global_new_elements, zoltan_global_uen_to_new_local_numbering)
     
     do i=1,key_count(zoltan_global_new_elements)
        call allocate(enlists(i))
@@ -1459,12 +1370,12 @@ module zoltan_integration
     do i=1,key_count(zoltan_global_new_nodes)
        do j=1,key_count(zoltan_global_new_nelist(i))
           universal_number = fetch(zoltan_global_new_nelist(i), j)
-          new_local_number = fetch(uen_to_new_local_numbering, universal_number)
+          new_local_number = fetch(zoltan_global_uen_to_new_local_numbering, universal_number)
           call insert(enlists(new_local_number), i)
        end do
     end do
 
-    call deallocate(uen_to_new_local_numbering)
+    call deallocate(zoltan_global_uen_to_new_local_numbering)
     
     ! Now, some of these will be degenerate, because the halo nodes will refer
     ! to elements we don't know about. We can tell these apart because they
@@ -1514,7 +1425,7 @@ module zoltan_integration
     ewrite(2,*) "Of the ", full_elements, " full elements, ", connected_elements, " are connected."
     
     call allocate(new_elements_we_actually_have)
-    call allocate(uen_to_new_local_numbering)
+    call allocate(zoltan_global_uen_to_new_local_numbering)
     zoltan_global_new_positions%mesh%elements = connected_elements
     deallocate(zoltan_global_new_positions%mesh%ndglno)
     allocate(zoltan_global_new_positions%mesh%ndglno(connected_elements * expected_loc))
@@ -1536,7 +1447,7 @@ module zoltan_integration
              universal_number = fetch(zoltan_global_new_elements, i)
              call set_ele_nodes(zoltan_global_new_positions%mesh, j, set2vector(enlists(i)))
              call insert(new_elements_we_actually_have, universal_number)
-             call insert(uen_to_new_local_numbering, universal_number, j)
+             call insert(zoltan_global_uen_to_new_local_numbering, universal_number, j)
              if(zoltan_global_preserve_mesh_regions) then
                 zoltan_global_new_positions%mesh%region_ids(j) = fetch(zoltan_global_universal_element_number_to_region_id, universal_number)
              end if
@@ -1622,7 +1533,7 @@ module zoltan_integration
           ! corresponding element!
           universal_number = fetch(zoltan_global_new_surface_elements, i)
           universal_element_number = fetch(zoltan_global_universal_surface_number_to_element_owner, universal_number)
-          keep_surface_element(i) = has_key(uen_to_new_local_numbering, universal_element_number)
+          keep_surface_element(i) = has_key(zoltan_global_uen_to_new_local_numbering, universal_element_number)
           if (keep_surface_element(i)) full_elements = full_elements + 1
        else
           keep_surface_element(i) = .false.
@@ -1647,7 +1558,7 @@ module zoltan_integration
           sndgln( (j-1)*expected_loc+1 : j*expected_loc ) = set2vector(senlists(i))
           surface_ids(j) = fetch(zoltan_global_universal_surface_number_to_surface_id, universal_number)
           universal_element_number = fetch(zoltan_global_universal_surface_number_to_element_owner, universal_number)
-          element_owners(j) = fetch(uen_to_new_local_numbering, universal_element_number)
+          element_owners(j) = fetch(zoltan_global_uen_to_new_local_numbering, universal_element_number)
           j = j + 1
        end if
     end do
@@ -1798,7 +1709,7 @@ module zoltan_integration
        universal_element_number = fetch(zoltan_global_new_elements, i)
        old_new_local_element_number = i
        new_new_local_element_number = ele_renumber_permutation(old_new_local_element_number)
-       call insert(uen_to_new_local_numbering, universal_element_number, new_new_local_element_number)
+       call insert(zoltan_global_uen_to_new_local_numbering, universal_element_number, new_new_local_element_number)
        if(zoltan_global_preserve_mesh_regions) then
           zoltan_global_new_positions%mesh%region_ids(new_new_local_element_number) = old_new_region_ids(old_new_local_element_number)
        end if
@@ -1906,14 +1817,14 @@ module zoltan_integration
     call insert(states, zoltan_global_new_positions, name = zoltan_global_new_positions%name)
 
     if(present(mesh_name)) then
-       tmp_mesh = extract_mesh(states(1), trim(mesh_name))
+       zoltan_global_tmp_mesh = extract_mesh(states(1), trim(mesh_name))
     else
-       tmp_mesh = get_external_mesh(states)
+       zoltan_global_tmp_mesh = get_external_mesh(states)
     end if
-    call incref(tmp_mesh)
+    call incref(zoltan_global_tmp_mesh)
     
-    tmp_mesh_nhalos = halo_count(tmp_mesh)
-    assert(tmp_mesh_nhalos == 2)
+    zoltan_global_tmp_mesh_nhalos = halo_count(zoltan_global_tmp_mesh)
+    assert(zoltan_global_tmp_mesh_nhalos == 2)
     
     ! Allocate a new metric field on the new positions mesh and zero it
     if (present(metric).or.present(full_metric)) then
@@ -1991,14 +1902,14 @@ module zoltan_integration
 
        old_local_element_number = detector%element
 
-       assert(has_key(old_local_numbering_to_uen, old_local_element_number) .EQV. .TRUE.)
-       old_universal_element_number = fetch(old_local_numbering_to_uen, old_local_element_number)
+       assert(has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number) .EQV. .TRUE.)
+       old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
 
        ewrite(3,*) "Universal element number of ", detector%id_number, "(ID): ", old_universal_element_number
 
-       if(has_key(uen_to_new_local_numbering, old_universal_element_number)) then
+       if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
           ! Update the element number for the detector
-          detector%element = fetch(uen_to_new_local_numbering, old_universal_element_number)
+          detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
           ewrite(3,*) "New element number of ", detector%id_number, "(ID): ", detector%element
 
           ewrite(3,*) "Finished updating detector%id_number:", detector%id_number
@@ -2081,11 +1992,11 @@ module zoltan_integration
              do j=1,ndets_being_sent(i)
                 old_universal_element_number = recv_buff(j,1)
 
-                if (has_key(uen_to_new_local_numbering, old_universal_element_number)) then                   
+                if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then                   
 
-                   new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
 
-                   if(ele_owner(new_local_element_number, tmp_mesh, tmp_mesh%halos(tmp_mesh_nhalos)) == getprocno()) then
+                   if(ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos)) == getprocno()) then
 
                       ewrite(3,*) "Unpacking ", recv_buff(j,ndims+2), "(ID) detector from process ", i
 
@@ -2225,7 +2136,7 @@ module zoltan_integration
 
     deallocate(ndets_in_ele)
     
-    call deallocate(tmp_mesh)
+    call deallocate(zoltan_global_tmp_mesh)
 
     ! update the detector%element for each detector in the detector_list
     call update_detector_list_element(detector_list)
@@ -2262,8 +2173,8 @@ module zoltan_integration
     allocate(vertex_order(1:ele_loc(zoltan_global_new_positions,1), key_count(self_sends)))
     do i=1, key_count(self_sends)
       old_universal_element_number = fetch(self_sends, i)
-      new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-      old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+      new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+      old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
       ! this function takes the universal node numbers of the old element and the new global (over the local domain)
       ! node numbers, to compute the vertex order
       vertex_order(:,i) = local_vertex_order( &
@@ -2283,8 +2194,8 @@ module zoltan_integration
           
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
-             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
              eshape => ele_shape(target_sfield, new_local_element_number)
              nodes => ele_nodes(target_sfield, new_local_element_number)
              call set(target_sfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
@@ -2300,8 +2211,8 @@ module zoltan_integration
           
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
-             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
              eshape => ele_shape(target_vfield, new_local_element_number)
              nodes => ele_nodes(target_vfield, new_local_element_number)
              call set(target_vfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
@@ -2316,8 +2227,8 @@ module zoltan_integration
           
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
-             new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-             old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+             new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
              eshape => ele_shape(target_tfield, new_local_element_number)
              nodes => ele_nodes(target_tfield, new_local_element_number)
              call set(target_tfield, nodes(ele_local_num(vertex_order(:,i), eshape%numbering)), &
