@@ -55,133 +55,11 @@ module zoltan_integration
   type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
 
-  ! Global variables for storing detector data
-  integer :: ndims
-
- 
   public :: zoltan_drive
   private
 
   contains
 
-  subroutine zoltan_cb_pack_fields(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: dest
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(out), dimension(*), target :: buf 
-    integer(zoltan_int), intent(out) :: ierr
-    
-    real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, j, state_no, field_no, loc, sz
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, old_local_element_number, dataSize
-
-    type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
-
-    ewrite(1,*) "In zoltan_cb_pack_fields"
-    
-    ewrite(3,*) "Length of detector list BEFORE packing fields: ", detector_list%length
-    
-    if(zoltan_global_to_pack_detectors_list%length /= 0) then
-       detector => zoltan_global_to_pack_detectors_list%firstnode
-    end if
-
-    do i=1,num_ids
-       
-       ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
-       sz = (sizes(i) - ele_loc(zoltan_global_zz_mesh, old_local_element_number) * integer_size) / real_size
-       allocate(rbuf(sz))
-       
-       old_universal_element_number = global_ids(i)
-       old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
-       
-       rhead = 1
-       
-       do state_no=1,size(zoltan_global_source_states)
-          do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
-             sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
-             loc = ele_loc(sfield, old_local_element_number)
-             rbuf(rhead:rhead + loc - 1) = ele_val(sfield, old_local_element_number)
-             rhead = rhead + loc
-          end do
-          
-          do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
-             vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
-             if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
-             loc = ele_loc(vfield, old_local_element_number)
-             rbuf(rhead:rhead + loc*vfield%dim - 1) = reshape(ele_val(vfield, old_local_element_number), (/loc*vfield%dim/))
-             rhead = rhead + loc * vfield%dim
-          end do
-          
-          do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
-             tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
-             loc = ele_loc(tfield, old_local_element_number)
-             rbuf(rhead:rhead + loc*product(tfield%dim) - 1) &
-                  = reshape(ele_val(tfield, old_local_element_number), (/ loc*product(tfield%dim) /))
-             rhead = rhead + loc * product(tfield%dim)
-          end do
-          
-       end do
-       
-       ! packing the number of detectors in the element
-       rbuf(rhead) = zoltan_global_ndets_in_ele(i)
-       rhead = rhead + 1
-
-       ! packing the detectors in that element
-       do j=1,zoltan_global_ndets_in_ele(i)
-          
-          ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
-
-          ! pack the detector
-          call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-               ndims, zoltan_global_ndata_per_det)
-
-          ! keep a pointer to the detector to delete
-          detector_to_delete => detector
-          ! move on our iterating pointer so it's not left on a deleted node
-          detector => detector%next
-          
-          ! remove the detector we just packed from the to_pack list
-          call remove_det_from_current_det_list(zoltan_global_to_pack_detectors_list, detector_to_delete)          
-
-          ! deallocate the memory of the packed detector
-          call deallocate(detector_to_delete)
-
-          rhead = rhead + zoltan_global_ndata_per_det
-       end do
-       
-       assert(rhead==sz+1)
-       
-       ! At the start, write the old unns of this element
-       loc = ele_loc(zoltan_global_zz_mesh, old_local_element_number)
-       buf(idx(i):idx(i) + loc -1) = halo_universal_number(zoltan_global_zz_halo, ele_nodes(zoltan_global_zz_mesh, old_local_element_number))
-       
-       ! Determine the size of the real data in integer_size units
-       dataSize = sz * real_size / integer_size
-       assert( dataSize==size(transfer(rbuf, buf(idx(i):idx(i)+1))) )
-       ! Now we know the size, we can copy in the right amount of data.
-       buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
-       
-       deallocate(rbuf)
-       
-    end do
-    
-    assert(zoltan_global_to_pack_detectors_list%length == 0)
-
-    ewrite(3,*) "Length of detector list AFTER packing fields: ", detector_list%length
-    
-    ewrite(1,*) "Exiting zoltan_cb_pack_fields"
-    
-    ierr = ZOLTAN_OK
-    
-  end subroutine zoltan_cb_pack_fields
-  
   subroutine zoltan_cb_unpack_fields(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
     integer(zoltan_int), dimension(*), intent(inout) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries 
@@ -284,12 +162,12 @@ module zoltan_integration
                    
                    ! allocate a detector
                    shape=>ele_shape(zoltan_global_new_positions,1)
-                   call allocate(detector, ndims, local_coord_count(shape))
+                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
                    ewrite(3,*) "Successfully allocated a new detector."
 
                    ! unpack detector information 
                    call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-                        ndims, zoltan_global_ndata_per_det)
+                        zoltan_global_ndims, zoltan_global_ndata_per_det)
                    detector%element = new_local_element_number
 
                    ! update other detector data
@@ -1893,7 +1771,7 @@ module zoltan_integration
     do i=1,send_count
        ! Pack the detector information
        call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), &
-            ndims, zoltan_global_ndata_per_det)
+            zoltan_global_ndims, zoltan_global_ndata_per_det)
 
        delete_detector => detector
        detector => detector%next
@@ -1931,13 +1809,13 @@ module zoltan_integration
 
                    if(ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos)) == getprocno()) then
 
-                      ewrite(3,*) "Unpacking ", recv_buff(j,ndims+2), "(ID) detector from process ", i
+                      ewrite(3,*) "Unpacking ", recv_buff(j,zoltan_global_ndims+2), "(ID) detector from process ", i
 
                       shape=>ele_shape(zoltan_global_new_positions,1)                     
-                      call allocate(detector, ndims, local_coord_count(shape))
+                      call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
 
                       call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), &
-                           ndims, zoltan_global_ndata_per_det)
+                           zoltan_global_ndims, zoltan_global_ndata_per_det)
                       detector%element = new_local_element_number
 
                       call update_detector(detector, zoltan_global_new_positions)
@@ -2031,8 +1909,8 @@ module zoltan_integration
     zoltan_global_ndets_in_ele(:) = 0
 
     ! calculate the amount of data to be transferred per detector
-    ndims = zoltan_global_zz_positions%dim
-    zoltan_global_ndata_per_det = ndims + 3
+    zoltan_global_ndims = zoltan_global_zz_positions%dim
+    zoltan_global_ndata_per_det = zoltan_global_ndims + 3
     ewrite(3,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1

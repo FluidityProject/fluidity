@@ -97,6 +97,9 @@ module zoltan_global_variables
   integer, save :: zoltan_global_ndata_per_det
   type(detector_linked_list), target, save :: zoltan_global_to_pack_detectors_list
 
+  ! Needed for zoltan_cb_pack_fields
+  integer, save :: zoltan_global_ndims
+
 #endif
 
 end module zoltan_global_variables

@@ -32,10 +32,15 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: detector_list
+  use diagnostic_variables, only: detector_list, remove_det_from_current_det_list
   use state_module
   use zoltan_detectors
-  
+
+  ! Needed for zoltan_cb_pack_fields
+  ! - added remove_det_from_current_det_list to use diagnostic variables
+  use detector_data_types, only: detector_type
+  use detector_tools
+
   implicit none
   
   public
@@ -987,7 +992,126 @@ contains
     ierr = ZOLTAN_OK
     
   end subroutine zoltan_cb_pack_field_sizes
-  
+
+
+  subroutine zoltan_cb_pack_fields(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
+    integer(zoltan_int), dimension(*), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+    integer(zoltan_int), intent(in), dimension(*) :: dest
+    integer(zoltan_int), intent(in), dimension(*) :: sizes 
+    integer(zoltan_int), intent(in), dimension(*) :: idx 
+    integer(zoltan_int), intent(out), dimension(*), target :: buf 
+    integer(zoltan_int), intent(out) :: ierr
+    
+    real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
+    integer :: rhead, i, j, state_no, field_no, loc, sz
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    integer :: old_universal_element_number, old_local_element_number, dataSize
+
+    type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
+
+    ewrite(1,*) "In zoltan_cb_pack_fields"
+    
+    ewrite(3,*) "Length of detector list BEFORE packing fields: ", detector_list%length
+    
+    if(zoltan_global_to_pack_detectors_list%length /= 0) then
+       detector => zoltan_global_to_pack_detectors_list%firstnode
+    end if
+
+    do i=1,num_ids
+       
+       ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
+       sz = (sizes(i) - ele_loc(zoltan_global_zz_mesh, old_local_element_number) * integer_size) / real_size
+       allocate(rbuf(sz))
+       
+       old_universal_element_number = global_ids(i)
+       old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
+       
+       rhead = 1
+       
+       do state_no=1,size(zoltan_global_source_states)
+          do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
+             sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
+             loc = ele_loc(sfield, old_local_element_number)
+             rbuf(rhead:rhead + loc - 1) = ele_val(sfield, old_local_element_number)
+             rhead = rhead + loc
+          end do
+          
+          do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
+             vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
+             if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
+             loc = ele_loc(vfield, old_local_element_number)
+             rbuf(rhead:rhead + loc*vfield%dim - 1) = reshape(ele_val(vfield, old_local_element_number), (/loc*vfield%dim/))
+             rhead = rhead + loc * vfield%dim
+          end do
+          
+          do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
+             tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
+             loc = ele_loc(tfield, old_local_element_number)
+             rbuf(rhead:rhead + loc*product(tfield%dim) - 1) &
+                  = reshape(ele_val(tfield, old_local_element_number), (/ loc*product(tfield%dim) /))
+             rhead = rhead + loc * product(tfield%dim)
+          end do
+          
+       end do
+       
+       ! packing the number of detectors in the element
+       rbuf(rhead) = zoltan_global_ndets_in_ele(i)
+       rhead = rhead + 1
+
+       ! packing the detectors in that element
+       do j=1,zoltan_global_ndets_in_ele(i)
+          
+          ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
+
+          ! pack the detector
+          call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
+               zoltan_global_ndims, zoltan_global_ndata_per_det)
+
+          ! keep a pointer to the detector to delete
+          detector_to_delete => detector
+          ! move on our iterating pointer so it's not left on a deleted node
+          detector => detector%next
+          
+          ! remove the detector we just packed from the to_pack list
+          call remove_det_from_current_det_list(zoltan_global_to_pack_detectors_list, detector_to_delete)          
+
+          ! deallocate the memory of the packed detector
+          call deallocate(detector_to_delete)
+
+          rhead = rhead + zoltan_global_ndata_per_det
+       end do
+       
+       assert(rhead==sz+1)
+       
+       ! At the start, write the old unns of this element
+       loc = ele_loc(zoltan_global_zz_mesh, old_local_element_number)
+       buf(idx(i):idx(i) + loc -1) = halo_universal_number(zoltan_global_zz_halo, ele_nodes(zoltan_global_zz_mesh, old_local_element_number))
+       
+       ! Determine the size of the real data in integer_size units
+       dataSize = sz * real_size / integer_size
+       assert( dataSize==size(transfer(rbuf, buf(idx(i):idx(i)+1))) )
+       ! Now we know the size, we can copy in the right amount of data.
+       buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
+       
+       deallocate(rbuf)
+       
+    end do
+    
+    assert(zoltan_global_to_pack_detectors_list%length == 0)
+
+    ewrite(3,*) "Length of detector list AFTER packing fields: ", detector_list%length
+    
+    ewrite(1,*) "Exiting zoltan_cb_pack_fields"
+    
+    ierr = ZOLTAN_OK
+    
+  end subroutine zoltan_cb_pack_fields
+ 
 #endif
   
 end module zoltan_callbacks
