@@ -79,6 +79,7 @@ subroutine unifiedmesh(filename1, filename1_len, &
 !   call write_triangle_files(trim(output), accum_positions_tmp)
 !   call deallocate(accum_positions_tmp)
 
+  call write_triangle_files(trim(output), accum_positions)
   call vtk_write_fields(trim(output), 0, accum_positions, accum_positions%mesh)
 
   contains
