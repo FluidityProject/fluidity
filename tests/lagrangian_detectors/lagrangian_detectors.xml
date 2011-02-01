@@ -5,7 +5,7 @@
   <name>lagrangian_detectors</name>
   <owner userid="colin"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 ../../bin/fluidity lagrangian_detectors.flml
     </command_line>
