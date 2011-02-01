@@ -2297,7 +2297,7 @@ contains
         if (timestep==1) then
 
           allocate(global_det_count(detector_list%length))
-          global_det_count = 0
+          global_det_count = -1
           node => detector_list%firstnode
           do i = 1, detector_list%length
              if(node%element>0) then
@@ -2310,58 +2310,31 @@ contains
              call allmax(global_det_count(i))
           end do
 
-          ewrite(2,*) global_det_count
-
           node => detector_list%firstnode
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=getprocno()) then
-                ewrite(2,*) 'trying to remove detector'
                 call remove(detector_list,node)
-                ewrite(2,*) 'cjc', i
              else 
                node => node%next
             end if
            
-          end do
-
-          deallocate(global_det_count)
+          end do   
 
           !Any detectors that have the -1 as owner means that 
-          !nobody owns that detector. Make it static, simply
-          !because otherwise it will break the Lagrangian detector code
+          !nobody owns that detector. Make it static.
           node => detector_list%firstnode
           do i = 1, detector_list%length
-            if (node%initial_owner==-1) then
+            if (global_det_count(i)==-1) then
                node%type = STATIC_DETECTOR
             end if
             node => node%next
           end do
 
+          deallocate(global_det_count)
+
        end if
 
     end if  ! end of if (detector_list%length/=0)
-
-    call allocate(ihash_neigh_ele)   
-    processor_number=getprocno() 
-    num_proc=1
-
-    vfield => extract_vector_field(state(1),"Velocity")
-    dim=vfield%dim
-    halo_level = element_halo_count(vfield%mesh)
-
-    do ele = 1, element_count(vfield%mesh)
-      processor_number=element_owner(vfield%mesh,ele)
-      if ((processor_number/=getprocno()).and.&
-           &(.not.has_key(ihash_neigh_ele, processor_number))) then
-
-         call insert(ihash_neigh_ele, processor_number, num_proc)
-         call fetch_pair(ihash_neigh_ele, num_proc, target_proc_a, mapped_val_a)
-
-         num_proc=num_proc+1
-
-      end if
-
-    end do
 
     number_neigh_processors=0
 
@@ -2410,14 +2383,6 @@ contains
     end do
 
     call deallocate(ihash_inverse) 
-
-    do i=1, key_count(ihash_neigh_ele)
-    
-       call fetch_pair(ihash_neigh_ele, i, target_proc_a, mapped_val_a)
-    
-    end do
-
-    call deallocate(ihash_neigh_ele)
 
     number_neigh_processors=key_count(ihash)
 
