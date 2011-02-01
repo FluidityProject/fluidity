@@ -82,7 +82,6 @@ if test "x$enable_gcov" == "xyes" ; then
 fi
  
 FLUIDITY="fluidity"
-FLADJOINT="fladjoint"
 FLFEMDEM="femdem"
 
 # Check system type
@@ -602,20 +601,6 @@ AC_SUBST(FLFEMDEM_PATH)
 AC_SUBST(LIB_FEMDEM)
 AC_SUBST(FEMDEM)
 
-##########################################
-# Adjoint model
-##########################################
-
-AC_ARG_ENABLE(adjoint,
-[AC_HELP_STRING([--enable-adjoint],
-[turns on complilation of the adjoint model])])
-
-if test "$enable_adjoint" = "yes" ; then
-   ADJOINT="yes"
-else
-   ADJOINT=""
-fi
-
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
 saved_CC="${CC}"
@@ -787,6 +772,12 @@ if test "$enable_mpi" != "no"
         ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
      fi
     fi
+fi
+
+if test "$with_adjoint" != "no"; then
+  if test ! -z "$with_adjoint"; then
+    ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
+  fi
 fi
 
 AC_ARG_ENABLE(petsc-fortran-modules,
@@ -1073,7 +1064,6 @@ dnl Specific -D options
 AC_SUBST(DEFINE_MPI)
 
 AC_SUBST(FLUIDITY)
-AC_SUBST(FLADJOINT)
 
 dnl Checks for library functions.
 if test "$smart_fortran" = "yes" ; then
@@ -1374,7 +1364,6 @@ typedef float vtkFloatingPointType;
 EOF
 cp include/vtk.h libvtkfortran/
 
-AC_SUBST(ADJOINT)
 AC_SUBST(ARFLAGS)
 
 AC_SUBST(MODINC_FLAG)
@@ -1476,7 +1465,6 @@ AC_OUTPUT(Makefile
 	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
           diagnostics/Makefile
-          adjoint/Makefile
           main/Makefile
           scripts/Makefile tools/Makefile
           python/setup.py

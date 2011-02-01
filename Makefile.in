@@ -27,7 +27,6 @@
 SHELL = @SHELL@
 
 PROGRAM	 = ./bin/@FLUIDITY@
-ADJOINT	 = ./bin/@FLADJOINT@
 FLDECOMP = ./bin/fldecomp
 
 LIB_FLUIDITY = ./lib/lib@FLUIDITY@.a
@@ -142,13 +141,6 @@ bin/@FLUIDITY@: main.o fluidity_library
 	@mkdir -p bin
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
-ifeq (@ADJOINT@,yes)
-	$(MAKE) adjoint_main
-endif
-
-adjoint_main: ADmain.o 
-	@echo "    LD $(ADJOINT)"
-	@$(EVAL) $(LINKER) -o $(ADJOINT) ADmain.o $(LIBS)
 
 bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
@@ -265,10 +257,6 @@ endif
 	@cd diagnostics;   	$(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
-ifeq (@ADJOINT@,yes)
-	@echo "    MAKE adjoint"
-	@cd adjoint; $(MAKE)
-endif
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
@@ -336,10 +324,8 @@ ifeq (@HYPERLIGHT@,yes)
 	@echo "    CLEAN hyperlight"
 	@cd hyperlight; $(MAKE) clean
 endif
-	@echo "    CLEAN adjoint"
 	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN climatology"
-	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN main"
@@ -392,9 +378,6 @@ else
 	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan" -n $(THREADS)
         endif
 endif
-
-adjtest:
-	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial -n $(THREADS)
 
 mediumtest:
 ifeq (@ZOLTAN@,yes)

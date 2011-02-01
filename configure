@@ -600,13 +600,11 @@ MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
-ADJOINT
 CXXCPP
 SPATIALINDEXDIR
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
-FLADJOINT
 FLUIDITY
 DEFINE_MPI
 USE_CPP
@@ -730,11 +728,11 @@ enable_openmp
 enable_shared
 enable_verbose
 with_femdem
-enable_adjoint
 enable_mpi
 with_netcdf
 with_ParMetis
 with_zoltan
+with_adjoint
 enable_petsc_fortran_modules
 with_x
 enable_dp
@@ -1393,7 +1391,6 @@ Optional Features:
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
   --enable-verbose        turns on super verbosity
-  --enable-adjoint        turns on complilation of the adjoint model
   --enable-mpi            turns on MPI support
   --disable-petsc-fortran-modules
                           By default fluidity tries to use fortran modules
@@ -1425,6 +1422,7 @@ Optional Packages:
                           specify where to find lib/ and include/ for netCDF
   --with-ParMetis=PFX        Prefix where ParMetis is installed
   --with-zoltan=prefix        Prefix where zoltan is installed
+  --with-adjoint=prefix        Prefix where libadjoint is installed
   --with-x                use the X Window System
   --with-arpack-lib[=<lib>]
                           specify arpack library
@@ -2815,7 +2813,6 @@ if test "x$enable_gcov" == "xyes" ; then
 fi
 
 FLUIDITY="fluidity"
-FLADJOINT="fladjoint"
 FLFEMDEM="femdem"
 
 # Check system type
@@ -11030,22 +11027,6 @@ fi
 
 
 
-##########################################
-# Adjoint model
-##########################################
-
-# Check whether --enable-adjoint was given.
-if test "${enable_adjoint+set}" = set; then :
-  enableval=$enable_adjoint;
-fi
-
-
-if test "$enable_adjoint" = "yes" ; then
-   ADJOINT="yes"
-else
-   ADJOINT=""
-fi
-
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
 saved_CC="${CC}"
@@ -11735,21 +11716,21 @@ fi
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test $zoltan != no; then
-if test $zoltan != yes; then
-zoltan_LIBS_PATH="$zoltan/lib"
-zoltan_INCLUDES_PATH="$zoltan/include"
-# Ensure the comiler finds the library...
-tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
-tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
-fi
-tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
+  if test $zoltan != yes; then
+    zoltan_LIBS_PATH="$zoltan/lib"
+    zoltan_INCLUDES_PATH="$zoltan/include"
+    # Ensure the comiler finds the library...
+    tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
+    tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
+  fi
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
+  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-	echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
 fi
 
 # Check that the compiler uses the include path we specified...
@@ -11840,6 +11821,122 @@ echo $LIBS
 
      fi
     fi
+fi
+
+if test "$with_adjoint" != "no"; then
+  if test ! -z "$with_adjoint"; then
+
+# Set variables...
+
+# Check whether --with-adjoint was given.
+if test "${with_adjoint+set}" = set; then :
+  withval=$with_adjoint; adjoint="$withval"
+fi
+
+
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+if test $adjoint != no; then
+  if test $adjoint != yes; then
+    adjoint_LIBS_PATH="$adjoint/lib"
+    adjoint_INCLUDES_PATH="$adjoint/include"
+    # Ensure the comiler finds the library...
+    tmpLIBS="$tmpLIBS -L$adjoint/lib"
+    tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
+  fi
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
+fi
+LIBS=$tmpLIBS
+CPPFLAGS=$tmpCPPFLAGS
+# Check that the compiler uses the library we specified...
+if test -e $adjoint_LIBS_PATH/libadjoint.a; then
+  echo "note: using $adjoint_LIBS_PATH/libadjoint.a"
+fi
+
+# Check that the compiler uses the include path we specified...
+if test -e $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod; then
+	echo "note: using $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod"
+fi
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_register_equation in -ladjoint" >&5
+$as_echo_n "checking for adj_register_equation in -ladjoint... " >&6; }
+if test "${ac_cv_lib_adjoint_adj_register_equation+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ladjoint  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char adj_register_equation ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return adj_register_equation ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_adjoint_adj_register_equation=yes
+else
+  ac_cv_lib_adjoint_adj_register_equation=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_register_equation" >&5
+$as_echo "$ac_cv_lib_adjoint_adj_register_equation" >&6; }
+if test "x$ac_cv_lib_adjoint_adj_register_equation" = x""yes; then :
+
+$as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
+
+else
+  as_fn_error $? "Could not link in libadjoint ... exiting " "$LINENO" 5
+fi
+
+# Save variables...
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+echo $LIBS
+
+  fi
 fi
 
 # Check whether --enable-petsc-fortran-modules was given.
@@ -13431,7 +13528,6 @@ EOF
 
 
 
-
 if test "$smart_fortran" = "yes" ; then
   F77=$MPIF90
 else
@@ -14494,7 +14590,6 @@ cp include/vtk.h libvtkfortran/
 
 
 
-
 # It appears this is not good practice but...go sue me
 #cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
 cat confdefs.h | grep DOUBLEP > libvtkfortran/confdefs.h
@@ -14765,7 +14860,7 @@ fi
 
 fi
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile decomp/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile adjoint/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile decomp/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15480,7 +15575,6 @@ do
     "assemble/Makefile") CONFIG_FILES="$CONFIG_FILES assemble/Makefile" ;;
     "assemble/tests/Makefile") CONFIG_FILES="$CONFIG_FILES assemble/tests/Makefile" ;;
     "diagnostics/Makefile") CONFIG_FILES="$CONFIG_FILES diagnostics/Makefile" ;;
-    "adjoint/Makefile") CONFIG_FILES="$CONFIG_FILES adjoint/Makefile" ;;
     "main/Makefile") CONFIG_FILES="$CONFIG_FILES main/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;

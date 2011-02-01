@@ -983,21 +983,21 @@ AC_ARG_WITH(
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test $zoltan != no; then
-if test $zoltan != yes; then
-zoltan_LIBS_PATH="$zoltan/lib"
-zoltan_INCLUDES_PATH="$zoltan/include"
-# Ensure the comiler finds the library...
-tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
-tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
-fi
-tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
+  if test $zoltan != yes; then
+    zoltan_LIBS_PATH="$zoltan/lib"
+    zoltan_INCLUDES_PATH="$zoltan/include"
+    # Ensure the comiler finds the library...
+    tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
+    tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
+  fi
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
+  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-	echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
 fi 
 
 # Check that the compiler uses the include path we specified...
@@ -1021,3 +1021,49 @@ AC_SUBST(ZOLTAN)
 
 echo $LIBS
 ])dnl ACX_zoltan
+
+AC_DEFUN([ACX_adjoint], [
+# Set variables...
+AC_ARG_WITH(
+	[adjoint],
+	[  --with-adjoint=prefix        Prefix where libadjoint is installed],
+	[adjoint="$withval"],
+    [])
+
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+if test $adjoint != no; then
+  if test $adjoint != yes; then
+    adjoint_LIBS_PATH="$adjoint/lib"
+    adjoint_INCLUDES_PATH="$adjoint/include"
+    # Ensure the comiler finds the library...
+    tmpLIBS="$tmpLIBS -L$adjoint/lib"
+    tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
+  fi
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
+fi
+LIBS=$tmpLIBS
+CPPFLAGS=$tmpCPPFLAGS
+# Check that the compiler uses the library we specified...
+if test -e $adjoint_LIBS_PATH/libadjoint.a; then
+  echo "note: using $adjoint_LIBS_PATH/libadjoint.a"
+fi 
+
+# Check that the compiler uses the include path we specified...
+if test -e $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod; then
+	echo "note: using $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod"
+fi 
+
+AC_LANG_SAVE
+AC_LANG_C
+AC_CHECK_LIB(
+	[adjoint],
+	[adj_register_equation],
+	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])],
+	[AC_MSG_ERROR( [Could not link in libadjoint ... exiting] )] )
+# Save variables...
+AC_LANG_RESTORE
+
+echo $LIBS
+])dnl ACX_adjoint
