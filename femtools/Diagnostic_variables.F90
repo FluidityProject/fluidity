@@ -2336,53 +2336,43 @@ contains
 
     end if  ! end of if (detector_list%length/=0)
 
-    number_neigh_processors=0
-
+    !Make a hash table containing all of the neighbouring processors
     call allocate(ihash) 
 
     if (halo_level /= 0.) then
+       ele_halo => vfield%mesh%element_halos(halo_level)
+       nprocs = halo_proc_count(ele_halo)
+       num_proc=1
 
-    ele_halo => vfield%mesh%element_halos(halo_level)
+       do i = 1, nprocs 
 
-    nprocs = halo_proc_count(ele_halo)
-
-    num_proc=1
-
-    do i = 1, nprocs 
-
-!!! An alternative and it seems better way to find out the neighbouring processors to a given processor is the following:   
+!!! An alternative and it seems better way to find out the neighbouring
+!!! processors to a given processor is the following:
       
-      if ((halo_send_count(ele_halo, i) + halo_receive_count(ele_halo, i) > 0).and.(.not.has_key(ihash, i))) then
+          if ((halo_send_count(ele_halo, i) + &
+               halo_receive_count(ele_halo, i) > 0)&
+               .and.(.not.has_key(ihash, i))) then
+             call insert(ihash, i, num_proc)
+             num_proc=num_proc+1
+          end if
 
-         call insert(ihash, i, num_proc)
+       end do
 
-         num_proc=num_proc+1
+    !call allocate(ihash_inverse) 
+    !do i=1, key_count(ihash)
+!
+!       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+!       call insert(ihash_inverse, mapped_val_a, target_proc_a)
 
-     end if
+!    end do
 
-    end do
+!    do i=1, key_count(ihash_inverse)
 
-    do i=1, key_count(ihash)
+!       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
 
-       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+!    end do
 
-    end do
-
-    call allocate(ihash_inverse) 
-    do i=1, key_count(ihash)
-
-       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-       call insert(ihash_inverse, mapped_val_a, target_proc_a)
-
-    end do
-
-    do i=1, key_count(ihash_inverse)
-
-       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
-
-    end do
-
-    call deallocate(ihash_inverse) 
+!    call deallocate(ihash_inverse) 
 
     number_neigh_processors=key_count(ihash)
 
