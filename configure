@@ -11845,19 +11845,10 @@ if test $adjoint != no; then
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
   tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
+  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $adjoint_LIBS_PATH/libadjoint.a; then
-  echo "note: using $adjoint_LIBS_PATH/libadjoint.a"
-fi
-
-# Check that the compiler uses the include path we specified...
-if test -e $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod; then
-	echo "note: using $adjoint_INCLUDES_PATH/libadjoint/libadjoint.mod"
-fi
 
 
 ac_ext=c

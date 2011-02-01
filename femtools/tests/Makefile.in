@@ -27,10 +27,10 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../
+FCFLAGS = -I../../include @FCFLAGS@ @CPPFLAGS@ @MODINC_FLAG@../
 
 CC  = @CC@
-CFLAGS  = @CFLAGS@ -I../../include
+CFLAGS  = @CFLAGS@ @CPPFLAGS@ -I../../include
 
 CXX = @CXX@ -I../../include
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
