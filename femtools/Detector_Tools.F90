@@ -145,7 +145,8 @@ module detector_tools
          
          temp_detector%previous => null()
          temp_detector%next => null()
-         
+         call deallocate(temp_detector)
+
          detector_list%firstnode => detector
          detector_list%firstnode%previous => null()
          
@@ -163,6 +164,7 @@ module detector_tools
             
             temp_detector%previous => null()
             temp_detector%next => null()
+            call deallocate(temp_detector)
             
             detector_list%lastnode%next => null()
             
@@ -175,6 +177,7 @@ module detector_tools
                
                temp_detector%previous => null()
                temp_detector%next => null()
+               call deallocate(temp_detector)
                
                detector_list%firstnode => null()
                detector_list%lastnode => null()
@@ -192,7 +195,8 @@ module detector_tools
                
                temp_detector%previous => null()
                temp_detector%next => null()
-               
+               call deallocate(temp_detector)               
+
                detector_list%length = detector_list%length-1    
                
             end if
