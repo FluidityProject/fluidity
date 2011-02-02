@@ -150,7 +150,7 @@ implicit none
   function norm2_scalar(field, X) result (norm)
     !!< Return the L2 norm of field:
     !!<   /
-    !!<   | |field|^2 dV
+    !!<  (| |field|^2 dV)^(1/2)
     !!<   /
     real :: norm
     type(scalar_field), intent(in) :: field
