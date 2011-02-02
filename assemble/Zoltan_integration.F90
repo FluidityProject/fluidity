@@ -423,50 +423,101 @@ module zoltan_integration
        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
     end if
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
-       
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
-          ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-          ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
-             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
-          else
-             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
-          end if
-       end if
-       
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
+    if (iteration /= max_adapt_iteration) then
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
           
-          call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan/method", method)
-          
-          if (trim(method) == "graph") then
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
-          else if (trim(method) == "hypergraph") then
-             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
-             ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+             ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
           end if
+          
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
              
-       end if
-       
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
-          ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
-          ! Probably not going to want graph checking unless debugging
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
-             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
-          else
-             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan/method", method)
+             
+             if (trim(method) == "graph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             else if (trim(method) == "hypergraph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             end if
+             
           end if
-       end if
        
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
+             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+             ! Probably not going to want graph checking unless debugging
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
+          end if
+          
+       else
+          ! Use the Zoltan graph partitioner by default
+          ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+       end if
+
     else
-       ! Use the Zoltan graph partitioner by default
-       ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-       ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner")) then
+          
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/metis"))  then
+             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+             ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
+          end if
+          
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan")) then
+             
+             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan/method", method)
+             
+             if (trim(method) == "graph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             else if (trim(method) == "hypergraph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             end if
+             
+          end if
+       
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/scotch")) then
+             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+             ! Probably not going to want graph checking unless debugging
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
+          end if
+          
+       else
+          ! Use the Zoltan graph partitioner by default
+          ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+       end if
+
     end if
 
     ! Choose the appropriate partitioning method based on the current adapt iteration
