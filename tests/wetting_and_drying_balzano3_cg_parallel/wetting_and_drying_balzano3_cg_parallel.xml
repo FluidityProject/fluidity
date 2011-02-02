@@ -46,7 +46,7 @@ print "okay."</test>
 det=int(3600.0/13800.0*1002)
 det_str="det_%(#)04d" %{"#": det}
 pondfs=freesurface[det_str][-1]
-threshold=-1.0
+threshold=-1.1
 print "Should be ideally -0.87. It's ", pondfs, " &gt;(!) ", threshold, "."
 assert(pondfs&gt;=threshold)
 print "okay."<comment>pondsf should be ideally -4800/2760+60/23=0.8696

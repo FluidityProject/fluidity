@@ -561,7 +561,7 @@ contains
     type(vector_field), pointer:: positions, u, original_positions
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
     type(vector_field), pointer:: iterated_positions
-    type(scalar_field), pointer:: p, iter_p, original_bottomdist, preiter_p
+    type(scalar_field), pointer:: p, original_bottomdist
     type(vector_field), target :: local_grid_u
     type(scalar_field), target:: p_mapped_to_coordinate_space
     character(len=FIELD_NAME_LEN):: bctype
@@ -596,17 +596,6 @@ contains
     if (have_wd) then
      original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-     iter_p => extract_scalar_field(state, "IteratedPressure")
-     if (.not. has_scalar_field(state, "PreIteratedPressure")) then
-       ewrite(2, *), "Inserting PreIteratedPressure field into state."   
-       allocate(preiter_p)
-       call allocate(preiter_p, iter_p%mesh, "PreIteratedPressure")
-       call set(preiter_p, iter_p)
-       call insert(state, preiter_p, name="PreIteratedPressure")
-       call deallocate(preiter_p)
-       deallocate(preiter_p)
-     end if
-     preiter_p => extract_scalar_field(state, "PreIteratedPressure")
    end if
  
     positions => extract_vector_field(state, "Coordinate")
@@ -710,20 +699,8 @@ contains
         ! With wetting and drying we set the minimum depth to -OriginalDistanceToBottom+d0
         call set(extrapolated_p, p)
         do node=1, size(surface_node_list)
-          if (node_val(preiter_p, surface_node_list(node))>-g*node_val(original_bottomdist, surface_node_list(node))+g*d0) then
-            ! Wet node: Pressure and free-surface are coupled.
             call set(extrapolated_p, surface_node_list(node), max(node_val(extrapolated_p, surface_node_list(node)), &
                                                                 & -g*node_val(original_bottomdist, surface_node_list(node))+g*d0))
-#ifdef DDEBUG                                                          
-            if (node_val(extrapolated_p, surface_node_list(node)) < -g*node_val(original_bottomdist, surface_node_list(node))+g*d0) then
-              ewrite(1, *) "Ups, wetting and drying added a little bit of non-pyhsical volume to the simulation :( & 
-                          & - If this is critical for you, either decrease the timestep or increase d0."
-            end if
-#endif
-          else
-            ! Dry node: Set to the -OriginalDistanceToBottom+d0
-            call set(extrapolated_p, surface_node_list(node), -g*node_val(original_bottomdist, surface_node_list(node))+g*d0)
-          end if
         end do
         call VerticalExtrapolation(extrapolated_p, extrapolated_p, positions, &
                 gravity_normal, surface_element_list=surface_element_list, &
@@ -777,8 +754,7 @@ contains
                 node=face_nodes(k)
                 ! compute new surface node position:
                 if (have_wd) then
-                  ! The maximum operator is evaluated at the last iteration to obtain volume conservation
-                  if (node_val(preiter_p, node)/g/rho0 > -node_val(original_bottomdist, node)+d0) then
+                  if (node_val(p, node)/g/rho0 > -node_val(original_bottomdist, node)+d0) then
                     call set(iterated_positions, node, &
                       node_val(original_positions, node)- &
                       node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
@@ -806,10 +782,6 @@ contains
       
     end if
    
-    if (has_scalar_field(state, "PreIteratedPressure")) then
-      ! Update PreIteratedPressure
-      call set(preiter_p, iter_p)
-    end if
 
     if (l_initialise) then
       call set(positions, iterated_positions)
