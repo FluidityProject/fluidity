@@ -1037,8 +1037,10 @@ and these options are currently here only for development and testing
 purposes. They are subject to change and may not be in the final "release".</a:documentation>
           <optional>
             <element name="partitioner">
-              <a:documentation>Select which partitioner to use. Graph partitioners available are ParMETIS
-and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.</a:documentation>
+              <a:documentation>Select which partitioner to use during all but the last adapt iteration.
+Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
+PHG hypergraph partitoner is also available.
+Default is the Zoltan PHG graph partitioner.</a:documentation>
               <choice>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
@@ -1046,7 +1048,38 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="scotch">
-                  <a:documentation>Use the PT-Scotch graph partitioner. </a:documentation>
+                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*</a:documentation>
+                  <empty/>
+                </element>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+Currently hypergraph partitioning is the simplest implementation
+and can produce non-contiguous partitions for certain problems.</a:documentation>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="final_partitioner">
+              <a:documentation>Select which partitioner to use after the final adapt iteration.
+Graph partitioners available are ParMETIS and Zoltan PHG. The 
+Zoltan PHG hypergraph partitoner is also available.
+Default is the Zoltan PHG graph partitioner.</a:documentation>
+              <choice>
+                <element name="metis">
+                  <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
+closely as possible the setup used previously by Sam.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="scotch">
+                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* </a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">

@@ -891,15 +891,41 @@ hr_adaptivity =
          ## and these options are currently here only for development and testing
          ## purposes. They are subject to change and may not be in the final "release".
          element zoltan_options {
-            ## Select which partitioner to use. Graph partitioners available are ParMETIS
-            ## and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.
+            ## Select which partitioner to use during all but the last adapt iteration.
+            ## Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
+            ## PHG hypergraph partitoner is also available.
+            ## Default is the Zoltan PHG graph partitioner.
             element partitioner {
                 ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
                 ## closely as possible the setup used previously by Sam.
                 element metis {
                     empty
                 }|
-                ## Use the PT-Scotch graph partitioner. 
+                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*
+                element scotch {
+                    empty
+                }|
+                ## Use the Zoltan PHG partitioner.
+                element zoltan {
+                    ## Select the partitioning method you would like used by Zoltan PHG.
+                    ## Currently hypergraph partitioning is the simplest implementation
+                    ## and can produce non-contiguous partitions for certain problems.
+                    element method {
+                    "graph"|"hypergraph"
+                    }
+                }
+            }?,
+            ## Select which partitioner to use after the final adapt iteration.
+            ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
+            ## Zoltan PHG hypergraph partitoner is also available.
+            ## Default is the Zoltan PHG graph partitioner.
+            element final_partitioner {
+                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                ## closely as possible the setup used previously by Sam.
+                element metis {
+                    empty
+                }|
+                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* 
                 element scotch {
                     empty
                 }|
