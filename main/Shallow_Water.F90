@@ -51,6 +51,7 @@
       use diagnostic_fields_new, only : &
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
+    use iso_c_binding
 #ifdef HAVE_ADJOINT
     use libadjoint
     use libadjoint_data_callbacks
@@ -61,12 +62,37 @@
 #include "finclude/petsc.h"
 #endif
 
+    ! Interface blocks for the initialisation routines we need to call
+    interface
+      subroutine set_global_debug_level(n)
+        integer, intent(in) :: n
+      end subroutine set_global_debug_level
+
+      subroutine mpi_init(ierr)
+        integer, intent(out) :: ierr
+      end subroutine mpi_init
+
+      subroutine mpi_finalize(ierr)
+        integer, intent(out) :: ierr
+      end subroutine mpi_finalize
+
+      subroutine python_init
+      end subroutine python_init
+
+      subroutine petscinitialize(s, i)
+        character(len=*), intent(in) :: s
+        integer, intent(out) :: i
+      end subroutine petscinitialize
+    end interface
+
     type(state_type), dimension(:), pointer :: state
     real :: f0, D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     real, dimension(:), allocatable :: beta
     integer :: timestep, nonlinear_iterations
     integer :: ierr
+
+    integer, parameter :: IDENTITY_MATRIX = 30
 
     !! Sparsity for matrices.
     type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
@@ -83,6 +109,8 @@
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: on_manifold
+    type(vector_field), pointer :: u
+    type(scalar_field), pointer :: eta
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
 
@@ -103,6 +131,8 @@
     call read_command_line()
 
     call populate_state(state)
+    u => extract_vector_field(state, "Velocity")
+    eta => extract_scalar_field(state, "LayerThickness")
     call adjoint_register_initial_eta_condition
  
     call insert_time_in_state(state)
@@ -180,6 +210,8 @@
                   h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
                   dt,theta,D0,g,f0,beta)
              call insert_time_in_state(state)
+             u => extract_vector_field(state, "Velocity")
+             eta => extract_scalar_field(state, "LayerThickness")
           end if
        end if
 
@@ -812,7 +844,7 @@
       type(adj_equation) :: equation
       type(adj_variable) :: eta0
 
-      ierr = adj_create_block("Identity", block=I)
+      ierr = adj_create_block("Identity", block=I, context=c_loc(eta%mesh))
       call adj_chkierr(ierr)
 
       ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
@@ -841,7 +873,7 @@
       ! if balanced is false, we just read in an initial condition as usual
 
       if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("Identity", block=I)
+        ierr = adj_create_block("Identity", block=I, context=c_loc(u%mesh))
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
@@ -879,5 +911,74 @@
       endif
 #endif
     end subroutine adjoint_register_initial_u_condition
+
+#ifdef HAVE_ADJOINT
+    subroutine identity_assembly_callback(nvar, variables, dependencies, hermitian, context, output, rhs) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(c_ptr), intent(in), value :: context
+      type(adj_matrix), intent(out) :: output
+      type(adj_vector), intent(out) :: rhs
+
+      type(mesh_type), pointer :: mesh
+      type(scalar_field) :: empty_pressure_field
+      type(vector_field) :: empty_velocity_field
+
+      ! context must be supplied as the address of the mesh_type we're to allocate rhs on
+      call c_f_pointer(context, mesh)
+
+      if (trim(mesh%name) == "PressureMesh") then
+        call allocate(empty_pressure_field, mesh, trim("AdjointPressureRhs"))
+        call zero(empty_pressure_field)
+        rhs = field_to_adj_vector(empty_pressure_field)
+        call deallocate(empty_pressure_field)
+      else if (trim(mesh%name) == "VelocityMesh") then
+        call allocate(empty_velocity_field, u%dim, mesh, trim("AdjointVelocityRhs"))
+        call zero(empty_velocity_field)
+        rhs = field_to_adj_vector(empty_velocity_field)
+        call deallocate(empty_velocity_field)
+      else 
+        FLAbort ("Unknown mesh found in context of identity_assembly_callback")
+      end if
+
+      ! We're not actually going to do anything daft like allocate memory for
+      ! an identity matrix. Instead, we'll fill it in with a special tag
+      ! that we'll catch later on in the solution of the adjoint equations.
+      output%ptr = c_null_ptr
+      output%klass = IDENTITY_MATRIX
+
+    end subroutine identity_assembly_callback
+
+    subroutine coriolis_assembly_callback(nvar, variables, dependencies, hermitian, context, output, rhs) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(c_ptr), intent(in), value :: context
+      type(adj_matrix), intent(out) :: output
+      type(adj_vector), intent(out) :: rhs
+
+      type(mesh_type), pointer :: velocity_mesh
+      type(vector_field) :: empty_velocity_field
+
+      ! context must be supplied as the address of the VelocityMesh
+      call c_f_pointer(context, velocity_mesh)
+
+      if (trim(velocity_mesh%name) == "VelocityMesh") then
+        call allocate(empty_velocity_field, u%dim, velocity_mesh, trim("AdjointVelocityRhs"))
+        call zero(empty_velocity_field)
+        rhs = field_to_adj_vector(empty_velocity_field)
+        call deallocate(empty_velocity_field)
+      else 
+        FLAbort ("Unknown mesh found in context of coriolis_assembly_callback")
+      end if
+
+      output = csr_matrix_to_adj_matrix(coriolis_mat)
+    end subroutine coriolis_assembly_callback
+#endif
 
   end program shallow_water
