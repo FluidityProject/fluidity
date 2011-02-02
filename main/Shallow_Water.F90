@@ -979,6 +979,42 @@
 
       output = csr_matrix_to_adj_matrix(coriolis_mat)
     end subroutine coriolis_assembly_callback
+
+    subroutine ggradperp_action_callback(nvar, variables, dependencies, hermitian, input, context, output) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(scalar_field) :: eta_input
+      type(vector_field) :: u_output, u_output_tmp
+      type(scalar_field) :: u1, u2
+
+      call field_from_adj_vector(input, eta_input)
+
+      ! So, we'll mult_T with div_mat, then do some swapping around, and scaling by g.
+      call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
+      call allocate(u_output_tmp, u%dim, u%mesh, "AdjointGGradPerpOutput")
+      call zero(u_output)
+      call zero(u_output_tmp)
+
+      call mult_T(u_output_tmp, div_mat, eta_input)
+
+      u1 = extract_scalar_field(u_output, 1)
+      u2 = extract_scalar_field(u_output, 2)
+      call set(u1, u_output_tmp, 2)
+      call set(u2, u_output_tmp, 1)
+      call scale(u1, -g)
+      call scale(u2, g)
+      call deallocate(u_output_tmp)
+
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine ggradperp_action_callback
 #endif
 
   end program shallow_water
