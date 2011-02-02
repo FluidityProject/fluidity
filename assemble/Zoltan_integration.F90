@@ -1751,7 +1751,7 @@ module zoltan_integration
     type(vector_field), pointer :: source_vfield, target_vfield
     type(tensor_field), pointer :: source_tfield, target_tfield
 
-    type(detector_type), pointer :: detector => null(), add_detector => null(), delete_detector => null()
+    type(detector_type), pointer :: detector => null(), add_detector => null()
 
     ewrite(1,*) 'in transfer_fields'
     
@@ -1836,15 +1836,11 @@ module zoltan_integration
 
     do j=1, original_zoltan_global_unpacked_detectors_list_length
 
-       call allocate(add_detector, detector)
-       call copy(add_detector, detector)
-
-       delete_detector => detector
+       add_detector => detector
        detector => detector%next
-       call insert(detector_list, add_detector)
-       call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, delete_detector)
 
-       call deallocate(delete_detector)
+       call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, add_detector)
+       call insert(detector_list, add_detector)
 
     end do
 
