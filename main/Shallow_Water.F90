@@ -51,6 +51,11 @@
       use diagnostic_fields_new, only : &
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
+#ifdef HAVE_ADJOINT
+    use libadjoint
+    use libadjoint_data_callbacks
+#include "libadjoint/adj_fortran.h"
+#endif
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -78,6 +83,12 @@
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: on_manifold
+#ifdef HAVE_ADJOINT
+    type(adj_adjointer) :: adjointer
+
+    ierr = adj_create_adjointer(adjointer)
+    call adj_register_femtools_data_callbacks(adjointer)
+#endif
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -92,6 +103,7 @@
     call read_command_line()
 
     call populate_state(state)
+    call adjoint_register_initial_eta_condition
  
     call insert_time_in_state(state)
 
@@ -791,5 +803,81 @@
       write (0,*) ""
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
+
+    subroutine adjoint_register_initial_eta_condition
+#ifdef HAVE_ADJOINT
+      ! Register the initial condition for eta_0.
+      type(adj_block) :: I
+      integer :: ierr
+      type(adj_equation) :: equation
+      type(adj_variable) :: eta0
+
+      ierr = adj_create_block("Identity", block=I)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_equation(var=eta0, blocks=(/I/), targets=(/eta0/), equation=equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_destroy_equation(equation)
+      ierr = adj_destroy_block(I)
+#endif
+    end subroutine adjoint_register_initial_eta_condition
+
+    subroutine adjoint_register_initial_u_condition(balanced)
+      logical, intent(in) :: balanced
+#ifdef HAVE_ADJOINT
+      type(adj_block) :: I, L, gCperp
+      integer :: ierr
+      type(adj_equation) :: equation
+      type(adj_variable) :: u0, eta0
+
+      ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
+      ! if balanced is false, we just read in an initial condition as usual
+
+      if (.not. balanced) then ! we just read in u from file
+        ierr = adj_create_block("Identity", block=I)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(var=u0, blocks=(/I/), targets=(/u0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(I)
+      else
+        ! The equation we have to register is the derivation of u0 from geostrophic balance
+        ierr = adj_create_block("Coriolis", block=L)
+        call adj_chkierr(ierr)
+        ierr = adj_create_block("gGradPerp", block=gCperp)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
+        call adj_chkierr(ierr)
+        ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(var=u0, blocks=(/L, gCperp/), targets=(/u0, eta0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(L)
+        ierr = adj_destroy_block(gCperp)
+      endif
+#endif
+    end subroutine adjoint_register_initial_u_condition
 
   end program shallow_water
