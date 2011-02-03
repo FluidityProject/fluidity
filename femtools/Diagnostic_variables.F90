@@ -2362,28 +2362,6 @@ contains
 
     end do
 
-    do i=1, key_count(ihash)
-
-       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-
-    end do
-
-    call allocate(ihash_inverse) 
-    do i=1, key_count(ihash)
-
-       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-       call insert(ihash_inverse, mapped_val_a, target_proc_a)
-
-    end do
-
-    do i=1, key_count(ihash_inverse)
-
-       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
-
-    end do
-
-    call deallocate(ihash_inverse) 
-
     number_neigh_processors=key_count(ihash)
 
     end if
