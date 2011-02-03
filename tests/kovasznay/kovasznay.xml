@@ -5,9 +5,9 @@
   <name>kovasznay</name>
   <owner userid="cjc1"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l kovasznay.flml </command_line>
-    <!-- Two dimensional diffusion only problem. -->
+    <!-- Two dimensional Navier-Stokes exact solution -->
   </problem_definition>
   <variables>
     <variable name="max_u_error" language="python">
