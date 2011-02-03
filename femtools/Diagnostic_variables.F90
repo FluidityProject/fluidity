@@ -2228,7 +2228,7 @@ contains
     integer, dimension(:), allocatable :: types_det
     logical :: any_lagrangian
 
-    type(detector_type), pointer :: node, temp_node, node_to_send, node_duplicated
+    type(detector_type), pointer :: detector, temp_node, node_to_send, node_duplicated
     type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
 
     integer, dimension(:), allocatable :: global_det_count
@@ -2270,19 +2270,19 @@ contains
        end if
     end if
 
-    ! (CJC comment): This section of code is very strange. node%local is set
+    ! (CJC comment): This section of code is very strange. detector%local is set
     ! to true in both cases, and the initial_owner is getting changed, not
     ! sure what initial_owner really means. I think this means that 
     ! 
-    node => detector_list%firstnode
+    detector => detector_list%firstnode
     do i = 1, detector_list%length
-       if (node%element<0) then
-          node%local = .true.
+       if (detector%element<0) then
+          detector%local = .true.
        else
-          node%initial_owner=getprocno()
-          node%local = .true.
+          detector%initial_owner=getprocno()
+          detector%local = .true.
        end if
-       node => node%next
+       detector => detector%next
     end do
 
     !Code to distribute the detectors amongst the processors.
@@ -2298,36 +2298,36 @@ contains
 
           allocate(global_det_count(detector_list%length))
           global_det_count = -1
-          node => detector_list%firstnode
+          detector => detector_list%firstnode
           do i = 1, detector_list%length
-             if(node%element>0) then
+             if(detector%element>0) then
                 global_det_count(i)=getprocno()
              end if
-            node => node%next
+            detector => detector%next
           end do
 
           do i = 1, size(global_det_count)
              call allmax(global_det_count(i))
           end do
 
-          node => detector_list%firstnode
+          detector => detector_list%firstnode
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=getprocno()) then
-                call remove(detector_list,node)
+                call remove(detector_list,detector)
              else 
-               node => node%next
+               detector => detector%next
             end if
            
           end do   
 
           !Any detectors that have the -1 as owner means that 
           !nobody owns that detector. Make it static.
-          node => detector_list%firstnode
+          detector => detector_list%firstnode
           do i = 1, detector_list%length
             if (global_det_count(i)==-1) then
-               node%type = STATIC_DETECTOR
+               detector%type = STATIC_DETECTOR
             end if
-            node => node%next
+            detector => detector%next
           end do
 
           deallocate(global_det_count)
@@ -2336,43 +2336,35 @@ contains
 
     end if  ! end of if (detector_list%length/=0)
 
+    !making a hash table of {processor_number,count}
+    !where processor_number is the number of a processor
+    !which overlaps the domain of this processor
+    !and count goes from 1 up to total number of overlapping processors
     number_neigh_processors=0
-
     call allocate(ihash) 
-
     if (halo_level /= 0.) then
-
-    ele_halo => vfield%mesh%element_halos(halo_level)
-
-    nprocs = halo_proc_count(ele_halo)
-
-    num_proc=1
-
-    do i = 1, nprocs 
-
-!!! An alternative and it seems better way to find out the neighbouring processors to a given processor is the following:   
-      
-      if ((halo_send_count(ele_halo, i) + halo_receive_count(ele_halo, i) > 0).and.(.not.has_key(ihash, i))) then
-
-         call insert(ihash, i, num_proc)
-
-         num_proc=num_proc+1
-
-     end if
-
-    end do
-
-    number_neigh_processors=key_count(ihash)
-
+       ele_halo => vfield%mesh%element_halos(halo_level)
+       nprocs = halo_proc_count(ele_halo)
+       num_proc=1
+       do i = 1, nprocs 
+          if ((halo_send_count(ele_halo, i) + &
+               halo_receive_count(ele_halo, i) > 0)&
+               .and.(.not.has_key(ihash, i))) then
+             call insert(ihash, i, num_proc)
+             num_proc=num_proc+1
+          end if
+       end do
+       number_neigh_processors=key_count(ihash)
     end if
 
-    node => detector_list%firstnode
+    !set value of dt in each detector
+    detector => detector_list%firstnode
 
     do j=1, detector_list%length
 
-       node%dt=dt
+       detector%dt=dt
 
-       node => node%next
+       detector => detector%next
 
     end do  
 
@@ -2382,7 +2374,7 @@ contains
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
 
-       node => detector_list%firstnode
+       detector => detector_list%firstnode
 
        allocate(types_det(detector_list%length))
 
@@ -2390,13 +2382,13 @@ contains
 
        do i = 1, detector_list%length
          
-         types_det(i) = node%type
+         types_det(i) = detector%type
    !      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
          if (types_det(i)==2)  then
             any_lagrangian=.true. 
          end if
 
-         node => node%next
+         detector => detector%next
          
        end do
           
@@ -2437,10 +2429,10 @@ contains
 
        end do
 
-       node => detector_list%firstnode
+       detector => detector_list%firstnode
        do i = 1, detector_list%length
 
-          node => node%next
+          detector => detector%next
          
       end do
   
@@ -2492,21 +2484,21 @@ contains
 
        ! Next columns contain the positions of all the detectors.
       
-       node => detector_list%firstnode
+       detector => detector_list%firstnode
 
        positionloop: do i=1, detector_list%length
 
        if(getprocno() == 1) then
           if(binary_detector_output) then
-            write(detector_unit) node%position
+            write(detector_unit) detector%position
           else
-            format_buffer=reals_format(size(node%position))
+            format_buffer=reals_format(size(detector%position))
             write(detector_unit, format_buffer, advance="no") &
-                  node%position
+                  detector%position
           end if
        end if
 
-       node => node%next
+       detector => detector%next
 
        end do positionloop
 
@@ -2521,10 +2513,10 @@ contains
                 cycle
               end if
           
-              node => detector_list%firstnode
+              detector => detector_list%firstnode
 
               do j=1, detector_list%length
-                value =  detector_value(sfield, node)
+                value =  detector_value(sfield, detector)
 
                 if(getprocno() == 1) then
                 
@@ -2537,7 +2529,7 @@ contains
                 
                  end if
 
-                 node => node%next
+                 detector => detector%next
 
               end do
            end do
@@ -2559,11 +2551,11 @@ contains
                  allocate(vvalue(vfield%dim))
               end if
 
-              node => detector_list%firstnode
+              detector => detector_list%firstnode
 
               do j=1, detector_list%length
             
-                 vvalue =  detector_value(vfield, node)
+                 vvalue =  detector_value(vfield, detector)
              
                  ! Only the first process should write statistics information
              
@@ -2578,7 +2570,7 @@ contains
 
               end if
 
-              node => node%next
+              detector => detector%next
 
               end do            
         
@@ -2612,32 +2604,32 @@ contains
       allocate(send_list_array(number_neigh_processors))
       allocate(receive_list_array(number_neigh_processors))
 
-      node => detector_list%firstnode
+      detector => detector_list%firstnode
       do i = 1, detector_list%length
 
-          if (node%element>0) then
+          if (detector%element>0) then
 
-             processor_owner=element_owner(vfield%mesh,node%element)
+             processor_owner=element_owner(vfield%mesh,detector%element)
 
              if (processor_owner/= getprocno()) then
 
                 list_neigh_processor=fetch(ihash,processor_owner)
 
-                node_to_send => node
+                node_to_send => detector
 
-                node => node%next
+                detector => detector%next
 
                 call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
 
              else
     
-                node => node%next
+                detector => detector%next
 
              end if
 
           else
      
-             node => node%next
+             detector => detector%next
 
           end if
          
