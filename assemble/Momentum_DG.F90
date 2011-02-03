@@ -132,8 +132,7 @@ module momentum_DG
   real :: gravity_magnitude
 
   ! CDG stuff
-  real, dimension(:), pointer :: switch_g => null()
-  logical :: CDG_switch_in
+  real, dimension(3) :: switch_g
   logical :: CDG_penalty
   logical :: remove_penalty_fluxes
 
@@ -494,14 +493,11 @@ contains
        !=================Compact Discontinuous Galerkin
        viscosity_scheme=CDG
        !Set the switch vector
-       if(associated(switch_g)) deallocate(switch_g)
-       allocate(switch_g(mesh_dim(U)))
        switch_g = 0.
        switch_g(1) = exp(sin(3.0+exp(1.0)))
        if(mesh_dim(U)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2
        if(mesh_dim(U)>2) switch_g(3) = sin(cos(sin(cos(3.0))))
        switch_g = switch_g/sqrt(sum(switch_g**2))
-       !switch_g = 1.0/(sqrt(1.0*mesh_dim(U)))
 
        remove_penalty_fluxes = .true.
        interior_penalty_parameter = 0.0
@@ -1860,6 +1856,8 @@ contains
     !!< element ele.
     implicit none
 
+    logical :: CDG_switch_in
+
     integer, intent(in) :: ele, face, face_2, ni
     real, dimension(:,:,:,:), intent(inout) :: big_m_tensor_addto
     real, dimension(:,:,:,:), intent(inout), optional :: & 
@@ -2363,7 +2361,7 @@ contains
 
       if(viscosity_scheme==CDG) then
          flux_factor = 0.0
-         CDG_switch_in = (sum(switch_g*sum(normal,2)/size(normal,2))>0)
+         CDG_switch_in = (sum(switch_g(1:mesh_dim(U))*sum(normal,2)/size(normal,2))>0)
          if(CDG_switch_in) flux_factor = 1.0
       else
          flux_factor = 0.5

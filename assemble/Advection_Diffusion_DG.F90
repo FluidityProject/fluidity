@@ -121,8 +121,7 @@ module advection_diffusion_DG
   integer, parameter :: USE_ELEMENT_CENTRES=2
 
   ! CDG stuff
-  real, dimension(:), pointer :: switch_g => null()
-  logical :: CDG_switch_in
+  real, dimension(3) :: switch_g
   logical :: remove_CDG_fluxes
   logical :: CDG_penalty
   
@@ -229,8 +228,6 @@ contains
        !=================Compact Discontinuous Galerkin
        diffusion_scheme=CDG
        !Set the switch vector
-       if(associated(switch_g)) deallocate(switch_g)
-       allocate(switch_g(mesh_dim(T)))
        switch_g = 0.
        switch_g(1) = exp(sin(3.0+exp(1.0)))
        if(mesh_dim(T)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2
@@ -1140,7 +1137,9 @@ contains
 
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
-
+    !Switch to choose side to take fluxes from in CDG element
+    logical :: CDG_switch_in
+    
     ! Matrix for assembling primal fluxes
     ! Note that this assumes same order polys in each element
     ! Code will need reorganising for p-refinement
@@ -1630,7 +1629,7 @@ contains
                & centre_vec,& 
                & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
-               & U_mesh, q_mesh, &
+               & U_mesh, q_mesh, cdg_switch_in, &
                & primal_fluxes_mat, ele2grad_mat,diffusivity, &
                & penalty_fluxes_mat, normal_mat, kappa_normal_mat)
 
@@ -2215,7 +2214,7 @@ contains
        ni, centre_vec,big_m, rhs, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
-       & U_mesh, q_mesh,  &
+       & U_mesh, q_mesh, CDG_switch_in, &
        & primal_fluxes_mat, ele2grad_mat,diffusivity, &
        & penalty_fluxes_mat, normal_mat, kappa_normal_mat)
 
@@ -2233,7 +2232,9 @@ contains
     type(scalar_field), intent(in) :: T
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
-    !! Field over the entire surface mesh containing bc values:
+    !! switch for CDG fluxes
+    logical, intent(inout), optional :: CDG_switch_in
+   !! Field over the entire surface mesh containing bc values:
     type(scalar_field), intent(in):: bc_value
     !! Integer array of all surface elements indicating bc type
     !! (see above call to get_entire_boundary_condition):
@@ -2697,7 +2698,7 @@ contains
 
       if(diffusion_scheme==CDG) then
          flux_factor = 0.0
-         CDG_switch_in = (sum(switch_g*sum(normal,2)/size(normal,2))>0)
+         CDG_switch_in = (sum(switch_g(1:mesh_dim(T))*sum(normal,2)/size(normal,2))>0)
          if(CDG_switch_in) flux_factor = 1.0
       else
          flux_factor = 0.5
