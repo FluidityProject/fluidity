@@ -36,7 +36,7 @@ CC      = @CC@
 CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I../libwm -I/usr/local/include
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/ -I/usr/local/include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/include -I/usr/local/include
 
 MAKE    = @MAKE@
 
