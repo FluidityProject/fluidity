@@ -14575,7 +14575,7 @@ typedef float vtkFloatingPointType;
 #endif
 #endif
 EOF
-cp include/vtk.h libvtkfortran/
+cp include/vtk.h libvtkfortran/include/
 
 
 
