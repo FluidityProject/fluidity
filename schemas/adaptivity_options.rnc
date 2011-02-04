@@ -1858,7 +1858,7 @@ mesh_adaptivity_options =
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
                  element dry_absorption {real_dim_vector}?,
                  ## With wetting and drying the free surface is the maximum of two functions in the pressure finite element space. The result is in general not a function of the finite element space and 
-                 ## can therefore not represented exactely on the pressure mesh.
+                 ## can therefore not be represented exactly on the pressure mesh.
                  ## This option enables geometrical volume conservation by evaluating the maximum operator only at the nodal positions (instead of at each quadrature point),
                  ## on the cost of a worse internal representation of the wetting and drying interface.
                  element conserve_geometric_volume {void}?
