@@ -14583,10 +14583,10 @@ cp include/vtk.h libvtkfortran/include/
 
 # It appears this is not good practice but...go sue me
 #cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
-cat confdefs.h | grep DOUBLEP > libvtkfortran/confdefs.h
-cat confdefs.h | grep F77_FUNC >> libvtkfortran/confdefs.h
-cat confdefs.h | grep VTK >> libvtkfortran/confdefs.h
-cat confdefs.h | grep MPI >> libvtkfortran/confdefs.h
+cat confdefs.h | grep DOUBLEP > libvtkfortran/include/confdefs.h
+cat confdefs.h | grep F77_FUNC >> libvtkfortran/include/confdefs.h
+cat confdefs.h | grep VTK >> libvtkfortran/include/confdefs.h
+cat confdefs.h | grep MPI >> libvtkfortran/include/confdefs.h
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" > include/confdefs.h
 
 # Check whether --enable-2d-adaptivity was given.
