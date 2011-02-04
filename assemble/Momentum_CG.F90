@@ -198,7 +198,7 @@
       ! Fields for the Germano Dynamic LES Model
       type(vector_field), pointer :: tnu, mnu
       type(tensor_field), pointer :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
-      real                        :: alpha
+      real                        :: alpha, alpha2
 
       ! dummy fields in case state doesn't contain the above fields
       type(scalar_field), pointer :: dummyscalar
@@ -376,78 +376,34 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Initialise optional dynamic LES diagnostic fields
-           ! Filter width
-           if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")) then
-             dynamic_filter => extract_tensor_field(state, "DynamicFilterWidth", stat)
-             if(stat == 0) then
-               call zero(dynamic_filter)
-             end if
-           end if
-           ! Strain rate field S1
-           if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicStrainRate")) then
-             dynamic_strain => extract_tensor_field(state, "DynamicStrainRate", stat)
-             if(stat == 0) then
-               call zero(dynamic_strain)
-             end if
-           end if
-           ! Filtered strain rate field S2
-           if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")) then
-             dynamic_t_strain => extract_tensor_field(state, "DynamicFilteredStrainRate", stat)
-             if(stat == 0) then
-               ewrite(2,*) "zeroing field: ", trim(dynamic_t_strain%name)
-               call zero(dynamic_t_strain)
-             end if
-           end if
-           ! Eddy viscosity field m_ij
-           if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicEddyViscosity")) then
-             dynamic_eddy_visc => extract_tensor_field(state, "DynamicEddyViscosity", stat)
-             if(stat == 0) then
-               call zero(dynamic_eddy_visc)
-             end if
-           end if
-           ! Dynamic Smagorinsky coefficient C
-           if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicSmagorinskyCoefficient")) then
-             dynamic_les_coef => extract_tensor_field(state, "DynamicSmagorinskyCoefficient", stat)
-             if(stat == 0) then
-               call zero(dynamic_les_coef)
-             end if
-           end if
+           ! Initialise some compulsory and optional fields for the model.
+           call dynamic_les_init_fields(state, les_option_path, tnu, mnu, leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter)
 
-           ! Initialise compulsory dynamic LES diagnostic fields
-
-           ! Mesh-filtered velocity field
-           mnu => extract_vector_field(state, "DynamicVelocity", stat)
-           if(stat == 0) then
-             ewrite(2,*) "zeroing field: ", trim(mnu%name), ", ", trim(mnu%mesh%name)
-             call zero(mnu)
+           ! Are we filtering the velocity field to stabilise the model?
+           call get_option(trim(les_option_path)//"/dynamic_les/stabilisation_parameter", alpha2, default=0.0)
+           if(alpha2 > 0.0) then
+             ! Calculate mesh-filtered velocity
+             ewrite(2,*) "Calculating mesh-filtered velocity"
+             call anisotropic_smooth_vector(nu, x, mnu, alpha2, trim(les_option_path)//"/dynamic_les")
+           else if(alpha2==0.0) then
+             ! Point the dynamic velocity field at the velocity field because we're not filtering it.
+             call set(mnu, nu)
+           else
+             FLAbort("Incorrect value for dynamic LES stabilisation parameter.")
            end if
-
-           ! Test-filtered velocity field
-           tnu => extract_vector_field(state, "DynamicFilteredVelocity", stat)
-           if(stat == 0) then
-             ewrite(2,*) "zeroing field: ", trim(tnu%name), ", ", trim(tnu%mesh%name)
-             call zero(tnu)
-           end if
-
-           ! Leonard tensor field L_ij
-           leonard => extract_tensor_field(state, "DynamicLeonardTensor", stat)
-           if(stat == 0) then
-             ewrite(2,*) "zeroing field: ", trim(leonard%name)
-             call zero(leonard)
-           end if
-
-           ! Get filter size ratio alpha
+           do dim = 1, viscosity%dim(1)
+             ewrite_minmax(mnu%val(dim,:))
+           end do
+           ! Get (test filter)/(mesh filter) size ratio alpha
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
 
-           ! Calculate mesh-filtered velocity
-           ewrite(2,*) "Calculating mesh-filtered velocity"
-           call anisotropic_smooth_vector(nu, x, mnu, 1.0, trim(les_option_path)//"/dynamic_les")
-
-           ! Now down to business. Calculate test-filtered velocity field and Leonard tensor field
-             ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
-           call leonard_tensor(state, nu, x, tnu, leonard, alpha, les_option_path)
-
+           ! Calculate test-filtered velocity field and Leonard tensor field.
+           ! If velocity is already filtered, this applies the test filter on top of that.
+           ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
+           call leonard_tensor(state, mnu, x, tnu, leonard, alpha, les_option_path)
+           do dim = 1, viscosity%dim(1)
+             ewrite_minmax(tnu%val(dim,:))
+           end do
          end if
       end if
       
@@ -1839,8 +1795,8 @@
       real, dimension(ele_ngi(nu, ele))               :: strain_mod, t_strain_mod
       real, dimension(x%dim, x%dim)                   :: numerator, C, E, F, H, denominator
       real, dimension(x%dim, x%dim, ele_loc(nu, ele)) :: tensor_loc
-      type(element_type)                              :: shape_nu
-      integer, dimension(:), pointer                  :: nodes_nu
+      type(element_type)                              :: shape_mnu
+      integer, dimension(:), pointer                  :: nodes_mnu
       character(len=OPTION_PATH_LEN)                  :: dynamic_les_path
 
       ! Temperature dependent viscosity:
@@ -1919,9 +1875,10 @@
             dynamic_les_path="/material_phase[0]/vector_field::Velocity/prognostic/&
                               &spatial_discretisation/continuous_galerkin/les_model/dynamic_les"
 
-            shape_nu = ele_shape(nu, ele)
-            nodes_nu => ele_nodes(nu, ele)
-            nu_ele = ele_val(nu, ele)
+            shape_mnu = ele_shape(mnu, ele)
+            nodes_mnu => ele_nodes(mnu, ele)
+            ! Use dynamic velocity (filtered if stabilisation used)
+            nu_ele = ele_val(mnu, ele)
 
             ! Get strain S1 for unfiltered velocity (dim,dim,ngi)
             strain_gi = les_strain_rate(du_t, nu_ele)
@@ -1932,11 +1889,11 @@
             ! Get strain modulus |S2| for test-filtered velocity (ngi)
             t_strain_mod = les_viscosity_strength(du_t, ele_val(tnu, ele))
             ! Filter width G1 associated with mesh size (units length^2)
-            mesh_size_gi = length_scale_tensor(du_t, shape_nu)
+            mesh_size_gi = length_scale_tensor(du_t, shape_mnu)
             ! Leonard tensor L at gi
             leonard_gi =ele_val_at_quad(leonard, ele)
             ! Gauss points loop: tensor multiplications
-            do gi=1, ele_ngi(nu, ele)
+            do gi=1, ele_ngi(mnu, ele)
 
               ! Leonard contracted by strain rate: L*S at gi (dim,dim,ngi)
               numerator = matmul( leonard_gi(:,:,gi), strain_gi(:,:,gi) )
@@ -1954,46 +1911,44 @@
               C = -0.5 * matmul(numerator, denominator)
               dynamic_les_coef_gi(:,:,gi) = max(C, 0.0)
               dynamic_les_coef_gi(:,:,gi) = min( dynamic_les_coef_gi(:,:,gi), 1.0 )
-              ewrite(2,*) "min(C, 1): ", dynamic_les_coef_gi(:,:,gi)
               ! Dynamic eddy viscosity m_ij
               ! N.B. If averaging, beware of operator not applying to every term.
-              les_tensor_gi(:,:,gi) = matmul( dynamic_les_coef_gi(:,:,gi), E )
+              les_tensor_gi(:,:,gi) = max(matmul( dynamic_les_coef_gi(:,:,gi), E ), 0.0)
             end do
 
             ! Filter width tensor
             if(have_option(trim(dynamic_les_path)//"/tensor_field::DynamicFilterWidth")) then
               tensor_loc=0.0
-              tensor_loc=shape_tensor_rhs(shape_nu, mesh_size_gi, detwei)
-              call addto(dynamic_filter, nodes_nu, tensor_loc)
+              tensor_loc=shape_tensor_rhs(shape_mnu, mesh_size_gi, detwei)
+              call addto(dynamic_filter, nodes_mnu, tensor_loc)
             end if
             ! Strain rate field S1
             if(have_option(trim(dynamic_les_path)//"/tensor_field::DynamicStrainRate")) then
               tensor_loc=0.0
-              tensor_loc=shape_tensor_rhs(shape_nu, strain_gi, detwei)
-              call addto(dynamic_strain, nodes_nu, tensor_loc)
+              tensor_loc=shape_tensor_rhs(shape_mnu, strain_gi, detwei)
+              call addto(dynamic_strain, nodes_mnu, tensor_loc)
             end if
 
             ! Filtered strain rate field S2
             if(have_option(trim(dynamic_les_path)//"/tensor_field::DynamicFilteredStrainRate")) then
               tensor_loc=0.0
-              tensor_loc=shape_tensor_rhs(shape_nu, t_strain_gi, detwei)
-              call addto(dynamic_t_strain, nodes_nu, tensor_loc)
+              tensor_loc=shape_tensor_rhs(shape_mnu, t_strain_gi, detwei)
+              call addto(dynamic_t_strain, nodes_mnu, tensor_loc)
             end if
 
             ! Smagorinsky coefficient tensor field
             if(have_option(trim(dynamic_les_path)//"/tensor_field::DynamicSmagorinskyCoefficient")) then
               tensor_loc=0.0
-              tensor_loc=shape_tensor_rhs(shape_nu, dynamic_les_coef_gi, detwei)
-              call addto(dynamic_les_coef, nodes_nu, tensor_loc)
+              tensor_loc=shape_tensor_rhs(shape_mnu, dynamic_les_coef_gi, detwei)
+              call addto(dynamic_les_coef, nodes_mnu, tensor_loc)
             end if
 
             ! Eddy viscosity tensor field
             if(have_option(trim(dynamic_les_path)//"/tensor_field::DynamicEddyViscosity")) then
               tensor_loc=0.0
-              tensor_loc=shape_tensor_rhs(shape_nu, les_tensor_gi, detwei)
-              call addto(dynamic_eddy_visc, nodes_nu, tensor_loc)
+              tensor_loc=shape_tensor_rhs(shape_mnu, les_tensor_gi, detwei)
+              call addto(dynamic_eddy_visc, nodes_mnu, tensor_loc)
             end if
-            ewrite(2,*) "adding les_tensor_gi: ", les_tensor_gi
          else
             FLAbort("Unknown LES model")
          end if

@@ -594,8 +594,18 @@ default/recommended value: 2.0</a:documentation>
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
+                  <element name="stabilisation_parameter">
+                    <a:documentation>If this is nonzero, the Velocity field is Helmholtz-filtered with the specified value
+to make field DynamicVelocity, which is used in the dynamic model.
+This removes some subgrid information, but makes the model more stable.
+A smaller value means less subfilter information is lost, but the simulation is more unstable.
+
+The following condition must be met: stabilisation_parameter =&gt; 0.0. Default value: 0.0.
+It should probably be &lt; 1.0 as well. The filtering effect is proportional to the square.</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="vector_field">
-                    <a:documentation>Mesh-filtered velocity (diagnostic).</a:documentation>
+                    <a:documentation>Mesh-filtered velocity (diagnostic). </a:documentation>
                     <attribute name="rank">
                       <value>1</value>
                     </attribute>
@@ -615,34 +625,6 @@ default/recommended value: 2.0</a:documentation>
                     </attribute>
                     <attribute name="name">
                       <value>DynamicFilteredVelocity</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
-                  </element>
-                  <element name="vector_field">
-                    <a:documentation>(Velocity) - (Mesh-filtered velocity) (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>1</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>DynamicVelocityDiff1</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
-                  </element>
-                  <element name="vector_field">
-                    <a:documentation>(Velocity) - (Test-filtered velocity) (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>1</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>DynamicVelocityDiff2</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="internal_algorithm"/>

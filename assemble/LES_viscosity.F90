@@ -30,6 +30,7 @@ module les_viscosity_module
   !!< This module computes a viscosity term to implement LES
   use state_module
   use fields
+  use field_options
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use smoothing_module
@@ -39,15 +40,83 @@ module les_viscosity_module
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public leonard_tensor, les_strain_rate
+  public dynamic_les_init_fields, leonard_tensor, les_strain_rate
 
 contains
 
-  subroutine leonard_tensor(state, u, positions, tnu, leonard, alpha, path)
+  subroutine dynamic_les_init_fields(state, les_option_path, tnu, mnu, leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter)
+
+    type(state_type), intent(inout) :: state
+    type(vector_field), pointer, intent(inout) :: tnu, mnu
+    type(tensor_field), pointer, intent(inout) :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
+    character(len=OPTION_PATH_LEN) :: les_option_path
+    integer :: stat
+
+    ewrite(2,*) "Initialising compulsory dynamic LES fields"
+    ! Test-filtered velocity field
+    tnu => extract_vector_field(state, "DynamicFilteredVelocity", stat)
+    if(stat == 0) then
+      ewrite(2,*) "zeroing field: ", trim(tnu%name), ", ", trim(tnu%mesh%name)
+      call zero(tnu)
+    end if
+    ! Dynamic velocity field
+    mnu => extract_vector_field(state, "DynamicVelocity", stat)
+    if(stat == 0) then
+      ewrite(2,*) "zeroing field: ", trim(mnu%name), ", ", trim(mnu%mesh%name)
+      call zero(mnu)
+    end if
+    ! Leonard tensor field L_ij
+    leonard => extract_tensor_field(state, "DynamicLeonardTensor", stat)
+    if(stat == 0) then
+      ewrite(2,*) "zeroing field: ", trim(leonard%name)
+      call zero(leonard)
+    end if
+
+    ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
+    ! Filter width
+    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")) then
+      dynamic_filter => extract_tensor_field(state, "DynamicFilterWidth", stat)
+      if(stat == 0) then
+        call zero(dynamic_filter)
+      end if
+    end if
+    ! Strain rate field S1
+    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicStrainRate")) then
+      dynamic_strain => extract_tensor_field(state, "DynamicStrainRate", stat)
+      if(stat == 0) then
+        call zero(dynamic_strain)
+      end if
+    end if
+    ! Filtered strain rate field S2
+    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")) then
+      dynamic_t_strain => extract_tensor_field(state, "DynamicFilteredStrainRate", stat)
+      if(stat == 0) then
+        ewrite(2,*) "zeroing field: ", trim(dynamic_t_strain%name)
+        call zero(dynamic_t_strain)
+      end if
+    end if
+    ! Eddy viscosity field m_ij
+    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicEddyViscosity")) then
+      dynamic_eddy_visc => extract_tensor_field(state, "DynamicEddyViscosity", stat)
+      if(stat == 0) then
+        call zero(dynamic_eddy_visc)
+      end if
+    end if
+    ! Dynamic Smagorinsky coefficient C
+    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicSmagorinskyCoefficient")) then
+      dynamic_les_coef => extract_tensor_field(state, "DynamicSmagorinskyCoefficient", stat)
+      if(stat == 0) then
+        call zero(dynamic_les_coef)
+      end if
+    end if
+
+  end subroutine dynamic_les_init_fields
+
+  subroutine leonard_tensor(state, mnu, positions, tnu, leonard, alpha, path)
 
     type(state_type), intent(inout)           :: state
     ! Unfiltered velocity
-    type(vector_field), pointer, intent(inout)   :: u
+    type(vector_field), pointer, intent(inout)   :: mnu
     type(vector_field), intent(in)            :: positions
     ! Filtered velocity
     type(vector_field), pointer, intent(inout):: tnu
@@ -67,34 +136,32 @@ contains
     lpath = (trim(path)//"/dynamic_les")
     ewrite(2,*) "path: ", trim(lpath)
 
-    u => extract_vector_field(state, "Velocity", stat)
-
     do i = 1, positions%dim
-      ewrite_minmax(u%val(i,:))
+      ewrite_minmax(mnu%val(i,:))
       ewrite_minmax(tnu%val(i,:))
     end do
 
-    call anisotropic_smooth_vector(u, positions, tnu, alpha, lpath)
+    call anisotropic_smooth_vector(mnu, positions, tnu, alpha, lpath)
 
     do i = 1, positions%dim
-      ewrite_minmax(u%val(i,:))
+      ewrite_minmax(mnu%val(i,:))
       ewrite_minmax(tnu%val(i,:))
     end do
 
     ! Velocity products (ui*uj)
     allocate(ui_uj); allocate(tui_tuj)
-    call allocate(ui_uj, u%mesh, "NonlinearVelocityProduct")
-    call allocate(tui_tuj, u%mesh, "TestNonlinearVelocityProduct")
+    call allocate(ui_uj, mnu%mesh, "NonlinearVelocityProduct")
+    call allocate(tui_tuj, mnu%mesh, "TestNonlinearVelocityProduct")
     call zero(ui_uj); call zero(tui_tuj)
 
     ! Other local variables
-    allocate(u_loc(u%dim)); allocate(t_loc(u%dim, u%dim))
+    allocate(u_loc(mnu%dim)); allocate(t_loc(mnu%dim, mnu%dim))
     u_loc=0.0; t_loc=0.0
 
     ! Get cross products of velocities
-    do i=1, node_count(u)
+    do i=1, node_count(mnu)
       ! Mesh filter ^r
-      u_loc = node_val(u,i)
+      u_loc = node_val(mnu,i)
       call outer_product(u_loc, u_loc, t_loc)
       call set( ui_uj, i, t_loc )
       ! Test filter ^t
