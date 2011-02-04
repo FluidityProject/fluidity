@@ -326,7 +326,7 @@ class NormalisedLombScargle:
       numerator += self._sin(2.0 * omega * t)
       denomenator += self._cos(2.0 * omega * t)
     
-    return self._atan2(denomenator, numerator) / (2.0 * omega)
+    return self._atan2(numerator, denomenator) / (2.0 * omega)
     
   def EvaluatePoint(self, omega):
     """
