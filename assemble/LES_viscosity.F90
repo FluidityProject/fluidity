@@ -47,8 +47,8 @@ contains
   subroutine dynamic_les_init_fields(state, les_option_path, tnu, mnu, leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter)
 
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer, intent(inout) :: tnu, mnu
-    type(tensor_field), pointer, intent(inout) :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
+    type(vector_field), pointer :: tnu, mnu
+    type(tensor_field), pointer :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
     character(len=OPTION_PATH_LEN) :: les_option_path
     integer :: stat
 
@@ -116,12 +116,12 @@ contains
 
     type(state_type), intent(inout)           :: state
     ! Unfiltered velocity
-    type(vector_field), pointer, intent(inout)   :: mnu
+    type(vector_field), pointer               :: mnu
     type(vector_field), intent(in)            :: positions
     ! Filtered velocity
-    type(vector_field), pointer, intent(inout):: tnu
+    type(vector_field), pointer               :: tnu
     ! Leonard tensor field
-    type(tensor_field), pointer, intent(inout):: leonard
+    type(tensor_field), pointer               :: leonard
     ! Scale factor: test filter/mesh size
     real, intent(in)                          :: alpha
     character(len=OPTION_PATH_LEN), intent(in):: path

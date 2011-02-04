@@ -1914,6 +1914,7 @@
               ! Dynamic eddy viscosity m_ij
               ! N.B. If averaging, beware of operator not applying to every term.
               les_tensor_gi(:,:,gi) = max(matmul( dynamic_les_coef_gi(:,:,gi), E ), 0.0)
+              !les_tensor_gi(:,:,gi) = matmul( dynamic_les_coef_gi(:,:,gi), E )
             end do
 
             ! Filter width tensor
