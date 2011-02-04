@@ -7,7 +7,7 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity lagrangian_detectors.flml
+mpiexec -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors.flml
     </command_line>
   </problem_definition>
   <variables>
