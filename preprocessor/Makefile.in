@@ -91,6 +91,13 @@ check_options: check_options.o
 	mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(LIB) check_options.o &> check.log
 
+.PHONY:register_diagnostics
+
+# This gets run last by the fluidity build process.
+register_diagnostics: register_diagnostics.o
+	mkdir -p ../lib
+	$(AR) $(ARFLAGS) $(LIB) register_diagnostics.o &> register_diagnostics.log
+	
 clean:
 	rm -f *.o *.d *.mod
 

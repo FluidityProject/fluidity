@@ -87,7 +87,7 @@ module diagnostic_variables
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
-       & uninitialise_diagnostics
+       & uninitialise_diagnostics, register_diagnostic, set_diagnostic
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
 
@@ -162,6 +162,19 @@ module diagnostic_variables
   type(detector_linked_list), target, save :: detector_list
   real, dimension(:,:), allocatable, save :: array_det_info
 
+  ! List of registered diagnostic
+  type registered_diagnostic_item
+     integer :: dim
+     character(len=FIELD_NAME_LEN) :: name
+     character(len=FIELD_NAME_LEN) :: statistic
+     character(len=FIELD_NAME_LEN) :: material_phase
+     logical :: have_material_phase
+     real, dimension(:), allocatable :: value
+     type(registered_diagnostic_item), pointer :: next
+  end type registered_diagnostic_item
+
+  type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
+  
   !! Recording wall time since the system start
   integer, save :: current_count, count_rate, count_max
   integer(kind = int_16), save :: elapsed_count
@@ -739,6 +752,12 @@ contains
 
       end do phaseloop
 
+
+     ! Now register all user supplied diagnostics
+     call register_diagnostics
+     call print_registered_diagnostics
+
+
       write(diag_unit, '(a)') "</header>"
       flush(diag_unit)
     end if
@@ -748,6 +767,115 @@ contains
     ewrite(1, *) "Exiting initialise_diagnostics"
 
   end subroutine initialise_diagnostics
+
+
+  subroutine set_diagnostic(name, statistic, material_phase, value)
+    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in), optional ::  material_phase
+    real, dimension(:), intent(in) :: value
+
+    type(registered_diagnostic_item), pointer :: iterator => NULL()
+   
+    iterator => registered_diagnostic_first 
+
+    do while (.true.) 
+      if (.not. associated(iterator)) then
+        ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
+               & "material_phase=" //  trim(material_phase) // " does not exist."
+        FLAbort("Error in set_diagnostic.")
+      end if
+      ! Check if name and statistic match
+      if (iterator%name == name .and. iterator%statistic == statistic) then
+        ! Check if name of material_phase match if supplied
+        if ((present(material_phase) .and. iterator%have_material_phase .and. iterator%material_phase == material_phase) &
+           & .or. .not. iterator%have_material_phase) then
+          ! Check that the value arrays have the same dimension
+          if (size(iterator%value) /= size(value)) then
+            ewrite(0, *) "The registered diagnostic with name=" // trim(name) // " statistic=" // &
+                       & trim(statistic) //  "material_phase=" // trim(material_phase) //  " has dimension " // &
+                       & int2str(iterator%dim) // " but a value of dimension " // int2str(size(value))  // & 
+                       & " was supplied in set_diagnostic."
+            FLAbort("Error in set_diagnostic.")
+          end if
+          ! set value
+          iterator%value = value 
+          return
+        end if
+      end if
+      iterator => iterator%next
+    end do
+
+  end subroutine
+
+  subroutine print_registered_diagnostics
+  type(registered_diagnostic_item), pointer :: iterator => NULL()
+
+  iterator => registered_diagnostic_first
+
+  ewrite(1, *) "Registered diagnostics:"
+  do while(associated(iterator)) 
+    if (iterator%have_material_phase) then
+      ewrite(1, *) "Name: ", trim(iterator%name),           ", ", &
+                 & "Statistic: ", trim(iterator%statistic), ", ", &             
+                 & "Dimension: ", int2str(iterator%dim),    ", ", &
+                 & "Material phase: ", trim(iterator%material_phase)
+    else
+      ewrite(1, *) "Name: ", trim(iterator%name),           ", ", &
+                 & "Statistic: ", trim(iterator%statistic), ", ", &
+                 & "Dimension: ", int2str(iterator%dim)
+    end if
+    iterator => iterator%next
+  end do
+
+  end subroutine print_registered_diagnostics
+
+  subroutine register_diagnostic(dim, name, statistic, material_phase)
+    integer, intent(in) :: dim
+    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in), optional ::  material_phase
+    type(registered_diagnostic_item), pointer :: diagnostic_item, iterator => NULL()
+
+    ! Allocate the new registered_diagnostic_item and fill it.
+    allocate(diagnostic_item)
+    diagnostic_item%dim = dim
+    diagnostic_item%name = name
+    diagnostic_item%statistic = statistic
+    if (present(material_phase)) then
+      diagnostic_item%material_phase = material_phase
+      diagnostic_item%have_material_phase = .true.
+    else
+      diagnostic_item%have_material_phase = .false.
+    end if
+    allocate(diagnostic_item%value(dim))
+    nullify(diagnostic_item%next)
+
+    ! Now append it to the list of registered diagnostics
+    if (.not. associated(registered_diagnostic_first)) then
+      registered_diagnostic_first => diagnostic_item
+    else
+      iterator => registered_diagnostic_first
+      do while(associated(iterator%next)) 
+        iterator => iterator%next
+      end do
+      iterator%next => diagnostic_item
+    end if
+
+  end subroutine register_diagnostic
+
+  ! Clean up the list of registered diagnostics
+  subroutine destroy_registered_diagnostics
+    type(registered_diagnostic_item), pointer :: next, iterator
+    
+    iterator => registered_diagnostic_first
+
+    do while (associated(iterator)) 
+      next => iterator%next
+      deallocate(iterator%value)
+      deallocate(iterator)
+      iterator => next
+    end do
+
+end subroutine destroy_registered_diagnostics
 
   subroutine uninitialise_diagnostics
   ! Undo all of the initialise_diagnostics business.

@@ -262,6 +262,9 @@ endif
 	@echo "    MAKE options_check"
 	@./scripts/make_check_options
 	@cd preprocessor; $(MAKE) check_options
+	@echo "    MAKE register_diagnostics"
+	@./scripts/make_register_diagnostics
+	@cd preprocessor; $(MAKE) register_diagnostics
 
 fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"
