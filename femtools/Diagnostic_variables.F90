@@ -87,7 +87,7 @@ module diagnostic_variables
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
-       & uninitialise_diagnostics, register_diagnostic, set_diagnostic
+       & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
 
@@ -463,6 +463,8 @@ contains
     type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
+    ! Iterator for the registered diagnostics
+    type(registered_diagnostic_item), pointer :: iterator => NULL()
 
     ewrite(1, *) "In initialise_diagnostics"
 
@@ -753,10 +755,17 @@ contains
       end do phaseloop
 
 
-     ! Now register all user supplied diagnostics
-     call register_diagnostics
-     call print_registered_diagnostics
-
+      ! Now add the registered diagnostics
+      call register_diagnostics
+      call print_registered_diagnostics
+      iterator => registered_diagnostic_first
+      do while (associated(iterator)) 
+        column = column + 1
+        buffer = field_tag(name=trim(iterator%name), column=column, &
+               & statistic=iterator%statistic, material_phase_name=iterator%material_phase, components=iterator%dim)
+        write(diag_unit, '(a)') trim(buffer)
+        iterator => iterator%next
+      end do
 
       write(diag_unit, '(a)') "</header>"
       flush(diag_unit)
@@ -847,6 +856,7 @@ contains
       diagnostic_item%have_material_phase = .false.
     end if
     allocate(diagnostic_item%value(dim))
+    diagnostic_item%value = 0.0
     nullify(diagnostic_item%next)
 
     ! Now append it to the list of registered diagnostics
@@ -875,7 +885,7 @@ contains
       iterator => next
     end do
 
-end subroutine destroy_registered_diagnostics
+  end subroutine destroy_registered_diagnostics
 
   subroutine uninitialise_diagnostics
   ! Undo all of the initialise_diagnostics business.
@@ -1754,6 +1764,7 @@ end subroutine destroy_registered_diagnostics
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(vector_field) :: xfield
+    type(registered_diagnostic_item), pointer :: iterator => NULL()
 
     ewrite(1,*) 'In write_diagnostics'
     call profiler_tic("I/O")
@@ -1942,6 +1953,21 @@ end subroutine destroy_registered_diagnostics
        end do vector_field_loop
 
     end do phaseloop
+
+    ! Registered diagnostics
+    call print_registered_diagnostics
+    iterator => registered_diagnostic_first
+    do while (associated(iterator)) 
+      ! Only the first process should write statistics information
+      if(getprocno() == 1) then
+        if (iterator%dim == 1) then
+!          write(diag_unit, trim(format), advance = "no") iterator%value(1)
+        else
+          FLAbort("Multidimensional registered diagnostics not supported yet.")
+        end if
+      end if
+      iterator => iterator%next
+    end do
 
     ! Output end of line
     ! Only the first process should write statistics information

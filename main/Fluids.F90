@@ -936,6 +936,8 @@ contains
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
 
+    ! Clean up registered diagnostics
+    call destroy_registered_diagnostics 
 
     ! Delete the transform_elements cache.
     call deallocate_transform_cache
