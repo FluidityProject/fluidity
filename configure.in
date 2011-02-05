@@ -276,6 +276,7 @@ if test "x$enable_openmp" == "xyes" ; then
     AC_LANG_PUSH([C++])
     AC_OPENMP()
     CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
+    LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
     AC_LANG_POP([C++])
 
     AC_LANG_PUSH([Fortran])

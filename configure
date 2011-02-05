@@ -10240,6 +10240,7 @@ $as_echo "$ac_cv_prog_cxx_openmp" >&6; }
 
 
     CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
+    LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
     ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
