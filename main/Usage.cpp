@@ -42,6 +42,12 @@ void print_version(ostream& stream){
 #endif
       <<endl
       <<"Compile date: "<<__DATE__<<" "<<__TIME__<<endl
+      <<"OpenMP Support\t\t\t"
+#ifdef _OPENMP
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
       <<"Adaptivity support\t\t"
 #ifdef HAVE_ADAPTIVITY
       <<"yes\n"
