@@ -1961,7 +1961,7 @@ contains
       ! Only the first process should write statistics information
       if(getprocno() == 1) then
         if (iterator%dim == 1) then
-!          write(diag_unit, trim(format), advance = "no") iterator%value(1)
+          write(diag_unit, trim(format), advance = "no") iterator%value(1)
         else
           FLAbort("Multidimensional registered diagnostics not supported yet.")
         end if
