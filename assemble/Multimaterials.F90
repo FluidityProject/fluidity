@@ -55,7 +55,7 @@ module multimaterial_module
             calculate_material_mass, calculate_bulk_material_pressure, &
             calculate_sum_material_volume_fractions, calculate_material_volume, &
             calculate_bulk_property, add_scaled_material_property, calculate_surfacetension, &
-            calculate_diagnostic_volume_fraction, order_states_priority
+            calculate_diagnostic_material_volume_fraction, order_states_priority
 
 contains
 
@@ -213,7 +213,7 @@ contains
 
   end subroutine initialise_diagnostic_material_properties
   
-  subroutine calculate_diagnostic_volume_fraction(state)
+  subroutine calculate_diagnostic_material_volume_fraction(state)
 
     type(state_type), dimension(:), intent(inout) :: state
     
@@ -258,7 +258,7 @@ contains
       call deallocate(sumvolumefractions)
     end if
 
-  end subroutine calculate_diagnostic_volume_fraction
+  end subroutine calculate_diagnostic_material_volume_fraction
   
   subroutine order_states_priority(state, state_order)
     type(state_type), dimension(:), intent(inout) :: state
