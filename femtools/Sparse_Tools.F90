@@ -327,7 +327,7 @@ module sparse_tools
   end interface
 
   interface scale
-     module procedure csr_scale
+     module procedure csr_scale, block_csr_scale
   end interface
 
   interface val
@@ -397,7 +397,7 @@ module sparse_tools
   end interface
     
   interface transpose
-     module procedure csr_sparsity_transpose, csr_transpose
+     module procedure csr_sparsity_transpose, csr_transpose, block_csr_transpose
   end interface
 
   interface mmread
@@ -766,7 +766,7 @@ contains
     totalmem=rows+1 + lentries
     
     if (ldiag) then
-       allocate(sparsity%centrm(rows), stat=lstat)
+       allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
        if (lstat/=0) goto 42
        totalmem=totalmem + rows 
     else
@@ -3378,7 +3378,7 @@ contains
   end subroutine csr_block_csr_set
   
   subroutine csr_vset(matrix, i, j, val)
-    !!< Add val to matrix(i,j)
+    !!< Set val to matrix(i,j)
     type(csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i, j 
     real, dimension(size(i),size(j)), intent(in) :: val
@@ -3394,7 +3394,7 @@ contains
   end subroutine csr_vset
 
   subroutine csr_rset(matrix, i, j, val)
-    !!< Add val to matrix(i,j)
+    !!< Set val to matrix(i,j)
     type(csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: j
     integer, intent(in) :: i
@@ -4580,13 +4580,42 @@ contains
     sparsity_T%sorted_rows=.true.
     
     if (have_diag) then
-      do row=1, size(sparsity,1)
+      do row=1, size(sparsity_T%centrm)
         sparsity_T%centrm(row)=csr_sparsity_pos(sparsity_T, row, row)
       end do      
     end if
     
   end function csr_sparsity_transpose
-  
+
+  function block_csr_transpose(block_A, symmetric_sparsity) result (block_AT)
+    type(block_csr_matrix), intent(in) :: block_A 
+    ! If the sparsity is symmetric, don't create a new one
+    logical, intent(in), optional :: symmetric_sparsity
+
+    type(block_csr_matrix) block_AT
+    type(csr_matrix) :: A, AT
+    type(csr_sparsity):: sparsity
+    integer :: i, j
+
+    if (present_and_true(symmetric_sparsity)) then
+      call allocate(block_AT, block_A%sparsity, (/ block_A%blocks(2), block_A%blocks(1) /), name=trim(block_A%name) // "Transpose")
+    else
+      sparsity=transpose(block_A%sparsity)
+      call allocate(block_AT, sparsity, (/ block_A%blocks(2), block_A%blocks(1) /), name=trim(block_A%name) // "Transpose")
+      call deallocate(sparsity)
+    end if
+
+    do i = 1, blocks(block_A, 1) 
+      do j = 1, blocks(block_A, 2)
+        A = block(block_A, i, j)
+        AT = transpose(A)
+        call set(block_AT, j, i, AT)
+        call deallocate(AT)
+      end do
+    end do
+     
+  end function block_csr_transpose
+
   function csr_transpose(A, symmetric_sparsity) result (AT)
   !!< Provides the transpose of the given matrix
     type(csr_matrix), intent(in):: A

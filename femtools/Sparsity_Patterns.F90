@@ -375,9 +375,15 @@ contains
     
     integer :: i, count, pos
 
-    ! Grab the requisite space. Columns is not known at the time of this
-    ! call and must be manually set by the calling routine.
-    call allocate(sparsity, rows=size(lists), columns=0, &
+    integer :: columns
+
+    ! We have to figure out how many columns we have in this matrix
+    columns = -1
+    do i=1,size(lists)
+      columns = max(columns, maxval(lists(i)))
+    end do
+
+    call allocate(sparsity, rows=size(lists), columns=columns, &
          entries=sum(lists(:)%length), name=name)
     
     ! Lay out space for column indices.
