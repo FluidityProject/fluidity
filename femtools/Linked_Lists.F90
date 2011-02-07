@@ -109,7 +109,23 @@ module linked_lists
      module procedure copy_ilist, copy_ilist_array
   end interface
 
+  interface maxval
+    module procedure list_maxval
+  end interface maxval
+
 contains
+
+  integer function list_maxval(list)
+    type(ilist), intent(in) :: list
+    type(inode), pointer :: node
+
+    node => list%firstnode
+    list_maxval = node%value
+    do while (associated(node))
+      list_maxval = max(list_maxval, node%value)
+      node => node%next
+    end do
+  end function list_maxval
 
   logical function ihas_value(list, value)
     ! Check if the list contains the value.
