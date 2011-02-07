@@ -189,7 +189,7 @@ $(FTLE): FTLE.o
 
 $(FLINTEGRATE): flintegrate.o Flint_generalroutines.o Flint_volumeroutines.o \
   Flint_integralroutines.o Flint_extractdata.o flintegrate_main.o lib/
-	$(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS)
 
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

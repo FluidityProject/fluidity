@@ -24,25 +24,28 @@ SUBROUTINE ExtractData(filename, flength, nelm, nnod, node_groups, szenls, nfiel
 
 !--------------------------------------------------------------------------------------------------
 
-  INTERFACE
-     INTEGER FUNCTION freadvtkfile( filename, namelen, nnod, nelm, szenls,     &
-          nfields, nproperties, ndimensions, x, y, z, fields, properties,     &
-          enlbas, enlist, names, maxnamelen)
-       CHARACTER*(*) :: filename
-       INTEGER :: namelen, nnod, nelm, szenls, nfields, nproperties, ndimensions
-       INTEGER :: enlbas(nelm+1), enlist(szenls)
-       REAL :: x(nnod), y(nnod), z(nnod), fields(nnod,nfields), properties(nelm,nproperties)  
-       CHARACTER(len = maxnamelen) :: names(nfields+nproperties)
-     END FUNCTION freadvtkfile
-  END INTERFACE
-
-!--------------------------------------------------------------------------------------------------
-! Read in the vtk file.
-
-  err = freadvtkfile(filename, flength, nnod, nelm, szenls, nfields,     &
-       nproperties, ndimensions, x, y, z, fields, properties, enlbas,     &
-       enlist, names, maxnamelen)
-
+!!$  INTERFACE
+!!$     INTEGER FUNCTION freadvtkfile( filename, namelen, nnod, nelm, szenls,     &
+!!$          nfields, nproperties, ndimensions, x, y, z, fields, properties,     &
+!!$          enlbas, enlist, names, maxnamelen)
+!!$       CHARACTER*(*) :: filename
+!!$       INTEGER :: namelen, nnod, nelm, szenls, nfields, nproperties, ndimensions
+!!$       INTEGER :: enlbas(nelm+1), enlist(szenls)
+!!$       REAL :: x(nnod), y(nnod), z(nnod), fields(nnod,nfields), properties(nelm,nproperties)  
+!!$       CHARACTER(len = maxnamelen) :: names(nfields+nproperties)
+!!$     END FUNCTION freadvtkfile
+!!$  END INTERFACE
+!!$
+!!$!--------------------------------------------------------------------------------------------------
+!!$! Read in the vtk file.
+!!$
+!!$  err = freadvtkfile(filename, flength, nnod, nelm, szenls, nfields,     &
+!!$       nproperties, ndimensions, x, y, z, fields, properties, enlbas,     &
+!!$       enlist, names, maxnamelen)
+  err=1
+  print *, "This routine uses an out of date vtk file reader. If you see thi&
+       &s, complain to dham"
+  
   IF( err /= 0 ) THEN
      PRINT *, 'Something went wrong with VTK read!'
      STOP

@@ -112,7 +112,7 @@ lib/libadaptivity.a:
 
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libvtkfortran; echo '    MAKE libvtkfortran'; $(MAKE) 2>make.log 2>&1 ; cp libvtkfortran.a ../lib/; cd ..
+	@cd libvtkfortran; echo '    MAKE libvtkfortran'; $(MAKE) 2>make.log 2>&1 ; cp libvtkfortran.a ../lib/; cp *.mod ../include/; cd ..
 
 lib/libspatialindex.a:
 	@echo '    MKDIR lib'; mkdir -p lib

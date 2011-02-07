@@ -7,6 +7,7 @@ subroutine partial_integrals( &
   USE GeneralRoutines
   USE VolumeRoutines
   USE IntegralRoutines
+  use vtk_interfaces
 
   IMPLICIT NONE
 
@@ -77,7 +78,7 @@ subroutine partial_integrals( &
   INTEGER :: current_el_node_nos(4)      
 
 ! Node coordinates and nodal tracer values for the current element.
-  REAL :: current_el_node_coords(4,3), current_el_int_tracer(4), current_el_vol_tracer(4)    
+ REAL :: current_el_node_coords(4,3), current_el_int_tracer(4), current_el_vol_tracer(4)    
 ! The above, but reordered so that the node to be included in the volume/integral is at the top
   REAL :: reordered_node_coords(4,3), reordered_vol_tracer(4), reordered_int_tracer(4)
 
@@ -125,15 +126,8 @@ subroutine partial_integrals( &
 !--------------------------------------------------------------------------------------------------
 ! Variables and interface block for subroutine to read in the vtk header information.
 
-  INTEGER :: err, flength, namelen, szenls, nfields, nproperties, ndimensions, maxnamelen
-
-  INTERFACE
-     INTEGER FUNCTION fgetvtksizes( filename, namelen, nnod, nelm, szenls,     &
-          nfields, nproperties, ndimensions, maxnamelen )
-       CHARACTER(len=*) :: filename
-       INTEGER :: namelen ,nnod, nelm, szenls, nfields, nproperties, ndimensions, maxnamelen 
-     END FUNCTION fgetvtksizes
-  END INTERFACE
+  INTEGER :: err, flength, namelen, szenls, nfields, nproperties,&
+       & ndimensions, maxnamelen, field_components, element_components
 
 !--------------------------------------------------------------------------------------------------
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! END OF VARIABLE DECLARATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -161,13 +155,9 @@ subroutine partial_integrals( &
                       ! are extracted by fgetvtksizes.
 
 ! Extract the header information from the vtk file.
-  err = fgetvtksizes(filename, flength, total_nodes, total_elements,     &
-       szenls, nfields, nproperties, ndimensions, maxnamelen) 
-
-  IF( err /= 0 )THEN
-     PRINT *, 'Something went wrong with VTK sizes!'
-     STOP
-  END IF
+  call vtk_get_sizes(filename, flength, total_nodes, total_elements,     &
+       szenls, field_components, element_components, &
+       nfields, nproperties, ndimensions, maxnamelen) 
 
 !--------------------------------------------------------------------------------------------------
 ! Allocate some variables (see above for definitions).
