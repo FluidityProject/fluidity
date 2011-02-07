@@ -257,6 +257,8 @@ endif
 	@cd diagnostics;   	$(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
+	@echo "    MAKE adjoint"
+	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
@@ -331,6 +333,8 @@ endif
 	@echo "    CLEAN climatology"
 	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
+	@echo "    CLEAN adjoint"
+	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@echo "    CLEAN qg_strat"

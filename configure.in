@@ -1468,6 +1468,7 @@ AC_OUTPUT(Makefile
           main/Makefile
           scripts/Makefile tools/Makefile
           python/setup.py
+          adjoint/Makefile
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile
