@@ -453,10 +453,6 @@ contains
       end do
 
 
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
-    
-
       l_coriolis_mat = 0.
 
       if(dim==2) then
