@@ -4,6 +4,7 @@
 <testproblem>
   <name>sw_equatorial_rossby_soliton</name>
   <owner userid="colin"/>
+  <tags>swml</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>shallow_water -v 3 sw_equatorial_rossby_soliton.swml &amp;&gt; sw.log</command_line>
   </problem_definition>

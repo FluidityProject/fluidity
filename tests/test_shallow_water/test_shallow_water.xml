@@ -4,7 +4,7 @@
 <testproblem>
   <name>test_shallow_water</name>
   <owner userid="colin"/>
-  <tags>flml</tags>
+  <tags>flml swml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>shallow_water -v 3 balanced.swml &amp;&gt; sw.log</command_line>
   </problem_definition>
