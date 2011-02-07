@@ -62,6 +62,10 @@
 #include "finclude/petsc.h"
 #endif
 
+#ifdef HAVE_ADJOINT
+    integer, parameter :: IDENTITY_MATRIX = 30
+#endif
+
     ! Interface blocks for the initialisation routines we need to call
     interface
       subroutine set_global_debug_level(n)
@@ -86,21 +90,24 @@
     end interface
 
     type(state_type), dimension(:), pointer :: state
+    type(state_type) :: matrices ! We collect all the cached matrices in this state so that the adjoint
+                                 ! callbacks can use them
     real :: f0, D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     real, dimension(:), allocatable :: beta
     integer :: timestep, nonlinear_iterations
     integer :: ierr
 
-    integer, parameter :: IDENTITY_MATRIX = 30
-
     !! Sparsity for matrices.
     type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
 
     !! Mass matrices
-    type(csr_matrix) :: h_mass_mat, u_mass_mat
+    type(csr_matrix) :: h_mass_mat
+    type(block_csr_matrix) :: u_mass_mat
     !! Coriolis matrix
-    type(csr_matrix) :: coriolis_mat
+    type(block_csr_matrix) :: coriolis_mat
+    !! inverse Coriolis matrix
+    type(block_csr_matrix) :: inverse_coriolis_mat
     !! div matrix
     type(block_csr_matrix) :: div_mat
     !! Wave matrix
@@ -202,16 +209,24 @@
              call deallocate(h_mass_mat)
              call deallocate(u_mass_mat)
              call deallocate(coriolis_mat)
+             call deallocate(inverse_coriolis_mat)
              call deallocate(div_mat)
              call deallocate(wave_mat)
              call deallocate(big_mat)
              
              call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-                  h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
+                  h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
+                  div_mat,wave_mat,big_mat, &
                   dt,theta,D0,g,f0,beta)
              call insert_time_in_state(state)
-             u => extract_vector_field(state, "Velocity")
-             eta => extract_scalar_field(state, "LayerThickness")
+             ! Set up the state of cached matrices
+             call insert(matrices, u_mass_mat, "VelocityMassMatrix")
+             call insert(matrices, h_mass_mat, "PressureMassMatrix")
+             call insert(matrices, coriolis_mat, "CoriolisMatrix")
+             call insert(matrices, inverse_coriolis_mat, "InverseCoriolisMatrix")
+             call insert(matrices, div_mat, "DivergenceMatrix")
+             call insert(matrices, wave_mat, "WaveMatrix")
+             call insert(matrices, big_mat, "InverseBigMatrix")
           end if
        end if
 
@@ -225,9 +240,11 @@
     call deallocate(h_mass_mat)
     call deallocate(u_mass_mat)
     call deallocate(coriolis_mat)
+    call deallocate(inverse_coriolis_mat)
     call deallocate(div_mat)
     call deallocate(wave_mat)
     call deallocate(big_mat)
+    call deallocate(matrices)
     
     call deallocate(state)
     call deallocate_transform_cache()
@@ -280,7 +297,8 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
       call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-           h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
+           h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
+           div_mat,wave_mat,big_mat, &
            dt,theta,D0,g,f0,beta)
       
       call get_option("/timestepping/nonlinear_iterations"&
@@ -299,8 +317,17 @@
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
            &/initial_condition::WholeMesh/balanced")) then       
          call set_velocity_from_geostrophic_balance(state(1), &
-              div_mat,coriolis_mat)
+              div_mat, coriolis_mat, inverse_coriolis_mat)
       end if
+
+      ! Set up the state of cached matrices
+      call insert(matrices, u_mass_mat, "VelocityMassMatrix")
+      call insert(matrices, h_mass_mat, "PressureMassMatrix")
+      call insert(matrices, coriolis_mat, "CoriolisMatrix")
+      call insert(matrices, inverse_coriolis_mat, "InverseCoriolisMatrix")
+      call insert(matrices, div_mat, "DivergenceMatrix")
+      call insert(matrices, wave_mat, "WaveMatrix")
+      call insert(matrices, big_mat, "InverseBigMatrix")
       
     end subroutine get_parameters
     
@@ -440,7 +467,8 @@
       type(scalar_field), intent(inout) :: d
       type(vector_field), intent(inout) :: u
       real, intent(in) :: d0,g
-      type(csr_matrix), intent(in) :: u_mass_mat,h_mass_mat
+      type(block_csr_matrix), intent(in) :: u_mass_mat
+      type(csr_matrix), intent(in) :: h_mass_mat
       !
       type(scalar_field) :: Md
       type(vector_field) :: Mu
@@ -580,11 +608,12 @@
 
     end subroutine output_state
 
-    subroutine set_velocity_from_geostrophic_balance(state,div_mat,coriolis_mat)
+    subroutine set_velocity_from_geostrophic_balance(state,div_mat,&
+         coriolis_mat, inverse_coriolis_mat)
       implicit none
       type(state_type), intent(inout) :: state
-      type(block_csr_matrix), intent(in) :: div_mat
-      type(csr_matrix), intent(in) :: coriolis_mat
+      type(block_csr_matrix), intent(in) :: div_mat, coriolis_mat, &
+           inverse_coriolis_mat
       !
       type(scalar_field), pointer :: D
       type(vector_field), pointer :: U,X
@@ -607,15 +636,9 @@
       call allocate(u_tmp,mesh_dim(U),U%mesh,name="tempmem")
 
       call mult_T(u_tmp,div_mat,D)
+      call scale(u_tmp, -g)
 
-      call set(u1,u_tmp,2)
-      call set(u2,u_tmp,1)
-      call scale(u1,-g)
-      call scale(u2,g)
-
-      do ele = 1, ele_count(U)
-         call invert_coriolis(U,X,ele)
-      end do
+      call mult(U, inverse_coriolis_mat, u_tmp)
 
       call get_u_rhs(u_tmp,U,D,dt,g, &
          coriolis_mat,div_mat)
@@ -630,41 +653,6 @@
       ewrite(1,*) 'END subroutine set_velocity_from_geostrophic_balance()'
 
     end subroutine set_velocity_from_geostrophic_balance
-
-    subroutine invert_coriolis(U,X,ele)
-      type(vector_field), intent(inout) :: U
-      type(vector_field), intent(in) :: X
-      integer, intent(in) :: ele
-      !
-      real, dimension(ele_ngi(U, ele)) :: detwei
-      integer, dimension(:), pointer :: U_ele
-      type(element_type) :: u_shape
-      real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: c_mat
-      integer :: dim
-      real, dimension(ele_ngi(U, ele)) :: f_gi
-      real, dimension(mesh_dim(U), ele_ngi(x,ele)) :: x_gi
-      real, dimension(mesh_dim(U), ele_loc(u,ele)) :: U_val
-      integer :: d1
-
-      dim = mesh_dim(U)
-
-      x_gi = ele_val_at_quad(X,ele)
-      f_gi = f0 + matmul(beta,x_gi)
-
-      u_shape=ele_shape(u, ele)
-      U_ele => ele_nodes(U, ele)
-      U_val = ele_val(U, ele)
-
-      call transform_to_physical(X,ele,detwei=detwei)
-      
-      c_mat = shape_shape(u_shape,u_shape,detwei*f_gi)
-      call invert(c_mat)
-      
-      do d1 = 1, dim
-         call set(U,d1,u_ele,matmul(c_mat,U_val(d1,:)))
-      end do
-      
-    end subroutine invert_coriolis
 
     subroutine setup_cartesian_vector_fields(state)
       ! sets up the cartesian coordinate and velocity fields using the
@@ -952,6 +940,40 @@
 
     end subroutine identity_assembly_callback
 
+
+
+    subroutine wave_mat_assembly_callback(nvar, variables, dependencies, hermitian, context, output, rhs) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(c_ptr), intent(in), value :: context
+      type(adj_matrix), intent(out) :: output
+      type(adj_vector), intent(out) :: rhs
+
+      type(mesh_type), pointer :: mesh
+      type(scalar_field) :: empty_pressure_field
+      type(csr_matrix) :: wave_mat_T
+
+      ! context must be supplied as the address of the VelocityMesh
+      call c_f_pointer(context, mesh)
+      assert(trim(mesh%name) == "PressureMesh")
+
+      call allocate(empty_pressure_field, mesh, trim("AdjointPressureRhs"))
+      call zero(empty_pressure_field)
+      rhs = field_to_adj_vector(empty_pressure_field)
+      call deallocate(empty_pressure_field)
+
+      if (hermitian == ADJ_FALSE) then
+        output = matrix_to_adj_matrix(wave_mat)
+      else if (hermitian == ADJ_TRUE .and. trim(mesh%name) == "PressureMesh") then
+        wave_mat_T = transpose(wave_mat, symmetric_sparsity=.true.)
+        output = matrix_to_adj_matrix(wave_mat_T)
+        call deallocate(wave_mat_T)
+      end if
+    end subroutine wave_mat_assembly_callback
+
     subroutine coriolis_assembly_callback(nvar, variables, dependencies, hermitian, context, output, rhs) bind(c)
       use iso_c_binding
       integer(kind=c_int), intent(in), value :: nvar
@@ -962,22 +984,33 @@
       type(adj_matrix), intent(out) :: output
       type(adj_vector), intent(out) :: rhs
 
-      type(mesh_type), pointer :: velocity_mesh
+      type(mesh_type), pointer :: mesh
       type(vector_field) :: empty_velocity_field
+      type(scalar_field) :: empty_pressure_field
+      type(block_csr_matrix) :: coriolis_mat_T
 
       ! context must be supplied as the address of the VelocityMesh
-      call c_f_pointer(context, velocity_mesh)
+      call c_f_pointer(context, mesh)
 
-      if (trim(velocity_mesh%name) == "VelocityMesh") then
-        call allocate(empty_velocity_field, u%dim, velocity_mesh, trim("AdjointVelocityRhs"))
+      if (hermitian == ADJ_FALSE .and. trim(mesh%name) == "VelocityMesh") then
+        call allocate(empty_velocity_field, u%dim, mesh, trim("AdjointVelocityRhs"))
         call zero(empty_velocity_field)
         rhs = field_to_adj_vector(empty_velocity_field)
         call deallocate(empty_velocity_field)
+      
+        output = matrix_to_adj_matrix(coriolis_mat)
+      else if (hermitian == ADJ_TRUE .and. trim(mesh%name) == "PressureMesh") then
+        call allocate(empty_pressure_field, mesh, trim("AdjointPressureRhs"))
+        call zero(empty_pressure_field)
+        rhs = field_to_adj_vector(empty_pressure_field)
+        call deallocate(empty_pressure_field)
+
+        coriolis_mat_T = transpose(coriolis_mat, symmetric_sparsity=.true.)
+        output = matrix_to_adj_matrix(coriolis_mat_T)
+        call deallocate(coriolis_mat_T)
       else 
         FLAbort ("Unknown mesh found in context of coriolis_assembly_callback")
       end if
-
-      output = csr_matrix_to_adj_matrix(coriolis_mat)
     end subroutine coriolis_assembly_callback
 
     subroutine ggradperp_action_callback(nvar, variables, dependencies, hermitian, input, context, output) bind(c)
@@ -989,32 +1022,189 @@
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-
+      
+      ! Variables for hermitian == ADJ_FALSE
       type(scalar_field) :: eta_input
-      type(vector_field) :: u_output, u_output_tmp
+      type(vector_field) :: u_output
+      ! Variables for hermitian == ADJ_TRUE
+      type(vector_field) :: u_input
+      type(scalar_field) :: p_output
+      
+      type(vector_field) :: u_output_tmp
       type(scalar_field) :: u1, u2
+      type(block_csr_matrix) :: inverse_coriolis_mat_T
 
-      call field_from_adj_vector(input, eta_input)
 
-      ! So, we'll mult_T with div_mat, then do some swapping around, and scaling by g.
-      call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
-      call allocate(u_output_tmp, u%dim, u%mesh, "AdjointGGradPerpOutput")
+      if (hermitian==ADJ_FALSE) then
+        call field_from_adj_vector(input, eta_input)
+        ! So, we'll mult_T with div_mat, then scale by g and then act inverse_coriolis_mat on it. 
+        call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
+        call zero(u_output)
+
+        call mult_T(u_output,div_mat,eta_input)
+        call scale(u_output, -g)
+
+        call mult(u_output, inverse_coriolis_mat, u_output)
+
+        output = field_to_adj_vector(u_output)
+        call deallocate(u_output)
+      else
+        ! Do the same steps as above, but backwards and with the transposed operators
+        call field_from_adj_vector(input, u_input)
+        call allocate(p_output, eta%mesh, "AdjointGGradPerpOutput")
+        call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
+        call zero(u_output)
+        call zero(p_output)
+
+        inverse_coriolis_mat_T = transpose(inverse_coriolis_mat)
+        call mult(u_output, inverse_coriolis_mat_T, u_input)
+        call scale(u_output, -g)
+        call mult(p_output, div_mat, u_output)
+
+        output = field_to_adj_vector(p_output)
+        call deallocate(p_output)
+        call deallocate(u_output)
+      end if
+    end subroutine ggradperp_action_callback
+
+
+    ! TODO
+    subroutine div_bigmat_grad_action_callback(nvar, variables, dependencies, hermitian, input, context, output) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      
+      ! Variables for hermitian == ADJ_FALSE
+      type(scalar_field) :: eta_input
+      type(vector_field) :: u_output
+      ! Variables for hermitian == ADJ_TRUE
+      type(vector_field) :: u_input
+      type(scalar_field) :: p_output
+      
+      type(vector_field) :: u_output_tmp
+      type(scalar_field) :: u1, u2
+      type(block_csr_matrix) :: inverse_coriolis_mat_T
+
+
+      
+      if (hermitian==ADJ_FALSE) then
+        call field_from_adj_vector(input, eta_input)
+        ! So, we'll mult_T with div_mat, then scale by g and then act inverse_coriolis_mat on it. 
+        call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
+        call zero(u_output)
+
+        call mult_T(u_output,div_mat,eta_input)
+        call scale(u_output, -g)
+
+        call mult(u_output, inverse_coriolis_mat, u_output)
+
+        output = field_to_adj_vector(u_output)
+        call deallocate(u_output)
+      else
+        ! Do the same steps as above, but backwards and with the transposed operators
+        call field_from_adj_vector(input, u_input)
+        call allocate(p_output, eta%mesh, "AdjointGGradPerpOutput")
+        call allocate(u_output, u%dim, u%mesh, "AdjointGGradPerpOutput")
+        call zero(u_output)
+        call zero(p_output)
+
+        inverse_coriolis_mat_T = transpose(inverse_coriolis_mat)
+        call mult(u_output, inverse_coriolis_mat_T, u_input)
+        call scale(u_output, -g)
+        call mult(p_output, div_mat, u_output)
+
+        output = field_to_adj_vector(p_output)
+        call deallocate(p_output)
+        call deallocate(u_output)
+      end if
+    end subroutine div_bigmat_grad_action_callback
+
+
+    subroutine bigmat_grad_action_callback(nvar, variables, dependencies, hermitian, input, context, output) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      
+      ! Variables for hermitian == ADJ_FALSE
+      type(scalar_field) :: eta_input
+      type(vector_field) :: u_output
+      ! Variables for hermitian == ADJ_TRUE
+      type(vector_field) :: u_input
+      type(scalar_field) :: p_output
+      
+      type(vector_field) :: u_output_tmp
+      type(scalar_field) :: u1, u2
+      type(block_csr_matrix) :: big_mat_T
+
+      if (hermitian==ADJ_FALSE) then
+        call field_from_adj_vector(input, eta_input)
+        ! So, we'll mult_T with div_mat, and then act big_mat on it. 
+        call allocate(u_output, u%dim, u%mesh, "AdjointBigMatGradOutput")
+        call zero(u_output)
+
+        call mult_T(u_output,div_mat,eta_input)
+        call mult(u_output, big_mat, u_output)
+
+        output = field_to_adj_vector(u_output)
+        call deallocate(u_output)
+      else
+        ! Do the same steps as above, but backwards and with the transposed operators
+        call field_from_adj_vector(input, u_input)
+        call allocate(p_output, eta%mesh, "AdjointBigMatGradTOutput")
+        call allocate(u_output, u%dim, u%mesh, "AdjointBigMatGradTOutput")
+        call zero(u_output)
+        call zero(p_output)
+
+        call mult_T(u_output, big_mat, u_input)
+        call mult(p_output, div_mat, u_output)
+
+        output = field_to_adj_vector(p_output)
+        call deallocate(p_output)
+        call deallocate(u_output)
+      end if
+    end subroutine bigmat_grad_action_callback
+
+    subroutine bigmat_coriolis_action_callback(nvar, variables, dependencies, hermitian, input, context, output) bind(c)
+      use iso_c_binding
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      
+      type(vector_field) :: u_output, u_input
+      
+      type(vector_field) :: u_output_tmp
+      type(block_csr_matrix) :: coriolis_T
+
+      call field_from_adj_vector(input, u_input)
+      
+      call allocate(u_output, u%dim, u%mesh, "AdjointBigMatCoriolisOutput")
       call zero(u_output)
-      call zero(u_output_tmp)
 
-      call mult_T(u_output_tmp, div_mat, eta_input)
-
-      u1 = extract_scalar_field(u_output, 1)
-      u2 = extract_scalar_field(u_output, 2)
-      call set(u1, u_output_tmp, 2)
-      call set(u2, u_output_tmp, 1)
-      call scale(u1, -g)
-      call scale(u2, g)
-      call deallocate(u_output_tmp)
-
+      if (hermitian==ADJ_FALSE) then
+        ! So, we'll mult with coriolis_mat. 
+        call mult(u_output,coriolis_mat,u_input)
+      else
+        ! TODO
+!        call mult_T(u_output,coriolis_mat,u_input)
+      end if 
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
-    end subroutine ggradperp_action_callback
+    end subroutine bigmat_coriolis_action_callback
+
 #endif
 
   end program shallow_water
