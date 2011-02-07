@@ -211,10 +211,6 @@ implicit none
 
       v = 0.0
 
-      !! This was clearly hard-coded for 3D. 
-      assert(source_field%dim(1)==3)
-      assert(source_field%dim(2)==3)
-
       ! Making sure the second invariant gets evaluated over the whole mesh
       do node=1,node_count(s_field)
              call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
