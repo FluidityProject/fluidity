@@ -852,7 +852,7 @@
     subroutine adjoint_register_initial_u_condition(balanced)
       logical, intent(in) :: balanced
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: I, L, gCperp
+      type(adj_block) :: I, L, gC
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u0, eta0
@@ -861,7 +861,7 @@
       ! if balanced is false, we just read in an initial condition as usual
 
       if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("Identity", block=I, context=c_loc(u%mesh))
+        ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
@@ -879,7 +879,9 @@
         ! The equation we have to register is the derivation of u0 from geostrophic balance
         ierr = adj_create_block("Coriolis", block=L)
         call adj_chkierr(ierr)
-        ierr = adj_create_block("gGradPerp", block=gCperp)
+        ierr = adj_create_block("Grad", block=gC)
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
@@ -887,7 +889,7 @@
         ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(var=u0, blocks=(/L, gCperp/), targets=(/u0, eta0/), equation=equation)
+        ierr = adj_create_equation(var=u0, blocks=(/L, gC/), targets=(/u0, eta0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -895,7 +897,7 @@
 
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(L)
-        ierr = adj_destroy_block(gCperp)
+        ierr = adj_destroy_block(gC)
       endif
 #endif
     end subroutine adjoint_register_initial_u_condition
