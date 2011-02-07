@@ -787,21 +787,21 @@ contains
    
     iterator => registered_diagnostic_first 
 
-    do while (.true.) 
-      if (.not. associated(iterator)) then
-        ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
-               & "material_phase=" //  trim(material_phase) // " does not exist."
+     if (.not. associated(iterator)) then
+        ewrite(0, *) "The diagnostic with name = " // trim(name) //  " , " //  " statistic = " // trim(statistic) //  " , " //  &
+               & "material_phase = " //  trim(material_phase) //  " , " //  " does not exist."
         FLAbort("Error in set_diagnostic.")
-      end if
-      ! Check if name and statistic match
-      if (iterator%name == name .and. iterator%statistic == statistic) then
+     else
+      do while (associated(iterator)) 
+       ! Check if name and statistic match
+       if (iterator%name == name .and. iterator%statistic == statistic) then
         ! Check if name of material_phase match if supplied
         if ((present(material_phase) .and. iterator%have_material_phase .and. iterator%material_phase == material_phase) &
            & .or. .not. iterator%have_material_phase) then
           ! Check that the value arrays have the same dimension
           if (size(iterator%value) /= size(value)) then
-            ewrite(0, *) "The registered diagnostic with name=" // trim(name) // " statistic=" // &
-                       & trim(statistic) //  "material_phase=" // trim(material_phase) //  " has dimension " // &
+            ewrite(0, *) "The registered diagnostic with name = " // trim(name) //  " , " //   " statistic = " // &
+                       & trim(statistic)  //  " , " // "material_phase = " // trim(material_phase) //  " has dimension " // &
                        & int2str(iterator%dim) // " but a value of dimension " // int2str(size(value))  // & 
                        & " was supplied in set_diagnostic."
             FLAbort("Error in set_diagnostic.")
@@ -809,10 +809,11 @@ contains
           ! set value
           iterator%value = value 
           return
-        end if
-      end if
-      iterator => iterator%next
-    end do
+         end if
+       end if
+       iterator => iterator%next
+      end do
+     end if
 
   end subroutine
 
@@ -1033,6 +1034,7 @@ contains
            end if
 
            column = column + 1
+
            buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
              & statistic="error", material_phase_name=material_phase_name)
            write(conv_unit, '(a)') trim(buffer)
