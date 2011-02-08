@@ -267,7 +267,7 @@
       integer :: dim
       type(vector_field), pointer :: u
       type(scalar_field), pointer :: eta
-      type(scalar_field) :: dim_field
+      type(vector_field) :: dummy_field
       !Get some parameters
       !Coriolis
       call get_option("/geometry/dimension",dim)
@@ -333,10 +333,10 @@
       ! Also save the velocity and pressure mesh and the dimension
       eta => extract_scalar_field(state, "LayerThickness")
       call insert(matrices, eta%mesh, "LayerThicknessMesh")
-      call allocate(dim_field, u%mesh, "VelocityDimension", field_type=FIELD_TYPE_CONSTANT)
-      call set(dim_field, real(u%dim))
-      call insert(matrices, dim_field, "VelocityDimension")
-      call deallocate(dim_field)
+      call allocate(dummy_field, u%dim, u%mesh, "VelocityDummy", field_type=FIELD_TYPE_CONSTANT)
+      call zero(dummy_field)
+      call insert(matrices, dummy_field, "VelocityDummy")
+      call deallocate(dummy_field)
 
     end subroutine get_parameters
     
@@ -941,9 +941,7 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("DivBigMatCoriolis", context=c_loc(matrices), block=CTML)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=CTML, coefficient=-1 * dt * D0) 
+      ierr = adj_create_block("GradMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
       call adj_chkierr(ierr)
 
       ! Blocks for eta_n equation
