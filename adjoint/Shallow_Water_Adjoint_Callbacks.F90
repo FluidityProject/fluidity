@@ -60,7 +60,6 @@ module shallow_water_adjoint_callbacks
         FLAbort("The coefficient in velocity_identity_assembly_callback has to be 1.0")
       end if
 
-      ! context must be supplied as the address of the mesh_type we're to allocate rhs on
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
 
@@ -76,6 +75,40 @@ module shallow_water_adjoint_callbacks
       output%klass = IDENTITY_MATRIX
 
     end subroutine velocity_identity_assembly_callback
+
+    subroutine layerthickness_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(c_ptr), intent(in), value :: context
+      type(adj_matrix), intent(out) :: output
+      type(adj_vector), intent(out) :: rhs
+
+      type(state_type), pointer :: matrices
+      type(mest_type), pointer :: eta_mesh
+      type(scalar_field) :: empty_eta_field
+
+      if (coefficient /= 1.0) then
+        FLAbort("The coefficient in layerthickness_identity_assembly_callback has to be 1.0")
+      end if
+
+      call c_f_pointer(context, matrices)
+      eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
+
+      call allocate(empty_eta_field, eta_mesh, trim("AdjointLayerThicknessRhs"))
+      call zero(empty_eta_field)
+      rhs = field_to_adj_vector(empty_eta_field)
+      call deallocate(empty_eta_field)
+
+      ! We're not actually going to do anything daft like allocate memory for
+      ! an identity matrix. Instead, we'll fill it in with a special tag
+      ! that we'll catch later on in the solution of the adjoint equations.
+      output%ptr = c_null_ptr
+      output%klass = IDENTITY_MATRIX
+
+    end subroutine layerthickness_identity_assembly_callback
 
     subroutine wave_mat_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
