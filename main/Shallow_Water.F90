@@ -52,6 +52,7 @@
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
     use iso_c_binding
+    use mangle_options_tree
 #ifdef HAVE_ADJOINT
     use shallow_water_adjoint_callbacks
     use libadjoint
@@ -132,7 +133,7 @@
 
     call python_init
     call read_command_line
-!   call forward_options_dictionary
+    call mangle_options_tree_forward
 
     call populate_state(state)
     call adjoint_register_initial_eta_condition
@@ -267,7 +268,7 @@
       call clear_options
       call read_command_line
 
-!      call adjoint_options_dictionary
+      call mangle_options_tree_adjoint
       call populate_state(state)
       call check_diagnostic_dependencies(state)
       call get_option('/simulation_name', simulation_name)
