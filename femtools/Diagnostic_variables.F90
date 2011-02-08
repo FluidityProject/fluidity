@@ -863,6 +863,32 @@ contains
     diagnostic_item%value = 0.0
     nullify(diagnostic_item%next)
 
+   ! Check if the diagnostic has not been registered yet
+    iterator => registered_diagnostic_first
+
+    do while (associated(iterator))
+      if (associated(registered_diagnostic_first)) then
+        if (iterator%dim == diagnostic_item%dim .and. iterator%name == diagnostic_item%name .and. &
+          & iterator%statistic == diagnostic_item%statistic) then
+          if ( (present(material_phase) .and. iterator%have_material_phase) .or. &
+             & (.not. present(material_phase) .and. .not. iterator%have_material_phase) ) then
+            if (present(material_phase)) then
+              if (iterator%material_phase == diagnostic_item%material_phase) then
+                ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // &
+                       & trim(statistic) //  ", material_phase = " // trim(material_phase) //  ", and dimension = " // &
+                       & int2str(iterator%dim) // " has already been registered."
+              end if
+            else
+              ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // trim(statistic) &
+                     & //  ", and dimension = " // int2str(iterator%dim) // " has already been registered."
+            end if
+            FLExit("Error in register_diagnostic.")
+          end if
+        end if
+      end if
+      iterator => iterator%next
+    end do
+
     ! Now append it to the list of registered diagnostics
     if (.not. associated(registered_diagnostic_first)) then
       registered_diagnostic_first => diagnostic_item
