@@ -317,24 +317,6 @@ helmholtz_anisotropic_smoothed_vector_algorithm =
          }
       }
    )
-helmholtz_anisotropic_smoothed_tensor_algorithm =
-   (
-      ## Smooth a tensor field by inverting a Helmholtz operator.
-      element algorithm {
-         attribute name { "helmholtz_anisotropic_smoothed_tensor" },
-         attribute material_phase_support { "single" },
-         tensor_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
-         ## 2 is recommended.
-         element smoothing_length_scale {
-             real
-         },
-         ## Solver options.
-         element solver {
-            linear_solver_options_sym
-         }
-      }
-   )
 lumped_mass_smoothed_scalar_algorithm =
    (
       ## Smooth a scalar field by inverting the lumped mass: ML {S_smooth}=M {S} .
@@ -1345,4 +1327,3 @@ tensor_diagnostic_algorithms |= tensor_copy_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
-tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm

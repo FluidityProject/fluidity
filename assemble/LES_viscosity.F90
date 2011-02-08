@@ -28,187 +28,158 @@
 
 module les_viscosity_module
   !!< This module computes a viscosity term to implement LES
-  use state_module
   use fields
-  use field_options
-  use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
-  use smoothing_module
-  use vector_tools
   implicit none
 
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public dynamic_les_init_fields, leonard_tensor, les_strain_rate
+!         &dynamic_les_init, leonard_tensor
 
 contains
 
-  subroutine dynamic_les_init_fields(state, les_option_path, tnu, mnu, leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter)
+  !subroutine dynamic_les_init(nu, du_t)
 
-    type(state_type), intent(inout) :: state
-    type(vector_field), pointer :: tnu, mnu
-    type(tensor_field), pointer :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
-    character(len=OPTION_PATH_LEN) :: les_option_path
-    integer :: stat
+    !u_mesh = nu%mesh
+    ! Create a test-filter mesh from the velocity mesh
+    ! that has the same nodes but different connectivity
+    !test_mesh = make_dynamic_les_mesh(u_mesh, test_mesh)
 
-    ewrite(2,*) "Initialising compulsory dynamic LES fields"
-    ! Test-filtered velocity field
-    tnu => extract_vector_field(state, "DynamicFilteredVelocity", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(tnu%name), ", ", trim(tnu%mesh%name)
-      call zero(tnu)
-    end if
-    ! Dynamic velocity field
-    mnu => extract_vector_field(state, "DynamicVelocity", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(mnu%name), ", ", trim(mnu%mesh%name)
-      call zero(mnu)
-    end if
-    ! Leonard tensor field L_ij
-    leonard => extract_tensor_field(state, "DynamicLeonardTensor", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(leonard%name)
-      call zero(leonard)
-    end if
+    ! Copy the nonlinear velocity field on to the coarser test mesh
+    !test_nu = wrap_vector_field(test_mesh, nu%val, "TestNonlinearVelocity")
 
-    ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
-    ! Filter width
-    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")) then
-      dynamic_filter => extract_tensor_field(state, "DynamicFilterWidth", stat)
-      if(stat == 0) then
-        call zero(dynamic_filter)
-      end if
-    end if
-    ! Strain rate field S1
-    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicStrainRate")) then
-      dynamic_strain => extract_tensor_field(state, "DynamicStrainRate", stat)
-      if(stat == 0) then
-        call zero(dynamic_strain)
-      end if
-    end if
-    ! Filtered strain rate field S2
-    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")) then
-      dynamic_t_strain => extract_tensor_field(state, "DynamicFilteredStrainRate", stat)
-      if(stat == 0) then
-        ewrite(2,*) "zeroing field: ", trim(dynamic_t_strain%name)
-        call zero(dynamic_t_strain)
-      end if
-    end if
-    ! Eddy viscosity field m_ij
-    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicEddyViscosity")) then
-      dynamic_eddy_visc => extract_tensor_field(state, "DynamicEddyViscosity", stat)
-      if(stat == 0) then
-        call zero(dynamic_eddy_visc)
-      end if
-    end if
-    ! Dynamic Smagorinsky coefficient C
-    if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicSmagorinskyCoefficient")) then
-      dynamic_les_coef => extract_tensor_field(state, "DynamicSmagorinskyCoefficient", stat)
-      if(stat == 0) then
-        call zero(dynamic_les_coef)
-      end if
-    end if
+    !do ele = 1, ele_count(test_mesh)
+    !  ltens = leonard_tensor(ele, nu, test_mesh)
 
-  end subroutine dynamic_les_init_fields
+    !end do
 
-  subroutine leonard_tensor(state, mnu, positions, tnu, leonard, alpha, path)
+  !end subroutine dynamic_les_init
 
-    type(state_type), intent(inout)           :: state
-    ! Unfiltered velocity
-    type(vector_field), pointer               :: mnu
-    type(vector_field), intent(in)            :: positions
-    ! Filtered velocity
-    type(vector_field), pointer               :: tnu
-    ! Leonard tensor field
-    type(tensor_field), pointer               :: leonard
-    ! Scale factor: test filter/mesh size
-    real, intent(in)                          :: alpha
-    character(len=OPTION_PATH_LEN), intent(in):: path
-    ! Local quantities
-    type(tensor_field), pointer               :: ui_uj, tui_tuj
-    character(len=OPTION_PATH_LEN)            :: lpath
-    integer                                   :: i, stat
-    real, dimension(:), allocatable           :: u_loc
-    real, dimension(:,:), allocatable         :: t_loc
 
-    ! Path is to level above solver options
-    lpath = (trim(path)//"/dynamic_les")
-    ewrite(2,*) "path: ", trim(lpath)
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+!  subroutine smooth_velocity(nu, nu_test)
 
-    call anisotropic_smooth_vector(mnu, positions, tnu, alpha, lpath)
+!    path = trim(complete_field_path(trim(nu%option_path)))
+    !alpha = MUST BE A CONSTANT! Change to variable? See papers
+    ! Get scalar components of velocity
+!    do dim=1,nu%dim
+!      scalar_component => extract_scalar_field(nu, dim, stat)
+!      call smooth_scalar(scalar_component, positions, smooth_scalar_component, alpha, path=path)               
+!      ! set vector field from scalar
+!      call set(test_nu, dim, smooth_scalar_component)
+!    end do
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+!  end subroutine dynamic_les_fields
 
-    ! Velocity products (ui*uj)
-    allocate(ui_uj); allocate(tui_tuj)
-    call allocate(ui_uj, mnu%mesh, "NonlinearVelocityProduct")
-    call allocate(tui_tuj, mnu%mesh, "TestNonlinearVelocityProduct")
-    call zero(ui_uj); call zero(tui_tuj)
 
-    ! Other local variables
-    allocate(u_loc(mnu%dim)); allocate(t_loc(mnu%dim, mnu%dim))
-    u_loc=0.0; t_loc=0.0
 
-    ! Get cross products of velocities
-    do i=1, node_count(mnu)
-      ! Mesh filter ^r
-      u_loc = node_val(mnu,i)
-      call outer_product(u_loc, u_loc, t_loc)
-      call set( ui_uj, i, t_loc )
-      ! Test filter ^t
-      u_loc = node_val(tnu,i)
-      call outer_product(u_loc, u_loc, t_loc)
-      ! Calculate (test-filtered velocity) products: (ui^rt*uj^rt)
-      call set( tui_tuj, i, t_loc )
-    end do
+!  function leonard_tensor(ele, nu, test_nu) result(leonard_tensor)
 
-    ! Calculate test-filtered (velocity products): (ui^r*uj^r)^t
-    call anisotropic_smooth_tensor(ui_uj, positions, leonard, alpha, lpath)
+    ! Smoothed velocity field
+!    call allocate(test_nu, nu%mesh, "Smoothed" // trim(nu%name))
+!    call zero(test_nu)
 
-    ! Leonard tensor field
-    call addto( leonard, tui_tuj, -1.0 )
+    !path = trim(complete_field_path(trim(field_in%option_path))) // "/adaptivity_options/preprocessing/helmholtz_smoother"
+!    call smooth_scalar(nu, positions, test_nu, alpha, path=path)
 
-    ! Deallocates
-    deallocate(u_loc, t_loc)
-    call deallocate(ui_uj)
-    call deallocate(tui_tuj)
-    deallocate(ui_uj); deallocate(tui_tuj)
+    ! Velocity products loop
+!    u_mesh = nu%mesh
+!    neigh => ele_neigh(u_mesh, ele)
+!    nloc = size(ele_nodes(u_mesh, ele))
+!    do n = 1, size(neigh)
+!      ele2 = neigh(n) 
+      ! find global face no. of face associated with neighbouring element
+!      face2 = ele_face(u_mesh, ele2, ele)
+      ! By convention, node opposite a face has same local number
+!      local_face2 = local_face_number(u_mesh, face2)
+      ! Find the global node no. of the opposite node
+!      ele2_nodes => ele_nodes(u_mesh, ele2)
+      ! ele vertex n is matched to global node with same number as local_face2
+!      node2 = ele2_nodes(local_face2)
 
-  end subroutine leonard_tensor
+      ! Get velocity at foreign node
+!    end do
 
-  function les_strain_rate(du_t, nu)
-    !! Computes the strain rate
-    !! derivative of velocity shape function (nloc x ngi x dim)
-    real, dimension(:,:,:), intent(in):: du_t
-    !! nonlinear velocity (dim x nloc)
-    real, dimension(:,:), intent(in):: nu
-    real, dimension( size(du_t,3),size(du_t,3),size(du_t,2) ):: les_strain_rate
-    real, dimension(size(du_t,3),size(du_t,3)):: s
-    integer dim, ngi, gi
+!    nu_quad = ele_val_at_quad(nu, ele)
+!    tnu_quad = ele_val_at_quad(test_nu, ele)
+!    ngi = size(nu_quad,2)
+!    dim = size(nu_quad,3)
 
-    ngi=size(du_t,2)
-    dim=size(du_t,3)
+    ! Tensor construction loop
+!    do gi=1, ngi  
+      ! product of test-filtered velocity with itself
+!      t1 = outer_product( tnu_quad(:,gi), tnu_quad(:,gi))
+      ! test-filtered product of velocity with itself
+!      t2 = outer_product( nu_quad(:,gi), nu_quad(:,gi))
 
-    do gi=1, ngi
+      ! At each Gauss point, I need to know the corresponding
+      ! point in the test element. Then I can do outer_product on test element.
 
-       s=0.5*matmul( nu, du_t(:,gi,:) )
-       les_strain_rate(:,:,gi)=s+transpose(s)
 
-    end do
+!      leonard_tensor(:,:,gi) = M
+!    end do
 
-  end function les_strain_rate
+!  end function leonard_tensor
+
+
+
+!  function strain_tensor(ele, nu, du_t, test_mesh) result(strain_tensor)
+
+    ! Compute strain tensor on velocity mesh
+!    strain_mesh = les_viscosity_strength(du_t, ele_val(nu, ele))
+
+    ! Compute strain tensor on test-filter mesh
+!    shape_test = ele_shape(test_mesh, ele)
+!    allocate( dshape_test (ele_loc(test_mesh,ele), ele_ngi(test_mesh,ele), nu%dim) )
+!    allocate( detwei_test (ele_ngi(test_mesh,ele) ) )
+    ! Get transformed velocity shape function gradients in physical space
+    ! on test element using the positions x
+!    call transform_to_physical( positions, ele, shape_test, dshape=dshape_test, detwei=detwei_test )
+    ! Compute strain tensor using test-filtered gradients (coarse mesh)
+!    strain_test = les_viscosity_strength(dshape_test, ele_val(nu, ele))
+!    deallocate(dshape_test, detwei_test)
+
+!  end function strain_tensor
+
+
+
+!  function make_dynamic_les_mesh(u_mesh, name) result(test_mesh)
+
+!    call allocate(test_mesh, nodes=u_mesh%nodes, elements=u_mesh%elements, &
+!                  &shape=u_mesh%shape, name=dynamic_les_mesh)
+
+    ! Mesh continuity makes no sense for this mesh as elements overlap!
+!    mesh%continuity=-666
+    
+!    assert(has_faces(u_mesh))
+!    u_mesh%ndglno = -1
+!    do ele = 1, element_count(u_mesh)
+       ! create the ndglno by looping around the neighbouring elements
+!       neigh => ele_neigh(u_mesh, ele)
+!       nloc = size(ele_nodes(u_mesh, ele))
+!       do n = 1, size(neigh)
+!          ele2 = neigh(n)
+          ! find global face no. of face associated with neighbouring element
+!          face2 = ele_face(u_mesh, ele2, ele)
+          ! By convention, node opposite a face has same local number
+!          local_face2 = local_face_number(u_mesh, face2)
+          ! Find the global node no. of the opposite node
+!          ele2_nodes => ele_nodes(u_mesh, ele2)
+          ! ele vertex n is matched to global node with same number as local_face2
+!          test_mesh%ndglno(u_mesh%shape%loc*(ele-1)*nloc+n) = ele2_nodes(local_face2)
+!      end do
+
+!    end do
+!    assert(all(mesh%ndglno > 0))
+!    call addref(test_mesh)
+!    ewrite(1,*) 'exiting make_dynamic_les_mesh'
+
+!  end function make_dynamic_les_mesh
+
+
 
   function les_viscosity_strength(du_t, relu)
-    !! Computes the strain rate modulus for the LES model 
+    !! Computes the strain rate for the LES model 
     !! derivative of velocity shape function (nloc x ngi x dim)
     real, dimension(:,:,:), intent(in):: du_t
     !! relative velocity (nonl. vel.- grid vel.) (dim x nloc)

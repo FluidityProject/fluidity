@@ -1153,7 +1153,7 @@ start =
                      }
                   }
                }?,
-               ## Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+               ## [UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
                ## Generates a fictitious 'eddy viscosity', added to normal viscosity field, that

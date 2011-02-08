@@ -80,20 +80,19 @@ module populate_state_module
 
   end interface allocate_field_as_constant
     
-  !! A list of locations in which additional scalar/vector/tensor fields
-  !! are to be found. It is assumed that all additional fields are
+  !! A list of locations in which additional scalar fields
+  !! are to be found. It is assumed that all additional scalar fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(9) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(8) :: field_locations=&
        (/ &
-       "/ocean_biology/pznd                                                                                                  ", &
-       "/ocean_biology/six_component                                                                                         ", &
-       "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada                                                      ", &
-       "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                             ", &
-       "/material_phase[0]/subgridscale_parameterisations/GLS                                                                ", &
-       "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                          ", &
-       "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                               ", &
-       "/porous_media                                                                                                        ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les" &
+       "/ocean_biology/pznd                                                     ", &
+       "/ocean_biology/six_component                                            ", &
+       "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada         ", &
+       "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity", &
+       "/material_phase[0]/subgridscale_parameterisations/GLS                   ", &
+       "/material_phase[0]/subgridscale_parameterisations/k-epsilon             ", &
+       "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                  ", &
+       "/porous_media                                                           " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1111,7 +1110,7 @@ contains
       end do
     end if
 
-    ! insert miscellaneous scalar fields
+    ! insert miscellaneous fields
     do i=1, size(field_locations)
        if (have_option(trim(field_locations(i)))) then
 
