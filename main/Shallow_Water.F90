@@ -179,6 +179,7 @@
             exclude_nonreprescribed=.true., time=current_time+dt)
 
        call execute_timestep(state(1), dt)
+       call adjoint_register_timestep(timestep)
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
@@ -254,6 +255,11 @@
     assert(ierr == MPI_SUCCESS)
 #endif
 
+#ifdef HAVE_ADJOINT
+    ierr = adj_destroy_adjointer(adjointer)
+    call adj_chkierr(ierr)
+#endif
+
   contains
 
     subroutine get_parameters()
@@ -281,7 +287,7 @@
          beta = 0.
       end if
       !gravity
-      call get_option("/physical_parameters/gravity/magnitude",g)
+      call get_option("/physical_parameters/gravity/magnitude", g)
       !theta
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
       !itheta
@@ -834,7 +840,7 @@
       type(adj_equation) :: equation
       type(adj_variable) :: eta0
 
-      ierr = adj_create_block("PressureIdentity", block=I, context=c_loc(matrices))
+      ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
       ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
@@ -903,4 +909,129 @@
       endif
 #endif
     end subroutine adjoint_register_initial_u_condition
+
+    subroutine adjoint_register_timestep(timestep)
+      integer, intent(in) :: timestep
+#ifdef HAVE_ADJOINT
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC
+      integer :: ierr
+      type(adj_equation) :: equation
+      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta
+
+      ! Set up adj_variables
+      ierr = adj_create_variable("Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=u)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_u)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("VelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_u)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=eta)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("LayerThickness", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_eta)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_eta)
+      call adj_chkierr(ierr)
+
+      ! Set up adj_blocks
+
+      ! Blocks for delta eta equation
+      ierr = adj_create_block("WaveMatrix", context=c_loc(matrices), block=W)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("DivBigMatGrad", context=c_loc(matrices), block=CTMC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("DivBigMatCoriolis", context=c_loc(matrices), block=CTML)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=CTML, coefficient=-1 * dt * D0) 
+      call adj_chkierr(ierr)
+
+      ! Blocks for eta_n equation
+      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=Ieta)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=minusIeta)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=minusIeta, coefficient=-1.0)
+      call adj_chkierr(ierr)
+
+      ! Blocks for delta u equation
+      ierr = adj_create_block("BigMatGrad", context=c_loc(matrices), block=MCdelta)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=MCdelta, coefficient=theta * dt * g)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("BigMatCoriolis", context=c_loc(matrices), block=ML)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=ML, coefficient=dt)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("BigMatGrad", context=c_loc(matrices), block=MC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=MC, coefficient=dt * g)
+      call adj_chkierr(ierr)
+
+      ! Blocks for u_n equation
+      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=Iu)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=minusIu)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=minusIu, coefficient=-1.0)
+      call adj_chkierr(ierr)
+
+      ! Ahah! Now we can register our lovely equations. They are pretty, aren't they?
+      ierr = adj_create_equation(delta_eta, blocks=(/CTMC, CTML, W/), &
+                                          & targets=(/previous_eta, previous_u, delta_eta/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_equation(eta, blocks=(/minusIeta, minusIeta, Ieta/), &
+                                    & targets=(/previous_eta, delta_eta, eta/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_equation(delta_u, blocks=(/MC, ML, MCdelta, Iu/), &
+                                        & targets=(/previous_eta, previous_u, delta_eta, delta_u/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_equation(u, blocks=(/minusIu, minusIu, Iu/), &
+                                    & targets=(/previous_u, delta_u, u/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
+      ! And now we gots to destroy some blocks
+      ierr = adj_destroy_block(Iu)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(minusIu)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(Ieta)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(minusIeta)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(W)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(CTMC)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(CTML)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(MCdelta)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(ML)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(MC)
+      call adj_chkierr(ierr)
+
+      ! And that's it!
+#endif
+    end subroutine adjoint_register_timestep
   end program shallow_water
