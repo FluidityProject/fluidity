@@ -47,6 +47,13 @@ implicit none
     module procedure scalar_field_from_adj_vector, vector_field_from_adj_vector, tensor_field_from_adj_vector
   end interface
 
+  interface matrix_to_adj_matrix
+    module procedure block_csr_matrix_to_adj_matrix, csr_matrix_to_adj_matrix
+  end interface
+  
+  interface matrix_from_adj_matrix
+    module procedure block_csr_matrix_from_adj_matrix, csr_matrix_from_adj_matrix
+  end interface
 
   integer, parameter :: ADJ_SCALAR_FIELD=1, ADJ_VECTOR_FIELD=2, ADJ_TENSOR_FIELD=3, ADJ_CSR_MATRIX=11, ADJ_BLOCK_CSR_MATRIX=12
 
@@ -288,15 +295,15 @@ end subroutine
     output%ptr = c_loc(input_ptr)
   end function csr_matrix_to_adj_matrix
 
-  subroutine csr_matrix_from_adj_vector(input, output) 
-    type(adj_vector), intent(in) :: input
+  subroutine csr_matrix_from_adj_matrix(input, output) 
+    type(adj_matrix), intent(in) :: input
     type(csr_matrix), intent(out) :: output
     type(csr_matrix), pointer :: tmp
 
     assert(input%klass==ADJ_CSR_MATRIX)
     call c_f_pointer(input%ptr, tmp)
     output = tmp
-  end subroutine csr_matrix_from_adj_vector
+  end subroutine csr_matrix_from_adj_matrix
 
   function block_csr_matrix_to_adj_matrix(input) result(output)
     type(block_csr_matrix), intent(in), target :: input
@@ -310,15 +317,15 @@ end subroutine
     output%ptr = c_loc(input_ptr)
   end function block_csr_matrix_to_adj_matrix
 
-  subroutine block_csr_matrix_from_adj_vector(input, output) 
-    type(adj_vector), intent(in) :: input
+  subroutine block_csr_matrix_from_adj_matrix(input, output) 
+    type(adj_matrix), intent(in) :: input
     type(block_csr_matrix), intent(out) :: output
     type(block_csr_matrix), pointer :: tmp
 
     assert(input%klass==ADJ_BLOCK_CSR_MATRIX)
     call c_f_pointer(input%ptr, tmp)
     output = tmp
-  end subroutine block_csr_matrix_from_adj_vector
+  end subroutine block_csr_matrix_from_adj_matrix
 
 end module libadjoint_data_callbacks
 
