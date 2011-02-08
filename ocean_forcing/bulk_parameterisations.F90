@@ -290,9 +290,6 @@ subroutine get_forcing_surface_element_list(state, surface_element_list, &
     character(len=OPTION_PATH_LEN)              :: field_path, bc_path, bc_type, bc_path_i
     integer                                     :: nbcs, i, stat
     logical                                     :: found_bc = .false.
-
-    
-
     
     ! Check potential bulk_force'd fields until we come across a "bulk_formulae" type
     ! bc - this will give us the required info to create our mesh
@@ -315,6 +312,7 @@ subroutine get_forcing_surface_element_list(state, surface_element_list, &
             end if
         end do
     end if
+    
     sfield => extract_scalar_field(state, "Temperature")
     force_temperature = -1
     field_path=sfield%option_path
@@ -327,15 +325,15 @@ subroutine get_forcing_surface_element_list(state, surface_element_list, &
             bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
             call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
             if (trim(bc_type) .eq. "bulk_formulae") then
-                found_bc = .true.
                 force_temperature = i+1
                 if (.not. found_bc) then
+                    found_bc = .true.
                     call get_boundary_condition(sfield, i+1, surface_element_list=surface_element_list)
                 end if
             end if
         end do
     end if
-
+    
     sfield => extract_scalar_field(state, "PhotosyntheticRadiation",stat)
     force_solar = -1
     if (stat == 0) then
@@ -349,16 +347,16 @@ subroutine get_forcing_surface_element_list(state, surface_element_list, &
                 bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
                 call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
                 if (trim(bc_type) .eq. "bulk_formulae") then
-                    found_bc = .true.
                     force_solar = i+1
                     if (.not. found_bc) then
+                        found_bc = .true.
                         call get_boundary_condition(sfield, i+1, surface_element_list=surface_element_list)
                     end if
                 end if
             end do
         end if
     end if
-
+    
     ! Salinity?!
     sfield => extract_scalar_field(state, "Salinity",stat)
     force_salinity = -1
@@ -373,15 +371,19 @@ subroutine get_forcing_surface_element_list(state, surface_element_list, &
                 bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
                 call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
                 if (trim(bc_type) .eq. "bulk_formulae") then
-                    found_bc = .true.
                     force_salinity = i+1
                     if (.not. found_bc) then
+                        found_bc = .true.
                         call get_boundary_condition(sfield, i+1, surface_element_list=surface_element_list)
                     end if
                 end if
             end do
         end if
     end if
+    ! reset found_Bc to false, otherwise, next time we come around it's set to
+    ! .true. for some reason I can't figure out!
+    found_bc = .false.
+
 
 end subroutine get_forcing_surface_element_list
 
