@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <include href="spud_base.rng"/>
+  <define name="adjoint_options">
+    <element name="adjoint">
+      <a:documentation>Turn on the solution of the adjoint problem.
+To compute the adjoint you must either specify code for the functional
+or for its derivative. If the derivative is not specified, then
+the independent set perturbation method will be used to approximate
+its derivative. </a:documentation>
+      <optional>
+        <element name="functional">
+          <a:documentation>The functional to be computed.</a:documentation>
+          <element name="algorithm">
+            <a:documentation>Python code for the functional</a:documentation>
+            <attribute name="name">
+              <value>functional</value>
+            </attribute>
+            <ref name="python_code"/>
+          </element>
+        </element>
+      </optional>
+      <element name="functional_derivative">
+        <a:documentation>The derivative of the functional at each time level.</a:documentation>
+        <element name="algorithm">
+          <a:documentation>Python code for the functional derivative</a:documentation>
+          <attribute name="name">
+            <value>functional_derivative</value>
+          </attribute>
+          <ref name="python_code"/>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="adjoint_storage">
+    <element name="adjoint_storage">
+      <a:documentation>Informs the model whether the field should be computed only in the
+forward model, the adjoint model, or in both.
+If /adjoint is not enabled, this has no effect whatsoever.</a:documentation>
+      <choice>
+        <element name="exists_in_both">
+          <a:documentation>Include the field in both the forward and adjoint states.</a:documentation>
+          <optional>
+            <element name="record">
+              <a:documentation>If enabled, this element tells the model that this field must be stored
+through time in order to compute the adjoint model.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <element name="exists_in_forward">
+          <a:documentation>Include the field only in the forward state.</a:documentation>
+          <optional>
+            <element name="record">
+              <a:documentation>If enabled, this element tells the model that this field must be stored
+through time in order to compute the adjoint model.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+        <element name="exists_in_adjoint">
+          <a:documentation>Include the field only in the adjoint state.</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+    </element>
+  </define>
+</grammar>
