@@ -41,7 +41,7 @@ implicit none
   end interface
 
   interface mult_T
-     module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar
+     module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar, csr_mult_T_vector_vector
   end interface
 
   interface mult_diag
@@ -517,6 +517,40 @@ contains
 
   end subroutine csr_mult_T_vector_scalar
 
+  subroutine csr_mult_T_vector_vector(x, A, b)
+    !!< Calculate x=A^T*b, where b is a vector fields, A is a dim_b*dim_x block
+    !!< block_csr_matrix and x is a vector field.
+    type(vector_field), intent(inout) :: x
+    type(block_csr_matrix), intent(in) :: A
+    type(vector_field), intent(in) :: b
+
+    real, dimension(:), allocatable :: tmpb, tmpx
+    integer :: dim_x, dim_b
+
+    assert(all(A%blocks==(/b%dim,x%dim/)))
+
+    allocate(tmpx(size(x%val(1,:))))
+    call zero(x)
+    
+    do dim_x=1,x%dim
+       do dim_b=1,b%dim
+          if (A%diagonal .and. dim_b/=dim_x) cycle
+          
+          select case(b%field_type)
+          case(FIELD_TYPE_NORMAL)
+             call mult_T(tmpx, block(A,dim_b,dim_x), b%val(dim_b,:))
+          case(FIELD_TYPE_CONSTANT)
+             allocate(tmpb(size(x%val)))
+             tmpb=b%val(dim_b,dim_x)
+             call mult_T(tmpx, block(A,dim_b,dim_x), tmpb)
+             deallocate(tmpb)
+          end select
+          x%val(dim_x,:)=x%val(dim_x,:)+tmpx
+       end do
+    end do
+
+  end subroutine csr_mult_T_vector_vector
+  
   subroutine mult_div_vector_div_T(product, matrix1, vfield, matrix2)
     !!< Perform the matrix multiplication:
     !!< 
