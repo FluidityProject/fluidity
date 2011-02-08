@@ -401,7 +401,7 @@ contains
     end do
 
     ! Find diagonal.
-    do i=1,size(lists)
+    do i=1,size(sparsity%centrm)
        pos=0
        pos=minloc(row_m(sparsity,i), dim=1, mask=row_m(sparsity,i)==i)
        if (pos>0) then
