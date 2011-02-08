@@ -162,6 +162,10 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
+    if (have_option("/adjoint") .and. have_option("/mesh_adaptivity/prescribed_adaptivity")) then
+      FLExit("Cannot adjoint an adaptive simulation")
+    endif
+
     ! Always output the initial conditions.
     call output_state(state, on_manifold)
 
@@ -207,6 +211,7 @@
              call deallocate(div_mat)
              call deallocate(wave_mat)
              call deallocate(big_mat)
+             call deallocate(matrices)
              
              call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
                   h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
