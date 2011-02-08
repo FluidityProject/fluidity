@@ -24,7 +24,7 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-  
+
 #include "fdebug.h"
   program shallow_water
     use advection_diffusion_dg
@@ -109,10 +109,11 @@
     type(block_csr_matrix) :: div_mat
     !! Wave matrix
     type(csr_matrix) :: wave_mat
-    !! U momentum matrix 
+    !! U momentum matrix
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
-    logical :: on_manifold
+    logical :: on_manifold, adjoint
+    integer, save :: dump_no=0
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
 
@@ -129,15 +130,16 @@
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 #endif
 
-    call python_init()
-    call read_command_line()
+    call python_init
+    call read_command_line
+!   call forward_options_dictionary
 
     call populate_state(state)
     call adjoint_register_initial_eta_condition
- 
+
     call insert_time_in_state(state)
 
-    ! Find out if we are on an embedded manifold, e.g. the surface of 
+    ! Find out if we are on an embedded manifold, e.g. the surface of
     ! the sphere. If we are, then set up a 3D coordinate field and
     ! velocity field from the 2D coordinate space
     on_manifold=have_option("/geometry/embedded_manifold")
@@ -155,29 +157,35 @@
        call project_velocity(state(1))
     end if
 
-    call get_parameters()
+    call get_parameters
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(state)/=1) then
        FLExit("Multiple material_phases are not supported")
     end if
 
-    if (have_option("/adjoint") .and. have_option("/mesh_adaptivity/prescribed_adaptivity")) then
+    adjoint = have_option("/adjoint")
+    if (adjoint .and. have_option("/mesh_adaptivity/prescribed_adaptivity")) then
       FLExit("Cannot adjoint an adaptive simulation")
     endif
+#ifndef HAVE_ADJOINT
+    if (adjoint) then
+      FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
+    endif
+#endif
 
     ! Always output the initial conditions.
     call output_state(state, on_manifold)
 
     timestep=0
-    timestep_loop: do 
+    timestep_loop: do
        timestep=timestep+1
        ewrite (1,*) "SW: start of timestep ",timestep, current_time
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
-       
+
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
@@ -190,7 +198,7 @@
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep)) exit timestep_loop     
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
 
        call advance_current_time(current_time, dt)
 
@@ -199,11 +207,11 @@
        end if
 
        call write_diagnostics(state,current_time,dt, timestep)
-       
+
        if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(current_time)) then                       
+          if(do_adapt_state_prescribed(current_time)) then
              call adapt_state_prescribed(state, current_time)
-             
+
              call deallocate(h_mass_mat)
              call deallocate(u_mass_mat)
              call deallocate(coriolis_mat)
@@ -212,7 +220,7 @@
              call deallocate(wave_mat)
              call deallocate(big_mat)
              call deallocate(matrices)
-             
+
              call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
                   h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
                   div_mat,wave_mat,big_mat, &
@@ -233,7 +241,6 @@
 
     ! One last dump
     call output_state(state, on_manifold)
-
     call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(h_mass_mat)
@@ -243,14 +250,45 @@
     call deallocate(div_mat)
     call deallocate(wave_mat)
     call deallocate(big_mat)
-    call deallocate(matrices)
-    
+
     call deallocate(state)
-    call deallocate_transform_cache()
-    call deallocate_reserve_state()    
-    call close_diagnostic_files()
-    
-    call print_references(0)
+    call deallocate_transform_cache
+    call deallocate_reserve_state
+    call close_diagnostic_files
+    call uninitialise_diagnostics
+
+    if (.not. adjoint) then
+      call print_references(0)
+    endif
+
+#ifdef HAVE_ADJOINT
+    if (adjoint) then
+      ewrite(1,*) "Entering adjoint computation"
+      call clear_options
+      call read_command_line
+
+!      call adjoint_options_dictionary
+      call populate_state(state)
+      call check_diagnostic_dependencies(state)
+      call get_option('/simulation_name', simulation_name)
+      call initialise_diagnostics(trim(simulation_name),state)
+
+      dump_no = dump_no - 1
+
+!      call compute_adjoint(forward_state, adjoint_state)
+
+      call deallocate_transform_cache
+      call deallocate_reserve_state
+      call close_diagnostic_files
+      call uninitialise_diagnostics
+
+      call print_references(0)
+    else
+      ewrite(1,*) "No adjoint specified, not entering adjoint computation"
+    end if
+#endif
+
+    call deallocate(matrices)
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
@@ -296,7 +334,7 @@
       !theta
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
       !itheta
-      
+
       !D0
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
            &rognostic/mean_layer_thickness",D0)
@@ -307,7 +345,7 @@
            h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
            div_mat,wave_mat,big_mat, &
            dt,theta,D0,g,f0,beta)
-      
+
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
       exclude_pressure_advection = &
@@ -320,11 +358,14 @@
            &none")
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
-      ! Geostrophic balanced initial condition, if required    
+      ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
-           &/initial_condition::WholeMesh/balanced")) then       
+           &/initial_condition::WholeMesh/balanced")) then
          call set_velocity_from_geostrophic_balance(state(1), &
               div_mat, coriolis_mat, inverse_coriolis_mat)
+         call adjoint_register_initial_u_condition(balanced=.true.)
+      else
+         call adjoint_register_initial_u_condition(balanced=.false.)
       end if
 
       ! Set up the state of cached matrices
@@ -345,13 +386,13 @@
       call deallocate(dummy_field)
 
     end subroutine get_parameters
-    
+
     subroutine insert_time_in_state(state)
       type(state_type), dimension(:), intent(inout) :: state
-      
+
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
-      
+
       ! Disgusting and vomitous hack to ensure that time is output in
       ! vtu files.
       x_mesh => extract_mesh(state, "CoordinateMesh")
@@ -361,7 +402,7 @@
       aux_sfield%option_path = ""
       call insert(state, aux_sfield, trim(aux_sfield%name))
       call deallocate(aux_sfield)
-    
+
     end subroutine insert_time_in_state
 
     subroutine execute_timestep(state, dt)
@@ -418,36 +459,36 @@
             call solve_field_equation_cg("LayerThickness", state, dt, &
                  "NonlinearVelocity")
          end if
-         
+
          !Wave equation step
          ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
          ! \Delta\eta + \eta^n) = 0
          ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
          ! SO
-         ! (M+\theta\Delta t F)\Delta u = 
+         ! (M+\theta\Delta t F)\Delta u =
          !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
          ! SET r = \Delta t(-Fu^n - gC\eta^n)
          ! THEN SUBSTITUTION GIVES
          ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
          !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
-         
+
          !Construct explicit parts of u rhs
          call get_u_rhs(u_rhs,U,D,dt,g, &
               coriolis_mat,div_mat)
-         
+
          !Construct explicit parts of h rhs in wave equation
          call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
          !Solve wave equation for D update
          delta_d%option_path = d%option_path
          call petsc_solve(delta_d, wave_mat, d_rhs)
-         
+
          !Add the new D contributions into the RHS for u
          call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
-         
+
          !Solve momentum equation for U update
          call zero(delta_u)
          call mult(delta_u, big_mat, u_rhs)
-         
+
          !Check the equation was solved correctly
          if(have_option("/debug/check_solution")) then
             call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
@@ -496,7 +537,7 @@
       !
       call mult(Md,h_mass_mat,D)
       call mult(Mu,u_mass_mat,U)
-      D_l2 = sum(Md%val*d%val) 
+      D_l2 = sum(Md%val*d%val)
       U_l2 = 0.
       do d1 = 1, dim
          U_l2 = U_l2 + sum(Mu%val(d1,:)*u%val(d1,:))
@@ -543,7 +584,7 @@
     subroutine project_velocity(state)
       !!< Project the quadratic continuous VelocityInitialCondition into
       !!< the velocity space.
-      !!< 
+      !!<
       !!< This is a hack to attempt to get third order convergence for wave
       !!< problems.
       type(state_type), intent(inout) :: state
@@ -557,7 +598,7 @@
       U_in=>extract_vector_field(state, "VelocityInitialCondition")
 
       do ele=1, element_count(U)
-         
+
          call project_velocity_ele(ele, X, U, U_in)
 
       end do
@@ -612,7 +653,6 @@
       logical, intent(in) :: on_manifold
 
       type(vector_field), pointer :: X
-      integer, save :: dump_no=0
 
       if(on_manifold) then
          X=>extract_vector_field(state(1), "CartesianCoordinate")
@@ -641,7 +681,7 @@
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "Velocity")
       X=>extract_vector_field(state, "Coordinate")
-      
+
       ewrite(2,*) 'inside', sum(D%val)
 
       u1=extract_scalar_field(u,1)
@@ -791,7 +831,7 @@
       call set_global_debug_level(0)
 
       argn=1
-      do 
+      do
 
          call get_command_argument(argn, value=argument, status=status)
          argn=argn+1
