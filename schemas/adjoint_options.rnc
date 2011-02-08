@@ -2,27 +2,30 @@ include "spud_base.rnc"
 
 adjoint_options =
    ## Turn on the solution of the adjoint problem.
-   ## To compute the adjoint you must either specify code for the functional
-   ## or for its derivative. If the derivative is not specified, then
-   ## the independent set perturbation method will be used to approximate
-   ## its derivative. 
+   ## To compute the adjoint you must specify code for the functional
+   ## derivative. If the functional is also specified, then it will be
+   ## output in the .stat file.
    element adjoint {
-      ## The functional to be computed.
+      ## A functional to be computed.
       element functional {
-        ## Python code for the functional
-        element algorithm {
-           attribute name { "functional" },
-           python_code
-        }
-      }?,
-      ## The derivative of the functional at each time level.
-      element functional_derivative {
-        ## Python code for the functional derivative
-        element algorithm {
-           attribute name { "functional_derivative" },
-           python_code
-        }
-      }
+         attribute name { xsd:string },
+         ## The value of the functional to be computed.
+         element functional_value {
+            ## Python code for the functional
+            element algorithm {
+               attribute name { "functional_value" },
+               python_code
+            }
+         }?,
+         ## The derivative of the functional at each time level.
+         element functional_derivative {
+            ## Python code for the functional derivative
+            element algorithm {
+               attribute name { "functional_derivative" },
+               python_code
+            }
+         }
+      }+
    }
 
 adjoint_storage =
@@ -32,17 +35,13 @@ adjoint_storage =
       ## If /adjoint is not enabled, this has no effect whatsoever.
       element adjoint_storage {
          (
-            ## Include the field in both the forward and adjoint states.
-            element exists_in_both {
-               ## If enabled, this element tells the model that this field must be stored
-               ## through time in order to compute the adjoint model.
-               element record { empty }?
-            }|
             ## Include the field only in the forward state.
             element exists_in_forward {
-               ## If enabled, this element tells the model that this field must be stored
-               ## through time in order to compute the adjoint model.
-               element record { empty }?
+              empty
+            }|
+            ## Include the field in both the forward and adjoint states.
+            element exists_in_both {
+              empty
             }|
             ## Include the field only in the adjoint state.
             element exists_in_adjoint {

@@ -268,6 +268,9 @@ val=inertia_gravity.height_solution(inertia_gravity.k)</string_value>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </prescribed>
     </scalar_field>
     <scalar_field name="LayerThicknessError" rank="0">
@@ -293,6 +296,9 @@ for n in range(field.node_count):
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </diagnostic>
     </scalar_field>
     <vector_field name="VelocityInitialConditionDisabled" rank="1">
@@ -311,6 +317,9 @@ val=inertia_gravity.velocity_solution(inertia_gravity.k)</string_value>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </prescribed>
     </vector_field>
   </material_phase>

@@ -377,6 +377,9 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </diagnostic>
     </scalar_field>
     <vector_field name="Bal" rank="1">
@@ -402,6 +405,9 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </diagnostic>
     </vector_field>
     <vector_field name="Imbal" rank="1">
@@ -421,6 +427,9 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </diagnostic>
     </vector_field>
   </material_phase>

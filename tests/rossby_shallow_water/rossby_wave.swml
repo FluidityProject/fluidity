@@ -252,6 +252,9 @@ val=rossby_wave.height_solution(rossby_wave.k)</string_value>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </prescribed>
     </scalar_field>
     <scalar_field name="LayerThicknessError" rank="0">
@@ -277,6 +280,9 @@ for n in range(field.node_count):
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
       </diagnostic>
     </scalar_field>
   </material_phase>

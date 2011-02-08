@@ -5,6 +5,7 @@ include "diagnostic_algorithms.rnc"
 include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
+include "adjoint_options.rnc"
 
 start =
    (
@@ -352,7 +353,8 @@ start =
             element check_solution {
                empty
             }?
-         }?
+         }?,
+         adjoint_options?
       }
    )      
 
@@ -402,7 +404,8 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field
+                  diagnostic_scalar_field,
+                  adjoint_storage
                }
             )
          }
@@ -885,7 +888,8 @@ prognostic_scalar_field =
          }
       }?,
       prognostic_scalar_output_options,
-      prognostic_scalar_stat_options
+      prognostic_scalar_stat_options,
+      adjoint_storage
    )
 
 # Default child of diagnostic scalar field
@@ -897,7 +901,8 @@ diagnostic_scalar_field =
       diagnostic_detector_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
-      recalculation_options?
+      recalculation_options?,
+      adjoint_storage
    )
    
 # Default child of diagnostic scalar field without adaptivity options
@@ -905,7 +910,8 @@ diagnostic_scalar_field_no_adapt =
    (
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
-      diagnostic_detector_options
+      diagnostic_detector_options,
+      adjoint_storage
    )
 
 # Default child of diagnostic scalar field
@@ -919,7 +925,8 @@ diagnostic_scalar_field_tidal_range =
           element spin_up_time {
              real
           }
-      )       
+      ),
+      adjoint_storage
    )
 
 # Default child of prescribed scalar field
@@ -940,7 +947,8 @@ prescribed_scalar_field_no_adapt =
       prescribed_values_scalar_field,
       prescribed_output_options,
       prescribed_scalar_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      adjoint_storage
    )
    
 prescribed_values_scalar_field =
@@ -976,7 +984,8 @@ diagnostic_vector_field =
       diagnostic_detector_options,
       vector_steady_state_options,      
       adaptivity_options_vector_field,
-      recalculation_options?
+      recalculation_options?,
+      adjoint_storage
    )
 
 
@@ -995,7 +1004,8 @@ diagnostic_vector_field_bed_shear_stress =
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
-      adaptivity_options_vector_field
+      adaptivity_options_vector_field,
+      adjoint_storage
    )
 
 
@@ -1018,7 +1028,8 @@ prescribed_vector_field_no_adapt =
       prescribed_values_vector_field,
       prescribed_output_options,
       prescribed_vector_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      adjoint_storage
    )
 
 prescribed_values_vector_field =

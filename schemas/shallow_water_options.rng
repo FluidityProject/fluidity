@@ -6,6 +6,7 @@
   <include href="input_output.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
+  <include href="adjoint_options.rng"/>
   <start>
     <element name="shallow_water_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -441,6 +442,9 @@ usually only the y-component of beta is non-zero</a:documentation>
           </optional>
         </element>
       </optional>
+      <optional>
+        <ref name="adjoint_options"/>
+      </optional>
     </element>
   </start>
   <define name="scalar_field_choice">
@@ -502,6 +506,7 @@ Adapting to this field is not recommended</a:documentation>
           <ref name="internal_algorithm"/>
           <ref name="velocity_mesh_choice"/>
           <ref name="diagnostic_scalar_field"/>
+          <ref name="adjoint_storage"/>
         </element>
       </element>
     </choice>
@@ -1055,6 +1060,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
+    <ref name="adjoint_storage"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field">
@@ -1067,12 +1073,14 @@ requires a distinct name for the options dictionary.</a:documentation>
     <optional>
       <ref name="recalculation_options"/>
     </optional>
+    <ref name="adjoint_storage"/>
   </define>
   <!-- Default child of diagnostic scalar field without adaptivity options -->
   <define name="diagnostic_scalar_field_no_adapt">
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="adjoint_storage"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field_tidal_range">
@@ -1083,6 +1091,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     <element name="spin_up_time">
       <ref name="real"/>
     </element>
+    <ref name="adjoint_storage"/>
   </define>
   <!--
     Default child of prescribed scalar field
@@ -1110,6 +1119,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     <ref name="prescribed_output_options"/>
     <ref name="prescribed_scalar_stat_options"/>
     <ref name="prescribed_detector_options"/>
+    <ref name="adjoint_storage"/>
   </define>
   <define name="prescribed_values_scalar_field">
     <oneOrMore>
@@ -1152,6 +1162,7 @@ In this case each value requires a distinct name for the options dictionary.</a:
     <optional>
       <ref name="recalculation_options"/>
     </optional>
+    <ref name="adjoint_storage"/>
   </define>
   <define name="diagnostic_vector_field_bed_shear_stress">
     <element name="density">
@@ -1164,6 +1175,7 @@ In this case each value requires a distinct name for the options dictionary.</a:
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
     <ref name="adaptivity_options_vector_field"/>
+    <ref name="adjoint_storage"/>
   </define>
   <!--
     Default child of prescribed vector field
@@ -1191,6 +1203,7 @@ In this case each value requires a distinct name for the options dictionary.</a:
     <ref name="prescribed_output_options"/>
     <ref name="prescribed_vector_stat_options"/>
     <ref name="prescribed_detector_options"/>
+    <ref name="adjoint_storage"/>
   </define>
   <define name="prescribed_values_vector_field">
     <oneOrMore>
