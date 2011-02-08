@@ -233,6 +233,7 @@ end subroutine
 
     call incref(input)
     output%klass = ADJ_SCALAR_FIELD
+    output%flags = 0 
     allocate(input_ptr)
     input_ptr = input
     output%ptr = c_loc(input_ptr)
@@ -255,6 +256,7 @@ end subroutine
 
     call incref(input)
     output%klass = ADJ_VECTOR_FIELD
+    output%flags = 0
     allocate(input_ptr)
     input_ptr = input
     output%ptr = c_loc(input_ptr)
@@ -278,6 +280,7 @@ end subroutine
 
     call incref(input)
     output%klass = ADJ_TENSOR_FIELD
+    output%flags = 0
     allocate(input_ptr)
     input_ptr = input
     output%ptr = c_loc(input_ptr)
@@ -290,6 +293,7 @@ end subroutine
 
     call incref(input)
     output%klass = ADJ_CSR_MATRIX 
+    output%flags = 0
     allocate(input_ptr)
     input_ptr = input
     output%ptr = c_loc(input_ptr)
@@ -311,7 +315,8 @@ end subroutine
     type(adj_matrix) :: output
 
     call incref(input)
-    output%klass = ADJ_BLOCK_CSR_MATRIX 
+    output%klass = ADJ_BLOCK_CSR_MATRIX
+    output%flags = 0
     allocate(input_ptr)
     input_ptr = input
     output%ptr = c_loc(input_ptr)
