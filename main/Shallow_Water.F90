@@ -253,6 +253,7 @@
     call deallocate(big_mat)
 
     call deallocate(state)
+    call deallocate(matrices)
     call deallocate_transform_cache
     call deallocate_reserve_state
     call close_diagnostic_files
@@ -289,7 +290,6 @@
     end if
 #endif
 
-    call deallocate(matrices)
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
