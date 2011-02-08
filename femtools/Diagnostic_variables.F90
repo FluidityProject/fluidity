@@ -754,15 +754,19 @@ contains
 
       end do phaseloop
 
-
       ! Now add the registered diagnostics
       call register_diagnostics
       call print_registered_diagnostics
       iterator => registered_diagnostic_first
       do while (associated(iterator)) 
         column = column + 1
-        buffer = field_tag(name=trim(iterator%name), column=column, &
+        if (iterator%have_material_phase) then
+           buffer = field_tag(name=trim(iterator%name), column=column, &
                & statistic=iterator%statistic, material_phase_name=iterator%material_phase, components=iterator%dim)
+        else
+           buffer = field_tag(name=trim(iterator%name), column=column, &
+               & statistic=iterator%statistic, components=iterator%dim)
+        end if
         write(diag_unit, '(a)') trim(buffer)
         iterator => iterator%next
       end do
