@@ -337,6 +337,7 @@
       call insert(matrices, big_mat, "InverseBigMatrix")
       ! Also save the velocity and pressure mesh and the dimension
       eta => extract_scalar_field(state, "LayerThickness")
+      u => extract_vector_field(state, "Velocity")
       call insert(matrices, eta%mesh, "LayerThicknessMesh")
       call allocate(dummy_field, u%dim, u%mesh, "VelocityDummy", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummy_field)
