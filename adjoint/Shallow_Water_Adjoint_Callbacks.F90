@@ -87,7 +87,7 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(out) :: rhs
 
       type(state_type), pointer :: matrices
-      type(mest_type), pointer :: eta_mesh
+      type(mesh_type), pointer :: eta_mesh
       type(scalar_field) :: empty_eta_field
 
       if (coefficient /= 1.0) then
