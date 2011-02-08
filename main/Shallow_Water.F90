@@ -63,10 +63,6 @@
 #include "finclude/petsc.h"
 #endif
 
-#ifdef HAVE_ADJOINT
-    integer, parameter :: IDENTITY_MATRIX = 30
-#endif
-
     ! Interface blocks for the initialisation routines we need to call
     interface
       subroutine set_global_debug_level(n)
@@ -117,8 +113,6 @@
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: on_manifold
-    type(vector_field), pointer :: u
-    type(scalar_field), pointer :: eta
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
 
@@ -139,8 +133,6 @@
     call read_command_line()
 
     call populate_state(state)
-    u => extract_vector_field(state, "Velocity")
-    eta => extract_scalar_field(state, "LayerThickness")
     call adjoint_register_initial_eta_condition
  
     call insert_time_in_state(state)
@@ -267,6 +259,9 @@
     subroutine get_parameters()
       implicit none
       integer :: dim
+      type(vector_field), pointer :: u
+      type(scalar_field), pointer :: eta
+      type(scalar_field) :: dim_field
       !Get some parameters
       !Coriolis
       call get_option("/geometry/dimension",dim)
@@ -329,7 +324,14 @@
       call insert(matrices, div_mat, "DivergenceMatrix")
       call insert(matrices, wave_mat, "WaveMatrix")
       call insert(matrices, big_mat, "InverseBigMatrix")
-      
+      ! Also save the velocity and pressure mesh and the dimension
+      eta => extract_scalar_field(state, "LayerThickness")
+      call insert(matrices, eta%mesh, "LayerThicknessMesh")
+      call allocate(dim_field, u%mesh, "VelocityDimension", field_type=FIELD_TYPE_CONSTANT)
+      call set(dim_field, real(u%dim))
+      call insert(matrices, dim_field, "VelocityDimension")
+      call deallocate(dim_field)
+
     end subroutine get_parameters
     
     subroutine insert_time_in_state(state)
