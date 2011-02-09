@@ -405,7 +405,11 @@ contains
     logical :: mesh_has_internal_boundaries
     type(mesh_type), intent(in) :: mesh
     
-    mesh_has_internal_boundaries = mesh%faces%has_internal_boundaries
+    if (associated(mesh%faces)) then
+      mesh_has_internal_boundaries = mesh%faces%has_internal_boundaries
+    else
+      mesh_has_internal_boundaries = .false.
+    end if
   
   end function mesh_has_internal_boundaries
 
