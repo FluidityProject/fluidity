@@ -253,6 +253,10 @@ module fields_base
      module procedure mesh_periodic_mesh, mesh_periodic_scalar, mesh_periodic_vector, &
           & mesh_periodic_tensor
   end interface
+    
+  interface has_internal_boundaries
+     module procedure mesh_has_internal_boundaries
+  end interface has_internal_boundaries
 
   interface extract_scalar_field ! extract_scalar_field is already used in State.F90
      module procedure extract_scalar_field_from_vector_field, extract_scalar_field_from_tensor_field
@@ -395,6 +399,15 @@ contains
     mesh_periodic=field%mesh%periodic
   
   end function mesh_periodic_tensor
+
+  pure function mesh_has_internal_boundaries(mesh)
+    !!< Return whether the mesh has internal boundaries
+    logical :: mesh_has_internal_boundaries
+    type(mesh_type), intent(in) :: mesh
+    
+    mesh_has_internal_boundaries = mesh%faces%has_internal_boundaries
+  
+  end function mesh_has_internal_boundaries
 
   pure function node_count_mesh(mesh) result (node_count)
     ! Return the number of nodes in a mesh.

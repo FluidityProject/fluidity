@@ -258,12 +258,12 @@ contains
     integer :: e, f, elemID
     character, parameter :: newLineChar=char(10)
 
-    logical :: periodicMesh
+    logical :: internal_boundaries
 
     ! Gather some info about the mesh
     numElements = ele_count(mesh)
     numFaces = surface_element_count(mesh)
-    periodicMesh = mesh_periodic(mesh)
+    internal_boundaries = has_internal_boundaries(mesh)
 
     ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces
@@ -320,7 +320,7 @@ contains
     ! Faces written out first
     
     ! Number of tags associated with elements
-    if(periodicMesh) then
+    if(internal_boundaries) then
       ! write surface id and element owner
       numTags = 4
     else

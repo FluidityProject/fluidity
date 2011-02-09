@@ -1126,16 +1126,25 @@ contains
          ! works as long as we're not discontinuous
          assert( mesh%continuity>=0 )
          
+         ! the periodic faces will be internal faces in the output periodic mesh
+         mesh%faces%has_internal_boundaries = .true.         
+         
       else if (model%periodic .and. .not. mesh%periodic) then
         
          ! make face_list from the model but change periodic faces to normal external faces
          call add_faces_face_list_non_periodic_from_periodic_model( &
             mesh, model, lperiodic_face_map, stat=stat)
-         
+            
+         ! the subroutine above only works if the removing of periodic bcs has removed all internal boundaries
+         mesh%faces%has_internal_boundaries = .true.
+                     
       else
          ! Transfer the faces from model to mesh
          mesh%faces%face_list=model%faces%face_list
          call incref(mesh%faces%face_list)
+         
+         ! have internal faces if the model does
+         mesh%faces%has_internal_boundaries = has_internal_boundaries(model)
       end if
         
       ! face_element_list is a pure copy of that of the model
@@ -1318,6 +1327,8 @@ contains
     call register_allocation("mesh_type", "integer", no_faces, &
          trim(mesh%name)//" face_element_list")
 #endif
+
+    mesh%faces%has_internal_boundaries = present(element_owner)
     
     snloc=face_vertices(mesh_shape)
     if (present(sndgln)) then

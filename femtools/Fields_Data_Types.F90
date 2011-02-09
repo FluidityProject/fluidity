@@ -118,6 +118,9 @@ module fields_data_types
      integer, dimension(:), pointer :: coplanar_ids => null()
      !! a DG version of the surface mesh, useful for storing bc values
      type(mesh_type), pointer:: dg_surface_mesh => null()
+     !! A logical indicating if this mesh has internal boundaries
+     !! This means that element owners need to be written when writing out this mesh
+     logical :: has_internal_boundaries=.false.
   end type mesh_faces
 
   type mesh_subdomain_mesh

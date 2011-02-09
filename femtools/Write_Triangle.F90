@@ -297,7 +297,6 @@ contains
     
     integer :: unit, dim, nofaces, i
     integer :: nolabels
-    logical :: periodic
     
     unit=free_unit()
     
@@ -316,19 +315,17 @@ contains
         FLAbort("Invalid dimension")
     end select
 
-    if (mesh_periodic(mesh)) then
+    if (has_internal_boundaries(mesh)) then
       ! If the mesh is periodic, we want to write out the parent element of every face
-      periodic = .true.
       nolabels = 2
     else
-      periodic = .false.
       nolabels = 1
     end if
     
     ! header line: nofaces, and number of boundary markers
     write(unit, *, err=42) nofaces, nolabels
     
-    if (.not. periodic) then
+    if (.not. has_internal_boundaries(mesh)) then
       do i=1, nofaces
          write(unit, *, err=42) i, face_global_nodes(mesh, i), &
               surface_element_id(mesh, i)
