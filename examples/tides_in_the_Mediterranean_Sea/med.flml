@@ -337,11 +337,12 @@
               <tensor_form/>
             </stress_terms>
             <les_model>
-              <second_order>
-                <smagorinsky_coefficient>
-                  <real_value rank="0">1.0</real_value>
-                </smagorinsky_coefficient>
-              </second_order>
+              <smagorinsky_coefficient>
+                <real_value rank="0">1.0</real_value>
+              </smagorinsky_coefficient>
+              <model>
+                <second_order/>
+              </model>
             </les_model>
           </continuous_galerkin>
           <conservative_advection>
