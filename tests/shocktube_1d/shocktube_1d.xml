@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>shocktube_1d</name>
+  <owner userid="skramer"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l shocktube.flml</command_line>
+  </problem_definition>
+  <variables/>
+  <pass_tests/>
+</testproblem>
