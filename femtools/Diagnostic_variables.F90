@@ -170,10 +170,10 @@ module diagnostic_variables
      character(len=FIELD_NAME_LEN) :: material_phase
      logical :: have_material_phase
      real, dimension(:), allocatable :: value
-     type(registered_diagnostic_item), pointer :: next
+     type(registered_diagnostic_item), pointer :: next => null()
   end type registered_diagnostic_item
 
-  type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
+  type(registered_diagnostic_item), pointer, save :: registered_diagnostic_first => NULL()
   
   !! Recording wall time since the system start
   integer, save :: current_count, count_rate, count_max
@@ -864,10 +864,9 @@ contains
     nullify(diagnostic_item%next)
 
    ! Check if the diagnostic has not been registered yet
-    iterator => registered_diagnostic_first
-
-    do while (associated(iterator))
-      if (associated(registered_diagnostic_first)) then
+    if (associated(registered_diagnostic_first)) then
+      iterator => registered_diagnostic_first
+      do while (associated(iterator))
         if (iterator%dim == diagnostic_item%dim .and. iterator%name == diagnostic_item%name .and. &
           & iterator%statistic == diagnostic_item%statistic) then
           if ( (present(material_phase) .and. iterator%have_material_phase) .or. &
@@ -875,8 +874,8 @@ contains
             if (present(material_phase)) then
               if (iterator%material_phase == diagnostic_item%material_phase) then
                 ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // &
-                       & trim(statistic) //  ", material_phase = " // trim(material_phase) //  ", and dimension = " // &
-                       & int2str(iterator%dim) // " has already been registered."
+                      & trim(statistic) //  ", material_phase = " // trim(material_phase) //  ", and dimension = " // &
+                      & int2str(iterator%dim) // " has already been registered."
               end if
             else
               ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // trim(statistic) &
@@ -885,9 +884,9 @@ contains
             FLExit("Error in register_diagnostic.")
           end if
         end if
-      end if
       iterator => iterator%next
-    end do
+      end do
+    end if
 
     ! Now append it to the list of registered diagnostics
     if (.not. associated(registered_diagnostic_first)) then
@@ -914,6 +913,10 @@ contains
       deallocate(iterator)
       iterator => next
     end do
+  
+    ! the first registered diagnostic needs to be nullified because
+    ! when adjointing, all the diagnostics are initialised/registered again
+    nullify(registered_diagnostic_first)
 
   end subroutine destroy_registered_diagnostics
 
@@ -925,6 +928,10 @@ contains
     deallocate(mesh_list)
     deallocate(sfield_list)
     deallocate(vfield_list)
+    
+    ! The diagnostics are registered under initialise_diagnostics so they need to be destroyed here.
+    call destroy_registered_diagnostics
+
   end subroutine uninitialise_diagnostics
 
   subroutine initialise_constant_diagnostics(unit, binary_format)

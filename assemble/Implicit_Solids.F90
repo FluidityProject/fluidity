@@ -140,7 +140,9 @@ module implicit_solids
 
   private
   public:: solids, implicit_solids_nonlinear_iteration_converged, &
-       &   remove_dummy_field, add_mass_source_absorption 
+       &   remove_dummy_field, add_mass_source_absorption, implicit_solids_register_diagnostic, &
+       &   implicit_solids_update
+
 
 contains
 
@@ -627,10 +629,11 @@ contains
     type(scalar_field), pointer :: temperature, solid
     type(tensor_field), pointer :: temperature_conductivity
     type(scalar_field) :: lumped_mass
-    real, dimension(:), allocatable :: drag, wall_temperature, solid_mass, q
-    real, dimension(:, :), allocatable :: particle_drag
+    real, dimension(:), allocatable :: wall_temperature, solid_mass, q
     integer, dimension(:), allocatable :: face_nodes
-    integer :: i, j, gi, particle
+    real, dimension(:), allocatable :: force
+    real, dimension(:,:), allocatable :: particle_force
+    integer :: i, gi,particle
     character(len=FIELD_NAME_LEN) :: FMT1, FMT2, FMT3
     type(inode), pointer :: node1, node2
     real, dimension(:, :), allocatable :: temperature_grad_at_quad, normal
@@ -650,37 +653,13 @@ contains
     call compute_lumped_mass(positions, lumped_mass)    
 
     allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
-    allocate(particle_drag(number_of_solids, positions%dim)); particle_drag = 0.
-    allocate(drag(positions%dim)); drag = 0.
     allocate(wall_temperature(number_of_solids)); wall_temperature = 0.
     allocate(solid_mass(number_of_solids)); solid_mass = 0.
     allocate(q(number_of_solids)); q = 0.
+    allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
+    allocate(force(positions%dim)); force = 0.
 
-    do i = 1, nowned_nodes(positions)
-
-       node1 => node_to_particle(i)%firstnode
-
-       do while (associated(node1))
-          particle = node1%value
-
-          do j = 1, positions%dim
-             particle_drag(particle, j) = particle_drag(particle, j) + &
-                  node_val(absorption, j, i) * node_val(velocity, j, i) * &
-                  node_val(lumped_mass, i)
-          end do
-
-          node1 => node1%next
-       end do
-    end do
-
-    do i = 1, number_of_solids
-       call allsumv(particle_drag(i, :))
-    end do
-    do i = 1, positions%dim
-       do j = 1, number_of_solids
-          drag(i) = drag(i) + particle_drag(j, i)
-       end do
-    end do
+    call implicit_solids_force_computation(state, force, particle_force)
 
     if (have_temperature) then
 
@@ -777,7 +756,7 @@ contains
           ! file format: time, fx, fy, fz, T_w_avg, q_avg
           open(1453, file="diagnostic_data", position="append")
           write(1453, FMT1, advance="no") &
-               current_time, (drag(i), i = 1, positions%dim), T_w_avg, q_avg
+               current_time, (force(i), i = 1, positions%dim), T_w_avg, q_avg
           close(1453)
 
           if (do_print_multiple_solids_diagnostics) then
@@ -785,7 +764,7 @@ contains
              ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, T_w1, ..., T_wn, q1, ..., qn
              open(1454, file="particle_diagnostic_data", position="append")
              write(1454, FMT2, advance="no") current_time, &
-                  (particle_drag(i,:), i = 1, number_of_solids), &
+                  (particle_force(i,:), i = 1, number_of_solids), &
                   (wall_temperature(i), i = 1, number_of_solids), &
                   (q(i), i = 1, number_of_solids)
              close(1454)
@@ -795,7 +774,7 @@ contains
        if (do_print_drag) then
           open(1455, file="drag_force", position="append")
           write(1455, FMT3, advance="no") &
-               (drag(i), i = 1, positions%dim)
+               (force(i), i = 1, positions%dim)
           close(1455)
        end if
     end if
@@ -804,7 +783,7 @@ contains
        deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
        call deallocate(temperature_grad)
     end if
-    deallocate(face_nodes, particle_drag, drag, wall_temperature, solid_mass, q)
+    deallocate(face_nodes, particle_force, force, wall_temperature, solid_mass, q)
     call deallocate(lumped_mass)
 
     ewrite(2, *) "leaving print_diagnostics"
@@ -1305,6 +1284,105 @@ contains
     end if
 
   end subroutine implicit_solids_nonlinear_iteration_converged
+
+  !----------------------------------------------------------------------------
+
+  subroutine implicit_solids_force_computation(state, force, particle_force)
+
+    type(state_type), intent(in) :: state
+    real, dimension(:), allocatable, intent(out) :: force
+    real, dimension(:,:), allocatable, intent(out) :: particle_force
+
+    type(vector_field), pointer :: velocity, positions, absorption
+    type(scalar_field) :: lumped_mass
+    real, dimension(:), allocatable :: q
+    integer, dimension(:), allocatable :: face_nodes
+    integer :: i, j, particle
+    type(inode), pointer :: node1
+
+    ewrite(2, *) "inside implicit_solids_force_computation"
+
+    ! Update the computation of the force on the solids
+    ! Only one-way coupling for now 
+    if (one_way_coupling) then
+
+      velocity => extract_vector_field(state, "Velocity")
+      absorption => extract_vector_field(state, "VelocityAbsorption")
+
+      positions => extract_vector_field(state, "Coordinate")
+
+      call allocate(lumped_mass, positions%mesh, "LumpedMass")
+      call compute_lumped_mass(positions, lumped_mass)    
+
+      allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
+      allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
+      allocate(q(number_of_solids)); q = 0.
+      allocate(force(positions%dim)); force = 0.
+
+      do i = 1, nowned_nodes(positions)
+
+        node1 => node_to_particle(i)%firstnode
+
+        do while (associated(node1))
+          particle = node1%value
+
+          do j = 1, positions%dim
+             particle_force(particle, j) = particle_force(particle, j) + &
+                  node_val(absorption, j, i) * node_val(velocity, j, i) * &
+                  node_val(lumped_mass, i)
+          end do
+
+          node1 => node1%next
+        end do
+     end do
+
+     do i = 1, number_of_solids
+       call allsumv(particle_force(i, :))
+     end do
+     do i = 1, positions%dim
+       do j = 1, number_of_solids
+          force(i) = force(i) + particle_force(j, i)
+       end do
+     end do
+          
+    end if
+
+    deallocate(face_nodes, q)
+    call deallocate(lumped_mass)
+
+    ewrite(2, *) "leaving implicit_solids_force_computation"
+
+  end subroutine implicit_solids_force_computation
+
+  !----------------------------------------------------------------------------
+
+  subroutine implicit_solids_update(state)
+
+    type(state_type), intent(in) :: state
+
+    real, dimension(:), allocatable :: force
+    real, dimension(:,:), allocatable :: particle_force
+
+    ewrite(2, *) "inside implicit_solids_update"
+
+    ! Update the computation of the force on the solids
+    ! Only one-way coupling for now
+    if (one_way_coupling) then
+
+      call implicit_solids_force_computation(state, force, particle_force)
+
+      ! Register the x-component of the force on a solid body
+      call set_diagnostic(name="ForceX", statistic="Value", value=(/ force(1) /))
+      call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
+      call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
+
+      deallocate(force, particle_force)
+          
+    end if
+
+    ewrite(2, *) "leaving implicit_solids_update"
+
+  end subroutine implicit_solids_update
 
   !----------------------------------------------------------------------------
 
@@ -2348,7 +2426,14 @@ contains
     
   end subroutine interpolation_galerkin_scalars
 
-  !----------------------------------------------------------------------------
+  subroutine implicit_solids_register_diagnostic                      
+            
+    call register_diagnostic(dim=1, name="ForceX", statistic="Value")
+    call register_diagnostic(dim=1, name="ForceY", statistic="Value")
+    call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+
+  end subroutine implicit_solids_register_diagnostic 
+
   !----------------------------------------------------------------------------
 
 end module implicit_solids

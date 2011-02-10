@@ -233,12 +233,12 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-    call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
-         & default=1)
-
+    
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
+         call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
+         & default=1)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
 
@@ -416,7 +416,6 @@ contains
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
-
 
     timestep_loop: do
        timestep = timestep + 1
@@ -764,6 +763,12 @@ contains
              ewrite(2,*) 'out of solid_data_update'
           end if
 
+          ! This will replace the routine one_way_print_diagnostics (in Implicit_Solids) when nobody uses it anymore.
+          ! Only written for one_way_coupling and no temperature field for now
+          if (have_option("/implicit_solids")) then
+             call implicit_solids_update(state(1))
+          end if
+
        end do nonlinear_iteration_loop
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
@@ -1003,6 +1008,8 @@ contains
     
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
+      call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
+         & default=1)
       nonlinear_iterations = nonlinear_iterations_adapt
     end if
 

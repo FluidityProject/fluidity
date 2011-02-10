@@ -7,13 +7,8 @@
     <command_line>fluidity -v2 -l implicit_cylinder3d_fs.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="force" language="python">s = open("diagnostic_data",'r')
-force = []
-for line in s:
-  col = line.split()
-  drag = float(col[1])
-  force.append(drag)
-s.close()
+    <variable name="force" language="python">from fluidity_tools import stat_parser
+force = stat_parser("Implicit_cylinder3d_fs.stat")["ForceX"]["Value"][-1]
     </variable>
     <variable name="hmin" language="python">from fluidity_tools import stat_parser
 hmin = stat_parser("Implicit_cylinder3d_fs.stat")["water"]["FreeSurface"]["min"][-1]
@@ -27,7 +22,7 @@ ElapsedTime = stat_parser("Implicit_cylinder3d_fs.detectors")["ElapsedTime"]["va
   </variables>
   <pass_tests>
   <test name="Drag force is correct." language="python">
-assert(abs(force[-1]+0.01312) &lt; 1e-3)
+assert(abs(force[-1]+0.00634) &lt; 1e-3)
   </test>
   <test name="Surface elevation is correct." language="python">
 assert(abs(hmin+0.04282) &lt; 1e-3) 
