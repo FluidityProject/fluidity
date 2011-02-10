@@ -395,7 +395,9 @@ module zoltan_integration
 
   subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz)
     integer, intent(in) :: iteration, max_adapt_iteration
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz  
+    logical, dimension(:), allocatable :: field_bc_type
+    logical :: has_periodic_boundaries
 
     integer(zoltan_int) :: ierr
     character (len = FIELD_NAME_LEN) :: method, graph_checking_level
@@ -406,7 +408,14 @@ module zoltan_integration
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
 
-    if (iteration /= max_adapt_iteration) then
+    ! check for periodic meshes, if so, ignore load imbalance setting for final
+    ! adapt iteration
+    allocate(field_bc_type(surface_element_count(zoltan_global_zz_mesh)))
+    call get_periodic_boundary_condition(zoltan_global_zz_mesh, field_bc_type)
+    has_periodic_boundaries = any(field_bc_type)
+    write(*,*) has_periodic_boundaries
+
+    if (iteration /= max_adapt_iteration .or. has_periodic_boundaries) then
         ! ignore large load imbalances when on intermediate adapt iterations
         ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.5"); assert(ierr == ZOLTAN_OK)
     else 

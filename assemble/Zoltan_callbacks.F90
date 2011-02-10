@@ -7,6 +7,7 @@ module zoltan_callbacks
 
   use zoltan
   use zoltan_global_variables
+  use parallel_tools
 
   ! Needed for zoltan_cb_owned_node_count
   use halos, only: halo_nowned_nodes, halo_node_owner, halo_node_owners, get_owned_nodes, halo_universal_number
@@ -43,6 +44,9 @@ module zoltan_callbacks
 
   ! Needed for zoltan_cb_unpack_fields
   use halos_derivation, only: ele_owner
+
+  ! for periodic boundary conditions
+  use boundary_conditions, only: get_periodic_boundary_condition
 
   implicit none
   
@@ -164,10 +168,15 @@ contains
     real(zoltan_float), intent(out), dimension(*) :: ewgts
     integer(zoltan_int), intent(out) :: ierr 
     integer :: count, err
-    integer :: node, i, j
+    integer :: node, i, j, sele
     integer :: head
     integer, dimension(:), pointer :: neighbours
-    character (len = OPTION_PATH_LEN) :: filename    
+    character (len = OPTION_PATH_LEN) :: filename
+
+    ! for recording which elements are on a periodic BC
+    logical, dimension(:), allocatable :: field_bc_type
+    logical                            :: periodic_boundaries
+    logical                            :: has_periodic_nastiness
     
     ! variables for recording various element quality functional values 
     real(zoltan_float) :: quality, min_quality, my_min_quality
@@ -191,6 +200,13 @@ contains
     assert(count == num_obj)
     
     my_num_edges = sum(num_edges(1:num_obj))
+
+    ! get list of surface elements that are associated with periodic boundary
+    ! conditions
+    assert(associated(zoltan_global_zz_mesh%halos))
+    allocate(field_bc_type(surface_element_count(zoltan_global_zz_mesh)))
+    call get_periodic_boundary_condition(zoltan_global_zz_mesh, field_bc_type)
+    periodic_boundaries = any(field_bc_type)
     
     if (zoltan_global_zoltan_iteration==zoltan_global_zoltan_max_adapt_iteration) then
        
@@ -209,13 +225,65 @@ contains
           nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
           head = head + size(neighbours)
        end do
+
+       ! now fiddle with edge weights if we're on a periodic mesh
+       ! The idea is to fix the N edges near the periodic boundaries such that
+       ! a processor domain boundary does not cut the periodic boundary
+       if (periodic_boundaries) then
+          head = 1
+          do node=1,count
+             ! find nodes neighbours
+             neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
+             ! check the number of neighbours matches the number of edges
+             assert(size(neighbours) == num_edges(node))
+             ! get elements associated with this node
+             my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
+             ! find quality of worst element node is associated with
+             has_periodic_nastiness = .false.
+             do i=1,size(my_nelist)
+                do sele = 1, surface_element_count(zoltan_global_zz_mesh)
+                    if(field_bc_type(sele) .and. sele == my_nelist(i)) then
+                        has_periodic_nastiness = .true.
+                        exit
+                    end if
+                end do
+             end do
+             ! we now know if this node is associated with any element that have
+             ! any periodic faces on them. Now, march away for a few edges
+             ! setting the edge weight high such that the domain decomposition
+             ! won't cut it
+             do j=1,size(neighbours)
+                if (has_periodic_nastiness) ewgts(head + j - 1) = 5000
+             end do
+             head = head + size(neighbours)
+          end do
+          if (zoltan_global_output_edge_weights) then
+             head = 1
+             do node=1,count
+                neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
+                value = maxval(ewgts(head:head+size(neighbours)-1))
+                call set(zoltan_global_max_edge_weight_on_node,local_ids(node),value)
+                head = head + size(neighbours)
+             end do
+          end if
+        
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
+             write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
+             open(666, file = filename)
+           do i=1,head-1
+              write(666,*) ewgts(i)
+           end do
+           close(666)
+        end if
+      
+       end if
+       deallocate(field_bc_type)
        ierr = ZOLTAN_OK
        return
-    else
-       call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
-            MPI_COMM_WORLD,err)
+
     end if
-    
+    call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,getPINTEGER(),MPI_SUM, &
+            MPI_COMM_WORLD,err) 
     
     head = 1
     
@@ -327,6 +395,16 @@ contains
     
     
     ierr = ZOLTAN_OK
+
+
+    contains 
+
+    subroutine fix_periodic_edges
+    
+
+
+    end subroutine fix_periodic_edges
+
   end subroutine zoltan_cb_get_edge_list
 
 
