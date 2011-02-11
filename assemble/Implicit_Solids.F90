@@ -134,7 +134,7 @@ module implicit_solids
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, have_viscosity, do_print_multiple_solids_diagnostics
-  logical, save :: do_print_diagnostics, do_calculate_volume_fraction, do_print_drag
+  logical, save :: do_print_diagnostics, do_calculate_volume_fraction
   logical, save :: have_fixed_temperature, have_fixed_temperature_source, have_radius
   logical, save :: use_bulk_velocity, use_fluid_velocity, have_pressure_gradient
 
@@ -240,9 +240,6 @@ contains
 
        if (have_fixed_temperature_source) &
             call calculate_temperature_diffusivity(state)
-
-       if ((do_print_diagnostics .or. do_print_drag) .and. its==itinoi) &
-            call one_way_print_diagnostics(state)
 
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
@@ -685,178 +682,6 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine one_way_print_diagnostics(state)
-
-    type(state_type), intent(in) :: state
-
-    type(vector_field), pointer :: velocity, positions, absorption
-    type(vector_field) :: temperature_grad
-    type(scalar_field), pointer :: temperature, solid
-    type(tensor_field), pointer :: temperature_conductivity
-    type(scalar_field) :: lumped_mass
-    real, dimension(:), allocatable :: wall_temperature, solid_mass, q
-    integer, dimension(:), allocatable :: face_nodes
-    real, dimension(:), allocatable :: force
-    real, dimension(:, :), allocatable :: particle_force
-    integer :: i, gi, particle
-    character(len=FIELD_NAME_LEN) :: FMT1, FMT2, FMT3
-    type(inode), pointer :: node1, node2
-    real, dimension(:, :), allocatable :: temperature_grad_at_quad, normal
-    real, dimension(:), allocatable :: detwei, T_grad_dot_n_at_quad
-    type(element_type), pointer :: T_f_shape
-    real :: T_w_avg, q_avg, k_f
-
-    ewrite(2, *) "inside print_diagnostics"
-
-    velocity => extract_vector_field(state, "Velocity")
-    solid => extract_scalar_field(state, "SolidConcentration")
-    absorption => extract_vector_field(state, "VelocityAbsorption")
-
-    positions => extract_vector_field(state, "Coordinate")
-
-    call allocate(lumped_mass, positions%mesh, "LumpedMass")
-    call compute_lumped_mass(positions, lumped_mass)    
-
-    allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
-    allocate(wall_temperature(number_of_solids)); wall_temperature = 0.
-    allocate(solid_mass(number_of_solids)); solid_mass = 0.
-    allocate(q(number_of_solids)); q = 0.
-    allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
-    allocate(force(positions%dim)); force = 0.
-
-    call implicit_solids_force_computation(state, force, particle_force)
-
-    if (have_temperature) then
-
-       temperature => extract_scalar_field(state, "Temperature")
-
-       ! calculate the solid-fluid interface temperature
-       node1 => surface_nodes%firstnode
-       do while (associated(node1))
-
-          i = node1%value ! node number
-          node2 => node_to_particle(i)%firstnode
-
-          do while (associated(node2))
-      
-             particle = node2%value
-
-             wall_temperature(particle) = wall_temperature(particle) + &
-                  node_val(temperature, i) * node_val(lumped_mass, i)
-             solid_mass(particle) = solid_mass(particle) + node_val(lumped_mass, i)
-
-             node2 => node2%next
-          end do
-
-          node1 => node1%next
-       end do
-
-       call allsumv(wall_temperature)
-       call allsumv(solid_mass)
-
-       wall_temperature = wall_temperature / solid_mass
-
-       ! calculate the solid-fluid interface heat transfer rate
-       call allocate(temperature_grad, positions%dim, &
-            temperature%mesh, "TemperatureGradient")
-       call zero(temperature_grad)
-       call grad(temperature, positions, temperature_grad)
-
-       temperature_conductivity => extract_tensor_field(state, "TemperatureDiffusivity")
-       if (have_fixed_temperature_source) then
-          k_f = minval(temperature_conductivity%val(1,1,:))
-       else
-          k_f = node_val(temperature_conductivity, 1, 1, 1)
-       end if
-
-       allocate(temperature_grad_at_quad(positions%dim, face_ngi(temperature, 1)))
-       allocate(detwei(face_ngi(temperature, 1)))
-       allocate(normal(positions%dim, face_ngi(temperature, 1)))
-       allocate(T_grad_dot_n_at_quad(face_ngi(temperature, 1)))
-
-       node1 => surface_faces%firstnode
-       do while (associated(node1))
-
-          i = node1%value ! face number
-
-          face_nodes = face_global_nodes(positions, i)
-          particle = node_to_particle(face_nodes(1))%firstnode%value
-          temperature_grad_at_quad = face_val_at_quad(temperature_grad, i)
-          call transform_facet_to_physical(positions, i, &
-               detwei_f=detwei, normal=normal)
-          T_f_shape => face_shape(temperature, i)
-
-          T_grad_dot_n_at_quad = 0.
-          do gi = 1, face_ngi(temperature, i)
-             T_grad_dot_n_at_quad(gi) = &
-                  dot_product(temperature_grad_at_quad(:, gi), normal(:, gi))
-          end do
-
-          q(particle) = q(particle) + &
-               sum(shape_rhs(T_f_shape, detwei*T_grad_dot_n_at_quad*k_f))
-
-          node1 => node1%next
-       end do
-
-       call allsumv(q)
-
-       T_w_avg = 0.; q_avg = 0.
-       do i = 1, number_of_solids
-          T_w_avg = T_w_avg + wall_temperature(i)
-          q_avg = q_avg + q(i) 
-       end do
-       T_w_avg = T_w_avg / number_of_solids
-       q_avg = q_avg / number_of_solids
-
-    end if ! have_temperature
-
-    ! write files
-    FMT1 = "(F10.5, 1X, "//int2str(positions%dim+2)//"(F12.5, 1X))"
-    FMT2 = "(F10.5, 1X, " &
-         //int2str((positions%dim+2)*number_of_solids)//"(F12.5, 1X))"
-    FMT3 = "(1X,"//int2str(positions%dim)//"(F25.15, 1X))"
-
-    if (GetRank() == 0) then
-       if (do_print_diagnostics) then
-          ! file format: time, fx, fy, fz, T_w_avg, q_avg
-          open(1453, file="diagnostic_data", position="append")
-          write(1453, FMT1, advance="no") &
-               current_time, (force(i), i = 1, positions%dim), T_w_avg, q_avg
-          close(1453)
-
-          if (do_print_multiple_solids_diagnostics) then
-             ! file format: 
-             ! time, fx1, fy1, fz1, ..., fxn, fyn, fzn, T_w1, ..., T_wn, q1, ..., qn
-             open(1454, file="particle_diagnostic_data", position="append")
-             write(1454, FMT2, advance="no") current_time, &
-                  (particle_force(i,:), i = 1, number_of_solids), &
-                  (wall_temperature(i), i = 1, number_of_solids), &
-                  (q(i), i = 1, number_of_solids)
-             close(1454)
-          end if
-       end if
-
-       if (do_print_drag) then
-          open(1455, file="drag_force", position="append")
-          write(1455, FMT3, advance="no") &
-               (force(i), i = 1, positions%dim)
-          close(1455)
-       end if
-    end if
-
-    if (have_temperature) then
-       deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
-       call deallocate(temperature_grad)
-    end if
-    deallocate(face_nodes, particle_force, force, wall_temperature, solid_mass, q)
-    call deallocate(lumped_mass)
-
-    ewrite(2, *) "leaving print_diagnostics"
-
-  end subroutine one_way_print_diagnostics
-
-  !----------------------------------------------------------------------------
-
   subroutine one_way_initialise(state)
 
     type(state_type), intent(in) :: state
@@ -866,14 +691,6 @@ contains
     integer :: dat_unit, stat, quad_degree
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     character(len=PYTHON_FUNC_LEN) :: python_function
-
-    ! check for mutiple solids and get translation coordinates
-    number_of_solids = 1
-    multiple_solids = &
-         have_option("/implicit_solids/one_way_coupling/multiple_solids")
-    if (multiple_solids) call get_option( &
-         "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
-         number_of_solids)
 
     positions => extract_vector_field(state, "Coordinate")
 
@@ -939,14 +756,6 @@ contains
        call get_option("/implicit_solids/pressure_gradient/", pressure_gradient)
     end if
 
-    ! figure out if we want to print out diagnostics and initialise files
-    do_print_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/print_diagnostics")
-    do_print_multiple_solids_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
-    do_print_drag = &
-         have_option("/implicit_solids/one_way_coupling/print_drag")
-
     ! initialise diagnostics (and drag force) data file
     if (GetRank() == 0 .and. do_print_diagnostics) then
        dat_unit = free_unit()
@@ -958,12 +767,6 @@ contains
           open(dat_unit, file="particle_diagnostic_data", status="replace")
           close(dat_unit)
        end if
-    end if
-
-    if (GetRank() == 0 .and. do_print_drag) then
-       dat_unit = free_unit()
-       open(dat_unit, file="drag_force", status="replace")
-       close(dat_unit)
     end if
 
   end subroutine one_way_initialise
@@ -1353,8 +1156,6 @@ contains
 
     type(state_type), intent(in) :: state
 
-    if (one_way_coupling) call one_way_print_diagnostics(state)
-
     if (do_adapt_mesh(current_time, timestep)) then
        if (one_way_coupling) then
           call deallocate(solid_local)
@@ -1444,19 +1245,141 @@ contains
 
   !----------------------------------------------------------------------------
 
+  subroutine implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
+
+    type(state_type), intent(in) :: state
+    real, dimension(:), allocatable, intent(out) :: wall_temperature, q
+    real, intent(out) :: T_w_avg, q_avg
+
+    type(vector_field), pointer :: positions
+    type(vector_field) :: temperature_grad
+    type(scalar_field), pointer :: temperature
+    type(tensor_field), pointer :: temperature_conductivity
+    type(scalar_field) :: lumped_mass    
+    real, dimension(:), allocatable :: solid_mass
+    integer, dimension(:), allocatable :: face_nodes
+    integer :: i, gi, particle
+    type(inode), pointer :: node1, node2
+    real, dimension(:, :), allocatable :: temperature_grad_at_quad, normal
+    real, dimension(:), allocatable :: detwei, T_grad_dot_n_at_quad
+    type(element_type), pointer :: T_f_shape  
+    real :: k_f
+
+    ewrite(2, *) "inside implicit_solids_temperature_computation"
+
+    positions => extract_vector_field(state, "Coordinate")
+
+    call allocate(lumped_mass, positions%mesh, "LumpedMass")
+    call compute_lumped_mass(positions, lumped_mass)    
+
+    allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
+    allocate(wall_temperature(number_of_solids)); wall_temperature = 0.
+    allocate(solid_mass(number_of_solids)); solid_mass = 0.
+    allocate(q(number_of_solids)); q = 0.
+
+    temperature => extract_scalar_field(state, "Temperature")
+
+    ! calculate the solid-fluid interface temperature
+    node1 => surface_nodes%firstnode
+    do while (associated(node1))
+
+       i = node1%value ! node number
+       node2 => node_to_particle(i)%firstnode
+
+       do while (associated(node2))
+      
+          particle = node2%value
+
+          wall_temperature(particle) = wall_temperature(particle) + &
+               node_val(temperature, i) * node_val(lumped_mass, i)
+          solid_mass(particle) = solid_mass(particle) + node_val(lumped_mass, i)
+
+          node2 => node2%next
+       end do
+
+       node1 => node1%next
+    end do
+
+    call allsumv(wall_temperature)
+    call allsumv(solid_mass)
+
+    wall_temperature = wall_temperature / solid_mass
+
+    ! calculate the solid-fluid interface heat transfer rate
+    call allocate(temperature_grad, positions%dim, &
+         temperature%mesh, "TemperatureGradient")
+    call zero(temperature_grad)
+    call grad(temperature, positions, temperature_grad)
+
+    temperature_conductivity => extract_tensor_field(state, "TemperatureDiffusivity")
+    if (have_fixed_temperature_source) then
+       k_f = minval(temperature_conductivity%val(1,1,:))
+    else
+       k_f = node_val(temperature_conductivity, 1, 1, 1)
+    end if
+
+    allocate(temperature_grad_at_quad(positions%dim, face_ngi(temperature, 1)))
+    allocate(detwei(face_ngi(temperature, 1)))
+    allocate(normal(positions%dim, face_ngi(temperature, 1)))
+    allocate(T_grad_dot_n_at_quad(face_ngi(temperature, 1)))
+    node1 => surface_faces%firstnode
+    do while (associated(node1))
+
+       i = node1%value ! face number
+       face_nodes = face_global_nodes(positions, i)
+       particle = node_to_particle(face_nodes(1))%firstnode%value
+       temperature_grad_at_quad = face_val_at_quad(temperature_grad, i)
+       call transform_facet_to_physical(positions, i, &
+            detwei_f=detwei, normal=normal)
+       T_f_shape => face_shape(temperature, i)
+       T_grad_dot_n_at_quad = 0.
+       do gi = 1, face_ngi(temperature, i)
+          T_grad_dot_n_at_quad(gi) = &
+               dot_product(temperature_grad_at_quad(:, gi), normal(:, gi))
+       end do
+
+       q(particle) = q(particle) + &
+            sum(shape_rhs(T_f_shape, detwei*T_grad_dot_n_at_quad*k_f))
+       node1 => node1%next
+    end do
+
+    call allsumv(q)
+
+    T_w_avg = 0.; q_avg = 0.
+    do i = 1, number_of_solids
+       T_w_avg = T_w_avg + wall_temperature(i)
+       q_avg = q_avg + q(i) 
+    end do
+    T_w_avg = T_w_avg / number_of_solids
+    q_avg = q_avg / number_of_solids
+
+    deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
+    call deallocate(temperature_grad)
+
+    deallocate(face_nodes, solid_mass)
+    call deallocate(lumped_mass)
+
+    ewrite(2, *) "leaving implicit_solids_temperature_computation"
+
+  end subroutine implicit_solids_temperature_computation
+
+  !----------------------------------------------------------------------------
+
   subroutine implicit_solids_update(state)
 
     type(state_type), intent(in) :: state
 
     real, dimension(:), allocatable :: force
     real, dimension(:, :), allocatable :: particle_force
+    real, dimension(:), allocatable :: wall_temperature, q
+    real :: T_w_avg, q_avg
     integer :: i
 
     ewrite(2, *) "inside implicit_solids_update"
 
-    ! Update the computation of the force on the solids
+    ! Update the computation of the diagnostics
     ! Only one-way coupling for now
-    if (one_way_coupling) then
+    if (one_way_coupling .and. do_print_diagnostics) then
 
       call implicit_solids_force_computation(state, force, particle_force)
 
@@ -1465,12 +1388,29 @@ contains
       call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
       call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
       
-      if (multiple_solids) then
+      if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
         do i = 1, number_of_solids
           call set_diagnostic(name="ForceX on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 1) /))
           call set_diagnostic(name="ForceY on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 2) /))
           call set_diagnostic(name="ForceZ on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 3) /))
         end do
+      end if
+
+      if (have_temperature) then
+        call implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
+
+        ! Register the diagnostics
+        call set_diagnostic(name="Wall temperature", statistic="Value", value=(/ T_w_avg /))
+        call set_diagnostic(name="Heat transfer", statistic="Value", value=(/ q_avg /))
+      
+        if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+          do i = 1, number_of_solids
+            call set_diagnostic(name="Wall temperature on solid "//int2str(i), statistic="Value", value=(/ wall_temperature(i) /))
+            call set_diagnostic(name="Heat transfer at solid "//int2str(i), statistic="Value", value=(/ q(i) /))
+          end do
+        end if
+
+        deallocate(wall_temperature, q)
       end if
 
       deallocate(force, particle_force)
@@ -2529,16 +2469,44 @@ contains
 
     integer :: i
 
-    call register_diagnostic(dim=1, name="ForceX", statistic="Value")
-    call register_diagnostic(dim=1, name="ForceY", statistic="Value")
-    call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+    ! figure out if we want to print out diagnostics and initialise files
+    do_print_diagnostics = &
+         have_option("/implicit_solids/one_way_coupling/print_diagnostics")
+    do_print_multiple_solids_diagnostics = &
+         have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
 
-    if (multiple_solids) then
-       do i = 1, number_of_solids
+    ! check for mutiple solids and get translation coordinates
+    number_of_solids = 1
+    multiple_solids = &
+         have_option("/implicit_solids/one_way_coupling/multiple_solids")
+    if (multiple_solids) call get_option( &
+         "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
+         number_of_solids)
+
+    if(do_print_diagnostics) then
+      call register_diagnostic(dim=1, name="ForceX", statistic="Value")
+      call register_diagnostic(dim=1, name="ForceY", statistic="Value")
+      call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+
+      if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+        do i = 1, number_of_solids
           call register_diagnostic(dim=1, name="ForceX on solid "//int2str(i), statistic="Value")
           call register_diagnostic(dim=1, name="ForceY on solid "//int2str(i), statistic="Value")
           call register_diagnostic(dim=1, name="ForceZ on solid "//int2str(i), statistic="Value")
-       end do
+        end do
+      end if
+
+      if (have_temperature) then
+        call register_diagnostic(dim=1, name="Wall temperature", statistic="Value")
+        call register_diagnostic(dim=1, name="Heat transfer", statistic="Value")
+      
+        if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+          do i = 1, number_of_solids
+            call register_diagnostic(dim=1, name="Wall temperature on solid "//int2str(i), statistic="Value")
+            call register_diagnostic(dim=1, name="Heat transfer at solid "//int2str(i), statistic="Value")
+          end do
+        end if
+      end if
     end if
 
   end subroutine implicit_solids_register_diagnostic
