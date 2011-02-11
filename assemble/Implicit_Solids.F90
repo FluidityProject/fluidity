@@ -1362,6 +1362,7 @@ contains
 
     real, dimension(:), allocatable :: force
     real, dimension(:,:), allocatable :: particle_force
+    integer :: i
 
     ewrite(2, *) "inside implicit_solids_update"
 
@@ -1375,6 +1376,14 @@ contains
       call set_diagnostic(name="ForceX", statistic="Value", value=(/ force(1) /))
       call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
       call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
+      
+      if (number_of_solids > 1) then
+        do i = 1, number_of_solids
+          call set_diagnostic(name="ForceX on solid "//int2str(i), statistic="Value", value=(/ particle_force(i,1) /))
+          call set_diagnostic(name="ForceY on solid "//int2str(i), statistic="Value", value=(/ particle_force(i,2) /))
+          call set_diagnostic(name="ForceZ on solid "//int2str(i), statistic="Value", value=(/ particle_force(i,3) /))
+        end do
+      end if
 
       deallocate(force, particle_force)
           
@@ -2428,9 +2437,26 @@ contains
 
   subroutine implicit_solids_register_diagnostic                      
             
+    integer :: i
+
+    number_of_solids = 1
+    multiple_solids = have_option("/implicit_solids/one_way_coupling/multiple_solids")
+
+    if (multiple_solids) then
+      call get_option("/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", number_of_solids)
+    end if
+
     call register_diagnostic(dim=1, name="ForceX", statistic="Value")
     call register_diagnostic(dim=1, name="ForceY", statistic="Value")
     call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+
+    if(number_of_solids > 1) then
+       do i = 1, number_of_solids
+         call register_diagnostic(dim=1, name="ForceX on solid "//int2str(i), statistic="Value")
+         call register_diagnostic(dim=1, name="ForceY on solid "//int2str(i), statistic="Value")
+         call register_diagnostic(dim=1, name="ForceZ on solid "//int2str(i), statistic="Value")
+       end do
+    end if
 
   end subroutine implicit_solids_register_diagnostic 
 
