@@ -413,7 +413,6 @@ module zoltan_integration
     allocate(field_bc_type(surface_element_count(zoltan_global_zz_mesh)))
     call get_periodic_boundary_condition(zoltan_global_zz_mesh, field_bc_type)
     has_periodic_boundaries = any(field_bc_type)
-    write(*,*) has_periodic_boundaries
 
     if (iteration /= max_adapt_iteration .or. has_periodic_boundaries) then
         ! ignore large load imbalances when on intermediate adapt iterations

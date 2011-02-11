@@ -3,7 +3,7 @@ default: input
 input: clean
 	../../scripts/gmsh2triangle --2d src/MMS_C.msh
 	../../bin/periodise periodic_adaptivity.flml
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2  periodic_adaptivity_periodised periodic_adaptivity_periodised_parallel
+	mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3  periodic_adaptivity_periodised periodic_adaptivity_periodised_parallel
 
 clean: clean-mesh clean-run
 clean-mesh:
@@ -18,5 +18,5 @@ clean-run:
 	rm -rf surface_*
 	rm -rf mesh_*
 	rm -rf *log-?
-	rm edge_weights*
+	rm -f edge_weights*
 
