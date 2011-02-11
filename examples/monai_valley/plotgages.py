@@ -18,7 +18,7 @@ def main(argv=None):
 
   # Offsets:
   surface_heigth=-0.2
-  d0=0.01
+  d0=0.0005
   offset=-surface_heigth-d0
 
   try:
