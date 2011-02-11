@@ -1146,7 +1146,7 @@ Note that the default value is zero. </a:documentation>
         <element name="continuous_galerkin">
           <optional>
             <element name="remove_stabilisation_term">
-              <a:documentation>remove the  fourth order pressure stabilisation term KCMC
+              <a:documentation>remove the fourth order pressure stabilisation term KCMC
 must be removed for multimaterial and free surface calculations</a:documentation>
               <empty/>
             </element>
@@ -1167,7 +1167,11 @@ If activated this means that the pressure gradient operator is not integrated by
 Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
 
 ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
-              <empty/>
+              <optional>
+                <element name="k_scaling">
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>

@@ -943,7 +943,7 @@ prognostic_pressure_field =
       element spatial_discretisation {
          (
             element continuous_galerkin {
-               ## remove the  fourth order pressure stabilisation term KCMC
+               ## remove the fourth order pressure stabilisation term KCMC
                ## must be removed for multimaterial and free surface calculations
                element remove_stabilisation_term {
                   empty
@@ -961,7 +961,9 @@ prognostic_pressure_field =
                ## 
                ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
-                  empty
+                  element k_scaling {
+                    real
+                  }?
                }?
             }|
             element control_volumes {
