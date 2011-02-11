@@ -5032,7 +5032,7 @@ Required in porous_media problem type</a:documentation>
           </element>
           <element name="diagnostic">
             <ref name="velocity_mesh_choice"/>
-            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </choice>

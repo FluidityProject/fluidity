@@ -37,6 +37,7 @@ module state_matrices_module
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
   use eventcounter
   use field_options
+  use spud
   implicit none
 
   interface get_divergence_matrix_cv
@@ -155,7 +156,13 @@ contains
     states = (/state/)
     cmc_m => get_pressure_poisson_matrix(states, get_cmc=get_cmc)
     state = states(1)
-  
+
+    ! In multi-phase simulations, M and C^T depend on the phase volume fraction,
+    ! so we have to re-assemble CMC each time since PhaseVolumeFraction can change.
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       if(present(get_cmc)) get_cmc = .true.
+    end if
+ 
   end function get_pressure_poisson_matrix_single_state
   
   function get_pressure_poisson_matrix_multiple_states(states, get_cmc) result(cmc_m)
@@ -253,7 +260,13 @@ contains
     states = (/state/)
     ct_m => get_velocity_divergence_matrix(states, get_ct=get_ct)
     state = states(1)
-  
+
+    ! In multi-phase simulations, C^T depends on the phase volume fraction,
+    ! so we have to re-assemble C^T each time since PhaseVolumeFraction can change.
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       if(present(get_ct)) get_ct = .true.
+    end if
+
   end function get_velocity_divergence_matrix_single_state
 
   function get_velocity_divergence_matrix_multiple_states(states, get_ct) result(ct_m)

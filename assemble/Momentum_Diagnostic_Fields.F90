@@ -81,6 +81,8 @@ contains
     
     ! This needs to be done first or none of the following multimaterial algorithms will work...
     call calculate_diagnostic_material_volume_fraction(state)
+
+    call calculate_diagnostic_phase_volume_fraction(state)
     
     ! Calculate the density according to the eos... do the buoyancy density and the density
     ! at the same time to save computations

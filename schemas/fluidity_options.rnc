@@ -3877,7 +3877,7 @@ scalar_field_choice =
                }|
                element diagnostic {
                   velocity_mesh_choice,
-                  scalar_python_diagnostic_algorithm,
+                  internal_algorithm,
                   diagnostic_scalar_field_no_adapt
                }
             )
