@@ -56,7 +56,7 @@ module zoltan_integration
   contains
 
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
-    ignore_extrusion)
+    ignore_extrusion, flredecomp)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
     integer, intent(in) :: max_adapt_iteration
@@ -68,10 +68,14 @@ module zoltan_integration
     logical, intent(in), optional :: initialise_fields
     ! if present and true: only redistribute horizontal meshes and fields thereon
     logical, intent(in), optional :: ignore_extrusion
+    ! if present and true, we're in zoltan_drive from flredecomp and we can
+    ! adjust settings appropriately
+    logical, intent(in), optional :: flredecomp
 
     type(zoltan_struct), pointer :: zz
 
     logical :: changes
+    logical :: flredecomp_local
     integer(zoltan_int) :: num_gid_entries, num_lid_entries
     integer(zoltan_int), dimension(:), pointer :: p1_export_global_ids => null()
     integer(zoltan_int), dimension(:), pointer :: p1_export_local_ids => null()
@@ -94,12 +98,18 @@ module zoltan_integration
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
+    if (.not. present(flredecomp)) then
+        flredecomp_local = .false.
+    else
+        flredecomp_local = flredecomp
+    end if
+
     call setup_module_variables(states, iteration, max_adapt_iteration, zz)
     
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
-    call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, zz, flredecomp_local)
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
@@ -159,7 +169,7 @@ module zoltan_integration
       
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
-      call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, zz, flredecomp_local)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -393,11 +403,10 @@ module zoltan_integration
     
   end subroutine setup_quality_module_variables
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz, flredecomp)
     integer, intent(in) :: iteration, max_adapt_iteration
-    type(zoltan_struct), pointer, intent(in) :: zz  
-    logical, dimension(:), allocatable :: field_bc_type
-    logical :: has_periodic_boundaries
+    type(zoltan_struct), pointer, intent(in) :: zz
+    logical, intent(in) :: flredecomp
 
     integer(zoltan_int) :: ierr
     character (len = FIELD_NAME_LEN) :: method, graph_checking_level
@@ -408,13 +417,7 @@ module zoltan_integration
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
 
-    ! check for periodic meshes, if so, ignore load imbalance setting for final
-    ! adapt iteration
-    allocate(field_bc_type(surface_element_count(zoltan_global_zz_mesh)))
-    call get_periodic_boundary_condition(zoltan_global_zz_mesh, field_bc_type)
-    has_periodic_boundaries = any(field_bc_type)
-
-    if (iteration /= max_adapt_iteration .or. has_periodic_boundaries) then
+    if (iteration /= max_adapt_iteration .or. flredecomp) then
         ! ignore large load imbalances when on intermediate adapt iterations
         ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.5"); assert(ierr == ZOLTAN_OK)
     else 
