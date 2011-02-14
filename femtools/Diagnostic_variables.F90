@@ -2549,17 +2549,14 @@ contains
     end if
 
     !set value of dt in each detector
+    !this is used in bisection method
     detector => detector_list%firstnode
-
     do j=1, detector_list%length
-
        detector%dt=dt
-
        detector => detector%next
-
     end do  
 
-    !do_until_all_send_lists_between_processors_are_empty
+    !this loop continues until all detectors have completed their timestep
     do  
 
        allocate(send_list_array(number_neigh_processors))
