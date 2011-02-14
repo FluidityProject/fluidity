@@ -168,12 +168,11 @@
               <stress_form/>
             </stress_terms>
             <les_model>
-              <smagorinsky_coefficient>
-                <real_value rank="0">0.1</real_value>
-              </smagorinsky_coefficient>
-              <model>
-                <second_order/>
-              </model>
+              <second_order>
+                <smagorinsky_coefficient>
+                  <real_value rank="0">0.1</real_value>
+                </smagorinsky_coefficient>
+              </second_order>
             </les_model>
           </continuous_galerkin>
           <conservative_advection>

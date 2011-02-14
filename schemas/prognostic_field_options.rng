@@ -540,39 +540,197 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
           </element>
           <optional>
             <element name="les_model">
-              <a:documentation>large-eddy simulation</a:documentation>
-              <element name="smagorinsky_coefficient">
-                <a:documentation>literature sybol: Cs
+              <a:documentation>large-eddy simulation models</a:documentation>
+              <choice>
+                <element name="second_order">
+                  <a:documentation>similar to the original Smag model</a:documentation>
+                  <element name="smagorinsky_coefficient">
+                    <a:documentation>literature symbol: Cs
 
 suggested value 0.1</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="model">
-                <a:documentation>les options</a:documentation>
-                <choice>
-                  <element name="second_order">
-                    <a:documentation>similar to the original Smag model</a:documentation>
-                    <empty/>
+                    <ref name="real"/>
                   </element>
-                  <element name="fourth_order">
-                    <a:documentation>this adds a fourth order operator to tackle the
+                </element>
+                <element name="fourth_order">
+                  <a:documentation>this adds a fourth order operator to tackle the
 dissipation issues of the original Smag model
 
 use this if your turbulence dissipates faster than it should
 
 requires a fine mesh to perform well</a:documentation>
-                    <empty/>
+                  <element name="smagorinsky_coefficient">
+                    <a:documentation>literature symbol: Cs
+
+suggested value 0.1</a:documentation>
+                    <ref name="real"/>
                   </element>
-                  <element name="wale">
-                    <a:documentation>similar to the original WALE model</a:documentation>
-                    <empty/>
+                </element>
+                <element name="wale">
+                  <a:documentation>similar to the original WALE model</a:documentation>
+                  <element name="smagorinsky_coefficient">
+                    <a:documentation>literature symbol: Cs
+
+suggested value 0.1</a:documentation>
+                    <ref name="real"/>
                   </element>
-                  <element name="dynamic_les">
-                    <a:documentation>[UNDER DEVELOPMENT] Like a Smagorinsky model with a variable coefficient</a:documentation>
-                    <empty/>
+                </element>
+                <element name="dynamic_les">
+                  <a:documentation>[UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Geurts &amp; Holm 2002)
+takes turbulent flow anisotropy into account by implementing the Smagorinsky model
+with a fully anisotropic tensor coefficient field. This is based on a 'resolved-scale'
+turbulent stress tensor, the Leonard term (L_ij=T_ij-t_ij), which is the difference between 2
+turbulent stress tensors (T_ij, t_ij) calculated at different filter widths: the 'mesh' and 'test' filters.
+'Mesh filtered' velocity is simply the velocity field.</a:documentation>
+                  <element name="alpha">
+                    <a:documentation>Filtering scale factor alpha: the ratio between the filter widths.
+The test filter G_f=G_m*alpha, where G_m is the 3D filter
+width associated with the local mesh size. Filtering is achieved by applying
+the inverse Helmholtz operator: u_filtered = (1-alpha*M)^-1 * u_mesh.
+
+default/recommended value: 2.0</a:documentation>
+                    <ref name="real"/>
                   </element>
-                </choice>
-              </element>
+                  <element name="solver">
+                    <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
+                    <ref name="linear_solver_options_sym"/>
+                  </element>
+                  <element name="stabilisation_parameter">
+                    <a:documentation>If this is nonzero, the Velocity field is Helmholtz-filtered with the specified value
+to make field DynamicVelocity, which is used in the dynamic model.
+This removes some subgrid information, but makes the model more stable.
+A smaller value means less subfilter information is lost, but the simulation is more unstable.
+
+The following condition must be met: stabilisation_parameter =&gt; 0.0. Default value: 0.0.
+It should probably be &lt; 1.0 as well. The filtering effect is proportional to the square.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="vector_field">
+                    <a:documentation>Mesh-filtered velocity (diagnostic). </a:documentation>
+                    <attribute name="rank">
+                      <value>1</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>DynamicVelocity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_vector_field"/>
+                    </element>
+                  </element>
+                  <element name="vector_field">
+                    <a:documentation>Test-filtered velocity (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>1</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>DynamicFilteredVelocity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_vector_field"/>
+                    </element>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Leonard tensor (diagnostic). This is the resolved turbulent stress tensor T_ij-t_ij.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>DynamicLeonardTensor</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
+                  </element>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DynamicFilterWidth</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DynamicStrainRate</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Strain rate S2: the strain rate of the test-filtered velocity.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DynamicFilteredStrainRate</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Dynamic Smagorinsky coefficient.
+This is the anisotropic tensor coefficient field.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DynamicSmagorinskyCoefficient</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Dynamic eddy viscosity (turbulent diffusion of velocity).
+This is an anisotropic viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DynamicEddyViscosity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>

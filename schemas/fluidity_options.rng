@@ -1451,7 +1451,7 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
               </optional>
               <optional>
                 <element name="k-epsilon">
-                  <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+                  <a:documentation>Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
 Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
 Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
