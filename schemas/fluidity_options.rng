@@ -2670,14 +2670,6 @@ The t argument is for future use only - currently solid locations are only set a
                   <empty/>
                 </element>
               </optional>
-              <optional>
-                <element name="print_drag">
-                  <a:documentation>Calculate drag force only
-
-To be removed in future</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
             </element>
             <element name="two_way_coupling">
               <element name="mesh">
@@ -2701,12 +2693,6 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
                   </element>
                 </choice>
               </element>
-              <optional>
-                <element name="print_diagnostics">
-                  <a:documentation>Calculate diagnostic variables associated with the solids.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
             </element>
           </choice>
         </element>

@@ -143,9 +143,8 @@ module implicit_solids
 
   private
   public:: solids, implicit_solids_nonlinear_iteration_converged, &
-       &   remove_dummy_field, add_mass_source_absorption, implicit_solids_register_diagnostic, &
-       &   implicit_solids_update
-
+       &   remove_dummy_field, add_mass_source_absorption, &
+       &   implicit_solids_register_diagnostic, implicit_solids_update
 
 contains
 
@@ -156,7 +155,7 @@ contains
 
     type(state_type), dimension(1) :: states
     type(tensor_field), pointer :: viscosity
-    type(vector_field), pointer :: X
+    type(vector_field), pointer :: x
     type(scalar_field), pointer :: solid, old_solid, interface
     integer :: i, stat
 
@@ -212,8 +211,8 @@ contains
 
           call calculate_solid_fluid_interface(state)
 
-          X => extract_vector_field(state, "Coordinate")
-          call allocate(metric, X%mesh, "ErrorMetric")
+          x => extract_vector_field(state, "Coordinate")
+          call allocate(metric, x%mesh, "ErrorMetric")
           call zero(metric)
           call allocate(edge_lengths, metric%mesh, "EdgeLengths")
           call zero(edge_lengths)
@@ -271,8 +270,8 @@ contains
           call allocate(fl_pos_solid_force, dim, solid%mesh, "SolidForce")
           call zero(fl_pos_solid_force)
 
-          X => extract_vector_field(state, "Coordinate")
-          call allocate(metric, X%mesh, "ErrorMetric")
+          x => extract_vector_field(state, "Coordinate")
+          call allocate(metric, x%mesh, "ErrorMetric")
           call zero(metric)
           call allocate(edge_lengths, metric%mesh, "EdgeLengths")
           call zero(edge_lengths)
@@ -508,7 +507,7 @@ contains
 
           sigma_1 = node_val(solid_local, i) / dt
           sigma_2 = node_val(solid_local, i) * &
-               node_val(viscosity, 1 ,1, i) / maxval(node_val(edge_lengths, i))**2
+               node_val(viscosity, 1, 1, i) / maxval(node_val(edge_lengths, i))**2
 
           sigma = max(sigma_1, sigma_2) * beta
 
@@ -532,7 +531,7 @@ contains
 
     end if
 
-    if (have_temperature .and. have_fixed_temperature) then
+    if (have_fixed_temperature) then
 
        ewrite(3, *) "  set absorption for temperature"
 
@@ -687,8 +686,7 @@ contains
     type(state_type), intent(in) :: state
 
     type(vector_field), pointer :: positions
-    type(scalar_field), pointer :: temperature
-    integer :: dat_unit, stat, quad_degree
+    integer :: stat, quad_degree
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     character(len=PYTHON_FUNC_LEN) :: python_function
 
@@ -717,9 +715,6 @@ contains
 
     assert(positions%dim >= 2)
     assert(positions%dim == external_positions%dim)
-
-    temperature => extract_scalar_field(state, "Temperature", stat)
-    have_temperature = stat == 0
 
     ! check temperature related options
     if (have_temperature .and. &
@@ -756,19 +751,6 @@ contains
        call get_option("/implicit_solids/pressure_gradient/", pressure_gradient)
     end if
 
-    ! initialise diagnostics (and drag force) data file
-    if (GetRank() == 0 .and. do_print_diagnostics) then
-       dat_unit = free_unit()
-       open(dat_unit, file="diagnostic_data", status="replace")
-       close(dat_unit)
-
-       if (do_print_multiple_solids_diagnostics) then
-          dat_unit = free_unit()
-          open(dat_unit, file="particle_diagnostic_data", status="replace")
-          close(dat_unit)
-       end if
-    end if
-
   end subroutine one_way_initialise
 
   !----------------------------------------------------------------------------
@@ -796,8 +778,10 @@ contains
     call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
          external_mesh_name)
     call get_option("/geometry/quadrature/degree", quad_degree)
-    use_bulk_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_bulk_velocity")
-    use_fluid_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")
+    use_bulk_velocity = &
+         have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_bulk_velocity")
+    use_fluid_velocity = &
+         have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")
 
     ! femdem only supports tets
     loc = 4
@@ -890,10 +874,6 @@ contains
 
     assert(node_count(external_positions) == node_count(ext_pos_solid_force))
     assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_force))
-
-    ! figure out if we want to print out diagnostics
-    do_print_diagnostics = &
-         have_option("/implicit_solids/two_way_coupling/print_diagnostics")
 
 #ifdef USING_FEMDEM
     deallocate(ele1, ele2, ele3, ele4)
@@ -1152,9 +1132,7 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_nonlinear_iteration_converged(state)
-
-    type(state_type), intent(in) :: state
+  subroutine implicit_solids_nonlinear_iteration_converged()
 
     if (do_adapt_mesh(current_time, timestep)) then
        if (one_way_coupling) then
@@ -1287,7 +1265,7 @@ contains
        node2 => node_to_particle(i)%firstnode
 
        do while (associated(node2))
-      
+
           particle = node2%value
 
           wall_temperature(particle) = wall_temperature(particle) + &
@@ -1313,7 +1291,7 @@ contains
 
     temperature_conductivity => extract_tensor_field(state, "TemperatureDiffusivity")
     if (have_fixed_temperature_source) then
-       k_f = minval(temperature_conductivity%val(1,1,:))
+       k_f = minval(temperature_conductivity%val(1, 1, :))
     else
        k_f = node_val(temperature_conductivity, 1, 1, 1)
     end if
@@ -1373,7 +1351,8 @@ contains
     real, dimension(:, :), allocatable :: particle_force
     real, dimension(:), allocatable :: wall_temperature, q
     real :: T_w_avg, q_avg
-    integer :: i
+    integer :: i, str_size
+    character(len=254) :: fmt, buffer
 
     ewrite(2, *) "inside implicit_solids_update"
 
@@ -1381,40 +1360,45 @@ contains
     ! Only one-way coupling for now
     if (one_way_coupling .and. do_print_diagnostics) then
 
-      call implicit_solids_force_computation(state, force, particle_force)
+       call implicit_solids_force_computation(state, force, particle_force)
 
-      ! Register the force on a solid body
-      call set_diagnostic(name="ForceX", statistic="Value", value=(/ force(1) /))
-      call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
-      call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
-      
-      if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
-        do i = 1, number_of_solids
-          call set_diagnostic(name="ForceX on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 1) /))
-          call set_diagnostic(name="ForceY on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 2) /))
-          call set_diagnostic(name="ForceZ on solid "//int2str(i), statistic="Value", value=(/ particle_force(i, 3) /))
-        end do
-      end if
+       str_size=len_trim(int2str(number_of_solids))
+       fmt="(I"//int2str(str_size)//"."//int2str(str_size)//")"
 
-      if (have_temperature) then
-        call implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
+       ! Register the force on a solid body
+       call set_diagnostic(name="ForceX", statistic="Value", value=(/ force(1) /))
+       call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
+       call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
 
-        ! Register the diagnostics
-        call set_diagnostic(name="Wall temperature", statistic="Value", value=(/ T_w_avg /))
-        call set_diagnostic(name="Heat transfer", statistic="Value", value=(/ q_avg /))
-      
-        if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+       if (do_print_multiple_solids_diagnostics) then
           do i = 1, number_of_solids
-            call set_diagnostic(name="Wall temperature on solid "//int2str(i), statistic="Value", value=(/ wall_temperature(i) /))
-            call set_diagnostic(name="Heat transfer at solid "//int2str(i), statistic="Value", value=(/ q(i) /))
+             write(buffer, fmt) i
+             call set_diagnostic(name="ForceXOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 1) /))
+             call set_diagnostic(name="ForceYOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 2) /))
+             call set_diagnostic(name="ForceZOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 3) /))
           end do
-        end if
+       end if
 
-        deallocate(wall_temperature, q)
-      end if
+       if (have_temperature) then
+          call implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
 
-      deallocate(force, particle_force)
-          
+          ! Register the diagnostics
+          call set_diagnostic(name="WallTemperature", statistic="Value", value=(/ T_w_avg /))
+          call set_diagnostic(name="HeatTransfer", statistic="Value", value=(/ q_avg /))
+
+          if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+             do i = 1, number_of_solids
+                write(buffer, fmt) i
+                call set_diagnostic(name="WallTemperatureOnSolid"//buffer, statistic="Value", value=(/ wall_temperature(i) /))
+                call set_diagnostic(name="HeatTransferAtSolid"//buffer, statistic="Value", value=(/ q(i) /))
+             end do
+          end if
+
+          deallocate(wall_temperature, q)
+       end if
+
+       deallocate(force, particle_force)
+
     end if
 
     ewrite(2, *) "leaving implicit_solids_update"
@@ -2467,7 +2451,8 @@ contains
 
   subroutine implicit_solids_register_diagnostic
 
-    integer :: i
+    integer :: i, str_size
+    character(len=254) :: fmt, buffer
 
     ! figure out if we want to print out diagnostics and initialise files
     do_print_diagnostics = &
@@ -2483,30 +2468,39 @@ contains
          "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
          number_of_solids)
 
-    if(do_print_diagnostics) then
-      call register_diagnostic(dim=1, name="ForceX", statistic="Value")
-      call register_diagnostic(dim=1, name="ForceY", statistic="Value")
-      call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+    str_size=len_trim(int2str(number_of_solids))
+    fmt="(I"//int2str(str_size)//"."//int2str(str_size)//")"
 
-      if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
-        do i = 1, number_of_solids
-          call register_diagnostic(dim=1, name="ForceX on solid "//int2str(i), statistic="Value")
-          call register_diagnostic(dim=1, name="ForceY on solid "//int2str(i), statistic="Value")
-          call register_diagnostic(dim=1, name="ForceZ on solid "//int2str(i), statistic="Value")
-        end do
-      end if
+    have_temperature = &
+         have_option("/material_phase[0]/scalar_field::Temperature")
 
-      if (have_temperature) then
-        call register_diagnostic(dim=1, name="Wall temperature", statistic="Value")
-        call register_diagnostic(dim=1, name="Heat transfer", statistic="Value")
-      
-        if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
+    if (do_print_diagnostics) then
+       call register_diagnostic(dim=1, name="ForceX", statistic="Value")
+       call register_diagnostic(dim=1, name="ForceY", statistic="Value")
+       call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+
+       if (do_print_multiple_solids_diagnostics) then
           do i = 1, number_of_solids
-            call register_diagnostic(dim=1, name="Wall temperature on solid "//int2str(i), statistic="Value")
-            call register_diagnostic(dim=1, name="Heat transfer at solid "//int2str(i), statistic="Value")
+             write(buffer, fmt) i
+             call register_diagnostic(dim=1, name="ForceXOnSolid"//buffer, statistic="Value")
+             call register_diagnostic(dim=1, name="ForceYOnSolid"//buffer, statistic="Value")
+             call register_diagnostic(dim=1, name="ForceZOnSolid"//buffer, statistic="Value")
           end do
-        end if
-      end if
+       end if
+
+       if (have_temperature) then
+          call register_diagnostic(dim=1, name="WallTemperature", statistic="Value")
+          call register_diagnostic(dim=1, name="HeatTransfer", statistic="Value")
+ 
+          if (do_print_multiple_solids_diagnostics) then
+             do i = 1, number_of_solids
+                write(buffer, fmt) i
+                call register_diagnostic(dim=1, name="WallTemperatureOnSolid"//buffer, statistic="Value")
+                call register_diagnostic(dim=1, name="HeatTransferAtSolid"//buffer, statistic="Value")
+             end do
+          end if 
+ 
+       end if
     end if
 
   end subroutine implicit_solids_register_diagnostic

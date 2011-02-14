@@ -781,7 +781,7 @@ contains
           call implicit_solids_update(state(1))
           if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
              if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-                call implicit_solids_nonlinear_iteration_converged(state(1))
+                call implicit_solids_nonlinear_iteration_converged()
              end if
           end if
        end if
