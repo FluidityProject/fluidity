@@ -2531,6 +2531,7 @@ contains
     !where processor_number is the number of a processor
     !which overlaps the domain of this processor
     !and count goes from 1 up to total number of overlapping processors
+    !This is used to compute number_neigh_processors
     number_neigh_processors=0
     call allocate(ihash) 
     if (halo_level /= 0.) then
@@ -2557,50 +2558,51 @@ contains
     end do  
 
     !this loop continues until all detectors have completed their timestep
-    do  
+    !this is measured by checking if the send and receive lists are empty
+    !in all processors
+    detector_timestepping_loop: do  
 
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
 
-       detector => detector_list%firstnode
-
+       !make types_det which contains detector type of all detectors
+       !and check if any are Lagrangian
+       any_lagrangian=.false.
        allocate(types_det(detector_list%length))
 
-       any_lagrangian=.false.
-
-       do i = 1, detector_list%length
-         
+       detector => detector_list%firstnode
+       do i = 1, detector_list%length         
          types_det(i) = detector%type
-   !      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
-         if (types_det(i)==2)  then
+         if (types_det(i)==LAGRANGIAN_DETECTOR)  then
             any_lagrangian=.true. 
          end if
-
          detector => detector%next
-         
        end do
           
        if (any_lagrangian) then
-
-         ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
-
-        if (.not.present(not_to_move_det_yet).and.(timestep/=0))  call move_detectors_bisection_method(state, dt, ihash, send_list_array) 
-
+          !This is the actual call to move the detectors
+          !The hash table is used to work out which processor
+          !corresponds to which entry in the send_list_array
+        if (.not.present(not_to_move_det_yet).and.(timestep/=0))  &
+             &call move_detectors_bisection_method(&
+             state, dt, ihash, send_list_array)
        end if
 
+       !Work out whether all send lists are empty,
+       !in which case exit.
+       !This is slightly Byzantine, I think it would
+       !also work if it was initially zero, and then
+       !set to 1 if any of the lists were not empty. CJC
        all_send_lists_empty=number_neigh_processors
        do k=1, number_neigh_processors
-
           if (send_list_array(k)%length==0) then
             all_send_lists_empty=all_send_lists_empty-1
           end if
-
        end do
-
        call allmax(all_send_lists_empty)
-
        if (all_send_lists_empty==0) exit
 
+       !THIS NEEDS TO GO OUTSIDE THE WHOLE LOOP!?!?!?
        if (timestep/=0) then
 
           call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
@@ -2644,15 +2646,14 @@ contains
  
          end if
 
-       end do
+      end do
 
      deallocate(send_list_array)
      deallocate(receive_list_array)
 
      deallocate(types_det)
-      
-  end do
-   !do_until_all_send_lists_between_processors_are_empty
+
+  end do detector_timestepping_loop
 
     deallocate(send_list_array)
     deallocate(receive_list_array)
