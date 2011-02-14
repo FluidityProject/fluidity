@@ -40,13 +40,13 @@ module populate_sub_state_module
   use field_options
   use reserve_state_module
   use fields_manipulation
-  use diagnostic_variables, only: convergence_field, steady_state_field
   use field_options
   use surfacelabels
   use climatology
   use metric_tools
   use coordinates
   use halos
+  use halos_registration
   use tictoc
   use hadapt_extrude
   use hadapt_extrude_radially
@@ -59,6 +59,7 @@ module populate_sub_state_module
   use fields_halos
   use read_triangle
   use populate_state_module
+  use diagnostic_variables , only: convergence_field, steady_state_field
 
   implicit none
 
@@ -160,10 +161,10 @@ contains
     character(len=FIELD_NAME_LEN) :: mesh_name
 
     ! Others:
-    integer :: ele, ele_2, ni, edge_count, i, node, loc, sloc, face
+    integer :: ele, ele_2, ni, edge_count, i, node, loc, sloc, face, surf_ele_count
     integer, dimension(2) :: prescribed_regions_shape
     integer :: number_of_prescribed_regions
-    integer, dimension(:), pointer :: neigh
+    integer, dimension(:), pointer :: neigh, faces
     type(integer_set) :: prescribed_region_id_set
     integer, dimension(:), allocatable :: prescribed_region_ids
 
@@ -181,6 +182,7 @@ contains
 
     ! Create subdomain_meshes -- begin with external mesh as we must add faces etc... to this before
     ! deriving other meshes:
+
     external_mesh => get_external_mesh(states)
     mesh_name = external_mesh%name
 
@@ -249,6 +251,8 @@ contains
        n_list(i) = fetch(subdomain_mesh_node_list,i)
     end do
 
+    ewrite(1,*) 'Number of nodes in subdomain_mesh_node_list:', key_count(subdomain_mesh_node_list)
+
     do i = 1, key_count(subdomain_mesh_node_list)
        node = n_list(i)
        inverse_n_list(node) = i
@@ -258,7 +262,7 @@ contains
     shape => external_mesh%shape
     call allocate(subdomain_mesh, nodes=key_count(subdomain_mesh_node_list), elements=size(subele_list),&
          & shape=shape, name=trim(mesh_name))
-    
+
     ! Determine ndglno (connectivity matrix) on subdomain_mesh:
     loc = shape%loc
     do i = 1, size(subele_list)
@@ -276,17 +280,21 @@ contains
 
     ! Calculate sndglno - an array of nodes corresponding to edges along surface:
     sloc = external_mesh%faces%shape%loc
+    surf_ele_count = surface_element_count(external_mesh)
 
     ! Begin by determining which faces are on subdomain_mesh boundaries:
     call allocate(face_list)
     do i = 1, size(subele_list)
       ele = subele_list(i)
       neigh => ele_neigh(external_mesh, ele) ! Determine element neighbours on parent mesh
+      faces => ele_faces(external_mesh, ele) ! Determine element faces on parent mesh
       do ni = 1, size(neigh)
         ele_2 = neigh(ni)
-        if (.not.has_value(subdomain_mesh_element_list, ele_2)) then
-          face = ele_face(external_mesh, ele, ele_2)
-          call insert(face_list, face)
+        face = faces(ni)
+        ! If this face is part of the full surface mesh (which includes internal faces) then
+        ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
+        if (face  <= surf_ele_count) then
+           call insert(face_list, face)
         end if
       end do
     end do
@@ -307,13 +315,20 @@ contains
 
     call deallocate(face_list)
 
-    ! Add faces to subdomain_mesh
+    ! Add faces to subdomain_mesh:
     call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
     &               boundary_ids=boundary_ids(1:edge_count))
 
     deallocate(sndglno)
     deallocate(boundary_ids)
 
+    ! If parallel then set up node and element halos, by checking whether external_mesh halos
+    ! exist on subdomain_mesh:
+
+    if(isparallel()) then
+       call generate_substate_halos(external_mesh,subdomain_mesh,n_list,inverse_n_list)
+    end if
+       
     ! Insert mesh and position fields for subdomain_mesh into sub_states:
 
     if(mesh_name=="CoordinateMesh") then
@@ -331,9 +346,12 @@ contains
        ewrite_minmax(position%val(i,:))
     end do
 
-    ! Load sub_states:
+    ! Load into sub_states:
     call insert(sub_states, subdomain_mesh, subdomain_mesh%name)
     call insert(sub_states, position, position%name)
+
+    ! If parallel, verify substate halos:
+    call verify_halos(position)
 
     ! Clean up:
     call deallocate(subdomain_mesh)
