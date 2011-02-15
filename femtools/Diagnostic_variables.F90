@@ -2612,21 +2612,9 @@ contains
           call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
 
           do i=1, number_neigh_processors
-
              if  (receive_list_array(i)%length/=0) then      
-
                 call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
-
              end if
-
-          end do
-
-          !TOTALLY REDUNDANT
-          detector => detector_list%firstnode
-          do i = 1, detector_list%length
-
-             detector => detector%next
-
           end do
 
 !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
