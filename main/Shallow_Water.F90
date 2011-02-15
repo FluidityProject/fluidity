@@ -277,7 +277,7 @@
 
       dump_no = dump_no - 1
 
-!      call compute_adjoint(forward_state, adjoint_state)
+      call compute_adjoint(state)
 
       call deallocate_transform_cache
       call deallocate_reserve_state
@@ -648,19 +648,27 @@
 
     end subroutine advance_current_time
 
-    subroutine output_state(state, on_manifold)
+    subroutine output_state(state, on_manifold, adjoint)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: on_manifold
+      logical, intent(in), optional :: adjoint
+      integer :: increment
 
       type(vector_field), pointer :: X
+
+      if (present_and_true(adjoint)) then
+        increment = -1
+      else
+        increment = 1
+      end if
 
       if(on_manifold) then
          X=>extract_vector_field(state(1), "CartesianCoordinate")
          call insert(state(1), X, "Coordinate")
 !         call map_to_manifold(state(1))
       end if
-      call write_state(dump_no, state)
+      call write_state(dump_no, state, increment)
 
     end subroutine output_state
 
@@ -1079,4 +1087,70 @@
       ! And that's it!
 #endif
     end subroutine adjoint_register_timestep
+
+#ifdef HAVE_ADJOINT
+    subroutine compute_adjoint(state)
+      type(state_type), dimension(:), intent(inout) :: state
+
+      type(adj_vector) :: rhs
+      type(adj_matrix) :: lhs
+      type(adj_variable) :: adj_var
+
+      integer :: equation
+      integer :: ierr
+      integer :: no_functionals
+      integer :: functional
+
+      real :: finish_time, dt
+      integer :: end_timestep, start_timestep, no_timesteps, timestep
+
+      call get_option("/timestepping/timestep", dt)
+      call get_option("/timestepping/finish_time", finish_time)
+
+      no_functionals = option_count("/adjoint/functional")
+      ierr = adj_timestep_count(adjointer, no_timesteps)
+      call adj_chkierr(ierr)
+
+      do timestep=no_timesteps-1,0,-1
+        ierr = adj_timestep_start(adjointer, timestep, start_timestep)
+        call adj_chkierr(ierr)
+
+        ierr = adj_timestep_end(adjointer, timestep, end_timestep)
+        call adj_chkierr(ierr)
+
+        do functional=0,no_functionals-1
+          ! Set up things for this particular functional here
+          ! e.g. .stat file, change names for vtus, etc.
+
+          do equation=end_timestep,start_timestep,-1
+            ierr = adj_get_adjoint_equation(adjointer, equation, functional, lhs, rhs, adj_var)
+            call adj_chkierr(ierr)
+
+            ! Now solve lhs . adjoint = rhs
+
+            ! Now record
+
+            ! Then put it in state
+
+          end do
+
+          call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+          call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+          call write_diagnostics(state, current_time, dt, equation+1)
+
+          if (do_write_state(current_time, timestep, adjoint=.true.)) then
+            call output_state(state, on_manifold, adjoint=.true.)
+          endif
+        end do
+
+        ! Now forget
+        call advance_current_time(current_time, dt)
+        ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
+        call adj_chkierr(ierr)
+      end do
+
+      call get_option("/timestepping/finish_time", finish_time)
+      assert(current_time == finish_time)
+    end subroutine compute_adjoint
+#endif
   end program shallow_water
