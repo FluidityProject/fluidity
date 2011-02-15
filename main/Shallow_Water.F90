@@ -812,12 +812,14 @@
 
     end subroutine advance_current_time
 
-    subroutine output_state(state)
+    subroutine output_state(state, adjoint)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
+      logical, intent(in), optional :: adjoint
 
       type(vector_field), pointer :: X
       character(len=OPTION_PATH_LEN) :: output_coordinate
+      integer :: increment
 
       ! Get the output coordinate from the options tree
       call get_option("/io/output_coordinates/name", output_coordinate)
@@ -841,7 +843,13 @@
       end if
 
       ! Now we're ready to call write_state
-      call write_state(dump_no, state)
+
+      if (present_and_true(adjoint)) then
+        increment = -1
+      else
+        increment = 1
+      endif
+      call write_state(dump_no, state, increment=increment)
 
     end subroutine output_state
 
@@ -1076,6 +1084,8 @@
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: eta0
+      real :: start_time
+      real :: dt
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1091,6 +1101,10 @@
 
       ierr = adj_destroy_equation(equation)
       ierr = adj_destroy_block(I)
+
+      call get_option("/timestepping/current_time", start_time)
+      call get_option("/timestepping/timestep", dt)
+      ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)
 #endif
     end subroutine adjoint_register_initial_eta_condition
 
@@ -1154,6 +1168,8 @@
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta
+      real :: start_time
+      real :: dt
 
       ! Set up adj_variables
       ierr = adj_create_variable("Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=u)
@@ -1266,6 +1282,11 @@
       ierr = adj_destroy_block(MC)
       call adj_chkierr(ierr)
 
+      ! Set the times for this timestep
+      call get_option("/timestepping/current_time", start_time)
+      call get_option("/timestepping/timestep", dt)
+      ierr = adj_timestep_set_times(adjointer, timestep=timestep, start=start_time, end=start_time+dt)
+
       ! And that's it!
 #endif
     end subroutine adjoint_register_timestep
@@ -1294,10 +1315,10 @@
       call adj_chkierr(ierr)
 
       do timestep=no_timesteps-1,0,-1
-        ierr = adj_timestep_start(adjointer, timestep, start_timestep)
+        ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
         call adj_chkierr(ierr)
 
-        ierr = adj_timestep_end(adjointer, timestep, end_timestep)
+        ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
         call adj_chkierr(ierr)
 
         do functional=0,no_functionals-1
@@ -1321,7 +1342,7 @@
           call write_diagnostics(state, current_time, dt, equation+1)
 
           if (do_write_state(current_time, timestep, adjoint=.true.)) then
-            call output_state(state, on_manifold, adjoint=.true.)
+            call output_state(state, adjoint=.true.)
           endif
         end do
 
