@@ -40,6 +40,10 @@ start =
                ## documentation goes here
                element vector_map{
                   python_code
+               },
+               ## The direction of up
+               element up{
+                  python_code
                }
             }?,
             ## The position mesh

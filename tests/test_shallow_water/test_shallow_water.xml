@@ -13,7 +13,7 @@
 import vtktools
 start_v = vtktools.vtu("balanced_0.vtu")
 end_v = vtktools.vtu("balanced_2.vtu")
-DeltaD = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("LayerThickness"))
+DeltaD = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("LayerThickness")) 
     </variable>
   </variables>
   <pass_tests>

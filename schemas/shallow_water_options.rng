@@ -46,6 +46,10 @@ characters in the simulation name should be avoided.</a:documentation>
               <a:documentation>documentation goes here</a:documentation>
               <ref name="python_code"/>
             </element>
+            <element name="up">
+              <a:documentation>The direction of up</a:documentation>
+              <ref name="python_code"/>
+            </element>
           </element>
         </optional>
         <element name="mesh">

@@ -36,6 +36,7 @@
     use FLDebug
     use populate_state_module
     use write_state_module
+    use vtk_interfaces
     use timeloop_utilities
     use sparsity_patterns_meshes
     use sparse_matrices_fields
@@ -88,13 +89,18 @@
     end interface
 
     type(state_type), dimension(:), pointer :: state
-    type(state_type), target :: matrices ! We collect all the cached matrices in this state so that the adjoint
-                                         ! callbacks can use them
+
+    type(state_type), target :: matrices ! We collect all the cached
+                                         ! matrices in this state so that
+                                         ! the adjoint callbacks can use
+                                         ! them
     real :: f0, D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     real, dimension(:), allocatable :: beta
     integer :: timestep, nonlinear_iterations
     integer :: ierr
+
+    type(vector_field), pointer :: X_c, U_c, X_m, U_m
 
     !! Sparsity for matrices.
     type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
@@ -144,19 +150,22 @@
     ! the sphere. If we are, then set up a 3D coordinate field and
     ! velocity field from the 2D coordinate space
     on_manifold=have_option("/geometry/embedded_manifold")
-    if(on_manifold) then
-       call setup_cartesian_vector_fields(state(1))
-    end if
+    call setup_cartesian_vector_fields(state(1))
+    X_c=>extract_vector_field(state(1), 'CartesianCoordinate')
+    U_c=>extract_vector_field(state(1), 'CartesianVelocity')
+    call vtk_write_fields('cartesian', 0, X_c, U_c%mesh, vfields=(/U_c/))
+    call map_to_manifold(state(1))
+    X_m=>extract_vector_field(state(1), "ManifoldCoordinate")
+    U_m=>extract_vector_field(state(1), "ManifoldVelocity")
+    call vtk_write_fields('manifold', 0, X_m, U_m%mesh, vfields=(/U_m/))
+
+    call allocate_and_insert_additional_fields(state(1))
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
     call get_option('/simulation_name',simulation_name)
     call initialise_diagnostics(trim(simulation_name),state)
-
-    if (has_vector_field(state(1),"VelocityInitialCondition")) then
-       call project_velocity(state(1))
-    end if
 
     call get_parameters
 
@@ -251,7 +260,6 @@
     call deallocate(div_mat)
     call deallocate(wave_mat)
     call deallocate(big_mat)
-
     call deallocate(state)
     call deallocate(matrices)
     call deallocate_transform_cache
@@ -347,6 +355,8 @@
            div_mat,wave_mat,big_mat, &
            dt,theta,D0,g,f0,beta)
 
+      call project_cartesian_to_local(state(1))
+
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
       exclude_pressure_advection = &
@@ -415,8 +425,6 @@
       type(scalar_field), pointer :: D
       !! velocity.
       type(vector_field), pointer :: U
-      !! Coordinate field.
-      type(vector_field), pointer :: X
 
       !!Intermediate fields
       type(scalar_field) :: d_rhs, delta_d, old_d
@@ -426,10 +434,9 @@
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
-      X=>extract_vector_field(state, "Coordinate")
-      U=>extract_vector_field(state, "Velocity")
+      U=>extract_vector_field(state, "LocalVelocity")
 
-      dim = mesh_dim(u)
+      dim = U%dim
 
       call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
            old_u,old_d,delta_d,delta_u)
@@ -559,7 +566,7 @@
       type(vector_field), intent(inout) :: U_rhs, delta_u, advecting_u, old_u
       integer :: dim
 
-      dim = mesh_dim(D)
+      dim = U%dim
 
       !allocate RHS variables
       call allocate(d_rhs, D%mesh, "LayerThickness_RHS")
@@ -577,10 +584,171 @@
       !allocate previous timestep variables
       call allocate(old_d, D%mesh, "LayerThickness_old")
       call zero(old_d)
-      call allocate(old_u, dim, U%mesh, "Velocity_old")
+      call allocate(old_u, U%dim, U%mesh, "Velocity_old")
       call zero(old_u)
 
     end subroutine execute_timestep_setup
+
+    subroutine allocate_and_insert_additional_fields(state)
+      !!< Allocate and insert fields not specified in schema
+      type(state_type), intent(inout) :: state
+
+      ! velocity in local coordinates
+      type(vector_field) :: U_local
+      ! direction of up
+      type(vector_field) :: up
+
+      type(vector_field), pointer :: X, U
+      character(len=PYTHON_FUNC_LEN) :: upvec
+
+      X=>extract_vector_field(state, "CartesianCoordinate")
+      U=>extract_vector_field(state, "CartesianVelocity")
+
+      call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
+      call zero(U_local)
+      call insert(state, U_local, "LocalVelocity")
+
+      call allocate(up, X%dim, X%mesh, "Up")
+      call get_option("/geometry/embedded_manifold/up", upvec)
+      call set_from_python_function(up, upvec, X, time=0.0)
+      call insert(state, up, "Up")
+
+    end subroutine allocate_and_insert_additional_fields
+
+    subroutine project_cartesian_to_local(state)
+      !!< Project the cartesian velocity to local coordinates
+      type(state_type), intent(inout) :: state
+
+      integer :: ele
+      type(vector_field), pointer :: X, U_local, U_cartesian
+
+      ewrite(1,*) "In project_cartesian_to_local"
+
+      X=>extract_vector_field(state, "CartesianCoordinate")
+      U_local=>extract_vector_field(state, "LocalVelocity")
+      U_cartesian=>extract_vector_field(state, "CartesianVelocity")
+
+      do ele=1, element_count(U_local)
+
+         call project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
+
+      end do
+
+    end subroutine project_cartesian_to_local
+
+    subroutine project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
+      !!< Project the cartesian velocity to local coordinates
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: X, U_cartesian
+      type(vector_field), intent(inout) :: U_local
+
+      real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_ngi(X,ele)) :: G
+      real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+      real, dimension(U_cartesian%dim, ele_ngi(X,ele)) :: U_quad
+      real, dimension(2*ele_loc(U_local,ele)) :: l_rhs
+      real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_loc(U_local,ele), ele_loc(U_local,ele)) :: l_mass
+      real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele), mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_big_mat
+      type(element_type), pointer :: U_shape
+      integer, dimension(:), pointer :: U_ele
+      integer :: dim, dim1, dim2, gi, loc, nloc
+
+      dim=U_local%dim
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
+
+      U_shape=>ele_shape(U_local,ele)
+      U_quad=ele_val_at_quad(U_cartesian,ele)
+      U_ele=>ele_nodes(U_local, ele)
+
+      nloc=ele_loc(U_local,ele)
+      do dim1=1, dim
+         l_rhs((dim1-1)*nloc+1:dim1*nloc)=shape_rhs(U_shape, sum(&
+              J(dim1,:,:)*U_quad(:,:),dim=1)*U_shape%quadrature%weight)
+      end do
+
+      do gi=1,ele_ngi(X,ele)
+         G(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+      end do
+
+      l_mass=shape_shape_tensor(u_shape, u_shape, &
+           u_shape%quadrature%weight, G)
+
+      do dim1 = 1, dim
+         do dim2 = 1, dim
+            l_big_mat(nloc*(dim1-1)+1:nloc*dim1, &
+                 nloc*(dim2-1)+1:nloc*dim2) = &
+                 l_mass(dim1,dim2,:,:)
+         end do
+      end do
+
+      call solve(l_big_mat, l_rhs)
+
+      do dim1=1, U_local%dim
+         do loc=1, nloc
+            call set(U_local, dim1, U_ele(loc), l_rhs((dim1-1)*nloc+loc))
+         end do
+      end do
+      
+    end subroutine project_cartesian_to_local_ele
+
+    subroutine project_local_to_cartesian(state)
+      !!< Project the local velocity to cartesian coordinates
+      type(state_type), intent(inout) :: state
+
+      integer :: ele
+      type(vector_field), pointer :: X, U_local, U_cartesian
+
+      ewrite(1,*) "In project_local_to_cartesian"
+
+      X=>extract_vector_field(state, "CartesianCoordinate")
+      U_local=>extract_vector_field(state, "LocalVelocity")
+      U_cartesian=>extract_vector_field(state, "CartesianVelocity")
+
+      do ele=1, element_count(U_cartesian)
+
+         call project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
+
+      end do
+
+    end subroutine project_local_to_cartesian
+
+    subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
+      !!< Project the local velocity to cartesian
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: X, U_local
+      type(vector_field), intent(inout) :: U_cartesian
+
+      real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
+      real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(U_local,ele)) :: detwei
+      real, dimension(U_local%dim, ele_ngi(X,ele)) :: U_quad
+      real, dimension(X%dim, ele_ngi(X,ele)) :: U_cartesian_gi
+      real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
+      type(element_type), pointer :: U_shape
+      integer :: d, gi
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
+
+      U_shape=>ele_shape(U_cartesian,ele)
+      U_quad=ele_val_at_quad(U_local,ele)
+
+      mass=shape_shape(U_shape, U_shape, detwei)
+
+      call invert(mass)
+
+      U_cartesian_gi=0.
+      do gi=1, ele_ngi(X,ele)
+         U_cartesian_gi(:,gi)=matmul(transpose(J(:,:,gi)),U_quad(:,gi))
+      end do
+
+      rhs=shape_vector_rhs(U_shape, U_cartesian_gi, U_shape%quadrature%weight)
+
+      do d=1,U_cartesian%dim
+         call set(U_cartesian, d, ele_nodes(U_cartesian,ele), matmul(mass,rhs(d,:)))
+      end do
+
+    end subroutine project_local_to_cartesian_ele
 
     subroutine project_velocity(state)
       !!< Project the quadratic continuous VelocityInitialCondition into
@@ -655,7 +823,7 @@
       logical, intent(in), optional :: adjoint
       integer :: increment
 
-      type(vector_field), pointer :: X
+      type(vector_field), pointer :: X_c, X_m, U_c, U_m
 
       if (present_and_true(adjoint)) then
         increment = -1
@@ -664,9 +832,14 @@
       end if
 
       if(on_manifold) then
-         X=>extract_vector_field(state(1), "CartesianCoordinate")
-         call insert(state(1), X, "Coordinate")
-!         call map_to_manifold(state(1))
+         X_c=>extract_vector_field(state(1), "CartesianCoordinate")
+         U_c=>extract_vector_field(state(1), "CartesianVelocity")
+         call project_local_to_cartesian(state(1))
+         call vtk_write_fields('cartesian', 1, X_c, U_c%mesh, vfields=(/U_c/))
+         call map_to_manifold(state(1))
+         X_m=>extract_vector_field(state(1), "ManifoldCoordinate")
+         U_m=>extract_vector_field(state(1), "ManifoldVelocity")
+!         call vtk_write_fields('manifold', 1, X_m, U_m%mesh, vfields=(/U_m/))
       end if
       call write_state(dump_no, state, increment)
 
@@ -682,19 +855,15 @@
       type(scalar_field), pointer :: D
       type(vector_field), pointer :: U,X
       type(vector_field) :: u_tmp
-      type(scalar_field) :: u1,u2
 
       ewrite(1,*) '    subroutine set_velocity_from_geostrophic_balance()'
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
-      U=>extract_vector_field(state, "Velocity")
+      U=>extract_vector_field(state, "LocalVelocity")
       X=>extract_vector_field(state, "Coordinate")
 
       ewrite(2,*) 'inside', sum(D%val)
-
-      u1=extract_scalar_field(u,1)
-      u2=extract_scalar_field(u,2)
 
       call allocate(u_tmp,mesh_dim(U),U%mesh,name="tempmem")
 
@@ -728,7 +897,7 @@
       type(vector_field) :: X_manifold, U_manifold
       type(vector_field) :: X_cartesian, U_cartesian
       type(tensor_field) :: map
-      type(mesh_type), pointer :: x_mesh
+      type(mesh_type), pointer :: x_mesh, U_mesh
       integer :: node
       character(len=PYTHON_FUNC_LEN) :: projection, vector_map
 
@@ -737,14 +906,22 @@
       X => extract_vector_field(state, "Coordinate")
       U => extract_vector_field(state, "Velocity")
       x_mesh => extract_mesh(state, "CoordinateMesh")
+      U_mesh => extract_mesh(state, "VelocityMesh")
 
-      ! allocate fields
+      ! allocate and zero fields
       call allocate(X_manifold, mesh_dim(X), x_mesh, "ManifoldCoordinate")
-      call allocate(U_manifold, mesh_dim(X), x_mesh, "ManifoldVelocity")
+      call zero(X_manifold)
+      call set(X_manifold, X)
+      call allocate(U_manifold, mesh_dim(X), U_mesh, "ManifoldVelocity")
+      call zero(U_manifold)
+      call set(U_manifold, U)
       call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoordinate")
-      call allocate(U_cartesian, mesh_dim(X)+1, x_mesh, "CartesianVelocity")
+      call zero(X_cartesian)
+      call allocate(U_cartesian, mesh_dim(X)+1, U_mesh, "CartesianVelocity")
+      call zero(U_cartesian)
       U_cartesian%option_path=""
-      call allocate(map, x_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
+      call allocate(map, U_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
+      call zero(map)
 
       ! insert fields into state
       call insert(state, X_manifold, "ManifoldCoordinate")
@@ -769,6 +946,7 @@
       call deallocate(U_manifold)
       call deallocate(X_cartesian)
       call deallocate(U_cartesian)
+      call deallocate(map)
 
     end subroutine setup_cartesian_vector_fields
 
@@ -797,17 +975,20 @@
 
       type(state_type), intent(in) :: state
 
-      type(vector_field), pointer :: U_cartesian, U_manifold
+      type(vector_field), pointer :: U_cartesian, U_manifold, U
       type(tensor_field), pointer :: map
       integer :: node
 
       U_cartesian => extract_vector_field(state, "CartesianVelocity")
       U_manifold => extract_vector_field(state, "ManifoldVelocity")
+      U => extract_vector_field(state, "Velocity")
       map => extract_tensor_field(state, "VectorMap")
 
       do node=1, node_count(U_manifold)
          call set_manifold_velocity(U_manifold, U_cartesian, map, node)
       end do
+
+      call set(U, U_manifold)
 
     end subroutine map_to_manifold
 

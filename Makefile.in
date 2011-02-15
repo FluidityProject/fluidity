@@ -142,6 +142,8 @@ bin/@FLUIDITY@: main.o fluidity_library
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
+sw: bin/shallow_water
+
 bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
 	@echo "BUILD shallow_water"

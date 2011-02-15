@@ -61,7 +61,7 @@ contains
     !! Layer thickness
     type(scalar_field), pointer :: D
     !! velocity.
-    type(vector_field), pointer :: U,X
+    type(vector_field), pointer :: U, X, up
     integer :: dim, ele
 
     ewrite(2,*) 'dt',dt,'theta',theta
@@ -69,10 +69,11 @@ contains
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
-    U=>extract_vector_field(state, "Velocity")
-    X=>extract_vector_field(state, "Coordinate")
+    U=>extract_vector_field(state, "LocalVelocity")
+    X=>extract_vector_field(state, "CartesianCoordinate")
+    up=>extract_vector_field(state, "Up")
 
-    dim = mesh_dim(D)
+    dim = mesh_dim(U)
 
     !construct/extract sparsities
     u_sparsity=get_csr_sparsity_firstorder(state, U%mesh, U%mesh)
@@ -97,7 +98,7 @@ contains
 
     !Assemble matrices
     do ele = 1, ele_count(D)
-       call assemble_shallow_water_matrices_ele(D,U,X,ele, &
+       call assemble_shallow_water_matrices_ele(D,U,X,up,ele, &
             h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
             div_mat,big_mat,&
             f0,beta,dt,theta)
@@ -363,15 +364,17 @@ contains
       call deallocate(vec)
     end subroutine get_u_rhs
 
-    subroutine assemble_shallow_water_matrices_ele(D,U,X,ele, &
+    subroutine assemble_shallow_water_matrices_ele(D,U,X,up,ele, &
          h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
          div_mat,big_mat,f0,beta,dt,theta)
+
       implicit none
       type(scalar_field), intent(in) :: D
-      type(vector_field), intent(in) :: U, X
+      type(vector_field), intent(in) :: U, X, up
       type(csr_matrix), intent(inout) :: h_mass_mat
       type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
            inverse_coriolis_mat, div_mat, big_mat
+
       integer, intent(in) :: ele
       real, intent(in) :: f0,dt,theta
       real, intent(in), dimension(:) :: beta
@@ -379,15 +382,20 @@ contains
       !Assemble h_mass_mat, u_mass_mat, coriolis_mat, inverse_coriolis_mat,
       !div_mat and then big_mat
       real, dimension(ele_ngi(D, ele)) :: detwei
-      real, dimension(ele_loc(D, ele), ele_ngi(D, ele), mesh_dim(D)) :: dm_t
       integer, dimension(:), pointer :: D_ele, U_ele
       type(element_type) :: D_shape, u_shape
-      real, dimension(ele_ngi(D, ele)) :: f_gi
-      real, dimension(mesh_dim(U), ele_ngi(x,ele)) :: x_gi
+      real, dimension(ele_ngi(x,ele)) :: f_gi
+      real, dimension(X%dim, ele_ngi(x,ele)) :: x_gi
+      real, dimension(X%dim, ele_ngi(up,ele)) :: up_gi
       real, dimension(mesh_dim(U)*ele_loc(U,ele), &
-           mesh_dim(U)*ele_loc(U,ele)) :: l_big_mat, l_coriolis_mat
-      integer :: dim1, dim2, nloc, dim
-      real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat, l_uf_mat
+                 mesh_dim(U)*ele_loc(U,ele)) :: l_big_mat, l_coriolis_mat
+      integer :: dim1, dim2, nloc, dim, gi
+      real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+      real, dimension(ele_ngi(U,ele)) :: detJ
+      real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: G, Gf
+      real, dimension(X%dim, X%dim, ele_ngi(U,ele)) :: rot
+      real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat, l_uf_mat
+
       real, dimension(mesh_dim(U),ele_loc(D,ele),ele_loc(U,ele)) :: l_div_mat
 
       dim = mesh_dim(U)
@@ -399,48 +407,58 @@ contains
       U_ele => ele_nodes(U, ele)
 
       x_gi = ele_val_at_quad(X,ele)
-      f_gi = f0 + matmul(beta,x_gi)
+      f_gi = f0! + matmul(beta,x_gi)
+      up_gi = ele_val_at_quad(up,ele)
 
-      call transform_to_physical(X,ele,&
-           & D_shape , dshape=dm_t, detwei=detwei)
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+           detwei=detwei, detJ=detJ)
 
       call addto(h_mass_mat, D_ele, D_ele, &
            shape_shape(D_shape,D_shape,detwei))
 
-      l_div_mat = dshape_shape(dm_t,u_shape,detwei)
+      l_div_mat = dshape_shape(D_shape%dn,u_shape,D_shape%quadrature%weight)
 
       do dim1 = 1, dim
          call addto(div_mat,1,dim1,d_ele,u_ele,l_div_mat(dim1,:,:))
       end do
 
-      l_u_mat=shape_shape(u_shape,u_shape,detwei)
-      l_uf_mat=shape_shape(u_shape,u_shape,detwei*f_gi)
-
-      do dim1 = 1, dim
-         call addto(u_mass_mat, dim1, dim1, u_ele, u_ele, &
-              l_u_mat)
+      do gi=1, ele_ngi(U,ele)
+         rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
+         rot(2,:,gi)=(/up_gi(3,gi),0.,-up_gi(1,gi)/)
+         rot(3,:,gi)=(/-up_gi(2,gi),up_gi(1,gi),0./)
       end do
 
-      if(dim==2) then
-         call addto(coriolis_mat, 1, 2, u_ele, u_ele, &
-              -l_uf_mat)
-         call addto(coriolis_mat, 2, 1, u_ele, u_ele, &
-              l_uf_mat)
-      end if
+      do gi=1,ele_ngi(U,ele)
+         G(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+         Gf(:,:,gi)=matmul(J(:,:,gi), &
+              matmul(rot(:,:,gi), transpose(J(:,:,gi))))/detJ(gi)
+      end do
+
+      l_u_mat = shape_shape_tensor(u_shape, u_shape, &
+           u_shape%quadrature%weight, G)
+      l_uf_mat = shape_shape_tensor(u_shape, u_shape, &
+           f_gi*u_shape%quadrature%weight, Gf)
+
+      do dim1 = 1, dim
+         do dim2 = 1, dim
+            call addto(u_mass_mat, dim1, dim2, u_ele, u_ele, &
+                 l_u_mat(dim1,dim2,:,:))
+            call addto(coriolis_mat, dim1, dim2, u_ele, u_ele, &
+                 l_uf_mat(dim1,dim2,:,:))
+         end do
+      end do
 
       l_big_mat = 0.
 
       nloc = ele_loc(U,ele)
       do dim1 = 1, dim
-         !Mass
-         l_big_mat(nloc*(dim1-1)+1:nloc*dim1, &
-              nloc*(dim1-1)+1:nloc*dim1) = l_u_mat
+         do dim2 = 1, dim
+            l_big_mat(nloc*(dim1-1)+1:nloc*dim1, &
+                 nloc*(dim2-1)+1:nloc*dim2) = &
+                 l_u_mat(dim1,dim2,:,:)+&
+                 dt*theta*l_uf_mat(dim1,dim2,:,:)
+         end do
       end do
-      if(dim==2) then
-         !Coriolis
-         l_big_mat(1:nloc, nloc+1:) = -dt*theta*l_uf_mat
-         l_big_mat(nloc+1:, 1:nloc) = dt*theta*l_uf_mat
-      end if
 
       call invert(l_big_mat)
 
@@ -452,14 +470,17 @@ contains
          end do
       end do
 
-
+      ! Compute inverse_coriolis_mat for use in 
+      ! set_velocity_from_geostrophic_balance
       l_coriolis_mat = 0.
 
-      if(dim==2) then
-         !Coriolis
-         l_coriolis_mat(1:nloc, nloc+1:) = -l_uf_mat
-         l_coriolis_mat(nloc+1:, 1:nloc) = l_uf_mat
-      end if
+      do dim1 = 1, dim
+         do dim2 = 1, dim
+            l_coriolis_mat(nloc*(dim1-1)+1:nloc*dim1, &
+                 nloc*(dim2-1)+1:nloc*dim2) = &
+                 l_uf_mat(dim1,dim2,:,:)
+         end do
+      end do
 
       call invert(l_coriolis_mat)
 

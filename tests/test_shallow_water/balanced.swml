@@ -7,6 +7,23 @@
     <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
+    <embedded_manifold>
+      <projection>
+        <string_value lines="20" type="python">def val(X,t):
+  return (X[0],X[1],0.0)</string_value>
+      </projection>
+      <inclusion>
+        <string_value lines="20" type="python"/>
+      </inclusion>
+      <vector_map>
+        <string_value lines="20" type="python">def val(X,t):
+  return ([1,0],[0,1])</string_value>
+      </vector_map>
+      <up>
+        <string_value lines="20" type="python">def val(X,t):
+  return (0.0,0.0,1.0)</string_value>
+      </up>
+    </embedded_manifold>
     <mesh name="CoordinateMesh">
       <from_file file_name="basin">
         <format name="triangle"/>
@@ -95,9 +112,6 @@
               <none/>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
         </spatial_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -154,9 +168,6 @@
               <exclude_advection_terms/>
             </advection_terms>
           </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>

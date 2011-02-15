@@ -752,6 +752,12 @@ contains
              ewrite(2,*) 'out of solid_data_update'
           end if
 
+          ! This will replace the routine one_way_print_diagnostics (in Implicit_Solids) when nobody uses it anymore.
+          ! Only written for one_way_coupling and no temperature field for now
+          if (have_option("/implicit_solids")) then
+             call implicit_solids_update(state(1))
+          end if
+
        end do nonlinear_iteration_loop
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt

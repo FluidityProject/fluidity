@@ -878,7 +878,7 @@ contains
   end subroutine compute_inverse_jacobian
 
   subroutine compute_jacobian(X, x_shape, J, detwei, detJ)
-    !!< Fast version of transform_to_physical that only calculates detwei and invJ
+    !!< Fast version of transform_to_physical that only calculates detwei and J
       
     !! Column n of X is the position of the nth node. (dim x x_shape%loc)
     !! only need position of n nodes since Jacobian is only calculated once
@@ -886,9 +886,9 @@ contains
     !! Shape function used for coordinate interpolation
     type(element_type), intent(in) :: x_shape
     
-    !! Inverse of the jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
+    !! Jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
     !! Facilitates access to this information externally
-    real, dimension(size(X,1),size(X,1),x_shape%ngi), intent(out) :: J
+    real, dimension(x_shape%dim,size(X,1),x_shape%ngi), intent(out) :: J
     !! Quadrature weights for physical coordinates.
     real, dimension(:), optional, intent(out) :: detwei (:)
     !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
@@ -898,9 +898,10 @@ contains
     !! Local version of the determinant of J
     real :: detJ_local(x_shape%ngi)
     
-    integer gi, dim, compute_ngi
+    integer gi, dim, ldim, compute_ngi
     
-    dim=size(X,1)
+    dim=size(X,1) ! dimension of space
+    ldim=x_shape%dim ! dimension of element
 
     assert(size(X,2)==x_shape%loc)
     if (present(detwei)) then
@@ -947,11 +948,31 @@ contains
         
     case(3)
 
-      do gi=1,x_shape%ngi
-        J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
-        detJ_local(gi)=det_3(J(:,:,gi))
-      end do
+      select case(ldim)
+
+      case(2)
         
+         do gi=1,compute_ngi
+            J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
+            detJ_local(gi)=sqrt((J(1,2,gi)*J(2,3,gi)-J(1,3,gi)*J(2,2,gi))**2+ &
+                           (J(1,3,gi)*J(2,1,gi)-J(1,1,gi)*J(2,3,gi))**2+ &
+                           (J(1,1,gi)*J(2,2,gi)-J(1,2,gi)*J(2,1,gi))**2)
+
+         end do
+
+      case(3)
+
+         do gi=1,compute_ngi
+            J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
+            detJ_local(gi)=det_3(J(:,:,gi))
+         end do
+
+      case default
+
+         FLAbort("oh dear, dimension of element > spatial dimension")
+
+      end select
+
       ! copy the rest
       do gi=compute_ngi+1, x_shape%ngi
         J(:,:,gi)=J(:,:,1)
