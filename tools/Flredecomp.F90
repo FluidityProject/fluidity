@@ -43,7 +43,6 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   use fields
 #ifdef HAVE_ZOLTAN
   use zoltan
-  use field_options
 #endif
   use zoltan_integration
   use state_module
@@ -69,13 +68,12 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
+  type(vector_field) :: extruded_position
   logical :: skip_initial_extrusion
   integer :: i, nstates
 #ifdef HAVE_ZOLTAN
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
-  logical :: periodic
-  type(mesh_type) :: main_mesh
 
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
@@ -162,12 +160,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
-  ! periodic
-  main_mesh = get_external_mesh(state)
-  periodic = .false.
-  if (mesh_periodic(main_mesh)) periodic = .true.
-
-  call zoltan_drive(state, 1, 1, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion, periodic=periodic)
+  call zoltan_drive(state, 1, 1, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion)
 #else
   call strip_level_2_halo(state, initialise_fields=.true.)
   call sam_drive(state, sam_options(target_nprocs))
