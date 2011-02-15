@@ -12,7 +12,7 @@ from matplotlib.ticker import MaxNLocator
 filelist = sys.argv[1:]
 
 
-x0 = 500.0
+x0 = 40.0
 
 
 for file in filelist:
@@ -33,8 +33,8 @@ for file in filelist:
    timeee = u.GetScalarField('Time')
    Time = timeee[0]
    temp = u.GetScalarField("Temperature")
-   vert_diff = u.GetScalarField("GLSEddyDiffusivityKH")
-   vert_visc = u.GetScalarField("GLSEddyViscosityKM")
+   vert_diff = u.GetScalarField("GLSVerticalDiffusivity")
+   vert_visc = u.GetScalarField("GLSVerticalViscosity")
    uvw = u.GetVectorField("Velocity")   
    kk = u.GetScalarField('GLSTurbulentKineticEnergy')
    pos = u.GetLocations()
@@ -82,6 +82,7 @@ for file in filelist:
    ax = fig.add_subplot(224)
    ax.plot(diff,zzz,'b--')
    ax.plot(visc,zzz,'b')
+   print max(diff), max(visc)
    ax.xaxis.set_major_locator(MaxNLocator(5))
    xlabel('Vertical Diffusivity (--) and Viscosity (-)')
    ylabel('Depth')

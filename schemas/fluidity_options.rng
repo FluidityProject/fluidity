@@ -889,6 +889,27 @@ Canuto A or B are recommended.</a:documentation>
                     </element>
                   </element>
                   <optional>
+                    <element name="wall_function">
+                      <a:documentation>The wall function choice:
+1. None - pick this unless you're using k-kl
+2. Mellor and Yamada (1980) - parabolic shape
+3. Burchard (1998) - symmetric linear shape
+4. Burchard (2001) - Used for infinitely deep basins
+5. Blumberg et al (1992) - open channel flow
+
+See manual for equations.</a:documentation>
+                      <element name="string_value">
+                        <choice>
+                          <value>none</value>
+                          <value>MellorYamda</value>
+                          <value>Burchard98</value>
+                          <value>Burchard01</value>
+                          <value>Blumberg</value>
+                        </choice>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="calculate_boundaries">
                       <a:documentation>Do you want the boundary conditions to be set automatically?
 Make sure the ocean geometry settings are enabled for this option</a:documentation>
@@ -904,16 +925,6 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                       <element name="bottom_surface_ids">
                         <ref name="integer_vector"/>
                       </element>
-                      <optional>
-                        <element name="fix_surface_values">
-                          <a:documentation>Force the surface values of diffusivity/viscosity to be equal to that if
-a Dirichlet condition is used on the two turbulent fields. The two turbulent
-fields are not actually altered.
-This forms an ill-posed problem, but appears to stabilise some simulations.
-Manual suggests that this is OFF unless you're having difficulties.</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
                     </element>
                   </optional>
                   <optional>
@@ -921,7 +932,7 @@ Manual suggests that this is OFF unless you're having difficulties.</a:documenta
                       <a:documentation>Perform relaxation of the diffusivity and viscosity in the GLS model.
 Value should be &gt;=0 and &lt; 1. 0 is no relaxation (i.e. always use the
 most up-to-date value) and 0.9 would represent making the current value
-be 0.9*old_value + 0.1*new_value
+be 0.9*old_value + 0.1*new_value. Default is 0.0
 If being used with adaptivity, ensure you switch on interpolation of the 
 GLSVerticalDiffusivity and GLSVerticalViscosity fields. You will seg fault
 otherwise.</a:documentation>
@@ -1041,6 +1052,29 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       </attribute>
                       <attribute name="name">
                         <value>GLSLengthScale</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Unedited TKE. The TKE filed has the upper and lower surfaces
+altered with Dirichlet conditions for ouput. This is the
+unedited surface.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>GLSTurbulentKineticEnergyOriginal</value>
                       </attribute>
                       <choice>
                         <element name="diagnostic">

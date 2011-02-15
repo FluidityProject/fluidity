@@ -6,41 +6,88 @@
   <owner userid="jhill1"/>
   <tags>flml gls</tags>
     <problem_definition length="short" nprocs="1">
-        <command_line>fluidity -v3 -l gls-relax.flml;
+        <command_line>fluidity -l -v2 gls-relax.flml;
+                      cp fluidity.log-0 fluidity.log_relax.0;
+                      fluidity -l -v2 gls-orig.flml;
+                      cp fluidity.log-0 fluidity.log_orig.0;
         </command_line>
-  </problem_definition>  
+    </problem_definition>  
+  <!-- Only way to check the relax is actually working is to use the logs
+       and grep the first two instances of the min/max print outs of K_H and K_M
+       printed out during the init. The first print out will be zero for max/min
+       and the second can then be used to check everything has worked.
+       If we wait for a timestep or two, the changes in visc and diff affect the
+       GLS variables, which then affects the diff/visc and hence it becomes
+       tricky to work out the relax is what we expect.
+  -->
   <variables>     
-      <variable name="NormalVertDiffStart" language="python">
-import fluidity_tools
-NormalVertDiffStart = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalDiffusivity']['max'][0]
+    <variable name="NormalVertDiffStart" language="python">
+for line in open("fluidity.log_orig.0"):
+  if "Min, max of K_H =" in line:
+    values = line.split('=')[1]
+    NormalVertDiffStart = float(values.split()[-1])
+    break
     </variable>     
     <variable name="NormalVertDiffEnd" language="python">
-import fluidity_tools
-NormalVertDiffEnd = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalDiffusivity']['max'][-1]
+n = 0
+for line in open("fluidity.log_orig.0"):
+  if "Min, max of K_H =" in line:
+    values = line.split('=')[1]
+    NormalVertDiffEnd = float(values.split()[-1])
+    if (1 == n):
+        break
+    n += 1
     </variable>    
-      <variable name="NormalVertViscStart" language="python">
-import fluidity_tools
-NormalVertViscStart = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalViscosity']['max'][0]
+    <variable name="NormalVertViscStart" language="python">
+for line in open("fluidity.log_orig.0"):
+  if "Min, max of K_M =" in line:
+    values = line.split('=')[1]
+    NormalVertViscStart = float(values.split()[-1])
+    break
     </variable>     
     <variable name="NormalVertViscEnd" language="python">
-import fluidity_tools
-NormalVertViscEnd = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalViscosity']['max'][-1]
+n = 0
+for line in open("fluidity.log_orig.0"):
+  if "Min, max of K_M =" in line:
+    values = line.split('=')[1]
+    NormalVertViscEnd = float(values.split()[-1])
+    if (1 == n):
+        break
+    n += 1
     </variable>     
-    <variable name="RelaxVertDiffEnd" language="python">
-import fluidity_tools
-RelaxVertDiffEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalDiffusivity']['max'][-1]
-    </variable>  
-    <variable name="RelaxVertViscEnd" language="python">
-import fluidity_tools
-RelaxVertViscEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalViscosity']['max'][-1]
-    </variable>    
     <variable name="RelaxVertDiffStart" language="python">
-import fluidity_tools
-RelaxVertDiffStart = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalDiffusivity']['max'][0]
+for line in open("fluidity.log_relax.0"):
+  if "Min, max of K_H =" in line:
+    values = line.split('=')[1]
+    RelaxVertDiffStart = float(values.split()[-1])
+    break
     </variable>  
+    <variable name="RelaxVertDiffEnd" language="python">
+n = 0
+for line in open("fluidity.log_relax.0"):
+  if "Min, max of K_H =" in line:
+    values = line.split('=')[1]
+    RelaxVertDiffEnd = float(values.split()[-1])
+    if (1 == n):
+        break
+    n += 1
+    </variable>    
     <variable name="RelaxVertViscStart" language="python">
-import fluidity_tools
-RelaxVertViscStart = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalViscosity']['max'][0]
+for line in open("fluidity.log_relax.0"):
+  if "Min, max of K_M =" in line:
+    values = line.split('=')[1]
+    RelaxVertViscStart = float(values.split()[-1])
+    break
+    </variable>
+    <variable name="RelaxVertViscEnd" language="python">
+n = 0
+for line in open("fluidity.log_relax.0"):
+  if "Min, max of K_M =" in line:
+    values = line.split('=')[1]
+    RelaxVertViscEnd = float(values.split()[-1])
+    if (1 == n):
+        break
+    n += 1
     </variable>
 </variables>
 
@@ -48,16 +95,16 @@ RelaxVertViscStart = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSV
       <test name ="Relaxed diffusivity is half value of normal" language="python">
 normalDiffChange = NormalVertDiffEnd-NormalVertDiffStart
 relaxDiffChange = RelaxVertDiffEnd-RelaxVertDiffStart
-PredictedDifference = ((NormalVertDiffEnd-NormalVertDiffStart)/2.0) - relaxDiffChange
+PredictedDifference = (normalDiffChange/2.0) - relaxDiffChange
 print PredictedDifference
-assert (  -0.0005 &lt; PredictedDifference &lt; +0.0005 )
+assert (  -1e-10 &lt; PredictedDifference &lt; +1e-10 )
     </test>
     <test name ="Relaxed Viscosity is half value of normal" language="python">
 normalViscChange = NormalVertViscEnd-NormalVertViscStart
 relaxViscChange = RelaxVertViscEnd-RelaxVertViscStart
-PredictedDifference = ((NormalVertViscEnd-NormalVertViscStart)/2.0) - relaxViscChange
+PredictedDifference = (normalViscChange/2.0) - relaxViscChange
 print PredictedDifference
-assert (  -0.0005 &lt; PredictedDifference &lt; +0.0005 )
+assert (  -1e-10 &lt; PredictedDifference &lt; +1e-10 )
     </test>
 
   </pass_tests>

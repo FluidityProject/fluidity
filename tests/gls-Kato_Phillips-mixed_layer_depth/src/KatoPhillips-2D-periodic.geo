@@ -1,5 +1,5 @@
 Point(1) = {0,0,0,0.1};
-Extrude {1000,0,0} {
+Extrude {100,0,0} {
   Point{1}; Layers{2};
 }
 Extrude {0,-50,0} {

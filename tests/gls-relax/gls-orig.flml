@@ -1,7 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">gls-relaxed</string_value>
+    <string_value lines="1">gls-orig</string_value>
+    <comment></comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">oceans</string_value>
@@ -191,9 +192,6 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </bottom_surface_ids>
         </calculate_boundaries>
-        <relax_diffusivity>
-          <real_value rank="0">0.5</real_value>
-        </relax_diffusivity>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>

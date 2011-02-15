@@ -6,103 +6,102 @@
   <owner userid="jhill1"/>
   <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.flml;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.flml;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.flml;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.flml;
-    </command_line>
+        <command_line>
+            fluidity gls-Kato_Phillips-mixed_layer_depth-gen-GL.flml
+            fluidity gls-Kato_Phillips-mixed_layer_depth-k_e-CA.flml
+            fluidity gls-Kato_Phillips-mixed_layer_depth-k_w-CB.flml
+            fluidity gls-Kato_Phillips-mixed_layer_depth-k_kl-KC94.flml
+        </command_line>
   </problem_definition>  
   <variables>  
 
-    <variable name="FinalTimeCA" language="python">
+    <variable name="FinalTimeGenGL" language="python">
 import fluidity_tools
-FinalTimeCA = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.stat")['ElapsedTime']['value'][-1]
+FinalTimeGenGL = fluidity_tools.stat_parser("Kato_Phillips-mld-gen-GL.stat")['ElapsedTime']['value'][-1]
     </variable>    
-    <variable name="FinalTimeCB" language="python">
+    <variable name="FinalTimeKECA" language="python">
 import fluidity_tools
-FinalTimeCB = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.stat")['ElapsedTime']['value'][-1]
+FinalTimeKECA = fluidity_tools.stat_parser("Kato_Phillips-mld-k_e-CA.stat")['ElapsedTime']['value'][-1]
     </variable>
-    <variable name="FinalTimeKC94" language="python">
+    <variable name="FinalTimeKWCB" language="python">
 import fluidity_tools
-FinalTimeKC94 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.stat")['ElapsedTime']['value'][-1]
+FinalTimeKWCB = fluidity_tools.stat_parser("Kato_Phillips-mld-k_w-CB.stat")['ElapsedTime']['value'][-1]
     </variable>
-    <variable name="FinalTimeGL78" language="python">
+    <variable name="FinalTimeKKLKC" language="python">
 import fluidity_tools
-FinalTimeGL78 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.stat")['ElapsedTime']['value'][-1]
+FinalTimeKKLKC = fluidity_tools.stat_parser("Kato_Phillips-mld-k_kl-KC.stat")['ElapsedTime']['value'][-1]
     </variable>
 
-    <variable name="CanutoA_MLD" language="python">
+    <variable name="GenGL_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
-filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA_*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-gen-GL_*.vtu")
 mld_calc.sort_nicely(filelist)
-CanutoA_MLD = mld_calc.MLD(filelist)
+GenGL_MLD = mld_calc.MLD(filelist)
     </variable>
-    <variable name="CanutoB_MLD" language="python">
+    <variable name="KECA_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
-filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB_*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-k_e-CA*.vtu")
 mld_calc.sort_nicely(filelist)
-CanutoB_MLD = mld_calc.MLD(filelist)
+KECA_MLD = mld_calc.MLD(filelist)
     </variable>
-    <variable name="KC94_MLD" language="python">
+    <variable name="KWCB_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
-filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94_*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-k_w-CB_*.vtu")
 mld_calc.sort_nicely(filelist)
-KC94_MLD = mld_calc.MLD(filelist)
+KWCB_MLD = mld_calc.MLD(filelist)
     </variable>    
-    <variable name="GL78_MLD" language="python">
+    <variable name="KKLKC_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")        
 import mld_calc
 import glob
-filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78_*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-k_kl-KC_*.vtu")
 mld_calc.sort_nicely(filelist)
-GL78_MLD = mld_calc.MLD(filelist)
+KKLKC_MLD = mld_calc.MLD(filelist)
     </variable>
 
   </variables>    
 
   <pass_tests> 
-    <test name="Final time equals 10 hours for CA" language="python">
-assert FinalTimeCA &gt; 35900
+    <test name="Final time equals 10 hours for Gen GL" language="python">
+assert FinalTimeGenGL &gt; 35900
     </test>
-    <test name="Final time equals 10 hours for CB" language="python">
-assert FinalTimeCB &gt; 35900
+    <test name="Final time equals 10 hours for k-e CA" language="python">
+assert FinalTimeKECA &gt; 35900
     </test>
-    <test name="Final time equals 10 hours for KC94" language="python">
-assert FinalTimeKC94 &gt; 35900
+    <test name="Final time equals 10 hours for k-w CB" language="python">
+assert FinalTimeKWCB &gt; 35900
     </test>
-    <test name="Final time equals 10 hours for GL78" language="python">
-assert FinalTimeGL78 &gt; 35900
+    <test name="Final time equals 10 hours for k-kl KC" language="python">
+assert FinalTimeKKLKC &gt; 35900
     </test>
 
-    <test name ="MLD for CA vs analytical" language="python">
+    <test name ="MLD for Gen Ca vs analytical" language="python">
 from numpy import array, all
-print ( array(CanutoA_MLD[1]) - array(CanutoA_MLD[2]) )
-assert (all( abs(array(CanutoA_MLD[1]) - array(CanutoA_MLD[2]) ) &lt; 4))
+assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 1.5))
     </test>   
-    <test name ="MLD for CB vs analytical" language="python">
+    <test name ="MLD for K-E KC vs analytical" language="python">
 from numpy import array, all
-print ( array(CanutoB_MLD[1]) - array(CanutoB_MLD[2]) )
-assert (all( abs(array(CanutoB_MLD[1]) - array(CanutoB_MLD[2]) ) &lt; 4))
+print abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) )
+assert (all( abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) ) &lt; 1.5))
     </test>
-    <test name ="MLD for KC94 vs analytical" language="python">
+    <test name ="MLD for K-W GL vs analytical" language="python">
 from numpy import array, all
-print ( array(KC94_MLD[1]) - array(KC94_MLD[2]) )
-assert (all( abs(array(KC94_MLD[1]) - array(KC94_MLD[2]) ) &lt; 4))
+assert (all( abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ) &lt; 1.5))
     </test>
-    <test name ="MLD for GL78 vs analytical" language="python">
+    <test name ="MLD for K-KL vs analytical" language="python">
 from numpy import array, all
-print ( array(GL78_MLD[1]) - array(GL78_MLD[2]) )
-assert (all( abs(array(GL78_MLD[1]) - array(GL78_MLD[2]) ) &lt; 4))
+print abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) )
+assert (all( abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) ) &lt; 1.5))
     </test>
 
   </pass_tests>

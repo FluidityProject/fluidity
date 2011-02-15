@@ -1955,12 +1955,13 @@ contains
     integer, dimension(:), pointer     :: surface_element_list
     type(scalar_field)                 :: scalar_surface_field
     type(vector_field), pointer        :: position
-    type(scalar_field), pointer        :: tke, psi
+    type(scalar_field), pointer        :: tke, psi, scalar_surface
     type(mesh_type), pointer           :: surface_mesh
     character(len=FIELD_NAME_LEN)      :: bc_type
     integer, dimension(:), allocatable :: surface_ids
     integer, dimension(2)              :: shape_option
-    integer :: stat
+    integer                            :: stat
+    real                               :: k_min
 
     ewrite(1,*) "Initialising GLS stable boundaries"
 
@@ -1996,8 +1997,6 @@ contains
     call insert_surface_field(psi, 'psi_top_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
 
-
-
     ! Bottom boundary on tke and psi
     ! Get vector of surface ids
     shape_option=option_shape("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/bottom_surface_ids")
@@ -2020,6 +2019,22 @@ contains
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_bottom_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
+
+    if (trim(bc_type) .eq. 'dirichlet') then
+        ! The dirichlet BCs are called before we get chance to set the 
+        ! value to something sensible, so set them to the tke_min
+        ! and 0 for Psi
+        call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                    &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", k_min)
+       scalar_surface => extract_surface_field(tke, 'tke_bottom_boundary', "value")
+       call set(scalar_surface,k_min)
+       scalar_surface => extract_surface_field(tke, 'tke_top_boundary', "value")
+       call set(scalar_surface,k_min)
+       scalar_surface => extract_surface_field(psi, 'psi_bottom_boundary', "value")
+       call set(scalar_surface,0.0)
+       scalar_surface => extract_surface_field(psi, 'psi_top_boundary', "value")
+       call set(scalar_surface,0.0)
+    end if
 
     
   end subroutine populate_gls_boundary_conditions
