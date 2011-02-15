@@ -2422,8 +2422,6 @@ contains
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
-!    character(len=254), dimension(:), allocatable :: types_det
-    integer, dimension(:), allocatable :: types_det
     logical :: any_lagrangian
 
     type(detector_type), pointer :: detector, temp_node, node_to_send, node_duplicated
@@ -2572,17 +2570,12 @@ contains
     if (move_detectors.and.(timestep/=0)) then
        detector_timestepping_loop: do  
 
-          !make types_det which contains detector type of all detectors
-          !and check if any are Lagrangian
+          !check if detectors any are Lagrangian
           any_lagrangian=.false.
-          allocate(types_det(detector_list%length))
-
           detector => detector_list%firstnode
           do i = 1, detector_list%length         
-             types_det(i) = detector%type
-             if (types_det(i)==LAGRANGIAN_DETECTOR)  then
-                any_lagrangian=.true. 
-             end if
+             if (detector%type==LAGRANGIAN_DETECTOR)&
+                  &any_lagrangian=.true. 
              detector => detector%next
           end do
 
@@ -2608,11 +2601,17 @@ contains
           call allmax(all_send_lists_empty)
           if (all_send_lists_empty==0) exit
 
-          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+          !This call serialises send_list_array, 
+          !sends it, receives serialised receive_list_array,
+          !unserialises that.
+          call serialise_lists_exchange_receive(&
+               state,send_list_array,receive_list_array,&
+               number_neigh_processors,ihash)
 
           do i=1, number_neigh_processors
              if  (receive_list_array(i)%length/=0) then      
-                call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+                call move_det_from_receive_list_to_det_list(&
+                     detector_list,receive_list_array(i))
              end if
           end do
 
@@ -2627,8 +2626,6 @@ contains
                 call flush_det(receive_list_array(k))
              end if
           end do
-
-          deallocate(types_det)
 
        end do detector_timestepping_loop
     end if
