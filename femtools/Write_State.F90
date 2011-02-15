@@ -43,12 +43,13 @@ contains
   
   end subroutine initialise_write_state
 
-  function do_write_state(current_time, timestep)
+  function do_write_state(current_time, timestep, adjoint)
     !!< Data output test routine. Test conditions listed under /io. Returns true
     !!< if these conditions are satisfied and false otherwise.
     
     real, intent(in) :: current_time
     integer, intent(in) :: timestep
+    logical, intent(in), optional :: adjoint
     
     logical :: do_write_state
     
@@ -69,7 +70,7 @@ contains
           end if
         case(2)
           if(have_option("/io/dump_period")) then
-            if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period)) then
+            if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period, adjoint=adjoint)) then
               if(have_option("/io/dump_period/constant")) then
                  call get_option("/io/dump_period/constant", real_dump_period)
               else if (have_option("/io/dump_period/python")) then
@@ -136,17 +137,22 @@ contains
     
   contains
     
-    pure function dump_count_greater(later_time, earlier_time, dump_period)
+    pure function dump_count_greater(later_time, earlier_time, dump_period, adjoint)
       !!< Return if the total number of dumps at time later_time is greater
       !!< than the total number of dumps at time earlier_time.
       
       real, intent(in) :: later_time
       real, intent(in) :: earlier_time
       real, intent(in) :: dump_period
+      logical, intent(in), optional :: adjoint
       
       logical :: dump_count_greater
       
-      dump_count_greater = (floor(later_time / dump_period) > floor(earlier_time / dump_period))
+      if (present_and_true(adjoint)) then
+        dump_count_greater = (floor(earlier_time / dump_period) > floor(later_time / dump_period))
+      else
+        dump_count_greater = (floor(later_time / dump_period) > floor(earlier_time / dump_period))
+      endif
     
     end function dump_count_greater
     
