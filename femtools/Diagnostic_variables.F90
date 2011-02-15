@@ -3271,35 +3271,33 @@ contains
     !Allocate an array of pointers for the serialised send list
     allocate(send_list_array_serialise(number_neigh_processors))
 
+    !Get the element halo 
     halo_level = element_halo_count(vfield%mesh)
     if (halo_level /= 0) then
        ele_halo => vfield%mesh%element_halos(halo_level)
     end if
 
+    !Get the inverse of the hash table mapping between 
+    !processor numbers and numbering in the send list array
     call allocate(ihash_inverse) 
     do i=1, key_count(ihash)
-
        call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
        call insert(ihash_inverse, mapped_val_a, target_proc_a)
-
     end do
 
-    do i=1, key_count(ihash_inverse)
-
-       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
-
-    end do
-
+    !==============================================
+    !This is some kind of wierd debugging check.
+    !Should we remove it? CJC
     if (halo_level /= 0) then
-
-    pwc_mesh = piecewise_constant_mesh(xfield%mesh, "PiecewiseConstantMesh")
-    call allocate(pwc_positions, xfield%dim, pwc_mesh, "Coordinate")
-    call deallocate(pwc_mesh)
-    call remap_field(xfield, pwc_positions)
-    assert(halo_verifies(ele_halo, pwc_positions))
-    call deallocate(pwc_positions)
-
+       pwc_mesh = piecewise_constant_mesh(&
+            xfield%mesh, "PiecewiseConstantMesh")
+       call allocate(pwc_positions, xfield%dim, pwc_mesh, "Coordinate")
+       call deallocate(pwc_mesh)
+       call remap_field(xfield, pwc_positions)
+       assert(halo_verifies(ele_halo, pwc_positions))
+       call deallocate(pwc_positions)
     end if
+    !==============================================
 
     do i=1, number_neigh_processors
 
