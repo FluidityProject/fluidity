@@ -34,10 +34,6 @@ start =
                   python_code
                },
                ## documentation goes here
-               element inclusion{
-                  python_code
-               },
-               ## documentation goes here
                element vector_map{
                   python_code
                },
@@ -45,7 +41,7 @@ start =
                element up{
                   python_code
                }
-            }?,
+            },
             ## The position mesh
             element mesh {
                attribute name { "CoordinateMesh" },
@@ -154,6 +150,16 @@ start =
             element wall_time_dump_period {
                real
             }?,
+            (
+               ## The coordinates used for output
+               element output_coordinates {
+                  attribute name { "Cartesian" }
+               }|
+               ## The coordinates used for output
+               element output_coordinates {
+                  attribute name { "Manifold" }
+               }
+            ),
             (
                ## The mesh on to which all the fields will be
                ## interpolated for VTK output.

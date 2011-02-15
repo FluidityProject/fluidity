@@ -119,7 +119,7 @@
     !! U momentum matrix
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
-    logical :: on_manifold, adjoint
+    logical :: adjoint
     integer, save :: dump_no=0
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
@@ -146,10 +146,6 @@
 
     call insert_time_in_state(state)
 
-    ! Find out if we are on an embedded manifold, e.g. the surface of
-    ! the sphere. If we are, then set up a 3D coordinate field and
-    ! velocity field from the 2D coordinate space
-    on_manifold=have_option("/geometry/embedded_manifold")
     call setup_cartesian_vector_fields(state(1))
     X_c=>extract_vector_field(state(1), 'CartesianCoordinate')
     U_c=>extract_vector_field(state(1), 'CartesianVelocity')
@@ -185,7 +181,7 @@
 #endif
 
     ! Always output the initial conditions.
-    call output_state(state, on_manifold)
+    call output_state(state)
 
     timestep=0
     timestep_loop: do
@@ -213,7 +209,7 @@
        call advance_current_time(current_time, dt)
 
        if (do_write_state(current_time, timestep)) then
-          call output_state(state, on_manifold)
+          call output_state(state)
        end if
 
        call write_diagnostics(state,current_time,dt, timestep)
@@ -250,7 +246,7 @@
     end do timestep_loop
 
     ! One last dump
-    call output_state(state, on_manifold)
+    call output_state(state)
     call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(h_mass_mat)
@@ -816,32 +812,36 @@
 
     end subroutine advance_current_time
 
-    subroutine output_state(state, on_manifold, adjoint)
+    subroutine output_state(state)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
-      logical, intent(in) :: on_manifold
-      logical, intent(in), optional :: adjoint
-      integer :: increment
 
-      type(vector_field), pointer :: X_c, X_m, U_c, U_m
+      type(vector_field), pointer :: X
+      character(len=OPTION_PATH_LEN) :: output_coordinate
 
-      if (present_and_true(adjoint)) then
-        increment = -1
-      else
-        increment = 1
-      end if
+      ! Get the output coordinate from the options tree
+      call get_option("/io/output_coordinates/name", output_coordinate)
 
-      if(on_manifold) then
-         X_c=>extract_vector_field(state(1), "CartesianCoordinate")
-         U_c=>extract_vector_field(state(1), "CartesianVelocity")
-         call project_local_to_cartesian(state(1))
-         call vtk_write_fields('cartesian', 1, X_c, U_c%mesh, vfields=(/U_c/))
+      ! Whichever coordinate we're outputting on, we still need to
+      ! project the local velocity to cartesian coordinates
+      call project_local_to_cartesian(state(1))
+
+      ! Extract and reinsert the required coordinate field so that
+      ! get_external_coordinate_field picks up the correct field
+      if(trim(output_coordinate)=="Cartesian") then
+         X=>extract_vector_field(state(1), "CartesianCoordinate")
+         call insert(state(1), X, "Coordinate")
+      else if(trim(output_coordinate)=="Manifold") then
+         ! map velocity to manifold
          call map_to_manifold(state(1))
-         X_m=>extract_vector_field(state(1), "ManifoldCoordinate")
-         U_m=>extract_vector_field(state(1), "ManifoldVelocity")
-!         call vtk_write_fields('manifold', 1, X_m, U_m%mesh, vfields=(/U_m/))
+         X=>extract_vector_field(state(1), "ManifoldCoordinate")
+         call insert(state(1), X, "Coordinate")
+      else
+         FLAbort('invalid output coordinate')
       end if
-      call write_state(dump_no, state, increment)
+
+      ! Now we're ready to call write_state
+      call write_state(dump_no, state)
 
     end subroutine output_state
 
@@ -915,11 +915,12 @@
       call allocate(U_manifold, mesh_dim(X), U_mesh, "ManifoldVelocity")
       call zero(U_manifold)
       call set(U_manifold, U)
+      U_manifold%option_path=U%option_path
       call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoordinate")
       call zero(X_cartesian)
       call allocate(U_cartesian, mesh_dim(X)+1, U_mesh, "CartesianVelocity")
       call zero(U_cartesian)
-      U_cartesian%option_path=""
+      U_cartesian%option_path=U%option_path
       call allocate(map, U_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
       call zero(map)
 
@@ -930,7 +931,7 @@
       call insert(state, U_cartesian, "CartesianVelocity")
       call insert(state, map, "VectorMap")
 
-      ! set original field values using mappings from .swml
+      ! set cartesian field values using mappings from .swml
       call get_option("/geometry/embedded_manifold/projection", projection)
       call set_from_python_function(X_cartesian, projection, X, time=0.0)
 

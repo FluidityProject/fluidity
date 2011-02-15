@@ -32,26 +32,20 @@ characters in the simulation name should be avoided.</a:documentation>
             </choice>
           </element>
         </element>
-        <optional>
-          <element name="embedded_manifold">
-            <element name="projection">
-              <a:documentation>documentation goes here</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="inclusion">
-              <a:documentation>documentation goes here</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="vector_map">
-              <a:documentation>documentation goes here</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="up">
-              <a:documentation>The direction of up</a:documentation>
-              <ref name="python_code"/>
-            </element>
+        <element name="embedded_manifold">
+          <element name="projection">
+            <a:documentation>documentation goes here</a:documentation>
+            <ref name="python_code"/>
           </element>
-        </optional>
+          <element name="vector_map">
+            <a:documentation>documentation goes here</a:documentation>
+            <ref name="python_code"/>
+          </element>
+          <element name="up">
+            <a:documentation>The direction of up</a:documentation>
+            <ref name="python_code"/>
+          </element>
+        </element>
         <element name="mesh">
           <a:documentation>The position mesh</a:documentation>
           <attribute name="name">
@@ -186,6 +180,20 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
+        <choice>
+          <element name="output_coordinates">
+            <a:documentation>The coordinates used for output</a:documentation>
+            <attribute name="name">
+              <value>Cartesian</value>
+            </attribute>
+          </element>
+          <element name="output_coordinates">
+            <a:documentation>The coordinates used for output</a:documentation>
+            <attribute name="name">
+              <value>Manifold</value>
+            </attribute>
+          </element>
+        </choice>
         <choice>
           <element name="output_mesh">
             <a:documentation>The mesh on to which all the fields will be
