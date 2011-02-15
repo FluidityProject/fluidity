@@ -1089,5 +1089,176 @@ contains
     assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
       
   end subroutine derive_nonperiodic_halos_from_periodic_halos
+    
+  function derive_sub_halo(halo, sub_nodes) result (sub_halo)
+    !!< Derive a halo that is valid for a problem defined on a subset of the nodes
+    !!< of the original problem. A new local numbering (determined by the order
+    !!< of the 'sub_nodes' array) of these nodes is formed that is used in the sub-problem. 
+    !!< Each process decides for itself which nodes of the full mesh will take part in 
+    !!< the sub-problem, both for owned and receive nodes.
+    !!< It is allowed for nodes that are considered to be part of the sub-problem
+    !!< by their owner, to be left out on other processes that see this node (receivers). This means
+    !!< each receiving process needs to tell its sender which nodes it is interested in for the sub-problem.
+    !!< Usage cases:
+    !!< - solving equations on only part of a mesh. The subproblem is typically defined by a subset of the
+    !!< elements. It is then possible that a node adjacent to an element that forms part of the sub-problem,
+    !!< is seen (received) by another process which doesn't know about this element. For that process it
+    !!< wouldn't make sense to add it to the sub-problem, as it would not be part of any element in the 
+    !!< sub-problem that it sees. It is therefore allowed in the sub_halo, to leave this node out as a recv
+    !!< node even though it is actually part of the global sub-problem that is solved for.
+    !!< - a similar situation arised in the case of solving on (parts of) the surface mesh. A receive node
+    !!< may only touch the surface mesh, without any surface elements being known in this process.
+    type(halo_type), intent(in):: halo
+    integer, dimension(:), intent(in):: sub_nodes
+    type(halo_type) :: sub_halo
+    
+    type(integer_hash_table):: inverse_map
+    type(integer_set):: sub_receives_indices_set
+    type(integer_vector), dimension(:), allocatable:: sub_receives_indices, sub_sends_indices
+    integer, dimension(:), allocatable:: send_request, receive_request
+    integer, dimension(:), allocatable:: full_sends, full_receives
+    integer, dimension(:), allocatable:: full_sends_start_indices, full_receives_start_indices
+    integer, dimension(:), allocatable:: full_nsends, full_nreceives
+    integer, dimension(:), allocatable:: sub_nsends, sub_nreceives
+    integer, dimension(:), allocatable:: send_requests
+    integer, dimension(:), allocatable:: statuses
+    integer, dimension(MPI_STATUS_SIZE):: status
+    integer:: i, iproc, nprocs, tag, communicator, start, full_node, sub_node, no_sends, no_recvs, ierr
+    
+    ewrite(1,*) "deriving halo for sub-problem"
+    
+    nprocs = halo_proc_count(halo)
+    tag = next_mpi_tag()
+    communicator = halo_communicator(halo)
+    
+    ! create inverse map from the full problem to the sub_nodes numbering:
+    call invert_set(sub_nodes, inverse_map)
+    
+    allocate(full_sends(halo_all_sends_count(halo)))
+    allocate(full_receives(halo_all_receives_count(halo)))
+    
+    allocate(full_sends_start_indices(nprocs))
+    allocate(full_receives_start_indices(nprocs))
+    
+    allocate(full_nsends(nprocs))
+    allocate(full_nreceives(nprocs))
+    
+    allocate(sub_receives_indices(1:nprocs))
+    allocate(sub_sends_indices(1:nprocs))
+    
+    call extract_all_halo_sends(halo, full_sends, nsends=full_nsends, start_indices=full_sends_start_indices)
+    call extract_all_halo_receives(halo, full_receives, nreceives=full_nreceives, start_indices=full_receives_start_indices)
+   
+    ! we only send to processors of which we have receive nodes
+    allocate(send_requests(1:count(full_nreceives>0)))
+    no_sends = 0
+    do iproc = 1, nprocs
+      if(full_nreceives(iproc) > 0 ) then
+        
+        ! a set of indices in the array of all receive nodes received from iproc, corresponding to the nodes
+        ! we want to keep
+        call allocate(sub_receives_indices_set)
+        
+        ! start+i gives the location in full_receives of the i-th receive node from processor iproc
+        start = full_receives_start_indices(iproc)-1
+        
+        ! collect receive nodes we want to keep
+        do i = 1, full_nreceives(iproc)           
+           if (has_key(inverse_map, full_receives(start+i))) then
+              ! we store i as this is the index in the array of all receive nodes received from iproc
+              ! this is what we'll send to iproc, as it will know which send node it corresponds to
+              call insert(sub_receives_indices_set, i)
+           end if
+        end do
+        
+        sub_nreceives(iproc) = key_count(sub_receives_indices_set)
+        
+        ! convert to array so we can send it off
+        allocate( sub_receives_indices(iproc)%ptr(sub_nreceives(iproc)) )
+        sub_receives_indices(iproc)%ptr = set2vector(sub_receives_indices_set)
+        call deallocate(sub_receives_indices_set)
+
+        no_sends=no_sends+1
+        ! Non-blocking send to the sender iproc to tell it which nodes we want to receive
+        call mpi_isend(sub_receives_indices(iproc)%ptr, sub_nreceives(iproc), MPI_INTEGER, iproc-1, tag, &
+          communicator, send_requests(no_sends), ierr)
+          
+      end if
+      
+    end do
+      
+    ! number of messages expected:
+    ! only expect a request from processes we have send nodes for
+    no_recvs = count(full_nsends>0)
+    assert( no_sends==count(full_nreceives>0) )
+    
+    ! receive all requests and store in sub_sends_indices
+    do i=1, no_recvs
+      
+      ! check for pending messages, only returns when a message is ready to receive
+      call mpi_probe(MPI_ANY_SOURCE, tag, communicator, status, ierr)
+      ! who did we receive from?
+      iproc = status(MPI_SOURCE) + 1
+      
+      ! query the size and set up the recv buffer
+      call mpi_get_count(status, MPI_INTEGER, sub_nsends(iproc), ierr)
+      allocate(sub_sends_indices(iproc)%ptr(1:sub_nsends(iproc)))
+      
+      ! because of the mpi_probe, this blocking send is guaranteed to finish
+      call mpi_recv(sub_sends_indices(iproc)%ptr, sub_nsends(iproc), MPI_INTEGER, iproc-1, tag, &
+        communicator, ierr)
+        
+      assert( full_nsends(iproc)>0 ) ! should only be receiving from processes we are sending to
+      assert( sub_nsends(iproc)<=full_nsends(iproc) ) ! should request less than the complete number of sends
+      assert( maxval(sub_sends_indices(iproc)%ptr)<=full_nsends(iproc) ) ! requested indices should be within the full list of sends
+      
+    end do
+      
+    ! we now have all the information to allocate the new sub_halo
+    call allocate(sub_halo, sub_nsends, sub_nreceives, name=trim(halo%name) // "SubHalo", &
+            & communicator = communicator, data_type = halo%data_type)
+    
+    ! store the requested nodes in the send lists of the sub_halo
+    do iproc = 1, nprocs
+      if(full_nsends(iproc) > 0 ) then
+        ! start+i gives the location in full_sends of the i-th node sent to processor iproc
+        start = full_sends_start_indices(iproc)-1
+        ! loop over the requested nodes one by one
+        do i=1, sub_nsends(iproc)
+          ! requested node in full numbering:
+          full_node = full_sends(start+sub_sends_indices(iproc)%ptr(i))
+          ! this will fail if the receiver has requested a node, that is not in our 'sub_nodes' array
+          sub_node = fetch(inverse_map, full_node)
+          call set_halo_send(sub_halo, iproc, i, sub_node)
+        end do
+        deallocate(sub_sends_indices(iproc)%ptr)
+      end if
+    end do
+      
+    ! we have to wait here till all isends have finished, so we can safely deallocate the sub_receives_indices
+    allocate(statuses(MPI_STATUS_SIZE*no_sends))
+    call mpi_waitall(no_sends, send_requests, statuses, ierr)
+    deallocate(statuses)
+    
+    ! store the receive nodes we've requested in the receive lists of the sub_halo
+    do iproc = 1, nprocs
+      if(full_nreceives(iproc) > 0 ) then
+        ! start+i gives the location in full_receives of the i-th node received from processor iproc
+        start = full_receives_start_indices(iproc)-1
+        ! loop over the requested nodes one by one
+        do i=1, sub_nreceives(iproc)
+          ! requested node in full numbering:
+          full_node = full_receives(start+sub_receives_indices(iproc)%ptr(i))
+          ! this shouldn't fail because of the has_key check where sub_receives_indices was assembled
+          sub_node = fetch(inverse_map, full_node)
+          call set_halo_receive(sub_halo, iproc, i, sub_node)
+        end do
+        deallocate(sub_receives_indices(iproc)%ptr)
+      end if
+    end do
+    
+    call deallocate(inverse_map)
+    
+  end function derive_sub_halo
 
 end module halos_derivation
