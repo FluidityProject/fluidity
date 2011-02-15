@@ -2567,11 +2567,10 @@ contains
     !this loop continues until all detectors have completed their timestep
     !this is measured by checking if the send and receive lists are empty
     !in all processors
+    allocate(send_list_array(number_neigh_processors))
+    allocate(receive_list_array(number_neigh_processors))
     if (move_detectors.and.(timestep/=0)) then
        detector_timestepping_loop: do  
-
-          allocate(send_list_array(number_neigh_processors))
-          allocate(receive_list_array(number_neigh_processors))
 
           !make types_det which contains detector type of all detectors
           !and check if any are Lagrangian
@@ -2617,30 +2616,17 @@ contains
              end if
           end do
 
-!!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
-
+          !Flush the detector lists
           do k=1, number_neigh_processors
-
              if (send_list_array(k)%length/=0) then  
-
                 call flush_det(send_list_array(k))
-
              end if
-
           end do
-
           do k=1, number_neigh_processors
-
              if (receive_list_array(k)%length/=0) then  
-
                 call flush_det(receive_list_array(k))
-
              end if
-
           end do
-
-          deallocate(send_list_array)
-          deallocate(receive_list_array)
 
           deallocate(types_det)
 
