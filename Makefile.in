@@ -150,6 +150,14 @@ bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
+bin/shallow_water_legacy: fluidity_library main/Shallow_Water_Legacy.F90
+	@cd main; $(MAKE) Shallow_Water_Legacy.o
+	@echo "BUILD shallow_water_legacy"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD shallow_water_legacy"
+	@$(EVAL) $(LINKER) -o bin/shallow_water_legacy main/Shallow_Water_Legacy.o $(LIBS)
+
 bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@cd main; $(MAKE) Burgers_Equation.o
 	@echo "BUILD burgers_equation"
