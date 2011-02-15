@@ -1802,9 +1802,16 @@ contains
     type(vector_field), pointer :: vfield
     type(vector_field) :: xfield
     type(registered_diagnostic_item), pointer :: iterator => NULL()
+    logical :: l_move_detectors
 
     ewrite(1,*) 'In write_diagnostics'
     call profiler_tic("I/O")
+
+    if(present_and_true(not_to_move_det_yet)) then
+       l_move_detectors=.false.
+    else
+       l_move_detectors=.true.
+    end if
 
     format="(" // real_format(padding = 1) // ")"
     format2="(2" // real_format(padding = 1) // ")"
@@ -2015,7 +2022,7 @@ contains
 
     ! Now output any detectors.
     
-    call write_detectors(state, time, dt, timestep, not_to_move_det_yet)
+    call write_detectors(state, time, dt, timestep, l_move_detectors)
 
     call profiler_toc("I/O")
   
@@ -2402,12 +2409,12 @@ contains
 
   end subroutine test_and_write_steady_state
 
-  subroutine write_detectors(state, time, dt, timestep, not_to_move_det_yet)
+  subroutine write_detectors(state, time, dt, timestep, move_detectors)
     !!< Write the field values at detectors to the previously opened detectors file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
-    logical, intent(in), optional :: not_to_move_det_yet 
+    logical, intent(in) :: move_detectors
 
     character(len=10) :: format_buffer
     integer :: i, j, k, phase, ele, processor_number, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, processor_owner
@@ -2560,101 +2567,97 @@ contains
     !this loop continues until all detectors have completed their timestep
     !this is measured by checking if the send and receive lists are empty
     !in all processors
-    detector_timestepping_loop: do  
+    if (move_detectors.and.(timestep/=0)) then
+       detector_timestepping_loop: do  
 
-       allocate(send_list_array(number_neigh_processors))
-       allocate(receive_list_array(number_neigh_processors))
+          allocate(send_list_array(number_neigh_processors))
+          allocate(receive_list_array(number_neigh_processors))
 
-       !make types_det which contains detector type of all detectors
-       !and check if any are Lagrangian
-       any_lagrangian=.false.
-       allocate(types_det(detector_list%length))
+          !make types_det which contains detector type of all detectors
+          !and check if any are Lagrangian
+          any_lagrangian=.false.
+          allocate(types_det(detector_list%length))
 
-       detector => detector_list%firstnode
-       do i = 1, detector_list%length         
-         types_det(i) = detector%type
-         if (types_det(i)==LAGRANGIAN_DETECTOR)  then
-            any_lagrangian=.true. 
-         end if
-         detector => detector%next
-       end do
-          
-       if (any_lagrangian) then
-          !This is the actual call to move the detectors
-          !The hash table is used to work out which processor
-          !corresponds to which entry in the send_list_array
-        if (.not.present(not_to_move_det_yet).and.(timestep/=0))  &
-             &call move_detectors_bisection_method(&
-             state, dt, ihash, send_list_array)
-       end if
+          detector => detector_list%firstnode
+          do i = 1, detector_list%length         
+             types_det(i) = detector%type
+             if (types_det(i)==LAGRANGIAN_DETECTOR)  then
+                any_lagrangian=.true. 
+             end if
+             detector => detector%next
+          end do
 
-       !Work out whether all send lists are empty,
-       !in which case exit.
-       !This is slightly Byzantine, I think it would
-       !also work if it was initially zero, and then
-       !set to 1 if any of the lists were not empty. CJC
-       all_send_lists_empty=number_neigh_processors
-       do k=1, number_neigh_processors
-          if (send_list_array(k)%length==0) then
-            all_send_lists_empty=all_send_lists_empty-1
+          if (any_lagrangian) then
+             !This is the actual call to move the detectors
+             !The hash table is used to work out which processor
+             !corresponds to which entry in the send_list_array
+             call move_detectors_bisection_method(&
+                  state, dt, ihash, send_list_array)
           end if
-       end do
-       call allmax(all_send_lists_empty)
-       if (all_send_lists_empty==0) exit
 
-       !THIS NEEDS TO GO OUTSIDE THE WHOLE LOOP!?!?!?
-       if (timestep/=0) then
+          !Work out whether all send lists are empty,
+          !in which case exit.
+          !This is slightly Byzantine, I think it would
+          !also work if it was initially zero, and then
+          !set to 1 if any of the lists were not empty. CJC
+          all_send_lists_empty=number_neigh_processors
+          do k=1, number_neigh_processors
+             if (send_list_array(k)%length==0) then
+                all_send_lists_empty=all_send_lists_empty-1
+             end if
+          end do
+          call allmax(all_send_lists_empty)
+          if (all_send_lists_empty==0) exit
 
           call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
 
-       end if
+          do i=1, number_neigh_processors
 
-       do i=1, number_neigh_processors
+             if  (receive_list_array(i)%length/=0) then      
 
-         if  (receive_list_array(i)%length/=0) then      
-        
-            call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+                call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
 
-         end if
+             end if
 
-       end do
+          end do
 
-       detector => detector_list%firstnode
-       do i = 1, detector_list%length
+          !TOTALLY REDUNDANT
+          detector => detector_list%firstnode
+          do i = 1, detector_list%length
 
-          detector => detector%next
-         
-      end do
-  
+             detector => detector%next
+
+          end do
+
 !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
 
-       do k=1, number_neigh_processors
+          do k=1, number_neigh_processors
 
-         if (send_list_array(k)%length/=0) then  
+             if (send_list_array(k)%length/=0) then  
 
-             call flush_det(send_list_array(k))
-  
-         end if
+                call flush_det(send_list_array(k))
 
-       end do
+             end if
 
-       do k=1, number_neigh_processors
+          end do
 
-         if (receive_list_array(k)%length/=0) then  
+          do k=1, number_neigh_processors
 
-             call flush_det(receive_list_array(k))
- 
-         end if
+             if (receive_list_array(k)%length/=0) then  
 
-      end do
+                call flush_det(receive_list_array(k))
 
-     deallocate(send_list_array)
-     deallocate(receive_list_array)
+             end if
 
-     deallocate(types_det)
+          end do
 
-  end do detector_timestepping_loop
+          deallocate(send_list_array)
+          deallocate(receive_list_array)
 
+          deallocate(types_det)
+
+       end do detector_timestepping_loop
+    end if
     deallocate(send_list_array)
     deallocate(receive_list_array)
 
