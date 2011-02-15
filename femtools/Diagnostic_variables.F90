@@ -2565,9 +2565,9 @@ contains
     !this loop continues until all detectors have completed their timestep
     !this is measured by checking if the send and receive lists are empty
     !in all processors
-    allocate(send_list_array(number_neigh_processors))
-    allocate(receive_list_array(number_neigh_processors))
     if (move_detectors.and.(timestep/=0)) then
+       allocate(send_list_array(number_neigh_processors))
+       allocate(receive_list_array(number_neigh_processors))
        detector_timestepping_loop: do  
 
           !check if detectors any are Lagrangian
@@ -2583,6 +2583,12 @@ contains
              !This is the actual call to move the detectors
              !The hash table is used to work out which processor
              !corresponds to which entry in the send_list_array
+             
+             !Detectors leaving the domain from non-owned elements
+             !are entering a domain on another processor rather 
+             !than leaving the physical domain. In this subroutine
+             !such detectors are removed from the detector list
+             !and added to the send_list_array
              call move_detectors_bisection_method(&
                   state, dt, ihash, send_list_array)
           end if
@@ -2601,13 +2607,16 @@ contains
           call allmax(all_send_lists_empty)
           if (all_send_lists_empty==0) exit
 
-          !This call serialises send_list_array, 
+          !This call serialises send_list_array,
           !sends it, receives serialised receive_list_array,
           !unserialises that.
           call serialise_lists_exchange_receive(&
                state,send_list_array,receive_list_array,&
                number_neigh_processors,ihash)
 
+          !This call moves detectors into the detector_list
+          !I'm still unsure about how detectors are removed
+          !from the detector list if they are sent.
           do i=1, number_neigh_processors
              if  (receive_list_array(i)%length/=0) then      
                 call move_det_from_receive_list_to_det_list(&
@@ -2628,9 +2637,9 @@ contains
           end do
 
        end do detector_timestepping_loop
+       deallocate(send_list_array)
+       deallocate(receive_list_array)
     end if
-    deallocate(send_list_array)
-    deallocate(receive_list_array)
 
     if ((.not.isparallel()).and.(.not. binary_detector_output)) then
 
@@ -3214,10 +3223,14 @@ contains
 
   end subroutine move_detectors_bisection_method  
 
-  subroutine serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
- 
+  subroutine serialise_lists_exchange_receive(&
+       state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+    !This subroutine serialises send_list_array,
+    !sends it, receives serialised receive_list_array,
+    !unserialises that.
     type(state_type), dimension(:), intent(in) :: state
-    type(detector_linked_list), dimension(:), intent(inout) :: send_list_array, receive_list_array
+    type(detector_linked_list), dimension(:), &
+         &intent(inout) :: send_list_array, receive_list_array
     integer, intent(inout) :: number_neigh_processors
     type(integer_hash_table), intent(in) :: ihash
 
@@ -3225,12 +3238,15 @@ contains
        real, dimension(:,:), pointer :: ptr
     end type array_ptr
 
-    type(array_ptr), dimension(:), allocatable :: send_list_array_serialise, receive_list_array_serialise
+    type(array_ptr), dimension(:), allocatable :: &
+         &send_list_array_serialise, receive_list_array_serialise
     type(detector_type), pointer :: node, node_rec
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
-    integer :: global_ele, univ_ele, number_detectors_to_send, number_of_columns, number_detectors_received, target_proc, count, IERROR, dim, i, j
+    integer :: global_ele, univ_ele, &
+         &number_detectors_to_send, number_of_columns, &
+         &number_detectors_received, target_proc, count, IERROR, dim, i, j
     integer, PARAMETER ::TAG=12
 
     integer, ALLOCATABLE, DIMENSION(:) :: sendRequest
@@ -3248,16 +3264,16 @@ contains
     shape=>ele_shape(xfield,1)
     vfield => extract_vector_field(state(1),"Velocity")
  
+    !set up sendrequest tags because we are going to do an MPI_Isend
+    !these are used by wait_all
     allocate( sendRequest(0:number_neigh_processors-1) )
 
+    !Allocate an array of pointers for the serialised send list
     allocate(send_list_array_serialise(number_neigh_processors))
 
     halo_level = element_halo_count(vfield%mesh)
-
     if (halo_level /= 0) then
-
-    ele_halo => vfield%mesh%element_halos(halo_level)
-
+       ele_halo => vfield%mesh%element_halos(halo_level)
     end if
 
     call allocate(ihash_inverse) 
