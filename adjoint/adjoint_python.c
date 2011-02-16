@@ -126,8 +126,14 @@ void adj_variables_from_python(char* function, int function_len,
   }
 
   // OK. Now we need to call fluidity.parse_functional.make_adj_variable on the output.
-  PyRun_String("from fluidity.parse_functional import make_adj_variable", Py_file_input, pGlobals, pLocals);
-  pFunc=PyDict_GetItemString(pLocals, "make_adj_variable");
+  PyRun_String("from fluidity.parse_functional import make_adj_variables", Py_file_input, pGlobals, pLocals);
+  pFunc=PyDict_GetItemString(pLocals, "make_adj_variables");
+  // Check for a Python error.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
 
   // We need to pack pResult into a tuple so that we can call make_adj_variable on it
   Py_DECREF(pArgs);
@@ -137,7 +143,7 @@ void adj_variables_from_python(char* function, int function_len,
 
   *result_len = PySequence_Length(pResult2);
 
-  // Check for a Python error in result_dim.
+  // Check for a Python error.
   if (PyErr_Occurred()){
     PyErr_Print();
     *stat=1;
@@ -145,7 +151,7 @@ void adj_variables_from_python(char* function, int function_len,
   }
 
   *result = malloc(*result_len * sizeof(adj_variable));
-  result_var = (adj_variable*) result;
+  result_var = (adj_variable*) *result;
 
   // Unpack tuple to pointer
   for (i = 0; i < *result_len; i++)

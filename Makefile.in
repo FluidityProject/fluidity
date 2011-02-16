@@ -440,6 +440,8 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd parameterisation/tests; $(MAKE) unittest
 	@echo "    UNITTEST assemble"
 	@cd assemble/tests; $(MAKE) unittest
+	@echo "    UNITTEST adjoint"
+	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
 
