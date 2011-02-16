@@ -58,6 +58,7 @@
     use shallow_water_adjoint_callbacks
     use libadjoint
     use libadjoint_data_callbacks
+    use adjoint_python
 #include "libadjoint/adj_fortran.h"
 #endif
     implicit none
@@ -1036,14 +1037,17 @@
       type(adj_variable) :: eta0
       real :: start_time
       real :: dt
+      integer :: nfunctionals, j
+      character(OPTION_PATH_LEN) :: buf
+      type(adj_variable), dimension(:), allocatable :: vars
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(var=eta0, blocks=(/I/), targets=(/eta0/), equation=equation)
+      ierr = adj_create_equation(variable=eta0, blocks=(/I/), targets=(/eta0/), equation=equation)
       call adj_chkierr(ierr)
 
       ierr = adj_register_equation(adjointer, equation)
@@ -1054,7 +1058,18 @@
 
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
+
+      ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)
+      ! And we also may as well set the functional dependencies now
+      nfunctionals = option_count("/adjoint/functional")
+      do j=0,nfunctionals-1
+        call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=j, dependencies=vars)
+        call adj_chkierr(ierr)
+        deallocate(vars)
+      end do
 #endif
     end subroutine adjoint_register_initial_eta_condition
 
@@ -1073,10 +1088,10 @@
         ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(var=u0, blocks=(/I/), targets=(/u0/), equation=equation)
+        ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -1093,12 +1108,12 @@
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
         call adj_chkierr(ierr)
-        ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
+        ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(var=u0, blocks=(/L, gC/), targets=(/u0, eta0/), equation=equation)
+        ierr = adj_create_equation(variable=u0, blocks=(/L, gC/), targets=(/u0, eta0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -1121,18 +1136,22 @@
       real :: start_time
       real :: dt
 
+      integer :: j, nfunctionals
+      type(adj_variable), dimension(:), allocatable :: vars
+      character(len=OPTION_PATH_LEN) :: buf
+
       ! Set up adj_variables
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::VelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_u)
+      ierr = adj_create_variable("Fluid::VelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=eta)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_eta)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_eta)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_eta)
+      ierr = adj_create_variable("Fluid::LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_eta)
       call adj_chkierr(ierr)
 
       ! Set up adj_blocks
@@ -1232,10 +1251,18 @@
       ierr = adj_destroy_block(MC)
       call adj_chkierr(ierr)
 
-      ! Set the times for this timestep
+      ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
       ierr = adj_timestep_set_times(adjointer, timestep=timestep, start=start_time, end=start_time+dt)
+      nfunctionals = option_count("/adjoint/functional")
+      do j=0,nfunctionals-1
+        call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=j, dependencies=vars)
+        call adj_chkierr(ierr)
+        deallocate(vars)
+      end do
 
       ! And that's it!
 #endif
