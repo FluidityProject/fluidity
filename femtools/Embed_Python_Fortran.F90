@@ -525,7 +525,7 @@ contains
 
     if(present(stat)) stat = 0
 
-    call real_vector_from_python(function, &
+    call integer_vector_from_python(function, &
          int(len_trim(function), kind=c_int), &
          real(current_time, kind=c_double), c_result, c_result_len, lstat)
 
