@@ -2522,6 +2522,7 @@ contains
           detector => detector_list%firstnode
           do i = 1, detector_list%length
             if (global_det_count(i)==-1) then
+               ewrite(-1,*) 'Warning: converting detector to static'
                detector%type = STATIC_DETECTOR
             end if
             detector => detector%next
@@ -3666,7 +3667,7 @@ contains
 
             this_det%position=old_pos
             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-
+            ewrite(-1,*) 'Warning: converting detector to static'
             this_det%type=STATIC_DETECTOR
         
           end if 
@@ -3693,7 +3694,7 @@ contains
 
             this_det%position=old_pos
             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-
+            ewrite(-1,*) 'Warning: converting detector to static'
             this_det%type=STATIC_DETECTOR
 
          end if
@@ -3748,7 +3749,7 @@ contains
 
                this_det%position=old_pos
                this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-
+               ewrite(-1,*) 'Warning: converting detector to static'
                this_det%type=STATIC_DETECTOR
         
             end if     
@@ -4078,7 +4079,7 @@ contains
                                          vel, old_vel, index_next_face,cont_check,bound_elem_iteration)
  
     if (bound_elem_iteration>=33554432) then 
-
+       ewrite(-1,*) 'Warning: converting detector to static'
        this_det%type=STATIC_DETECTOR
               
     end if     
@@ -4252,7 +4253,7 @@ contains
        end if
 
        if ((i==size(elements)).and.(det_inside_an_ele==0.0)) then
-
+          ewrite(-1,*) 'Warning: converting detector to static'
            this_det%type=STATIC_DETECTOR
 
        end if

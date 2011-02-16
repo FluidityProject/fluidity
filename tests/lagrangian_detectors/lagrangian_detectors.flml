@@ -52,11 +52,19 @@
     <output_mesh name="VelocityMesh"/>
     <stat/>
     <detectors>
-      <lagrangian_detector name="Steve">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.75 0.5</real_value>
-        </location>
-      </lagrangian_detector>
+      <detector_array name="Steve">
+        <number_of_detectors>
+          <integer_value rank="0">100</integer_value>
+        </number_of_detectors>
+        <lagrangian/>
+        <python>
+          <string_value type="python" lines="20">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.5+0.25*arange(0,100.)/100.
+  y = zeros(100) + 0.5
+  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+        </python>
+      </detector_array>
     </detectors>
   </io>
   <timestepping>
@@ -64,10 +72,10 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.05</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">3.141592653</real_value>
+      <real_value rank="0">12.566370614359172</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>

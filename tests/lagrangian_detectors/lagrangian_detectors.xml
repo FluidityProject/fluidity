@@ -11,17 +11,14 @@ mpiexec -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors.flml
     </command_line>
   </problem_definition>
   <variables>
-    <variable name="last_locations" language="python">
-from fluidity_tools import stat_parser
-from numpy import shape
-s = stat_parser("lagrangian_detectors.detectors")
-Locations = s["Steve"]["position"]
-last_locations = Locations[:,-1]
+    <variable name="last_locations_error" language="python">
+from readtool import readstat
+last_locations_error = readstat()
     </variable>
   </variables>
   <pass_tests>
     <test name="CorrectLagrangianTrajectory" language="python">
-assert max(abs(last_locations-[ 0.249932,  0.497886])) &lt; 1.0e-3
+assert abs(last_locations_error).max() &lt; 1.0e-12
     </test>
   </pass_tests>
   <warn_tests>
