@@ -39,15 +39,15 @@ USA
 #include "libadjoint/libadjoint.h"
 #endif
 
-void adj_variables_from_python(char* function, int* function_len,
+void adj_variables_from_python(char* function, int function_len,
                                double start_time, double end_time, long timestep,
                                void** result,
                                int* result_len,
                                int* stat)
 {
 #if !defined(HAVE_PYTHON) || !defined(HAVE_ADJOINT)
-  strncpy(function, "Need both python and libadjoint support.\n", (size_t) *function_len);
-  for (i=0; i < *function_len; i++)
+  strncpy(function, "Need both python and libadjoint support.\n", (size_t) function_len);
+  for (i=0; i < function_len; i++)
   {
     if (function[i] == '\0')
       function[i] = ' ';
@@ -55,7 +55,7 @@ void adj_variables_from_python(char* function, int* function_len,
   *stat=1;
   return;
 #else
-  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, *pResult2,
     *pArgs, *pStartT, *pEndT, *pTimes, *pTimestep, *pResultItem, *pName;
 
   char *function_c;
@@ -66,9 +66,9 @@ void adj_variables_from_python(char* function, int* function_len,
 
   // the function string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
-  function_c = (char *)malloc(*function_len+3);
-  memcpy( function_c, function, *function_len );
-  function_c[*function_len] = 0;
+  function_c = (char *)malloc(function_len+3);
+  memcpy( function_c, function, function_len );
+  function_c[function_len] = 0;
 
   // Get a reference to the main module and global dictionary
   pMain = PyImport_AddModule("__main__");
@@ -124,7 +124,17 @@ void adj_variables_from_python(char* function, int* function_len,
     return;
   }
 
-  *result_len = PySequence_Length(pResult);
+  // OK. Now we need to call fluidity.parse_functional.make_adj_variable on the output.
+  PyRun_String("from fluidity.parse_functional import make_adj_variable", Py_file_input, pGlobals, pLocals);
+  pFunc=PyDict_GetItemString(pLocals, "make_adj_variable");
+
+  // We need to pack pResult into a tuple so that we can call make_adj_variable on it
+  Py_DECREF(pArgs);
+  pArgs=PyTuple_New(1);
+  PyTuple_SetItem(pArgs, 0, pResult);
+  pResult2=PyObject_CallObject(pFunc, pArgs);
+
+  *result_len = PySequence_Length(pResult2);
 
   // Check for a Python error in result_dim.
   if (PyErr_Occurred()){
@@ -139,7 +149,7 @@ void adj_variables_from_python(char* function, int* function_len,
   // Unpack tuple to pointer
   for (i = 0; i < *result_len; i++)
   {
-    pResultItem = PySequence_GetItem(pResult, i);
+    pResultItem = PySequence_GetItem(pResult2, i);
     // Check for a Python error in unpacking tuple.
     if (PyErr_Occurred()){
       PyErr_Print();
@@ -167,7 +177,7 @@ void adj_variables_from_python(char* function, int* function_len,
     Py_DECREF(pResultItem);
   }
 
-  Py_DECREF(pResult);
+  Py_DECREF(pResult2);
 
   // Clean up
   Py_DECREF(pArgs);
