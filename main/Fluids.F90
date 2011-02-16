@@ -237,8 +237,7 @@ contains
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
-         call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
-         & default=1)
+         call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
 
@@ -1001,8 +1000,7 @@ contains
     
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
-      call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt,&
-         & default=1)
+      call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
       nonlinear_iterations = nonlinear_iterations_adapt
     end if
 
