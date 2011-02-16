@@ -618,7 +618,7 @@ subroutine gls_diffusivity(state)
     do i=1,NNodes_sur
         call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
     end do
-    do i=1,NNodes_sur
+    do i=1,NNodes_bot
         call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
     end do
 
