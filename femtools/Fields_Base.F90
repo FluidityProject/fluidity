@@ -2025,7 +2025,7 @@ contains
     real, dimension(field%dim, field%mesh%shape%loc) :: ele_val
 
     integer :: i
-    integer, dimension(:), pointer :: nodes => null()
+    integer, dimension(:), pointer :: nodes
     
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
