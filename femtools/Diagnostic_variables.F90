@@ -753,10 +753,11 @@ contains
          end do
 
       end do phaseloop
-
+      
       ! Now add the registered diagnostics
       call register_diagnostics
       call print_registered_diagnostics
+
       iterator => registered_diagnostic_first
       do while (associated(iterator)) 
         column = column + 1
@@ -1952,7 +1953,7 @@ contains
 
          ! Standard scalar field stats for vector field components
          if(stat_field(vfield, state(phase), test_for_components = .true.)) then
-           do j = 1, mesh_dim(vfield%mesh)
+           do j = 1, vfield%dim
              vfield_comp = extract_scalar_field(vfield, j)
 
              call field_stats(vfield_comp, Xfield, fmin, fmax, fnorm2, &
@@ -2238,7 +2239,7 @@ contains
            cycle
          end if
 
-         do j = 1, mesh_dim(vfield%mesh)
+         do j = 1, vfield%dim
            vfield_comp = extract_scalar_field(vfield, j)
            nlvfield_comp = extract_scalar_field(nlvfield, j)
 
@@ -2368,7 +2369,7 @@ contains
          if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle
          ! Vector field components
 
-         do j = 1, mesh_dim(vfield%mesh)
+         do j = 1, vfield%dim
            vfield_comp = extract_scalar_field(vfield, j)
            oldvfield_comp = extract_scalar_field(oldvfield, j)
 

@@ -121,6 +121,7 @@
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: adjoint
     integer, save :: dump_no=0
+    real :: energy
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
 
@@ -171,9 +172,6 @@
     end if
 
     adjoint = have_option("/adjoint")
-    if (adjoint .and. have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-      FLExit("Cannot adjoint an adaptive simulation")
-    endif
 #ifndef HAVE_ADJOINT
     if (adjoint) then
       FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
@@ -182,6 +180,9 @@
 
     ! Always output the initial conditions.
     call output_state(state)
+
+    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    ewrite(2,*) 'Initial Energy:', energy
 
     timestep=0
     timestep_loop: do
@@ -214,36 +215,10 @@
 
        call write_diagnostics(state,current_time,dt, timestep)
 
-       if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(current_time)) then
-             call adapt_state_prescribed(state, current_time)
-
-             call deallocate(h_mass_mat)
-             call deallocate(u_mass_mat)
-             call deallocate(coriolis_mat)
-             call deallocate(inverse_coriolis_mat)
-             call deallocate(div_mat)
-             call deallocate(wave_mat)
-             call deallocate(big_mat)
-             call deallocate(matrices)
-
-             call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-                  h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-                  div_mat,wave_mat,big_mat, &
-                  dt,theta,D0,g,f0,beta)
-             call insert_time_in_state(state)
-             ! Set up the state of cached matrices
-             call insert(matrices, u_mass_mat, "VelocityMassMatrix")
-             call insert(matrices, h_mass_mat, "PressureMassMatrix")
-             call insert(matrices, coriolis_mat, "CoriolisMatrix")
-             call insert(matrices, inverse_coriolis_mat, "InverseCoriolisMatrix")
-             call insert(matrices, div_mat, "DivergenceMatrix")
-             call insert(matrices, wave_mat, "WaveMatrix")
-             call insert(matrices, big_mat, "InverseBigMatrix")
-          end if
-       end if
-
     end do timestep_loop
+
+    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    ewrite(2,*) 'Final Energy:', energy
 
     ! One last dump
     call output_state(state)
@@ -262,6 +237,8 @@
     call deallocate_reserve_state
     call close_diagnostic_files
     call uninitialise_diagnostics
+    ! Clean up registered diagnostics
+    call destroy_registered_diagnostics 
 
     if (.not. adjoint) then
       call print_references(0)
@@ -427,6 +404,7 @@
       type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
       type(scalar_field) :: velocity_cpt, old_velocity_cpt
       integer :: dim, nit, d1
+      real :: energy
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
@@ -511,7 +489,8 @@
 
       !Update the variables
 
-      call get_energy(u,d,d0,g,u_mass_mat,h_mass_mat)
+      call get_linear_energy(state,u_mass_mat,h_mass_mat,d0,g,energy)
+      ewrite(2,*) 'Energy = ',energy
 
       call deallocate(d_rhs)
       call deallocate(u_rhs)
@@ -522,36 +501,6 @@
       call deallocate(advecting_u)
 
     end subroutine execute_timestep
-
-    subroutine get_energy(u,d,d0,g,u_mass_mat,h_mass_mat)
-      type(scalar_field), intent(inout) :: d
-      type(vector_field), intent(inout) :: u
-      real, intent(in) :: d0,g
-      type(block_csr_matrix), intent(in) :: u_mass_mat
-      type(csr_matrix), intent(in) :: h_mass_mat
-      !
-      type(scalar_field) :: Md
-      type(vector_field) :: Mu
-      real :: D_l2,u_l2, energy
-      integer :: d1, dim
-
-      dim = mesh_dim(U)
-      call allocate(Md,D%mesh,'Md')
-      call allocate(Mu,mesh_dim(U),u%mesh,'Mu')
-      !
-      call mult(Md,h_mass_mat,D)
-      call mult(Mu,u_mass_mat,U)
-      D_l2 = sum(Md%val*d%val)
-      U_l2 = 0.
-      do d1 = 1, dim
-         U_l2 = U_l2 + sum(Mu%val(d1,:)*u%val(d1,:))
-      end do
-      energy = 0.5*g*D_l2 + 0.5*D0*U_l2
-      ewrite(2,*) 'SW: energy = ', energy
-      !
-      call deallocate(Md)
-      call deallocate(Mu)
-    end subroutine get_energy
 
     subroutine execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
          old_u,old_d,delta_d,delta_u)
@@ -929,6 +878,7 @@
       call allocate(U_cartesian, mesh_dim(X)+1, U_mesh, "CartesianVelocity")
       call zero(U_cartesian)
       U_cartesian%option_path=U%option_path
+      !call set_option("/material_phase::Fluid/vector_field::CartesianVelocity/prognostic/stat/exclude_from_stat")
       call allocate(map, U_mesh, "VectorMap", dim=(/U_cartesian%dim, U_manifold%dim/))
       call zero(map)
 

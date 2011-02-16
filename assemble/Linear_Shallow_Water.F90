@@ -494,4 +494,51 @@ contains
 
     end subroutine assemble_shallow_water_matrices_ele
 
+    subroutine get_linear_energy(state,U_mass_mat,h_mass_mat,d0,g,energy_out)
+      implicit none
+      real, optional, intent(out) :: energy_out
+      real, intent(in) :: d0,g
+      type(state_type), intent(inout) :: state
+      type(block_csr_matrix), intent(in) :: u_mass_mat
+      type(csr_matrix), intent(in) :: h_mass_mat
+      !
+      type(scalar_field), pointer :: d
+      type(vector_field), pointer :: u
+      type(scalar_field) :: Md
+      type(vector_field) :: Mu
+      real :: D_l2,u_l2, energy
+      integer :: d1, dim
+
+      D=>extract_scalar_field(state, "LayerThickness")
+      U=>extract_vector_field(state, "LocalVelocity")
+
+      dim = mesh_dim(U)
+      call allocate(Md,D%mesh,'Md')
+      call allocate(Mu,mesh_dim(U),u%mesh,'Mu')
+      !
+      call mult(Md,h_mass_mat,D)
+      call mult(Mu,u_mass_mat,U)
+      D_l2 = sum(Md%val*d%val)
+      U_l2 = 0.
+      do d1 = 1, dim
+         U_l2 = U_l2 + sum(Mu%val(d1,:)*u%val(d1,:))
+      end do
+      energy = 0.5*g*D_l2 + 0.5*D0*U_l2
+      ewrite(2,*) 'SW: energy = ', energy
+      !
+      energy_out = energy
+
+      call set_diagnostic(name="LinearEnergy", statistic="Value", value=(/&
+           & energy /))
+
+      call deallocate(Md)
+      call deallocate(Mu)
+    end subroutine get_linear_energy
+
+    subroutine linear_shallow_water_register_diagnostic
+      
+      call register_diagnostic(dim=1, name="LinearEnergy", statistic="Value")
+
+    end subroutine linear_shallow_water_register_diagnostic
+
 end module linear_shallow_water
