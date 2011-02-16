@@ -42,3 +42,20 @@ if __name__ == "__main__":
   '''
 
   print parse(code)
+
+def make_adj_variables(d):
+  """ d is a dict like
+  {"Fluid::Velocity": [0, 3, 4],
+   "Fluid::Pressure": [2, 3, 5]}
+  Take this, and make a list of things we can easily convert into adj_variables.
+  Aside: #python on freenode is exceptionally unhelpful."""
+
+  varlist = []
+  for key in d:
+    for timestep in d[key]:
+      newd = {}
+      newd['name'] = key
+      newd['timestep'] = timestep
+      varlist.append(newd)
+
+  return varlist

@@ -9,14 +9,6 @@ adjoint_options =
       ## A functional to be computed.
       element functional {
          attribute name { xsd:string },
-         ## The value of the functional to be computed.
-         element functional_value {
-            ## Python code for the functional
-            element algorithm {
-               attribute name { "functional_value" },
-               python_code
-            }
-         }?,
          ## The derivative of the functional at each time level.
          element functional_derivative {
             ## Python code for the functional derivative
@@ -24,7 +16,28 @@ adjoint_options =
                attribute name { "functional_derivative" },
                python_code
             }
-         }
+         },
+         ## The dependencies of the functional at each time level.
+         element functional_dependencies {
+            ##  Python code for the functional dependencies.
+            ##  Example (for a spacetime integral of the norm of velocity):
+            ##
+            ##  def dependencies(times, timestep):
+            ##    return {"Fluid::Velocity": (timestep, timestep+1)}
+            ##
+            element algorithm {
+               attribute name { "functional_dependencies" },
+               python_code
+            }
+         },
+         ## The value of the functional to be computed.
+         element functional_value {
+            ## Python code for the functional
+            element algorithm {
+               attribute name { "functional_value" },
+               python_code
+            }
+         }?
       }+
    }
 

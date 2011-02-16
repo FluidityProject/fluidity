@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90))
+OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard *.c))
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 

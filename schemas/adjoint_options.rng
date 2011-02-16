@@ -13,6 +13,31 @@ output in the .stat file.</a:documentation>
           <attribute name="name">
             <data type="string"/>
           </attribute>
+          <element name="functional_derivative">
+            <a:documentation>The derivative of the functional at each time level.</a:documentation>
+            <element name="algorithm">
+              <a:documentation>Python code for the functional derivative</a:documentation>
+              <attribute name="name">
+                <value>functional_derivative</value>
+              </attribute>
+              <ref name="python_code"/>
+            </element>
+          </element>
+          <element name="functional_dependencies">
+            <a:documentation>The dependencies of the functional at each time level.</a:documentation>
+            <element name="algorithm">
+              <a:documentation> Python code for the functional dependencies.
+ Example (for a spacetime integral of the norm of velocity):
+
+ def dependencies(times, timestep):
+   return {"Fluid::Velocity": (timestep, timestep+1)}
+</a:documentation>
+              <attribute name="name">
+                <value>functional_dependencies</value>
+              </attribute>
+              <ref name="python_code"/>
+            </element>
+          </element>
           <optional>
             <element name="functional_value">
               <a:documentation>The value of the functional to be computed.</a:documentation>
@@ -25,16 +50,6 @@ output in the .stat file.</a:documentation>
               </element>
             </element>
           </optional>
-          <element name="functional_derivative">
-            <a:documentation>The derivative of the functional at each time level.</a:documentation>
-            <element name="algorithm">
-              <a:documentation>Python code for the functional derivative</a:documentation>
-              <attribute name="name">
-                <value>functional_derivative</value>
-              </attribute>
-              <ref name="python_code"/>
-            </element>
-          </element>
         </element>
       </oneOrMore>
     </element>
