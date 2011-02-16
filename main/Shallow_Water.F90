@@ -1284,8 +1284,11 @@
       real :: finish_time, dt
       integer :: end_timestep, start_timestep, no_timesteps, timestep
 
+      character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
+
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
+      call get_option("/simulation_name", simulation_name)
 
       no_functionals = option_count("/adjoint/functional")
       ierr = adj_timestep_count(adjointer, no_timesteps)
@@ -1301,6 +1304,8 @@
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
 
           do equation=end_timestep,start_timestep,-1
             ierr = adj_get_adjoint_equation(adjointer, equation, functional, lhs, rhs, adj_var)
