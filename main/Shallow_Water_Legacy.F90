@@ -29,7 +29,7 @@
   program shallow_water
     use advection_diffusion_dg
     use advection_diffusion_cg
-    use linear_shallow_water
+    use linear_shallow_water_legacy
     use spud
     use fields
     use state_module

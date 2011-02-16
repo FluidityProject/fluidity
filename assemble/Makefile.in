@@ -71,7 +71,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
         Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
-	Linear_Shallow_Water.o \
+	Linear_Shallow_Water.o Linear_Shallow_Water_Legacy.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o
 
@@ -159,6 +159,7 @@ Momentum_Diagnostic_Fields.o: Multimaterials.o Multiphase.o
 Mba2d_Integration.o: Adapt_Integration.o Node_Locking.o \
   Surface_Id_Interleaving.o
 Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
+Linear_Shallow_Water_Legacy.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
 Petsc_Solve_State.o: Free_Surface.o
 Spontaneous_Potentials.o: Porous_Media.o
 Zoltan_integration.o: Surface_Id_Interleaving.o Zoltan_global_variables.o Zoltan_callbacks.o Zoltan_detectors.o
