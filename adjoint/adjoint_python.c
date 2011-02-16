@@ -46,8 +46,9 @@ void adj_variables_from_python(char* function, int function_len,
                                int* stat)
 {
 #if !defined(HAVE_PYTHON) || !defined(HAVE_ADJOINT)
+  int i;
   strncpy(function, "Need both python and libadjoint support.\n", (size_t) function_len);
-  for (i=0; i < function_len; i++)
+  for (i = 0; i < function_len; i++)
   {
     if (function[i] == '\0')
       function[i] = ' ';
