@@ -3185,11 +3185,8 @@ contains
 
              processor_number=getprocno()
 
-             call check_if_det_gone_through_domain_boundary(&
-                  state, this_det, xfield, dt, dt_temp, old_pos, &
-                  vel, old_vel, vfield, old_vfield, index_next_face, &
-                  current_element, cont_repeated_situation, &
-                  send_list_array,ihash,processor_number)
+             call check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                            vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation,send_list_array,ihash,processor_number)
 
              if (processor_number /= getprocno()) exit
      
@@ -3244,7 +3241,7 @@ contains
 
     type(array_ptr), dimension(:), allocatable :: &
          &send_list_array_serialise, receive_list_array_serialise
-    type(detector_type), pointer :: detector, node_rec
+    type(detector_type), pointer :: node, node_rec
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
@@ -3267,10 +3264,7 @@ contains
     xfield => extract_vector_field(state(1),"Coordinate")
     shape=>ele_shape(xfield,1)
     vfield => extract_vector_field(state(1),"Velocity")
-    dim=vfield%dim 
-    !number of column in send list
-    number_of_columns=dim+4
-
+ 
     !set up sendrequest tags because we are going to do an MPI_Isend
     !these are used by wait_all
     allocate( sendRequest(0:number_neigh_processors-1) )
@@ -3306,80 +3300,82 @@ contains
     end if
     !==============================================
 
-    !loop over the various neighbouring processors
     do i=1, number_neigh_processors
 
-       !allocate the serialised list to send to processor with 
-       !local number i
-       number_detectors_to_send=send_list_array(i)%length
-       allocate(send_list_array_serialise(i)%ptr(&
-            number_detectors_to_send,number_of_columns))
+       node => send_list_array(i)%firstnode
 
-       !loop over detectors in send_list_array
-       detector => send_list_array(i)%firstnode
+       dim=vfield%dim
+
+       number_detectors_to_send=send_list_array(i)%length
+       number_of_columns=dim+4
+
+       allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
+
        do j=1, send_list_array(i)%length
 
-          !Get universal element number for detector
-          global_ele=detector%element
-          if (detector%element>0) then
+          global_ele=node%element
+
+          if (node%element>0) then
+
              univ_ele = halo_universal_number(ele_halo, global_ele)
+
           else
-!!! agarcias:
-!!! added this line below since I had to add extra code to cope
-!!! with issues after adapt+zoltan. In particular, after adapt +
-!!! zoltan, the element that owns a detector can be negative,
-!!! i.e., this current proc does not see it/own it. This can
-!!! happen due to floating errors if det in element boundary             
+
+          !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
              univ_ele =-1
-             !I think we should be failing here, this should only happen
-             !due to a bug - CJC
-             FLAbort('Nobody knows who this detector belongs to')
+
           end if
 
-          !Put all required detector information into serial array
-          send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
+          send_list_array_serialise(i)%ptr(j,1:dim)=node%position
           send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
-          send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
-          send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
-          send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
+          send_list_array_serialise(i)%ptr(j,dim+2)=node%dt
+          send_list_array_serialise(i)%ptr(j,dim+3)=node%id_number
+          send_list_array_serialise(i)%ptr(j,dim+4)=node%type
 
-          detector => detector%next 
+          node => node%next
+ 
        end do
 
-       !Get global processor number from hash table
        target_proc=fetch(ihash_inverse, i)
 
-       !broadcast send list
-       !!!getprocno() returns the rank of the processor + 1
-       call MPI_ISEND(send_list_array_serialise(i)%ptr,&
-            &size(send_list_array_serialise(i)%ptr), &
-            & getpreal(), target_proc-1, TAG, &
-            &MPI_COMM_WORLD, sendRequest(i-1), IERROR)
+       call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
+            & getpreal(), target_proc-1, TAG, MPI_COMM_WORLD, sendRequest(i-1), IERROR)
        assert(ierror == MPI_SUCCESS)
+       !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
+       !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
+       !!!proc with rank 3.
+
     end do
   
-    !set up the receive list
     allocate(receive_list_array_serialise(number_neigh_processors))
 
     allocate( status(MPI_STATUS_SIZE) )
-    !loop over local neighbour processors to get received detectors
+
+    call get_universal_numbering_inverse(ele_halo, gens)
+
+    ewrite(1,*) "gens length is:", key_count(gens)    
+
+    do i=1, key_count(gens)
+
+      call fetch_pair(gens, i, gensaa, gensaaa)
+  
+    end do
+
     do i=1, number_neigh_processors
-       !get information loaded into status
+              
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_WORLD, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
-       !get data size
+
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        number_detectors_received=count/number_of_columns
 
-       allocate(receive_list_array_serialise(i)%ptr(&
-            number_detectors_received,number_of_columns))
+       allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,number_of_columns))
 
        call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       call get_universal_numbering_inverse(ele_halo, gens)
        do j=1, number_detectors_received
 
           univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1); 
