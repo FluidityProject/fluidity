@@ -254,8 +254,6 @@
       call mangle_options_tree_adjoint
       call populate_state(state)
       call check_diagnostic_dependencies(state)
-      call get_option('/simulation_name', simulation_name)
-      call initialise_diagnostics(trim(simulation_name),state)
 
       dump_no = dump_no - 1
 
@@ -263,9 +261,8 @@
 
       call deallocate_transform_cache
       call deallocate_reserve_state
-      call close_diagnostic_files
-      call uninitialise_diagnostics
 
+      call deallocate(state)
       call print_references(0)
     else
       ewrite(1,*) "No adjoint specified, not entering adjoint computation"
@@ -553,11 +550,13 @@
       call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
       call zero(U_local)
       call insert(state, U_local, "LocalVelocity")
+      call deallocate(U_local)
 
       call allocate(up, X%dim, X%mesh, "Up")
       call get_option("/geometry/embedded_manifold/up", upvec)
       call set_from_python_function(up, upvec, X, time=0.0)
       call insert(state, up, "Up")
+      call deallocate(up)
 
     end subroutine allocate_and_insert_additional_fields
 
@@ -1285,12 +1284,24 @@
       integer :: end_timestep, start_timestep, no_timesteps, timestep
 
       character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
+      type(stat_type), dimension(:), allocatable :: functional_stats
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
       call get_option("/simulation_name", simulation_name)
 
       no_functionals = option_count("/adjoint/functional")
+
+      ! Initialise the .stat files
+      allocate(functional_stats(no_functionals))
+
+      do functional=0,no_functionals-1
+        default_stat = functional_stats(functional + 1)
+        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+        call initialise_diagnostics(trim(simulation_name) // '_' // trim(functional_name), state)
+        functional_stats(functional + 1) = default_stat
+      end do
+
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
 
@@ -1306,6 +1317,7 @@
           ! e.g. .stat file, change names for vtus, etc.
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
+          default_stat = functional_stats(functional + 1)
 
           do equation=end_timestep,start_timestep,-1
             ierr = adj_get_adjoint_equation(adjointer, equation, functional, lhs, rhs, adj_var)
@@ -1326,6 +1338,8 @@
           if (do_write_state(current_time, timestep, adjoint=.true.)) then
             call output_state(state, adjoint=.true.)
           endif
+
+          functional_stats(functional + 1) = default_stat
         end do
 
         ! Now forget
@@ -1335,7 +1349,15 @@
       end do
 
       call get_option("/timestepping/finish_time", finish_time)
-      assert(current_time == finish_time)
+      !assert(current_time == finish_time)
+
+      ! Clean up stat files
+      do functional=0,no_functionals-1
+        default_stat = functional_stats(functional + 1)
+        call close_diagnostic_files
+        call uninitialise_diagnostics
+        functional_stats(functional + 1) = default_stat
+      end do
     end subroutine compute_adjoint
 #endif
   end program shallow_water

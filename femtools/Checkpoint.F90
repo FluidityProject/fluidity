@@ -217,9 +217,9 @@ contains
       open(unit = det_unit, &
         & file = trim(detectors_cp_filename) // '_det.groups', &
         & action = "write")
-      do i = 1, size(name_of_detector_groups_in_read_order) 
+      do i = 1, size(default_stat%name_of_detector_groups_in_read_order) 
         write(det_unit,'(a,i0)') &
-          & name_of_detector_groups_in_read_order(i), number_det_in_each_group(i)
+          & default_stat%name_of_detector_groups_in_read_order(i), default_stat%number_det_in_each_group(i)
       end do
       close(det_unit)
     
@@ -242,19 +242,19 @@ contains
 
     total_num_det = 0
 
-    do i =1, size(number_det_in_each_group)
+    do i =1, size(default_stat%number_det_in_each_group)
 
-      total_num_det=total_num_det+number_det_in_each_group(i)
+      total_num_det=total_num_det+default_stat%number_det_in_each_group(i)
 
     end do
 
     number_total_columns=total_num_det*dimen
 
-    node => detector_list%firstnode
+    node => default_stat%detector_list%firstnode
 
     location_to_write=0
 
-    positionloop_cp: do i=1, detector_list%length
+    positionloop_cp: do i=1, default_stat%detector_list%length
 
       offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
 
@@ -339,7 +339,7 @@ contains
     end do
 
     do i = 0, static_dete-1
-       temp_string=name_of_detector_groups_in_read_order(i+1)
+       temp_string=default_stat%name_of_detector_groups_in_read_order(i+1)
 
         ewrite(1,*) 'In update_detectors_options static det loop'
         ewrite(1,*) temp_string
@@ -363,7 +363,7 @@ contains
 
     do i = 0, lagrangian_dete-1
 
-       temp_string=name_of_detector_groups_in_read_order(i+1+static_dete)
+       temp_string=default_stat%name_of_detector_groups_in_read_order(i+1+static_dete)
         
        call set_option_attribute("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
@@ -393,7 +393,7 @@ contains
     end do
 
     do i = 0, python_functions_or_files-1  
-        temp_string=name_of_detector_groups_in_read_order(i+1+static_dete+lagrangian_dete)
+        temp_string=default_stat%name_of_detector_groups_in_read_order(i+1+static_dete+lagrangian_dete)
 
         ewrite(1,*) 'In update_detectors_options'
         ewrite(1,*) temp_string
@@ -402,15 +402,15 @@ contains
         ewrite(1,*) temp_string
 
         call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/number_of_detectors/", &
-                & number_det_in_each_group(i+1+static_dete+lagrangian_dete), stat = stat) 
+                & default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete), stat = stat) 
 
         ewrite(1,*) 'In update_detectors_options'
-        ewrite(1,*) number_det_in_each_group(i+1+static_dete+lagrangian_dete)
+        ewrite(1,*) default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete)
 
         assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
 
         ewrite(1,*) 'In update_detectors_options'
-        ewrite(1,*) number_det_in_each_group(i+1+static_dete+lagrangian_dete)
+        ewrite(1,*) default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete)
         
         if (type_detectors(i+1)=='LAGRANGIAN') then
              call add_option("/io/detectors/detector_array::" // trim(temp_string) // "/lagrangian", stat = stat) 

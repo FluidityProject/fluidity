@@ -226,7 +226,7 @@ contains
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
-    zoltan_drive_call=.false.
+    default_stat%zoltan_drive_call=.false.
 
    ! set the nonlinear timestepping options, needs to be before the adapt at first timestep
     call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&

@@ -1387,7 +1387,7 @@ module sam_integration
     
     local_detectors = 0
     
-    node => detector_list%firstnode
+    node => default_stat%detector_list%firstnode
     do while(associated(node))
       if(node%local) local_detectors = local_detectors + 1
       node => node%next
@@ -1470,7 +1470,7 @@ module sam_integration
     
     allocate(nsends(nprocs))
     nsends = 0
-    node => detector_list%firstnode
+    node => default_stat%detector_list%firstnode
     do while(associated(node))
       if(node%local .and. node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
@@ -1491,7 +1491,7 @@ module sam_integration
     
     allocate(data_index(nprocs))
     data_index = 0
-    node => detector_list%firstnode
+    node => default_stat%detector_list%firstnode
     do while(associated(node))
       next_node => node%next
     
@@ -1509,7 +1509,7 @@ module sam_integration
           data_index(owner) = data_index(owner) + 1
                     
           ! Remove this node from the detector list
-          call remove_det_from_current_det_list(detector_list, node)
+          call remove_det_from_current_det_list(default_stat%detector_list, node)
           deallocate(node)
         end if
       end if      
@@ -1584,12 +1584,12 @@ module sam_integration
         node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
         
         ! Recoverable data, not communicated
-        node%name = name_of_detector_in_read_order(node%id_number)
+        node%name = default_stat%name_of_detector_in_read_order(node%id_number)
         node%local = .true.
         allocate(node%local_coords(new_positions%dim + 1))
         node%initial_owner = procno
         
-        call insert(detector_list, node)
+        call insert(default_stat%detector_list, node)
       end do
       
       deallocate(ireceive_data(i)%ptr)
@@ -1601,7 +1601,7 @@ module sam_integration
     deallocate(rreceive_data)
     
     ! Update the detector element ownership data
-    call search_for_detectors(detector_list, new_positions)
+    call search_for_detectors(default_stat%detector_list, new_positions)
   
   end subroutine transfer_detectors
 

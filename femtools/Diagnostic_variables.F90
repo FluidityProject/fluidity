@@ -89,7 +89,8 @@ module diagnostic_variables
        & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
        & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic
 
-  public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
+  public :: default_stat
+  public :: stat_type
 
   interface stat_field
     module procedure stat_field_scalar, stat_field_vector
@@ -111,56 +112,10 @@ module diagnostic_variables
      module procedure detector_value_scalar, detector_value_vector
   end interface
 
-  ! Idempotency variable
-  logical, save :: initialised=.false.
-
-  !! Output unit for diagnostics file.
-  !! (assumed non-opened as long these are 0)
-  integer, save :: diag_unit=0, conv_unit=0, &
-    & detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
-  logical, save :: binary_detector_output = .false.
-
-  !! Detector MPI output data
-  integer, save :: fh = 0, total_num_det = 0, detector_mpi_write_count = 0
-
-  !! Are we writing to a convergence file?
-  logical, save :: write_convergence_file=.false.
-
-  !! Output unit for .steady_state file (assumed non-opened as long as == 0)
-  integer, save :: steady_state_unit = 0
-  !! Are we writing to a steady state file?
-  logical, save :: write_steady_state_file = .false.
-  logical, save :: binary_steady_state_output = .false.
-
- !! Are we continuing from a detector checkpoint file?
-  logical, save :: detectors_checkpoint_done = .false.
-
-  !The following variable will switch to true if call to zoltan_drive for the re-load balance occur.
-  logical, save :: zoltan_drive_call = .false.
-
   type stringlist
      !!< Container type for a list of strings.
      character(len=FIELD_NAME_LEN), dimension(:), pointer :: ptr
   end type stringlist
-
-  character(len = FIELD_NAME_LEN), dimension(:), allocatable, save :: mesh_list
-  !! List of scalar fields to output. This is stored to ensure that
-  !! additional fields inserted into state during running do not bugger up
-  !! the output.
-  type(stringlist), dimension(:), allocatable, save :: sfield_list
-  type(stringlist), dimension(:), allocatable, save :: vfield_list
-
-  !! Similar lists for detectors
-  type(stringlist), dimension(:), allocatable, save :: detector_sfield_list
-  type(stringlist), dimension(:), allocatable, save :: detector_vfield_list
-
-  character(len = FIELD_NAME_LEN), dimension(:), allocatable, save :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
-  integer, dimension(:), allocatable, save :: number_det_in_each_group
-
-! type(detector_type), dimension(:), allocatable, target, save :: detector_list
-
-  type(detector_linked_list), target, save :: detector_list
-  real, dimension(:,:), allocatable, save :: array_det_info
 
   ! List of registered diagnostic
   type registered_diagnostic_item
@@ -173,11 +128,63 @@ module diagnostic_variables
      type(registered_diagnostic_item), pointer :: next => null()
   end type registered_diagnostic_item
 
-  type(registered_diagnostic_item), pointer, save :: registered_diagnostic_first => NULL()
-  
-  !! Recording wall time since the system start
-  integer, save :: current_count, count_rate, count_max
-  integer(kind = int_16), save :: elapsed_count
+  type :: stat_type
+    ! Idempotency variable
+    logical :: initialised=.false.
+    logical :: detectors_initialised = .false.
+    logical :: convergence_initialised = .false.
+    logical :: steady_state_initialised = .false.
+
+    !! Output unit for diagnostics file.
+    !! (assumed non-opened as long these are 0)
+    integer :: diag_unit=0, conv_unit=0, &
+      & detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
+    logical :: binary_detector_output = .false.
+
+    !! Detector MPI output data
+    integer :: fh = 0, total_num_det = 0, detector_mpi_write_count = 0
+
+    !! Are we writing to a convergence file?
+    logical :: write_convergence_file=.false.
+
+    !! Output unit for .steady_state file (assumed non-opened as long as == 0)
+    integer :: steady_state_unit = 0
+    !! Are we writing to a steady state file?
+    logical :: write_steady_state_file = .false.
+    logical :: binary_steady_state_output = .false.
+
+   !! Are we continuing from a detector checkpoint file?
+    logical :: detectors_checkpoint_done = .false.
+
+    !The following variable will switch to true if call to zoltan_drive for the re-load balance occur.
+    logical :: zoltan_drive_call = .false.
+
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: mesh_list
+    !! List of scalar fields to output. This is stored to ensure that
+    !! additional fields inserted into state during running do not bugger up
+    !! the output.
+    type(stringlist), dimension(:), allocatable :: sfield_list
+    type(stringlist), dimension(:), allocatable :: vfield_list
+
+    !! Similar lists for detectors
+    type(stringlist), dimension(:), allocatable :: detector_sfield_list
+    type(stringlist), dimension(:), allocatable :: detector_vfield_list
+
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
+    integer, dimension(:), allocatable :: number_det_in_each_group
+
+  ! type(detector_type), dimension(:), allocatable :: detector_list
+
+    type(detector_linked_list) :: detector_list
+
+    type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
+    
+    !! Recording wall time since the system start
+    integer :: current_count, count_rate, count_max
+    integer(kind = int_16) :: elapsed_count
+  end type stat_type
+
+  type(stat_type), save, target :: default_stat
 
 contains
 
@@ -418,8 +425,8 @@ contains
   subroutine initialise_walltime
     !!< Record the initial walltime, clock_rate and maximum clock count
 
-    call system_clock(current_count, count_rate, count_max)
-    elapsed_count=0
+    call system_clock(default_stat%current_count, default_stat%count_rate, default_stat%count_max)
+    default_stat%elapsed_count=0
 
   end subroutine initialise_walltime
 
@@ -434,14 +441,14 @@ contains
 
     ! Deal with clock rollover. If one timestep takes more than a whole
     ! clock rollover, we have more problems than we can deal with!
-    if (new_count<current_count) then
-       elapsed_count=elapsed_count+(new_count-current_count)+count_max
+    if (new_count<default_stat%current_count) then
+       default_stat%elapsed_count=default_stat%elapsed_count+(new_count-default_stat%current_count)+default_stat%count_max
     else
-       elapsed_count=elapsed_count+(new_count-current_count)
+       default_stat%elapsed_count=default_stat%elapsed_count+(new_count-default_stat%current_count)
     end if
-    current_count=new_count
+    default_stat%current_count=new_count
 
-    elapsed_walltime=real(elapsed_count)/real(count_rate)
+    elapsed_walltime=real(default_stat%elapsed_count)/real(default_stat%count_rate)
 
   end function elapsed_walltime
 
@@ -469,81 +476,81 @@ contains
     ewrite(1, *) "In initialise_diagnostics"
 
     ! Idempotency check
-    if(initialised) then
+    if(default_stat%initialised) then
       ewrite(2, *) "Diagnostics already initialised"
       ewrite(1, *) "Exiting initialise_diagnostics"
       return
     end if
-    initialised=.true.
+    default_stat%initialised=.true.
     
     ! All processes must assemble the mesh and field lists
     ! Mesh field list
-    allocate(mesh_list(size(state(1)%mesh_names)))
-    mesh_list = state(1)%mesh_names
+    allocate(default_stat%mesh_list(size(state(1)%mesh_names)))
+    default_stat%mesh_list = state(1)%mesh_names
     ! Scalar field list
-    allocate (sfield_list(size(state)))
+    allocate (default_stat%sfield_list(size(state)))
     do phase=1, size(state)
        if (associated(state(phase)%scalar_names)) then
-          allocate(sfield_list(phase)%ptr(size(state(phase)%scalar_names)))
-          sfield_list(phase)%ptr=state(phase)%scalar_names
+          allocate(default_stat%sfield_list(phase)%ptr(size(state(phase)%scalar_names)))
+          default_stat%sfield_list(phase)%ptr=state(phase)%scalar_names
        else
-          allocate(sfield_list(phase)%ptr(0))
+          allocate(default_stat%sfield_list(phase)%ptr(0))
        end if
     end do
     ! Vector field list
-    allocate (vfield_list(size(state)))
+    allocate (default_stat%vfield_list(size(state)))
     do phase = 1, size(state)
        if (associated(state(phase)%vector_names)) then
-          allocate(vfield_list(phase)%ptr(size(state(phase)%vector_names)))
-          vfield_list(phase)%ptr = state(phase)%vector_names
+          allocate(default_stat%vfield_list(phase)%ptr(size(state(phase)%vector_names)))
+          default_stat%vfield_list(phase)%ptr = state(phase)%vector_names
        else
-          allocate(vfield_list(phase)%ptr(0))
+          allocate(default_stat%vfield_list(phase)%ptr(0))
        end if
     end do
 
     ! Only the first process should write statistics information (and hence
     ! write the headers)    
     if(getprocno() == 1) then
-      diag_unit=free_unit()
-      open(unit=diag_unit, file=trim(filename)//'.stat', action="write")
+      default_stat%diag_unit=free_unit()
+      open(unit=default_stat%diag_unit, file=trim(filename)//'.stat', action="write")
 
-      write(diag_unit, '(a)') "<header>"
+      write(default_stat%diag_unit, '(a)') "<header>"
 
-      call initialise_constant_diagnostics(diag_unit)
+      call initialise_constant_diagnostics(default_stat%diag_unit)
 
       column=0
 
       ! Initial columns are elapsed time and dt.
       column=column+1
       buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-      write(diag_unit, '(a)') trim(buffer)
+      write(default_stat%diag_unit, '(a)') trim(buffer)
       column=column+1
       buffer=field_tag(name="dt", column=column, statistic="value")
-      write(diag_unit, '(a)') trim(buffer)
+      write(default_stat%diag_unit, '(a)') trim(buffer)
       column=column+1
       buffer=field_tag(name="ElapsedWallTime", column=column, statistic="value")
-      write(diag_unit, '(a)') trim(buffer)
+      write(default_stat%diag_unit, '(a)') trim(buffer)
 
       if (have_option("/adjoint/functional")) then
         column=column+1
         buffer=field_tag(name="AdjointFunctional", column=column, statistic="value")
-        write(diag_unit, '(a)') trim(buffer)
+        write(default_stat%diag_unit, '(a)') trim(buffer)
       end if
 
-      do i = 1, size(mesh_list)
+      do i = 1, size(default_stat%mesh_list)
         ! Headers for output statistics for each mesh
-        mesh => extract_mesh(state(1), mesh_list(i))
+        mesh => extract_mesh(state(1), default_stat%mesh_list(i))
 
         if(stat_mesh(mesh)) then
           column = column + 1
           buffer = field_tag(name = mesh%name, column = column, statistic = "nodes")
-          write(diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
           column = column + 1
           buffer = field_tag(name = mesh%name, column = column, statistic = "elements")
-          write(diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
           column = column + 1
           buffer = field_tag(name = mesh%name, column = column, statistic = "surface_elements")
-          write(diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
         end if
       end do
 
@@ -553,15 +560,15 @@ contains
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "current", material_phase_name="Memory")
-          write(diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)         
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "min", material_phase_name="Memory")
-          write(diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)         
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "max", material_phase_name="Memory")
-          write(diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)         
       end do
 #endif
       
@@ -569,34 +576,34 @@ contains
 
          material_phase_name=trim(state(phase)%name)
 
-         do i=1, size(sfield_list(phase)%ptr)
+         do i=1, size(default_stat%sfield_list(phase)%ptr)
             ! Headers for output statistics for each scalar field
-            sfield => extract_scalar_field(state(phase), sfield_list(phase)%ptr(i))
+            sfield => extract_scalar_field(state(phase), default_stat%sfield_list(phase)%ptr(i))
 
             ! Standard scalar field stats
             if(stat_field(sfield, state(phase))) then
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="min", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="max", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="l2norm", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="integral", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
             end if
             
             ! Control volume stats
             if(have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_cv_stats")) then
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="cv_l2norm", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=sfield%name, column=column, statistic="cv_integral", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
             end if
             
             ! Mixing stats
@@ -626,7 +633,7 @@ contains
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
                    & material_phase_name=material_phase_name, components=(no_mixing_bins))
 
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column = column + (no_mixing_bins)
 
             end do
@@ -637,32 +644,32 @@ contains
               // "/stat/surface_integral[" // int2str(j) // "]/name", surface_integral_name)
               column = column + 1
               buffer = field_tag(sfield%name, column, "surface_integral%" // trim(surface_integral_name), material_phase_name)
-              write(diag_unit, "(a)") trim(buffer)
+              write(default_stat%diag_unit, "(a)") trim(buffer)
            end do
            
          end do
 
-         do i = 1, size(vfield_list(phase)%ptr)
+         do i = 1, size(default_stat%vfield_list(phase)%ptr)
            ! Headers for output statistics for each vector field
            vfield => extract_vector_field(state(phase), &
-             & vfield_list(phase)%ptr(i))
+             & default_stat%vfield_list(phase)%ptr(i))
 
            ! Standard scalar field stats for vector field magnitude
            if(stat_field(vfield, state(phase))) then
              column = column + 1
              buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
                & statistic="min", material_phase_name=material_phase_name)
-             write(diag_unit, '(a)') trim(buffer)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
 
              column = column + 1
              buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
                & statistic="max",material_phase_name= material_phase_name)
-             write(diag_unit, '(a)') trim(buffer)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
 
              column = column + 1
              buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
                & statistic="l2norm", material_phase_name=material_phase_name)
-             write(diag_unit, '(a)') trim(buffer)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
            end if
 
            ! Standard scalar field stats for vector field components
@@ -673,22 +680,22 @@ contains
                column = column + 1
                buffer=field_tag(name=vfield_comp%name, column=column, statistic="min", &
                  & material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
 
                column = column + 1
                buffer=field_tag(name=vfield_comp%name, column=column, statistic="max", &
                  & material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
 
                column = column + 1
                buffer=field_tag(name=vfield_comp%name, column=column, statistic="l2norm", &
                  & material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
 
                column = column + 1
                buffer=field_tag(name=vfield_comp%name, column=column, statistic="integral", &
                  & material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
              end do
            end if
            
@@ -698,7 +705,7 @@ contains
              // "/stat/surface_integral[" // int2str(j) // "]/name", surface_integral_name)
              column = column + 1
              buffer = field_tag(vfield%name, column, "surface_integral%" // trim(surface_integral_name), material_phase_name)
-             write(diag_unit, "(a)") trim(buffer)
+             write(default_stat%diag_unit, "(a)") trim(buffer)
            end do
 
            ! drag calculation
@@ -707,20 +714,20 @@ contains
                column = column + 1
                buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
                // int2str(j), material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
              end do
              if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
                do j = 1, mesh_dim(vfield%mesh)
                  column = column + 1
                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
                  // int2str(j), material_phase_name=material_phase_name)
-                 write(diag_unit, '(a)') trim(buffer)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
                end do
                do j = 1, mesh_dim(vfield%mesh)
                  column = column + 1
                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
                  // int2str(j), material_phase_name=material_phase_name)
-                 write(diag_unit, '(a)') trim(buffer)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
                end do
              end if
            end if
@@ -728,16 +735,16 @@ contains
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%min", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%max", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%l2norm", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%integral", material_phase_name=material_phase_name)
-              write(diag_unit, '(a)') trim(buffer)
+              write(default_stat%diag_unit, '(a)') trim(buffer)
            end if
 
            ! momentum conservation error calculation
@@ -746,7 +753,7 @@ contains
                column = column + 1
                buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
                // int2str(j), material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
+               write(default_stat%diag_unit, '(a)') trim(buffer)
              end do
            end if
 
@@ -758,7 +765,7 @@ contains
       call register_diagnostics
       call print_registered_diagnostics
 
-      iterator => registered_diagnostic_first
+      iterator => default_stat%registered_diagnostic_first
       do while (associated(iterator)) 
         column = column + 1
         if (iterator%have_material_phase) then
@@ -768,12 +775,12 @@ contains
            buffer = field_tag(name=trim(iterator%name), column=column, &
                & statistic=iterator%statistic, components=iterator%dim)
         end if
-        write(diag_unit, '(a)') trim(buffer)
+        write(default_stat%diag_unit, '(a)') trim(buffer)
         iterator => iterator%next
       end do
 
-      write(diag_unit, '(a)') "</header>"
-      flush(diag_unit)
+      write(default_stat%diag_unit, '(a)') "</header>"
+      flush(default_stat%diag_unit)
     end if
 
     call initialise_detectors(filename, state)
@@ -790,7 +797,7 @@ contains
 
     type(registered_diagnostic_item), pointer :: iterator => NULL()
    
-    iterator => registered_diagnostic_first 
+    iterator => default_stat%registered_diagnostic_first 
 
     do while (.true.) 
       if (.not. associated(iterator)) then
@@ -824,7 +831,7 @@ contains
   subroutine print_registered_diagnostics
   type(registered_diagnostic_item), pointer :: iterator => NULL()
 
-  iterator => registered_diagnostic_first
+  iterator => default_stat%registered_diagnostic_first
 
   ewrite(1, *) "Registered diagnostics:"
   do while(associated(iterator)) 
@@ -865,8 +872,8 @@ contains
     nullify(diagnostic_item%next)
 
    ! Check if the diagnostic has not been registered yet
-    if (associated(registered_diagnostic_first)) then
-      iterator => registered_diagnostic_first
+    if (associated(default_stat%registered_diagnostic_first)) then
+      iterator => default_stat%registered_diagnostic_first
       do while (associated(iterator))
         if (iterator%dim == diagnostic_item%dim .and. iterator%name == diagnostic_item%name .and. &
           & iterator%statistic == diagnostic_item%statistic) then
@@ -890,10 +897,10 @@ contains
     end if
 
     ! Now append it to the list of registered diagnostics
-    if (.not. associated(registered_diagnostic_first)) then
-      registered_diagnostic_first => diagnostic_item
+    if (.not. associated(default_stat%registered_diagnostic_first)) then
+      default_stat%registered_diagnostic_first => diagnostic_item
     else
-      iterator => registered_diagnostic_first
+      iterator => default_stat%registered_diagnostic_first
       do while(associated(iterator%next)) 
         iterator => iterator%next
       end do
@@ -906,7 +913,7 @@ contains
   subroutine destroy_registered_diagnostics
     type(registered_diagnostic_item), pointer :: next, iterator
     
-    iterator => registered_diagnostic_first
+    iterator => default_stat%registered_diagnostic_first
 
     do while (associated(iterator)) 
       next => iterator%next
@@ -917,7 +924,7 @@ contains
   
     ! the first registered diagnostic needs to be nullified because
     ! when adjointing, all the diagnostics are initialised/registered again
-    nullify(registered_diagnostic_first)
+    nullify(default_stat%registered_diagnostic_first)
 
   end subroutine destroy_registered_diagnostics
 
@@ -925,14 +932,17 @@ contains
   ! Undo all of the initialise_diagnostics business.
   ! Necessary for adjoints, for a start ...
   ! Make sure to call close_diagnostic_files before re-initialising
-    initialised = .false.
-    deallocate(mesh_list)
-    deallocate(sfield_list)
-    deallocate(vfield_list)
+    type(stat_type) :: new_default_stat
+
+    default_stat%initialised = .false.
+    deallocate(default_stat%mesh_list)
+    deallocate(default_stat%sfield_list)
+    deallocate(default_stat%vfield_list)
     
     ! The diagnostics are registered under initialise_diagnostics so they need to be destroyed here.
     call destroy_registered_diagnostics
 
+    default_stat = new_default_stat ! new default_stat has been initialised with all the default values, na ja?
   end subroutine uninitialise_diagnostics
 
   subroutine initialise_constant_diagnostics(unit, binary_format)
@@ -999,9 +1009,6 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    ! Idempotency variable
-    logical, save :: initialised=.false.
-
     integer :: column, i, j, phase
     character(len = 254) :: buffer, material_phase_name
     type(scalar_field) :: vfield_comp
@@ -1009,46 +1016,46 @@ contains
     type(vector_field), pointer :: vfield
 
     ! Idempotency check
-    if (initialised) return
-    initialised=.true.
+    if (default_stat%convergence_initialised) return
+    default_stat%convergence_initialised=.true.
 
     if(have_option("/io/convergence/convergence_file")) then
-       write_convergence_file = .true.
+       default_stat%write_convergence_file = .true.
     else
-       write_convergence_file = .false.
+       default_stat%write_convergence_file = .false.
        return
     end if
 
     ! Only the first process should write convergence information
     if(getprocno() == 1) then
-      conv_unit=free_unit()
-      open(unit=conv_unit, file=trim(filename)//'.convergence', action="write")
+      default_stat%conv_unit=free_unit()
+      open(unit=default_stat%conv_unit, file=trim(filename)//'.convergence', action="write")
     else
       return
     end if
 
-    write(conv_unit, '(a)') "<header>"
+    write(default_stat%conv_unit, '(a)') "<header>"
 
     column=0
 
     ! Initial columns are elapsed time, dt and global iteration
     column=column+1
     buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-    write(conv_unit, '(a)') trim(buffer)
+    write(default_stat%conv_unit, '(a)') trim(buffer)
     column=column+1
     buffer=field_tag(name="dt", column=column, statistic="value")
-    write(conv_unit, '(a)') trim(buffer)
+    write(default_stat%conv_unit, '(a)') trim(buffer)
     column=column+1! Vector field magnitude
     buffer=field_tag(name="Iteration", column=column, statistic="value")
-    write(conv_unit, '(a)') trim(buffer)
+    write(default_stat%conv_unit, '(a)') trim(buffer)
 
     phaseloop: do phase=1,size(state)
 
        material_phase_name=trim(state(phase)%name)
 
-       do i=1, size(sfield_list(phase)%ptr)
+       do i=1, size(default_stat%sfield_list(phase)%ptr)
           ! Output convergence information for each scalar field.
-          sfield => extract_scalar_field(state(phase), sfield_list(phase)%ptr(i))
+          sfield => extract_scalar_field(state(phase), default_stat%sfield_list(phase)%ptr(i))
 
           if(.not. convergence_field(sfield)) then
             cycle
@@ -1056,15 +1063,15 @@ contains
 
           column=column+1
           buffer=field_tag(name=sfield%name, column=column, statistic="error", material_phase_name=material_phase_name)
-          write(conv_unit, '(a)') trim(buffer)
+          write(default_stat%conv_unit, '(a)') trim(buffer)
 
        end do
 
-         do i = 1, size(vfield_list(phase)%ptr)
+         do i = 1, size(default_stat%vfield_list(phase)%ptr)
            ! Headers for output convergence information for each vector field
 
            vfield => extract_vector_field(state(phase), &
-             & vfield_list(phase)%ptr(i))
+             & default_stat%vfield_list(phase)%ptr(i))
 
            if(.not. convergence_field(vfield)) then
              cycle
@@ -1073,7 +1080,7 @@ contains
            column = column + 1
            buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
              & statistic="error", material_phase_name=material_phase_name)
-           write(conv_unit, '(a)') trim(buffer)
+           write(default_stat%conv_unit, '(a)') trim(buffer)
 
            if(.not. convergence_field(vfield, test_for_components = .true.)) then
              cycle
@@ -1085,7 +1092,7 @@ contains
              column = column + 1
              buffer=field_tag(name=vfield_comp%name, column=column, statistic="error", &
                & material_phase_name=material_phase_name)
-             write(conv_unit, '(a)') trim(buffer)
+             write(default_stat%conv_unit, '(a)') trim(buffer)
 
            end do
 
@@ -1093,7 +1100,7 @@ contains
 
     end do phaseloop
 
-    write(conv_unit, '(a)') "</header>"
+    write(default_stat%conv_unit, '(a)') "</header>"
 
   end subroutine initialise_convergence
   
@@ -1103,9 +1110,6 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    ! Idempotency variable
-    logical, save :: initialised=.false.
-
     integer :: column, i, j, phase
     character(len = 254) :: buffer, material_phase_name
     type(scalar_field) :: vfield_comp
@@ -1113,15 +1117,15 @@ contains
     type(vector_field), pointer :: vfield
 
     ! Idempotency check
-    if (initialised) return
-    initialised=.true.
+    if (default_stat%steady_state_initialised) return
+    default_stat%steady_state_initialised=.true.
 
-    write_steady_state_file = have_option("/timestepping/steady_state/steady_state_file")
-    if(.not. write_steady_state_file) return
+    default_stat%write_steady_state_file = have_option("/timestepping/steady_state/steady_state_file")
+    if(.not. default_stat%write_steady_state_file) return
     if(have_option("/timestepping/steady_state/steady_state_file/binary_output")) then
-      binary_steady_state_output = .true.
+      default_stat%binary_steady_state_output = .true.
     else if(have_option("/timestepping/steady_state/steady_state_file/plain_text_output")) then
-      binary_steady_state_output = .false.
+      default_stat%binary_steady_state_output = .false.
     else
       FLExit("Unable to determine steady state output format. Check options under /timestepping/steady_state/steady_state_file")
     end if
@@ -1129,20 +1133,20 @@ contains
     ! Only the first process should write steady state information
     if(getprocno() /= 1) return
     
-    steady_state_unit=free_unit()
-    open(unit=steady_state_unit, file=trim(filename)//'.steady_state', action="write")
+    default_stat%steady_state_unit=free_unit()
+    open(unit=default_stat%steady_state_unit, file=trim(filename)//'.steady_state', action="write")
 
-    write(steady_state_unit, '(a)') "<header>"
+    write(default_stat%steady_state_unit, '(a)') "<header>"
 
-    call initialise_constant_diagnostics(steady_state_unit, binary_format = binary_steady_state_output)
+    call initialise_constant_diagnostics(default_stat%steady_state_unit, binary_format = default_stat%binary_steady_state_output)
 
     ! Initial columns are elapsed time, dt and global iteration
     column=1
     buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-    write(steady_state_unit, '(a)') trim(buffer)
+    write(default_stat%steady_state_unit, '(a)') trim(buffer)
     column=column+1
     buffer=field_tag(name="dt", column=column, statistic="value")
-    write(steady_state_unit, '(a)') trim(buffer)
+    write(default_stat%steady_state_unit, '(a)') trim(buffer)
 
     phaseloop: do phase=1,size(state)
        material_phase_name = state(phase)%name
@@ -1154,7 +1158,7 @@ contains
 
           column=column+1
           buffer=field_tag(name=sfield%name, column=column, statistic="error", material_phase_name=material_phase_name)
-          write(steady_state_unit, '(a)') trim(buffer)
+          write(default_stat%steady_state_unit, '(a)') trim(buffer)
        end do
 
        do i = 1, vector_field_count(state(phase))
@@ -1165,7 +1169,7 @@ contains
          column = column + 1
          buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
            & statistic="error", material_phase_name=material_phase_name)
-         write(steady_state_unit, '(a)') trim(buffer)
+         write(default_stat%steady_state_unit, '(a)') trim(buffer)
 
          if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle         
          ! Vector field components
@@ -1176,7 +1180,7 @@ contains
            column = column + 1
            buffer=field_tag(name=vfield_comp%name, column=column, statistic="error", &
              & material_phase_name=material_phase_name)
-           write(steady_state_unit, '(a)') trim(buffer)
+           write(default_stat%steady_state_unit, '(a)') trim(buffer)
          end do
        end do
 
@@ -1184,16 +1188,16 @@ contains
 
     column = column + 1
     buffer = field_tag(name = "MaxChange", column=column, statistic="value")
-    write(steady_state_unit, '(a)') trim(buffer)
+    write(default_stat%steady_state_unit, '(a)') trim(buffer)
 
-    write(steady_state_unit, '(a)') "</header>"
-    flush(steady_state_unit)
+    write(default_stat%steady_state_unit, '(a)') "</header>"
+    flush(default_stat%steady_state_unit)
     
-    if(binary_steady_state_output) then
-        close(steady_state_unit)
+    if(default_stat%binary_steady_state_output) then
+        close(default_stat%steady_state_unit)
 
 #ifdef STREAM_IO
-      open(unit = steady_state_unit, file = trim(filename) // '.steady_state.dat', &
+      open(unit = default_stat%steady_state_unit, file = trim(filename) // '.steady_state.dat', &
         & action = "write", access = "stream", form = "unformatted", status = "replace")
 #else
       FLAbort("No stream I/O support")
@@ -1212,9 +1216,6 @@ contains
     character(len=FIELD_NAME_LEN) ::funcnam, temp_name
     character(len=PYTHON_FUNC_LEN) :: func
 
-    ! Idempotency variable
-    logical, save :: detectors_initialised=.false.
-
     integer :: column, i, j, k, phase, m, IERROR
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
     integer :: python_dete, ndete, dim, str_size, type_det
@@ -1225,15 +1226,15 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
-    logical :: detectors_checkpoint_done=.false.,detectors_from_file_initially=.false.
 
     type(detector_type), pointer :: node
 
     type(element_type), pointer :: shape
+    logical :: detectors_from_file_initially
 
     ! Idempotency check
-    if (detectors_initialised) return
-    detectors_initialised=.true.
+    if (default_stat%detectors_initialised) return
+    default_stat%detectors_initialised=.true.
 
     ! Check whether there are actually any detectors.
     static_dete = option_count("/io/detectors/static_detector")
@@ -1249,13 +1250,13 @@ contains
     end do
    
     total_dete=static_dete+lagrangian_dete+python_dete
-    total_num_det=total_dete
+    default_stat%total_num_det=total_dete
 
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
  
-    allocate(name_of_detector_groups_in_read_order(total_dete_groups))
-    allocate(number_det_in_each_group(total_dete_groups))
-    allocate(name_of_detector_in_read_order(total_dete))
+    allocate(default_stat%name_of_detector_groups_in_read_order(total_dete_groups))
+    allocate(default_stat%number_det_in_each_group(total_dete_groups))
+    allocate(default_stat%name_of_detector_in_read_order(total_dete))
     
     if (total_dete==0) return
 
@@ -1272,19 +1273,19 @@ contains
     if (have_option("/io/detectors/static_detector/from_checkpoint_file").or. & 
 & have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
 & have_option("/io/detectors/detector_array/from_checkpoint_file")) then
-       detectors_checkpoint_done=.true.
+       default_stat%detectors_checkpoint_done=.true.
     else
-       detectors_checkpoint_done=.false.
+       default_stat%detectors_checkpoint_done=.false.
     end if
 
-    if (.not.detectors_checkpoint_done) then
+    if (.not.default_stat%detectors_checkpoint_done) then
 
           do i=1,static_dete
              write(buffer, "(a,i0,a)")  &
                "/io/detectors/static_detector[",i-1,"]"
          
              allocate(node)
-             call insert(detector_list,node) 
+             call insert(default_stat%detector_list,node) 
 
              call get_option(trim(buffer)//"/name", node%name)
              shape_option=option_shape(trim(buffer)//"/location")
@@ -1304,10 +1305,10 @@ contains
        ! detector data (position, value of variables at those positions, etc.) 
        ! will have the information in the same order.
 
-             name_of_detector_groups_in_read_order(i)=node%name
-             number_det_in_each_group(i)=1.0
+             default_stat%name_of_detector_groups_in_read_order(i)=node%name
+             default_stat%number_det_in_each_group(i)=1.0
 
-             name_of_detector_in_read_order(i)=node%name
+             default_stat%name_of_detector_in_read_order(i)=node%name
 
              allocate(node%local_coords(local_coord_count(shape)))
 
@@ -1318,7 +1319,7 @@ contains
                "/io/detectors/lagrangian_detector[",i-1,"]"
 
              allocate(node)
-             call insert(detector_list,node) 
+             call insert(default_stat%detector_list,node) 
 
              call get_option(trim(buffer)//"/name", node%name)
              shape_option=option_shape(trim(buffer)//"/location")
@@ -1329,9 +1330,9 @@ contains
              node%local = .true.
              node%id_number = i+static_dete
              
-             name_of_detector_groups_in_read_order(i+static_dete)=node%name
-             number_det_in_each_group(i+static_dete)=1.0
-             name_of_detector_in_read_order(i+static_dete)=node%name
+             default_stat%name_of_detector_groups_in_read_order(i+static_dete)=node%name
+             default_stat%number_det_in_each_group(i+static_dete)=1.0
+             default_stat%name_of_detector_in_read_order(i+static_dete)=node%name
 
              allocate(node%local_coords(local_coord_count(shape)))
 
@@ -1354,8 +1355,8 @@ contains
                   type_det=STATIC_DETECTOR
              end if
 
-             name_of_detector_groups_in_read_order(i+static_dete+lagrangian_dete)=trim(funcnam)
-             number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
+             default_stat%name_of_detector_groups_in_read_order(i+static_dete+lagrangian_dete)=trim(funcnam)
+             default_stat%number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
 
              if (have_option(trim(buffer) // "/from_file")) then
                  detectors_from_file_initially=.true.
@@ -1374,7 +1375,7 @@ contains
                  do j=1,ndete
 
                      allocate(node)
-                     call insert(detector_list,node)
+                     call insert(default_stat%detector_list,node)
 
                      write(node%name, fmt) trim(funcnam)//"_", j
 
@@ -1384,7 +1385,7 @@ contains
                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type=type_det
 
-                     name_of_detector_in_read_order(k)=trim(funcnam)
+                     default_stat%name_of_detector_in_read_order(k)=trim(funcnam)
 
                      node%id_number = k
 
@@ -1400,12 +1401,12 @@ contains
 
                  if (getprocno() == 1) then
 
-                 detector_file_unit=free_unit()
+                 default_stat%detector_file_unit=free_unit()
 
                  call get_option("io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
-      open(unit = detector_file_unit, file = trim(detector_file_filename), &
+      open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
         & action = "read", access = "stream", form = "unformatted")
 #else
       FLAbort("No stream I/O support")
@@ -1414,17 +1415,17 @@ contains
                  do j=1,ndete
 
                      allocate(node)
-                     call insert(detector_list,node)
+                     call insert(default_stat%detector_list,node)
 
                      write(node%name, fmt) trim(funcnam)//"_", j
 
                      allocate(node%position(dim))
-                     read(detector_file_unit) node%position
+                     read(default_stat%detector_file_unit) node%position
                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type=type_det
                      node%id_number = k
 
-                     name_of_detector_in_read_order(k)=trim(funcnam)
+                     default_stat%name_of_detector_in_read_order(k)=trim(funcnam)
 
                      allocate(node%local_coords(local_coord_count(shape)))
                      k=k+1
@@ -1444,7 +1445,7 @@ contains
 
         !IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET 
 
-           detector_checkpoint_unit=free_unit()
+           default_stat%detector_checkpoint_unit=free_unit()
 
            if (have_option("/io/detectors/static_detector")) then
                call get_option("io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
@@ -1454,18 +1455,18 @@ contains
                call get_option("io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
            end if 
 
-           open(unit=detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
+           open(unit=default_stat%detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
 
            do i=1, total_dete_groups  
 
-               read(detector_checkpoint_unit,'(a,i10)') name_of_detector_groups_in_read_order(i), number_det_in_each_group(i)
+               read(default_stat%detector_checkpoint_unit,'(a,i10)') default_stat%name_of_detector_groups_in_read_order(i), default_stat%number_det_in_each_group(i)
 
            end do
 
-           close(detector_checkpoint_unit)
+           close(default_stat%detector_checkpoint_unit)
 
 #ifdef STREAM_IO
-      open(unit = detector_checkpoint_unit, file = trim(detectors_cp_filename) // '.positions.dat', &
+      open(unit = default_stat%detector_checkpoint_unit, file = trim(detectors_cp_filename) // '.positions.dat', &
         & action = "read", access = "stream", form = "unformatted")
 #else
       FLAbort("No stream I/O support")
@@ -1473,20 +1474,20 @@ contains
  
        !!!Read in order the last positions of the detectors from the binary file.
 
-          do j=1,size(name_of_detector_groups_in_read_order)
+          do j=1,size(default_stat%name_of_detector_groups_in_read_order)
 
              do i=1,static_dete
                  write(buffer, "(a,i0,a)")  &
                "/io/detectors/static_detector[",i-1,"]"
                  call get_option(trim(buffer)//"/name", temp_name)
           
-                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
 
                      allocate(node)
-                     call insert(detector_list,node)
+                     call insert(default_stat%detector_list,node)
                      node%name=temp_name
                      allocate(node%position(dim))
-                     read(detector_checkpoint_unit) node%position
+                     read(default_stat%detector_checkpoint_unit) node%position
                      node%local = .not. isparallel()
                      node%type = STATIC_DETECTOR
                      allocate(node%local_coords(local_coord_count(shape)))   
@@ -1500,21 +1501,21 @@ contains
 
           end do
 
-          do j=1,size(name_of_detector_groups_in_read_order)   
+          do j=1,size(default_stat%name_of_detector_groups_in_read_order)   
 
              do i=1,lagrangian_dete
                  write(buffer, "(a,i0,a)")  &
                "/io/detectors/lagrangian_detector[",i-1,"]"
                  call get_option(trim(buffer)//"/name", temp_name)
 
-                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
 
 
                      allocate(node)
-                     call insert(detector_list,node)
+                     call insert(default_stat%detector_list,node)
                      node%name=temp_name
                      allocate(node%position(dim))
-                     read(detector_checkpoint_unit) node%position
+                     read(default_stat%detector_checkpoint_unit) node%position
                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type = LAGRANGIAN_DETECTOR
 
@@ -1531,7 +1532,7 @@ contains
 
           k=static_dete+lagrangian_dete+1
 
-          do j=1,size(name_of_detector_groups_in_read_order)  
+          do j=1,size(default_stat%name_of_detector_groups_in_read_order)  
 
              do i=1,python_functions_or_files
                  write(buffer, "(a,i0,a)")  &
@@ -1539,7 +1540,7 @@ contains
       
                  call get_option(trim(buffer)//"/name", temp_name)
 
-                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
 
                     call get_option(trim(buffer)//"/number_of_detectors", ndete)
                     str_size=len_trim(int2str(ndete))
@@ -1551,14 +1552,14 @@ contains
                       type_det=STATIC_DETECTOR
                     end if
 
-                    do m=1,number_det_in_each_group(j)
+                    do m=1,default_stat%number_det_in_each_group(j)
 
                       allocate(node)
-                      call insert(detector_list,node)
+                      call insert(default_stat%detector_list,node)
 
                       write(node%name, fmt) trim(temp_name)//"_", m
                       allocate(node%position(dim))
-                      read(detector_checkpoint_unit) node%position
+                      read(default_stat%detector_checkpoint_unit) node%position
                       node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                       node%type=type_det
 
@@ -1585,60 +1586,60 @@ contains
     end if
 
 
-    allocate (detector_sfield_list(size(state)))
+    allocate (default_stat%detector_sfield_list(size(state)))
     do phase=1, size(state)
-         allocate(detector_sfield_list(phase)%ptr(&
+         allocate(default_stat%detector_sfield_list(phase)%ptr(&
          size(state(phase)%scalar_names)))
-         detector_sfield_list(phase)%ptr=state(phase)%scalar_names
+         default_stat%detector_sfield_list(phase)%ptr=state(phase)%scalar_names
     end do
 
-    allocate (detector_vfield_list(size(state)))
+    allocate (default_stat%detector_vfield_list(size(state)))
     do phase = 1, size(state)
-         allocate(detector_vfield_list(phase)%ptr(&
+         allocate(default_stat%detector_vfield_list(phase)%ptr(&
          size(state(phase)%vector_names)))
-         detector_vfield_list(phase)%ptr = state(phase)%vector_names
+         default_stat%detector_vfield_list(phase)%ptr = state(phase)%vector_names
     end do
 
-    binary_detector_output = have_option("/io/detectors/binary_output")
+    default_stat%binary_detector_output = have_option("/io/detectors/binary_output")
 
     if (isparallel()) then
 
-       binary_detector_output=.true.
+       default_stat%binary_detector_output=.true.
 
     end if
 
     ! Only the first process should write statistics information
     if (getprocno() == 1) then
     
-    detector_unit=free_unit()
-    open(unit=detector_unit, file=trim(filename)//'.detectors', action="write")
+    default_stat%detector_unit=free_unit()
+    open(unit=default_stat%detector_unit, file=trim(filename)//'.detectors', action="write")
 
    
-    write(detector_unit, '(a)') "<header>"
+    write(default_stat%detector_unit, '(a)') "<header>"
 
-    call initialise_constant_diagnostics(detector_unit, binary_format = binary_detector_output)
+    call initialise_constant_diagnostics(default_stat%detector_unit, binary_format = default_stat%binary_detector_output)
 
     column=0
 
     ! Initial columns are elapsed time and dt.
     column=column+1
     buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-    write(detector_unit, '(a)') trim(buffer)
+    write(default_stat%detector_unit, '(a)') trim(buffer)
     column=column+1
     buffer=field_tag(name="dt", column=column, statistic="value")
-    write(detector_unit, '(a)') trim(buffer)
+    write(default_stat%detector_unit, '(a)') trim(buffer)
 
     ! Next columns contain the positions of all the detectors.
 
-    node => detector_list%firstnode
+    node => default_stat%detector_list%firstnode
 
-    positionloop: do i=1, detector_list%length
+    positionloop: do i=1, default_stat%detector_list%length
 
 
          buffer=field_tag(name=node%name, column=column+1,&
             statistic="position", &
             components=size(node%position))
-         write(detector_unit, '(a)') trim(buffer)
+         write(default_stat%detector_unit, '(a)') trim(buffer)
          column=column+size(node%position)
 
          node => node%next
@@ -1650,24 +1651,24 @@ contains
 
             material_phase_name=trim(state(phase)%name)
 
-        do i=1, size(detector_sfield_list(phase)%ptr)
+        do i=1, size(default_stat%detector_sfield_list(phase)%ptr)
           ! Headers for detectors for each scalar field.
             sfield => extract_scalar_field(state(phase), &
-               detector_sfield_list(phase)%ptr(i))
+               default_stat%detector_sfield_list(phase)%ptr(i))
 
             if(.not. detector_field(sfield)) then
                  cycle
             end if
 
-          node => detector_list%firstnode
+          node => default_stat%detector_list%firstnode
 
-          do j=1, detector_list%length
+          do j=1, default_stat%detector_list%length
 
             column=column+1
             buffer=field_tag(name=sfield%name, column=column, &
                   statistic=node%name, &
                   material_phase_name=material_phase_name)
-            write(detector_unit, '(a)') trim(buffer)
+            write(default_stat%detector_unit, '(a)') trim(buffer)
 
             node => node%next
 
@@ -1675,24 +1676,24 @@ contains
 
         end do
 
-        do i = 1, size(detector_vfield_list(phase)%ptr)
+        do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
           ! Headers for detectors for each vector field.
           vfield => extract_vector_field(state(phase), &
-               & detector_vfield_list(phase)%ptr(i))
+               & default_stat%detector_vfield_list(phase)%ptr(i))
 
           if(.not. detector_field(vfield)) then
              cycle
           end if
 
-          node => detector_list%firstnode
+          node => default_stat%detector_list%firstnode
 
-          do j=1, detector_list%length
+          do j=1, default_stat%detector_list%length
 
              buffer=field_tag(name=vfield%name, column=column+1, &
                   statistic=node%name, &
                   material_phase_name=material_phase_name, &
                   components=vfield%dim)
-             write(detector_unit, '(a)') trim(buffer)
+             write(default_stat%detector_unit, '(a)') trim(buffer)
              column=column+size(node%position)
 
              node => node%next
@@ -1702,13 +1703,13 @@ contains
 
     end do phaseloop
 
-    write(detector_unit, '(a)') "</header>"
-    flush(detector_unit)
+    write(default_stat%detector_unit, '(a)') "</header>"
+    flush(default_stat%detector_unit)
 
     !!!when using mpi_subroutines to write into the detectors file we need to close the file since 
     !filename.detectors.dat needs to be open now with MPI_OPEN
 
-    if ((.not.isparallel()).and.(.not. binary_detector_output)) then
+    if ((.not.isparallel()).and.(.not. default_stat%binary_detector_output)) then
 !        close(detector_unit)
 
 !#ifdef STREAM_IO
@@ -1720,15 +1721,15 @@ contains
 
     else
     
-      close(detector_unit)
+      close(default_stat%detector_unit)
 
     end if
 
     end if
 
-     if ((isparallel()).or.((.not.isparallel()).and.(binary_detector_output))) then
+     if ((isparallel()).or.((.not.isparallel()).and.(default_stat%binary_detector_output))) then
 
-    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fh, IERROR)
+    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%fh, IERROR)
     assert(ierror == MPI_SUCCESS)
 
     end if 
@@ -1779,13 +1780,12 @@ contains
 
   end function constant_tag
   
-  subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet, functional_value)
+  subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet)
     !!< Write the diagnostics to the previously opened diagnostics file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
     logical, intent(in), optional :: not_to_move_det_yet 
-    real, intent(in), optional :: functional_value ! Adjoint functionals
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
     character(len = OPTION_PATH_LEN) :: func
@@ -1822,43 +1822,34 @@ contains
     ! Only the first process should write statistics information (but all must
     ! be involved in calculating them)
     if(getprocno() == 1) then
-      write(diag_unit, trim(format), advance="no") time
-      write(diag_unit, trim(format), advance="no") dt
-      write(diag_unit, trim(format), advance="no") elapsed_walltime()
+      write(default_stat%diag_unit, trim(format), advance="no") time
+      write(default_stat%diag_unit, trim(format), advance="no") dt
+      write(default_stat%diag_unit, trim(format), advance="no") elapsed_walltime()
     end if
 
-    if (have_option("/adjoint/functional")) then
-      if (.not. present(functional_value)) then
-        ewrite(-1,*) "You have an /adjoint/functional in your options tree, and so want to print it out."
-        ewrite(-1,*) "But you haven't supplied write_diagnostics with its value."
-        FLAbort("Supply functional_value to write_diagnostics.")
-      end if
-      write(diag_unit, trim(format), advance="no") functional_value
-    end if
-
-    do i = 1, size(mesh_list)
+    do i = 1, size(default_stat%mesh_list)
       ! Output statistics for each mesh
-      mesh => extract_mesh(state(1), mesh_list(i))
+      mesh => extract_mesh(state(1), default_stat%mesh_list(i))
 
       if(stat_mesh(mesh)) then
         call mesh_stats(mesh, nodes, elements, surface_elements)
         if(getprocno() == 1) then
-          write(diag_unit, "(a,i0,a,i0,a,i0)", advance = "no") " ", nodes, " ", elements, " ", surface_elements
+          write(default_stat%diag_unit, "(a,i0,a,i0,a,i0)", advance = "no") " ", nodes, " ", elements, " ", surface_elements
         end if
       end if
     end do
 
 #ifdef HAVE_MEMORY_STATS
     ! Memory statistics.
-    call write_memory_stats(diag_unit, format)
+    call write_memory_stats(default_stat%diag_unit, format)
     call reset_memory_logs
 #endif
 
     phaseloop: do phase=1,size(state)
 
-       scalar_field_loop: do i=1, size(sfield_list(phase)%ptr)
+       scalar_field_loop: do i=1, size(default_stat%sfield_list(phase)%ptr)
           ! Output statistics for each scalar field
-          sfield=>extract_scalar_field(state(phase), sfield_list(phase)%ptr(i))
+          sfield=>extract_scalar_field(state(phase), default_stat%sfield_list(phase)%ptr(i))
 
           xfield=get_diagnostic_coordinate_field(state(phase), sfield%mesh)
 
@@ -1867,7 +1858,7 @@ contains
           
             call field_stats(sfield, Xfield, fmin, fmax, fnorm2, fintegral)
             if(getprocno() == 1) then
-              write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
+              write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
             end if
             
@@ -1881,7 +1872,7 @@ contains
 
             ! Only the first process should write statistics information
             if(getprocno() == 1) then
-              write(diag_unit, trim(format2), advance="no") fnorm2_cv, fintegral_cv
+              write(default_stat%diag_unit, trim(format2), advance="no") fnorm2_cv, fintegral_cv
             end if
 
           end if
@@ -1914,7 +1905,7 @@ contains
          
             if(getprocno() == 1) then
                do k=1, (size(f_mix_fraction))
-                  write(diag_unit, trim(format), advance="no") f_mix_fraction(k)
+                  write(default_stat%diag_unit, trim(format), advance="no") f_mix_fraction(k)
                end do
             end if
 
@@ -1927,7 +1918,7 @@ contains
            surface_integral = calculate_surface_integral(sfield, xfield, j)
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
-             write(diag_unit, trim(format), advance = "no") surface_integral
+             write(default_stat%diag_unit, trim(format), advance = "no") surface_integral
            end if
          end do
 
@@ -1935,10 +1926,10 @@ contains
 
        end do scalar_field_loop
 
-       vector_field_loop: do i = 1, size(vfield_list(phase)%ptr)
+       vector_field_loop: do i = 1, size(default_stat%vfield_list(phase)%ptr)
          ! Output statistics for each vector field
          vfield => extract_vector_field(state(phase), &
-           & vfield_list(phase)%ptr(i))
+           & default_stat%vfield_list(phase)%ptr(i))
           
          xfield=get_diagnostic_coordinate_field(state(phase), vfield%mesh)
 
@@ -1947,7 +1938,7 @@ contains
            call field_stats(vfield, Xfield, fmin, fmax, fnorm2)
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
-             write(diag_unit, trim(format3), advance = "no") fmin, fmax, fnorm2
+             write(default_stat%diag_unit, trim(format3), advance = "no") fmin, fmax, fnorm2
            end if
          end if
 
@@ -1960,7 +1951,7 @@ contains
                & fintegral)
              ! Only the first process should write statistics information
              if(getprocno() == 1) then
-               write(diag_unit, trim(format4), advance = "no") fmin, fmax, fnorm2, &
+               write(default_stat%diag_unit, trim(format4), advance = "no") fmin, fmax, fnorm2, &
                  & fintegral
              end if
            end do
@@ -1971,7 +1962,7 @@ contains
            surface_integral = calculate_surface_integral(vfield, xfield, j)
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
-             write(diag_unit, trim(format), advance = "no") surface_integral
+             write(default_stat%diag_unit, trim(format), advance = "no") surface_integral
            end if
          end do
 
@@ -1983,7 +1974,7 @@ contains
          if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
            call divergence_field_stats(vfield, Xfield, fmin, fmax, fnorm2, fintegral)
            if(getprocno() == 1) then
-             write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
+             write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
            end if            
          end if
@@ -2001,12 +1992,12 @@ contains
 
     ! Registered diagnostics
     call print_registered_diagnostics
-    iterator => registered_diagnostic_first
+    iterator => default_stat%registered_diagnostic_first
     do while (associated(iterator)) 
       ! Only the first process should write statistics information
       if(getprocno() == 1) then
         if (iterator%dim == 1) then
-          write(diag_unit, trim(format), advance = "no") iterator%value(1)
+          write(default_stat%diag_unit, trim(format), advance = "no") iterator%value(1)
         else
           FLAbort("Multidimensional registered diagnostics not supported yet.")
         end if
@@ -2017,8 +2008,8 @@ contains
     ! Output end of line
     ! Only the first process should write statistics information
     if(getprocno() == 1) then
-      write(diag_unit,'(a)') ""
-      flush(diag_unit)
+      write(default_stat%diag_unit,'(a)') ""
+      flush(default_stat%diag_unit)
     end if
 
     ! Now output any detectors.
@@ -2041,13 +2032,13 @@ contains
         call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)   
         if(getprocno() == 1) then
            do i=1, mesh_dim(vfield%mesh)
-              write(diag_unit, trim(format), advance="no") force(i)
+              write(default_stat%diag_unit, trim(format), advance="no") force(i)
            end do
            do i=1, mesh_dim(vfield%mesh)
-              write(diag_unit, trim(format), advance="no") pressure_force(i)
+              write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
            end do
            do i=1, mesh_dim(vfield%mesh)
-              write(diag_unit, trim(format), advance="no") viscous_force(i)
+              write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
            end do
         end if
       else
@@ -2055,7 +2046,7 @@ contains
         call diagnostic_body_drag(state, force) 
         if(getprocno() == 1) then
            do i=1, mesh_dim(vfield%mesh)
-              write(diag_unit, trim(format), advance="no") force(i)
+              write(default_stat%diag_unit, trim(format), advance="no") force(i)
            end do
         end if     
       end if 
@@ -2116,7 +2107,7 @@ contains
       
       if(getprocno() == 1) then
         do dim=1, velocity%dim
-          write(diag_unit, trim(format), advance="no") momentum_cons(dim)
+          write(default_stat%diag_unit, trim(format), advance="no") momentum_cons(dim)
         end do
       end if
 
@@ -2172,12 +2163,12 @@ contains
     format='(e15.6e3)'
     iformat='(i4)'
 
-    if(write_convergence_file) then
+    if(default_stat%write_convergence_file) then
       ! Only the first process should write convergence information
       if(getprocno() == 1) then
-         write(conv_unit, format, advance="no") time
-         write(conv_unit, format, advance="no") dt
-         write(conv_unit, iformat, advance="no") it
+         write(default_stat%conv_unit, format, advance="no") time
+         write(default_stat%conv_unit, format, advance="no") dt
+         write(default_stat%conv_unit, iformat, advance="no") it
       end if
     end if
     
@@ -2186,52 +2177,52 @@ contains
 
     phaseloop: do phase=1,size(state)
 
-       do i=1, size(sfield_list(phase)%ptr)
+       do i=1, size(default_stat%sfield_list(phase)%ptr)
           ! Output convergence information for each scalar field.
           sfield=>extract_scalar_field(state(phase), &
-               &                       sfield_list(phase)%ptr(i))
+               &                       default_stat%sfield_list(phase)%ptr(i))
 
           if(.not. convergence_field(sfield)) then
             cycle
           end if
 
           nlsfield=>extract_scalar_field(state(phase), &
-                                       "Iterated"//trim(sfield_list(phase)%ptr(i)))
+                                       "Iterated"//trim(default_stat%sfield_list(phase)%ptr(i)))
 
           call field_con_stats(sfield, nlsfield, error, &
                                convergence_norm, coordinates)
           maxerror = max(maxerror, error)
 
-          if(write_convergence_file) then
+          if(default_stat%write_convergence_file) then
             ! Only the first process should write convergence information
             if(getprocno() == 1) then
-               write(conv_unit, format, advance="no") error
+               write(default_stat%conv_unit, format, advance="no") error
             end if
           end if
 
        end do
 
-       do i = 1, size(vfield_list(phase)%ptr)
+       do i = 1, size(default_stat%vfield_list(phase)%ptr)
          ! Output convergence information for each vector field
 
          vfield => extract_vector_field(state(phase), &
-           & vfield_list(phase)%ptr(i))
+           & default_stat%vfield_list(phase)%ptr(i))
 
          if(.not. convergence_field(vfield)) then
            cycle
          end if
 
          nlvfield => extract_vector_field(state(phase), &
-           & "Iterated"//vfield_list(phase)%ptr(i))
+           & "Iterated"//default_stat%vfield_list(phase)%ptr(i))
 
          call field_con_stats(vfield, nlvfield, error, &
                               convergence_norm, coordinates)
          maxerror = max(maxerror, error)
 
-         if(write_convergence_file) then
+         if(default_stat%write_convergence_file) then
             ! Only the first process should write convergence information
             if(getprocno() == 1) then
-            write(conv_unit, format, advance = "no") error
+            write(default_stat%conv_unit, format, advance = "no") error
             end if
          end if
 
@@ -2247,10 +2238,10 @@ contains
                                 convergence_norm, coordinates)
            maxerror = max(maxerror, error)
 
-           if(write_convergence_file) then
+           if(default_stat%write_convergence_file) then
                ! Only the first process should write convergence information
                if(getprocno() == 1) then
-                  write(conv_unit, format, advance = "no") error
+                  write(default_stat%conv_unit, format, advance = "no") error
                end if
            end if
          end do
@@ -2258,11 +2249,11 @@ contains
 
     end do phaseloop
 
-    if(write_convergence_file) then
+    if(default_stat%write_convergence_file) then
       ! Output end of line
       ! Only the first process should write convergence information
       if(getprocno() == 1) then
-         write(conv_unit,'(a)') ""
+         write(default_stat%conv_unit,'(a)') ""
       end if
     end if
 
@@ -2304,20 +2295,20 @@ contains
     convergence_norm = convergence_norm_integer("/timestepping/steady_state/tolerance")
 
     procno = getprocno()
-    if(write_steady_state_file .and. procno == 1) then    
+    if(default_stat%write_steady_state_file .and. procno == 1) then    
       call get_option("/timestepping/current_time", elapsed_time)
-      if(binary_steady_state_output) then
-        write(steady_state_unit) elapsed_time
-        write(steady_state_unit) dt
+      if(default_stat%binary_steady_state_output) then
+        write(default_stat%steady_state_unit) elapsed_time
+        write(default_stat%steady_state_unit) dt
       else
-        write(steady_state_unit, format, advance="no") elapsed_time
-        write(steady_state_unit, format, advance="no") dt
+        write(default_stat%steady_state_unit, format, advance="no") elapsed_time
+        write(default_stat%steady_state_unit, format, advance="no") dt
       end if
     end if
 
     phaseloop: do phase=1,size(state)
 
-       do i=1, size(sfield_list(phase)%ptr)
+       do i=1, size(default_stat%sfield_list(phase)%ptr)
           ! Test steady state information for each scalar field.
 
           sfield=>extract_scalar_field(state(phase), i)
@@ -2325,7 +2316,7 @@ contains
           ! Scalar fields
 
           oldsfield=>extract_scalar_field(state(phase), &
-                                       "Old"//trim(sfield_list(phase)%ptr(i)))
+                                       "Old"//trim(default_stat%sfield_list(phase)%ptr(i)))
 
           call field_con_stats(sfield, oldsfield, change, &
                                convergence_norm, coordinates)
@@ -2333,11 +2324,11 @@ contains
           ewrite(2, *) trim(sfield%name), change
           maxchange = max(maxchange, change)
 
-          if(write_steady_state_file .and. procno == 1) then
-            if(binary_steady_state_output) then
-              write(steady_state_unit) change
+          if(default_stat%write_steady_state_file .and. procno == 1) then
+            if(default_stat%binary_steady_state_output) then
+              write(default_stat%steady_state_unit) change
             else
-              write(steady_state_unit, format, advance = "no") change
+              write(default_stat%steady_state_unit, format, advance = "no") change
             end if
           end if
 
@@ -2350,7 +2341,7 @@ contains
 
 
          oldvfield => extract_vector_field(state(phase), &
-           & "Old"//vfield_list(phase)%ptr(i))
+           & "Old"//default_stat%vfield_list(phase)%ptr(i))
 
          call field_con_stats(vfield, oldvfield, change, &
                               convergence_norm, coordinates)
@@ -2358,11 +2349,11 @@ contains
          ewrite(2, *) trim(vfield%name), change
          maxchange = max(maxchange, change)
 
-         if(write_steady_state_file .and. procno == 1) then
-            if(binary_steady_state_output) then
-              write(steady_state_unit) change
+         if(default_stat%write_steady_state_file .and. procno == 1) then
+            if(default_stat%binary_steady_state_output) then
+              write(default_stat%steady_state_unit) change
             else
-              write(steady_state_unit, format, advance = "no") change
+              write(default_stat%steady_state_unit, format, advance = "no") change
             end if
          end if
 
@@ -2379,11 +2370,11 @@ contains
            ewrite(2, *) trim(vfield%name), j, change
            maxchange = max(maxchange, change)
 
-           if(write_steady_state_file .and. procno == 1) then
-             if(binary_steady_state_output) then
-               write(steady_state_unit) change
+           if(default_stat%write_steady_state_file .and. procno == 1) then
+             if(default_stat%binary_steady_state_output) then
+               write(default_stat%steady_state_unit) change
              else
-               write(steady_state_unit, format, advance = "no") change
+               write(default_stat%steady_state_unit, format, advance = "no") change
              end if
            end if
          end do
@@ -2394,16 +2385,16 @@ contains
 
     ewrite(1, *) "maxchange = ", maxchange
     
-    if(write_steady_state_file .and. procno == 1) then
-      if(binary_steady_state_output) then
-        write(steady_state_unit) maxchange
+    if(default_stat%write_steady_state_file .and. procno == 1) then
+      if(default_stat%binary_steady_state_output) then
+        write(default_stat%steady_state_unit) maxchange
       else
-        write(steady_state_unit, format, advance = "no") maxchange      
+        write(default_stat%steady_state_unit, format, advance = "no") maxchange      
         ! Output end of line
-        write(steady_state_unit,'(a)') ""
+        write(default_stat%steady_state_unit,'(a)') ""
       end if
       
-      flush(steady_state_unit)
+      flush(default_stat%steady_state_unit)
     end if
 
     ewrite(1, *) "Exiting test_and_write_steady_state"
@@ -2444,7 +2435,7 @@ contains
     !Computing the global number of detectors. This is to prevent hanging
     !when there are no detectors on any processor
     check_no_det=1
-    if (detector_list%length==0) then
+    if (default_stat%detector_list%length==0) then
        check_no_det=0
     end if
     call allmax(check_no_det)
@@ -2461,9 +2452,9 @@ contains
     ! Calculate the location of the detectors in the mesh.
     ! CJC comment: I think this is unnecessary as the detectors should 
     ! know where they are
-    if (detector_list%length/=0) then
-       if ((.not.zoltan_drive_call).or.(timestep<=1)) then
-          call search_for_detectors(detector_list, xfield)
+    if (default_stat%detector_list%length/=0) then
+       if ((.not.default_stat%zoltan_drive_call).or.(timestep<=1)) then
+          call search_for_detectors(default_stat%detector_list, xfield)
        end if
     end if
 
@@ -2471,8 +2462,8 @@ contains
     ! to true in both cases, and the initial_owner is getting changed, not
     ! sure what initial_owner really means. I think this means that 
     ! 
-    detector => detector_list%firstnode
-    do i = 1, detector_list%length
+    detector => default_stat%detector_list%firstnode
+    do i = 1, default_stat%detector_list%length
        if (detector%element<0) then
           detector%local = .true.
        else
@@ -2490,13 +2481,13 @@ contains
     !allmax-ed so that the processor with the largest processor number gets
     !the detector.
   
-    if (detector_list%length/=0) then
+    if (default_stat%detector_list%length/=0) then
         if (timestep==1) then
 
-          allocate(global_det_count(detector_list%length))
+          allocate(global_det_count(default_stat%detector_list%length))
           global_det_count = -1
-          detector => detector_list%firstnode
-          do i = 1, detector_list%length
+          detector => default_stat%detector_list%firstnode
+          do i = 1, default_stat%detector_list%length
              if(detector%element>0) then
                 global_det_count(i)=getprocno()
              end if
@@ -2507,10 +2498,10 @@ contains
              call allmax(global_det_count(i))
           end do
 
-          detector => detector_list%firstnode
+          detector => default_stat%detector_list%firstnode
           do i = 1, size(global_det_count)
              if (global_det_count(i)/=getprocno()) then
-                call remove(detector_list,detector)
+                call remove(default_stat%detector_list,detector)
              else 
                detector => detector%next
             end if
@@ -2519,8 +2510,8 @@ contains
 
           !Any detectors that have the -1 as owner means that 
           !nobody owns that detector. Make it static.
-          detector => detector_list%firstnode
-          do i = 1, detector_list%length
+          detector => default_stat%detector_list%firstnode
+          do i = 1, default_stat%detector_list%length
             if (global_det_count(i)==-1) then
                ewrite(-1,*) 'Warning: converting detector to static'
                detector%type = STATIC_DETECTOR
@@ -2532,7 +2523,7 @@ contains
 
        end if
 
-    end if  ! end of if (detector_list%length/=0)
+    end if  ! end of if (default_stat%detector_list%length/=0)
 
     !making a hash table of {processor_number,count}
     !where processor_number is the number of a processor
@@ -2558,8 +2549,8 @@ contains
 
     !set value of dt in each detector
     !this is used in bisection method
-    detector => detector_list%firstnode
-    do j=1, detector_list%length
+    detector => default_stat%detector_list%firstnode
+    do j=1, default_stat%detector_list%length
        detector%dt=dt
        detector => detector%next
     end do  
@@ -2574,8 +2565,8 @@ contains
 
           !check if detectors any are Lagrangian
           any_lagrangian=.false.
-          detector => detector_list%firstnode
-          do i = 1, detector_list%length         
+          detector => default_stat%detector_list%firstnode
+          do i = 1, default_stat%detector_list%length         
              if (detector%type==LAGRANGIAN_DETECTOR)&
                   &any_lagrangian=.true. 
              detector => detector%next
@@ -2622,7 +2613,7 @@ contains
           do i=1, number_neigh_processors
              if  (receive_list_array(i)%length/=0) then      
                 call move_det_from_receive_list_to_det_list(&
-                     detector_list,receive_list_array(i))
+                     default_stat%detector_list,receive_list_array(i))
              end if
           end do
 
@@ -2643,31 +2634,31 @@ contains
        deallocate(receive_list_array)
     end if
 
-    if ((.not.isparallel()).and.(.not. binary_detector_output)) then
+    if ((.not.isparallel()).and.(.not. default_stat%binary_detector_output)) then
 
        if(getprocno() == 1) then
-          if(binary_detector_output) then
-            write(detector_unit) time
-            write(detector_unit) dt
+          if(default_stat%binary_detector_output) then
+            write(default_stat%detector_unit) time
+            write(default_stat%detector_unit) dt
           else
             format_buffer=reals_format(1)
-            write(detector_unit, format_buffer, advance="no") time
-            write(detector_unit, format_buffer, advance="no") dt
+            write(default_stat%detector_unit, format_buffer, advance="no") time
+            write(default_stat%detector_unit, format_buffer, advance="no") dt
           end if
        end if
 
        ! Next columns contain the positions of all the detectors.
       
-       detector => detector_list%firstnode
+       detector => default_stat%detector_list%firstnode
 
-       positionloop: do i=1, detector_list%length
+       positionloop: do i=1, default_stat%detector_list%length
 
        if(getprocno() == 1) then
-          if(binary_detector_output) then
-            write(detector_unit) detector%position
+          if(default_stat%binary_detector_output) then
+            write(default_stat%detector_unit) detector%position
           else
             format_buffer=reals_format(size(detector%position))
-            write(detector_unit, format_buffer, advance="no") &
+            write(default_stat%detector_unit, format_buffer, advance="no") &
                   detector%position
           end if
        end if
@@ -2678,27 +2669,27 @@ contains
 
        phaseloop: do phase=1,size(state)
 
-           do i=1, size(detector_sfield_list(phase)%ptr)
+           do i=1, size(default_stat%detector_sfield_list(phase)%ptr)
               ! Output statistics for each scalar field.
               sfield=>extract_scalar_field(state(phase), &
-                   &                       detector_sfield_list(phase)%ptr(i))
+                   &                       default_stat%detector_sfield_list(phase)%ptr(i))
 
               if(.not. detector_field(sfield)) then
                 cycle
               end if
           
-              detector => detector_list%firstnode
+              detector => default_stat%detector_list%firstnode
 
-              do j=1, detector_list%length
+              do j=1, default_stat%detector_list%length
                 value =  detector_value(sfield, detector)
 
                 if(getprocno() == 1) then
                 
-                    if(binary_detector_output) then
-                       write(detector_unit) value
+                    if(default_stat%binary_detector_output) then
+                       write(default_stat%detector_unit) value
                     else
                        format_buffer=reals_format(1)
-                       write(detector_unit, format_buffer, advance="no") value
+                       write(default_stat%detector_unit, format_buffer, advance="no") value
                     end if
                 
                  end if
@@ -2710,11 +2701,11 @@ contains
 
            allocate(vvalue(0))
  
-           do i = 1, size(detector_vfield_list(phase)%ptr)
+           do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
               ! Output statistics for each vector field
           
               vfield => extract_vector_field(state(phase), &
-                   & detector_vfield_list(phase)%ptr(i))
+                   & default_stat%detector_vfield_list(phase)%ptr(i))
           
               if(.not. detector_field(vfield)) then
                  cycle
@@ -2725,9 +2716,9 @@ contains
                  allocate(vvalue(vfield%dim))
               end if
 
-              detector => detector_list%firstnode
+              detector => default_stat%detector_list%firstnode
 
-              do j=1, detector_list%length
+              do j=1, default_stat%detector_list%length
             
                  vvalue =  detector_value(vfield, detector)
              
@@ -2735,11 +2726,11 @@ contains
              
               if(getprocno() == 1) then
                 
-                if(binary_detector_output) then
-                  write(detector_unit) vvalue
+                if(default_stat%binary_detector_output) then
+                  write(default_stat%detector_unit) vvalue
                 else
                   format_buffer=reals_format(vfield%dim)
-                  write(detector_unit, format_buffer, advance="no") vvalue
+                  write(default_stat%detector_unit, format_buffer, advance="no") vvalue
                 end if
 
               end if
@@ -2758,11 +2749,11 @@ contains
        ! Only the first process should write statistics information
 
        if(getprocno() == 1) then
-           if(.not. binary_detector_output) then
+           if(.not. default_stat%binary_detector_output) then
              ! Output end of line
-             write(detector_unit,'(a)') ""
+             write(default_stat%detector_unit,'(a)') ""
            end if
-           flush(detector_unit)
+           flush(default_stat%detector_unit)
        end if
 
     else
@@ -2778,8 +2769,8 @@ contains
       allocate(send_list_array(number_neigh_processors))
       allocate(receive_list_array(number_neigh_processors))
 
-      detector => detector_list%firstnode
-      do i = 1, detector_list%length
+      detector => default_stat%detector_list%firstnode
+      do i = 1, default_stat%detector_list%length
 
           if (detector%element>0) then
 
@@ -2793,7 +2784,7 @@ contains
 
                 detector => detector%next
 
-                call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+                call move_det_to_send_list(default_stat%detector_list,node_to_send,send_list_array(list_neigh_processor))
 
              else
     
@@ -2832,7 +2823,7 @@ contains
 
          if  (receive_list_array(i)%length/=0) then      
         
-            call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+            call move_det_from_receive_list_to_det_list(default_stat%detector_list,receive_list_array(i))
      
          end if
 
@@ -2868,19 +2859,19 @@ contains
 
     call deallocate(ihash) 
 
-    totaldet_global=detector_list%length
+    totaldet_global=default_stat%detector_list%length
 
     call allsum(totaldet_global)
 
     ewrite(2,*) "total number of detectors at the end of write_detectors subroutine", totaldet_global
 
-    if (totaldet_global/=total_num_det) then
+    if (totaldet_global/=default_stat%total_num_det) then
 
         ewrite(2,*) "We have either duplication or have lost some det"
 
         ewrite(2,*) "totaldet_global", totaldet_global
 
-        ewrite(2,*) "total_num_det", total_num_det
+        ewrite(2,*) "default_stat%total_num_det", default_stat%total_num_det
 
     end if
 
@@ -2949,15 +2940,15 @@ contains
 
     ewrite(1, *) "In write_mpi_out"
 
-    detector_mpi_write_count = detector_mpi_write_count + 1
-    ewrite(2, *) "Writing detector output ", detector_mpi_write_count
+    default_stat%detector_mpi_write_count = default_stat%detector_mpi_write_count + 1
+    ewrite(2, *) "Writing detector output ", default_stat%detector_mpi_write_count
     
     procno = getprocno()
 
     number_of_scalar_det_fields = 0
     do phase = 1, size(state)
-      do i = 1, size(detector_sfield_list(phase)%ptr)
-         sfield => extract_scalar_field(state(phase), detector_sfield_list(phase)%ptr(i))   
+      do i = 1, size(default_stat%detector_sfield_list(phase)%ptr)
+         sfield => extract_scalar_field(state(phase), default_stat%detector_sfield_list(phase)%ptr(i))   
          if(detector_field(sfield)) number_of_scalar_det_fields = number_of_scalar_det_fields + 1
       end do 
     end do 
@@ -2965,8 +2956,8 @@ contains
 
     number_of_vector_det_fields = 0
     do phase = 1, size(state)   
-      do i = 1, size(detector_vfield_list(phase)%ptr)
-        vfield => extract_vector_field(state(phase), detector_vfield_list(phase)%ptr(i))
+      do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
+        vfield => extract_vector_field(state(phase), default_stat%detector_vfield_list(phase)%ptr(i))
         if(detector_field(vfield)) number_of_vector_det_fields = number_of_vector_det_fields + 1
       end do 
     end do
@@ -2980,26 +2971,26 @@ contains
                            ! Time data
     number_total_columns = 2 + &
                            ! Detector coordinates
-                         & total_num_det * dim + &
+                         & default_stat%total_num_det * dim + &
                            ! Scalar detector data
-                         & total_num_det * number_of_scalar_det_fields + &
+                         & default_stat%total_num_det * number_of_scalar_det_fields + &
                            ! Vector detector data
-                         & total_num_det * number_of_vector_det_fields * dim
+                         & default_stat%total_num_det * number_of_vector_det_fields * dim
 
-    location_to_write = (detector_mpi_write_count - 1) * number_total_columns * realsize
+    location_to_write = (default_stat%detector_mpi_write_count - 1) * number_total_columns * realsize
 
     if(procno == 1) then
       ! Output time data
-      call mpi_file_write_at(fh, location_to_write, time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      call mpi_file_write_at(default_stat%fh, location_to_write, time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
       assert(ierror == MPI_SUCCESS)
         
-      call mpi_file_write_at(fh, location_to_write + realsize, dt, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      call mpi_file_write_at(default_stat%fh, location_to_write + realsize, dt, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
       assert(ierror == MPI_SUCCESS)
     end if
     location_to_write = location_to_write + 2 * realsize
 
-    node => detector_list%firstnode
-    position_loop: do i = 1, detector_list%length
+    node => default_stat%detector_list%firstnode
+    position_loop: do i = 1, default_stat%detector_list%length
       ! Output detector coordinates
       
       if (node%initial_owner /= -1 .or. procno == 1) then
@@ -3007,35 +2998,35 @@ contains
       
         offset = location_to_write + (node%id_number - 1) * dim * realsize
 
-        call mpi_file_write_at(fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+        call mpi_file_write_at(default_stat%fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
         assert(ierror == MPI_SUCCESS)
       end if
       
       node => node%next
     end do position_loop
     assert(.not. associated(node))
-    location_to_write = location_to_write + total_num_det * dim * realsize
+    location_to_write = location_to_write + default_stat%total_num_det * dim * realsize
 
     allocate(vvalue(dim))
     state_loop: do phase = 1, size(state)
 
       number_of_scalar_det_fields = 0
-      scalar_loop: do i = 1, size(detector_sfield_list(phase)%ptr)
+      scalar_loop: do i = 1, size(default_stat%detector_sfield_list(phase)%ptr)
         ! Output statistics for each scalar field
         
-        sfield => extract_scalar_field(state(phase), detector_sfield_list(phase)%ptr(i))
+        sfield => extract_scalar_field(state(phase), default_stat%detector_sfield_list(phase)%ptr(i))
 
         if(.not. detector_field(sfield)) cycle scalar_loop
         number_of_scalar_det_fields = number_of_scalar_det_fields + 1
 
-        node => detector_list%firstnode
-        scalar_node_loop: do j = 1, detector_list%length
+        node => default_stat%detector_list%firstnode
+        scalar_node_loop: do j = 1, default_stat%detector_list%length
           if(node%initial_owner /= -1 .or. procno == 1) then
             value =  detector_value(sfield, node)
 
-            offset = location_to_write + (total_num_det * (number_of_scalar_det_fields - 1) + (node%id_number - 1)) * realsize
+            offset = location_to_write + (default_stat%total_num_det * (number_of_scalar_det_fields - 1) + (node%id_number - 1)) * realsize
 
-            call mpi_file_write_at(fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+            call mpi_file_write_at(default_stat%fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
             assert(ierror == MPI_SUCCESS)
           end if
 
@@ -3044,13 +3035,13 @@ contains
         assert(.not. associated(node))
 
       end do scalar_loop
-      location_to_write = location_to_write + total_num_det * number_of_scalar_det_fields * realsize
+      location_to_write = location_to_write + default_stat%total_num_det * number_of_scalar_det_fields * realsize
       
       number_of_vector_det_fields = 0
-      vector_loop: do i = 1, size(detector_vfield_list(phase)%ptr)
+      vector_loop: do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
          ! Output statistics for each vector field
      
-         vfield => extract_vector_field(state(phase), detector_vfield_list(phase)%ptr(i))
+         vfield => extract_vector_field(state(phase), default_stat%detector_vfield_list(phase)%ptr(i))
      
          if(.not. detector_field(vfield)) cycle vector_loop
          number_of_vector_det_fields = number_of_vector_det_fields + 1
@@ -3059,16 +3050,16 @@ contains
          ! vector fields (see below)
          assert(vfield%dim == dim)
 
-         node => detector_list%firstnode
-         vector_node_loop: do j = 1, detector_list%length
+         node => default_stat%detector_list%firstnode
+         vector_node_loop: do j = 1, default_stat%detector_list%length
            if(node%initial_owner /= -1 .or. procno == 1) then
              vvalue =  detector_value(vfield, node)
 
              ! Currently have to assume single dimension vector fields in
              ! order to compute the offset
-             offset = location_to_write + (total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
+             offset = location_to_write + (default_stat%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
 
-             call mpi_file_write_at(fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+             call mpi_file_write_at(default_stat%fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
              assert(ierror == MPI_SUCCESS)
            end if  
 
@@ -3077,12 +3068,12 @@ contains
         assert(.not. associated(node))
         
       end do vector_loop
-      location_to_write = location_to_write + total_num_det * number_of_vector_det_fields * dim * realsize
+      location_to_write = location_to_write + default_stat%total_num_det * number_of_vector_det_fields * dim * realsize
         
     end do state_loop
     deallocate(vvalue)
 
-    call mpi_file_sync(fh, ierror)
+    call mpi_file_sync(default_stat%fh, ierror)
     assert(ierror == MPI_SUCCESS)
 
 !    ! The following was used when debugging to check some of the data written
@@ -3142,11 +3133,11 @@ contains
           
        !do_for_each_detector: 
 
-       this_det => detector_list%firstnode
+       this_det => default_stat%detector_list%firstnode
 
-!       initial_length=detector_list%length
+!       initial_length=default_stat%detector_list%length
 
-       do j=1, detector_list%length
+       do j=1, default_stat%detector_list%length
              
           if (this_det%type /= LAGRANGIAN_DETECTOR) then
             
@@ -3416,7 +3407,7 @@ contains
 
           end if
 
-          node_rec%name=name_of_detector_in_read_order(node_rec%id_number)
+          node_rec%name=default_stat%name_of_detector_in_read_order(node_rec%id_number)
 
           call insert(receive_list_array(i),node_rec) 
           
@@ -3791,7 +3782,7 @@ contains
 
          this_det => this_det%next
 
-         call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+         call move_det_to_send_list(default_stat%detector_list,node_to_send,send_list_array(list_neigh_processor))
 
       end if
 
@@ -4702,36 +4693,36 @@ contains
 
     integer:: stat, IERROR
 
-    if (diag_unit/=0) then
-       close(diag_unit, iostat=stat)
+    if (default_stat%diag_unit/=0) then
+       close(default_stat%diag_unit, iostat=stat)
        if (stat/=0) then
           ewrite(0,*) "Warning: failed to close .stat file"
        end if
     end if
 
-    if (conv_unit/=0) then
-       close(conv_unit, iostat=stat)
+    if (default_stat%conv_unit/=0) then
+       close(default_stat%conv_unit, iostat=stat)
        if (stat/=0) then
           ewrite(0,*) "Warning: failed to close .convergence file"
        end if
     end if
 
-    if(steady_state_unit /= 0) then
-      close(steady_state_unit, iostat = stat)
+    if(default_stat%steady_state_unit /= 0) then
+      close(default_stat%steady_state_unit, iostat = stat)
       if(stat /= 0) then
         ewrite(0, *) "Warning: failed to close .steady_state file"
       end if
     end if
 
-    if (detector_unit/=0) then
-       close(detector_unit, iostat=stat)
+    if (default_stat%detector_unit/=0) then
+       close(default_stat%detector_unit, iostat=stat)
        if (stat/=0) then
           ewrite(0,*) "Warning: failed to close .detector file"
        end if
     end if
 
-    if (fh/=0) then
-       call MPI_FILE_CLOSE(fh, IERROR) 
+    if (default_stat%fh/=0) then
+       call MPI_FILE_CLOSE(default_stat%fh, IERROR) 
        if(IERROR /= MPI_SUCCESS) then
           ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
        end if

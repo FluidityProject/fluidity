@@ -1072,7 +1072,7 @@ contains
 
       if(isparallel()) then
         ! Update the detector element ownership data
-        call search_for_detectors(detector_list, new_positions)
+        call search_for_detectors(default_stat%detector_list, new_positions)
       end if
 
       ! Then reallocate all fields
@@ -1145,14 +1145,14 @@ contains
       ! Insert aliased fields in state
       call alias_fields(states)
 
-      zoltan_drive_call=.false.
+      default_stat%zoltan_drive_call=.false.
 
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
 
 #ifdef DDEBUG
         ! Re-load-balance using zoltan
-        my_num_detectors = detector_list%length
+        my_num_detectors = default_stat%detector_list%length
          
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_before_zoltan, 1, getPINTEGER(), &
               MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -1184,7 +1184,7 @@ contains
           ! the first is needed to define the element qualities while the second must be interpolated to the newly
           ! decomposed mesh
           call zoltan_drive(states, i, max_adapt_iteration, metric = metric, full_metric = full_metric)
-          zoltan_drive_call=.true.
+          default_stat%zoltan_drive_call=.true.
 
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
           call deallocate(metric)
@@ -1192,12 +1192,12 @@ contains
         else
 
           call zoltan_drive(states, i, max_adapt_iteration, metric = metric)
-          zoltan_drive_call=.true.
+          default_stat%zoltan_drive_call=.true.
 
         end if
         
 #ifdef DDEBUG
-        my_num_detectors = detector_list%length
+        my_num_detectors = default_stat%detector_list%length
 
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_after_zoltan, 1, getPINTEGER(), &
              MPI_SUM, MPI_COMM_WORLD, ierr)
