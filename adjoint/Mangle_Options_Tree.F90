@@ -46,6 +46,7 @@ module mangle_options_tree
     character(len=OPTION_PATH_LEN) :: path, field_name
     character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete
     integer :: stat
+    integer :: j
 
     do state=0,option_count("/material_phase")-1
       nfields = option_count("/material_phase[" // int2str(state) // "]/scalar_field")
@@ -93,6 +94,14 @@ module mangle_options_tree
           nfields_to_delete = nfields_to_delete + 1
           fields_to_delete(nfields_to_delete) = field_name
         end if
+
+        ! We should also check if any field has a /no_initial_condition -- it must not
+        do j=0,option_count(trim(complete_field_path(trim(path))) // "/initial_condition/no_initial_condition")-1
+          if (have_option(trim(complete_field_path(trim(path))) // "/initial_condition[" // int2str(j) // &
+                         & "]/no_initial_condition")) then
+            FLExit("Users must not specify /no_initial_condition for themselves (path=" // trim(path))
+          endif
+        end do
       end do
 
       do field=1,nfields_to_delete
@@ -256,8 +265,10 @@ module mangle_options_tree
         ! Delete any sources specified for the forward model -- we deal with these ourselves
         call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source", stat=stat)
         ! And delete any initial conditions -- we will also specify these
-        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
-        call set_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/constant", 0.0, stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then
+          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
+          call add_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/no_initial_condition", stat=stat)
+        endif
       end do
 
       deallocate(fields_to_move)
@@ -285,8 +296,10 @@ module mangle_options_tree
         ! Delete any sources specified for the forward model -- we deal with these ourselves
         call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source", stat=stat)
         ! And delete any initial conditions -- we will also specify these
-        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
-        call set_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/constant", 0.0, stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then
+          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
+          call add_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/no_initial_condition", stat=stat)
+        endif
       end do
 
       deallocate(fields_to_move)
@@ -314,8 +327,10 @@ module mangle_options_tree
         ! Delete any sources specified for the forward model -- we deal with these ourselves
         call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source", stat=stat)
         ! And delete any initial conditions -- we will also specify these
-        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
-        call set_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/constant", 0.0, stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then
+          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition", stat=stat)
+          call add_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition/no_initial_condition", stat=stat)
+        endif
       end do
 
       deallocate(fields_to_move)

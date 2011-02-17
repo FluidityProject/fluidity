@@ -208,6 +208,8 @@ contains
          ! to a range of fields).
          call set_scalar_field_from_netcdf(field,path,position)
 
+    else if (have_option(trim(path)//"/no_initial_condition")) then
+      continue
     else
        ! This really shouldn't happen (with a valid flml)
        ewrite(-1,*) "Incorrect initial or boundary condition for field ", trim(field%name)
@@ -369,6 +371,8 @@ contains
        !This will get reset in shallow_water after populate_state
        const = 0.0
        call set(field,const)
+    else if (have_option(trim(path)//"/no_initial_condition")) then
+      continue
     else
        ! This really shouldn't happen
        ewrite(-1,*) "Incorrect initial or boundary condition for field ", trim(field%name)

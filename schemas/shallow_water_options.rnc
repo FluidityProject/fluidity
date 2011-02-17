@@ -472,41 +472,6 @@ input_choice_real_contents =
    element python {
       python_code
    }
-   
-# Choice of input method for initial conditions
-# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
-input_choice_initial_condition_real =
-   (
-      ## Constant value
-      element constant {
-         real
-      }|
-      ## Python function prescribing real input. Functions should be of the form:
-      ##
-      ##  def val(X, t):
-      ##     # Function code
-      ##     return # Return value
-      ##
-      ## where X is a tuple of length geometry dimension.
-      element python {
-         python_code
-      }|
-      ## Initialise the field from an existing file (indended
-      ## primarily for use in checkpointing). The file mesh must match
-      ## the mesh of this field  (except for piecewise constant fields 
-      ## which will be remapped back from the discontinuous nodal values). 
-      ## In parallel the process number is
-      ## appended to the filename, e.g. if the file_name attribute is
-      ## set to "input.vtu", process 0 reads from "input-0.vtu".
-      element from_file {
-         attribute file_name { xsd:string },
-         (
-            vtu_input_format|
-            netcdf_input_format
-         ),
-         comment
-      }
-   )
 
 # Choice of input method, e.g. for boundary conditions
 input_choice_real_dim_vector =

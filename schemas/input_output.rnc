@@ -182,6 +182,11 @@ input_choice_initial_condition_real =
                   "Free-surface height"|"other"
               }
           }
+      }|
+      ## Indicate that no initial condition exists. Users should not set this;
+      ## this is only used in adjoint runs.
+      element no_initial_condition {
+         empty
       }
    )
 
@@ -246,6 +251,11 @@ input_choice_initial_condition_pressure =
                   "Free-surface height"|"other"
               }
           }
+      }|
+      ## Indicate that no initial condition exists. Users should not set this;
+      ## this is only used in adjoint runs.
+      element no_initial_condition {
+         empty
       }
    )
 
@@ -279,6 +289,11 @@ input_choice_real_dim_vector_plus_file =
                   "Velocity"
               }
           }
+      }|
+      ## Indicate that no initial condition exists. Users should not set this;
+      ## this is only used in adjoint runs.
+      element no_initial_condition {
+         empty
       }
    )
 
@@ -365,8 +380,13 @@ input_choice_initial_condition_vector =
                   "Velocity"
               }
           }
+      }|
+      ## Indicate that no initial condition exists. Users should not set this;
+      ## this is only used in adjoint runs.
+      element no_initial_condition {
+         empty
       }
-   )  
+   )
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor
