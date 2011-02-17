@@ -1429,7 +1429,7 @@
 
       if (have_option("/adjoint/functional")) then
         J = functional(forward_state, current_time, dt, 1)
-        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1, functional_value=J)
+        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
       else
         call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
       end if
@@ -1490,7 +1490,7 @@
       if (have_functional) then
         J = functional(forward_state, current_time, dt, timestep)
         !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
       else
         call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
       end if
@@ -1510,7 +1510,7 @@
         if (have_functional) then
           J = functional(forward_state, current_time, dt, timestep)
           !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
         else
           call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
         end if
@@ -1534,7 +1534,7 @@
       if (have_functional) then
         J = functional(forward_state, current_time, dt, timestep)
         !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep, functional_value=J)
+        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
       else
         call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
       end if
