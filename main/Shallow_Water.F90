@@ -101,8 +101,6 @@
     integer :: timestep, nonlinear_iterations
     integer :: ierr
 
-    type(vector_field), pointer :: X_c, U_c, X_m, U_m
-
     !! Sparsity for matrices.
     type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
 
@@ -149,13 +147,6 @@
     call insert_time_in_state(state)
 
     call setup_cartesian_vector_fields(state(1))
-    X_c=>extract_vector_field(state(1), 'CartesianCoordinate')
-    U_c=>extract_vector_field(state(1), 'CartesianVelocity')
-    call vtk_write_fields('cartesian', 0, X_c, U_c%mesh, vfields=(/U_c/))
-    call map_to_manifold(state(1))
-    X_m=>extract_vector_field(state(1), "ManifoldCoordinate")
-    U_m=>extract_vector_field(state(1), "ManifoldVelocity")
-    call vtk_write_fields('manifold', 0, X_m, U_m%mesh, vfields=(/U_m/))
 
     call allocate_and_insert_additional_fields(state(1))
 
@@ -591,7 +582,7 @@
       real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
       real, dimension(ele_ngi(X,ele)) :: detwei, detJ
       real, dimension(U_cartesian%dim, ele_ngi(X,ele)) :: U_quad
-      real, dimension(2*ele_loc(U_local,ele)) :: l_rhs
+      real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_rhs
       real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_loc(U_local,ele), ele_loc(U_local,ele)) :: l_mass
       real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele), mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_big_mat
       type(element_type), pointer :: U_shape
@@ -873,9 +864,9 @@
       call zero(U_manifold)
       call set(U_manifold, U)
       U_manifold%option_path=U%option_path
-      call allocate(X_cartesian, mesh_dim(X)+1, x_mesh, "CartesianCoordinate")
+      call allocate(X_cartesian, 3, x_mesh, "CartesianCoordinate")
       call zero(X_cartesian)
-      call allocate(U_cartesian, mesh_dim(X)+1, U_mesh, "CartesianVelocity")
+      call allocate(U_cartesian, 3, U_mesh, "CartesianVelocity")
       call zero(U_cartesian)
       U_cartesian%option_path=U%option_path
       !call set_option("/material_phase::Fluid/vector_field::CartesianVelocity/prognostic/stat/exclude_from_stat")

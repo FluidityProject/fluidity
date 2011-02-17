@@ -934,24 +934,37 @@ contains
 
     case(2)
       
-      do gi=1, compute_ngi
-        
-        J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
-        ! Form determinant by expanding minors.
-        detJ_local(gi)=J(1,1,gi)*J(2,2,gi)-J(2,1,gi)*J(1,2,gi)
-      end do
+      select case(ldim)
+      case(1)
+         do gi=1,compute_ngi
+            J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
+            detJ_local(gi)=sum(sqrt(abs(J(:,:,gi))))
+         end do
+      case(2)
+         do gi=1, compute_ngi
+            J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
+            ! Form determinant by expanding minors.
+            detJ_local(gi)=J(1,1,gi)*J(2,2,gi)-J(2,1,gi)*J(1,2,gi)
+         end do
+      case default
+         FLAbort("oh dear, dimension of element > spatial dimension")
+      end select
+
       ! copy the rest
       do gi=compute_ngi+1, x_shape%ngi
         J(:,:,gi)=J(:,:,1)
         detJ_local(gi)=detJ_local(1)
       end do        
-        
-    case(3)
+
+   case(3)
 
       select case(ldim)
-
+      case(1)
+         do gi=1,compute_ngi
+            J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
+            detJ_local(gi)=sum(sqrt(abs(J(:,:,gi))))
+         end do
       case(2)
-        
          do gi=1,compute_ngi
             J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
             detJ_local(gi)=sqrt((J(1,2,gi)*J(2,3,gi)-J(1,3,gi)*J(2,2,gi))**2+ &
@@ -959,18 +972,13 @@ contains
                            (J(1,1,gi)*J(2,2,gi)-J(1,2,gi)*J(2,1,gi))**2)
 
          end do
-
       case(3)
-
          do gi=1,compute_ngi
             J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
             detJ_local(gi)=det_3(J(:,:,gi))
          end do
-
       case default
-
          FLAbort("oh dear, dimension of element > spatial dimension")
-
       end select
 
       ! copy the rest
