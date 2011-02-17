@@ -37,7 +37,9 @@ use sparse_tools
 
 implicit none
 
+  private 
   public :: field_to_adj_vector, field_from_adj_vector, adj_register_femtools_data_callbacks
+  public :: matrix_to_adj_matrix, matrix_from_adj_matrix, mesh_type_to_adj_vector, mesh_type_from_adj_vector
 
   interface field_to_adj_vector
     module procedure scalar_field_to_adj_vector, vector_field_to_adj_vector, tensor_field_to_adj_vector
@@ -55,7 +57,8 @@ implicit none
     module procedure block_csr_matrix_from_adj_matrix, csr_matrix_from_adj_matrix
   end interface
 
-  integer, parameter :: ADJ_SCALAR_FIELD=1, ADJ_VECTOR_FIELD=2, ADJ_TENSOR_FIELD=3, ADJ_CSR_MATRIX=11, ADJ_BLOCK_CSR_MATRIX=12
+  integer, parameter :: ADJ_SCALAR_FIELD=1, ADJ_VECTOR_FIELD=2, ADJ_TENSOR_FIELD=3, ADJ_CSR_MATRIX=11, ADJ_BLOCK_CSR_MATRIX=12, ADJ_MESH_TYPE=21
+  public :: ADJ_SCALAR_FIELD, ADJ_VECTOR_FIELD, ADJ_TENSOR_FIELD, ADJ_CSR_MATRIX, ADJ_BLOCK_CSR_MATRIX, ADJ_MESH_TYPE
 
   contains
 
@@ -331,6 +334,29 @@ end subroutine
     call c_f_pointer(input%ptr, tmp)
     output = tmp
   end subroutine block_csr_matrix_from_adj_matrix
+
+  function mesh_type_to_adj_vector(input) result(output)
+    type(mesh_type), intent(in), target :: input
+    type(mesh_type), pointer :: input_ptr
+    type(adj_vector) :: output
+
+    call incref(input)
+    output%klass = ADJ_MESH_TYPE
+    output%flags = 0
+    allocate(input_ptr)
+    input_ptr = input
+    output%ptr = c_loc(input_ptr)
+  end function mesh_type_to_adj_vector
+
+  subroutine mesh_type_from_adj_vector(input, output) 
+    type(adj_vector), intent(in) :: input
+    type(mesh_type), intent(out) :: output
+    type(mesh_type), pointer :: tmp
+
+    assert(input%klass==ADJ_MESH_TYPE)
+    call c_f_pointer(input%ptr, tmp)
+    output = tmp
+  end subroutine mesh_type_from_adj_vector
 
 end module libadjoint_data_callbacks
 

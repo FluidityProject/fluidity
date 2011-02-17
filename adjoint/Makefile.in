@@ -70,3 +70,5 @@ default: $(OBJS)
 clean:
 	rm -f *.o *.d *.mod
 
+Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o
+
