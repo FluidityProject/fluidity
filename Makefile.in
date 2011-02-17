@@ -208,7 +208,7 @@ lib/shared/$(SLIB_FLUIDITY).1: fluidity_library
 	@rm -rf tmp
 	@cd lib/shared; ln -sf $(SLIB_FLUIDITY).1 $(SLIB_FLUIDITY); cd ../..
 
-fltools: fluidity_library bin/burgers_equation
+fltools: fluidity_library
 	@$(MAKE) fldecomp
 	@echo "BUILD fluidity tools"
 	@cd tools; $(MAKE)

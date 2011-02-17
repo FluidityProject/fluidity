@@ -4,7 +4,7 @@
   <name>Burgers Equation BC</name>
   <owner userid="pef"/>
   <tags>burgers</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>burgers_equation adjoint_bc.bml</command_line>
   </problem_definition>
   <variables>
