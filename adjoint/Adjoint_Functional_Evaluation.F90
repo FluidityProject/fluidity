@@ -42,6 +42,7 @@ module adjoint_functional_evaluation
   use libadjoint_data_callbacks
   use field_options
 
+  private
   public :: libadjoint_functional_derivative
 
   contains

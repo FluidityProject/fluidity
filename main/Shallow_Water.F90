@@ -58,6 +58,7 @@
     use shallow_water_adjoint_callbacks
     use libadjoint
     use libadjoint_data_callbacks
+    use adjoint_functional_evaluation
     use adjoint_python
 #include "libadjoint/adj_fortran.h"
 #endif
@@ -1291,6 +1292,9 @@
         call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
         call initialise_diagnostics(trim(simulation_name) // '_' // trim(functional_name), state)
         functional_stats(functional + 1) = default_stat
+
+        ! Register the callback to compute delJ/delu
+        !call adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
       end do
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
