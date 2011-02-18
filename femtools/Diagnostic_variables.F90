@@ -767,15 +767,17 @@ contains
 
       iterator => default_stat%registered_diagnostic_first
       do while (associated(iterator)) 
-        column = column + 1
-        if (iterator%have_material_phase) then
-           buffer = field_tag(name=trim(iterator%name), column=column, &
-               & statistic=iterator%statistic, material_phase_name=iterator%material_phase, components=iterator%dim)
-        else
-           buffer = field_tag(name=trim(iterator%name), column=column, &
-               & statistic=iterator%statistic, components=iterator%dim)
-        end if
-        write(default_stat%diag_unit, '(a)') trim(buffer)
+        do i = 1, iterator%dim
+          column = column + 1
+          if (iterator%have_material_phase) then
+             buffer = field_tag(name=trim(iterator%name)//int2str(i), column=column, &
+                 & statistic=iterator%statistic, material_phase_name=iterator%material_phase)
+          else
+             buffer = field_tag(name=trim(iterator%name)//int2str(i), column=column, &
+                 & statistic=iterator%statistic)
+          end if
+          write(default_stat%diag_unit, '(a)') trim(buffer)
+        end do  
         iterator => iterator%next
       end do
 
@@ -794,7 +796,8 @@ contains
     character(len=*), intent(in) :: name, statistic 
     character(len=*), intent(in), optional ::  material_phase
     real, dimension(:), intent(in) :: value
-
+    integer :: i
+    
     type(registered_diagnostic_item), pointer :: iterator => NULL()
    
     iterator => default_stat%registered_diagnostic_first 
@@ -819,7 +822,9 @@ contains
             FLAbort("Error in set_diagnostic.")
           end if
           ! set value
-          iterator%value = value 
+          do i = 1, iterator%dim
+            iterator%value(i) = value(i)
+          end do
           return
         end if
       end if
@@ -1995,12 +2000,10 @@ contains
     iterator => default_stat%registered_diagnostic_first
     do while (associated(iterator)) 
       ! Only the first process should write statistics information
-      if(getprocno() == 1) then
-        if (iterator%dim == 1) then
-          write(default_stat%diag_unit, trim(format), advance = "no") iterator%value(1)
-        else
-          FLAbort("Multidimensional registered diagnostics not supported yet.")
-        end if
+      if(getprocno() == 1) then   
+        do k=1, iterator%dim
+          write(default_stat%diag_unit, trim(format), advance = "no") iterator%value(k)
+        end do    
       end if
       iterator => iterator%next
     end do

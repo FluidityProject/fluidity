@@ -1346,16 +1346,19 @@ contains
   subroutine implicit_solids_update(state)
 
     type(state_type), intent(in) :: state
+    type(vector_field), pointer :: velocity
 
     real, dimension(:), allocatable :: force
     real, dimension(:, :), allocatable :: particle_force
     real, dimension(:), allocatable :: wall_temperature, q
     real :: T_w_avg, q_avg
-    integer :: i, str_size
-    character(len=254) :: fmt, buffer
+    integer :: i, j, str_size
+    character(len=254) :: fmt, buffer, buffer2
 
     ewrite(2, *) "inside implicit_solids_update"
-
+    
+    velocity => extract_vector_field(state, "Velocity")
+    
     ! Update the computation of the diagnostics
     ! Only one-way coupling for now
     if (one_way_coupling .and. do_print_diagnostics) then
@@ -1366,16 +1369,15 @@ contains
        fmt="(I"//int2str(str_size)//"."//int2str(str_size)//")"
 
        ! Register the force on a solid body
-       call set_diagnostic(name="ForceX", statistic="Value", value=(/ force(1) /))
-       call set_diagnostic(name="ForceY", statistic="Value", value=(/ force(2) /))
-       call set_diagnostic(name="ForceZ", statistic="Value", value=(/ force(3) /))
+       call set_diagnostic(name="Force", statistic="Value", value=(/ force /))
 
        if (do_print_multiple_solids_diagnostics) then
-          do i = 1, number_of_solids
+          do i = 1, velocity%dim
              write(buffer, fmt) i
-             call set_diagnostic(name="ForceXOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 1) /))
-             call set_diagnostic(name="ForceYOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 2) /))
-             call set_diagnostic(name="ForceZOnSolid"//buffer, statistic="Value", value=(/ particle_force(i, 3) /))
+             do j = 1, number_of_solids
+                write(buffer2, fmt) j
+                call set_diagnostic(name="Force"//buffer//"OnSolid"//buffer2, statistic="Value", value=(/ particle_force(j, i) /))
+             end do
           end do
        end if
 
@@ -2450,10 +2452,10 @@ contains
   !----------------------------------------------------------------------------
 
   subroutine implicit_solids_register_diagnostic
-
-    integer :: i, str_size
-    character(len=254) :: fmt, buffer
-
+    
+    integer :: i, j, str_size, no_components
+    character(len=254) :: fmt, buffer, buffer2
+    
     ! figure out if we want to print out diagnostics and initialise files
     do_print_diagnostics = &
          have_option("/implicit_solids/one_way_coupling/print_diagnostics")
@@ -2475,16 +2477,17 @@ contains
          have_option("/material_phase[0]/scalar_field::Temperature")
 
     if (do_print_diagnostics) then
-       call register_diagnostic(dim=1, name="ForceX", statistic="Value")
-       call register_diagnostic(dim=1, name="ForceY", statistic="Value")
-       call register_diagnostic(dim=1, name="ForceZ", statistic="Value")
+      no_components = 3
+      ! The dimension of the diagnostic should be read from the flml.
+      call register_diagnostic(dim=3, name="Force", statistic="Value")
 
-       if (do_print_multiple_solids_diagnostics) then
-          do i = 1, number_of_solids
+      if (do_print_multiple_solids_diagnostics) then
+          do i = 1, no_components
              write(buffer, fmt) i
-             call register_diagnostic(dim=1, name="ForceXOnSolid"//buffer, statistic="Value")
-             call register_diagnostic(dim=1, name="ForceYOnSolid"//buffer, statistic="Value")
-             call register_diagnostic(dim=1, name="ForceZOnSolid"//buffer, statistic="Value")
+             do j = 1, number_of_solids
+                write(buffer2, fmt) j
+                call register_diagnostic(dim=1, name="Force"//buffer//"OnSolid"//buffer2, statistic="Value")
+             end do
           end do
        end if
 
