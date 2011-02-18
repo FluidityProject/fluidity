@@ -13,16 +13,13 @@
 r=1.0
 val=polar2cart(r)</string_value>
       </projection>
-      <inclusion>
-        <string_value lines="20" type="python">from spheretools import cart2polar
-val=cart2polar()</string_value>
-      </inclusion>
       <vector_map>
         <string_value lines="20" type="python">from spheretools import spherical_basis_vecs
 val=spherical_basis_vecs()</string_value>
       </vector_map>
       <up>
-        <string_value type="python" lines="20"/>
+        <string_value lines="20" type="python">from spheretools import spherical_up
+val=spherical_up()</string_value>
       </up>
     </embedded_manifold>
     <mesh name="CoordinateMesh">
@@ -72,6 +69,7 @@ val=spherical_basis_vecs()</string_value>
         <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
+    <output_coordinates name="Cartesian"/>
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
@@ -114,6 +112,9 @@ val=spherical_basis_vecs()</string_value>
               <none/>
             </advection_scheme>
           </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.</real_value>
+          </conservative_advection>
         </spatial_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -137,10 +138,7 @@ val=spherical_basis_vecs()</string_value>
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  return [0.0,X[1]]</string_value>
-          </python>
+          <balanced/>
         </initial_condition>
         <output/>
         <stat>
@@ -173,6 +171,9 @@ val=spherical_basis_vecs()</string_value>
               <exclude_advection_terms/>
             </advection_terms>
           </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.</real_value>
+          </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
@@ -206,7 +207,7 @@ val=spherical_basis_vecs()</string_value>
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-   return 0.0</string_value>
+   return real(sin(k[1]*X[1])*exp(1j*k[0]*X[0]))</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
