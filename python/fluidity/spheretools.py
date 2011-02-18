@@ -33,5 +33,15 @@ def spherical_basis_vecs():
     def val(X,t):
         theta = 2*pi*X[0]/360
         phi = 2*pi*X[1]/360
-        return array([[-sin(theta), cos(theta), 0.0],[-cos(theta)*sin(phi), -sin(theta)*sin(phi), cos(phi)]])
+        return array([[-sin(theta), cos(theta), 0.0],[-cos(theta)*sin(phi), -sin(theta)*sin(phi), cos(phi)]]).T
+    return val
+
+def spherical_up():
+    #return up
+    from math import sin, cos, pi
+    from numpy import array
+    def val(X,t):
+        theta = 2*pi*X[0]/360
+        phi = 2*pi*X[1]/360
+        return array([cos(theta)*cos(phi), sin(theta)*cos(phi), sin(phi)])
     return val

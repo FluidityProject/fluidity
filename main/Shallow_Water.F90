@@ -533,10 +533,11 @@
       ! direction of up
       type(vector_field) :: up
 
-      type(vector_field), pointer :: X, U
+      type(vector_field), pointer :: X, X_m, U
       character(len=PYTHON_FUNC_LEN) :: upvec
 
       X=>extract_vector_field(state, "CartesianCoordinate")
+      X_m=>extract_vector_field(state, "ManifoldCoordinate")
       U=>extract_vector_field(state, "CartesianVelocity")
 
       call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
@@ -546,7 +547,7 @@
 
       call allocate(up, X%dim, X%mesh, "Up")
       call get_option("/geometry/embedded_manifold/up", upvec)
-      call set_from_python_function(up, upvec, X, time=0.0)
+      call set_from_python_function(up, upvec, X_m, time=0.0)
       call insert(state, up, "Up")
       call deallocate(up)
 
