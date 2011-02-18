@@ -1810,7 +1810,7 @@ module zoltan_integration
          & num_import, import_global_ids, import_local_ids, import_procs)
     assert(ierr == ZOLTAN_OK)
 
-    ewrite(3,*) "Before migrate, detector_list%length: ", detector_list%length
+    ewrite(3,*) "Before migrate, default_stat%detector_list%length: ", default_stat%detector_list%length
     
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
@@ -1825,10 +1825,10 @@ module zoltan_integration
     
     call deallocate(zoltan_global_tmp_mesh)
 
-    ! update the detector%element for each detector in the detector_list
-    call update_detector_list_element(detector_list)
+    ! update the detector%element for each detector in the default_stat%detector_list
+    call update_detector_list_element(default_stat%detector_list)
 
-    ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with detector_list"
+    ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
 
     ! Merge in any detectors we received as part of the transfer to our detector list
     detector => zoltan_global_unpacked_detectors_list%firstnode
@@ -1840,13 +1840,13 @@ module zoltan_integration
        detector => detector%next
 
        call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, add_detector)
-       call insert(detector_list, add_detector)
+       call insert(default_stat%detector_list, add_detector)
 
     end do
 
-    ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with detector_list"
+    ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
 
-    ewrite(3,*) "After migrate and merge, detector_list%length: ", detector_list%length
+    ewrite(3,*) "After migrate and merge, default_stat%detector_list%length: ", default_stat%detector_list%length
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)

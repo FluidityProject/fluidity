@@ -32,7 +32,7 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: detector_list, remove_det_from_current_det_list
+  use diagnostic_variables, only: default_stat, remove_det_from_current_det_list
   use state_module
   use zoltan_detectors
 
@@ -945,10 +945,10 @@ contains
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
     
     ! if there are some detectors on this process
-    if (detector_list%length .GT. 0) then
+    if (default_stat%detector_list%length .GT. 0) then
        ! create two arrays, one with the number of detectors in each element to be transferred
        ! and one with the data for the detectors being transferred
-       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, detector_list, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
+       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, default_stat%detector_list, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
     end if
     
     ! The person doing this for mixed meshes in a few years time: this is one of the things
@@ -1019,7 +1019,7 @@ contains
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
     
-    ewrite(3,*) "Length of detector list BEFORE packing fields: ", detector_list%length
+    ewrite(3,*) "Length of detector list BEFORE packing fields: ", default_stat%detector_list%length
     
     if(zoltan_global_to_pack_detectors_list%length /= 0) then
        detector => zoltan_global_to_pack_detectors_list%firstnode
@@ -1107,7 +1107,7 @@ contains
     
     assert(zoltan_global_to_pack_detectors_list%length == 0)
 
-    ewrite(3,*) "Length of detector list AFTER packing fields: ", detector_list%length
+    ewrite(3,*) "Length of detector list AFTER packing fields: ", default_stat%detector_list%length
     
     ewrite(1,*) "Exiting zoltan_cb_pack_fields"
     
@@ -1169,7 +1169,7 @@ contains
     
     ewrite(1,*) "In zoltan_cb_unpack_fields"
     
-    ewrite(3,*) "Length of detector list BEFORE unpacking fields: ", detector_list%length
+    ewrite(3,*) "Length of detector list BEFORE unpacking fields: ", default_stat%detector_list%length
     
     do i=1,num_ids
        
@@ -1278,7 +1278,7 @@ contains
        
     end do
     
-    ewrite(3,*) "Length of detector list AFTER unpacking fields: ", detector_list%length
+    ewrite(3,*) "Length of detector list AFTER unpacking fields: ", default_stat%detector_list%length
     ewrite(3,*) "Length of zoltan_global_unpacked_detectors_list to be merged in AFTER unpacking fields: ", zoltan_global_unpacked_detectors_list%length
     
     ewrite(1,*) "Exiting zoltan_cb_unpack_fields"
