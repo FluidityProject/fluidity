@@ -60,7 +60,7 @@ module adjoint_functional_evaluation
     character(len=ADJ_NAME_LEN) :: name_f
     character(len = 30) :: buffer
     integer :: timestep, ierr, max_timestep, tmp_timestep, min_timestep, nmaterial_phases
-    type(state_type), dimension(:,:), allocatable :: states ! material_phases x timesteps
+    type(state_type), dimension(:,:), pointer :: states ! material_phases x timesteps
     character(len=OPTION_PATH_LEN) :: material_phase_name
 
     do i=1,size(name_c)
@@ -94,6 +94,7 @@ module adjoint_functional_evaluation
         states(i+1,:)%name = trim(material_phase_name)
       end do
       call convert_adj_vectors_to_states(dependencies, values, states)
+      call python_add_states_time(states)
     endif
 
     ! Also set up some useful variables for the user to use
@@ -117,7 +118,7 @@ module adjoint_functional_evaluation
   subroutine convert_adj_vectors_to_states(dependencies, values, states)
     type(adj_variable), dimension(:), intent(in) :: dependencies
     type(adj_vector), dimension(:), intent(in) :: values
-    type(state_type), dimension(:,:), intent(inout) :: states ! material_phases x time
+    type(state_type), dimension(:,:), intent(inout), pointer :: states ! material_phases x time
 
     integer :: j
     character(len=ADJ_NAME_LEN) :: name, material_phase_name, field_name

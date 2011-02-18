@@ -35,7 +35,7 @@ module python_state
   
   public :: python_init, python_reset
   public :: python_add_array, python_add_field
-  public :: python_add_state, python_add_states
+  public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
   public :: python_shell
   public :: python_fetch_real
@@ -378,6 +378,27 @@ module python_state
     end do
     
   end subroutine python_add_states
+
+  subroutine python_add_states_time(S)
+    type(state_type), dimension(:,:), intent(in), pointer :: S ! material_phases (1:n) x timesteps (p:q)
+    integer :: min_timestep
+    integer :: max_timestep
+    integer :: i
+
+    min_timestep = lbound(S, 2)
+    max_timestep = ubound(S, 2)
+
+    call python_run_string("megastates = [0] * " // int2str(max_timestep+1))
+    do i=min_timestep,max_timestep
+      call python_add_states(S(:, i))
+      ! So right now, state = to the i'th state to be considered.
+      ! Let's pack it into states[i-1]
+      call python_run_string("megastates[" // int2str(i) // "] = states; states = {}")
+    end do
+
+    call python_run_string("states = megastates; del megastates; del state")
+
+  end subroutine python_add_states_time
 
   subroutine python_shell_state(state)
     !!< Wrapper to allow python_shell to be called with a single state as
