@@ -62,7 +62,7 @@ module adjoint_functional_evaluation
     integer :: s_idx
     character(len=ADJ_NAME_LEN) :: functional_name_f, variable_name_f
     character(len = 30) :: buffer
-    integer :: timestep, ierr, max_timestep, tmp_timestep, min_timestep, nmaterial_phases
+    integer :: timestep, ierr, max_timestep, tmp_timestep, min_timestep, nmaterial_phases, iteration
     type(state_type), dimension(:,:), pointer :: states ! material_phases x timesteps
     character(len=OPTION_PATH_LEN) :: material_phase_name, field_name, mesh_name
     character(len=6) :: type_string
@@ -82,6 +82,10 @@ module adjoint_functional_evaluation
       functional_name_f(i:i) = functional_name_c(i)
     end do
     ierr = adj_variable_get_timestep(var, timestep)
+
+    ierr = adj_variable_get_iteration(var, iteration)
+    ! FIXME: check here that iteration is the last one in the timestep -- at the minute we don't know enough information here
+    ! to figure that out
 
     ! Fetch the python code the user has helpfully supplied.
     if (.not. have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")) then
