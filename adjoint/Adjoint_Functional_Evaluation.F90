@@ -48,7 +48,7 @@ module adjoint_functional_evaluation
   contains
 
   subroutine libadjoint_functional_derivative(var, ndepends, dependencies, values, functional_name_c, start_time, end_time, output) bind(c)
-    type(adj_variable), intent(in) :: var
+    type(adj_variable), intent(in), value :: var
     integer(kind=c_int), intent(in), value :: ndepends
     type(adj_variable), dimension(ndepends), intent(in) :: dependencies
     type(adj_vector), dimension(ndepends), intent(in) :: values
