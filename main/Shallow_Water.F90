@@ -1030,7 +1030,7 @@
       real :: start_time
       real :: dt
       integer :: nfunctionals, j
-      character(OPTION_PATH_LEN) :: buf
+      character(OPTION_PATH_LEN) :: buf, functional_name
       type(adj_variable), dimension(:), allocatable :: vars
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
@@ -1057,8 +1057,9 @@
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
         call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
-        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=j, dependencies=vars)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
       end do
@@ -1130,7 +1131,7 @@
 
       integer :: j, nfunctionals
       type(adj_variable), dimension(:), allocatable :: vars
-      character(len=OPTION_PATH_LEN) :: buf
+      character(len=OPTION_PATH_LEN) :: buf, functional_name
 
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
@@ -1250,8 +1251,9 @@
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
         call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
-        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=j, dependencies=vars)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
       end do
@@ -1295,7 +1297,8 @@
         functional_stats(functional + 1) = default_stat
 
         ! Register the callback to compute delJ/delu
-        !call adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
+        ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
+        call adj_chkierr(ierr)
       end do
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
@@ -1316,7 +1319,7 @@
           default_stat = functional_stats(functional + 1)
 
           do equation=end_timestep,start_timestep,-1
-            ierr = adj_get_adjoint_equation(adjointer, equation, functional, lhs, rhs, adj_var)
+            ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
             call adj_chkierr(ierr)
 
             ! Now solve lhs . adjoint = rhs
