@@ -118,19 +118,24 @@ end subroutine
     type(scalar_field), pointer :: scalar
     type(vector_field), pointer :: vector
     type(tensor_field), pointer :: tensor
+    type(mesh_type), pointer :: mesh
 
-    if (x%klass==ADJ_SCALAR_FIELD) then
+    if (x%klass == ADJ_SCALAR_FIELD) then
       call c_f_pointer(x%ptr, scalar)
       call deallocate(scalar)
       deallocate(scalar)
-    else if (x%klass==ADJ_VECTOR_FIELD) then
+    else if (x%klass == ADJ_VECTOR_FIELD) then
       call c_f_pointer(x%ptr, vector)
       call deallocate(vector)
       deallocate(vector)
-    else if (x%klass==ADJ_TENSOR_FIELD) then
+    else if (x%klass == ADJ_TENSOR_FIELD) then
       call c_f_pointer(x%ptr, tensor)
       call deallocate(tensor)
       deallocate(tensor) 
+    else if (x%klass == ADJ_MESH_TYPE) then
+      call c_f_pointer(x%ptr, mesh)
+      call deallocate(mesh)
+      deallocate(mesh)
     else
       FLAbort("adj_vector class not supported.")
     end if
