@@ -58,11 +58,12 @@ module adjoint_python
 
   contains
 
-  subroutine adj_variables_from_python(fn, start_time, end_time, timestep, result, stat)
+  subroutine adj_variables_from_python(fn, start_time, end_time, timestep, result, extras, stat)
     character(len=*), intent(in) :: fn
     real, intent(in) :: start_time, end_time
     integer, intent(in) :: timestep
     type(adj_variable), dimension(:), intent(out), allocatable :: result
+    type(adj_variable), dimension(:), intent(in), optional :: extras
     integer, intent(out), optional :: stat
 
     character(kind=c_char), dimension(len_trim(fn)) :: fn_c
@@ -93,12 +94,22 @@ module adjoint_python
       endif
     endif
 
-    allocate(result(result_len_c))
+    if (present(extras)) then
+      allocate(result(result_len_c + size(extras)))
+    else
+      allocate(result(result_len_c))
+    endif
+
     call c_f_pointer(result_c_ptr, result_c, shape=(/result_len_c/))
 
     do j=1,result_len_c
       result(j) = result_c(j)
     end do
+    if (present(extras)) then
+      do j=1,size(extras)
+        result(j + result_len_c) = extras(j)
+      end do
+    end if
 
     call c_free(result_c_ptr)
   end subroutine adj_variables_from_python
