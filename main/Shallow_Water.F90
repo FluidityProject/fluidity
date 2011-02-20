@@ -124,6 +124,7 @@
     real :: energy
 #ifdef HAVE_ADJOINT
     type(adj_adjointer) :: adjointer
+    type(adj_variable), dimension(:), allocatable :: adj_meshes
 
     ierr = adj_create_adjointer(adjointer)
     call adj_register_femtools_data_callbacks(adjointer)
@@ -143,7 +144,7 @@
     call mangle_options_tree_forward
 
     call populate_state(state)
-    call adjoint_register_initial_eta_condition
+    call adjoint_register_initial_eta_condition(state)
 
     call insert_time_in_state(state)
 
@@ -246,6 +247,7 @@
       call mangle_options_tree_adjoint
       call populate_state(state)
       call check_diagnostic_dependencies(state)
+      call compute_matrix_transposes(matrices)
 
       dump_no = dump_no - 1
 
@@ -1020,7 +1022,26 @@
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
 
-    subroutine adjoint_register_initial_eta_condition
+    subroutine compute_matrix_transposes(matrices)
+      type(state_type), intent(inout) :: matrices
+      type(csr_matrix), pointer :: wave_mat
+      type(csr_matrix) :: wave_mat_T
+      type(block_csr_matrix), pointer :: inv_coriolis_mat
+      type(block_csr_matrix) :: inv_coriolis_mat_T
+
+      wave_mat => extract_csr_matrix(matrices, "WaveMatrix")
+      wave_mat_T = transpose(wave_mat, symmetric_sparsity=.true.)
+      call insert(matrices, wave_mat_T, "WaveMatrixTranspose")
+      call deallocate(wave_mat_T)
+
+      inv_coriolis_mat => extract_block_csr_matrix(matrices, "InverseCoriolisMatrix")
+      inv_coriolis_mat_T = transpose(inv_coriolis_mat, symmetric_sparsity=.true.)
+      call insert(matrices, inv_coriolis_mat_T, "InverseCoriolisMatrixTranspose")
+      call deallocate(inv_coriolis_mat_T)
+    end subroutine compute_matrix_transposes
+
+    subroutine adjoint_register_initial_eta_condition(states)
+      type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
       ! Register the initial condition for eta_0.
       type(adj_block) :: I
@@ -1030,8 +1051,10 @@
       real :: start_time
       real :: dt
       integer :: nfunctionals, j
-      character(OPTION_PATH_LEN) :: buf, functional_name
+      character(OPTION_PATH_LEN) :: buf, functional_name, mesh_name
       type(adj_variable), dimension(:), allocatable :: vars
+      integer :: nmeshes
+      type(mesh_type), pointer :: mesh
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1051,6 +1074,18 @@
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
 
+      ! We should also set up the adj_meshes variable, as this will be necessary for every functional evaluation
+      nmeshes = option_count("/geometry/mesh")
+      allocate(adj_meshes(nmeshes))
+      do j=0,nmeshes-1
+        call get_option("/geometry/mesh[" // int2str(j) // "]/name", mesh_name)
+        ierr = adj_create_variable(trim(mesh_name), timestep=0, iteration=0, auxiliary=ADJ_TRUE, variable=adj_meshes(j+1))
+        call adj_chkierr(ierr)
+        mesh => extract_mesh(states, trim(mesh_name))
+        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory(mesh_type_to_adj_vector(mesh)))
+        call adj_chkierr(ierr)
+      end do
+
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)
       ! And we also may as well set the functional dependencies now
@@ -1058,7 +1093,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
+        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
@@ -1252,7 +1287,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars)
+        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
