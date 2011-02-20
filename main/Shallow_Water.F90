@@ -1302,6 +1302,7 @@
       type(state_type), dimension(:), intent(inout) :: state
 
       type(adj_vector) :: rhs
+      type(adj_vector) :: soln
       type(adj_matrix) :: lhs
       type(adj_variable) :: adj_var
 
@@ -1315,6 +1316,14 @@
 
       character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
       type(stat_type), dimension(:), allocatable :: functional_stats
+
+      character(len=ADJ_NAME_LEN) :: variable_name
+      type(scalar_field) :: sfield_soln, sfield_rhs
+      type(vector_field) :: vfield_soln, vfield_rhs
+      type(mesh_type), pointer :: u_mesh, h_mesh
+      type(csr_matrix) :: csr_mat
+      type(block_csr_matrix) :: block_csr_mat
+      integer :: dim
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
@@ -1335,6 +1344,11 @@
         ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
         call adj_chkierr(ierr)
       end do
+
+      u_mesh => extract_mesh(state, "VelocityMesh")
+      h_mesh => extract_mesh(state, "LayerThicknessMesh")
+      call get_option("/geometry/dimension", dim) ! this SHOULD be the dimension of the velocity field, but 
+                                                  ! I don't know how to fetch that
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
@@ -1358,11 +1372,67 @@
             call adj_chkierr(ierr)
 
             ! Now solve lhs . adjoint = rhs
+            ierr = adj_variable_get_name(adj_var, variable_name)
+            ! variable_name should be something like Fluid::Velocity or Fluid::LayerThickness
+            select case(rhs%klass)
+              case(ADJ_SCALAR_FIELD)
+                call field_from_adj_vector(rhs, sfield_rhs)
+                call allocate(sfield_soln, h_mesh, variable_name(8:len_trim(variable_name)))
+                call zero(sfield_soln)
 
-            ! Now record
+                select case(lhs%klass)
+                  case(IDENTITY_MATRIX)
+                    call set(sfield_soln, sfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(sfield_soln, csr_mat, sfield_rhs)
+                    else
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
 
-            ! Then put it in state
+                call insert(state(1), sfield_soln, "Adjoint" // trim(sfield_soln%name))
+                soln = field_to_adj_vector(sfield_soln)
+                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory(soln))
+                call adj_chkierr(ierr)
+              case(ADJ_VECTOR_FIELD)
+                call field_from_adj_vector(rhs, vfield_rhs)
+                call allocate(vfield_soln, dim, u_mesh, variable_name(8:len_trim(variable_name))) ! dim is probably wrong
+                call zero(vfield_soln)
 
+                select case(lhs%klass)
+                  case(IDENTITY_MATRIX)
+                    call set(vfield_soln, vfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(vfield_soln, csr_mat, vfield_rhs)
+                    else
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, block_csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(vfield_soln, block_csr_mat, vfield_rhs)
+                    else
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
+                    endif
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
+
+                call insert(state(1), vfield_soln, "Adjoint" // trim(vfield_soln%name))
+                soln = field_to_adj_vector(vfield_soln)
+                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory(soln))
+                call adj_chkierr(ierr)
+              case default
+                FLAbort("Unknown rhs%klass")
+            end select
           end do
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
@@ -1383,7 +1453,7 @@
       end do
 
       call get_option("/timestepping/finish_time", finish_time)
-      !assert(current_time == finish_time)
+      assert(current_time == finish_time)
 
       ! Clean up stat files
       do functional=0,no_functionals-1

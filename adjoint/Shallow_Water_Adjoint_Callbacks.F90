@@ -40,7 +40,7 @@ module shallow_water_adjoint_callbacks
 
     integer, parameter :: IDENTITY_MATRIX = 30
     ! things that can live in %flags
-    integer, parameter :: SOLN_ON_VELOCITY_MESH = 1, SOLN_ON_LAYER_THICKNESS_MESH=2, MATRIX_INVERTED=4
+    integer, parameter :: MATRIX_INVERTED = 1
 
     contains
 
@@ -75,7 +75,7 @@ module shallow_water_adjoint_callbacks
       ! that we'll catch later on in the solution of the adjoint equations.
       output%ptr = c_null_ptr
       output%klass = IDENTITY_MATRIX
-      output%flags = SOLN_ON_VELOCITY_MESH
+      output%flags = 0
 
     end subroutine velocity_identity_assembly_callback
 
@@ -110,7 +110,7 @@ module shallow_water_adjoint_callbacks
       ! that we'll catch later on in the solution of the adjoint equations.
       output%ptr = c_null_ptr
       output%klass = IDENTITY_MATRIX
-      output%flags = SOLN_ON_LAYER_THICKNESS_MESH
+      output%flags = 0
 
     end subroutine layerthickness_identity_assembly_callback
 
@@ -149,7 +149,7 @@ module shallow_water_adjoint_callbacks
       else if (hermitian == ADJ_TRUE) then
         output = matrix_to_adj_matrix(wave_mat_T)
       end if
-      output%flags = SOLN_ON_LAYER_THICKNESS_MESH
+      output%flags = 0
     end subroutine wave_mat_assembly_callback
 
     subroutine coriolis_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
@@ -184,10 +184,10 @@ module shallow_water_adjoint_callbacks
       
       if (hermitian == ADJ_FALSE) then
         output = matrix_to_adj_matrix(inv_coriolis_mat)
-        output%flags = IAND(SOLN_ON_VELOCITY_MESH, MATRIX_INVERTED)
+        output%flags = MATRIX_INVERTED
       else if (hermitian == ADJ_TRUE) then
         output = matrix_to_adj_matrix(inv_coriolis_mat_T)
-        output%flags = IAND(SOLN_ON_VELOCITY_MESH, MATRIX_INVERTED)
+        output%flags = MATRIX_INVERTED
       end if
     end subroutine coriolis_assembly_callback
 
