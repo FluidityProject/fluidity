@@ -66,6 +66,8 @@ implicit none
     type(adj_adjointer), intent(inout) :: adjointer
     integer(kind=c_int) :: ierr
 
+    ierr = adj_register_data_callback(adjointer, ADJ_VEC_DUPLICATE_CB, c_funloc(femtools_vec_duplicate_proc))
+    call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_AXPY_CB, c_funloc(femtools_vec_axpy_proc))
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_DESTROY_CB, c_funloc(femtools_vec_destroy_proc))
@@ -81,6 +83,51 @@ implicit none
 !    ierr = adj_register_data_callback(adjointer, ADJ_MAT_DUPLICATE_CB, c_funloc(femtools_mat_duplicate_proc))
 !    call adj_chkierr(ierr)
 end subroutine
+
+  subroutine femtools_vec_duplicate_proc(x, newx) bind(c)
+    ! Creates a new vector of the same type as an existing vector and set its entries to zero.
+    use iso_c_binding
+    use libadjoint_data_structures
+    type(adj_vector), intent(in), value :: x
+    type(adj_vector), intent(out) :: newx
+    type(scalar_field), pointer :: x_scalar
+    type(vector_field), pointer :: x_vector
+    type(tensor_field), pointer :: x_tensor
+    type(mesh_type), pointer :: x_mesh
+    type(scalar_field) :: newx_scalar
+    type(vector_field) :: newx_vector
+    type(tensor_field) :: newx_tensor
+    type(mesh_type) :: newx_mesh
+
+    select case(x%klass)
+      case(ADJ_SCALAR_FIELD)
+        call c_f_pointer(x%ptr, x_scalar)
+        call allocate(newx_scalar, x_scalar%mesh, trim(x_scalar%name))
+        call zero(newx_scalar)
+        newx = field_to_adj_vector(newx_scalar)
+        call deallocate(newx_scalar)
+      case(ADJ_VECTOR_FIELD)
+        call c_f_pointer(x%ptr, x_vector)
+        call allocate(newx_vector, x_vector%dim, x_vector%mesh, trim(x_vector%name))
+        call zero(newx_vector)
+        newx = field_to_adj_vector(newx_vector)
+        call deallocate(newx_vector)
+      case(ADJ_TENSOR_FIELD)
+        call c_f_pointer(x%ptr, x_tensor)
+        call allocate(newx_tensor, x_tensor%mesh, trim(x_tensor%name), dim=x_tensor%dim)
+        call zero(newx_tensor)
+        newx = field_to_adj_vector(newx_tensor)
+        call deallocate(newx_tensor)
+      case(ADJ_MESH_TYPE)
+        call c_f_pointer(x%ptr, x_mesh)
+        newx_mesh = x_mesh
+        ! FIXME: should I be incref'ing newx_mesh here?
+        newx = mesh_type_to_adj_vector(newx_mesh)
+      case default
+        FLAbort("Unknown x%klass")
+    end select
+
+  end subroutine femtools_vec_duplicate_proc
 
   subroutine femtools_vec_axpy_proc(y, alpha, x) bind(c)
     use iso_c_binding
@@ -106,6 +153,8 @@ end subroutine
       call c_f_pointer(y%ptr, y_tensor)
       call c_f_pointer(x%ptr, x_tensor)
       call addto(y_tensor, x_tensor, alpha)
+    else if (y%klass == ADJ_MESH_TYPE) then
+      continue
     else
       FLAbort("adj_vector class not supported.")
     end if
