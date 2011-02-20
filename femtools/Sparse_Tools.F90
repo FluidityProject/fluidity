@@ -4608,7 +4608,7 @@ contains
     do i = 1, blocks(block_A, 1) 
       do j = 1, blocks(block_A, 2)
         A = block(block_A, i, j)
-        AT = transpose(A)
+        AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
         call set(block_AT, j, i, AT)
         call deallocate(AT)
       end do
