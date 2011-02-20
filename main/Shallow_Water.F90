@@ -226,7 +226,6 @@
     call deallocate(wave_mat)
     call deallocate(big_mat)
     call deallocate(state)
-    call deallocate(matrices)
     call deallocate_transform_cache
     call deallocate_reserve_state
     call close_diagnostic_files
@@ -235,6 +234,7 @@
     call destroy_registered_diagnostics 
 
     if (.not. adjoint) then
+      call deallocate(matrices)
       call print_references(0)
     endif
 
@@ -257,6 +257,7 @@
       call deallocate_reserve_state
 
       call deallocate(state)
+      call deallocate(matrices)
       call print_references(0)
     else
       ewrite(1,*) "No adjoint specified, not entering adjoint computation"
@@ -1288,7 +1289,8 @@
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
         call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
-        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep, functional=trim(functional_name), &
+                                                      & dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
       end do
