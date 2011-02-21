@@ -88,7 +88,7 @@ module field_options
    public :: complete_mesh_path, complete_field_path, &
      & get_external_mesh, adaptivity_options, print_children, &
      & get_coordinate_field, select_fields_to_interpolate, &
-     & get_linear_coordinate_field_name, find_mesh_to_adapt, &
+     & find_mesh_to_adapt, &
      & adaptivity_bounds, find_linear_parent_mesh, &
      & interpolate_field, convergence_norm_integer, &
      & do_not_recalculate, needs_initial_mesh, &
@@ -844,22 +844,6 @@ contains
     do_not_recalculate = have_option(trim(complete_field_path(option_path, stat=stat))//"/do_not_recalculate")
   
   end function do_not_recalculate
-  
-  function get_linear_coordinate_field_name(state) result(nam)
-    type(state_type), intent(in) :: state
-    character(len=FIELD_NAME_LEN) :: nam
-
-    type(mesh_type), pointer :: mesh_ptr
-
-    call find_mesh_to_adapt(state, mesh_ptr)
-    
-    if (trim(mesh_ptr%name) == "CoordinateMesh") then
-       nam="Coordinate"
-    else
-       nam=trim(mesh_ptr%name)//"Coordinate"
-    end if
-    
-  end function get_linear_coordinate_field_name
   
   subroutine find_linear_parent_mesh(state, mesh, parent_mesh, stat)
   !!< Tries to find the parent mesh (possibly grand...parent mesh)
