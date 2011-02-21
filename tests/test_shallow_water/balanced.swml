@@ -227,19 +227,4 @@
     <check_wave_matrix/>
     <check_solution/>
   </debug>
-  <adjoint>
-    <functional name="zero">
-      <functional_derivative>
-        <algorithm name="functional_derivative">
-          <string_value type="python" lines="20">derivative.val[:] = 0.0</string_value>
-        </algorithm>
-      </functional_derivative>
-      <functional_dependencies>
-        <algorithm name="functional_dependencies">
-          <string_value type="python" lines="20">def dependencies(times, timestep):
-  return {}</string_value>
-        </algorithm>
-      </functional_dependencies>
-    </functional>
-  </adjoint>
 </shallow_water_options>
