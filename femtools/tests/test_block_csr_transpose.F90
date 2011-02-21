@@ -38,6 +38,7 @@ subroutine test_block_csr_transpose
   
   call allocate(sparsity, 2, 3, nnz = (/ 1, 2 /), name="Sparsity")
   sparsity%colm = (/ 1, 2, 3 /)
+  sparsity%sorted_rows = .false.
 
   call allocate(A, sparsity, name="A")
   call set(A, (/ 1 /) , (/ 1 /) , reshape( (/ 1.0 /), (/ 1, 1/) ) )
@@ -49,7 +50,7 @@ subroutine test_block_csr_transpose
   call set(block_mat, 2, 1, A)
   call set(block_mat, 2, 2, A)
 
-  block_mat_T = transpose(block_mat)
+  block_mat_T = transpose(block_mat, symmetric_sparsity=.false.)
   block_mat_TT = transpose(block_mat_T)
 
   call report_test("[blocks are the same]", .not. all(block_mat%blocks == block_mat_TT%blocks), .false., "the blocks do not match")

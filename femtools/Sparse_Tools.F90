@@ -4617,7 +4617,11 @@ contains
     do i = 1, blocks(block_A, 1) 
       do j = 1, blocks(block_A, 2)
         A = block(block_A, i, j)
-        AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
+        if (present(symmetric_sparsity)) then
+          AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
+        else
+          AT = transpose(A)
+        end if
         call set(block_AT, j, i, AT)
         call deallocate(AT)
       end do
@@ -4644,11 +4648,11 @@ contains
 
 #ifdef DDEBUG 
     ! Check that the supplied sparsity is indeed symmetric  
-!    if (present_and_true(symmetric_sparsity)) then
-!      if (.not. is_symmetric(A%sparsity)) then
-!         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
-!      end if
-!    end if
+    if (present_and_true(symmetric_sparsity)) then
+      if (.not. is_symmetric(A%sparsity)) then
+         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
+      end if
+    end if
 #endif
 
     if (present_and_true(symmetric_sparsity)) then

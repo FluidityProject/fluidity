@@ -38,6 +38,7 @@ subroutine test_block_csr_transpose_diagonal
   
   call allocate(sparsity, 2, 2, nnz = (/ 1, 1 /), name="Sparsity", diag=.true.)
   sparsity%colm = (/ 1, 2 /)
+  sparsity%sorted_rows = .true.
 
   call allocate(A, sparsity, name="A")
   call set(A, (/ 1 /) , (/ 1 /) , reshape( (/ 1.0 /), (/ 1, 1/) ) )

@@ -39,6 +39,8 @@ subroutine test_block_csr_transpose_symmetric_sparsity
   call allocate(sparsity, 2, 2, nnz = (/ 2, 1 /), name="Sparsity")
   sparsity%colm = (/ 1, 2, 1 /)
 
+  sparsity%sorted_rows = .true.
+
   call allocate(A, sparsity, name="A")
   call set(A, (/ 1 /) , (/ 2 /) , reshape( (/ 1.0, 2.0 /), (/ 1, 2/) ) )
   call set(A, (/ 2 /), (/ 1 /), reshape( (/ 3.0 /), (/ 1, 1 /) ) )
