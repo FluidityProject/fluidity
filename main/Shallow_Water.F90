@@ -127,7 +127,11 @@
     type(adj_variable), dimension(:), allocatable :: adj_meshes
 
     ierr = adj_create_adjointer(adjointer)
+    ! Register the data callbacks
     call adj_register_femtools_data_callbacks(adjointer)
+    ! Register the operator callbacks
+    call register_sw_operator_callbacks(adjointer)
+
 #endif
 
 #ifdef HAVE_MPI
@@ -1347,8 +1351,9 @@
         call adj_chkierr(ierr)
       end do
 
-      u_mesh => extract_mesh(state, "VelocityMesh")
-      h_mesh => extract_mesh(state, "LayerThicknessMesh")
+      u_mesh => extract_mesh(state, "VelocityMesh")  
+      ! call print_state(state(1))
+      h_mesh => extract_mesh(state, "PressureMesh")  ! this should be LayerThicknessMesh. This code works only with swml where the pressure mesh is actually called pressure mesh (btw same with the VelocitMesh above)
       call get_option("/geometry/dimension", dim) ! this SHOULD be the dimension of the velocity field, but 
                                                   ! I don't know how to fetch that
 

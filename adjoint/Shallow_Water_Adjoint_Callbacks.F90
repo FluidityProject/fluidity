@@ -36,13 +36,26 @@ module shallow_water_adjoint_callbacks
     use state_module
     use fields
     use sparse_matrices_fields
+    use spud, only: get_option
     implicit none
+
+    private
+
+    public :: register_sw_operator_callbacks
 
     integer, parameter :: IDENTITY_MATRIX = 30
     ! things that can live in %flags
     integer, parameter :: MATRIX_INVERTED = 1
 
     contains
+
+    subroutine register_sw_operator_callbacks(adjointer)
+      type(adj_adjointer), intent(inout) :: adjointer
+      integer(kind=c_int) :: ierr
+
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "VelocityIdentity", c_funloc(velocity_identity_assembly_callback))
+      call adj_chkierr(ierr)
+    end subroutine register_sw_operator_callbacks
 
     subroutine velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
