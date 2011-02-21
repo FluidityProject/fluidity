@@ -78,8 +78,11 @@ module adjoint_functional_evaluation
 
     call python_reset
 
-    do i=1,size(functional_name_c)
+    functional_name_f = ' '
+    i = 1
+    do while (i <= ADJ_NAME_LEN .and. functional_name_c(i) /= c_null_char)
       functional_name_f(i:i) = functional_name_c(i)
+      i = i + 1
     end do
     ierr = adj_variable_get_timestep(var, timestep)
 
