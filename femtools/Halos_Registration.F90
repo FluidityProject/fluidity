@@ -270,7 +270,7 @@ contains
     assert(.not. associated(subdomain_mesh%halos))
     assert(.not. associated(subdomain_mesh%element_halos))
 
-    ! Initialise key information:
+    ! Initialise key MPI information:
 
     nhalos = halo_count(external_mesh)
     ewrite(2,*) "Number of subdomain_mesh halos = ",nhalos
@@ -286,65 +286,10 @@ contains
     ! Allocate subdomain mesh halos:
     allocate(subdomain_mesh%halos(nhalos))
 
-    ! Allocate send/receive arrays for external_mesh and subdomain_mesh:
-    allocate(external_mesh_nsends(nprocs))
-    allocate(external_mesh_nreceives(nprocs))
-
-    allocate(external_mesh_sends_indices(nprocs))
-    allocate(external_mesh_receives_indices(nprocs))
-
-    allocate(subdomain_mesh_nsends(nprocs))
-    allocate(subdomain_mesh_nreceives(nprocs))
-
-    allocate(subdomain_mesh_sends_indices(nprocs))
-    allocate(subdomain_mesh_receives_indices(nprocs))
-
-    ! Loop over halos to determine if external mesh halos exist on subdomain_mesh:
+    ! Derive subdomain_mesh halos:
     do ihalo = 1, nhalos
 
-       allocate(external_mesh_sends(halo_all_sends_count(external_mesh%halos(ihalo))))
-       allocate(external_mesh_receives(halo_all_receives_count(external_mesh%halos(ihalo))))
-       call extract_all_halo_sends(external_mesh%halos(ihalo), external_mesh_sends, nsends = external_mesh_nsends, start_indices = external_mesh_sends_indices)
-       call extract_all_halo_receives(external_mesh%halos(ihalo), external_mesh_receives, nreceives = external_mesh_nreceives, start_indices = external_mesh_receives_indices)
-
-       do iproc = 1, nprocs
-          call allocate(subdomain_mesh_sends_indices(iproc))
-          call allocate(subdomain_mesh_receives_indices(iproc))
-          ! Create submesh sends list:
-          do inode = external_mesh_sends_indices(iproc), external_mesh_sends_indices(iproc)+external_mesh_nsends(iproc)-1
-             ! Check that this node exists on submesh. If so, add node index to a subdomain_mesh integer set:
-             if(inverse_node_list(external_mesh_sends(inode)) /= 0) then
-                call insert(subdomain_mesh_sends_indices(iproc),inode)
-             end if
-          end do
-          ! Create submesh receives list:
-          do inode = external_mesh_receives_indices(iproc), external_mesh_receives_indices(iproc)+external_mesh_nreceives(iproc)-1
-             ! Check that this node exists on submesh. If so, add node index to a subdomain_mesh integer set:
-             if(inverse_node_list(external_mesh_receives(inode)) /= 0) then
-                call insert(subdomain_mesh_receives_indices(iproc),inode)
-             end if
-          end do
-          subdomain_mesh_nsends(iproc) = key_count(subdomain_mesh_sends_indices(iproc))
-          subdomain_mesh_nreceives(iproc) = key_count(subdomain_mesh_receives_indices(iproc))
-       end do ! iproc
-
-       ! Allocate subdomain_mesh halos:
-       call allocate(subdomain_mesh%halos(ihalo), subdomain_mesh_nsends, subdomain_mesh_nreceives, name=trim(subdomain_mesh%name) // "Level" // int2str(ihalo) // "Halo", &
-            & communicator = communicator, data_type = HALO_TYPE_CG_NODE, ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
-
-       ! Load submesh halo information. Begin with number of owned nodes and subsequently sends and receives:
-       nowned_nodes = 0
-       do inode = 1, size(node_list)
-          if (node_owned(external_mesh%halos(ihalo),node_list(inode))) then
-             nowned_nodes = nowned_nodes + 1
-          end if
-       end do
-       call set_halo_nowned_nodes(subdomain_mesh%halos(ihalo), nowned_nodes)
-
-       do iproc = 1, nprocs
-          call set_halo_sends(subdomain_mesh%halos(ihalo), iproc, inverse_node_list(external_mesh_sends(set2vector(subdomain_mesh_sends_indices(iproc)))))
-          call set_halo_receives(subdomain_mesh%halos(ihalo), iproc, inverse_node_list(external_mesh_receives(set2vector(subdomain_mesh_receives_indices(iproc)))))
-       end do
+       subdomain_mesh%halos(ihalo) = derive_sub_halo(external_mesh%halos(ihalo),node_list)
        
        assert(trailing_receives_consistent(subdomain_mesh%halos(ihalo)))
       
@@ -354,9 +299,6 @@ contains
           call create_ownership(subdomain_mesh%halos(ihalo))
        end if
        
-       deallocate(external_mesh_sends)
-       deallocate(external_mesh_receives)
-
     end do ! ihalo 
     
     if(all(serial_storage_halo(subdomain_mesh%halos))) then
@@ -366,19 +308,6 @@ contains
       call derive_element_halo_from_node_halo(subdomain_mesh, &
         & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
     end if
-
-    ! Clean up:
-    deallocate(external_mesh_nsends)
-    deallocate(external_mesh_nreceives)
-    deallocate(external_mesh_sends_indices)
-    deallocate(external_mesh_receives_indices)
-
-    deallocate(subdomain_mesh_nsends)
-    deallocate(subdomain_mesh_nreceives)
-    call deallocate(subdomain_mesh_sends_indices)
-    call deallocate(subdomain_mesh_receives_indices)
-    deallocate(subdomain_mesh_sends_indices)
-    deallocate(subdomain_mesh_receives_indices)
 
   end subroutine generate_substate_halos
 
