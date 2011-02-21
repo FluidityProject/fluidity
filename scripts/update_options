@@ -66,10 +66,10 @@ for filename in filenames:
   # Read the file and check that either the file is valid, or diamond.schema
   # can make the file valid by adding in the missing elements
   optionsTree = sch.read(filename)
-  lost_eles, added_eles = sch.read_errors()
-  if len(lost_eles) > 0 or not optionsTree.valid:
+  lost_eles, added_eles, lost_attrs, added_attrs = sch.read_errors()
+  if len(lost_eles) + len(lost_attrs) > 0 or not optionsTree.valid:
     debug.deprint(str(filename) + ": Invalid", 0)
-    debug.deprint(str(filename) + " errors: " + str((lost_eles, added_eles)), 1)
+    debug.deprint(str(filename) + " errors: " + str((lost_eles, added_eles, lost_attrs, added_attrs)), 1)
     invalidFiles.append(filename)
     continue
   

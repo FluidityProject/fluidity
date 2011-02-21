@@ -78,13 +78,13 @@ class DiamondValidator:
       debug.dprint("Testing files with extension: " + extension, 0)
       for filename in self._TestFiles(extension, testDir, depth): 
         optionsTree = sch.read(filename)
-        lost_eles, added_eles = sch.read_errors()
-        if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+        lost_eles, added_eles, lost_attrs, added_attrs = sch.read_errors()
+        if len(lost_eles) + len(added_eles) + len(lost_attrs) + len(added_attrs) == 0 and optionsTree.valid:
           debug.dprint(filename + " : Pass", 0)
           self._passes += 1
         else:
           debug.dprint(filename + " : Fail", 0)
-          self._optionErrors[filename] = (lost_eles, added_eles)
+          self._optionErrors[filename] = (lost_eles, added_eles, lost_attrs, added_attrs)
           
     if not xmlRootNode is None:
       debug.dprint("Testing xml files with root node: " + xmlRootNode, 0)
@@ -97,13 +97,13 @@ class DiamondValidator:
         if len(rootEles) == 0:
           continue
         optionsTree = sch.read(filename)
-        lost_eles, added_eles = sch.read_errors()
-        if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+        lost_eles, added_eles, lost_attrs, added_attrs = sch.read_errors()
+        if len(lost_eles) + len(added_eles) + len(lost_attrs) + len(added_attrs) == 0 and optionsTree.valid:
           debug.dprint(filename + " : Pass", 0)
           self._passes += 1
         else:
           debug.dprint(filename + " : Fail", 0)
-          self._optionErrors[filename] = (lost_eles, added_eles)
+          self._optionErrors[filename] = (lost_eles, added_eles, lost_attrs, added_attrs)
     
     return
     
