@@ -4644,11 +4644,11 @@ contains
 
 #ifdef DDEBUG 
     ! Check that the supplied sparsity is indeed symmetric  
-    if (present_and_true(symmetric_sparsity)) then
-      if (.not. is_symmetric(A%sparsity)) then
-         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
-      end if
-    end if
+!    if (present_and_true(symmetric_sparsity)) then
+!      if (.not. is_symmetric(A%sparsity)) then
+!         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
+!      end if
+!    end if
 #endif
 
     if (present_and_true(symmetric_sparsity)) then
