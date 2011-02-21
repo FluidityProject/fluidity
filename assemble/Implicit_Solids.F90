@@ -289,9 +289,7 @@ contains
 
           x => extract_vector_field(state, "Coordinate")
           call allocate(metric, x%mesh, "ErrorMetric")
-          call zero(metric)
           call allocate(edge_lengths, metric%mesh, "EdgeLengths")
-          call zero(edge_lengths)
        end if
 
        if (its == 1) then
@@ -326,6 +324,8 @@ contains
           call bound_concentration()
 
           ! calculate metric and edge lengths
+          call zero(metric)
+          call zero(edge_lengths)
           states = (/state/)
           call qmesh(states, metric)
           call get_edge_lengths(metric, edge_lengths)
