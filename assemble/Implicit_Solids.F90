@@ -230,8 +230,6 @@ contains
           call zero(edge_lengths)
 
           ! calculate metric and edge lengths (used for the absorption term later on)
-          call zero(metric)
-          call zero(edge_lengths)
           states = (/state/)
           if (have_viscosity) then
              call qmesh(states, metric) ! metric only needed to get the edge_lengths
@@ -327,8 +325,6 @@ contains
           call bound_concentration()
 
           ! calculate metric and edge lengths
-          call zero(metric)
-          call zero(edge_lengths)
           states = (/state/)
           call qmesh(states, metric)
           call get_edge_lengths(metric, edge_lengths)
