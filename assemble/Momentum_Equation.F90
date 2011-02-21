@@ -1913,16 +1913,6 @@
                end if
             end if
             
-            ! Check options for Implicit Solids:
-            if (have_option("/implicit_solids/one_way_coupling") .and. have_option("/geometry/dimension/1")) then
-               ewrite(-1,*) "Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via Implicit Solids"
-               FLExit("Use a 2D or 3D set-up when using a 1-way coupled simulation via implicit solids")
-            else if (have_option("/implicit_solids/two_way_coupling") .and. (.not.have_option("/geometry/dimension/3"))) then
-               ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
-               ewrite(-1,*) "is only supported for 3D simulations."
-               FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
-            end if
-
          end do
 
          ewrite(1,*) 'Finished checking momentum discretisation options'
