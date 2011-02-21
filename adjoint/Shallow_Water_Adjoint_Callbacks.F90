@@ -46,6 +46,7 @@ module shallow_water_adjoint_callbacks
     private
 
     public :: register_sw_operator_callbacks
+    public :: IDENTITY_MATRIX, MATRIX_INVERTED
 
     contains
 
