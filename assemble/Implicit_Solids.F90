@@ -164,12 +164,16 @@ contains
 
     ewrite(2, *) "inside implicit_solids"
 
+    ! SolidConcentration will be called /alpha in the comments from now on
+    ! Furthermore, the superscript will denote on which mesh the corresponding 
+    ! variable will live, and the subscript will distinguish between the phase, 
+    ! i.e. u^s_f will be the fluid velocity on the solid mesh.
     solid => extract_scalar_field(state, "SolidConcentration")
 
     if (.not. init) then
 
        call get_option("/geometry/dimension", dim)
-
+       ! Scaling factor beta
        call get_option("/implicit_solids/beta", beta, default=1.)
        call get_option("/implicit_solids/source_intensity", &
             source_intensity, default=0.)
@@ -179,7 +183,7 @@ contains
 
        viscosity => extract_tensor_field(state, "Viscosity", stat)
        have_viscosity = stat == 0
-
+       ! Initialisation according to 1-way or 2-way coupling:
        if (one_way_coupling) then
           call one_way_initialise(state)
        else if (two_way_coupling)  then
@@ -187,59 +191,72 @@ contains
        else
           FLAbort("implicit_solids: Don't know what to do...")
        end if
-
+       ! Make sure /alpha is computed at first timestep:
        do_calculate_volume_fraction = .true.
-
+       ! At this stage, everything is initialised:
        init=.true.
     end if
 
+    ! 1-WAY COUPLING
     if (one_way_coupling) then
-
+       ! Computation of /alpha^f_s and the SolidPhase
+       ! at the first timestep and after each adapt:
        if (do_calculate_volume_fraction) then
           call allocate(solid_local, solid%mesh, "SolidConcentration")
           call zero(solid_local)
 
+          ! The SolidPhase represents the surface of the immersed body
+          ! on the fluids mesh:
           call allocate(interface_local, solid%mesh, "SolidPhase")
           call zero(interface_local)
 
           allocate(node_to_particle(node_count(solid)))
 
+          ! Computing /alpha^f_s:
           do i = 1, number_of_solids
              ewrite(2, *) "  calculating volume fraction for solid", i 
              call calculate_volume_fraction(state, i)
           end do
 
+          ! Compute the SolidPhase:
           call calculate_solid_fluid_interface(state)
 
+          ! 'x' will be the pointer to the coordinate field of the fluids mesh
           x => extract_vector_field(state, "Coordinate")
+          ! Allocating variables for computing the absorption term
           call allocate(metric, x%mesh, "ErrorMetric")
           call zero(metric)
           call allocate(edge_lengths, metric%mesh, "EdgeLengths")
           call zero(edge_lengths)
 
-          ! calculate metric and edge lengths
+          ! calculate metric and edge lengths (used for the absorption term later on)
           call zero(metric)
           call zero(edge_lengths)
           states = (/state/)
           if (have_viscosity) then
-             call qmesh(states, metric)
+             call qmesh(states, metric) ! metric only needed to get the edge_lengths
              call get_edge_lengths(metric, edge_lengths)
           end if
-       end if
+       end if ! end if do_calculate_volume_fraction
 
        interface => extract_scalar_field(state, "SolidPhase")
        call zero(interface)
        call set(interface, interface_local)
 
+       ! solid being /alpha^f_s before an adapt,
+       ! solid_local being the new /alpha^f_s, after an adapt
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
+       ! Set source term (only if temperature, pressure gradient or 2-way coupling)
        call set_source(state)
+       ! Set absorption term /sigma 
        call set_absorption_coefficient(state)
 
        if (have_fixed_temperature_source) &
             call calculate_temperature_diffusivity(state)
 
+       ! Check if the mesh is adapted at end of this timestep
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
@@ -253,6 +270,7 @@ contains
           do_calculate_volume_fraction = .true.
        end if
 
+    ! 2-WAY COUPLING
     else if (two_way_coupling) then
 
        old_solid => extract_scalar_field(state, "OldSolidConcentration")
@@ -315,7 +333,7 @@ contains
           call qmesh(states, metric)
           call get_edge_lengths(metric, edge_lengths)
 
-       end if
+       end if ! end if (its==1)
 
        ! previous time step volume fraction
        call set(old_solid, old_solid_local)
@@ -330,6 +348,7 @@ contains
        call set_source(state)
        call set_absorption_coefficient(state)
 
+       ! Check if the mesh is adapted at end of this timestep
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
@@ -689,8 +708,10 @@ contains
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     character(len=PYTHON_FUNC_LEN) :: python_function
 
+    ! pointer to vector field of coordinates of fluids mesh:
     positions => extract_vector_field(state, "Coordinate")
 
+    ! In case of multiple immersed bodies, translate their coordinates:
     allocate(translation_coordinates(positions%dim, number_of_solids))
     if (multiple_solids) then
        call get_option(&
@@ -708,11 +729,16 @@ contains
 
     call get_option("/geometry/quadrature/degree", quad_degree)
 
+    ! Read in the serial mesh of solid body
+    ! external_positions lives in the whole module:
     external_positions = &
          read_triangle_serial(trim(external_mesh_name), &
          quad_degree=quad_degree)
 
+    ! 1D set-ups not supported:
     assert(positions%dim >= 2)
+    ! Make sure dimensions of coordinate meshes of the
+    ! fluids mesh and solids mesh are equal:
     assert(positions%dim == external_positions%dim)
 
     ! check temperature related options
