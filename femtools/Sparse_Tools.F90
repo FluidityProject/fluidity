@@ -420,6 +420,15 @@ module sparse_tools
      module procedure csr_destroy_solver_cache, block_csr_destroy_solver_cache
   end interface
   
+  interface is_symmetric 
+     module procedure sparsity_is_symmetric
+  end interface
+
+  interface is_sorted
+    module procedure sparsity_is_sorted
+  end interface
+
+
 #include "Reference_count_interface_csr_sparsity.F90"
 #include "Reference_count_interface_csr_matrix.F90"
 #include "Reference_count_interface_block_csr_matrix.F90"
@@ -439,7 +448,7 @@ module sparse_tools
        & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul, matmul_addto, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
-       & reset_inactive, has_solver_cache, destroy_solver_cache
+       & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted
        
   public :: posinm
 
@@ -4628,7 +4637,20 @@ contains
     integer, dimension(:), pointer:: cols
     real, dimension(:), pointer:: vals
     integer row, j, col
-    
+   
+    if (present_and_true(symmetric_sparsity) .and. .not. A%sparsity%sorted_rows) then
+      FLAbort("csr_tranpose on symmetric sparsities works only with sorted_rows.")
+    end if
+
+#ifdef DDEBUG 
+    ! Check that the supplied sparsity is indeed symmetric  
+    if (present_and_true(symmetric_sparsity)) then
+      if (.not. is_symmetric(A%sparsity)) then
+         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
+      end if
+    end if
+#endif
+
     if (present_and_true(symmetric_sparsity)) then
       call allocate(AT, A%sparsity, name=trim(A%name) // "Transpose")
     else
@@ -4636,7 +4658,7 @@ contains
       call allocate(AT, sparsity, name=trim(A%name) // "Transpose")
       call deallocate(sparsity)
     end if
-    
+
     ! we use the same insertion procedure as above in csr_sparsity_transpose
     ! rowlen is used to count the number of inserted entries thus far per row
     allocate( rowlen(1:size(AT,1)) )
@@ -4651,6 +4673,8 @@ contains
            ! check that this is indeed the right column:
            assert(AT%sparsity%colm(AT%sparsity%findrm(col)+rowlen(col))==row)
            rowlen(col)=rowlen(col)+1
+         else if (present_and_true(symmetric_sparsity)) then
+           FLAbort("Found a zero entry in the colm of the given sparsity which is currently not supported if the symmetric flag.")
          end if
       end do
     end do
@@ -4694,7 +4718,57 @@ contains
     sparsity%sorted_rows=.true.
     
   end subroutine sparsity_sort
+
+  function sparsity_is_symmetric(sparsity) result(symmetric)
+    !!< Checks if the given sparsity is symmetric
+    type(csr_sparsity), intent(in):: sparsity
     
+    integer, dimension(:), pointer :: cols, colsT
+    integer :: row, col
+    logical :: symmetric
+
+    if (.not. size(sparsity,1) == size(sparsity,2)) then
+      ! The dimensions dont even match 
+      symmetric = .false.
+      return
+    end if
+    symmetric = .true.
+    do row=1, size(sparsity,1)
+       cols => row_m_ptr(sparsity, row)
+       do col=1, size(cols)-1
+          colsT => row_m_ptr(sparsity, cols(col))
+          if (.not. any(colsT==row)) then
+            ! There is a nonzero entry in row X cols(col),
+            ! but not at cols(col) X row
+            symmetric = .false.
+            return
+          end if
+       end do
+    end do
+
+  end function sparsity_is_symmetric
+
+  function sparsity_is_sorted(sparsity) result(sorted)
+    !!< Checks if the rows of the given sparsity is sorted to increasing column index
+    type(csr_sparsity), intent(in):: sparsity
+    
+    integer, dimension(:), pointer:: cols
+    integer i, j, col
+    logical sorted
+    
+    do i=1, size(sparsity,1)
+       cols => row_m_ptr(sparsity, i)
+       do j=1, size(cols)-1
+          if (cols(j)>cols(j+1)) then
+             sorted=.false. 
+             return
+          end if
+       end do
+    end do
+      
+    sorted=.true.
+  end function sparsity_is_sorted
+  
   function sparsity_merge(sparsityA, sparsityB, name) result (sparsityC)
   !!< Merges sparsityA and sparsityB such that:
   !!< all (i,j) in either sparsityA or sparsityB are in sparsityC

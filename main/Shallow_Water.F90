@@ -1036,7 +1036,7 @@
       call deallocate(wave_mat_T)
 
       inv_coriolis_mat => extract_block_csr_matrix(matrices, "InverseCoriolisMatrix")
-      inv_coriolis_mat_T = transpose(inv_coriolis_mat, symmetric_sparsity=.true.)
+      inv_coriolis_mat_T = transpose(inv_coriolis_mat, symmetric_sparsity=.false.)
       call insert(matrices, inv_coriolis_mat_T, "InverseCoriolisMatrixTranspose")
       call deallocate(inv_coriolis_mat_T)
     end subroutine compute_matrix_transposes
