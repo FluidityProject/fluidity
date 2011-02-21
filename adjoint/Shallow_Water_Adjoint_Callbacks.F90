@@ -39,13 +39,13 @@ module shallow_water_adjoint_callbacks
     use spud, only: get_option
     implicit none
 
-    private
-
-    public :: register_sw_operator_callbacks
-
     integer, parameter :: IDENTITY_MATRIX = 30
     ! things that can live in %flags
     integer, parameter :: MATRIX_INVERTED = 1
+
+    private
+
+    public :: register_sw_operator_callbacks
 
     contains
 
