@@ -1,0 +1,3 @@
+../../tests/geostrophic_interpolation_sw/balanced.swml
+../../tests/geostrophic_interpolation_sw_dp/balanced.swml
+../../tests/geostrophic_interpolation_sw_consist/balanced.swml
