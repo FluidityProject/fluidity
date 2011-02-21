@@ -508,7 +508,6 @@ contains
           sigma_1 = node_val(solid_local, i) / dt
           sigma_2 = node_val(solid_local, i) * &
                node_val(viscosity, 1, 1, i) / maxval(node_val(edge_lengths, i))**2
-
           sigma = max(sigma_1, sigma_2) * beta
 
           do j = 1, absorption%dim
@@ -526,7 +525,7 @@ contains
           do j = 1, absorption%dim
              call set(absorption, j, i, sigma)
           end do
-
+          
        end do
 
     end if
@@ -1165,7 +1164,7 @@ contains
     real, dimension(:, :), allocatable, intent(out) :: particle_force
 
     type(vector_field), pointer :: velocity, positions, absorption
-    type(scalar_field) :: lumped_mass
+    type(scalar_field) :: lumped_mass, lumped_mass_velocity_mesh
     real, dimension(:), allocatable :: q
     integer, dimension(:), allocatable :: face_nodes
     integer :: i, j, particle
@@ -1183,25 +1182,27 @@ contains
     call allocate(lumped_mass, positions%mesh, "LumpedMass")
     call compute_lumped_mass(positions, lumped_mass)    
 
+    call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
+    call remap_field(lumped_mass, lumped_mass_velocity_mesh)
+    
     allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
     allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
     allocate(q(number_of_solids)); q = 0.
     allocate(force(positions%dim)); force = 0.
 
-    do i = 1, nowned_nodes(positions)
-
+    do i = 1, nowned_nodes(velocity)
        node1 => node_to_particle(i)%firstnode
 
        do while (associated(node1))
           particle = node1%value
 
-          do j = 1, positions%dim
+          do j = 1, velocity%dim
              particle_force(particle, j) = particle_force(particle, j) + &
                   node_val(absorption, j, i) * node_val(velocity, j, i) * &
-                  node_val(lumped_mass, i)
+                  node_val(lumped_mass_velocity_mesh, i)
           end do
 
-          node1 => node1%next
+          node1 => node1%next  
        end do
     end do
 
@@ -1216,6 +1217,7 @@ contains
 
     deallocate(face_nodes, q)
     call deallocate(lumped_mass)
+    call deallocate(lumped_mass_velocity_mesh)
 
     ewrite(2, *) "leaving implicit_solids_force_computation"
 
@@ -1353,7 +1355,7 @@ contains
     real, dimension(:), allocatable :: wall_temperature, q
     real :: T_w_avg, q_avg
     integer :: i, j, str_size
-    character(len=254) :: fmt, buffer, buffer2
+    character(len=254) :: fmt, buffer
 
     ewrite(2, *) "inside implicit_solids_update"
     
@@ -1373,10 +1375,9 @@ contains
 
        if (do_print_multiple_solids_diagnostics) then
           do i = 1, velocity%dim
-             write(buffer, fmt) i
              do j = 1, number_of_solids
-                write(buffer2, fmt) j
-                call set_diagnostic(name="Force"//buffer//"OnSolid"//buffer2, statistic="Value", value=(/ particle_force(j, i) /))
+                write(buffer, fmt) j
+                call set_diagnostic(name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value", value=(/ particle_force(j, i) /))
              end do
           end do
        end if
@@ -2454,7 +2455,7 @@ contains
   subroutine implicit_solids_register_diagnostic
     
     integer :: i, j, str_size, no_components
-    character(len=254) :: fmt, buffer, buffer2
+    character(len=254) :: fmt, buffer
     
     ! figure out if we want to print out diagnostics and initialise files
     do_print_diagnostics = &
@@ -2483,10 +2484,9 @@ contains
 
       if (do_print_multiple_solids_diagnostics) then
           do i = 1, no_components
-             write(buffer, fmt) i
              do j = 1, number_of_solids
-                write(buffer2, fmt) j
-                call register_diagnostic(dim=1, name="Force"//buffer//"OnSolid"//buffer2, statistic="Value")
+                write(buffer, fmt) j
+                call register_diagnostic(dim=1, name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value")
              end do
           end do
        end if
