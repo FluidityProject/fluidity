@@ -37,7 +37,12 @@ subroutine test_block_csr_transpose_symmetric_sparsity
   integer :: i, j
   
   call allocate(sparsity, 2, 2, nnz = (/ 2, 1 /), name="Sparsity")
-  sparsity%colm = (/ 1, 2, 1 /)
+  sparsity%colm = (/ 2, 1, 1 /)
+  call report_test("[sparsity is symmetric]", .not. is_symmetric(sparsity), .false., "sparsity is not symmetric")
+  call report_test("[sparsity is not yet sorted]", is_sorted(sparsity), .false., "sparsity should be not sorted before calling sort(sparsity).")
+  call sparsity_sort(sparsity)
+  call report_test("[sparsity is sorted]", .not. is_sorted(sparsity), .false., "sparsity is not sorted after calling sort(sparsity).")
+
 
   sparsity%sorted_rows = .true.
 

@@ -32,13 +32,14 @@ subroutine test_block_csr_transpose
   use unittest_tools
 
   type(csr_sparsity) :: sparsity
-  type(csr_matrix) :: A, B
+  type(csr_matrix) :: A
   type(block_csr_matrix) :: block_mat, block_mat_T, block_mat_TT
   integer :: i, j
   
   call allocate(sparsity, 2, 3, nnz = (/ 1, 2 /), name="Sparsity")
   sparsity%colm = (/ 1, 2, 3 /)
-  sparsity%sorted_rows = .false.
+  sparsity%sorted_rows = .true.
+
 
   call allocate(A, sparsity, name="A")
   call set(A, (/ 1 /) , (/ 1 /) , reshape( (/ 1.0 /), (/ 1, 1/) ) )

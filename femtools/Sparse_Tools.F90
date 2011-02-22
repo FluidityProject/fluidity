@@ -4617,11 +4617,7 @@ contains
     do i = 1, blocks(block_A, 1) 
       do j = 1, blocks(block_A, 2)
         A = block(block_A, i, j)
-        if (present(symmetric_sparsity)) then
-          AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
-        else
-          AT = transpose(A)
-        end if
+        AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
         call set(block_AT, j, i, AT)
         call deallocate(AT)
       end do
@@ -4650,7 +4646,7 @@ contains
     ! Check that the supplied sparsity is indeed symmetric  
     if (present_and_true(symmetric_sparsity)) then
       if (.not. is_symmetric(A%sparsity)) then
-         FLAbort("The symmetric flag is supplied, but the sparsity is not.")
+         FLAbort("The symmetric flag is supplied, but the sparsity is not symmetric.")
       end if
     end if
 #endif
@@ -4739,7 +4735,7 @@ contains
     symmetric = .true.
     do row=1, size(sparsity,1)
        cols => row_m_ptr(sparsity, row)
-       do col=1, size(cols)-1
+       do col=1, size(cols)
           colsT => row_m_ptr(sparsity, cols(col))
           if (.not. any(colsT==row)) then
             ! There is a nonzero entry in row X cols(col),
