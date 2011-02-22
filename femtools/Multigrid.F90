@@ -812,7 +812,7 @@ integer, optional, dimension(:), intent(out):: cluster
   ! and use R to register isolated nodes i with N_i={i}
   call Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
   
-  if (ccnt==0) then
+  if (ccnt==0 .and. nrows>0) then
     ! all nodes are isolated, strongly diagonal dominant matrix
     ! we should solve by other means
     if (present(cluster)) cluster=ISOLATED

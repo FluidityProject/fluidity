@@ -220,6 +220,11 @@ contains
        
        petsc_numbering%nprivatenodes=nnodes
 
+       ! the offset is the first universal number assigned to this process
+       ! in the standard petsc numbering the universal number is equal to
+       ! offset+local number
+       petsc_numbering%offset=petsc_numbering%gnn2unn(1,1)
+
     else
 
        ! *** Parallel case with halo:
@@ -230,7 +235,9 @@ contains
        petsc_numbering%gnn2unn = petsc_numbering%gnn2unn-1
          
        petsc_numbering%nprivatenodes=halo_nowned_nodes(halo)
-       
+
+       petsc_numbering%offset=halo%my_owned_nodes_unn_base*nfields             
+
     end if
 
     if (isParallel()) then
@@ -243,11 +250,6 @@ contains
        ! trivial in serial case:
        petsc_numbering%universal_length=nnodes*nfields
     end if
-
-    ! the offset is the first universal number assigned to this process
-    ! in the standard petsc numbering the universal number is equal to
-    ! offset+local number
-    petsc_numbering%offset=petsc_numbering%gnn2unn(1,1)
 
     if (present(ghost_nodes)) then
        if (associated(petsc_numbering%halo)) then
