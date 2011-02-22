@@ -65,7 +65,17 @@
   return reshape(concatenate((x,y)),(2,100)).T</string_value>
         </python>
       </detector_array>
-      <binary_search/>
+      <explicit_runge_kutta_guided_search>
+        <n_stages>
+          <integer_value rank="0">4</integer_value>
+        </n_stages>
+        <stage_array>
+          <real_value shape="6" rank="1">0.5 0. 0.5 0. 0. 1.</real_value>
+        </stage_array>
+        <timestep_array>
+          <real_value shape="4" rank="1">0.16666666666666666 0.3333333333333333 0.3333333333333333 0.16666666666666666</real_value>
+        </timestep_array>
+      </explicit_runge_kutta_guided_search>
     </detectors>
   </io>
   <timestepping>

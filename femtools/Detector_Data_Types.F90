@@ -55,11 +55,20 @@ module detector_data_types
      !! Whether the detector is static or Lagrangian.
      integer :: type = STATIC_DETECTOR
      !! Bisected time step used when moving the Lagrangian detectors
+     !! using the bisection method
      real :: dt
-     !! Identification number indicating the order in which the detectors are read
+     !! Identification number indicating the order in which the detectors
+     !! are read
      integer :: id_number
      !! Processor that owns initially the detector (for parallel)
      integer :: initial_owner= -1
+     !! RK timestepping stages (first index is stage no., second index is dim)
+     real, dimension(:,:), allocatable :: k
+     !! RK update vector (size dim)
+     real, dimension(:), allocatable :: update_vector
+     !! Percentage of update vector complete
+     real :: update_complete
+     !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
