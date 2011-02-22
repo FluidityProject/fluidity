@@ -63,7 +63,11 @@ module shallow_water_adjoint_callbacks
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "Coriolis", c_funloc(coriolis_assembly_callback))
       call adj_chkierr(ierr)
       
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "GradPerp", c_funloc(gradperp_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "VelocityIdentity", c_funloc(velocity_identity_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "Grad", c_funloc(grad_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "GradMinusDivBigMatCoriolis", c_funloc(grad_minus_div_bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
@@ -222,7 +226,60 @@ module shallow_water_adjoint_callbacks
       end if
     end subroutine coriolis_assembly_callback
 
-    subroutine gradperp_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+    subroutine velocity_identity_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: u
+
+      type(vector_field) :: u_input
+      type(vector_field) :: u_output
+      
+      call c_f_pointer(context, matrices)
+      u => extract_vector_field(matrices, "VelocityDummy")
+      call field_from_adj_vector(input, u_input)
+      call allocate(u_output, u%dim, u%mesh, "IdentityVelocityOutput")
+      call set(u_output, u_input)
+      call scale(u_output, coefficient)
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine velocity_identity_action_callback
+
+    subroutine layerthickness_identity_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      
+      type(state_type), pointer :: matrices
+      type(mesh_type), pointer :: eta_mesh
+
+      type(scalar_field) :: eta_input
+      type(scalar_field) :: eta_output
+      
+      call c_f_pointer(context, matrices)
+      eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
+
+      call field_from_adj_vector(input, eta_input)
+      call allocate(eta_output, eta_mesh, "IdentityLayerThicknessOutput")
+      call set(eta_output, eta_input)
+      call scale(eta_output, coefficient)
+      output = field_to_adj_vector(eta_output)
+      call deallocate(eta_output)
+    end subroutine layerthickness_identity_action_callback
+
+    subroutine grad_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -247,16 +304,14 @@ module shallow_water_adjoint_callbacks
       u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
-      inverse_coriolis_mat => extract_block_csr_matrix(matrices, "InverseCoriolisMatrix")
 
       if (hermitian==ADJ_FALSE) then
         call field_from_adj_vector(input, eta_input)
-        ! So, we'll mult_T with div_mat, then scale by g and then act inverse_coriolis_mat on it. 
-        call allocate(u_output, u%dim, u%mesh, "AdjointGradPerpOutput")
+        ! So, we'll mult_T with div_mat. 
+        call allocate(u_output, u%dim, u%mesh, "AdjointGradOutput")
         call zero(u_output)
 
         call mult_T(u_output, div_mat, eta_input)
-        call mult(u_output, inverse_coriolis_mat, u_output)
         call scale(u_output, coefficient)
 
         output = field_to_adj_vector(u_output)
@@ -264,13 +319,12 @@ module shallow_water_adjoint_callbacks
       else
         ! Do the same steps as above, but backwards and with the transposed operators
         call field_from_adj_vector(input, u_input)
-        call allocate(eta_output, eta_mesh, "AdjointGradPerpOutput")
+        call allocate(eta_output, eta_mesh, "AdjointGradOutput")
         call zero(eta_output)
         ! We use u_output as a temporay variable
-        call allocate(u_output, u%dim, u%mesh, "AdjointGradPerpOutputTemporaryVelocityField")
+        call allocate(u_output, u%dim, u%mesh, "AdjointGradOutputTemporaryVelocityField")
         call zero(u_output)
 
-        call mult_T(u_output, inverse_coriolis_mat, u_input)
         call mult(eta_output, div_mat, u_output)
         call scale(eta_output, coefficient)
 
@@ -278,7 +332,7 @@ module shallow_water_adjoint_callbacks
         call deallocate(eta_output)
         call deallocate(u_output)
       end if
-    end subroutine gradperp_action_callback
+    end subroutine grad_action_callback
 
     subroutine grad_minus_div_bigmat_coriolis_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       use global_parameters, only:  dt
