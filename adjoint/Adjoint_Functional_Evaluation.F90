@@ -141,7 +141,7 @@ module adjoint_functional_evaluation
     is_vector = .false.
     is_tensor = .false.
     derivative_state%name = "DerivativeState"
-    if (index(path, "/scalar_field::") /= 0) then 
+    if (index(trim(path), "/scalar_field::") /= 0) then
       is_scalar = .true.
       type_string = "scalar"
       ! Allocate a scalar_field on the appropriate mesh and add it to python as 'derivative'.
@@ -153,7 +153,7 @@ module adjoint_functional_evaluation
       call insert(derivative_state, sfield, trim(variable_name_f))
       output = field_to_adj_vector(sfield)
       call deallocate(sfield)
-    elseif (index(path, "/vector_field::") /= 0) then
+    elseif (index(trim(path), "/vector_field::") /= 0) then
       is_vector = .true.
       type_string = "vector"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
@@ -165,7 +165,7 @@ module adjoint_functional_evaluation
       call insert(derivative_state, vfield, trim(variable_name_f))
       output = field_to_adj_vector(vfield)
       call deallocate(vfield)
-    elseif (index(path, "/tensor_field::") /= 0) then 
+    elseif (index(trim(path), "/tensor_field::") /= 0) then 
       is_tensor = .true.
       type_string = "tensor"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
@@ -180,6 +180,7 @@ module adjoint_functional_evaluation
       ewrite(-1,*) "variable_name_f: ", trim(variable_name_f)
       ewrite(-1,*) "material_phase_name: ", trim(material_phase_name)
       ewrite(-1,*) "field_name: ", trim(field_name)
+      ewrite(-1,*) "path: ", trim(path)
       FLAbort("Unknown variable, couldn't find it as a scalar/vector/tensor field")
     endif
 

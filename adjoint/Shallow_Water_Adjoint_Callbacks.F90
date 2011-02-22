@@ -24,12 +24,12 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-  
+
 #include "fdebug.h"
 
 module shallow_water_adjoint_callbacks
 #ifdef HAVE_ADJOINT
-#include "libadjoint/adj_fortran.h" 
+#include "libadjoint/adj_fortran.h"
     use libadjoint
     use libadjoint_data_callbacks
     use iso_c_binding
@@ -37,6 +37,8 @@ module shallow_water_adjoint_callbacks
     use fields
     use sparse_matrices_fields
     use spud, only: get_option
+    use adjoint_variable_lookup, only: adj_var_lookup
+    use mangle_options_tree, only: adjoint_field_path
     implicit none
 
     integer, parameter :: IDENTITY_MATRIX = 30
@@ -62,7 +64,7 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "Coriolis", c_funloc(coriolis_assembly_callback))
       call adj_chkierr(ierr)
-      
+
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "VelocityIdentity", c_funloc(velocity_identity_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_action_callback))
@@ -216,7 +218,7 @@ module shallow_water_adjoint_callbacks
       call zero(empty_velocity_field)
       rhs = field_to_adj_vector(empty_velocity_field)
       call deallocate(empty_velocity_field)
-      
+
       if (hermitian == ADJ_FALSE) then
         output = matrix_to_adj_matrix(inv_coriolis_mat)
         output%flags = MATRIX_INVERTED
@@ -235,13 +237,13 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: u
 
       type(vector_field) :: u_input
       type(vector_field) :: u_output
-      
+
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
       call field_from_adj_vector(input, u_input)
@@ -261,13 +263,13 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
 
       type(scalar_field) :: eta_input
       type(scalar_field) :: eta_output
-      
+
       call c_f_pointer(context, matrices)
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
 
@@ -288,7 +290,7 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(state_type), pointer :: matrices
       type(block_csr_matrix), pointer :: div_mat, inverse_coriolis_mat
       type(vector_field), pointer :: u
@@ -299,7 +301,7 @@ module shallow_water_adjoint_callbacks
       ! Variables for hermitian == ADJ_TRUE
       type(vector_field) :: u_input
       type(scalar_field) :: eta_output
-      
+
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
@@ -307,7 +309,7 @@ module shallow_water_adjoint_callbacks
 
       if (hermitian==ADJ_FALSE) then
         call field_from_adj_vector(input, eta_input)
-        ! So, we'll mult_T with div_mat. 
+        ! So, we'll mult_T with div_mat.
         call allocate(u_output, u%dim, u%mesh, "AdjointGradOutput")
         call zero(u_output)
 
@@ -344,7 +346,7 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
       type(vector_field), pointer :: u
@@ -359,11 +361,13 @@ module shallow_water_adjoint_callbacks
 
       type(vector_field) :: u_tmp
       real :: theta, d0
-      
+      character(len=ADJ_DICT_LEN) :: path
+      integer :: ierr
+
       if (coefficient /= 1.0) then
         FLAbort("The coefficient in grad_minus_div_bigmat_coriolis_action_callback has to be 1.0")
       end if
-      
+
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
@@ -371,10 +375,13 @@ module shallow_water_adjoint_callbacks
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
 
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta", theta) 
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/ &
-                      & prognostic/mean_layer_thickness", d0)
-                      
+      ierr = adj_dict_find(adj_var_lookup, "Fluid::LayerThickness", path)
+      call adj_chkierr(ierr)
+      path = adjoint_field_path(path)
+
+      call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta)
+      call get_option(trim(path) // "/prognostic/mean_layer_thickness", d0)
+
       if (hermitian==ADJ_FALSE) then
         call field_from_adj_vector(input, u_input)
         call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
@@ -422,7 +429,7 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
       type(vector_field), pointer :: u
@@ -431,7 +438,7 @@ module shallow_water_adjoint_callbacks
       type(scalar_field) :: eta_input
       type(scalar_field) :: eta_output
       type(vector_field) :: u_tmp
-      
+
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
@@ -443,7 +450,7 @@ module shallow_water_adjoint_callbacks
       call zero(u_tmp)
       call allocate(eta_output, eta_mesh, "AdjointDivBigmatGradOutput")
       call zero(eta_output)
-      
+
       if (hermitian==ADJ_FALSE) then
         call mult_T(u_tmp, div_mat, eta_input)
         call mult(u_tmp, big_mat, u_tmp)
@@ -471,20 +478,20 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       ! Variables for hermitian == ADJ_FALSE
       type(scalar_field) :: eta_input
       type(vector_field) :: u_output
       ! Variables for hermitian == ADJ_TRUE
       type(vector_field) :: u_input
       type(scalar_field) :: eta_output
-      
+
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
       type(vector_field), pointer :: u
       type(block_csr_matrix), pointer :: big_mat, div_mat
 
-      
+
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
@@ -493,7 +500,7 @@ module shallow_water_adjoint_callbacks
 
       if (hermitian==ADJ_FALSE) then
         call field_from_adj_vector(input, eta_input)
-        ! So, we'll mult_T with div_mat, and then act big_mat on it. 
+        ! So, we'll mult_T with div_mat, and then act big_mat on it.
         call allocate(u_output, u%dim, u%mesh, "AdjointBigMatGradOutput")
         call zero(u_output)
 
@@ -530,9 +537,9 @@ module shallow_water_adjoint_callbacks
       type(adj_vector), intent(in), value :: input
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
-      
+
       type(vector_field) :: u_output, u_input
-     
+
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: u
       type(mesh_type), pointer :: eta_mesh
@@ -543,19 +550,19 @@ module shallow_water_adjoint_callbacks
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
-      
+
       call field_from_adj_vector(input, u_input)
       call allocate(u_output, u%dim, u%mesh, "AdjointBigMatCoriolisOutput")
       call zero(u_output)
 
       if (hermitian==ADJ_FALSE) then
-        ! So, we'll mult with coriolis_mat and big_mat. 
+        ! So, we'll mult with coriolis_mat and big_mat.
         call mult(u_output, coriolis_mat, u_input)
         call mult(u_output, big_mat, u_output)
       else
         call mult_T(u_output, big_mat, u_input)
         call mult_T(u_output, coriolis_mat, u_output)
-      end if 
+      end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)

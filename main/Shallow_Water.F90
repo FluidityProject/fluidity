@@ -1100,8 +1100,8 @@
       eta => extract_scalar_field(states(1), "LayerThickness")
       ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
       ierr = adj_dict_set(adj_var_lookup, "Fluid::VelocityDelta", trim(u%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(u%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(eta%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(eta%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)

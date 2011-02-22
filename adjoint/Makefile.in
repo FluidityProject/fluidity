@@ -71,5 +71,5 @@ clean:
 	rm -f *.o *.d *.mod
 
 Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Variable_Lookup.o Mangle_Options_Tree.o
-Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o
+Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Variable_Lookup.o Mangle_Options_Tree.o
 
