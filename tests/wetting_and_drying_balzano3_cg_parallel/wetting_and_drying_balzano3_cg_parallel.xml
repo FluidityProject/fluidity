@@ -2,7 +2,8 @@
 <testproblem>
   <name>balzano1_2plus1</name>
   <owner userid="sf1409"/>
-  <problem_definition length="medium" nprocs="4">
+  <tags> parallel </tags>
+  <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec -n 4 fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
   </problem_definition>
   <variables>
