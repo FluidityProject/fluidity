@@ -204,9 +204,8 @@
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep)) exit timestep_loop
-
        call advance_current_time(current_time, dt)
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
 
        if (do_write_state(current_time, timestep)) then
           call output_state(state)
@@ -251,6 +250,8 @@
 
       call mangle_options_tree_adjoint
       call populate_state(state)
+      call setup_cartesian_vector_fields(state(1), adjoint=.true.)
+      call allocate_and_insert_additional_fields(state(1))
       call check_diagnostic_dependencies(state)
       call compute_matrix_transposes(matrices)
 
@@ -273,16 +274,15 @@
     call print_current_memory_stats(0)
 #endif
 
-#ifdef HAVE_MPI
-    call mpi_finalize(ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
-
 #ifdef HAVE_ADJOINT
     ierr = adj_destroy_adjointer(adjointer)
     call adj_chkierr(ierr)
 #endif
 
+#ifdef HAVE_MPI
+    call mpi_finalize(ierr)
+    assert(ierr == MPI_SUCCESS)
+#endif
   contains
 
     subroutine get_parameters()
@@ -753,7 +753,8 @@
 
     subroutine advance_current_time(current_time, dt)
       implicit none
-      real, intent(inout) :: current_time, dt
+      real, intent(inout) :: current_time
+      real, intent(in) :: dt
 
       ! Adaptive timestepping could go here.
 
@@ -844,25 +845,30 @@
 
     end subroutine set_velocity_from_geostrophic_balance
 
-    subroutine setup_cartesian_vector_fields(state)
+    subroutine setup_cartesian_vector_fields(state, adjoint)
       ! sets up the cartesian coordinate and velocity fields using the
       ! mappings provided in the .swml
       implicit none
 
       type(state_type), intent(inout):: state
+      logical, intent(in), optional :: adjoint
 
       type(vector_field), pointer :: X, U
       type(vector_field) :: X_manifold, U_manifold
       type(vector_field) :: X_cartesian, U_cartesian
       type(tensor_field) :: map
       type(mesh_type), pointer :: x_mesh, U_mesh
-      integer :: node
+      integer :: node, stat
       character(len=PYTHON_FUNC_LEN) :: projection, vector_map
 
       ewrite(1,*) "In setup_cartesian_vector_fields"
 
       X => extract_vector_field(state, "Coordinate")
-      U => extract_vector_field(state, "Velocity")
+      if (present_and_true(adjoint)) then
+        U => extract_vector_field(state, "AdjointVelocity")
+      else
+        U => extract_vector_field(state, "Velocity")
+      end if
       x_mesh => extract_mesh(state, "CoordinateMesh")
       U_mesh => extract_mesh(state, "VelocityMesh")
 
@@ -1146,9 +1152,9 @@
         ierr = adj_destroy_block(I)
       else
         ! The equation we have to register is the derivation of u0 from geostrophic balance
-        ierr = adj_create_block("Coriolis", block=L)
+        ierr = adj_create_block("Coriolis", block=L, context=c_loc(matrices))
         call adj_chkierr(ierr)
-        ierr = adj_create_block("Grad", block=gC)
+        ierr = adj_create_block("Grad", block=gC, context=c_loc(matrices))
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
@@ -1345,7 +1351,13 @@
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
+      call get_option("/timestepping/current_time", current_time)
       call get_option("/simulation_name", simulation_base_name)
+
+      ! current_time is the start of the timestep, and current_time + dt is the end of the timestep.
+      ! In the first timestep, we compute the value at the end -- so we're actually "starting one dt back",
+      ! if you see what I mean (probably not)
+      call advance_current_time(current_time, -dt)
 
       no_functionals = option_count("/adjoint/functional")
 
@@ -1474,6 +1486,8 @@
 
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)
+      ! One last dump
+      call output_state(state, adjoint=.true.)
 
       ! Clean up stat files
       do functional=0,no_functionals-1
