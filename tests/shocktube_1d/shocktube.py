@@ -119,19 +119,20 @@ def solution(x,t):
     if ps<pl:
       # u-a is a rarefaction wave
       if x/t<ul-al: # left
-        return (pl, ul)
+        return (pl, ul, rhol)
       elif x/t<us-asl: # within the rarefaction wave
         p=pl*(2./(gamma+1.) + (gamma-1.)/(gamma+1.)/al*(ul-x/t))**(2*gamma/(gamma-1.)) # eqn (3.1.97)
         u=2./(gamma+1.)*(al + (gamma-1.)/2.*ul + x/t) # eqn (3.1.97)
-        return (p, u)
+        rho=rhol*(2./(gamma+1.) + (gamma-1.)/(gamma+1.)/al*(ul-x/t))**(2./(gamma-1.)) # eqn (3.1.97)
+        return (p, u, rho)
       else: # after the rarefaction before the contact disc.
-        return (ps,us)
+        return (ps,us,rhosl)
     else:
       # u-a is a shock wave
       if x/t<s1: # left
-        return (pl, ul)
+        return (pl, ul, rhol)
       else: # between u-a shock and contact disc.
-        return (psl, us)
+        return (psl, us, rhosl)
         
   else:
     # after the contact discontinuity:
@@ -139,17 +140,18 @@ def solution(x,t):
     if ps<pr:
       # u+a is a rarefaction wave
       if x/t>ur+ar: # right
-        return (pr, ur)
+        return (pr, ur, rhor)
       elif x/t>usr+asr: # within the rarefaction wave
         p=pr*(2./(gamma+1.) + (gamma-1.)/(gamma+1.)/ar*(ur-x/t))**(2*gamma/(gamma-1.)) # eqn (3.1.98)
         u=2./(gamma+1.)*(-ar + (gamma-1.)/2.*ur + x/t) # eqn (3.1.98)
-        return (p, u)
+        rho=rhor*(2./(gamma+1.) - (gamma-1.)/(gamma+1.)/ar*(ur-x/t))**(2./(gamma-1.)) # eqn (3.1.98)
+        return (p, u, rho)
       else: # after the contact disc. before the rarefaction
-        return (ps,us)
+        return (ps,us, rhosr)
     else:
       # u+a is a shock wave
       if x/t>s3: # right
-        return (pr, ur)
+        return (pr, ur, rhor)
       else: # between contact disc. and u-a shock
-        return (ps, us)
+        return (ps, us, rhosr)
 
