@@ -1361,65 +1361,65 @@ contains
     !
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
+    type(mesh_type), pointer :: vertex_mesh
     ! counters
     integer :: ele, node
     ! local numbers
-    integer, dimension(:), pointer :: T_ele,X_ele, T_max_ele, T_min_ele
-    !Coordinates field 
-    type(vector_field), pointer :: X
+    integer, dimension(:), pointer :: T_ele
     ! gradient scaling factor
     real :: alpha
-    !local field values
+    ! local field values
     real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
     real :: Tbar
 
-
-    !Allocate copy of field
+    if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
+      FLExit("The vertex based slope limiter only works for P1DG fields.")
+    end if
+    
+    ! Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
     call set(T_limit, T)
+    
+    ! returns linear version of T%mesh (if T%mesh is periodic, so is vertex_mesh)
+    call find_linear_parent_mesh(state, T%mesh, vertex_mesh)
 
-    !Get coordinates
-    X=>extract_vector_field(state, "Coordinate")
-
-    assert(X%mesh%shape%degree==1)
-    assert(T%mesh%shape%degree==1)
-
-    call allocate(T_max,X%mesh,trim(T%name)//"LimitMax")
-    call allocate(T_min,X%mesh,trim(T%name)//"LimitMin")
+    call allocate(T_max, vertex_mesh, trim(T%name)//"LimitMax")
+    call allocate(T_min, vertex_mesh, trim(T%name)//"LimitMin")
  
     call set(T_max, -huge(0.0))
     call set(T_min, huge(0.0))
 
-    !Construct max and mins
+    ! for each vertex in the mesh store the min and max values of the P1DG nodes directly surrounding it
     do ele = 1, ele_count(T)
-       T_ele=>ele_nodes(T,ele)
-       X_ele=>ele_nodes(X,ele)
+       T_ele => ele_nodes(T,ele)
        T_val = ele_val(T,ele)
        Tbar = sum(T_val)/size(T_val)
-       T_max_ele=>ele_nodes(T_max,ele)
-       T_min_ele=>ele_nodes(T_min,ele)
-       !do maxes
+       ! we assume here T is P1DG and vertex_mesh is linear
+       assert( size(T_ele)==ele_loc(vertex_mesh,ele) )
+       
+       ! do maxes
        T_val_max = ele_val(T_max,ele)
        do node = 1, size(T_val)
-          T_val_max(node) = max(T_val_max(node),Tbar)
+          T_val_max(node) = max(T_val_max(node), Tbar)
        end do
-       call set(T_max,T_max_ele,T_val_max)
-       !do mins
+       call set(T_max, ele_nodes(T_max, ele), T_val_max)
+       
+       ! do mins
        T_val_min = ele_val(T_min,ele)
        do node = 1, size(T_val)
-          T_val_min(node) = min(T_val_min(node),Tbar)
+          T_val_min(node) = min(T_val_min(node), Tbar)
        end do
-       call set(T_min,T_min_ele,T_val_min)
-!!$       call set(Tbar_field, T_ele, 0*T_val+Tbar)
+       call set(T_min, ele_nodes(T_min,ele), T_val_min)
     end do
 
-    !Loop over elements
+    ! now for each P1DG node make sure the field value is between the recorded vertex min and max
+    ! this is done without changing the element average (Tbar)
     do ele = 1, ele_count(T)
        !Set slope factor to 1
        alpha = 1.
        !Get local node lists
        T_ele=>ele_nodes(T,ele)
-       X_ele=>ele_nodes(X,ele)
+       
        T_val = ele_val(T,ele)
        Tbar = sum(T_val)/size(T_val)
        T_val_slope = T_val - Tbar
@@ -1436,17 +1436,8 @@ contains
        end do
 
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
-!!$       call set(alpha_field, T_ele, T_val_slope*0.0+alpha)
     end do
 
-!!$    call vtk_write_fields("Limiter_debugging", limiter_vtu_index, &
-!!$         X, model = T%mesh, & 
-!!$         & sfields = (/T,T_limit,T_max,T_min,alpha_field,tbar_field/), &
-!!$         & stat = stat)
-!!$    if(stat /= 0) then
-!!$       ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
-!!$    end if
-!!$    limiter_vtu_index = limiter_vtu_index + 1
 
     !Deallocate copy of field
     call set(T, T_limit)
@@ -1454,8 +1445,6 @@ contains
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)
-!!$    call deallocate(alpha_field)
-!!$    call deallocate(tbar_field)
 
   end subroutine limit_vb
 
