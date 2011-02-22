@@ -1333,7 +1333,7 @@
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
-      call get_option("/simulation_name", simulation_name)
+      call get_option("/simulation_name", simulation_base_name)
 
       no_functionals = option_count("/adjoint/functional")
 
