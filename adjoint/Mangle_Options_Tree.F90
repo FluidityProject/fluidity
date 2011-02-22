@@ -35,7 +35,7 @@ module mangle_options_tree
   implicit none
 
   private
-  public :: mangle_options_tree_forward, mangle_options_tree_adjoint
+  public :: mangle_options_tree_forward, mangle_options_tree_adjoint, adjoint_field_path
 
   contains
 
@@ -350,4 +350,53 @@ module mangle_options_tree
     call set_option("/timestepping/timestep", -dt)
 
   end subroutine mangle_options_tree_adjoint
+
+  function adjoint_field_path(fwd_path) result(adj_path)
+    character(len=OPTION_PATH_LEN), intent(in) :: fwd_path
+    character(len=OPTION_PATH_LEN) :: adj_path
+
+    integer :: j, k
+    integer :: no_fwd_slash
+    integer :: no_colons
+
+    no_fwd_slash = 0
+    j = 1
+    k = 1
+    ! First mode: find the second slash in /material_phase::whatever/scalar_field::whatever
+    do while(j <= OPTION_PATH_LEN .and. no_fwd_slash /= 2)
+      adj_path(j:j) = fwd_path(k:k)
+      if (fwd_path(k:k) == "/") then
+        no_fwd_slash = no_fwd_slash + 1
+      end if
+      j = j + 1
+      k = k + 1
+    end do
+
+    no_colons = 0
+
+    ! Now that we are here, we need to move to the next :: in between this slash and the next / (if any)
+    do while (j <= OPTION_PATH_LEN .and. no_fwd_slash == 2 .and. no_colons /= 2)
+      adj_path(j:j) = fwd_path(k:k)
+      if (fwd_path(k:k) == "/") then
+        no_fwd_slash = no_fwd_slash + 1
+      else if (fwd_path(k:k) == ':') then
+        no_colons = no_colons + 1
+      end if
+      j = j + 1
+      k = k + 1
+    end do
+
+    ! Now that we are here, we have either hit the next /, and can just run on, or
+    ! if no_colons == 2, we need to insert an Adjoint
+    if (no_colons == 2) then
+      adj_path(j:j+6) = "Adjoint"
+      j = j + 7
+    end if
+
+    do while(k <= OPTION_PATH_LEN)
+      adj_path(j:j) = fwd_path(k:k)
+      j = j + 1
+      k = k + 1
+    end do
+  end function adjoint_field_path
 end module mangle_options_tree

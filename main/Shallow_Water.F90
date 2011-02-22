@@ -60,6 +60,7 @@
     use libadjoint_data_callbacks
     use adjoint_functional_evaluation
     use adjoint_python
+    use adjoint_variable_lookup
 #include "libadjoint/adj_fortran.h"
 #endif
     implicit none
@@ -1060,6 +1061,8 @@
       type(adj_variable), dimension(:), allocatable :: vars
       integer :: nmeshes
       type(mesh_type), pointer :: mesh
+      type(vector_field), pointer :: u
+      type(scalar_field), pointer :: eta
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1090,6 +1093,15 @@
         ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory(mesh_type_to_adj_vector(mesh)))
         call adj_chkierr(ierr)
       end do
+
+      ! We also may as well set the option paths for each variable now, since we know them here
+      ! (in fluidity this would be done as each equation is registered)
+      u => extract_vector_field(states(1), "Velocity")
+      eta => extract_scalar_field(states(1), "LayerThickness")
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::VelocityDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(u%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)
@@ -1326,10 +1338,10 @@
       character(len=ADJ_NAME_LEN) :: variable_name
       type(scalar_field) :: sfield_soln, sfield_rhs
       type(vector_field) :: vfield_soln, vfield_rhs
-      type(mesh_type), pointer :: u_mesh, h_mesh
       type(csr_matrix) :: csr_mat
       type(block_csr_matrix) :: block_csr_mat
       integer :: dim
+      character(len=ADJ_DICT_LEN) :: path
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
@@ -1351,9 +1363,6 @@
         call adj_chkierr(ierr)
       end do
 
-      u_mesh => extract_mesh(state, "VelocityMesh")  
-      ! call print_state(state(1))
-      h_mesh => extract_mesh(state, "PressureMesh")  ! this should be LayerThicknessMesh. This code works only with swml where the pressure mesh is actually called pressure mesh (btw same with the VelocitMesh above)
       call get_option("/geometry/dimension", dim) ! this SHOULD be the dimension of the velocity field, but 
                                                   ! I don't know how to fetch that
 
@@ -1380,11 +1389,15 @@
 
             ! Now solve lhs . adjoint = rhs
             ierr = adj_variable_get_name(adj_var, variable_name)
+            ierr = adj_dict_find(adj_var_lookup, trim(variable_name), path)
+            call adj_chkierr(ierr)
+            path = adjoint_field_path(path)
+
             ! variable_name should be something like Fluid::Velocity or Fluid::LayerThickness
             select case(rhs%klass)
               case(ADJ_SCALAR_FIELD)
                 call field_from_adj_vector(rhs, sfield_rhs)
-                call allocate(sfield_soln, h_mesh, variable_name(8:len_trim(variable_name)))
+                call allocate(sfield_soln, sfield_rhs%mesh, variable_name(8:len_trim(variable_name)))
                 call zero(sfield_soln)
 
                 select case(lhs%klass)
@@ -1395,7 +1408,7 @@
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(sfield_soln, csr_mat, sfield_rhs)
                     else
-                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=trim(path))
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
@@ -1409,7 +1422,7 @@
                 call adj_chkierr(ierr)
               case(ADJ_VECTOR_FIELD)
                 call field_from_adj_vector(rhs, vfield_rhs)
-                call allocate(vfield_soln, dim, u_mesh, variable_name(8:len_trim(variable_name))) ! dim is probably wrong
+                call allocate(vfield_soln, dim, vfield_rhs%mesh, variable_name(8:len_trim(variable_name))) ! dim is probably wrong
                 call zero(vfield_soln)
 
                 select case(lhs%klass)
@@ -1420,14 +1433,14 @@
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(vfield_soln, csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=trim(path))
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, block_csr_mat)
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(vfield_soln, block_csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=trim(path))
                     endif
                   case default
                     FLAbort("Unknown lhs%klass")

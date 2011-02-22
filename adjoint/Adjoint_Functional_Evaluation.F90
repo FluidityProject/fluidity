@@ -41,6 +41,8 @@ module adjoint_functional_evaluation
   use python_state
   use libadjoint_data_callbacks
   use field_options
+  use adjoint_variable_lookup, only: adj_var_lookup
+  use mangle_options_tree, only: adjoint_field_path
 
   private
   public :: libadjoint_functional_derivative
@@ -73,6 +75,7 @@ module adjoint_functional_evaluation
     type(tensor_field) :: tfield
     type(mesh_type), pointer :: mesh
     type(state_type) :: derivative_state
+    character(len=ADJ_DICT_LEN) :: path
 
     integer :: dim
 
@@ -126,6 +129,9 @@ module adjoint_functional_evaluation
     ! We also need to set up the field to differentiate with respect to.
     ! First, get the material phase and field names
     ierr = adj_variable_get_name(var, variable_name_f)
+    ierr = adj_dict_find(adj_var_lookup, trim(variable_name_f), path)
+    call adj_chkierr(ierr)
+    path = adjoint_field_path(path)
     s_idx = scan(trim(variable_name_f), ":")
     material_phase_name = variable_name_f(1:s_idx - 1)
     field_name = "Adjoint" // variable_name_f(s_idx + 2:len_trim(variable_name_f))
@@ -139,8 +145,7 @@ module adjoint_functional_evaluation
       is_scalar = .true.
       type_string = "scalar"
       ! Allocate a scalar_field on the appropriate mesh and add it to python as 'derivative'.
-      call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
-                           "/scalar_field::" // trim(field_name))) // '/mesh/name', mesh_name)
+      call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
       mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call allocate(sfield, mesh, trim(variable_name_f))
       call zero(sfield)
@@ -151,8 +156,7 @@ module adjoint_functional_evaluation
     elseif (have_option("/material_phase::" // trim(material_phase_name) // "/vector_field::" // trim(field_name))) then
       is_vector = .true.
       type_string = "vector"
-      call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
-                           "/vector_field::" // trim(field_name))) // '/mesh/name', mesh_name)
+      call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
       mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call get_option("/geometry/dimension", dim)
       call allocate(vfield, dim, mesh, trim(variable_name_f))
@@ -164,8 +168,7 @@ module adjoint_functional_evaluation
     elseif (have_option("/material_phase::" // trim(material_phase_name) // "/tensor_field::" // trim(field_name))) then
       is_tensor = .true.
       type_string = "tensor"
-      call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
-                           "/tensor_field::" // trim(field_name))) // '/mesh/name', mesh_name)
+      call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
       mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call allocate(tfield, mesh, trim(variable_name_f))
       call zero(tfield)
@@ -174,6 +177,9 @@ module adjoint_functional_evaluation
       output = field_to_adj_vector(tfield)
       call deallocate(tfield)
     else
+      ewrite(-1,*) "variable_name_f: ", trim(variable_name_f)
+      ewrite(-1,*) "material_phase_name: ", trim(material_phase_name)
+      ewrite(-1,*) "field_name: ", trim(field_name)
       FLAbort("Unknown variable, couldn't find it as a scalar/vector/tensor field")
     endif
 
