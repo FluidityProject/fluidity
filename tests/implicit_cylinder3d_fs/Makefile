@@ -5,4 +5,4 @@ input: clean
 	../../scripts/gmsh2triangle cylinder-coarse.msh 
 
 clean:
-	rm -rf *.d.* *.s* *.vtu *.log *.node *.ele *.edge *.face *.vtu matrixdump* *.pyc *.msh fluidity.* *.detectors *_data
+	rm -rf *.d* *.s* *.vtu *.log *.node *.ele *.edge *.face *.vtu matrixdump* *.pyc *.msh fluidity.* *.dat
