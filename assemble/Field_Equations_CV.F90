@@ -186,6 +186,8 @@ contains
       type(scalar_field), pointer :: sink
       !! Direction of gravity
       type(vector_field), pointer :: gravity
+      !! Solid concentration for implicit_solids
+      type(scalar_field), pointer :: solid
 
       ! assume explicitness?
       logical :: explicit
@@ -294,6 +296,15 @@ contains
         allocate(advu)
         call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
         call set(advu, nu)
+
+        if (have_option("/implicit_solids")) then
+          ewrite(3,*) "implicit_solids advection velocity..."
+          solid => extract_scalar_field(state(1), "SolidConcentration")
+          do i = 1, advu%dim
+            advu%val(i,:) = advu%val(i,:) * (1. - solid%val)
+          end do
+        end if
+
         if (have_option(trim(tfield%option_path)// & 
          "/prognostic/spatial_discretisation/control_volumes/"// &
          "face_value::FiniteElement/only_sinking_velocity")) then
