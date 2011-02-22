@@ -2,7 +2,7 @@
 <testproblem>
   <name>parallel_region_ids</name>
   <owner userid="cwilson"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; mpiexec -n 3 ../../bin/fluidity -v2 -l parallel_region_ids.flml</command_line>
   </problem_definition>

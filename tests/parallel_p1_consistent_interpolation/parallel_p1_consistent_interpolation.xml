@@ -2,7 +2,7 @@
 <testproblem>
   <name>parallel_p1_consistent_interpolation</name>
   <owner userid="cwilson"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; mpiexec -n 2 ../../bin/fluidity -v2 -l parallel_p1_consistent_interpolation.flml</command_line>
   </problem_definition>

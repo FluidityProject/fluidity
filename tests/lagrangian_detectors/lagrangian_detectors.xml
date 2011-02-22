@@ -4,7 +4,7 @@
 <testproblem>
   <name>lagrangian_detectors</name>
   <owner userid="colin"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 mpiexec -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors.flml

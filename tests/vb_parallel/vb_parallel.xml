@@ -4,7 +4,7 @@
 <testproblem>
   <name>vb_parallel</name>
   <owner userid="colin"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -n 2 ../../bin/fluidity blob.flml; ../../scripts/pvtu2vtu blob 1</command_line>
   </problem_definition>

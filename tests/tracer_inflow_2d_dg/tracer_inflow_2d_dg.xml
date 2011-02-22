@@ -4,7 +4,7 @@
 <testproblem>
   <name>heat_2d_dg</name>
   <owner userid="dham"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -np 2 ../../bin/fluidity -l tracer.flml </command_line>
     <!-- Two dimensional poroblem in which a pulse of tracer us introduced via a dirichlet boundary condition on the tracer. The tracer then flows out of the domain. -->

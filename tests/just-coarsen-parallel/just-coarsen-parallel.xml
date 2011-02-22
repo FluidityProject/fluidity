@@ -4,7 +4,7 @@
 <testproblem>
   <name>just-coarsen-parallel</name>
   <owner userid="piggott"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="special" nprocs="2">
     <command_line>mpiexec ../../bin/fluidity -v3 -l just-coarsen-parallel.flml</command_line>
   </problem_definition>

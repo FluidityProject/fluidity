@@ -2,7 +2,7 @@
 <testproblem>
   <name>Periodic adaptivity</name>
   <owner userid="jhill1"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="special" nprocs="1">
       <command_line>mpiexec -n 3 ../../bin/fluidity -v2 -l periodic_adaptivity_periodised_parallel.flml</command_line>
   </problem_definition>

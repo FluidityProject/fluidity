@@ -4,7 +4,7 @@
 <testproblem>
   <name>region_id check</name>
   <owner userid="cwilson"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
     <problem_definition length="special" nprocs="1">
     <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l region_id_input.flml </command_line>
   </problem_definition>  

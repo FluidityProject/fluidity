@@ -2,7 +2,7 @@
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
   <owner userid="skramer"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l  standing_wave.flml;
 mkdir -p run1_logs; 

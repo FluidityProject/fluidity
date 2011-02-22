@@ -3,7 +3,7 @@
 <testproblem>
   <name>P1DGP2 periodic spatial convergence test</name>
   <owner userid="colin"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>fluidity  MMS_A.flml -v3 &gt; MMS_A.log; fluidity  MMS_B.flml -v3 &gt; MMS_B.log; fluidity  MMS_C.flml -v3 &gt; MMS_C.log; fluidity  MMS_D.flml -v3 &gt; MMS_D.log;  
 <!-- fluidity  MMS_E.flml &gt; MMS_E.log -->

@@ -3,7 +3,7 @@
 <testproblem>
   <name>Square convection (Adaptive CG-test version)</name>
   <owner userid="pfarrell"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l square-convection.flml</command_line>
   </problem_definition>

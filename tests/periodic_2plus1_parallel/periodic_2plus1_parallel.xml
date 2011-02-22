@@ -2,7 +2,7 @@
 <testproblem>
   <name>Periodic 2+1 parallel</name>
   <owner userid="am2008"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
     no_proc=2

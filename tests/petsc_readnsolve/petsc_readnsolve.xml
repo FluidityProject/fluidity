@@ -2,6 +2,7 @@
 <testproblem>
   <name>petsc_readnsolve</name>
   <owner userid="skramer"/>
+  <tags> parallel </tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml &gt;&amp; /dev/null;
 mv matrixdump velocity_matrixdump;

@@ -3,7 +3,7 @@
 <testproblem>
   <name>Geopressure convergence test</name>
   <owner userid="piggt01"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;
 mpiexec -n 2 ../../bin/fluidity -v2 geopressure_8.flml > 8.log;

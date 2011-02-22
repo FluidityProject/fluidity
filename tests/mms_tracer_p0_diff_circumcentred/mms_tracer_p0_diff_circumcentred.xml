@@ -3,7 +3,7 @@
 <testproblem>
   <name>p0fv steady state diffusion equation spatial convergence test for the circumcentred masslumping scheme</name>
   <owner userid="skramer"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 MMS_A.flml &gt; MMS_A.log; fluidity -v2 MMS_B.flml &gt; MMS_B.log; fluidity -v2 MMS_C.flml &gt; MMS_C.log; fluidity -v2 MMS_D.flml &gt; MMS_D.log; fluidity -v2 MMS_E.flml &gt; MMS_E.log</command_line>
   </problem_definition>

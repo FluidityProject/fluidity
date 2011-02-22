@@ -7,7 +7,7 @@
   
   <owner userid="hhiester"/>
   
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   
     <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v3 -l mixing_stats_test_serial.flml;

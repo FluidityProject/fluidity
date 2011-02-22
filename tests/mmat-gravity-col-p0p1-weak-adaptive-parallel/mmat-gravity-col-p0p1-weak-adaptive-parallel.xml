@@ -4,7 +4,7 @@
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
     <problem_definition length="special" nprocs="1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l column_under_gravity.flml</command_line>
   </problem_definition>  

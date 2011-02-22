@@ -5,7 +5,7 @@
 <testproblem>
   <name>Three-dimensional backward facing step.</name>
   <owner userid="jhill1"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>mpiexec -n 3 -x PYTHONPATH ../../bin/fluidity backward_facing_step_3d.flml</command_line>
 </problem_definition>

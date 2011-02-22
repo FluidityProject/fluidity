@@ -5,7 +5,7 @@
   <name>adaptive-parallel-p2p1-Stokes-square-convection-1e4</name>
   <owner userid="rhodrid"/>
 
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
 
   <problem_definition length="special" nprocs="1">
     <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p2p1-adaptive-parallel.flml</command_line>

@@ -6,7 +6,7 @@
 <testproblem>
   <name>circle-2d-drag-zoltan</name>
   <owner userid="jhill1"/>
-  <tags>flml zoltan</tags>
+  <tags>flml zoltan parallel</tags>
   <problem_definition length="medium" nprocs="1">
       <command_line>fluidity circle-2d-drag-serial.flml;
           mpiexec -n 3 ../../bin/fluidity circle-2d-drag-parallel.flml;

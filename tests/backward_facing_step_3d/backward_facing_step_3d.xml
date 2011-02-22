@@ -4,7 +4,7 @@
 <testproblem>
   <name>Three-dimensional backward facing step.</name>
   <owner userid="piggott"/>
-  <tags>flml</tags>
+  <tags>flml parallel</tags>
   <problem_definition length="special" nprocs="8">
     <command_line>mpiexec ../../bin/fluidity -v3 -l backward_facing_step_3d.flml</command_line>
   </problem_definition>
