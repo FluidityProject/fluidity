@@ -141,7 +141,7 @@ module adjoint_functional_evaluation
     is_vector = .false.
     is_tensor = .false.
     derivative_state%name = "DerivativeState"
-    if (have_option("/material_phase::" // trim(material_phase_name) // "/scalar_field::" // trim(field_name))) then
+    if (index(path, "/scalar_field::") /= 0) then 
       is_scalar = .true.
       type_string = "scalar"
       ! Allocate a scalar_field on the appropriate mesh and add it to python as 'derivative'.
@@ -153,7 +153,7 @@ module adjoint_functional_evaluation
       call insert(derivative_state, sfield, trim(variable_name_f))
       output = field_to_adj_vector(sfield)
       call deallocate(sfield)
-    elseif (have_option("/material_phase::" // trim(material_phase_name) // "/vector_field::" // trim(field_name))) then
+    elseif (index(path, "/vector_field::") /= 0) then
       is_vector = .true.
       type_string = "vector"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
@@ -165,7 +165,7 @@ module adjoint_functional_evaluation
       call insert(derivative_state, vfield, trim(variable_name_f))
       output = field_to_adj_vector(vfield)
       call deallocate(vfield)
-    elseif (have_option("/material_phase::" // trim(material_phase_name) // "/tensor_field::" // trim(field_name))) then
+    elseif (index(path, "/tensor_field::") /= 0) then 
       is_tensor = .true.
       type_string = "tensor"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
