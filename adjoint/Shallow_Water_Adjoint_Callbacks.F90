@@ -56,6 +56,23 @@ module shallow_water_adjoint_callbacks
 
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "VelocityIdentity", c_funloc(velocity_identity_assembly_callback))
       call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_assembly_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "WaveMatrix", c_funloc(wave_mat_assembly_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "Coriolis", c_funloc(coriolis_assembly_callback))
+      call adj_chkierr(ierr)
+      
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "GradPerp", c_funloc(gradperp_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "GradMinusDivBigMatCoriolis", c_funloc(grad_minus_div_bigmat_coriolis_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivBigMatGrad", c_funloc(div_bigmat_grad_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "BigMatGrad", c_funloc(bigmat_grad_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "BigMatCoriolis", c_funloc(bigmat_coriolis_action_callback))
+      call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
     subroutine velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
