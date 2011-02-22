@@ -128,7 +128,7 @@ module adjoint_functional_evaluation
     ierr = adj_variable_get_name(var, variable_name_f)
     s_idx = scan(trim(variable_name_f), ":")
     material_phase_name = variable_name_f(1:s_idx - 1)
-    field_name = variable_name_f(s_idx + 2:len_trim(variable_name_f))
+    field_name = "Adjoint" // variable_name_f(s_idx + 2:len_trim(variable_name_f))
 
     ! Now we need to find out if we're differentiating with respect to a scalar, vector, or tensor field.
     is_scalar = .false.
@@ -141,9 +141,10 @@ module adjoint_functional_evaluation
       ! Allocate a scalar_field on the appropriate mesh and add it to python as 'derivative'.
       call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
                            "/scalar_field::" // trim(field_name))) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call allocate(sfield, mesh, trim(variable_name_f))
       call zero(sfield)
+      call insert(derivative_state, mesh, trim(mesh%name))
       call insert(derivative_state, sfield, trim(variable_name_f))
       output = field_to_adj_vector(sfield)
       call deallocate(sfield)
@@ -152,10 +153,11 @@ module adjoint_functional_evaluation
       type_string = "vector"
       call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
                            "/vector_field::" // trim(field_name))) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call get_option("/geometry/dimension", dim)
       call allocate(vfield, dim, mesh, trim(variable_name_f))
       call zero(vfield)
+      call insert(derivative_state, mesh, trim(mesh%name))
       call insert(derivative_state, vfield, trim(variable_name_f))
       output = field_to_adj_vector(vfield)
       call deallocate(vfield)
@@ -164,9 +166,10 @@ module adjoint_functional_evaluation
       type_string = "tensor"
       call get_option(trim(complete_field_path("/material_phase::" // trim(material_phase_name) // &
                            "/tensor_field::" // trim(field_name))) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
       call allocate(tfield, mesh, trim(variable_name_f))
       call zero(tfield)
+      call insert(derivative_state, mesh, trim(mesh%name))
       call insert(derivative_state, tfield, trim(variable_name_f))
       output = field_to_adj_vector(tfield)
       call deallocate(tfield)
@@ -177,9 +180,9 @@ module adjoint_functional_evaluation
     ! Now we need to do some more bloody shuffling because of the awkward python_state interfaces --
     ! We have already set up states to be exactly as we like it, there is no way to insert a scalar field
     ! without having it associated with a state. *Grumble*
-    call python_run_string("megastates = states; del states")
+    call python_run_string("megastates = states; states = {}")
     call python_add_state(derivative_state)
-    call python_run_string("derivative = states['DerivativeState']." // trim(type_string) // "_fields[" // trim(variable_name_f) // "]")
+    call python_run_string("derivative = states['DerivativeState']." // trim(type_string) // "_fields['" // trim(variable_name_f) // "']")
     call python_run_string("states = megastates; del megastates")
 
     ! Also set up some useful variables for the user to use
@@ -254,7 +257,7 @@ module adjoint_functional_evaluation
       case (ADJ_MESH_TYPE)
         call mesh_type_from_adj_vector(values(j), mesh)
         do matpas=1,size(states, 1)
-          call insert(states(matpas, :), mesh, trim(field_name))
+          call insert(states(matpas, :), mesh, trim(name))
         end do
       case default
         FLAbort("Unknown adj_vector%klass")
