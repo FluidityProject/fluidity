@@ -1557,7 +1557,8 @@ start =
                      element sections {integer},
                     ## Initial step length for the Hooke and Jeeves search
                      element initial_step_length {real},
-                    ## Set initial base_point, perhaps make this optional later
+                    ## Set initial base_point, perhaps make this optional later.
+                    ## Starts at the bottom for vertical well!!
                      element initial_base_point {real_vector}?,
                     ## filename for target file (real potential curve)
                      element target_filename {string}
@@ -1867,19 +1868,29 @@ start =
             ## Specify scalar field Porosity
             element scalar_field {
                attribute name { "Porosity" },
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }
+               (
+                  element prescribed {
+                     velocity_mesh_choice,
+                     prescribed_scalar_field
+                  }|
+                  element aliased {
+                     generic_aliased_field
+                  }
+               )
             },
             ## Specify field Permeability
             (
                element scalar_field {
                   attribute name { "Permeability" },
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_scalar_field
-                  }
+                  (
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }|
+                     element aliased {
+                        generic_aliased_field
+                     }
+                  )
                }|
                element vector_field {
                   attribute name { "Permeability" },

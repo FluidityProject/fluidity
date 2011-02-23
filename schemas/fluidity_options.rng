@@ -2566,10 +2566,15 @@ it will use a constant emissions factor</a:documentation>
             <attribute name="name">
               <value>Porosity</value>
             </attribute>
-            <element name="prescribed">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prescribed_scalar_field"/>
-            </element>
+            <choice>
+              <element name="prescribed">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+              <element name="aliased">
+                <ref name="generic_aliased_field"/>
+              </element>
+            </choice>
           </element>
           <choice>
             <a:documentation>Specify field Permeability</a:documentation>
@@ -2577,10 +2582,15 @@ it will use a constant emissions factor</a:documentation>
               <attribute name="name">
                 <value>Permeability</value>
               </attribute>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_scalar_field"/>
-              </element>
+              <choice>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+                <element name="aliased">
+                  <ref name="generic_aliased_field"/>
+                </element>
+              </choice>
             </element>
             <element name="vector_field">
               <attribute name="name">

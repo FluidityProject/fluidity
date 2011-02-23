@@ -64,7 +64,6 @@
       <comment>0.01</comment>
     </finish_time>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="water">
     <equation_of_state>
       <fluids>

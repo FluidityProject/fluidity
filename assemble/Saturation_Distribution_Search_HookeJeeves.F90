@@ -439,7 +439,7 @@ module saturation_distribution_search_hookejeeves
         ewrite(3,*) 'point, widths, error: ', point, widths, error
         open(911, file = 'output.data', action="write", position="append")
         write(911,10) point, widths, error
-     10 FORMAT(16(F9.4,2x),16(F5.1,2x),F10.6)
+     10 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(911)
         is_improved=.true.
      elseif (error<smallest_error) then
@@ -449,7 +449,7 @@ module saturation_distribution_search_hookejeeves
         ewrite(3,*) 'point, widths, error: ', point, widths, error
         open(913, file = 'output.data', action="write", position="append")
         write(913,12) point, widths, error
-     12 FORMAT(16(F9.4,2x),16(F5.1,2x),F10.6)
+     12 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(913)
         is_improved=.true.
      else
