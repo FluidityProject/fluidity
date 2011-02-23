@@ -1414,6 +1414,7 @@
                 call field_from_adj_vector(rhs, sfield_rhs)
                 call allocate(sfield_soln, sfield_rhs%mesh, variable_name(8:len_trim(variable_name)))
                 call zero(sfield_soln)
+                sfield_soln%option_path = trim(path)
 
                 select case(lhs%klass)
                   case(IDENTITY_MATRIX)
@@ -1423,7 +1424,7 @@
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(sfield_soln, csr_mat, sfield_rhs)
                     else
-                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=trim(path))
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
@@ -1439,6 +1440,7 @@
                 call field_from_adj_vector(rhs, vfield_rhs)
                 call allocate(vfield_soln, dim, vfield_rhs%mesh, variable_name(8:len_trim(variable_name))) ! dim is probably wrong
                 call zero(vfield_soln)
+                vfield_soln%option_path = trim(path)
 
                 select case(lhs%klass)
                   case(IDENTITY_MATRIX)
@@ -1448,14 +1450,14 @@
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(vfield_soln, csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=trim(path))
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, block_csr_mat)
                     if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
                       call mult(vfield_soln, block_csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=trim(path))
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
                     endif
                   case default
                     FLAbort("Unknown lhs%klass")
@@ -1468,6 +1470,12 @@
               case default
                 FLAbort("Unknown rhs%klass")
             end select
+
+            ! Destroy lhs and rhs
+            call femtools_vec_destroy_proc(rhs)
+            if (lhs%klass /= IDENTITY_MATRIX) then
+              call femtools_mat_destroy_proc(lhs)
+            endif
           end do
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)

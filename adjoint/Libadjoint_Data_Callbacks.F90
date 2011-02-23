@@ -40,7 +40,8 @@ implicit none
   private 
   public :: field_to_adj_vector, field_from_adj_vector, adj_register_femtools_data_callbacks
   public :: matrix_to_adj_matrix, matrix_from_adj_matrix, mesh_type_to_adj_vector, mesh_type_from_adj_vector
-  public :: femtools_vec_destroy_proc, femtools_vec_axpy_proc
+  public :: femtools_vec_destroy_proc
+  public :: femtools_mat_destroy_proc
 
   interface field_to_adj_vector
     module procedure scalar_field_to_adj_vector, vector_field_to_adj_vector, tensor_field_to_adj_vector
