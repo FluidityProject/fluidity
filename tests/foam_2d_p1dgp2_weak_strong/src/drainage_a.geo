@@ -1,0 +1,15 @@
+Point (1) = {0, 0, 0, 0.01};
+Point (2) = {0, 0.1, 0, 0.01};
+Point (3) = {0.1, 0.1, 0, 0.01};
+Point (4) = {0.1, 0, 0, 0.01};
+Line (1) = {3, 4};
+Line (2) = {4, 1};
+Line (3) = {1, 2};
+Line (4) = {2, 3};
+Line Loop (6) = {1, 2, 3, 4};
+Plane Surface (6) = {6};
+Physical Line(7) = {2};
+Physical Line(8) = {1};
+Physical Line(9) = {4};
+Physical Line(10) = {3};
+Physical Surface(11) = {6};
