@@ -58,14 +58,13 @@
         </number_of_detectors>
         <lagrangian/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value type="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.5+0.25*arange(0,100.)/100.
   y = zeros(100) + 0.5
   return reshape(concatenate((x,y)),(2,100)).T</string_value>
         </python>
       </detector_array>
-      <binary_search/>
     </detectors>
   </io>
   <timestepping>

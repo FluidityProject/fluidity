@@ -2433,12 +2433,6 @@ contains
 
     type(element_type), pointer :: shape
 
-    !RK stuff - cjc
-    integer :: stage, n_stages
-    integer, dimension(2) :: option_rank
-    real, allocatable, dimension(:) :: stage_array, timestep_array
-    real, allocatable, dimension(:,:) :: stage_matrix
-
     ewrite(1,*) "Inside write_detectors subroutine"
 
     !Computing the global number of detectors. This is to prevent hanging
@@ -2564,146 +2558,81 @@ contains
        detector => detector%next
     end do  
 
+    !this loop continues until all detectors have completed their timestep
+    !this is measured by checking if the send and receive lists are empty
+    !in all processors
     if (move_detectors.and.(timestep/=0)) then
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
-          
-       !Get RK guided options
-       if(have_option("io/detectors/explicit_runge_kutta_guided_search"))&
-            & then
-          call get_option("io/detectors/explicit_runge_kutta_guided_searc&
-               &h/n&
-               &_stages",n_stages)
-          allocate(stage_array(n_stages*(n_stages-1)/2))
-          option_rank = option_shape("io/detectors/explicit_runge_kutta_g&
-               &uid&
-               &ed_search/stage_array")
-          if(option_rank(2).ne.-1) then
-             FLExit('Stage Array wrong rank')
-          end if
-          if(option_rank(1).ne.size(stage_array)) then
-             ewrite(-1,*) 'size expected was', size(stage_array)
-             ewrite(-1,*) 'size actually was', option_rank(1)
-             FLExit('Stage Array wrong size')
-          end if
-          call get_option("io/detectors/explicit_runge_kutta_guid&
-               &ed_search/stage_array",stage_array)
-          allocate(stage_matrix(n_stages,n_stages))
-          k = 0
-          do i = 1, n_stages
-             do j = 1, n_stages
-                if(i>j) then
-                   k = k + 1
-                   stage_matrix(i,j) = stage_array(k)
-                end if
-             end do
+       detector_timestepping_loop: do  
+
+          !check if detectors any are Lagrangian
+          any_lagrangian=.false.
+          detector => default_stat%detector_list%firstnode
+          do i = 1, default_stat%detector_list%length         
+             if (detector%type==LAGRANGIAN_DETECTOR)&
+                  &any_lagrangian=.true. 
+             detector => detector%next
           end do
-          allocate(timestep_array(n_stages))
-          option_rank = option_shape("io/detectors/explicit_runge_kutta_g&
-               &uid&
-               &ed_search/timestep_array")
-          if(option_rank(2).ne.-1) then
-             FLExit('Timestep Array wrong rank')
+
+          if (any_lagrangian) then
+             !This is the actual call to move the detectors
+             !The hash table is used to work out which processor
+             !corresponds to which entry in the send_list_array
+             
+             !Detectors leaving the domain from non-owned elements
+             !are entering a domain on another processor rather 
+             !than leaving the physical domain. In this subroutine
+             !such detectors are removed from the detector list
+             !and added to the send_list_array
+             call move_detectors_bisection_method(&
+                  state, dt, ihash, send_list_array)
           end if
-          if(option_rank(1).ne.size(timestep_array)) then
-             FLExit('Timestep Array wrong size')
-          end if
-          call get_option("io/detectors/explicit_runge_kutta_guid&
-               &ed_search/timestep_array",timestep_array)
-       else
-          n_stages = 0
-       end if
-       
-       do stage = 1, n_stages
-          if(have_option("io/detectors/explicit_runge_kutta_guided_search"))&
-               & then
-             if(stage.eq.1) then
-                call initialise_rk_guided_search()
+
+          !Work out whether all send lists are empty,
+          !in which case exit.
+          !This is slightly Byzantine, I think it would
+          !also work if it was initially zero, and then
+          !set to 1 if any of the lists were not empty. CJC
+          all_send_lists_empty=number_neigh_processors
+          do k=1, number_neigh_processors
+             if (send_list_array(k)%length==0) then
+                all_send_lists_empty=all_send_lists_empty-1
              end if
-             call set_stage()
-          end if
-          !this loop continues until all detectors have completed their
-          !timestep this is measured by checking if the send and receive
-          !lists are empty in all processors
-          detector_timestepping_loop: do  
+          end do
+          call allmax(all_send_lists_empty)
+          if (all_send_lists_empty==0) exit
 
-             !check if detectors any are Lagrangian
-             any_lagrangian=.false.
-             detector => default_stat%detector_list%firstnode
-             do i = 1, default_stat%detector_list%length         
-                if (detector%type==LAGRANGIAN_DETECTOR)&
-                     &any_lagrangian=.true. 
-                detector => detector%next
-             end do
+          !This call serialises send_list_array,
+          !sends it, receives serialised receive_list_array,
+          !unserialises that.
+          call serialise_lists_exchange_receive(&
+               state,send_list_array,receive_list_array,&
+               number_neigh_processors,ihash)
 
-             if (any_lagrangian) then
-                !This is the actual call to move the detectors
-                !The hash table is used to work out which processor
-                !corresponds to which entry in the send_list_array
-
-                !Detectors leaving the domain from non-owned elements
-                !are entering a domain on another processor rather 
-                !than leaving the physical domain. In this subroutine
-                !such detectors are removed from the detector list
-                !and added to the send_list_array
-                if(have_option("io/detectors/explicit_runge_kutta_guided_search&
-                     &")) then
-                   !Move the detectors as far as possible
-                   !call move_detectors_guided_search()
-                else
-                   call move_detectors_bisection_method(&
-                        state, dt, ihash, send_list_array)
-                end if
+          !This call moves detectors into the detector_list
+          !I'm still unsure about how detectors are removed
+          !from the detector list if they are sent.
+          do i=1, number_neigh_processors
+             if  (receive_list_array(i)%length/=0) then      
+                call move_det_from_receive_list_to_det_list(&
+                     default_stat%detector_list,receive_list_array(i))
              end if
+          end do
 
-             !Work out whether all send lists are empty,
-             !in which case exit.
-             !This is slightly Byzantine, I think it would
-             !also work if it was initially zero, and then
-             !set to 1 if any of the lists were not empty. CJC
-             all_send_lists_empty=number_neigh_processors
-             do k=1, number_neigh_processors
-                if (send_list_array(k)%length==0) then
-                   all_send_lists_empty=all_send_lists_empty-1
-                end if
-             end do
-             call allmax(all_send_lists_empty)
-             if (all_send_lists_empty==0) exit
+          !Flush the detector lists
+          do k=1, number_neigh_processors
+             if (send_list_array(k)%length/=0) then  
+                call flush_det(send_list_array(k))
+             end if
+          end do
+          do k=1, number_neigh_processors
+             if (receive_list_array(k)%length/=0) then  
+                call flush_det(receive_list_array(k))
+             end if
+          end do
 
-             !This call serialises send_list_array,
-             !sends it, receives serialised receive_list_array,
-             !unserialises that.
-             call serialise_lists_exchange_receive(&
-                  state,send_list_array,receive_list_array,&
-                  number_neigh_processors,ihash)
-
-             !This call moves detectors into the detector_list
-             do i=1, number_neigh_processors
-                if  (receive_list_array(i)%length/=0) then      
-                   call move_det_from_receive_list_to_det_list(&
-                        default_stat%detector_list,receive_list_array(i))
-                end if
-             end do
-
-             !Flush the detector lists
-             do k=1, number_neigh_processors
-                if (send_list_array(k)%length/=0) then  
-                   call flush_det(send_list_array(k))
-                end if
-             end do
-             do k=1, number_neigh_processors
-                if (receive_list_array(k)%length/=0) then  
-                   call flush_det(receive_list_array(k))
-                end if
-             end do
-          end do detector_timestepping_loop
-       end do
-
-       if(have_option("io/detectors/explicit_runge_kutta_guided_search"))&
-            & then       
-          call deallocate_rk_guided_search()
-       end if
-
+       end do detector_timestepping_loop
        deallocate(send_list_array)
        deallocate(receive_list_array)
     end if
@@ -2950,84 +2879,6 @@ contains
     end if
 
    contains
-
-    !Subroutine to allocate the RK stages, and update vector
-    subroutine initialise_rk_guided_search()
-      type(detector_type), pointer :: det0
-      integer :: j0
-      !
-      det0 => default_stat%detector_list%firstnode
-      do j0=1, default_stat%detector_list%length
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            if(allocated(det0%k)) then
-               deallocate(det0%k)
-            end if
-            if(allocated(det0%update_vector)) then
-               deallocate(det0%update_vector)
-            end if
-            allocate(det0%k(n_stages,xfield%dim))
-            allocate(det0%update_vector(xfield%dim))
-         end if
-         det0 => det0%next
-      end do
-    end subroutine initialise_rk_guided_search
-
-    !Subroutine to deallocate the RK stages and update vector - CJC
-    subroutine deallocate_rk_guided_search()
-      type(detector_type), pointer :: det0
-      integer :: j0
-      !
-      det0 => default_stat%detector_list%firstnode
-      do j0=1, default_stat%detector_list%length
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            if(allocated(det0%k)) then
-               deallocate(det0%k)
-            end if
-            if(allocated(det0%update_vector)) then
-               deallocate(det0%update_vector)
-            end if
-         end if
-         det0 => det0%next
-      end do
-    end subroutine deallocate_rk_guided_search
-
-    !Subroutine to compute the vector to search for the next RK stage
-    !cjc
-    subroutine set_stage()
-      type(detector_type), pointer :: det0
-      integer :: det_count,j0
-      !
-      det0 => default_stat%detector_list%firstnode
-      do det_count=1, default_stat%detector_list%length 
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            det0%update_complete = 0.
-            !stage vector is computed by evaluating velocity at current
-            !position
-            det0%local_coords=&
-                 local_coords(xfield,det0%element,det0%position)
-            det0%k(stage,:) = detector_value(vfield, det0)
-            if(stage<n_stages) then
-               !update vector maps from current position to place required
-               !for computing next stage vector
-               det0%update_vector = 0.
-               do j0 = 1, stage
-                  det0%update_vector = det0%update_vector + &
-                       dt*(stage_matrix(stage+1,j0)-stage_matrix(stage,j0))*&
-                       &det0%k(j0,:)
-               end do
-            else
-               !update vector maps from current position to final position
-               det0%update_vector = 0.
-               do j0 = 1, n_stages
-                  det0%update_vector = det0%update_vector + &
-                       dt*(timestep_array(j0)-stage_matrix(stage,j0))*&
-                       &det0%k(j0,:)
-               end do
-            end if
-         end if
-         det0 => det0%next
-      end do
-    end subroutine set_stage
 
     function reals_format(reals)
       character(len=10) :: reals_format
