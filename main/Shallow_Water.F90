@@ -197,7 +197,7 @@
             exclude_nonreprescribed=.true., time=current_time+dt)
 
        call execute_timestep(state(1), dt)
-       call adjoint_register_timestep(timestep)
+       call adjoint_register_timestep(timestep, dt)
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
@@ -1177,15 +1177,15 @@
 #endif
     end subroutine adjoint_register_initial_u_condition
 
-    subroutine adjoint_register_timestep(timestep)
+    subroutine adjoint_register_timestep(timestep, dt)
       integer, intent(in) :: timestep
+      real, intent(in) :: dt
 #ifdef HAVE_ADJOINT
       type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta
       real :: start_time
-      real :: dt
 
       integer :: j, nfunctionals
       type(adj_variable), dimension(:), allocatable :: vars
@@ -1304,7 +1304,6 @@
 
       ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
-      call get_option("/timestepping/timestep", dt)
       ierr = adj_timestep_set_times(adjointer, timestep=timestep, start=start_time, end=start_time+dt)
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
@@ -1353,6 +1352,10 @@
       call get_option("/timestepping/finish_time", finish_time)
       call get_option("/timestepping/current_time", current_time)
       call get_option("/simulation_name", simulation_base_name)
+      
+      ! Switch the thml output on if you are interested what the adjointer has registered
+      ! ierr = adj_adjointer_to_html(adjointer, "shallow_water_adjointer.html")
+      ! call adj_chkierr(ierr)
 
       ! current_time is the start of the timestep, and current_time + dt is the end of the timestep.
       ! In the first timestep, we compute the value at the end -- so we're actually "starting one dt back",
