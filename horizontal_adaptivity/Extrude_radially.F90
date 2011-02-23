@@ -218,18 +218,25 @@ module hadapt_extrude_radially
           call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
             sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
         else
-          call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-            sizing_function=sizing_function)
+          if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
+                                      int2str(r)//"]/sizing_function/list")) then
+            call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+              sizing_vector=sizing_vector)
+          else
+            call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+              sizing_function=sizing_function)
+          end if
         end if
         
       end do
       
       if(apply_region_ids) then
         deallocate(region_ids)
-        if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
-                                int2str(r)//"]/sizing_function/list")) then
-          deallocate(sizing_vector)
-        end if
+      end if
+
+      if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
+                           int2str(r)//"]/sizing_function/list")) then
+        deallocate(sizing_vector)
       end if
     end do
 
@@ -273,7 +280,7 @@ module hadapt_extrude_radially
         
   end subroutine extrude_radially
 
-  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, sizing, sizing_function)
+  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, sizing, sizing_function, sizing_vector)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: r_mesh
     real, intent(in):: depth
@@ -281,6 +288,7 @@ module hadapt_extrude_radially
     real, dimension(:), intent(in):: xyz
     real, optional, intent(in):: sizing
     character(len=*), optional, intent(in):: sizing_function
+    real, dimension(:), optional, intent(in) :: sizing_vector 
 
     ! this is a safety gap:
     integer, parameter:: MAX_VERTICAL_NODES=1e6
@@ -304,6 +312,7 @@ module hadapt_extrude_radially
     real :: delta_r, r, rnew
     real :: thetanew, phinew
     character(len=PYTHON_FUNC_LEN) :: py_func
+    integer :: list_size
 
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
@@ -318,6 +327,10 @@ module hadapt_extrude_radially
       is_constant=.false.
       constant_value=-1.0
       py_func = sizing_function
+    else if (present(sizing_vector)) then
+      is_constant=.false.
+      constant_value=-1.0
+      list_size=size(sizing_vector)
     else
       FLAbort("Need to supply either sizing, sizing_function")
     end if
@@ -328,7 +341,15 @@ module hadapt_extrude_radially
     node=2
     xyz_new(1:size(xyz))=xyz
     do
-      delta_r = get_delta_r( xyz_new, is_constant, constant_value, py_func)
+      if (present(sizing_vector)) then
+        if (node-1<=list_size) then
+          delta_r = sizing_vector(node-1)
+        else
+          delta_r = sizing_vector(list_size)
+        end if
+      else
+        delta_r = get_delta_r( xyz_new, is_constant, constant_value, py_func)
+      end if
       r=r - delta_r
       if (r<(r_shell-depth+MIN_BOTTOM_LAYER_FRAC*delta_r)) exit
       node=node+1
@@ -355,7 +376,15 @@ module hadapt_extrude_radially
     phinew=atan2(xyz(2),xyz(1))  
     do node=2,elements
       xyz_new=node_val(r_mesh, node-1)
-      delta_r = get_delta_r(xyz_new, is_constant, constant_value, py_func)
+      if (present(sizing_vector)) then
+        if (node-1<=list_size) then
+          delta_r = sizing_vector(node-1)
+        else
+          delta_r = sizing_vector(list_size)
+        end if
+      else
+        delta_r = get_delta_r( xyz_new, is_constant, constant_value, py_func)
+      end if
       rnew=norm2(xyz_new)-delta_r
       xyz_new(1)=rnew*sin(thetanew)*cos(phinew)
       xyz_new(2)=rnew*sin(thetanew)*sin(phinew)
