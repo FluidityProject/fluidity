@@ -521,15 +521,21 @@ void set_tensor_field_from_python(char *function, int *function_len, int *dim,
       return;
     }
 
+    if (pArray->dimensions[0] != result_dim[0] || pArray->dimensions[1] != result_dim[1])
+    {
+      fprintf(stderr, "Error: dimensions of array returned from python ([%d, %d]) do not match allocated dimensions of the tensor_field ([%d, %d])).\n", 
+             (int) pArray->dimensions[0], (int) pArray->dimensions[1], result_dim[0], result_dim[1]);
+      *stat=1;
+      return;
+    }
+
     for (ii = 0; ii < result_dim[0]; ii++){
       for (jj = 0; jj < result_dim[1]; jj++){
         
         // Note the transpose for fortran.
-        result[i*(result_dim[0] * result_dim[1]) + jj * result_dim[0] + ii] = 
-          *(double*)(pArray->data 
-                     + ii * pArray->strides[0] 
-                     + jj * pArray->strides[1]);
-
+        double tmp;
+        tmp = *(double*)(pArray->data + ii * pArray->strides[0] + jj * pArray->strides[1]);
+        result[i*(result_dim[0] * result_dim[1]) + jj * result_dim[0] + ii] = tmp;
       }
     }
 
