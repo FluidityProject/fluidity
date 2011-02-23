@@ -1069,6 +1069,7 @@
       type(mesh_type), pointer :: mesh
       type(vector_field), pointer :: u
       type(scalar_field), pointer :: eta
+      type(adj_vector) :: mesh_vec
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1096,7 +1097,9 @@
         ierr = adj_create_variable(trim(mesh_name), timestep=0, iteration=0, auxiliary=ADJ_TRUE, variable=adj_meshes(j+1))
         call adj_chkierr(ierr)
         mesh => extract_mesh(states, trim(mesh_name))
-        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory(mesh_type_to_adj_vector(mesh)))
+        mesh_vec = mesh_type_to_adj_vector(mesh)
+        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory(mesh_vec))
+        call femtools_vec_destroy_proc(mesh_vec)
         call adj_chkierr(ierr)
       end do
 
@@ -1412,7 +1415,7 @@
             select case(rhs%klass)
               case(ADJ_SCALAR_FIELD)
                 call field_from_adj_vector(rhs, sfield_rhs)
-                call allocate(sfield_soln, sfield_rhs%mesh, variable_name(8:len_trim(variable_name)))
+                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name)))
                 call zero(sfield_soln)
                 sfield_soln%option_path = trim(path)
 
@@ -1432,13 +1435,15 @@
                     FLAbort("Unknown lhs%klass")
                 end select
 
-                call insert(state(1), sfield_soln, "Adjoint" // trim(sfield_soln%name))
+                call insert(state(1), sfield_soln, trim(sfield_soln%name))
                 soln = field_to_adj_vector(sfield_soln)
                 ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory(soln))
                 call adj_chkierr(ierr)
+                call femtools_vec_destroy_proc(soln)
+                call deallocate(sfield_soln)
               case(ADJ_VECTOR_FIELD)
                 call field_from_adj_vector(rhs, vfield_rhs)
-                call allocate(vfield_soln, dim, vfield_rhs%mesh, variable_name(8:len_trim(variable_name))) ! dim is probably wrong
+                call allocate(vfield_soln, dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) ! dim is probably wrong
                 call zero(vfield_soln)
                 vfield_soln%option_path = trim(path)
 
@@ -1463,10 +1468,12 @@
                     FLAbort("Unknown lhs%klass")
                 end select
 
-                call insert(state(1), vfield_soln, "Adjoint" // trim(vfield_soln%name))
+                call insert(state(1), vfield_soln, trim(vfield_soln%name))
                 soln = field_to_adj_vector(vfield_soln)
                 ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory(soln))
                 call adj_chkierr(ierr)
+                call femtools_vec_destroy_proc(soln)
+                call deallocate(vfield_soln)
               case default
                 FLAbort("Unknown rhs%klass")
             end select
