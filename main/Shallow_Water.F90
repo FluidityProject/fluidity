@@ -1219,6 +1219,8 @@
       call adj_chkierr(ierr)
       ierr = adj_create_block("GradMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(block=CTML, coefficient=-1.0)
+      call adj_chkierr(ierr)
 
       ! Blocks for eta_n equation
       ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=Ieta)

@@ -364,8 +364,8 @@ module shallow_water_adjoint_callbacks
       character(len=ADJ_DICT_LEN) :: path
       integer :: ierr
 
-      if (coefficient /= 1.0) then
-        FLAbort("The coefficient in grad_minus_div_bigmat_coriolis_action_callback has to be 1.0")
+      if (coefficient /= -1.0) then
+        FLAbort("The coefficient in grad_minus_div_bigmat_coriolis_action_callback has to be -1.0")
       end if
 
       call c_f_pointer(context, matrices)
