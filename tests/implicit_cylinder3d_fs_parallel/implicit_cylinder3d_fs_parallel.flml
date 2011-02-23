@@ -142,7 +142,6 @@
           <real_value shape="3" dim1="dim" rank="1">0.1403 0.0 0.0</real_value>
         </location>
       </static_detector>
-      <binary_search/>
     </detectors>
   </io>
   <timestepping>
