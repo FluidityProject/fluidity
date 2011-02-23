@@ -74,6 +74,7 @@ module fluids_module
   use MeshMovement
   use write_triangle
   use biology
+  use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
@@ -138,6 +139,7 @@ contains
     integer :: dump_no = 0
     !     Temporary buffer for any string options which may be required.
     character(len=OPTION_PATH_LEN) :: option_buffer
+    character(len=OPTION_PATH_LEN):: option_path
     REAL :: CHANGE,CHAOLD
 
     integer :: i, it, its
@@ -159,6 +161,8 @@ contains
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
+    type(scalar_field) :: foam_velocity_potential
+    type(vector_field), pointer :: foamvel
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     backward compatibility with new option structure - crgw 21/12/07
@@ -710,6 +714,16 @@ contains
              call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
              ewrite(2,*) 'out of solid_drag_calculation'
           end if
+
+          do i=1, option_count("/material_phase")
+            option_path="/material_phase["//int2str(i-1)//"]/scalar_field::FoamVelocityPotential"
+            if( have_option(trim(option_path)//"/prognostic")) then
+               call calculate_potential_flow(state(i), phi=foam_velocity_potential)
+               call calculate_foam_velocity(state(i), foamvel=foamvel)
+               ! avoid outflow bc's for velocity being zero after adapts
+               call set_boundary_conditions_values(state, shift_time=.true.)
+            end if
+          end do 
 
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call

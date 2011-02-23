@@ -1068,6 +1068,40 @@ prognostic_velocity_field =
             }
          )
       }?,
+      ## DrainageK1
+      ## Used for calculating drainage for foams.
+      ## It is based on the properties of the liquid within the Plateau borders.
+      ## K1 = (0.0, -density*gravity/3*drag_coefficient*viscosity, 0.0)
+      element vector_field {
+         attribute name { "DrainageK1" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_vector_field_no_adapt
+            }|
+            element diagnostic {
+               diagnostic_vector_field
+            }
+         )
+      }?,
+      ## DrainageK2
+      ## Used for calculating drainage for foams
+      ## It is based on the properties of the liquid within the Plateau borders.
+      ## K2 = sqrt(sqrt(3)-pi/2)*surface_tension/(6*drag_coefficient*viscosity)
+      element scalar_field {
+         attribute name { "DrainageK2" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic { 
+               diagnostic_scalar_field
+            }
+         )
+      }?,
       prognostic_vector_output_options,
       prognostic_velocity_stat_options,
       vector_convergence_options,
@@ -1509,6 +1543,103 @@ prognostic_hydrostatic_pressure_gradient_field =
       vector_steady_state_options,
       adaptivity_options_prognostic_vector_field,
       interpolation_algorithm_vector_full
+   )
+
+# Foam Velocity Potential field.
+# Used to calculate the velocity of flowing foams.
+prognostic_foam_velocity_potential_field =
+   (
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         element foam_velocity_option {
+            empty
+         }
+      },
+     (
+         ## Solver
+         element solver {
+            linear_solver_options_sym
+         }
+      ),
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_real
+         }
+      )+,
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Type
+         (
+            element type {
+               attribute name { "dirichlet" },
+               ## Apply the dirichlet bc weakly.  Available
+               ## automatically with discontinuous_galerkin,
+               ## control_volume, and mixed_cv_cg
+               ## spatial_discretisations.
+               ## If not selected boundary conditions are applied strongly.
+               element apply_weakly {
+                  ## If the initial condition and boundary conditions
+                  ## differ, setting this option will cause the initial
+                  ## condition on the boundary to be overwritten with
+                  ## the boundary condition. Since you are applying the
+                  ## boundary condition weakly, you probably do *not*
+                  ## want this.
+                  element boundary_overwrites_initial_condition {
+                     empty
+                  }?
+               }?,
+               input_choice_real
+            }|
+            element type {
+               attribute name { "neumann" },
+               input_choice_real
+            }|
+            element type {
+               attribute name { "robin" },
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }|
+            ## Prevent the field from fluxing out of the boundary.
+            ## Only applicable to control volume spatial discretisations.
+            element type {
+              attribute name { "zero_flux" },
+              empty
+            }
+         )
+      }*,
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar_full,
+      discrete_properties_algorithm_scalar?
    )
    
 # free surface field, this is a copy of prognostic_scalar_field above

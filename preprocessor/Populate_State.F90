@@ -2996,6 +2996,8 @@ contains
        call check_porous_media_options
     case ("stokes")
        call check_stokes_options
+    case ("foams")
+       call check_foams_options
     case default
        ewrite(0,*) "Problem type:", trim(problem_type)
        FLAbort("Error unknown problem_type")
@@ -3723,5 +3725,110 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     end if
        
   end subroutine check_implicit_solids_options
+
+  subroutine check_foams_options
+    ! Check options for liquid drainage in foam simulations.
+
+    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, drainage_lambda_path, compressible_eos_path, foam_velocity_path     
+    logical :: exclude_mass, equation_drainage, compressible_projection, prescribed_lambda, foam_eos, foam_velocity, Drainage_K1, Drainage_K2, source, absorption
+
+    ! Check that the local length of Plateau borders per unit volume (lambda) is provided.
+    compressible_eos_path="/material_phase[0]/equation_of_state/compressible"
+    foam_eos = have_option(trim(compressible_eos_path)//&
+            "/foam")
+    if(.not.(foam_eos)) then
+       FLExit("The first material_phase in a foam problem must have a foam equation of state.")
+    end if
+
+
+    pressure_path="/material_phase[0]/scalar_field::Pressure/prognostic"
+    if (have_option(trim(pressure_path))) then
+
+       ! Check that compressible projection method is used:
+       compressible_projection = have_option(trim(pressure_path)//&
+            "/scheme/use_compressible_projection_method")
+
+       if(.not.(compressible_projection)) then
+          FLExit("For foam problems you need to use the compressible projection method.")
+       end if
+    end if
+
+
+    velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
+    if (have_option(trim(velocity_path))) then
+
+       ! Check that the equation type for drainage of liquid in foams is selected:
+       equation_drainage = have_option(trim(velocity_path)//&
+            "/equation::Drainage")
+
+       if(.not.(equation_drainage)) then
+          FLExit("For foam problems you need to select Drainage as your equation type.")
+       end if
+
+       ! Check that the mass term is excluded:
+       exclude_mass = have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/continuous_galerkin/mass_terms&
+            &/exclude_mass_terms").or.&
+                      have_option(trim(velocity_path)//&
+            "/spatial_discretisation&
+            &/discontinuous_galerkin/mass_terms&
+            &/exclude_mass_terms")
+
+       if(.not.(exclude_mass)) then
+          FLExit("For foam problems you need to exclude the mass term.")
+       end if
+
+       ! Check that source and absorption are provided:
+       source = have_option(trim(velocity_path)//&
+             "/vector_field::Source")
+
+       if(.not.(source)) then
+          FLExit("You need a velocity source term for foam simulations.")
+       end if
+
+       absorption = have_option(trim(velocity_path)//&
+             "/vector_field::Absorption")
+
+       if(.not.(absorption)) then
+          FLExit("You need a velocity absorption term for foam simulations.")
+       end if
+
+       ! Check that K1 and K2 fields are provided:
+       Drainage_K1 = have_option(trim(velocity_path)//&
+             "/vector_field::DrainageK1")
+
+       if(.not.(Drainage_K1)) then
+          FLExit("You need DrainageK1 vector field for foam simulations.")
+       end if
+
+       Drainage_K2 = have_option(trim(velocity_path)//&
+             "/scalar_field::DrainageK2")
+
+       if(.not.(Drainage_K2)) then
+          FLExit("You need DrainageK2 scalar field for foam simulations.")
+       end if
+
+    end if
+
+    ! Check that there is a Foam Velocity field.
+    foam_velocity_path="/material_phase[0]/vector_field::FoamVelocity"
+    foam_velocity = have_option(trim(foam_velocity_path)//&
+            "/prescribed").or.&
+                    have_option(trim(foam_velocity_path)//&
+            "/diagnostic")
+    if(.not.(foam_velocity)) then
+       FLExit("For foam simulations you need either a prescribed or a diagnostic Foam Velocity field.")
+    end if
+
+    ! Check that the local length of Plateau borders per unit volume (lambda) is provided.
+    drainage_lambda_path="/material_phase[0]/scalar_field::DrainageLambda"
+    prescribed_lambda = have_option(trim(drainage_lambda_path)//&
+            "/prescribed")
+    if(.not.(prescribed_lambda)) then
+       FLExit("For foam simulations you need a DrainageLambda field which at the moment must be prescribed.")
+    end if
+
+  end subroutine check_foams_options
   
 end module populate_state_module

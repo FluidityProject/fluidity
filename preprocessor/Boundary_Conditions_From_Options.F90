@@ -625,7 +625,7 @@ contains
           if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
           ! only prognostic fields from here:
-          call set_vector_boundary_conditions_values(vfield, &
+          call set_vector_boundary_conditions_values(states(p+1), vfield, &
                trim(field_path)//'/prognostic/boundary_conditions', &
                position, shift_time=shift_time)
 
@@ -785,8 +785,10 @@ contains
 
   end subroutine set_scalar_boundary_conditions_values
 
-  subroutine set_vector_boundary_conditions_values(field, bc_path, position, &
+  subroutine set_vector_boundary_conditions_values(state, field, bc_path, position, &
     shift_time)
+    !for foamvel bc
+    type(state_type), intent(in) :: state
     ! Set the boundary condition values of one vector field
     type(vector_field), intent(inout):: field
     character(len=*), intent(in):: bc_path
@@ -811,6 +813,11 @@ contains
     ! for sem
     logical have_sem_bc
     integer ns, nots
+
+    ! for foam velocity bc's
+    type(scalar_field) :: foamvel_component
+    type(vector_field), pointer :: foamvel
+    integer ele, face
 
     type(mesh_type), pointer:: surface_mesh
     type(scalar_field) surface_field_component
@@ -946,10 +953,18 @@ contains
                   
                   bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
                   surface_field_component=extract_scalar_field(surface_field, j)
-                  
+
+                  if (have_option(trim(bc_component_path)//"/foam_flow")) then
+
+                    foamvel => extract_vector_field(state, "FoamVelocity")
+
+                    foamvel_component=extract_scalar_field(foamvel, j)
+                    call remap_field_to_surface(foamvel_component, surface_field_component, surface_element_list)
+
+                  else
                   call initialise_field(surface_field_component, bc_component_path, bc_position, &
                        time=time)
-                  
+                  end if
                end if
             end do
          end if

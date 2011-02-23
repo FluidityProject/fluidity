@@ -534,6 +534,12 @@ input_choice_real_bc_component =
          element Re_stresses_profile {
            input_choice_real
          }
+      }|
+      element foam_flow {
+         ## use the normal component of the remapped foam velocity 
+         element factor {
+           integer
+         }?
       }
    )
 

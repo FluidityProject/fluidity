@@ -285,14 +285,14 @@ contains
     !locals
     integer :: stat, gstat, cstat, pstat, tstat
     type(scalar_field), pointer :: pressure_local, energy_local, density_local, &
-                                   & temperature_local
+                                   & temperature_local, drainagelambda_local
     character(len=4000) :: thismaterial_phase, eos_path
     real :: reference_density, p_0, ratio_specific_heats, c_p, c_v
     real :: bulk_sound_speed_squared, atmospheric_pressure
     real :: drhodp_node, power
     real :: R
     type(scalar_field) :: drhodp_local, energy_remap, pressure_remap, density_remap, &
-                          & temperature_remap
+                          & temperature_remap, drainagelambda_remap
     logical :: incompressible
     integer :: node
 
@@ -508,8 +508,61 @@ contains
           end if
         end if
 
-      ! elseif(have_option(trim(eos_path)//'/compressible/foam')) then
-      ! perhaps place a new foam eos here?
+      elseif(have_option(trim(eos_path)//'/compressible/foam')) then
+
+        call zero(drhodp_local)
+
+        pressure_local=>extract_scalar_field(state,'Pressure',stat=stat)
+
+        drainagelambda_local=>extract_scalar_field(state,'DrainageLambda',stat=stat)
+
+        call allocate(drainagelambda_remap, drhodp_local%mesh, 'RemappedDrainageLambda')
+        call remap_field(drainagelambda_local, drainagelambda_remap)
+
+        call addto(drhodp_local, drainagelambda_remap)
+
+        call deallocate(drainagelambda_remap)
+
+        if(present(density)) then
+          if (stat==0) then
+            assert(density%mesh==drhodp_local%mesh)
+
+            call get_option(trim(pressure_local%option_path)//'/prognostic/atmospheric_pressure', &
+                            atmospheric_pressure, default=0.0)
+
+            call allocate(pressure_remap, drhodp_local%mesh, "RemappedPressure")
+            call remap_field(pressure_local, pressure_remap)
+
+            call set(density, atmospheric_pressure)
+            call addto(density, pressure_remap)
+            call scale(density, drhodp_local)
+
+            call deallocate(pressure_remap)
+          else
+            FLExit('No Pressure in material_phase::'//trim(state%name))
+          end if
+        end if
+
+        if(present(pressure)) then
+          density_local=>extract_scalar_field(state,'Density',stat=stat)
+          if (stat==0) then
+            assert(pressure%mesh==drhodp_local%mesh)
+
+            call get_option(trim(pressure_local%option_path)//'/prognostic/atmospheric_pressure', &
+                            atmospheric_pressure, default=0.0)
+
+            call allocate(density_remap, drhodp_local%mesh, "RemappedDensity")
+            call remap_field(density_local, density_remap)
+
+            call set(pressure, drhodp_local)
+            call invert(pressure)
+            call scale(pressure, density_remap)
+
+            call deallocate(density_remap)
+          else
+            FLExit('No Density in material_phase::'//trim(state%name))
+          end if
+        end if
 
       end if
 
@@ -524,7 +577,7 @@ contains
     end if
 
     if(present(drhodp)) then
-      if((cstat/=0).and.(gstat/=0)) then
+      if((cstat/=0).and.(gstat/=0).and.(.not.have_option(trim(eos_path)//'/compressible/foam'))) then
         ! pressure is unrelated to density in this case
         call zero(drhodp)
       else

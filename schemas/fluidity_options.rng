@@ -41,6 +41,7 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
             <value>implicit_solids</value>
+            <value>foams</value>
           </choice>
         </element>
         <ref name="comment"/>
@@ -781,6 +782,14 @@ be the surface pressure, 1.0e05.</a:documentation>
                         <a:documentation>Heat capacity at constant volume</a:documentation>
                         <ref name="real"/>
                       </element>
+                    </element>
+                    <element name="foam">
+                      <a:documentation>Foam EoS
+Used with compressible simulations of liquid drainage in foams.
+It describes the liquid content in the foam as the product of the 
+Plateau border cross sectional area and the local Plateau 
+border length per unit volume (lambda). </a:documentation>
+                      <empty/>
                     </element>
                   </choice>
                 </element>
@@ -1999,7 +2008,8 @@ probably equal to the location of the borehole</a:documentation>
                       </element>
                       <optional>
                         <element name="initial_base_point">
-                          <a:documentation>Set initial base_point, perhaps make this optional later</a:documentation>
+                          <a:documentation>Set initial base_point, perhaps make this optional later.
+Starts at the bottom for vertical well!!</a:documentation>
                           <ref name="real_vector"/>
                         </element>
                       </optional>
@@ -4757,6 +4767,23 @@ for vbp.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
+        <a:documentation>FoamVelocityPotential field:
+
+Required in foam flow simulations where the foam velocity is not a
+prescribed field. It solves Laplace's equation for a scalar potential, 
+(the foam velocity is then obtained as the gradient of the potential).</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>FoamVelocityPotential</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prognostic_foam_velocity_potential_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
         <a:documentation>MaterialVolumeFraction field:
 
 Volume fraction of this material.
@@ -5176,6 +5203,26 @@ and then it is removed from the state.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>FirstAdaptDummy</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>This field should only be used with foam simulations.
+It is the local Plateau border length per unite volume.
+lambda = 1.71/(bubble_radius)^2</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DrainageLambda</value>
         </attribute>
         <choice>
           <element name="prescribed">
@@ -6690,6 +6737,51 @@ Field must be in this material_phase.</a:documentation>
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Foam Velocity field. 
+Required for simulations of foam flow and liquid drainage in foams. 
+If diagnostic, a FoamVelocityPotential field is required, 
+and the Foam Velocity is obtained by taking its gradient.</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FoamVelocity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
+            <element name="solver">
+              <ref name="linear_solver_options_sym"/>
+            </element>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Foam Liquid Content times Velocity field.
+Its surface integral gives the liquid 
+volumetric flow in the flowing foam </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FoamLiquidContentVelocity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
       </element>
       <element name="vector_field">
         <a:documentation>Relative vorticity field - curl of the velocity field</a:documentation>

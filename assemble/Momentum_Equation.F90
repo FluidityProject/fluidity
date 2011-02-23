@@ -55,6 +55,7 @@
       use geostrophic_pressure
       use hydrostatic_pressure
       use vertical_balance_pressure
+      use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
       use parallel_tools
@@ -368,7 +369,7 @@
                   case("Boussinesq")
                      density=>dummydensity
                   case("Drainage")
-                     density=>dummyscalar
+                     density=>dummydensity
                   case default
                      ! developer error... out of sync options input and code
                      FLAbort("Unknown equation type for velocity")
@@ -483,6 +484,10 @@
                if(has_scalar_field(state(istate), gp_name)) then
                   call calculate_geostrophic_pressure_options(state(istate))
                end if
+
+               if (has_vector_field(state(istate), "VelocityDrainageK1")) then
+                  call calculate_drainage_source_absor(state(istate))
+               endif 
 
                ! Assemble the momentum equation
                call profiler_tic(u, "assembly")

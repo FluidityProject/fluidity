@@ -1287,6 +1287,56 @@ Note that the default value is zero. </a:documentation>
         </element>
       </element>
     </optional>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>DrainageK1
+Used for calculating drainage for foams.
+It is based on the properties of the liquid within the Plateau borders.
+K1 = (0.0, -density*gravity/3*drag_coefficient*viscosity, 0.0)</a:documentation>
+        <attribute name="name">
+          <value>DrainageK1</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>DrainageK2
+Used for calculating drainage for foams
+It is based on the properties of the liquid within the Plateau borders.
+K2 = sqrt(sqrt(3)-pi/2)*surface_tension/(6*drag_coefficient*viscosity)</a:documentation>
+        <attribute name="name">
+          <value>DrainageK2</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
     <ref name="prognostic_vector_output_options"/>
     <ref name="prognostic_velocity_stat_options"/>
     <ref name="vector_convergence_options"/>
@@ -1829,6 +1879,127 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_vector_field"/>
     <ref name="interpolation_algorithm_vector_full"/>
+  </define>
+  <!--
+    Foam Velocity Potential field.
+    Used to calculate the velocity of flowing foams.
+  -->
+  <define name="prognostic_foam_velocity_potential_field">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <element name="foam_velocity_option">
+        <empty/>
+      </element>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <oneOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </choice>
+    </oneOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="replaces">
+          <value>boundary, TTPER1 TTPER2 TTPERI</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <optional>
+              <element name="apply_weakly">
+                <a:documentation>Apply the dirichlet bc weakly.  Available
+automatically with discontinuous_galerkin,
+control_volume, and mixed_cv_cg
+spatial_discretisations.
+If not selected boundary conditions are applied strongly.</a:documentation>
+                <optional>
+                  <element name="boundary_overwrites_initial_condition">
+                    <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>neumann</value>
+            </attribute>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>robin</value>
+            </attribute>
+            <element name="order_zero_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+            <element name="order_one_coefficient">
+              <ref name="input_choice_real"/>
+            </element>
+          </element>
+          <element name="type">
+            <a:documentation>Prevent the field from fluxing out of the boundary.
+Only applicable to control volume spatial discretisations.</a:documentation>
+            <attribute name="name">
+              <value>zero_flux</value>
+            </attribute>
+            <empty/>
+          </element>
+        </choice>
+      </element>
+    </zeroOrMore>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
   </define>
   <!--
     free surface field, this is a copy of prognostic_scalar_field above

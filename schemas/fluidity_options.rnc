@@ -30,7 +30,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "implicit_solids")
+               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "implicit_solids" | "foams")
             },
             comment
          },
@@ -652,7 +652,15 @@ start =
                            element C_V {
                               real
                            }
-                        }   
+                        }|
+                        ## Foam EoS
+                        ## Used with compressible simulations of liquid drainage in foams.
+                        ## It describes the liquid content in the foam as the product of the 
+                        ## Plateau border cross sectional area and the local Plateau 
+                        ## border length per unit volume (lambda). 
+                        element foam {
+                           empty
+                        }  
                      }
                   )
                )
@@ -3663,6 +3671,21 @@ scalar_field_choice =
                }
             )
          }|
+         ## FoamVelocityPotential field:
+         ##
+         ## Required in foam flow simulations where the foam velocity is not a
+         ## prescribed field. It solves Laplace's equation for a scalar potential, 
+         ## (the foam velocity is then obtained as the gradient of the potential).
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "FoamVelocityPotential" },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_foam_velocity_potential_field
+               }
+            )
+         }|
          ## MaterialVolumeFraction field:
          ##
          ## Volume fraction of this material.
@@ -4009,6 +4032,22 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FirstAdaptDummy" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## This field should only be used with foam simulations.
+         ## It is the local Plateau border length per unite volume.
+         ## lambda = 1.71/(bubble_radius)^2
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "DrainageLambda" },
             (
                element prescribed {
                   velocity_mesh_choice,
@@ -5244,6 +5283,47 @@ vector_field_choice =
                element aliased {
                   generic_aliased_field
                }
+            )
+         }|
+
+         ## Foam Velocity field. 
+         ## Required for simulations of foam flow and liquid drainage in foams. 
+         ## If diagnostic, a FoamVelocityPotential field is required, 
+         ## and the Foam Velocity is obtained by taking its gradient.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "FoamVelocity" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_vector_field_no_adapt
+               }|
+               element diagnostic {
+                  internal_algorithm,
+                  mesh_choice,
+                  element solver {
+                     linear_solver_options_sym
+                  },
+                  diagnostic_vector_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+
+         ## Foam Liquid Content times Velocity field.
+         ## Its surface integral gives the liquid 
+         ## volumetric flow in the flowing foam 
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "FoamLiquidContentVelocity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }     
             )
          }|
          
