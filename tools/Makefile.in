@@ -37,7 +37,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include
 
 LINKER = @LINKER@ @LDFLAGS@
 
-LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a @LIBS@ @BLAS_LIBS@
+LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
 FLIBS = -L../lib @FLIBS@
 
 # These objects are needed in each program as they provide the code related to
