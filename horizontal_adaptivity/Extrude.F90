@@ -190,7 +190,7 @@ module hadapt_extrude
     
     integer, dimension(2) :: shape_option
     integer :: stat
-  
+
     if(apply_region_ids) then
       shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//int2str(region_index)//"]/region_ids")
       allocate(region_ids(1:shape_option(1)))
@@ -417,6 +417,7 @@ module hadapt_extrude
 
     ! Start the mesh at z=0 and work down to z=-depth.
     z=0.0
+    node=2
     ! first size(xy) coordinates remain fixed, 
     ! the last entry will be replaced with the appropriate depth
     xyz(1:size(xy))=xy
@@ -424,11 +425,12 @@ module hadapt_extrude
     do
       xyz(size(xy)+1)=z
       if (present(sizing_vector)) then
-        if (node-1<=list_size) then
+        if ((node-1)<=list_size) then
           delta_h = sizing_vector(node-1)
         else
           delta_h = sizing_vector(list_size)
         end if
+        node=node+1
       else
         delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       end if
