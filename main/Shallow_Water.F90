@@ -374,6 +374,7 @@
 
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
+      real :: current_time
 
       ! Disgusting and vomitous hack to ensure that time is output in
       ! vtu files.
@@ -1357,15 +1358,12 @@
       call get_option("/timestepping/finish_time", finish_time)
       call get_option("/timestepping/current_time", current_time)
       call get_option("/simulation_name", simulation_base_name)
-      
-      ! Switch the thml output on if you are interested what the adjointer has registered
+
+      ! Switch the html output on if you are interested what the adjointer has registered
       ! ierr = adj_adjointer_to_html(adjointer, "shallow_water_adjointer.html")
       ! call adj_chkierr(ierr)
 
-      ! current_time is the start of the timestep, and current_time + dt is the end of the timestep.
-      ! In the first timestep, we compute the value at the end -- so we're actually "starting one dt back",
-      ! if you see what I mean (probably not)
-      call advance_current_time(current_time, -dt)
+      call insert_time_in_state(state)
 
       no_functionals = option_count("/adjoint/functional")
 
@@ -1505,9 +1503,8 @@
       end do
 
       call get_option("/timestepping/finish_time", finish_time)
+      call advance_current_time(current_time, -dt)
       assert(current_time == finish_time)
-      ! One last dump
-      call output_state(state, adjoint=.true.)
 
       ! Clean up stat files
       do functional=0,no_functionals-1
