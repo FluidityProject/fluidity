@@ -148,6 +148,19 @@
     call read_command_line
     call mangle_options_tree_forward
 
+    adjoint = have_option("/adjoint")
+#ifndef HAVE_ADJOINT
+    if (adjoint) then
+      FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
+    endif
+#else
+    if (.not. adjoint) then
+      ! disable the adjointer
+      ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
+      call adj_chkierr(ierr)
+    end if
+#endif
+
     call populate_state(state)
     call adjoint_register_initial_eta_condition(state)
 
@@ -169,13 +182,6 @@
     if (size(state)/=1) then
        FLExit("Multiple material_phases are not supported")
     end if
-
-    adjoint = have_option("/adjoint")
-#ifndef HAVE_ADJOINT
-    if (adjoint) then
-      FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
-    endif
-#endif
 
     ! Always output the initial conditions.
     call output_state(state)
