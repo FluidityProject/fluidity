@@ -128,6 +128,7 @@ Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
   Spontaneous_Potentials.o Geostrophic_Pressure.o
 Multimaterials.o: Diagnostic_Fields_Matrices.o
 Foam_Drainage.o: Diagnostic_Fields_Matrices.o
+Foam_Flow.o : Petsc_Solve_State.o
 Multiphase.o: Diagnostic_Fields_Matrices.o
 Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o State_Matrices.o
