@@ -1120,7 +1120,7 @@
       ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(eta%option_path))
 
       ! We may as well set the times for this timestep now
-      ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time, end=start_time+dt)
+      ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
       ! And we also may as well set the functional dependencies now
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
@@ -1348,6 +1348,7 @@
 
       real :: finish_time, dt
       integer :: end_timestep, start_timestep, no_timesteps, timestep
+      real :: start_time, end_time
 
       character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
       type(stat_type), dimension(:), allocatable :: functional_stats
@@ -1362,7 +1363,6 @@
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/finish_time", finish_time)
-      call get_option("/timestepping/current_time", current_time)
       call get_option("/simulation_name", simulation_base_name)
 
       ! Switch the html output on if you are interested what the adjointer has registered
@@ -1379,7 +1379,7 @@
       do functional=0,no_functionals-1
         default_stat = functional_stats(functional + 1)
         call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
-        call initialise_diagnostics(trim(simulation_name) // '_' // trim(functional_name), state)
+        call initialise_diagnostics(trim(simulation_name) // '_adjoint_' // trim(functional_name), state)
         functional_stats(functional + 1) = default_stat
 
         ! Register the callback to compute delJ/delu
@@ -1394,6 +1394,11 @@
       call adj_chkierr(ierr)
 
       do timestep=no_timesteps-1,0,-1
+        ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
+        call adj_chkierr(ierr)
+        current_time = end_time
+        call set_option("/timestepping/current_time", current_time)
+
         ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
         call adj_chkierr(ierr)
 
@@ -1503,13 +1508,11 @@
         end do
 
         ! Now forget
-        call advance_current_time(current_time, dt)
         ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
         call adj_chkierr(ierr)
       end do
 
       call get_option("/timestepping/finish_time", finish_time)
-      call advance_current_time(current_time, -dt)
       assert(current_time == finish_time)
 
       ! Clean up stat files
