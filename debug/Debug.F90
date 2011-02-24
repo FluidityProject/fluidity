@@ -83,6 +83,7 @@ contains
     ewrite(-1,FMT='(A)') "Error is terminal."
 #ifdef HAVE_MPI
     IF(UsingMPI) THEN
+       !mpi_comm_femtools not required here.
        CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERR)
     END IF
 #endif
@@ -110,6 +111,7 @@ contains
     ewrite(-1,FMT='(2A)') "Error message: ",ErrorStr
 #ifdef HAVE_MPI
     IF(UsingMPI) THEN
+       !mpi_comm_femtools not required here.
        CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERR)
     END IF
 #endif
