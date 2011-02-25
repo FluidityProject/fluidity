@@ -799,37 +799,39 @@ contains
     integer :: i
     
     type(registered_diagnostic_item), pointer :: iterator => NULL()
-   
-    iterator => default_stat%registered_diagnostic_first 
+    
+    if(getprocno() == 1) then
+      iterator => default_stat%registered_diagnostic_first 
 
-    do while (.true.) 
-      if (.not. associated(iterator)) then
-        ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
+      do while (.true.) 
+        if (.not. associated(iterator)) then
+          ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
                & "material_phase=" //  trim(material_phase) // " does not exist."
-        FLAbort("Error in set_diagnostic.")
-      end if
-      ! Check if name and statistic match
-      if (iterator%name == name .and. iterator%statistic == statistic) then
-        ! Check if name of material_phase match if supplied
-        if ((present(material_phase) .and. iterator%have_material_phase .and. iterator%material_phase == material_phase) &
-           & .or. .not. iterator%have_material_phase) then
-          ! Check that the value arrays have the same dimension
-          if (size(iterator%value) /= size(value)) then
-            ewrite(0, *) "The registered diagnostic with name=" // trim(name) // " statistic=" // &
+          FLAbort("Error in set_diagnostic.")
+        end if
+        ! Check if name and statistic match
+        if (iterator%name == name .and. iterator%statistic == statistic) then
+          ! Check if name of material_phase match if supplied
+          if ((present(material_phase) .and. iterator%have_material_phase .and. iterator%material_phase == material_phase) &
+             & .or. .not. iterator%have_material_phase) then
+            ! Check that the value arrays have the same dimension
+            if (size(iterator%value) /= size(value)) then
+              ewrite(0, *) "The registered diagnostic with name=" // trim(name) // " statistic=" // &
                        & trim(statistic) //  "material_phase=" // trim(material_phase) //  " has dimension " // &
                        & int2str(iterator%dim) // " but a value of dimension " // int2str(size(value))  // & 
                        & " was supplied in set_diagnostic."
-            FLAbort("Error in set_diagnostic.")
+              FLAbort("Error in set_diagnostic.")
+            end if
+            ! set value
+            do i = 1, iterator%dim
+              iterator%value(i) = value(i)
+            end do
+            return
           end if
-          ! set value
-          do i = 1, iterator%dim
-            iterator%value(i) = value(i)
-          end do
-          return
         end if
-      end if
-      iterator => iterator%next
-    end do
+        iterator => iterator%next
+      end do
+    end if
 
   end subroutine
 
@@ -861,55 +863,57 @@ contains
     character(len=*), intent(in), optional ::  material_phase
     type(registered_diagnostic_item), pointer :: diagnostic_item, iterator => NULL()
 
-    ! Allocate the new registered_diagnostic_item and fill it.
-    allocate(diagnostic_item)
-    diagnostic_item%dim = dim
-    diagnostic_item%name = name
-    diagnostic_item%statistic = statistic
-    if (present(material_phase)) then
-      diagnostic_item%material_phase = material_phase
-      diagnostic_item%have_material_phase = .true.
-    else
-      diagnostic_item%have_material_phase = .false.
-    end if
-    allocate(diagnostic_item%value(dim))
-    diagnostic_item%value = 0.0
-    nullify(diagnostic_item%next)
+    if(getprocno() == 1) then
+      ! Allocate the new registered_diagnostic_item and fill it.
+      allocate(diagnostic_item)
+      diagnostic_item%dim = dim
+      diagnostic_item%name = name
+      diagnostic_item%statistic = statistic
+      if (present(material_phase)) then
+        diagnostic_item%material_phase = material_phase
+        diagnostic_item%have_material_phase = .true.
+      else
+        diagnostic_item%have_material_phase = .false.
+      end if
+      allocate(diagnostic_item%value(dim))
+      diagnostic_item%value = 0.0
+      nullify(diagnostic_item%next)
 
-   ! Check if the diagnostic has not been registered yet
-    if (associated(default_stat%registered_diagnostic_first)) then
-      iterator => default_stat%registered_diagnostic_first
-      do while (associated(iterator))
-        if (iterator%dim == diagnostic_item%dim .and. iterator%name == diagnostic_item%name .and. &
-          & iterator%statistic == diagnostic_item%statistic) then
-          if ( (present(material_phase) .and. iterator%have_material_phase) .or. &
-             & (.not. present(material_phase) .and. .not. iterator%have_material_phase) ) then
-            if (present(material_phase)) then
-              if (iterator%material_phase == diagnostic_item%material_phase) then
-                ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // &
+     ! Check if the diagnostic has not been registered yet
+      if (associated(default_stat%registered_diagnostic_first)) then
+        iterator => default_stat%registered_diagnostic_first
+        do while (associated(iterator))
+          if (iterator%dim == diagnostic_item%dim .and. iterator%name == diagnostic_item%name .and. &
+            & iterator%statistic == diagnostic_item%statistic) then
+            if ( (present(material_phase) .and. iterator%have_material_phase) .or. &
+               & (.not. present(material_phase) .and. .not. iterator%have_material_phase) ) then
+              if (present(material_phase)) then
+                if (iterator%material_phase == diagnostic_item%material_phase) then
+                  ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // &
                       & trim(statistic) //  ", material_phase = " // trim(material_phase) //  ", and dimension = " // &
                       & int2str(iterator%dim) // " has already been registered."
-              end if
-            else
-              ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // trim(statistic) &
+                end if
+              else
+                ewrite(0, *) "The diagnostic with name = " // trim(name) // ", statistic = " // trim(statistic) &
                      & //  ", and dimension = " // int2str(iterator%dim) // " has already been registered."
+              end if
+              FLExit("Error in register_diagnostic.")
             end if
-            FLExit("Error in register_diagnostic.")
           end if
-        end if
-      iterator => iterator%next
-      end do
-    end if
-
-    ! Now append it to the list of registered diagnostics
-    if (.not. associated(default_stat%registered_diagnostic_first)) then
-      default_stat%registered_diagnostic_first => diagnostic_item
-    else
-      iterator => default_stat%registered_diagnostic_first
-      do while(associated(iterator%next)) 
         iterator => iterator%next
-      end do
-      iterator%next => diagnostic_item
+        end do
+      end if
+
+      ! Now append it to the list of registered diagnostics
+      if (.not. associated(default_stat%registered_diagnostic_first)) then
+        default_stat%registered_diagnostic_first => diagnostic_item
+      else
+        iterator => default_stat%registered_diagnostic_first
+        do while(associated(iterator%next)) 
+          iterator => iterator%next
+        end do
+        iterator%next => diagnostic_item
+      end if
     end if
 
   end subroutine register_diagnostic
@@ -918,18 +922,20 @@ contains
   subroutine destroy_registered_diagnostics
     type(registered_diagnostic_item), pointer :: next, iterator
     
-    iterator => default_stat%registered_diagnostic_first
+    if(getprocno() == 1) then
+      iterator => default_stat%registered_diagnostic_first
 
-    do while (associated(iterator)) 
-      next => iterator%next
-      deallocate(iterator%value)
-      deallocate(iterator)
-      iterator => next
-    end do
+      do while (associated(iterator)) 
+        next => iterator%next
+        deallocate(iterator%value)
+        deallocate(iterator)
+        iterator => next
+      end do
   
-    ! the first registered diagnostic needs to be nullified because
-    ! when adjointing, all the diagnostics are initialised/registered again
-    nullify(default_stat%registered_diagnostic_first)
+      ! the first registered diagnostic needs to be nullified because
+      ! when adjointing, all the diagnostics are initialised/registered again
+      nullify(default_stat%registered_diagnostic_first)
+    end if
 
   end subroutine destroy_registered_diagnostics
 

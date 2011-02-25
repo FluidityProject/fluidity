@@ -260,10 +260,6 @@ contains
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
           call deallocate(interface_local)
-          call deallocate(node_to_particle)
-          deallocate(node_to_particle)
-          call deallocate(surface_nodes)
-          call deallocate(surface_faces)
           call deallocate(edge_lengths)
           call deallocate(metric)
           do_calculate_volume_fraction = .true.
@@ -727,6 +723,17 @@ contains
 
     ! pointer to vector field of coordinates of fluids mesh:
     positions => extract_vector_field(state, "Coordinate")
+    ! figure out if we want to print out diagnostics and initialise files  
+    do_print_diagnostics = have_option("/implicit_solids/one_way_coupling/print_diagnostics")
+    do_print_multiple_solids_diagnostics = &
+       & have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+    ! check for mutiple solids and get translation coordinates
+    number_of_solids = 1
+    multiple_solids = have_option("/implicit_solids/one_way_coupling/multiple_solids")
+    if (multiple_solids) then
+       call get_option("/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
+         & number_of_solids)
+    end if
 
     ! In case of multiple immersed bodies, translate their coordinates:
     allocate(translation_coordinates(positions%dim, number_of_solids))
@@ -1179,18 +1186,11 @@ contains
        if (one_way_coupling) then
           call deallocate(solid_local)
           call deallocate(interface_local)
-          call deallocate(node_to_particle)
-          deallocate(node_to_particle)
-          call deallocate(surface_nodes)
-          call deallocate(surface_faces)
           call deallocate(edge_lengths)
           call deallocate(metric)
        else if (two_way_coupling) then
           call deallocate(solid_local)
           call deallocate(old_solid_local)
-          call deallocate(fl_pos_solid_force)
-          call deallocate(edge_lengths)
-          call deallocate(metric)
        end if
         do_calculate_volume_fraction = .true.
     end if
@@ -1207,8 +1207,6 @@ contains
 
     type(vector_field), pointer :: velocity, positions, absorption
     type(scalar_field) :: lumped_mass, lumped_mass_velocity_mesh
-    real, dimension(:), allocatable :: q
-    integer, dimension(:), allocatable :: face_nodes
     integer :: i, j, particle
     type(inode), pointer :: node1
 
@@ -1226,38 +1224,32 @@ contains
 
     call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
     call remap_field(lumped_mass, lumped_mass_velocity_mesh)
-    
-    allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
-    allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
-    allocate(q(number_of_solids)); q = 0.
-    allocate(force(positions%dim)); force = 0.
+
+    allocate(particle_force(number_of_solids, velocity%dim)); particle_force = 0.
+    allocate(force(velocity%dim)); force = 0.
 
     do i = 1, nowned_nodes(velocity)
        node1 => node_to_particle(i)%firstnode
-
        do while (associated(node1))
           particle = node1%value
-
           do j = 1, velocity%dim
              particle_force(particle, j) = particle_force(particle, j) + &
                   node_val(absorption, j, i) * node_val(velocity, j, i) * &
                   node_val(lumped_mass_velocity_mesh, i)
           end do
-
           node1 => node1%next  
        end do
     end do
-
+    
     do i = 1, number_of_solids
        call allsumv(particle_force(i, :))
     end do
-    do i = 1, positions%dim
+    do i = 1, velocity%dim
        do j = 1, number_of_solids
           force(i) = force(i) + particle_force(j, i)
        end do
     end do
 
-    deallocate(face_nodes, q)
     call deallocate(lumped_mass)
     call deallocate(lumped_mass_velocity_mesh)
 
@@ -1390,7 +1382,8 @@ contains
   subroutine implicit_solids_update(state)
 
     type(state_type), intent(in) :: state
-    type(vector_field), pointer :: velocity
+    type(vector_field), pointer :: positions
+    type(scalar_field) :: lumped_mass
 
     real, dimension(:), allocatable :: force
     real, dimension(:, :), allocatable :: particle_force
@@ -1400,8 +1393,6 @@ contains
     character(len=254) :: fmt, buffer
 
     ewrite(2, *) "inside implicit_solids_update"
-    
-    velocity => extract_vector_field(state, "Velocity")
     
     ! Update the computation of the diagnostics
     ! Only one-way coupling for now
@@ -1414,13 +1405,11 @@ contains
 
        ! Register the force on a solid body
        call set_diagnostic(name="Force", statistic="Value", value=(/ force /))
-
+       
        if (do_print_multiple_solids_diagnostics) then
-          do i = 1, velocity%dim
-             do j = 1, number_of_solids
-                write(buffer, fmt) j
-                call set_diagnostic(name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value", value=(/ particle_force(j, i) /))
-             end do
+          do j = 1, number_of_solids
+             write(buffer, fmt) j
+             call set_diagnostic(name="ForceOnSolid"//buffer, statistic="Value", value=(/ particle_force(j, i) /))
           end do
        end if
 
@@ -1430,7 +1419,7 @@ contains
           ! Register the diagnostics
           call set_diagnostic(name="WallTemperature", statistic="Value", value=(/ T_w_avg /))
           call set_diagnostic(name="HeatTransfer", statistic="Value", value=(/ q_avg /))
-
+          
           if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
              do i = 1, number_of_solids
                 write(buffer, fmt) i
@@ -1444,6 +1433,12 @@ contains
 
        deallocate(force, particle_force)
 
+       if (do_adapt_mesh(current_time, timestep)) then
+          call deallocate(node_to_particle)
+          deallocate(node_to_particle)
+          call deallocate(surface_nodes)
+          call deallocate(surface_faces)
+       end if
     end if
 
     ewrite(2, *) "leaving implicit_solids_update"
@@ -2496,7 +2491,7 @@ contains
 
   subroutine implicit_solids_register_diagnostic
     
-    integer :: i, j, str_size, no_components
+    integer :: i, str_size
     character(len=254) :: fmt, buffer
     
     ! figure out if we want to print out diagnostics and initialise files
@@ -2520,16 +2515,13 @@ contains
          have_option("/material_phase[0]/scalar_field::Temperature")
 
     if (do_print_diagnostics) then
-      no_components = 3
       ! The dimension of the diagnostic should be read from the flml.
       call register_diagnostic(dim=3, name="Force", statistic="Value")
 
       if (do_print_multiple_solids_diagnostics) then
-          do i = 1, no_components
-             do j = 1, number_of_solids
-                write(buffer, fmt) j
-                call register_diagnostic(dim=1, name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value")
-             end do
+          do i = 1, number_of_solids
+             write(buffer, fmt) i
+             call register_diagnostic(dim=1, name="ForceOnSolid"//buffer, statistic="Value")
           end do
        end if
 
