@@ -616,7 +616,7 @@ contains
   end function face_count_mesh  
 
   pure function element_count_scalar(field) result (element_count)
-    ! Return the number of nodes in a field.
+    ! Return the number of elements in a field.
     integer :: element_count
     type(scalar_field),intent(in) :: field
 
@@ -625,7 +625,7 @@ contains
   end function element_count_scalar
 
   pure function element_count_vector(field) result (element_count)
-    ! Return the number of nodes in a field.
+    ! Return the number of elements in a field.
     integer :: element_count
     type(vector_field),intent(in) :: field
 
@@ -634,7 +634,7 @@ contains
   end function element_count_vector
 
   pure function element_count_tensor(field) result (element_count)
-    ! Return the number of nodes in a field.
+    ! Return the number of elements in a field.
     integer :: element_count
     type(tensor_field),intent(in) :: field
 
