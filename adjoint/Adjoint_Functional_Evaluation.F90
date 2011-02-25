@@ -193,10 +193,10 @@ module adjoint_functional_evaluation
     call python_run_string("states = megastates; del megastates")
 
     ! Also set up some useful variables for the user to use
-    write(buffer,*) start_time
+    write(buffer,*) end_time
     call python_run_string("time = " // trim(buffer))
 
-    write(buffer, *) end_time - start_time
+    write(buffer, *) start_time - end_time
     call python_run_string("dt = " // trim(buffer))
 
     write(buffer, *) timestep
