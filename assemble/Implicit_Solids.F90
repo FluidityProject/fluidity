@@ -132,13 +132,13 @@ module implicit_solids
   real, dimension(:, :), allocatable, save :: translation_coordinates
 
   integer, save :: number_of_solids
-  logical, save :: one_way_coupling, two_way_coupling, multiple_solids
+  logical, save :: dg_u, dg_t, one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, have_viscosity, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, do_calculate_volume_fraction
   logical, save :: have_fixed_temperature, have_fixed_temperature_source, have_radius
   logical, save :: use_bulk_velocity, use_fluid_velocity, have_pressure_gradient
 
-  type(ilist), dimension(:), allocatable, save :: node_to_particle
+  type(ilist), dimension(:), allocatable, save :: node_to_particle_cg, node_to_particle_dg
   type(ilist), save :: surface_nodes, surface_faces
 
   private
@@ -156,7 +156,7 @@ contains
 
     type(state_type), dimension(1) :: states
     type(tensor_field), pointer :: viscosity
-    type(vector_field), pointer :: x
+    type(vector_field), pointer :: x, velocity
     type(scalar_field), pointer :: solid, old_solid
     type(scalar_field), pointer :: interface, temperature
     integer :: i, stat
@@ -182,10 +182,15 @@ contains
        have_viscosity = stat == 0
        temperature => extract_scalar_field(state, "Temperature", stat)
        have_temperature = stat == 0
+       dg_t = have_option(trim(temperature%option_path)//&
+            "/prognostic/spatial_discretisation/discontinuous_galerkin")
+       velocity => extract_vector_field(state, "Velocity")
+       dg_u = have_option(trim(velocity%option_path)//&
+            "/prognostic/spatial_discretisation/discontinuous_galerkin")
 
        if (one_way_coupling) then
           call one_way_initialise(state)
-       else if (two_way_coupling)  then
+       else if (two_way_coupling) then
           call femdem_initialise(state)
        else
           FLAbort("implicit_solids: Don't know what to do...")
@@ -205,12 +210,14 @@ contains
           call allocate(interface_local, solid%mesh, "SolidPhase")
           call zero(interface_local)
 
-          allocate(node_to_particle(node_count(solid)))
+          allocate(node_to_particle_cg(node_count(solid)))
           do i = 1, number_of_solids
-             ewrite(2, *) "  calculating volume fraction for solid", i 
+             ewrite(2, *) "  calculating volume fraction for solid", i
              call calculate_volume_fraction(state, i)
           end do
           call calculate_solid_fluid_interface(state)
+          if (dg_u .or. dg_t) &
+               call calculate_node_to_particle_dg(state)
 
           x => extract_vector_field(state, "Coordinate")
           call allocate(metric, x%mesh, "ErrorMetric")
@@ -219,7 +226,7 @@ contains
           call zero(edge_lengths)
 
           ! calculate metric and edge lengths
-          states = (/state/)
+          states = (/ state /)
           if (have_viscosity) then
              call qmesh(states, metric)
              call get_edge_lengths(metric, edge_lengths)
@@ -305,7 +312,7 @@ contains
           ! calculate metric and edge lengths
           call zero(metric)
           call zero(edge_lengths)
-          states = (/state/)
+          states = (/ state /)
           call qmesh(states, metric)
           call get_edge_lengths(metric, edge_lengths)
 
@@ -368,7 +375,7 @@ contains
     call set(external_positions_local, external_positions)
 
     ! translate coordinates for multiple solids...
-    if (one_way_coupling .and. multiple_solids) then
+    if (multiple_solids) then
        do i = 1, node_count(external_positions)
           external_positions_local%val(1, i) = &
                external_positions%val(1, i) + &
@@ -446,7 +453,7 @@ contains
           ele_A_nodes => ele_nodes(positions, ele_A)
           do k = 1, size(ele_A_nodes)
              call addto(solid_local, ele_A_nodes(k), vol/ele_A_vol)
-             call insert_ascending(node_to_particle(ele_A_nodes(k)), solid_number)
+             call insert_ascending(node_to_particle_cg(ele_A_nodes(k)), solid_number)
           end do
 
           call deallocate(intersection)
@@ -486,6 +493,8 @@ contains
     type(tensor_field), pointer :: viscosity
     type(vector_field), pointer :: absorption
     type(scalar_field), pointer :: Tabsorption
+    type(scalar_field) :: solid_velocity_mesh
+    type(vector_field) :: absorption_temperature_mesh
     integer :: i, j
     real :: sigma, sigma_1, sigma_2
 
@@ -494,14 +503,17 @@ contains
     absorption => extract_vector_field(state, "VelocityAbsorption")
     call zero(absorption)
 
+    call allocate(solid_velocity_mesh, absorption%mesh, "SolidConcentrationVelocityMesh")
+    call remap_field(solid_local, solid_velocity_mesh)
+
     if (have_viscosity) then
 
        viscosity => extract_tensor_field(state, "Viscosity")
 
        do i = 1, node_count(absorption)
 
-          sigma_1 = node_val(solid_local, i) / dt
-          sigma_2 = node_val(solid_local, i) * &
+          sigma_1 = node_val(solid_velocity_mesh, i) / dt
+          sigma_2 = node_val(solid_velocity_mesh, i) * &
                node_val(viscosity, 1, 1, i) / maxval(node_val(edge_lengths, i))**2
           sigma = max(sigma_1, sigma_2) * beta
 
@@ -515,7 +527,7 @@ contains
 
        do i = 1, node_count(absorption)
 
-          sigma = node_val(solid_local, i) * beta / dt
+          sigma = node_val(solid_velocity_mesh, i) * beta / dt
 
           do j = 1, absorption%dim
              call set(absorption, j, i, sigma)
@@ -531,9 +543,17 @@ contains
 
        Tabsorption => extract_scalar_field(state, "TemperatureAbsorption")
        call zero(Tabsorption)
-       call set(Tabsorption, absorption, 1)
+
+       call allocate(absorption_temperature_mesh, absorption%dim, Tabsorption%mesh, "VelocityAbsorptionTemperatureMesh")
+       call remap_field(absorption, absorption_temperature_mesh)
+
+       call set(Tabsorption, absorption_temperature_mesh, 1)
+
+       call deallocate(absorption_temperature_mesh)
 
     end if
+
+    call deallocate(solid_velocity_mesh)
 
     ewrite(2, *) "leaving set_absorption_coefficient"
 
@@ -548,8 +568,11 @@ contains
     type(vector_field), pointer :: source, positions
     type(vector_field), pointer :: old_velocity, absorption
     type(scalar_field), pointer :: Tsource
+    type(scalar_field) :: solid_temperature_mesh
+
     integer :: i, particle
     real :: x0, y0, z0, x, y, z, sigma
+    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside set_source"
 
@@ -589,6 +612,9 @@ contains
        Tsource => extract_scalar_field(state, "TemperatureSource")
        call zero(Tsource)
 
+       call allocate(solid_temperature_mesh, Tsource%mesh, "SolidConcentrationTemperatureMesh")
+       call remap_field(solid_local, solid_temperature_mesh)
+
        if (have_fixed_temperature_source) then
 
           ewrite(3, *) "  source intensity", source_intensity
@@ -599,8 +625,16 @@ contains
 
              positions => extract_vector_field(state, "Coordinate")
 
+             if (dg_t) then
+                allocate(node_to_particle(size(node_to_particle_dg)))
+                node_to_particle = copy(node_to_particle_dg)
+             else
+                allocate(node_to_particle(size(node_to_particle_cg)))
+                node_to_particle = copy(node_to_particle_cg)
+             end if
+
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_local, i)
+                sigma = node_val(solid_temperature_mesh, i)
 
                 if (associated(node_to_particle(i)%firstnode)) then
 
@@ -616,10 +650,13 @@ contains
                 call set(Tsource, i, sigma * source_intensity)
              end do
 
+             call flush_lists(node_to_particle)
+             deallocate(node_to_particle)
+
           else
 
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_local, i)
+                sigma = node_val(solid_temperature_mesh, i)
                 call set(Tsource, i, sigma * source_intensity)
              end do
 
@@ -630,11 +667,14 @@ contains
           ewrite(3, *) "  solid temperature", source_intensity
 
           do i = 1, node_count(Tsource)
-             sigma = node_val(solid_local, i)*beta/dt
+             sigma = node_val(solid_temperature_mesh, i)*beta/dt
              call set(Tsource, i, sigma * source_intensity)
           end do
 
        end if
+
+       call deallocate(solid_temperature_mesh)
+
     end if
 
     ewrite(2, *) "leaving set_source"
@@ -966,7 +1006,7 @@ contains
     if (use_fluid_velocity) then
        ewrite(3, *) "calculating the bulk velocity"
        ! ext_pos_solid_vel is u_s, not \hat{u}_s, so multiply
-       ! by \alpha_s and then add to ext_pos_fluid_vel to 
+       ! by \alpha_s and then add to ext_pos_fluid_vel to
        ! form the bulk velocity (\hat{u}_f+\hat{u}_s)
        call scale(ext_pos_solid_vel, ext_pos_solid)
        ! this removes fluid velocity from the volume of the solid
@@ -1079,6 +1119,7 @@ contains
     else if (operation == "out") then
 
        ext_pos_fluid_vel%option_path = path
+       ext_pos_solid%option_path = path
 
        ! this is the fluid or bulk velocity on the solid mesh
        ! this will be returned to femdem...
@@ -1121,11 +1162,13 @@ contains
 
        ! interpolate the fluid or bulk velocity and the solid concentration from
        ! the fluid mesh to the solid mesh
-       !call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
-       call linear_interpolation(alg_fl_v, alg_ext_v, different_domains=.true.)
+       call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
+       !call linear_interpolation(alg_fl_v, alg_ext_v, different_domains=.true.)
+
 
        if (use_fluid_velocity) &
-          call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
+          call interpolation_galerkin_femdem(alg_fl_s, alg_ext_s, femdem_out=.true.)
+          !call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
 
        ewrite_minmax(field_fl_v%val(1,:))
        ewrite_minmax(field_fl_v%val(2,:))
@@ -1182,6 +1225,7 @@ contains
     type(scalar_field) :: lumped_mass_velocity_mesh
     integer :: i, j, particle
     type(inode), pointer :: node1
+    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside implicit_solids_force_computation"
 
@@ -1196,6 +1240,14 @@ contains
 
     allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
     allocate(force(positions%dim)); force = 0.
+
+    if (dg_u) then
+       allocate(node_to_particle(size(node_to_particle_dg)))
+       node_to_particle = copy(node_to_particle_dg)
+    else
+       allocate(node_to_particle(size(node_to_particle_cg)))
+       node_to_particle = copy(node_to_particle_cg)
+    end if
 
     do i = 1, nowned_nodes(velocity)
        node1 => node_to_particle(i)%firstnode
@@ -1222,6 +1274,8 @@ contains
        end do
     end do
 
+    call flush_lists(node_to_particle)
+    deallocate(node_to_particle)
     call deallocate(lumped_mass_velocity_mesh)
 
     ewrite(2, *) "leaving implicit_solids_force_computation"
@@ -1230,7 +1284,8 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_temperature_computation(state, lumped_mass, T_w_avg, q_avg, wall_temperature, q)
+  subroutine implicit_solids_temperature_computation(state, lumped_mass, &
+       T_w_avg, q_avg, wall_temperature, q)
 
     type(state_type), intent(in) :: state
     type(scalar_field), intent(in) :: lumped_mass    
@@ -1250,6 +1305,7 @@ contains
     real, dimension(:), allocatable :: detwei, T_grad_dot_n_at_quad
     type(element_type), pointer :: T_f_shape  
     real :: k_f
+    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside implicit_solids_temperature_computation"
 
@@ -1261,6 +1317,14 @@ contains
     allocate(q(number_of_solids)); q = 0.
 
     temperature => extract_scalar_field(state, "Temperature")
+
+    if (dg_t) then
+       allocate(node_to_particle(size(node_to_particle_dg)))
+       node_to_particle = copy(node_to_particle_dg)
+    else
+       allocate(node_to_particle(size(node_to_particle_cg)))
+       node_to_particle = copy(node_to_particle_cg)
+    end if
 
     ! calculate the solid-fluid interface temperature
     node1 => surface_nodes%firstnode
@@ -1338,8 +1402,9 @@ contains
 
     deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
     call deallocate(temperature_grad)
-
     deallocate(face_nodes, solid_mass)
+    call flush_lists(node_to_particle)
+    deallocate(node_to_particle)
 
     ewrite(2, *) "leaving implicit_solids_temperature_computation"
 
@@ -1409,12 +1474,15 @@ contains
        end if
 
        deallocate(force, particle_force)
- call deallocate(lumped_mass)
-
+       call deallocate(lumped_mass)
 
        if (do_adapt_mesh(current_time, timestep)) then
-          call deallocate(node_to_particle)
-          deallocate(node_to_particle)
+          call flush_lists(node_to_particle_cg)
+          deallocate(node_to_particle_cg)
+          if (dg_u .or. dg_t) then
+             call flush_lists(node_to_particle_dg)  
+             deallocate(node_to_particle_dg)
+          end if
           call deallocate(surface_nodes)
           call deallocate(surface_faces)
        end if
@@ -2523,6 +2591,55 @@ contains
     end if
 
   end subroutine implicit_solids_register_diagnostic
+
+  !----------------------------------------------------------------------------
+
+  subroutine calculate_node_to_particle_dg(state)
+
+    type(state_type), intent(in) :: state
+
+    type(vector_field), pointer :: velocity
+    type(vector_field):: cg_field
+    type(scalar_field) :: dg_field
+    integer :: ele, node, solid_number 
+    integer, dimension(:), pointer :: nodes_cg, nodes_dg
+    type(inode), pointer :: np
+
+    ewrite(2, *) "  inside calculate_node_to_particle_dg"
+
+    cg_field = extract_vector_field(state, "Coordinate")
+    if (dg_t) dg_field = extract_scalar_field(state, "Temperature")
+    if (dg_u) then
+       velocity => extract_vector_field(state, "Velocity")
+       dg_field = extract_scalar_field(velocity, 1)
+    end if
+
+    allocate(node_to_particle_dg(node_count(dg_field)))
+
+    do ele = 1, ele_count(cg_field)
+
+       nodes_cg => ele_nodes(cg_field, ele)
+       nodes_dg => ele_nodes(dg_field, ele)
+
+       do node=1,size(nodes_cg)
+
+          np => node_to_particle_cg(nodes_cg(node))%firstnode
+
+          do while (associated(np))
+             solid_number=np%value
+             call insert_ascending(node_to_particle_dg(nodes_dg(node)), solid_number)
+             np=>np%next
+          end do
+
+       end do
+
+    end do
+
+    ewrite(2, *) "  leaving calculate_node_to_particle_dg"
+
+  end subroutine calculate_node_to_particle_dg
+
+  !----------------------------------------------------------------------------
 
   subroutine implicit_solids_check_options
 

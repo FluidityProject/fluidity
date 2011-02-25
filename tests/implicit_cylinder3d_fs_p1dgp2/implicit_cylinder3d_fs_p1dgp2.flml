@@ -453,7 +453,7 @@
     <scalar_field name="SolidPhase" rank="0" raplaces="IDENT = -42">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -470,7 +470,7 @@
     <scalar_field name="SolidConcentration" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
