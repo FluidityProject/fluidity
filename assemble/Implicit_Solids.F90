@@ -132,13 +132,13 @@ module implicit_solids
   real, dimension(:, :), allocatable, save :: translation_coordinates
 
   integer, save :: number_of_solids
-  logical, save :: dg_u, dg_t, one_way_coupling, two_way_coupling, multiple_solids
+  logical, save :: one_way_coupling, two_way_coupling, multiple_solids
   logical, save :: have_temperature, have_viscosity, do_print_multiple_solids_diagnostics
   logical, save :: do_print_diagnostics, do_calculate_volume_fraction
   logical, save :: have_fixed_temperature, have_fixed_temperature_source, have_radius
   logical, save :: use_bulk_velocity, use_fluid_velocity, have_pressure_gradient
 
-  type(ilist), dimension(:), allocatable, save :: node_to_particle_cg, node_to_particle_dg
+  type(ilist), dimension(:), allocatable, save :: node_to_particle
   type(ilist), save :: surface_nodes, surface_faces
 
   private
@@ -156,9 +156,8 @@ contains
 
     type(state_type), dimension(1) :: states
     type(tensor_field), pointer :: viscosity
-    type(vector_field), pointer :: x, velocity
-    type(scalar_field), pointer :: solid, old_solid
-    type(scalar_field), pointer :: interface, temperature
+    type(vector_field), pointer :: x
+    type(scalar_field), pointer :: solid, old_solid, interface
     integer :: i, stat
 
     integer, save :: dim
@@ -166,9 +165,14 @@ contains
 
     ewrite(2, *) "inside implicit_solids"
 
+    ! SolidConcentration will be called /alpha in the comments from now on
+    ! Furthermore, the superscript will denote on which mesh the corresponding 
+    ! variable will live, and the subscript will distinguish between the phase, 
+    ! i.e. u^s_f will be the fluid velocity on the solid mesh.
     solid => extract_scalar_field(state, "SolidConcentration")
 
     if (.not. init) then
+
        call get_option("/geometry/dimension", dim)
        ! Scaling factor beta
        call get_option("/implicit_solids/beta", beta, default=1.)
@@ -180,67 +184,72 @@ contains
 
        viscosity => extract_tensor_field(state, "Viscosity", stat)
        have_viscosity = stat == 0
-       temperature => extract_scalar_field(state, "Temperature", stat)
-       have_temperature = stat == 0
-       dg_t = have_option(trim(temperature%option_path)//&
-            "/prognostic/spatial_discretisation/discontinuous_galerkin")
-       velocity => extract_vector_field(state, "Velocity")
-       dg_u = have_option(trim(velocity%option_path)//&
-            "/prognostic/spatial_discretisation/discontinuous_galerkin")
-
+       ! Initialisation according to 1-way or 2-way coupling:
        if (one_way_coupling) then
           call one_way_initialise(state)
-       else if (two_way_coupling) then
+       else if (two_way_coupling)  then
           call femdem_initialise(state)
        else
           FLAbort("implicit_solids: Don't know what to do...")
        end if
-
+       ! Make sure /alpha is computed at first timestep:
        do_calculate_volume_fraction = .true.
-
+       ! At this stage, everything is initialised:
        init=.true.
     end if
 
+    ! 1-WAY COUPLING
     if (one_way_coupling) then
-
+       ! Computation of /alpha^f_s and the SolidPhase
+       ! at the first timestep and after each adapt:
        if (do_calculate_volume_fraction) then
           call allocate(solid_local, solid%mesh, "SolidConcentration")
           call zero(solid_local)
 
+          ! The SolidPhase represents the surface of the immersed body
+          ! on the fluids mesh:
           call allocate(interface_local, solid%mesh, "SolidPhase")
           call zero(interface_local)
 
-          allocate(node_to_particle_cg(node_count(solid)))
+          allocate(node_to_particle(node_count(solid)))
+
+          ! Computing /alpha^f_s:
           do i = 1, number_of_solids
-             ewrite(2, *) "  calculating volume fraction for solid", i
+             ewrite(2, *) "  calculating volume fraction for solid", i 
              call calculate_volume_fraction(state, i)
           end do
-          call calculate_solid_fluid_interface(state)
-          if (dg_u .or. dg_t) &
-               call calculate_node_to_particle_dg(state)
 
+          ! Compute the SolidPhase:
+          call calculate_solid_fluid_interface(state)
+
+          ! 'x' will be the pointer to the coordinate field of the fluids mesh
           x => extract_vector_field(state, "Coordinate")
+          ! Allocating variables for computing the absorption term
           call allocate(metric, x%mesh, "ErrorMetric")
           call zero(metric)
           call allocate(edge_lengths, metric%mesh, "EdgeLengths")
           call zero(edge_lengths)
 
-          ! calculate metric and edge lengths
-          states = (/ state /)
+          ! calculate metric and edge lengths (used for the absorption term later on)
+          states = (/state/)
           if (have_viscosity) then
-             call qmesh(states, metric)
+             call qmesh(states, metric) ! metric only needed to get the edge_lengths
              call get_edge_lengths(metric, edge_lengths)
           end if
-       end if
+       end if ! end if do_calculate_volume_fraction
 
        interface => extract_scalar_field(state, "SolidPhase")
        call zero(interface)
        call set(interface, interface_local)
 
+       ! solid being /alpha^f_s before an adapt,
+       ! solid_local being the new /alpha^f_s, after an adapt
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
+       ! Set source term (only if temperature, pressure gradient or 2-way coupling)
        call set_source(state)
+       ! Set absorption term /sigma 
        call set_absorption_coefficient(state)
 
        if (have_fixed_temperature_source) &
@@ -251,11 +260,16 @@ contains
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
           call deallocate(interface_local)
+          call deallocate(node_to_particle)
+          deallocate(node_to_particle)
+          call deallocate(surface_nodes)
+          call deallocate(surface_faces)
           call deallocate(edge_lengths)
           call deallocate(metric)
           do_calculate_volume_fraction = .true.
        end if
 
+    ! 2-WAY COUPLING
     else if (two_way_coupling) then
 
        old_solid => extract_scalar_field(state, "OldSolidConcentration")
@@ -312,11 +326,11 @@ contains
           ! calculate metric and edge lengths
           call zero(metric)
           call zero(edge_lengths)
-          states = (/ state /)
+          states = (/state/)
           call qmesh(states, metric)
           call get_edge_lengths(metric, edge_lengths)
 
-       end if
+       end if ! end if (its==1)
 
        ! previous time step volume fraction
        call set(old_solid, old_solid_local)
@@ -375,7 +389,7 @@ contains
     call set(external_positions_local, external_positions)
 
     ! translate coordinates for multiple solids...
-    if (multiple_solids) then
+    if (one_way_coupling .and. multiple_solids) then
        do i = 1, node_count(external_positions)
           external_positions_local%val(1, i) = &
                external_positions%val(1, i) + &
@@ -453,7 +467,7 @@ contains
           ele_A_nodes => ele_nodes(positions, ele_A)
           do k = 1, size(ele_A_nodes)
              call addto(solid_local, ele_A_nodes(k), vol/ele_A_vol)
-             call insert_ascending(node_to_particle_cg(ele_A_nodes(k)), solid_number)
+             call insert_ascending(node_to_particle(ele_A_nodes(k)), solid_number)
           end do
 
           call deallocate(intersection)
@@ -493,8 +507,6 @@ contains
     type(tensor_field), pointer :: viscosity
     type(vector_field), pointer :: absorption
     type(scalar_field), pointer :: Tabsorption
-    type(scalar_field) :: solid_velocity_mesh
-    type(vector_field) :: absorption_temperature_mesh
     integer :: i, j
     real :: sigma, sigma_1, sigma_2
 
@@ -503,17 +515,14 @@ contains
     absorption => extract_vector_field(state, "VelocityAbsorption")
     call zero(absorption)
 
-    call allocate(solid_velocity_mesh, absorption%mesh, "SolidConcentrationVelocityMesh")
-    call remap_field(solid_local, solid_velocity_mesh)
-
     if (have_viscosity) then
 
        viscosity => extract_tensor_field(state, "Viscosity")
 
        do i = 1, node_count(absorption)
 
-          sigma_1 = node_val(solid_velocity_mesh, i) / dt
-          sigma_2 = node_val(solid_velocity_mesh, i) * &
+          sigma_1 = node_val(solid_local, i) / dt
+          sigma_2 = node_val(solid_local, i) * &
                node_val(viscosity, 1, 1, i) / maxval(node_val(edge_lengths, i))**2
           sigma = max(sigma_1, sigma_2) * beta
 
@@ -527,7 +536,7 @@ contains
 
        do i = 1, node_count(absorption)
 
-          sigma = node_val(solid_velocity_mesh, i) * beta / dt
+          sigma = node_val(solid_local, i) * beta / dt
 
           do j = 1, absorption%dim
              call set(absorption, j, i, sigma)
@@ -543,17 +552,9 @@ contains
 
        Tabsorption => extract_scalar_field(state, "TemperatureAbsorption")
        call zero(Tabsorption)
-
-       call allocate(absorption_temperature_mesh, absorption%dim, Tabsorption%mesh, "VelocityAbsorptionTemperatureMesh")
-       call remap_field(absorption, absorption_temperature_mesh)
-
-       call set(Tabsorption, absorption_temperature_mesh, 1)
-
-       call deallocate(absorption_temperature_mesh)
+       call set(Tabsorption, absorption, 1)
 
     end if
-
-    call deallocate(solid_velocity_mesh)
 
     ewrite(2, *) "leaving set_absorption_coefficient"
 
@@ -566,19 +567,16 @@ contains
     type(state_type), intent(inout) :: state
 
     type(vector_field), pointer :: source, positions
-    type(vector_field), pointer :: old_velocity, absorption
+    type(vector_field), pointer :: velocity, absorption
     type(scalar_field), pointer :: Tsource
-    type(scalar_field) :: solid_temperature_mesh
-
     integer :: i, particle
     real :: x0, y0, z0, x, y, z, sigma
-    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside set_source"
 
     if (two_way_coupling) then
 
-       old_velocity => extract_vector_field(state, "OldVelocity")
+       velocity => extract_vector_field(state, "Velocity")
        absorption => extract_vector_field(state, "VelocityAbsorption")
 
        source => extract_vector_field(state, "VelocitySource")
@@ -587,7 +585,7 @@ contains
        ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
        do i = 1, node_count(source)
           call set(source, i, &
-               node_val(absorption, i) * node_val(old_velocity, i) &
+               node_val(absorption, i) * node_val(velocity, i) &
                - node_val(fl_pos_solid_force, i)/dt)
        end do
 
@@ -612,9 +610,6 @@ contains
        Tsource => extract_scalar_field(state, "TemperatureSource")
        call zero(Tsource)
 
-       call allocate(solid_temperature_mesh, Tsource%mesh, "SolidConcentrationTemperatureMesh")
-       call remap_field(solid_local, solid_temperature_mesh)
-
        if (have_fixed_temperature_source) then
 
           ewrite(3, *) "  source intensity", source_intensity
@@ -625,16 +620,8 @@ contains
 
              positions => extract_vector_field(state, "Coordinate")
 
-             if (dg_t) then
-                allocate(node_to_particle(size(node_to_particle_dg)))
-                node_to_particle = copy(node_to_particle_dg)
-             else
-                allocate(node_to_particle(size(node_to_particle_cg)))
-                node_to_particle = copy(node_to_particle_cg)
-             end if
-
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_temperature_mesh, i)
+                sigma = node_val(solid_local, i)
 
                 if (associated(node_to_particle(i)%firstnode)) then
 
@@ -650,13 +637,10 @@ contains
                 call set(Tsource, i, sigma * source_intensity)
              end do
 
-             call flush_lists(node_to_particle)
-             deallocate(node_to_particle)
-
           else
 
              do i = 1, node_count(Tsource)
-                sigma = node_val(solid_temperature_mesh, i)
+                sigma = node_val(solid_local, i)
                 call set(Tsource, i, sigma * source_intensity)
              end do
 
@@ -667,14 +651,11 @@ contains
           ewrite(3, *) "  solid temperature", source_intensity
 
           do i = 1, node_count(Tsource)
-             sigma = node_val(solid_temperature_mesh, i)*beta/dt
+             sigma = node_val(solid_local, i)*beta/dt
              call set(Tsource, i, sigma * source_intensity)
           end do
 
        end if
-
-       call deallocate(solid_temperature_mesh)
-
     end if
 
     ewrite(2, *) "leaving set_source"
@@ -724,20 +705,6 @@ contains
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     character(len=PYTHON_FUNC_LEN) :: python_function
 
-    ! figure out if we want to print out diagnostics and initialise files
-    do_print_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/print_diagnostics")
-    do_print_multiple_solids_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
-
-    ! check for mutiple solids and get translation coordinates
-    number_of_solids = 1
-    multiple_solids = &
-         have_option("/implicit_solids/one_way_coupling/multiple_solids")
-    if (multiple_solids) call get_option( &
-         "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
-         number_of_solids)
-
     ! pointer to vector field of coordinates of fluids mesh:
     positions => extract_vector_field(state, "Coordinate")
 
@@ -776,7 +743,6 @@ contains
          .not. have_option("/implicit_solids/source")) then
        ewrite(-1, *) "WARNING: Implicit solids are not emitting!"
     end if
-    
     if (.not. have_temperature .and. &
          have_option("/implicit_solids/source")) then
        FLExit("You need to use a Temperature field if you want to &
@@ -1006,7 +972,7 @@ contains
     if (use_fluid_velocity) then
        ewrite(3, *) "calculating the bulk velocity"
        ! ext_pos_solid_vel is u_s, not \hat{u}_s, so multiply
-       ! by \alpha_s and then add to ext_pos_fluid_vel to
+       ! by \alpha_s and then add to ext_pos_fluid_vel to 
        ! form the bulk velocity (\hat{u}_f+\hat{u}_s)
        call scale(ext_pos_solid_vel, ext_pos_solid)
        ! this removes fluid velocity from the volume of the solid
@@ -1058,7 +1024,7 @@ contains
     type(scalar_field), pointer :: field_ext_s, field_fl_s
     character(len=OPTION_PATH_LEN) :: &
          path = "/tmp/galerkin_projection/continuous"
-    integer :: stat
+    !integer :: stat
 
     ! this subroutine interpolates forces and velocities
     ! between fluidity and femdem meshes
@@ -1081,24 +1047,24 @@ contains
     call insert(alg_fl_s, fl_mesh, "Mesh")
     call insert(alg_fl_s, fl_positions, "Coordinate")
 
-    call set_solver_options(path, &
-            ksptype = "cg", &
-            pctype = "hypre", &
-            rtol = 1.e-10, &
-            atol = 0., &
-            max_its = 10000)
-    
-    call add_option( &
-         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
-    call set_option( &
-         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
-
     !call set_solver_options(path, &
     !        ksptype = "cg", &
-    !        pctype = "mg", &
+    !        pctype = "hypre", &
     !        rtol = 1.e-10, &
     !        atol = 0., &
     !        max_its = 10000)
+    !
+    !call add_option( &
+    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    !call set_option( &
+    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+
+    call set_solver_options(path, &
+            ksptype = "cg", &
+            pctype = "mg", &
+            rtol = 1.e-10, &
+            atol = 0., &
+            max_its = 10000)
 
     path = "/tmp"
 
@@ -1119,7 +1085,6 @@ contains
     else if (operation == "out") then
 
        ext_pos_fluid_vel%option_path = path
-       ext_pos_solid%option_path = path
 
        ! this is the fluid or bulk velocity on the solid mesh
        ! this will be returned to femdem...
@@ -1128,7 +1093,7 @@ contains
        call insert(alg_ext_v, field_ext_v, "Velocity")
 
        ! this is the fluid or bulk velocity on the fluidity mesh
-       field_fl_v => extract_vector_field(state, "OldVelocity")
+       field_fl_v => extract_vector_field(state, "Velocity")
        call insert(alg_fl_v, field_fl_v, "Velocity")
 
        ! this is the solid concentration on the solid mesh
@@ -1163,12 +1128,9 @@ contains
        ! interpolate the fluid or bulk velocity and the solid concentration from
        ! the fluid mesh to the solid mesh
        call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
-       !call linear_interpolation(alg_fl_v, alg_ext_v, different_domains=.true.)
-
 
        if (use_fluid_velocity) &
-          call interpolation_galerkin_femdem(alg_fl_s, alg_ext_s, femdem_out=.true.)
-          !call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
+          call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
 
        ewrite_minmax(field_fl_v%val(1,:))
        ewrite_minmax(field_fl_v%val(2,:))
@@ -1198,6 +1160,10 @@ contains
        if (one_way_coupling) then
           call deallocate(solid_local)
           call deallocate(interface_local)
+          call deallocate(node_to_particle)
+          deallocate(node_to_particle)
+          call deallocate(surface_nodes)
+          call deallocate(surface_faces)
           call deallocate(edge_lengths)
           call deallocate(metric)
        else if (two_way_coupling) then
@@ -1214,18 +1180,18 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_force_computation(state, lumped_mass, force, particle_force)
+  subroutine implicit_solids_force_computation(state, force, particle_force)
 
     type(state_type), intent(in) :: state
-    type(scalar_field), intent(in) :: lumped_mass
     real, dimension(:), allocatable, intent(out) :: force
     real, dimension(:, :), allocatable, intent(out) :: particle_force
 
     type(vector_field), pointer :: velocity, positions, absorption
-    type(scalar_field) :: lumped_mass_velocity_mesh
+    type(scalar_field) :: lumped_mass, lumped_mass_velocity_mesh
+    real, dimension(:), allocatable :: q
+    integer, dimension(:), allocatable :: face_nodes
     integer :: i, j, particle
     type(inode), pointer :: node1
-    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside implicit_solids_force_computation"
 
@@ -1235,19 +1201,17 @@ contains
     absorption => extract_vector_field(state, "VelocityAbsorption")
 
     positions => extract_vector_field(state, "Coordinate")
+
+    call allocate(lumped_mass, positions%mesh, "LumpedMass")
+    call compute_lumped_mass(positions, lumped_mass)    
+
     call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
     call remap_field(lumped_mass, lumped_mass_velocity_mesh)
-
+    
+    allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
     allocate(particle_force(number_of_solids, positions%dim)); particle_force = 0.
+    allocate(q(number_of_solids)); q = 0.
     allocate(force(positions%dim)); force = 0.
-
-    if (dg_u) then
-       allocate(node_to_particle(size(node_to_particle_dg)))
-       node_to_particle = copy(node_to_particle_dg)
-    else
-       allocate(node_to_particle(size(node_to_particle_cg)))
-       node_to_particle = copy(node_to_particle_cg)
-    end if
 
     do i = 1, nowned_nodes(velocity)
        node1 => node_to_particle(i)%firstnode
@@ -1274,8 +1238,8 @@ contains
        end do
     end do
 
-    call flush_lists(node_to_particle)
-    deallocate(node_to_particle)
+    deallocate(face_nodes, q)
+    call deallocate(lumped_mass)
     call deallocate(lumped_mass_velocity_mesh)
 
     ewrite(2, *) "leaving implicit_solids_force_computation"
@@ -1284,19 +1248,17 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_temperature_computation(state, lumped_mass, &
-       T_w_avg, q_avg, wall_temperature, q)
+  subroutine implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
 
     type(state_type), intent(in) :: state
-    type(scalar_field), intent(in) :: lumped_mass    
-
     real, dimension(:), allocatable, intent(out) :: wall_temperature, q
     real, intent(out) :: T_w_avg, q_avg
 
     type(vector_field), pointer :: positions
     type(vector_field) :: temperature_grad
     type(scalar_field), pointer :: temperature
-    type(tensor_field), pointer :: temperature_conductivity   
+    type(tensor_field), pointer :: temperature_conductivity
+    type(scalar_field) :: lumped_mass    
     real, dimension(:), allocatable :: solid_mass
     integer, dimension(:), allocatable :: face_nodes
     integer :: i, gi, particle
@@ -1305,11 +1267,13 @@ contains
     real, dimension(:), allocatable :: detwei, T_grad_dot_n_at_quad
     type(element_type), pointer :: T_f_shape  
     real :: k_f
-    type(ilist), dimension(:), allocatable :: node_to_particle
 
     ewrite(2, *) "inside implicit_solids_temperature_computation"
 
     positions => extract_vector_field(state, "Coordinate")
+
+    call allocate(lumped_mass, positions%mesh, "LumpedMass")
+    call compute_lumped_mass(positions, lumped_mass)    
 
     allocate(face_nodes(face_loc(positions, 1))); face_nodes = 0
     allocate(wall_temperature(number_of_solids)); wall_temperature = 0.
@@ -1317,14 +1281,6 @@ contains
     allocate(q(number_of_solids)); q = 0.
 
     temperature => extract_scalar_field(state, "Temperature")
-
-    if (dg_t) then
-       allocate(node_to_particle(size(node_to_particle_dg)))
-       node_to_particle = copy(node_to_particle_dg)
-    else
-       allocate(node_to_particle(size(node_to_particle_cg)))
-       node_to_particle = copy(node_to_particle_cg)
-    end if
 
     ! calculate the solid-fluid interface temperature
     node1 => surface_nodes%firstnode
@@ -1402,9 +1358,9 @@ contains
 
     deallocate(temperature_grad_at_quad, detwei, normal, T_grad_dot_n_at_quad)
     call deallocate(temperature_grad)
+
     deallocate(face_nodes, solid_mass)
-    call flush_lists(node_to_particle)
-    deallocate(node_to_particle)
+    call deallocate(lumped_mass)
 
     ewrite(2, *) "leaving implicit_solids_temperature_computation"
 
@@ -1415,9 +1371,8 @@ contains
   subroutine implicit_solids_update(state)
 
     type(state_type), intent(in) :: state
+    type(vector_field), pointer :: velocity
 
-    type(vector_field), pointer :: positions
-    type(scalar_field) :: lumped_mass
     real, dimension(:), allocatable :: force
     real, dimension(:, :), allocatable :: particle_force
     real, dimension(:), allocatable :: wall_temperature, q
@@ -1426,47 +1381,42 @@ contains
     character(len=254) :: fmt, buffer
 
     ewrite(2, *) "inside implicit_solids_update"
-
+    
+    velocity => extract_vector_field(state, "Velocity")
+    
+    ! Update the computation of the diagnostics
+    ! Only one-way coupling for now
     if (one_way_coupling .and. do_print_diagnostics) then
 
-       positions => extract_vector_field(state, "Coordinate")
-       call allocate(lumped_mass, positions%mesh, "LumpedMass")
-       call compute_lumped_mass(positions, lumped_mass)  
-
-       call implicit_solids_force_computation(state, lumped_mass, force, particle_force)
+       call implicit_solids_force_computation(state, force, particle_force)
 
        str_size=len_trim(int2str(number_of_solids))
        fmt="(I"//int2str(str_size)//"."//int2str(str_size)//")"
 
        ! Register the force on a solid body
-       if(getprocno() == 1) &
-            call set_diagnostic(name="Force", statistic="Value", value=(/ force /))
+       call set_diagnostic(name="Force", statistic="Value", value=(/ force /))
 
        if (do_print_multiple_solids_diagnostics) then
-          do j = 1, number_of_solids
-             write(buffer, fmt) j
-             if(getprocno() == 1) &
-                  call set_diagnostic(name="ForceOnSolid"//buffer, statistic="Value", value=(/ particle_force(j, :) /))
+          do i = 1, velocity%dim
+             do j = 1, number_of_solids
+                write(buffer, fmt) j
+                call set_diagnostic(name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value", value=(/ particle_force(j, i) /))
+             end do
           end do
        end if
 
        if (have_temperature) then
-
-          call implicit_solids_temperature_computation(state, lumped_mass, T_w_avg, q_avg, wall_temperature, q)
+          call implicit_solids_temperature_computation(state, T_w_avg, q_avg, wall_temperature, q)
 
           ! Register the diagnostics
-          if(getprocno() == 1) then
-             call set_diagnostic(name="WallTemperature", statistic="Value", value=(/ T_w_avg /))
-             call set_diagnostic(name="HeatTransfer", statistic="Value", value=(/ q_avg /))
-          end if
+          call set_diagnostic(name="WallTemperature", statistic="Value", value=(/ T_w_avg /))
+          call set_diagnostic(name="HeatTransfer", statistic="Value", value=(/ q_avg /))
 
-          if (do_print_multiple_solids_diagnostics) then
+          if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
              do i = 1, number_of_solids
                 write(buffer, fmt) i
-                if(getprocno() == 1) then
-                   call set_diagnostic(name="WallTemperatureOnSolid"//buffer, statistic="Value", value=(/ wall_temperature(i) /))
-                   call set_diagnostic(name="HeatTransferAtSolid"//buffer, statistic="Value", value=(/ q(i) /))
-                end if
+                call set_diagnostic(name="WallTemperatureOnSolid"//buffer, statistic="Value", value=(/ wall_temperature(i) /))
+                call set_diagnostic(name="HeatTransferAtSolid"//buffer, statistic="Value", value=(/ q(i) /))
              end do
           end if
 
@@ -1474,18 +1424,6 @@ contains
        end if
 
        deallocate(force, particle_force)
-       call deallocate(lumped_mass)
-
-       if (do_adapt_mesh(current_time, timestep)) then
-          call flush_lists(node_to_particle_cg)
-          deallocate(node_to_particle_cg)
-          if (dg_u .or. dg_t) then
-             call flush_lists(node_to_particle_dg)  
-             deallocate(node_to_particle_dg)
-          end if
-          call deallocate(surface_nodes)
-          call deallocate(surface_faces)
-       end if
 
     end if
 
@@ -2538,12 +2476,10 @@ contains
   !----------------------------------------------------------------------------
 
   subroutine implicit_solids_register_diagnostic
-
-    integer :: i, j, str_size, ndim
+    
+    integer :: i, j, str_size, no_components
     character(len=254) :: fmt, buffer
-
-    if (.not.have_option("/implicit_solids")) return
-
+    
     ! figure out if we want to print out diagnostics and initialise files
     do_print_diagnostics = &
          have_option("/implicit_solids/one_way_coupling/print_diagnostics")
@@ -2565,97 +2501,51 @@ contains
          have_option("/material_phase[0]/scalar_field::Temperature")
 
     if (do_print_diagnostics) then
-       call get_option("/geometry/dimension", ndim)
-       call register_diagnostic(dim=ndim, name="Force", statistic="Value")
+      no_components = 3
+      ! The dimension of the diagnostic should be read from the flml.
+      call register_diagnostic(dim=3, name="Force", statistic="Value")
 
-       if (do_print_multiple_solids_diagnostics) then
-          do j = 1, number_of_solids
-             write(buffer, fmt) j
-             call register_diagnostic(dim=ndim, name="ForceOnSolid"//buffer, statistic="Value")
+      if (do_print_multiple_solids_diagnostics) then
+          do i = 1, no_components
+             do j = 1, number_of_solids
+                write(buffer, fmt) j
+                call register_diagnostic(dim=1, name="Force"//int2str(i)//"OnSolid"//buffer, statistic="Value")
+             end do
           end do
        end if
 
        if (have_temperature) then
           call register_diagnostic(dim=1, name="WallTemperature", statistic="Value")
           call register_diagnostic(dim=1, name="HeatTransfer", statistic="Value")
-
+ 
           if (do_print_multiple_solids_diagnostics) then
              do i = 1, number_of_solids
                 write(buffer, fmt) i
                 call register_diagnostic(dim=1, name="WallTemperatureOnSolid"//buffer, statistic="Value")
                 call register_diagnostic(dim=1, name="HeatTransferAtSolid"//buffer, statistic="Value")
              end do
-          end if
-
+          end if 
+ 
        end if
     end if
 
   end subroutine implicit_solids_register_diagnostic
 
-  !----------------------------------------------------------------------------
-
-  subroutine calculate_node_to_particle_dg(state)
-
-    type(state_type), intent(in) :: state
-
-    type(vector_field), pointer :: velocity
-    type(vector_field):: cg_field
-    type(scalar_field) :: dg_field
-    integer :: ele, node, solid_number 
-    integer, dimension(:), pointer :: nodes_cg, nodes_dg
-    type(inode), pointer :: np
-
-    ewrite(2, *) "  inside calculate_node_to_particle_dg"
-
-    cg_field = extract_vector_field(state, "Coordinate")
-    if (dg_t) dg_field = extract_scalar_field(state, "Temperature")
-    if (dg_u) then
-       velocity => extract_vector_field(state, "Velocity")
-       dg_field = extract_scalar_field(velocity, 1)
-    end if
-
-    allocate(node_to_particle_dg(node_count(dg_field)))
-
-    do ele = 1, ele_count(cg_field)
-
-       nodes_cg => ele_nodes(cg_field, ele)
-       nodes_dg => ele_nodes(dg_field, ele)
-
-       do node=1,size(nodes_cg)
-
-          np => node_to_particle_cg(nodes_cg(node))%firstnode
-
-          do while (associated(np))
-             solid_number=np%value
-             call insert_ascending(node_to_particle_dg(nodes_dg(node)), solid_number)
-             np=>np%next
-          end do
-
-       end do
-
-    end do
-
-    ewrite(2, *) "  leaving calculate_node_to_particle_dg"
-
-  end subroutine calculate_node_to_particle_dg
-
-  !----------------------------------------------------------------------------
 
   subroutine implicit_solids_check_options
-
-    integer :: ndim
-
-    call get_option("/geometry/dimension", ndim)
-
-    if (have_option("/implicit_solids/one_way_coupling") .and. ndim==1) then
-       ewrite(-1,*) "Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via Implicit Solids"
-       FLExit("Use a 2D or 3D set-up when using a 1-way coupled simulation via implicit solids")
-    else if (have_option("/implicit_solids/two_way_coupling") .and. ndim/=3) then
-       ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
-       ewrite(-1,*) "is only supported for 3D simulations."
-       FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
-    end if
-
+     integer :: dim
+     
+     ! Get dimension:
+     call get_option("/geometry/dimension", dim)
+     ! Check options for Implicit Solids:
+     if (have_option("/implicit_solids/one_way_coupling") .and. dim==1) then
+        ewrite(-1,*) "Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via Implicit Solids"
+        FLExit("Use a 2D or 3D set-up when using a 1-way coupled simulation via implicit solids")
+     else if (have_option("/implicit_solids/two_way_coupling") .and. (.not. dim==3)) then
+        ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+        ewrite(-1,*) "is only supported for 3D simulations."
+        FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
+     end if
   end subroutine implicit_solids_check_options
 
   !----------------------------------------------------------------------------

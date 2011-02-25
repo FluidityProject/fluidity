@@ -1913,8 +1913,7 @@ start =
               ## requires a prognostic Temperature field. 
               element source{
                  (
-                    ## Use a fixed temperature source for the solids. This option 
-                    ## is only valid when using a cv discretisation for temperature.
+                    ## Use a fixed temperature source for the solids.
                     ## The temperature diffusivity should be set to diagnostic/internal with this option.
                     element temperature_source{
                          ## Fluid Peclet number.
