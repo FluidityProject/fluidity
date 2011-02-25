@@ -343,6 +343,8 @@ clean-light:
 	@echo "    CLEAN ocean_forcing"
 	@cd ocean_forcing;  $(MAKE) clean
 	@cd ocean_forcing/tests;   $(MAKE) clean
+	@echo "    CLEAN fldecomp"
+	@cd fldecomp;	$(MAKE) clean
 ifeq (@HYPERLIGHT@,yes)
 	@echo "    CLEAN hyperlight"
 	@cd hyperlight; $(MAKE) clean
