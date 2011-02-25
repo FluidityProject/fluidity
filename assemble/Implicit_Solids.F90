@@ -363,7 +363,6 @@ contains
   end subroutine solids
 
   !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
 
   subroutine calculate_volume_fraction(state, solid_number)
 
@@ -382,66 +381,80 @@ contains
     real, dimension(:), allocatable :: detwei
     real :: vol, ele_A_vol
 
+    ! positions: coordinates of fluid mesh:
     positions => extract_vector_field(state, "Coordinate")
 
+    ! external_positions: coordinates of solid mesh (lives in the whole module)
+    ! external_positions_local: coordinates of solid mesh (lives in this subroutine)
     call allocate(external_positions_local, external_positions%dim, &
          external_positions%mesh, name="LocalCoordinates")
+    ! Set the solid coordinates of 'external_positions_local' (lives in subroutine)
+    ! to the solid coordinates of 'external_positions'  (lives in module)
     call set(external_positions_local, external_positions)
 
     ! translate coordinates for multiple solids...
+    ! IF multiple solids are derived from one solid,
+    ! thus all solids are just a copy of the original one
     if (one_way_coupling .and. multiple_solids) then
        do i = 1, node_count(external_positions)
-          external_positions_local%val(1, i) = &
-               external_positions%val(1, i) + &
-               translation_coordinates(1, solid_number)
-          external_positions_local%val(2, i) = &
-               external_positions%val(2, i) + &
-               translation_coordinates(2, solid_number)
+          external_positions_local%val(1, i) = external_positions%val(1, i) + translation_coordinates(1, solid_number)
+          external_positions_local%val(2, i) = external_positions%val(2, i) + translation_coordinates(2, solid_number)
           if (external_positions%dim == 3) then
-             external_positions_local%val(3, i) = &
-                  external_positions%val(3, i) + &
-                  translation_coordinates(3, solid_number)
+             external_positions_local%val(3, i) = external_positions%val(3, i) + translation_coordinates(3, solid_number)
           end if
        end do
     end if
 
+    ! Set the input of the RTREE finder as the coordinates of the fluids mesh:
     call rtree_intersection_finder_set_input(positions)
 
+    ! For all elements of the solids mesh:
     do ele_B = 1, ele_count(external_positions_local)
 
+       ! Via RTREE, find intersection of solid element 'ele_B' with the
+       ! input mesh (fluid coordinate mesh 'positions'):
        call rtree_intersection_finder_find(external_positions_local, ele_B)
+       ! Fetch output, the number of intersections of this solid element:
        call rtree_intersection_finder_query_output(nintersections)
 
+
        if (positions%dim == 3) then
+          ! Get (solid) element value (coordinate), form tetrahedra:
           tet_B%v = ele_val(external_positions_local, ele_B)
        else
           call intersector_set_dimension(positions%dim)
        end if
 
+       ! 1st inner-loop
+       ! For all intersections of solid element ele_B with fluid mesh:
        do j = 1, nintersections
 
+          ! Get the donor (fluid) element which intersects with ele_B
           call rtree_intersection_finder_get_output(ele_A, j)
 
+          ! If 3D
           if (positions%dim == 3) then
-
+             ! Get the global coordinates of fluid element ele_A:
              if (ele_loc(positions, ele_A)==4) then
-                ! tets
+                ! if fluid element is a tetrahedra
                 allocate(planes_A(4))
                 tet_A%v = ele_val(positions, ele_A)
                 planes_A = get_planes(tet_A)
              else
-                ! hexes
+                ! if fluid element is not a tetrahedra, 
+                ! assumed to be a hexahedra:
                 allocate(planes_A(6))
                 planes_A = get_planes(positions, ele_A)
              end if
-
+             ! Get the coordinates of nodes of the intersection
+             ! between of both elements, store in intersection
              call intersect_tets(tet_B, planes_A, &
                   ele_shape(external_positions_local, ele_B), &
                   stat=stat, output=intersection)
 
              deallocate(planes_A)
 
-          else
+          else ! 2D
 
              allocate(pos_A(positions%dim, ele_loc(positions, ele_A)))
              pos_A = ele_val(positions, ele_A)
@@ -450,22 +463,29 @@ contains
              deallocate(pos_A)
              stat = 0
 
-          end if
+          end if ! end of dim==3
 
+          ! No intersection, cycle:
           if (stat == 1) cycle
 
+          ! Compute intersection volume:
           vol = 0.
           do ele_C = 1, ele_count(intersection)
              vol = vol + abs(simplex_volume(intersection, ele_C))
           end do
 
+          ! Compute the volume of the fluid element:
           allocate(detwei(ele_ngi(positions, ele_A)))
           call transform_to_physical(positions, ele_A, detwei=detwei)
           ele_A_vol = sum(detwei)
           deallocate(detwei)
 
+          ! Compute the volume fraction:
+          ! ele_A_nodes: pointer to global node numbers of
+          ! fluid element ele_A of the coordinate mesh
           ele_A_nodes => ele_nodes(positions, ele_A)
           do k = 1, size(ele_A_nodes)
+             ! Volume fraction by grandy projection
              call addto(solid_local, ele_A_nodes(k), vol/ele_A_vol)
              call insert_ascending(node_to_particle(ele_A_nodes(k)), solid_number)
           end do
@@ -474,7 +494,7 @@ contains
 
        end do ! ele_A, j, nintersections
 
-    end do ! ele_B, ele_count(external_positions)
+    end do ! ele_B, ele_count(external_positions_local)
 
     ! bound solid to [0, 1]
     call bound_concentration()
@@ -728,8 +748,7 @@ contains
 
     ! Read in the serial mesh of solid body
     ! external_positions lives in the whole module:
-    external_positions = &
-         read_triangle_serial(trim(external_mesh_name), &
+    external_positions = read_triangle_serial(trim(external_mesh_name), &
          quad_degree=quad_degree)
 
     ! 1D set-ups not supported:
@@ -2531,6 +2550,7 @@ contains
 
   end subroutine implicit_solids_register_diagnostic
 
+  !----------------------------------------------------------------------------
 
   subroutine implicit_solids_check_options
      integer :: dim
