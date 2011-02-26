@@ -2491,8 +2491,10 @@ contains
 
   subroutine implicit_solids_register_diagnostic
     
-    integer :: i, str_size
+    integer :: i, str_size, ndim
     character(len=254) :: fmt, buffer
+
+    if (.not. have_option("/implicit_solids")) return
     
     ! figure out if we want to print out diagnostics and initialise files
     do_print_diagnostics = &
@@ -2515,13 +2517,13 @@ contains
          have_option("/material_phase[0]/scalar_field::Temperature")
 
     if (do_print_diagnostics) then
-      ! The dimension of the diagnostic should be read from the flml.
-      call register_diagnostic(dim=3, name="Force", statistic="Value")
+      call get_option("/geometry/dimension", ndim)
+      call register_diagnostic(dim=ndim, name="Force", statistic="Value")
 
       if (do_print_multiple_solids_diagnostics) then
           do i = 1, number_of_solids
              write(buffer, fmt) i
-             call register_diagnostic(dim=1, name="ForceOnSolid"//buffer, statistic="Value")
+             call register_diagnostic(dim=ndim, name="ForceOnSolid"//buffer, statistic="Value")
           end do
        end if
 
@@ -2545,15 +2547,15 @@ contains
   !----------------------------------------------------------------------------
 
   subroutine implicit_solids_check_options
-     integer :: dim
+     integer :: ndim
      
      ! Get dimension:
-     call get_option("/geometry/dimension", dim)
+     call get_option("/geometry/dimension", ndim)
      ! Check options for Implicit Solids:
-     if (have_option("/implicit_solids/one_way_coupling") .and. dim==1) then
+     if (have_option("/implicit_solids/one_way_coupling") .and. ndim==1) then
         ewrite(-1,*) "Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via Implicit Solids"
         FLExit("Use a 2D or 3D set-up when using a 1-way coupled simulation via implicit solids")
-     else if (have_option("/implicit_solids/two_way_coupling") .and. (.not. dim==3)) then
+     else if (have_option("/implicit_solids/two_way_coupling") .and. (.not. ndim==3)) then
         ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
         ewrite(-1,*) "is only supported for 3D simulations."
         FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
