@@ -18,7 +18,7 @@ last_locations_error = readstat()
   </variables>
   <pass_tests>
     <test name="CorrectLagrangianTrajectory" language="python">
-assert abs(last_locations_error).max() &lt; 1.0e-2
+assert abs(last_locations_error).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
