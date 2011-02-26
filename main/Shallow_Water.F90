@@ -203,7 +203,7 @@
             exclude_nonreprescribed=.true., time=current_time+dt)
 
        call execute_timestep(state(1), dt)
-       call adjoint_register_timestep(timestep, dt)
+       call adjoint_register_timestep(timestep, dt, state)
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
@@ -1130,6 +1130,9 @@
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
+
+        ! We also need to check if these variables will be used
+        call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
       end do
 #endif
     end subroutine adjoint_register_initial_eta_condition
@@ -1187,9 +1190,10 @@
 #endif
     end subroutine adjoint_register_initial_u_condition
 
-    subroutine adjoint_register_timestep(timestep, dt)
+    subroutine adjoint_register_timestep(timestep, dt, states)
       integer, intent(in) :: timestep
       real, intent(in) :: dt
+      type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
       type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC
       integer :: ierr
@@ -1326,6 +1330,8 @@
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
+        ! We also need to check if these variables will be used
+        call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
       end do
 
       ! And that's it!

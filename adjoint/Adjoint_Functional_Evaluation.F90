@@ -43,9 +43,10 @@ module adjoint_functional_evaluation
   use field_options
   use adjoint_variable_lookup, only: adj_var_lookup
   use mangle_options_tree, only: adjoint_field_path
+  use adjoint_python, only: adj_variables_from_python
 
   private
-  public :: libadjoint_functional_derivative
+  public :: libadjoint_functional_derivative, adj_record_anything_necessary
 
   contains
 
@@ -271,5 +272,80 @@ module adjoint_functional_evaluation
       end select
     end do
   end subroutine convert_adj_vectors_to_states
+
+  subroutine adj_record_anything_necessary(adjointer, timestep, functional, states)
+    type(adj_adjointer), intent(inout) :: adjointer
+    integer, intent(in) :: timestep
+    character(len=*), intent(in) :: functional
+    type(state_type), dimension(:), intent(in) :: states
+
+    real :: current_time
+    real :: finish_time
+    type(adj_variable), dimension(:), allocatable :: vars
+    character(len=OPTION_PATH_LEN) :: buf
+    integer :: j
+    integer :: ierr
+    integer :: s_idx
+    character(len=ADJ_NAME_LEN) :: variable_name, material_phase_name, field_name
+    integer :: var_timestep
+    integer :: state
+    integer :: stat
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    type(adj_vector) :: record
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/finish_time", finish_time)
+
+    call get_option("/adjoint/functional::" // trim(functional) // "/functional_dependencies/algorithm", buf)
+    call adj_variables_from_python(buf, current_time, finish_time, timestep, vars)
+
+    do j=1,size(vars)
+      ierr = adj_variable_get_timestep(vars(j), var_timestep)
+      if (var_timestep /= timestep) cycle
+      ierr = adj_variable_get_name(vars(j), variable_name)
+      s_idx = scan(trim(variable_name), ":")
+      material_phase_name = variable_name(1:s_idx - 1)
+      field_name = variable_name(s_idx + 2:len_trim(variable_name))
+      do state=1,size(states)
+        if (trim(states(state)%name) == trim(material_phase_name)) then
+          if ((.not. has_scalar_field(states(state), trim(field_name))) .and. &
+            & (.not. has_vector_field(states(state), trim(field_name))) .and. &
+            & (.not. has_tensor_field(states(state), trim(field_name)))) then
+            ewrite(-1,*) "Warning: want to record ", trim(variable_name), " now, but don't have it in state"
+            cycle
+          end if
+
+          if (has_scalar_field(states(state), trim(field_name))) then
+            sfield => extract_scalar_field(states(state), trim(field_name))
+            record = field_to_adj_vector(sfield)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
+            call femtools_vec_destroy_proc(record)
+            cycle
+          end if
+
+          if (has_vector_field(states(state), trim(field_name))) then
+            vfield => extract_vector_field(states(state), trim(field_name))
+            record = field_to_adj_vector(vfield)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
+            call femtools_vec_destroy_proc(record)
+            cycle
+          end if
+
+          if (has_tensor_field(states(state), trim(field_name))) then
+            tfield => extract_tensor_field(states(state), trim(field_name))
+            record = field_to_adj_vector(tfield)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
+            call femtools_vec_destroy_proc(record)
+            cycle
+          end if
+
+        end if
+      end do
+    end do
+
+    deallocate(vars)
+  end subroutine adj_record_anything_necessary
 #endif
 end module adjoint_functional_evaluation
