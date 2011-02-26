@@ -1,5 +1,4 @@
-!    Copyright (C) 2006 Imperial College London and others.
-   
+!    Copyright (C) 2006 Imperial College London and others.   
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -34,6 +33,7 @@ module diagnostic_variables
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
     & PYTHON_FUNC_LEN, int_16, integer_size, real_size
   use fields
+  use fields_base
   use field_derivatives
   use field_options
   use state_module
@@ -2439,6 +2439,13 @@ contains
 
     type(element_type), pointer :: shape
 
+    !RK stuff - cjc
+    integer :: stage, n_stages
+    integer, dimension(2) :: option_rank
+    real, allocatable, dimension(:) :: stage_weights, timestep_weights
+    real, allocatable, dimension(:,:) :: stage_matrix
+    real :: search_tolerance
+
     ewrite(1,*) "Inside write_detectors subroutine"
 
     !Computing the global number of detectors. This is to prevent hanging
@@ -2570,75 +2577,151 @@ contains
     if (move_detectors.and.(timestep/=0)) then
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
-       detector_timestepping_loop: do  
-
-          !check if detectors any are Lagrangian
-          any_lagrangian=.false.
-          detector => default_stat%detector_list%firstnode
-          do i = 1, default_stat%detector_list%length         
-             if (detector%type==LAGRANGIAN_DETECTOR)&
-                  &any_lagrangian=.true. 
-             detector => detector%next
-          end do
-
-          if (any_lagrangian) then
-             !This is the actual call to move the detectors
-             !The hash table is used to work out which processor
-             !corresponds to which entry in the send_list_array
-             
-             !Detectors leaving the domain from non-owned elements
-             !are entering a domain on another processor rather 
-             !than leaving the physical domain. In this subroutine
-             !such detectors are removed from the detector list
-             !and added to the send_list_array
-             call move_detectors_bisection_method(&
-                  state, dt, ihash, send_list_array)
+          
+       !Get RK guided options
+       if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+            & then
+          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+               &h/search_tolerance",search_tolerance)
+          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+               &h/n&
+               &_stages",n_stages)
+          allocate(stage_weights(n_stages*(n_stages-1)/2))
+          option_rank = option_shape("io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
+               &uid&
+               &ed_search/stage_weights")
+          if(option_rank(2).ne.-1) then
+             FLExit('Stage Array wrong rank')
           end if
-
-          !Work out whether all send lists are empty,
-          !in which case exit.
-          !This is slightly Byzantine, I think it would
-          !also work if it was initially zero, and then
-          !set to 1 if any of the lists were not empty. CJC
-          all_send_lists_empty=number_neigh_processors
-          do k=1, number_neigh_processors
-             if (send_list_array(k)%length==0) then
-                all_send_lists_empty=all_send_lists_empty-1
-             end if
+          if(option_rank(1).ne.size(stage_weights)) then
+             ewrite(-1,*) 'size expected was', size(stage_weights)
+             ewrite(-1,*) 'size actually was', option_rank(1)
+             FLExit('Stage Array wrong size')
+          end if
+          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
+               &ed_search/stage_weights",stage_weights)
+          allocate(stage_matrix(n_stages,n_stages))
+          stage_matrix = 0.
+          k = 0
+          do i = 1, n_stages
+             do j = 1, n_stages
+                if(i>j) then
+                   k = k + 1
+                   stage_matrix(i,j) = stage_weights(k)
+                end if
+             end do
           end do
-          call allmax(all_send_lists_empty)
-          if (all_send_lists_empty==0) exit
-
-          !This call serialises send_list_array,
-          !sends it, receives serialised receive_list_array,
-          !unserialises that.
-          call serialise_lists_exchange_receive(&
-               state,send_list_array,receive_list_array,&
-               number_neigh_processors,ihash)
-
-          !This call moves detectors into the detector_list
-          !I'm still unsure about how detectors are removed
-          !from the detector list if they are sent.
-          do i=1, number_neigh_processors
-             if  (receive_list_array(i)%length/=0) then      
-                call move_det_from_receive_list_to_det_list(&
-                     default_stat%detector_list,receive_list_array(i))
+          allocate(timestep_weights(n_stages))
+          option_rank = option_shape("io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
+               &uid&
+               &ed_search/timestep_weights")
+          if(option_rank(2).ne.-1) then
+             FLExit('Timestep Array wrong rank')
+          end if
+          if(option_rank(1).ne.size(timestep_weights)) then
+             FLExit('Timestep Array wrong size')
+          end if
+          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
+               &ed_search/timestep_weights",timestep_weights)
+       else
+          n_stages = 1
+       end if
+       
+!       subcycling
+       RKstages_loop: do stage = 1, n_stages
+          if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+               & then
+             if(stage.eq.1) then
+                call initialise_rk_guided_search(default_stat%detector_list)
              end if
-          end do
+             call set_stage(default_stat%detector_list)
+          end if
+          !this loop continues until all detectors have completed their
+          ! timestep this is measured by checking if the send and receive
+          ! lists are empty in all processors
+          detector_timestepping_loop: do  
 
-          !Flush the detector lists
-          do k=1, number_neigh_processors
-             if (send_list_array(k)%length/=0) then  
-                call flush_det(send_list_array(k))
+             !check if detectors any are Lagrangian
+             any_lagrangian=.false.
+             detector => default_stat%detector_list%firstnode
+             do i = 1, default_stat%detector_list%length         
+                if (detector%type==LAGRANGIAN_DETECTOR)&
+                     &any_lagrangian=.true. 
+                detector => detector%next
+             end do
+             
+             if (any_lagrangian) then
+                !This is the actual call to move the detectors
+                !The hash table is used to work out which processor
+                !corresponds to which entry in the send_list_array
+                
+                !Detectors leaving the domain from non-owned elements
+                !are entering a domain on another processor rather 
+                !than leaving the physical domain. In this subroutine
+                !such detectors are removed from the detector list
+                !and added to the send_list_array
+                if(have_option("io/detectors/lagrangian_timestepping/explici&
+                     &t_runge_kutta_guided_search")) then
+                   call move_detectors_guided_search(&
+                        &default_stat%detector_list)
+                else
+                   ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
+                   call move_detectors_bisection_method(&
+                        state, dt, ihash, send_list_array)
+                end if
              end if
-          end do
-          do k=1, number_neigh_processors
-             if (receive_list_array(k)%length/=0) then  
-                call flush_det(receive_list_array(k))
-             end if
-          end do
+             
+             !Work out whether all send lists are empty,
+             !in which case exit.
+             !This is slightly Byzantine, I think it would
+             !also work if it was initially zero, and then
+             !set to 1 if any of the lists were not empty. CJC
+             all_send_lists_empty=number_neigh_processors
+             do k=1, number_neigh_processors
+                if (send_list_array(k)%length==0) then
+                   all_send_lists_empty=all_send_lists_empty-1
+                end if
+             end do
+             call allmax(all_send_lists_empty)
+             if (all_send_lists_empty==0) exit
+             
+             !This call serialises send_list_array,
+             !sends it, receives serialised receive_list_array,
+             !unserialises that.
+             call serialise_lists_exchange_receive(&
+                  state,send_list_array,receive_list_array,&
+                  number_neigh_processors,ihash)
+             
+             !This call moves detectors into the detector_list
+             !I'm still unsure about how detectors are removed
+             !from the detector list if they are sent.
+             do i=1, number_neigh_processors
+                if  (receive_list_array(i)%length/=0) then      
+                   call move_det_from_receive_list_to_det_list(&
+                        default_stat%detector_list,receive_list_array(i))
+                end if
+             end do
+             
+             !Flush the detector lists
+             do k=1, number_neigh_processors
+                if (send_list_array(k)%length/=0) then  
+                   call flush_det(send_list_array(k))
+                end if
+             end do
+             do k=1, number_neigh_processors
+                if (receive_list_array(k)%length/=0) then  
+                   call flush_det(receive_list_array(k))
+                end if
+             end do
+             
+          end do detector_timestepping_loop
+       end do RKstages_loop
 
-       end do detector_timestepping_loop
+       if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+            & then       
+          call deallocate_rk_guided_search(default_stat%detector_list)
+       end if
+
        deallocate(send_list_array)
        deallocate(receive_list_array)
     end if
@@ -2885,6 +2968,195 @@ contains
     end if
 
    contains
+
+    !Subroutine to allocate the RK stages, and update vector
+    subroutine initialise_rk_guided_search(detector_list0)
+      type(detector_linked_list), intent(inout) :: detector_list0
+      !
+      type(detector_type), pointer :: det0
+      integer :: j0
+      !
+      det0 => detector_list0%firstnode
+      do j0=1, detector_list0%length
+         if(det0%type==LAGRANGIAN_DETECTOR) then
+            if(allocated(det0%k)) then
+               deallocate(det0%k)
+            end if
+            if(allocated(det0%update_vector)) then
+               deallocate(det0%update_vector)
+            end if
+            allocate(det0%k(n_stages,xfield%dim))
+            allocate(det0%update_vector(xfield%dim))
+         end if
+         det0 => det0%next
+      end do
+    end subroutine initialise_rk_guided_search
+
+    !Subroutine to deallocate the RK stages and update vector - CJC
+    subroutine deallocate_rk_guided_search(detector_list0)
+      !
+      type(detector_linked_list), intent(inout) :: detector_list0
+      !
+      type(detector_type), pointer :: det0
+      integer :: j0
+      !
+      det0 => detector_list0%firstnode
+      do j0=1, detector_list0%length
+         if(det0%type==LAGRANGIAN_DETECTOR) then
+            if(allocated(det0%k)) then
+               deallocate(det0%k)
+            end if
+            if(allocated(det0%update_vector)) then
+               deallocate(det0%update_vector)
+            end if
+         end if
+         det0 => det0%next
+      end do
+    end subroutine deallocate_rk_guided_search
+
+    !Subroutine to compute the vector to search for the next RK stage
+    !cjc
+    subroutine set_stage(detector_list0)
+      type(detector_linked_list), intent(inout) :: detector_list0
+      !
+      type(detector_type), pointer :: det0
+      integer :: det_count,j0
+      real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
+      !
+      det0 => detector_list0%firstnode
+      do det_count=1, detector_list0%length 
+         if(det0%type==LAGRANGIAN_DETECTOR) then
+            det0%search_complete = .false.
+            if(stage.eq.1) then
+               det0%update_vector = det0%position
+            end if
+            !stage vector is computed by evaluating velocity at current
+            !position
+            stage_local_coords=&
+                 local_coords(xfield,det0%element,det0%update_vector)
+            det0%k(stage,:) = &
+                 & eval_field(det0%element, vfield, stage_local_coords)
+            if(stage<n_stages) then
+               !update vector maps from current position to place required
+               !for computing next stage vector
+               det0%update_vector = det0%position
+               do j0 = 1, stage
+                  det0%update_vector = det0%update_vector + &
+                       dt*stage_matrix(stage+1,j0)*det0%k(j0,:)
+               end do
+            else
+               !update vector maps from current position to final position
+               det0%update_vector = det0%position
+               do j0 = 1, n_stages
+                  det0%update_vector = det0%update_vector + &
+                       dt*timestep_weights(j0)*det0%k(j0,:)
+               end do
+               det0%position = det0%update_vector
+            end if
+         end if
+         det0 => det0%next
+      end do
+ end subroutine set_stage
+
+ !Subroutine to find the element containing 
+ !detector%update_vector -- CJC
+ !before leaving the processor or computational domain
+ !detectors leaving the computational domain are set to STATIC
+ !detectors leaving the processor domain are added to the list 
+ !of detectors to communicate to the other processor
+ !This works by searching for the element containing the next point 
+ !in the RK through element faces
+ !This is done by computing the local coordinates of the target point,
+ !finding the local coordinate closest to -infinity
+ !and moving to the element through that face
+ subroutine move_detectors_guided_search(detector_list0)
+   type(detector_linked_list), intent(inout) :: detector_list0
+   !
+   type(detector_type), pointer :: det0, det_send
+   integer :: det_count
+   logical :: owned
+   real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
+   integer, dimension(:), pointer :: neigh_list
+   integer :: neigh, proc_local_number
+   logical :: make_static
+   !
+   !Loop over all the detectors
+   det0 => detector_list0%firstnode
+   do det_count=1, detector_list0%length
+      !Only move Lagrangian detectors
+      if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
+         search_loop: do
+            !compute the local coordinates of the arrival point
+            !with respect to this element
+            ewrite(2,*) 'update_vector',det0%update_vector
+            ewrite(2,*) 'element',det0%element
+            ewrite(2,*) 'dim', xfield%dim, mesh_dim(xfield)
+            arrival_local_coords=&
+                 local_coords(xfield,det0%element,det0%update_vector)
+            if(minval(arrival_local_coords)>-search_tolerance) then
+               !the arrival point is in this element
+               det0%search_complete = .true.
+               !move on to the next detector
+               det0 => det0%next
+               exit search_loop
+            end if
+            !the arrival point is not in this element, try to get
+            ! closer to
+            !it by searching in the coordinate direction in which it is
+            !furthest away
+            neigh = minval(minloc(arrival_local_coords))
+            neigh_list=>ele_neigh(xfield,det0%element)
+            if(neigh_list(neigh)>0) then
+               !the neighbouring element is also on this domain
+               !so update the element and try again
+               det0%element = neigh_list(neigh)
+            else
+               !check if this element is owned (to decide where
+               !to send particles leaving the processor domain)
+               if(element_owned(vfield,det0%element)) then
+                  !this face goes outside of the computational domain
+                  !try all of the faces with negative local coordinate
+                  !just in case we went through a corner
+                  make_static=.true.
+                  face_search: do neigh = 1, size(arrival_local_coords)
+                     if(arrival_local_coords(neigh)<-search_tolerance&
+                          & .and. &
+                          & neigh_list(neigh)>0) then
+                        make_static = .false.
+                        det0%element = neigh_list(neigh)
+                        exit face_search
+                     end if
+                  end do face_search
+                  if (make_static) then
+                     det0%type=STATIC_DETECTOR
+                     !move on to the next detector
+                     det0%position = det0%update_vector
+                     !move on to the next detector
+                     det0 => det0%next
+                     exit search_loop
+                  end if
+               else
+                  det_send => det0
+                  det0 => det0%next
+                  ewrite(-1,*) 'MOVING A DETECTOR'
+                  !this face goes into another computational domain
+                  proc_local_number=fetch(ihash,&
+                       &element_owner(vfield%mesh,det_send%element))
+
+                  call move_det_to_send_list(detector_list0&
+                       &,det_send&
+                       &,send_list_array(proc_local_number))
+                  !move on to the next detector
+                  exit search_loop
+               end if
+            end if
+         end do search_loop
+      else
+         !move on to the next detector
+         det0 => det0%next
+      end if
+   end do
+ end subroutine move_detectors_guided_search
 
     function reals_format(reals)
       character(len=10) :: reals_format
@@ -3937,6 +4209,7 @@ contains
                cont_static_det, bound_elem_iteration
 
     ewrite(1,*) "Inside move_detectors_subtime_step subroutine"
+    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
 
     cont=0
     cont_a=0
@@ -4127,6 +4400,7 @@ contains
     integer, dimension(:), pointer :: nodes, elements
     type(csr_sparsity), pointer :: nelist
 
+    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
     if ((cont_check /= 0).and.(cont_check_a /= 0)) then
 
        ewrite(1,*) "Inside scenario_det_gone_through_element_vortex subroutine"
@@ -4293,7 +4567,7 @@ contains
     integer :: cont_p, cont_ready_out
 
     ewrite(1,*) "Inside placing_det_in_boundary_between_elem subroutine"
-
+    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
     bound_elem_iteration=0
 
        do
@@ -4392,7 +4666,7 @@ contains
     integer :: cont_a, cont_b, cont_c
 
        ewrite(1,*) "Inside iterating_for_det_in_bound_elem subroutine"
-       
+       ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'       
 
        cont_a=0
        cont_b=0
@@ -4456,6 +4730,7 @@ contains
     integer :: k, cont_p, &
                cont_apq, index_temp, cont_ready
 
+    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
     if ((cont_check /= 0).and.(cont_check_a==0)) then
 
        ewrite(1,*) "Inside scenario_det_gone_through_wrong_face subroutine"
@@ -4594,7 +4869,8 @@ contains
 !    type(vector_field), pointer :: vfield, old_vfield
     integer, intent(in) :: cont_check
     integer, intent(inout) :: index_next_face, bound_elem_iteration
-    
+
+    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'    
     if (cont_check == 0) then
 
        ewrite(1,*) "Inside scenario_det_gone_through_right_face subroutine"

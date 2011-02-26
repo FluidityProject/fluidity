@@ -60,6 +60,13 @@ module detector_data_types
      integer :: id_number
      !! Processor that owns initially the detector (for parallel)
      integer :: initial_owner= -1
+     !! RK timestepping stages (first index is stage no., second index is dim)
+     real, dimension(:,:), allocatable :: k
+     !! RK update destination vector (size dim)
+     real, dimension(:), allocatable :: update_vector
+     !! Have we completed the search?
+     logical :: search_complete
+     !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type

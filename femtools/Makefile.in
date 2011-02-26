@@ -195,7 +195,7 @@ Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
    Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
    State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
    Memory_Diagnostics.o Parallel_Tools.o Profiler_Fortran.o \
-   Detector_Tools.o
+   Detector_Tools.o Fields_Base.o
 Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
 
 Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \

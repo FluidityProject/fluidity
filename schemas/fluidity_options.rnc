@@ -276,9 +276,9 @@ start =
                            attribute file_name { xsd:string },
                            ## The format of the input file containing field data.
                            element format {
-                             element string_value {
+                              element string_value {
                                  "binary"
-                             }
+                              }
                            }
                         }
                      )
@@ -287,8 +287,57 @@ start =
                ## Enable to write detector output in binary format
                element binary_output {
                   comment
+               }?,
+               element lagrangian_timestepping {
+                  (
+                     ## Use binary search algorithm
+                     element binary_search {
+                        empty
+                     }|
+                     ## Use explicit runge kutta method with
+                     ## binary search
+                     element explicit_runge_kutta_guided_search {
+                        ## Tolerance for deciding if detector is in a given
+                        ## element. Recommended value 1.0e-10.
+                        element search_tolerance {
+                           real
+                        },
+                        ## Number of RK stages
+                        element n_stages {
+                           integer
+                        },
+                        ## ERK stage array. This is an array
+                        ## containing the lower-triangular
+                        ## part of the Butcher weight matrix
+                        ## A that explains how to compute the
+                        ## RK stages.  See
+                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+                        ## for notation.  The array is stored
+                        ## in the following order:
+                        ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+                        ## and so the array has size s(s-1)/2
+                        ## where s is the number of stages.
+                        ## For the RK4 method, it should be
+                        ## [0.5,0,0.5,0,0,1]
+                        element stage_weights {
+                           real_vector
+                        },
+                        ## ERK timestep weights. This is the
+                        ## b vector that explains how to
+                        ## compute the timestep from the RK
+                        ## stages.  See
+                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+                        ## for notation.  It should have size
+                        ## s where s is the number of stages.
+                        ## For the RK4 method, it should be
+                        ## [1/6,1/3,1/3,1/6]
+                        element timestep_weights {
+                           real_vector
+                        }
+                     }
+                  )
                }?
-            }?,
+            }?, 
             ## Options to create even more output in the logs:
             ##
             ## Note that the main option to control the log output is given on the command line:

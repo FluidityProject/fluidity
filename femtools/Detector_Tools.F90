@@ -128,7 +128,6 @@ module detector_tools
       type(detector_linked_list), intent(inout) :: detector_list
       type(detector_type), pointer, intent(inout) :: detector
       !
-      logical :: firstnode,lastnode
       type(detector_type), pointer :: temp_detector
       
       !we need to remove the detector from this processor

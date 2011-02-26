@@ -2,7 +2,7 @@ from scipy import *
 from fluidity_tools import stat_parser
 s = stat_parser("lagrangian_detectors.detectors")
 
-data = zeros((2,100,252))
+data = zeros((2,100,size(s['Steve_001']['position'][0])))
 
 for i in range(100):
     n = i + 1
@@ -17,3 +17,4 @@ for i in range(100):
 data[0,:,-1].tofile('Xvals.txt',sep=' ')
 data[1,:,-1].tofile('Yvals.txt',sep=' ')
 
+show()
