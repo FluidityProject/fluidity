@@ -5,7 +5,7 @@
   <name>lagrangian_detectors</name>
   <owner userid="colin"/>
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>
 mpiexec -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml
     </command_line>
