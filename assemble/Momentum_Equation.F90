@@ -311,6 +311,7 @@
                   ! NB: This includes the current state itself.
                   call get_phase_submaterials(state, istate, submaterials, phase_istate)
                   call calculate_momentum_diagnostics(submaterials, phase_istate)
+                  call calculate_diagnostic_phase_volume_fraction(state) ! This should really be in calculate_momentum_diagnostics
                   deallocate(submaterials)
                else
                   call calculate_momentum_diagnostics(state, istate)

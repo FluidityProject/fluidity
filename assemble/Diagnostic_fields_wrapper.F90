@@ -582,6 +582,16 @@ contains
          end if
        end if
 
+       s_field => extract_scalar_field(state(i), "PhaseVolumeFraction", stat)
+       if(stat == 0) then
+         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+         if(diagnostic .and. .not.(aliased(s_field))) then
+           if(recalculate(trim(s_field%option_path))) then
+            call calculate_diagnostic_phase_volume_fraction(state)
+           end if
+         end if
+       end if
+
     end do
     
     ewrite(1, *) "Exiting calculate_diagnostic_variables"
