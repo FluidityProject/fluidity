@@ -1411,6 +1411,8 @@
         ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
         call adj_chkierr(ierr)
 
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
+
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
