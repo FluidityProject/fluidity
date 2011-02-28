@@ -45,6 +45,13 @@ f2_u2=s["Fluid2"]["Velocity%2"]["integral"]
 assert max(abs(f1_u1 - f2_u1)) &lt; 1e-6
 assert max(abs(f1_u2 - f2_u2)) &lt; 1e-6
     </test>
+    
+    <test name="Final velocities are the same as in the single-phase scenario" language="python">
+assert abs(f1_u1[-1] - 0.30027640562340448E-003) &lt; 1e-6
+assert abs(f1_u2[-1] - 0.50173669151702303E-003) &lt; 1e-6
+assert abs(f2_u1[-1] - 0.30027640562340448E-003) &lt; 1e-6
+assert abs(f2_u2[-1] - 0.50173669151702303E-003) &lt; 1e-6
+    </test>
   </pass_tests>
   
   <warn_tests>
