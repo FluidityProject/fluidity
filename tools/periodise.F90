@@ -165,11 +165,11 @@ program periodise
 
       call add_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/remove_periodicity', stat=stat)
 
-      call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', str)
-      call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', trim(str), stat=stat)
+      call move_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', &
+                     & external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', stat=stat)
       if (have_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map')) then
-        call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map', str)
-        call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map', trim(str), stat=stat)
+        call move_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map', &
+                       & external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map')
       end if
 
       shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids')
