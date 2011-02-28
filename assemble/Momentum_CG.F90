@@ -59,6 +59,7 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
+    use multiphase_module
     implicit none
 
     private
@@ -144,6 +145,9 @@
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
     real :: ib_min_grad
+
+    ! Are we running a multi-phase flow simulation?
+    logical :: multiphase
 
   contains
 
@@ -236,14 +240,17 @@
       type(scalar_field) :: depth
       integer :: node
 
-
       !! Wetting and drying
       type(vector_field) :: Abs_wd
       type(scalar_field), pointer :: wettingdrying_alpha
       type(scalar_field) :: alpha_u_field
       real, dimension(u%dim) :: abs_wd_const
 
-      ewrite(1,*) 'entering construct_momentum_cg'
+      ! Volume fraction fields for multi-phase flow simulation
+      type(scalar_field), pointer :: vfrac
+      type(scalar_field) :: nvfrac ! Non-linear version
+
+      ewrite(1,*) 'Entering construct_momentum_cg'
     
       assert(continuity(u)>=0)
 
@@ -532,6 +539,22 @@
           &"/prognostic/tensor_field::SurfaceTension&
           &/diagnostic/integrate_by_parts")
           
+      ! Are we running a multi-phase simulation?
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+
+         ewrite_minmax(nvfrac)
+      else
+         multiphase = .false.
+         nullify(vfrac)
+      end if
+
+
       if (assemble_inverse_masslump) then
         ! construct the inverse of the lumped mass matrix
         call allocate( inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
@@ -595,7 +618,7 @@
               mnu, tnu, leonard, alpha, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter, &
               gp, surfacetension, &
               assemble_ct_matrix, cg_pressure, on_sphere, depth, &
-              alpha_u_field, abs_wd, temperature)
+              alpha_u_field, abs_wd, temperature, nvfrac)
       end do element_loop
 
       ! Dynamic LES debug checks
@@ -789,6 +812,10 @@
       deallocate(dummyvector)
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
+
+      if(multiphase) then
+         call deallocate(nvfrac)
+      end if
 
       contains 
 
@@ -1037,10 +1064,10 @@
                                             dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix, cg_pressure, on_sphere, depth, &
-                                            alpha_u_field, abs_wd, temperature)
+                                            alpha_u_field, abs_wd, temperature, nvfrac)
 
-    !!< Assembles the local element matrix contributions and places them in big_m
-    !!< and rhs for the continuous galerkin momentum equations
+      !!< Assembles the local element matrix contributions and places them in big_m
+      !!< and rhs for the continuous galerkin momentum equations
 
       ! current element
       integer, intent(in) :: ele
@@ -1079,6 +1106,9 @@
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
 
+      ! Volume fraction field
+      type(scalar_field), intent(in) :: nvfrac
+
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
@@ -1098,6 +1128,10 @@
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
       integer :: dim
       type(element_type) :: test_function
+
+      ! In case we have to multiply detwei by various coefficients (e.g. the density values at the Gauss points), 
+      ! then place the result in here
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
 
       if(move_mesh) then
         ! we've assumed the following in the declarations
@@ -1182,11 +1216,16 @@
       ! consistent for P>1.
 
       if(assemble_ct_matrix.and.cg_pressure) then
-        if(integrate_continuity_by_parts) then
-          grad_p_u_mat = -dshape_shape(dp_t, u_shape, detwei)
-        else
-          grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
-        end if
+         coefficient_detwei = detwei
+         if(multiphase) then
+            coefficient_detwei = coefficient_detwei*ele_val_at_quad(nvfrac, ele)
+         end if
+
+         if(integrate_continuity_by_parts) then
+            grad_p_u_mat = -dshape_shape(dp_t, u_shape, detwei)
+         else
+            grad_p_u_mat = shape_dshape(p_shape, du_t, coefficient_detwei)
+         end if
       !else
       !  grad_p_u_mat = 0.0
       end if
@@ -1196,12 +1235,12 @@
       ! Mass terms
       if(assemble_inverse_masslump .or. assemble_mass_matrix .or. &
         (.not. exclude_mass)) then
-        call add_mass_element_cg(ele, test_function, u, oldu_val, density, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
+        call add_mass_element_cg(ele, test_function, u, oldu_val, density, nvfrac, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
       end if
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -1211,7 +1250,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1281,12 +1320,13 @@
              
     end subroutine construct_momentum_element_cg
     
-    subroutine add_mass_element_cg(ele, test_function, u, oldu_val, density, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
+    subroutine add_mass_element_cg(ele, test_function, u, oldu_val, density, nvfrac, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
       real, dimension(:,:), intent(in) :: oldu_val
       type(scalar_field), intent(in) :: density
+      type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei, detwei_old, detwei_new
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: big_m_diag_addto
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
@@ -1299,22 +1339,34 @@
       logical:: compute_lumped_mass_here
       real, dimension(ele_loc(u, ele)) :: mass_lump
       real, dimension(ele_ngi(u, ele)) :: density_gi
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: mass_mat
       type(element_type), pointer :: u_shape
       
+      ! In case we have to multiply detwei by something, place the result in here
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
+
       u_shape => ele_shape(u, ele)
       u_ele=>ele_nodes(u, ele)
       
       density_gi=ele_val_at_quad(density, ele)
-            
+
+      if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      end if
+      
       ! element mass matrix
       !  /
       !  | N_A N_B rho dV
       !  /
       if(move_mesh) then
-        mass_mat = shape_shape(test_function, u_shape, detwei_new*density_gi)
+         mass_mat = shape_shape(test_function, u_shape, density_gi*detwei_new)
       else
-        mass_mat = shape_shape(test_function, u_shape, detwei*density_gi)
+         coefficient_detwei = density_gi*detwei
+         if(multiphase) then
+            coefficient_detwei = coefficient_detwei*nvfrac_gi
+         end if
+         mass_mat = shape_shape(test_function, u_shape, coefficient_detwei)
       end if
       mass_lump = sum(mass_mat, 2)
       
@@ -1360,6 +1412,7 @@
         ! where du=(u^{n+1}-u^{n})/dt is the acceleration.
         ! Put the (N^{n+1}-N^{n}) u^n term on the rhs
         mass_mat = shape_shape(test_function, u_shape, (detwei_new-detwei_old)*density_gi)
+
         if(lump_mass) then
           if(compute_lumped_mass_here) then
             mass_lump = sum(mass_mat, 2)
@@ -1376,7 +1429,7 @@
       
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1385,6 +1438,7 @@
       type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
+      type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
@@ -1394,10 +1448,13 @@
     
       integer :: dim
       real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: advection_mat
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
       
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
+
       u_shape=>ele_shape(u, ele)
       
             
@@ -1407,6 +1464,10 @@
         relu_gi = relu_gi - ele_val_at_quad(ug, ele)
       end if
       div_relu_gi = ele_div_at_quad(nu, ele, du_t)
+
+      if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      end if
 
       if(integrate_advection_by_parts) then
         ! element advection matrix
@@ -1420,7 +1481,11 @@
         !  /                                     /
         !  | N_A (nu dot grad N_B) rho dV + beta | N_A ( div nu ) N_B rho dV
         !  /                                     /
-        advection_mat = shape_vector_dot_dshape(test_function, relu_gi, du_t, detwei*density_gi)  &
+        coefficient_detwei = density_gi*detwei
+        if(multiphase) then
+           coefficient_detwei = coefficient_detwei*nvfrac_gi
+        end if
+        advection_mat = shape_vector_dot_dshape(test_function, relu_gi, du_t, coefficient_detwei)  &
                       +beta*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
         if(move_mesh) then
           advection_mat = advection_mat - shape_shape(test_function, u_shape, ele_div_at_quad(ug, ele, dug_t)*detwei*density_gi)
@@ -1483,29 +1548,42 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
       type(scalar_field), intent(in) :: buoyancy
       type(vector_field), intent(in) :: gravity
+      type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
       logical, intent(in) :: on_sphere
       
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
+      
+      if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      end if
+
+      coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei
+      if(multiphase) then
+         coefficient_detwei = coefficient_detwei*nvfrac_gi
+      end if
+
       if (on_sphere) then
-      ! If were on a spherical Earth evaluate the direction of the gravity vector
+      ! If we're on a spherical Earth evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto = rhs_addto + &
                     shape_vector_rhs(test_function, &
                                      sphere_inward_normal_at_quad_ele(positions, ele), &
-                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+                                     coefficient_detwei)
       else
         rhs_addto = rhs_addto + &
                     shape_vector_rhs(test_function, &
                                      ele_val_at_quad(gravity, ele), &
-                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+                                     coefficient_detwei)
       endif
       
     end subroutine add_buoyancy_element_cg
@@ -1965,6 +2043,7 @@
       !  /
       ! only valid when incompressible and viscosity tensor is isotropic
       viscosity_mat = 0.0
+
       if(stress_form.or.partial_stress_form) then
         ! add in the stress form entries of the element viscosity matrix
         !  /
@@ -1975,12 +2054,14 @@
         if(isotropic_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
           viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
+
           do dim = 2, u%dim
             viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
           end do
         else if(diagonal_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
           viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
+
           do dim = 2, u%dim
             viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
           end do

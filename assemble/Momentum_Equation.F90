@@ -73,6 +73,7 @@
       use dgtools, only: dg_apply_mass
       use slope_limiters_dg
       use implicit_solids
+      use multiphase_module
 
       implicit none
 
@@ -175,7 +176,7 @@
          ! The lumped mass matrix (may vary per component as absorption could be included)
          type(vector_field), dimension(:), allocatable :: inverse_masslump, visc_inverse_masslump
          ! Mass matrix
-         type(petsc_csr_matrix), target :: mass
+         type(petsc_csr_matrix), dimension(:), allocatable, target :: mass
          ! For DG:
          type(block_csr_matrix), dimension(:), allocatable :: inverse_mass
 
@@ -239,6 +240,10 @@
          integer :: prognostic_p_istate 
          ! The 'global' CMC matrix (the sum of all individual phase CMC matrices)
          type(csr_matrix), pointer :: cmc_global
+         ! An array of submaterials of the current phase in state(istate).
+         type(state_type), dimension(:), pointer :: submaterials
+         ! The index of the current phase (i.e. state(istate)) in the submaterials array
+         integer :: phase_istate 
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -263,6 +268,7 @@
          allocate(big_m(size(state)))
          allocate(mom_rhs(size(state)))
          allocate(ct_rhs(size(state)))
+         allocate(mass(size(state)))
          allocate(inverse_mass(size(state)))
          allocate(inverse_masslump(size(state)))
          allocate(visc_inverse_masslump(size(state)))
@@ -298,8 +304,17 @@
                have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
                                     &/discontinuous_galerkin")) then
 
+               ! Calculate equations of state, etc.
                call profiler_tic("momentum_diagnostics")
-               call calculate_momentum_diagnostics(state, istate) ! Calculate equations of state, etc
+               if(multiphase) then
+                  ! If multiphase, this sets up an array of the submaterials of a phase.
+                  ! NB: This includes the current state itself.
+                  call get_phase_submaterials(state, istate, submaterials, phase_istate)
+                  call calculate_momentum_diagnostics(submaterials, phase_istate)
+                  deallocate(submaterials)
+               else
+                  call calculate_momentum_diagnostics(state, istate)
+               end if
                call profiler_toc("momentum_diagnostics")
 
                ! Print out some statistics for the velocity
@@ -409,7 +424,7 @@
                               &/full_schur_complement/inner_matrix[0]/name", schur_scheme)
                   select case(schur_scheme)
                      case("FullMassMatrix")
-                        inner_m(istate)%ptr => mass
+                        inner_m(istate)%ptr => mass(istate)
                      case("FullMomentumMatrix")
                         inner_m(istate)%ptr => big_m(istate)
                      case default
@@ -512,7 +527,7 @@
                else
                   call construct_momentum_cg(u, p, density, x, &
                         big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, &
-                        ct_rhs(istate), mass, inverse_masslump(istate), visc_inverse_masslump(istate), &
+                        ct_rhs(istate), mass(istate), inverse_masslump(istate), visc_inverse_masslump(istate), &
                         state(istate), &
                         assemble_ct_matrix=get_ct_m, &
                         cg_pressure=cg_pressure)
@@ -1051,6 +1066,7 @@
          deallocate(big_m)
          deallocate(mom_rhs)
          deallocate(ct_rhs)
+         deallocate(mass)
          deallocate(inverse_mass)
          deallocate(inverse_masslump)
          deallocate(visc_inverse_masslump)
@@ -1633,7 +1649,7 @@
          type(vector_field), pointer :: u
 
          ! Mass matrix
-         type(petsc_csr_matrix), target, intent(inout) :: mass
+         type(petsc_csr_matrix), dimension(:), target, intent(inout) :: mass
          ! For DG:
          type(block_csr_matrix), dimension(:), intent(inout) :: inverse_mass
          ! The lumped mass matrix (may vary per component as absorption could be included)
@@ -1677,7 +1693,7 @@
                call deallocate(inverse_mass(istate))
             end if
          else
-            call deallocate_cg_mass(mass, inverse_masslump(istate))
+            call deallocate_cg_mass(mass(istate), inverse_masslump(istate))
             if (low_re_p_correction_fix) then
                call deallocate(visc_inverse_masslump(istate))
             end if

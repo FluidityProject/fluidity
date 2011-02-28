@@ -45,13 +45,14 @@
 
    contains
 
-      subroutine get_phase_submaterials(state, istate, submaterials)
+      subroutine get_phase_submaterials(state, istate, submaterials, phase_istate)
          !!< Sets up an array of the submaterials of a phase.
          !!< NB: This includes the current state itself (i.e. state(istate)).
 
          type(state_type), dimension(:), target, intent(inout) :: state
          integer, intent(in) :: istate
          type(state_type), dimension(:), pointer :: submaterials
+         integer, intent(inout), optional :: phase_istate
 
          !! Local variables
          integer :: i, next, stat, material_count, material_istate
@@ -61,7 +62,6 @@
          
          ewrite(1,*) 'Entering get_phase_submaterials'
 
-   
          !! Store whether state(i) is a material or not in an array of logicals
          !! to save on computations in the second loop
          allocate(is_submaterial(size(state)))
@@ -111,6 +111,12 @@
          do i = 1, size(state)
             if(is_submaterial(i)) then
                submaterials(next) = state(i)
+
+               ! Keep track of the phase's index in the new submaterials array
+               if(present(phase_istate) .and. (i == istate)) then
+                  phase_istate = next
+               end if
+
                next = next + 1
             end if
          end do
@@ -125,7 +131,7 @@
          !!< and stores it in a locally allocated field before assembling the momentum equation.
 
          type(state_type), intent(inout) :: state
-         type(scalar_field), pointer :: nvfrac
+         type(scalar_field), intent(inout) :: nvfrac
 
          type(scalar_field), pointer :: volumefraction, oldvolumefraction
          type(vector_field), pointer :: velocity

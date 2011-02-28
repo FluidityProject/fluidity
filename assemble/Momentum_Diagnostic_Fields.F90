@@ -53,7 +53,7 @@ contains
     !< A subroutine to group together all the diagnostic calculations that
     !< must happen before a momentum solve.
   
-    type(state_type), dimension(:), intent(inout), target :: state
+    type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: istate
     
     ! Local variables  
@@ -64,20 +64,7 @@ contains
     integer :: stat
     logical :: gravity, diagnostic
     
-    ! An array of submaterials of the current phase in state(istate).
-    ! This is only used for multi-phase simulations
-    type(state_type), dimension(:), pointer :: submaterials
-    
     ewrite(1,*) 'Entering calculate_momentum_diagnostics'
-    
-    
-    ! If multiphase, this sets up an array of the submaterials of a phase.
-    ! NB: This includes the current state itself (i.e. state(istate)).
-    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-       call get_phase_submaterials(state, istate, submaterials)
-    else
-       submaterials => state
-    end if
     
     ! This needs to be done first or none of the following multimaterial algorithms will work...
     call calculate_diagnostic_material_volume_fraction(state)
@@ -93,17 +80,17 @@ contains
     if (stat==0) diagnostic = have_option(trim(bulk_density%option_path)//'/diagnostic')
     if(diagnostic.and.gravity) then
       buoyancy_density => extract_scalar_field(state(istate),'VelocityBuoyancyDensity')
-      call calculate_densities(submaterials,&
+      call calculate_densities(state,&
                                 buoyancy_density=buoyancy_density, &
                                 bulk_density=bulk_density, &
                                 momentum_diagnostic=.true.)
     else if(diagnostic) then
-      call calculate_densities(submaterials,&
+      call calculate_densities(state,&
                                 bulk_density=bulk_density, &
                                 momentum_diagnostic=.true.)
     else if(gravity) then
       buoyancy_density => extract_scalar_field(state(istate),'VelocityBuoyancyDensity')
-      call calculate_densities(submaterials,&
+      call calculate_densities(state,&
                                 buoyancy_density=buoyancy_density, &
                                 momentum_diagnostic=.true.)
     end if
@@ -136,10 +123,6 @@ contains
       if(diagnostic) then
         call calculate_surfacetension(state, tfield)
       end if
-    end if
-    
-    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-       deallocate(submaterials)
     end if
     
   end subroutine calculate_momentum_diagnostics

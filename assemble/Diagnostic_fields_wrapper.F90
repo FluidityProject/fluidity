@@ -56,6 +56,7 @@ module diagnostic_fields_wrapper
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
   use geostrophic_pressure
+  use multiphase_module
   
   implicit none
 
@@ -75,6 +76,9 @@ contains
     type(scalar_field), pointer :: s_field
     type(vector_field), pointer :: v_field
     logical :: diagnostic
+
+    ! An array of submaterials of the current phase in state(istate).
+    type(state_type), dimension(:), pointer :: submaterials
     
     ewrite(1, *) "In calculate_diagnostic_variables"
  
@@ -404,7 +408,13 @@ contains
          diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
          if(diagnostic .and. .not.(aliased(s_field))) then
            if(recalculate(trim(s_field%option_path))) then
-            call calculate_densities(state, bulk_density=s_field)
+             if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+               call get_phase_submaterials(state, i, submaterials)
+               call calculate_densities(submaterials, bulk_density=s_field)
+               deallocate(submaterials)
+             else
+               call calculate_densities(state, bulk_density=s_field)
+             end if
            end if
          end if
        end if
