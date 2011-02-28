@@ -891,8 +891,10 @@ contains
     end if
     call incref(mesh%shape)
 
-    ! You can't have a cg degree 0 mesh!
-    assert(.not.(mesh%shape%degree==0.and.mesh%continuity>=0))
+    ! You can't have a CG degree 0 mesh!
+    if(mesh%shape%degree==0.and.mesh%continuity>=0) then
+      FLAbort("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
+    end if
 
     if (present(name)) then
        mesh%name=name
