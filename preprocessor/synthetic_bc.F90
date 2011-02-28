@@ -239,13 +239,13 @@ contains
 
 #ifdef HAVE_MPI
          if(IsParallel())then
-            call mpi_bcast(eddies(ns)%xeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
-            call mpi_bcast(eddies(ns)%yeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
-            call mpi_bcast(eddies(ns)%zeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
+            call mpi_bcast(eddies(ns)%xeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
+            call mpi_bcast(eddies(ns)%yeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
+            call mpi_bcast(eddies(ns)%zeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
 
-            call mpi_bcast(eddies(ns)%eu(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)
-            call mpi_bcast(eddies(ns)%ev(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)
-            call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)
+            call mpi_bcast(eddies(ns)%eu(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)
+            call mpi_bcast(eddies(ns)%ev(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)
+            call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)
          endif
 #endif
 
@@ -389,13 +389,13 @@ contains
 
 #ifdef HAVE_MPI
       if(IsParallel())then
-         call mpi_bcast(eddies(ns)%xeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
-         call mpi_bcast(eddies(ns)%yeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
-         call mpi_bcast(eddies(ns)%zeddy(1:nots),nots,GetPREAL(),0,mpi_comm_world,ierr)
+         call mpi_bcast(eddies(ns)%xeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
+         call mpi_bcast(eddies(ns)%yeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
+         call mpi_bcast(eddies(ns)%zeddy(1:nots),nots,GetPREAL(),0,mpi_comm_femtools,ierr)
 
-         call mpi_bcast(eddies(ns)%eu(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)
-         call mpi_bcast(eddies(ns)%ev(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)
-         call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,mpi_comm_world,ierr)        
+         call mpi_bcast(eddies(ns)%eu(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)
+         call mpi_bcast(eddies(ns)%ev(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)
+         call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,mpi_comm_femtools,ierr)        
       endif
 #endif 
 

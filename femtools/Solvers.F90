@@ -41,6 +41,7 @@ module solvers
   use halos
   use profiler
   use vtk_interfaces
+  use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #if PETSC_VERSION_MINOR==0
@@ -1526,7 +1527,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscErrorCode ierr
     
     if (parallel) then
-       call KSPCreate(MPI_COMM_WORLD, ksp, ierr)
+       call KSPCreate(MPI_COMM_FEMTOOLS, ksp, ierr)
     else
        call KSPCreate(MPI_COMM_SELF, ksp, ierr)
     end if

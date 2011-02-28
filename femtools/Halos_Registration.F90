@@ -140,7 +140,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     procno = getprocno(communicator = lcommunicator)

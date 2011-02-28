@@ -42,6 +42,7 @@ module traffic
   use qmesh_module, only: do_adapt_mesh
   use vector_tools
   use field_options
+  use parallel_tools
 
   implicit none
   
@@ -1420,7 +1421,7 @@ contains
          endif
          
 #ifdef HAVE_MPI
-         call mpi_allreduce(zz,PointZ(i),1,GetPReal(),MPI_MAX,MPI_COMM_WORLD,ierr);
+         call mpi_allreduce(zz,PointZ(i),1,GetPReal(),MPI_MAX,MPI_COMM_FEMTOOLS,ierr);
 #else
          PointZ(i)=zz
 #endif

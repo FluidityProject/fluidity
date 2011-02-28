@@ -1155,7 +1155,7 @@ contains
         my_num_detectors = default_stat%detector_list%length
          
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_before_zoltan, 1, getPINTEGER(), &
-              MPI_SUM, MPI_COMM_WORLD, ierr)
+              MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
         assert(ierr == MPI_SUCCESS)
 #endif
 
@@ -1200,7 +1200,7 @@ contains
         my_num_detectors = default_stat%detector_list%length
 
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_after_zoltan, 1, getPINTEGER(), &
-             MPI_SUM, MPI_COMM_WORLD, ierr)
+             MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
         assert(ierr == MPI_SUCCESS)
         
         assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
@@ -1318,7 +1318,7 @@ contains
 
     sam_options = 0
 
-    ! Target number of partitions - 0 indicates size of MPI_COMM_WORLD
+    ! Target number of partitions - 0 indicates size of MPI_COMM_FEMTOOLS
     sam_options(1) = 0
 
     ! Graph partitioning options:

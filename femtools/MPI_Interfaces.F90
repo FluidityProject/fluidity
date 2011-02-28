@@ -35,6 +35,8 @@ module mpi_interfaces
 #ifdef HAVE_MPI
   include "mpif.h"
 
+  integer, parameter :: default_comm = MPI_COMM_WORLD
+
   interface
     subroutine mpi_barrier(communicator, ierr)
       implicit none

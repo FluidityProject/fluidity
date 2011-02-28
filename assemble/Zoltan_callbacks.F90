@@ -18,7 +18,7 @@ module zoltan_callbacks
 
   ! Needed for zoltan_cb_get_num_edges
   use global_parameters, only: real_size, OPTION_PATH_LEN
-  use parallel_tools, only: getrank, getnprocs, getprocno
+  use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS
 
   ! Needed for zoltan_cb_get_edge_list
   ! - added halo_node_owners to use halos
@@ -213,7 +213,7 @@ contains
        return
     else
        call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
-            MPI_COMM_WORLD,err)
+            MPI_COMM_FEMTOOLS,err)
     end if
     
     
@@ -292,7 +292,7 @@ contains
     
     ! calculate the local minimum edge weight
     min_weight = minval(ewgts(1:head-1))
-    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, MPI_COMM_WORLD,err)
+    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, MPI_COMM_FEMTOOLS,err)
     ! calculate the local 90th percentile edge weight   
     ninety_weight = max_weight * 0.90
     

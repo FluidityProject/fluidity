@@ -400,7 +400,7 @@ contains
       assert( size(dnnz)==nprows*blocks(1)/element_size )
       assert( size(onnz)==nprows*blocks(1)/element_size )
       
-      call MatCreateMPIBAIJ(MPI_COMM_WORLD, element_size, &
+      call MatCreateMPIBAIJ(MPI_COMM_FEMTOOLS, element_size, &
          nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
@@ -418,7 +418,7 @@ contains
       assert( size(dnnz)==nprows*blocks(1) )
       assert( size(onnz)==nprows*blocks(1) )
       
-      call MatCreateMPIAIJ(MPI_COMM_WORLD, nprows*blocks(1), npcols*blocks(2), &
+      call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
       

@@ -32,17 +32,20 @@ module parallel_tools
   use fldebug
   use mpi_interfaces
   use global_parameters, only: is_active_process, no_active_processes
-
+  use iso_c_binding
   implicit none
-  
+
   private
 
   public :: halgetnb, halgetnb_simple
   public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals,&
        get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
-       pending_communication, valid_communicator, next_mpi_tag
-  
+       pending_communication, valid_communicator, next_mpi_tag, &
+       MPI_COMM_FEMTOOLS, set_communicator
+
+  integer(c_int) :: MPI_COMM_FEMTOOLS = default_comm
+
   interface allmax
     module procedure allmax_integer, allmax_real
   end interface allmax
@@ -81,7 +84,7 @@ contains
     integer, save::last_tag=0, tag_ub=0
     integer flag, ierr
     if(tag_ub==0) then
-       call MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, tag_ub, flag, ierr)
+       call MPI_Attr_get(MPI_COMM_FEMTOOLS, MPI_TAG_UB, tag_ub, flag, ierr)
     end if
 
     last_tag = mod(last_tag+1, tag_ub)
@@ -110,7 +113,7 @@ contains
        if(present(communicator)) then
           lcommunicator = communicator
        else
-          lcommunicator = MPI_COMM_WORLD
+          lcommunicator = MPI_COMM_FEMTOOLS
        end if
        
        assert(valid_communicator(lcommunicator))
@@ -139,7 +142,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
 
     assert(valid_communicator(lcommunicator))
@@ -153,7 +156,7 @@ contains
 
   function getnprocs(communicator) result(nprocs)
     !!< This is a convience routine which returns the number of processes
-    !!< in a communicator (default MPI_COMM_WORLD) when MPI is being used and 1
+    !!< in a communicator (default MPI_COMM_FEMTOOLS) when MPI is being used and 1
     !!< otherwise.
     
     integer, optional, intent(in) :: communicator
@@ -170,7 +173,7 @@ contains
           assert(valid_communicator(communicator))
           lcommunicator = communicator
        else
-          lcommunicator = MPI_COMM_WORLD
+          lcommunicator = MPI_COMM_FEMTOOLS
        end if
        
        assert(valid_communicator(lcommunicator))
@@ -205,7 +208,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     active_nparts = getnprocs()
@@ -399,7 +402,7 @@ contains
           call MPI_TYPE_INDEXED(numBlocks, blens, disp, PREAL, haloType(typeRef), IERROR)
           call MPI_TYPE_COMMIT(haloType(typeRef), IERROR)
 
-          call MPI_IRECV(Array, 1, haloType(typeRef), Rank, TAG, MPI_COMM_WORLD, recvRequest(Rank), IERROR)
+          call MPI_IRECV(Array, 1, haloType(typeRef), Rank, TAG, MPI_COMM_FEMTOOLS, recvRequest(Rank), IERROR)
 
           typeRef = typeRef + 1
        end if
@@ -424,7 +427,7 @@ contains
 
           call MPI_TYPE_INDEXED(numBlocks, blens, disp, PREAL, haloType(typeRef), IERROR)
           call MPI_TYPE_COMMIT(haloType(typeRef), IERROR)
-          call MPI_ISEND(Array, 1, haloType(typeRef), Rank, TAG, MPI_COMM_WORLD, sendRequest(Rank), IERROR)        
+          call MPI_ISEND(Array, 1, haloType(typeRef), Rank, TAG, MPI_COMM_FEMTOOLS, sendRequest(Rank), IERROR)        
 
           typeRef = typeRef + 1
        end if
@@ -441,14 +444,14 @@ contains
           if(IERROR.EQ.MPI_ERR_TYPE) then
              ewrite(-1,*)  "Invalid datatype argument. May be an ", &
                   "uncommitted MPI_Datatype (see MPI_Type_commit)."
-             call MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+             call MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
           ELSE if(IERROR.EQ.MPI_ERR_ARG) then
              ewrite(-1,*)  "Invalid argument. Some argument is invalid and is not ", &
                   "identified by a specific error class (e.g., MPI_ERR_RANK)."
-             call MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+             call MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
           ELSE
              ewrite(-1,*)  "Unknown error from MPI_TYPE_FREE()"
-             call MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+             call MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
           end if
        end if
     end do
@@ -534,7 +537,7 @@ contains
           recvRequest(Rank) = MPI_REQUEST_NULL
        ELSE
           call MPI_IRECV(bufferRecv(ATOREC(Rank)*FperN), Count*FperN, PREAL, &
-               Rank, TAG, MPI_COMM_WORLD, recvRequest(Rank), IERROR)
+               Rank, TAG, MPI_COMM_FEMTOOLS, recvRequest(Rank), IERROR)
           toRecvCnt = toRecvCnt + 1
        end if
     end do
@@ -553,7 +556,7 @@ contains
           end do
 
           call MPI_ISEND(bufferSend(ATOSEN(Rank)*FperN), Count*FperN, PREAL, &
-               Rank, TAG, MPI_COMM_WORLD, sendRequest(Rank), IERROR)        
+               Rank, TAG, MPI_COMM_FEMTOOLS, sendRequest(Rank), IERROR)        
        end if
     end do
 
@@ -590,7 +593,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if    
 
     call mpi_iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, lcommunicator, ipending, MPI_STATUS_IGNORE, ierr)
@@ -640,7 +643,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then    
@@ -666,7 +669,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then    
@@ -691,7 +694,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then
@@ -717,7 +720,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then
@@ -742,7 +745,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(IsParallel()) then
@@ -768,7 +771,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(IsParallel()) then
@@ -794,7 +797,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
 
     if(isparallel()) then
@@ -821,7 +824,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
 
     if(isparallel()) then
@@ -859,7 +862,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then
@@ -886,7 +889,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     
     if(isparallel()) then
@@ -916,7 +919,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
 
     if(present(tol)) then
@@ -997,5 +1000,15 @@ contains
     pfilename = trim(parallel_filename(filename)) // trim(extension)
 
   end function parallel_filename_with_extension
+
+  subroutine set_communicator(communicator)
+    !!< Set mpi_comm_femtools to the provided communicator
+    !!< If this subroutine is not used, mpi_comm_femtools = mpi_comm_world
+
+    integer, intent(in) :: communicator
+
+    MPI_COMM_FEMTOOLS = communicator
+
+  end subroutine set_communicator
 
 end module parallel_tools

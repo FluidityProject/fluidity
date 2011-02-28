@@ -1740,7 +1740,7 @@ contains
 
      if ((isparallel()).or.((.not.isparallel()).and.(default_stat%binary_detector_output))) then
 
-    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%fh, IERROR)
+    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%fh, IERROR)
     assert(ierror == MPI_SUCCESS)
 
     end if 
@@ -3369,7 +3369,7 @@ contains
 !    call mpi_get_count(status, getpreal(), count,  ierror)
 !    assert(ierror == MPI_SUCCESS)
 !
-!    call mpi_barrier(MPI_COMM_WORLD, ierror)
+!    call mpi_barrier(MPI_COMM_FEMTOOLS, ierror)
 !    assert(ierror == MPI_SUCCESS)
 !    
 !    deallocate(buffer)
@@ -3612,7 +3612,7 @@ contains
        target_proc=fetch(ihash_inverse, i)
 
        call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
-            & getpreal(), target_proc-1, TAG, MPI_COMM_WORLD, sendRequest(i-1), IERROR)
+            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(i-1), IERROR)
        assert(ierror == MPI_SUCCESS)
        !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
        !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
@@ -3636,7 +3636,7 @@ contains
 
     do i=1, number_neigh_processors
               
-       call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_WORLD, status(:), IERROR) 
+       call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
@@ -3646,7 +3646,7 @@ contains
 
        allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,number_of_columns))
 
-       call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE, IERROR)
+       call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        do j=1, number_detectors_received

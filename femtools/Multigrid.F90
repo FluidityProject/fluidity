@@ -914,7 +914,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     allocate(onnz(1:nrows))
     onnz=0
     
-    call MatCreateMPIAIJ(MPI_COMM_WORLD, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       

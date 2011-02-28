@@ -43,6 +43,7 @@ use spud
 use populate_state_module
 use field_options
 use halos_registration
+use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #if PETSC_VERSION_MINOR==0
@@ -93,7 +94,7 @@ implicit none
   ewrite(1,*) 'Opening: ', trim(filename)
   
   ! read in the matrix equation and init. guess:
-  call PetscViewerBinaryOpen(MPI_COMM_WORLD, trim(filename), &
+  call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, trim(filename), &
      FILE_MODE_READ, viewer, ierr)
   if (IsParallel()) then
     call MatLoad(viewer, MATMPIAIJ, matrix, ierr)
@@ -213,7 +214,7 @@ contains
     
     call PetscOptionsGetString('', "-ksp_type", krylov_method, flag, ierr)
     call PetscOptionsGetString('', "-pc_type", pc_method, flag, ierr)
-    call KSPCreate(MPI_COMM_WORLD, krylov, ierr)
+    call KSPCreate(MPI_COMM_FEMTOOLS, krylov, ierr)
     call KSPSetType(krylov, krylov_method, ierr)
     call KSPSetOperators(krylov, matrix, matrix, DIFFERENT_NONZERO_PATTERN, ierr)
     call KSPSetTolerances(krylov, 1.0d-100, 1d-12, PETSC_DEFAULT_DOUBLE_PRECISION, &
@@ -269,7 +270,7 @@ contains
     ! write out solution vector if asked:
     if (write_solution/='') then
       ewrite(2, *) 'Writing obtained solution to ',trim(write_solution)
-      call PetscViewerBinaryOpen(MPI_COMM_WORLD, &
+      call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
           write_solution, FILE_MODE_WRITE, &
           viewer, ierr)
       call VecView(x, viewer, ierr)
@@ -279,7 +280,7 @@ contains
     ! read previous solution vector if specified and compare result:
     if (read_solution/='') then
       ewrite(2, *) 'Comparing solution with previous from ',trim(write_solution)
-      call PetscViewerBinaryOpen(MPI_COMM_WORLD, &
+      call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
           read_solution, FILE_MODE_READ, &
           viewer, ierr)
       call VecLoad(viewer, VECSEQ, y, ierr)
@@ -300,14 +301,14 @@ contains
       call deallocate(A)
       
       ! RHS
-      call PetscViewerASCIIOpen(MPI_COMM_WORLD, &
+      call PetscViewerASCIIOpen(MPI_COMM_FEMTOOLS, &
           trim(filename)//'.rhs.vec', &
           viewer, ierr)
       call VecView(rhs, viewer, ierr)
       call PetscViewerDestroy(viewer, ierr)
 
       ! solution
-      call PetscViewerASCIIOpen(MPI_COMM_WORLD, &
+      call PetscViewerASCIIOpen(MPI_COMM_FEMTOOLS, &
           trim(filename)//'.sol.vec', &
           viewer, ierr)
       call VecView(x, viewer, ierr)
@@ -748,7 +749,7 @@ contains
     ncomponents=size(petsc_numbering%gnn2unn, 2)
     allocate(unns(1:n*ncomponents))
     unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
-    call ISCreateGeneral(MPI_COMM_WORLD, &
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        size(unns), unns, row_indexset, ierr)
        
     m=petsc_numbering%universal_length ! global length
@@ -758,7 +759,7 @@ contains
     ! so we need to create an index set with all universal node numbers(!)    
     allocate( allcols(1:m) )
     allcols=(/ ( i, i=0, m-1) /)
-    call ISCreateGeneral(MPI_COMM_WORLD, &
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        m, allcols, col_indexset, ierr)
     call ISSetIdentity(col_indexset, ierr)
        
@@ -785,7 +786,7 @@ contains
     ewrite(2,*) "Matrix local size", mm, nn
     
     ! create a Vec according to the proper partioning:
-    call VecCreateMPI(MPI_COMM_WORLD, n*ncomponents, m, new_x, ierr)
+    call VecCreateMPI(MPI_COMM_FEMTOOLS, n*ncomponents, m, new_x, ierr)
     ! fill it with values from the read x by asking for its row numbers
     call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL, &
        scatter, ierr)

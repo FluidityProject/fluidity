@@ -212,7 +212,7 @@ contains
           ! by calculating the offset (start of the universal number
           ! range for each process)
           call mpi_scan(nnodes, offset, 1, MPI_INTEGER, &
-               MPI_SUM, MPI_COMM_WORLD, ierr)
+               MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
           offset=offset-nnodes
           petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset
 
@@ -243,7 +243,7 @@ contains
     if (isParallel()) then
        ! work out the length of global(universal) vector
        call mpi_allreduce(petsc_numbering%nprivatenodes, nuniversalnodes, 1, MPI_INTEGER, &
-           MPI_SUM, MPI_COMM_WORLD, ierr)       
+           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)       
 
        petsc_numbering%universal_length=nuniversalnodes*nfields
     else
@@ -609,7 +609,7 @@ contains
     parallel= (associated(petsc_numbering%halo))
     
     if (parallel) then
-       call VecCreateMPI(MPI_COMM_WORLD, plength, ulength, vec, ierr)
+       call VecCreateMPI(MPI_COMM_FEMTOOLS, plength, ulength, vec, ierr)
     else
       call VecCreateSeq(MPI_COMM_SELF, ulength, vec, ierr)
     end if
@@ -1294,7 +1294,7 @@ contains
       end do
     end do
 
-    call MatCreateMPIAIJ(MPI_COMM_WORLD, nrowsp, ncolsp, nrows, ncols, &
+    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
       PETSC_NULL_INTEGER, d_nnz, PETSC_NULL_INTEGER, o_nnz, M, ierr)
       
     if (.not. present_and_true(use_inodes)) then
@@ -1497,7 +1497,7 @@ contains
      PetscErrorCode :: ierr
      
      ewrite(0, *) 'Dumping matrix equation in file called '//filename
-     call PetscViewerBinaryOpen(MPI_COMM_WORLD, &
+     call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
           filename, FILE_MODE_WRITE, &
           viewer, ierr)
      call MatView(A, viewer, ierr)

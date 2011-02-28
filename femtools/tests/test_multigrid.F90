@@ -11,6 +11,7 @@ subroutine test_multigrid
   use fldebug
   use solvers
   use fields
+  use parallel_tools
 #ifdef HAVE_PETSC
 #ifdef HAVE_PETSC_MODULES
   use petsc 
@@ -104,7 +105,7 @@ subroutine test_multigrid
         solver_option_path1, lstartfromzero1, &
         matrix=csr1, sfield=sfield1, &
         option_path="/scalar_field::Field")
-  call PetscRandomCreate(MPI_COMM_WORLD, rctx, ierr)
+  call PetscRandomCreate(MPI_COMM_FEMTOOLS, rctx, ierr)
   call PetscRandomSetFromOptions(rctx, ierr)
   call VecDuplicate(y1, xex1, ierr)
   call VecSetRandom(xex1, rctx, ierr)

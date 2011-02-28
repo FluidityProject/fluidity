@@ -107,7 +107,7 @@ contains
       communicator = halo_communicator(mesh%halos(nhalos))
     else
 #ifdef HAVE_MPI
-      communicator = MPI_COMM_WORLD
+      communicator = MPI_COMM_FEMTOOLS
 #else
       communicator = -1
 #endif

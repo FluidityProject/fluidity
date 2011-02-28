@@ -32,6 +32,7 @@ module halo_data_types
   use futils
   use global_parameters, only : FIELD_NAME_LEN
   use mpi_interfaces
+  use parallel_tools
   use reference_counting
 
   implicit none
@@ -63,7 +64,7 @@ module halo_data_types
 
     !! The MPI communicator for this halo
 #ifdef HAVE_MPI
-    integer :: communicator = MPI_COMM_WORLD
+    integer :: communicator
 #else
     integer :: communicator = -1
 #endif 

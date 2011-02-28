@@ -1634,7 +1634,7 @@ module zoltan_integration
 
     ! Find out how many detectors each process wants to send
     call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), &
-         MPI_COMM_WORLD, ierr)
+         MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
     
     ewrite(3,*) "Gathered the number of detectors each process wants to broadcast"
@@ -1664,7 +1664,7 @@ module zoltan_integration
           if (i == getprocno()) then
              ! Broadcast the detectors you want to send
              ewrite(3,*) "Broadcasting the ", send_count, " detectors in detector_send_list"
-             call mpi_bcast(send_buff,send_count*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
+             call mpi_bcast(send_buff,send_count*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
           else
              ! Allocate memory to receive into
@@ -1672,7 +1672,7 @@ module zoltan_integration
              
              ! Receive broadcast
              ewrite(3,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
-             call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_WORLD, ierr)
+             call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
 
              ! Unpack detector if you own it

@@ -84,6 +84,8 @@ contains
     integer, optional, intent(in) :: ordering_scheme
     
     integer :: i, lnprocs
+
+    halo%communicator = MPI_COMM_FEMTOOLS
    
     ! Set nprocs
     if(present(communicator)) then

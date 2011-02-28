@@ -26,7 +26,7 @@
 !    USA
 
 #include "fdebug.h"
-
+use parallel_tools
 #ifdef TESTING_HALGET
 
 SUBROUTINE ResetHalo(V, len)
@@ -166,7 +166,7 @@ PROGRAM MAIN
         
         IF(.NOT.HaloOk(Array(NProcs*SizeHalo+1), SizeHalo, NProcs, MyRank)) THEN
            ewrite(-1,*)  "HalgetNB() is foobar"
-           CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+           CALL MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
         END IF
         CALL ResetHalo(Array(NProcs*SizeHalo+1), (NProcs-1)*SizeHalo)
         
@@ -177,7 +177,7 @@ PROGRAM MAIN
         
         IF(.NOT.HaloOk(Array(NProcs*SizeHalo+1), SizeHalo, NProcs, MyRank)) THEN
            ewrite(-1,*)  "HalgetNB_simple() is foobar"
-           CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+           CALL MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
         END IF
      END DO
 
@@ -352,7 +352,7 @@ PROGRAM MAIN
         
         IF(.NOT.HaloOk(Array(NProcs*SizeHalo+1), SizeHalo, NProcs, MyRank)) THEN
            ewrite(3,*)  "HalgetNB() is foobar"
-           CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+           CALL MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
         END IF
         CALL ResetHalo(Array(NProcs*SizeHalo+1), (NProcs-1)*SizeHalo)
         
@@ -363,7 +363,7 @@ PROGRAM MAIN
         
         IF(.NOT.HaloOk(Array(NProcs*SizeHalo+1), SizeHalo, NProcs, MyRank)) THEN
            ewrite(3,*)  "HalgetNB_simple() is foobar"
-           CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_OTHER, IERROR)
+           CALL MPI_ABORT(MPI_COMM_FEMTOOLS, MPI_ERR_OTHER, IERROR)
         END IF
      END DO
 

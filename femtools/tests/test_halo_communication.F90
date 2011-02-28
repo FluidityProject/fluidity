@@ -43,7 +43,7 @@ subroutine test_halo_communication
   integer :: i, ierr, nprocs, procno
   integer, dimension(2) :: nreceives, nsends
   integer, dimension(7) :: integer_data
-  integer, parameter :: communicator = MPI_COMM_WORLD
+  integer :: communicator = MPI_COMM_FEMTOOLS
   logical :: fail
   real, dimension(7) :: real_data
   type(halo_type) :: halo

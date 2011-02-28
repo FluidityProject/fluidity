@@ -1622,7 +1622,7 @@ module sam_integration
     
     allocate(node_counts(getnprocs()))
     
-    call mpi_gather(count, 1, getpinteger(), node_counts, 1, getpinteger(), 0, MPI_COMM_WORLD, ierr)
+    call mpi_gather(count, 1, getpinteger(), node_counts, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
     
     if(getprocno() == 1) then
@@ -1638,7 +1638,7 @@ module sam_integration
       load_imbalance = (max_count - mean) / mean
     end if
     
-    call mpi_bcast(load_imbalance, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
+    call mpi_bcast(load_imbalance, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
     
     deallocate(node_counts)

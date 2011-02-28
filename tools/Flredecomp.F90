@@ -188,7 +188,7 @@ contains
     
     sam_options = 0
     
-    ! Target number of partitions - 0 indicates size of MPI_COMM_WORLD
+    ! Target number of partitions - 0 indicates size of MPI_COMM_FEMTOOLS
     sam_options(1) = target_nparts
 
     ! Graph partitioning options:

@@ -134,7 +134,7 @@ contains
       nprocs = getnprocs()
       rank = getrank()
       allocate(times(nprocs))
-      call MPI_Gather(dt, 1, getpreal(), times, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
+      call MPI_Gather(dt, 1, getpreal(), times, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
       assert(ierr == MPI_SUCCESS)
       
       if(rank == 0) then
@@ -151,7 +151,7 @@ contains
          tictoc_imbalance = (max_time - mean_time) / mean_time
       end if
 
-      call MPI_BCast(tictoc_imbalance, 1, getpreal(), 0, MPI_COMM_WORLD, ierr)
+      call MPI_BCast(tictoc_imbalance, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
       assert(ierr == MPI_SUCCESS)
 
       deallocate(times)

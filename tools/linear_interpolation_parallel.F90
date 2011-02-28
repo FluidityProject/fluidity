@@ -212,10 +212,10 @@ program linear_interpolation_parallel
 
     call mpi_gather(my_bboxes, size(my_bboxes), getpreal(), &
                     bboxes, size(my_bboxes), getpreal(), &
-                    0, MPI_COMM_WORLD, ierr)
+                    0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == 0)
 
-    call mpi_bcast(bboxes, size(bboxes), getpreal(), 0, MPI_COMM_WORLD, ierr)
+    call mpi_bcast(bboxes, size(bboxes), getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == 0)
   end subroutine compute_bboxes
   

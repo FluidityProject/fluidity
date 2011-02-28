@@ -228,7 +228,7 @@ contains
     !!< Writes detector last position into detectors file using MPI output 
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.
     
-    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(detectors_cp_filename) // '_det.positions.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
+    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detectors_cp_filename) // '_det.positions.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
 
     ewrite(1,*) "after openning the IERROR is:", IERROR
 

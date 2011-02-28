@@ -168,7 +168,7 @@ module metric_assemble
            call halo_update(error_metric)
            grad_count = grad_count + 1
 #ifdef HAVE_MPI
-           CALL MPI_Allreduce (noits, noits_max, 1, getpinteger(), MPI_MAX, MPI_COMM_WORLD, ierr)
+           CALL MPI_Allreduce (noits, noits_max, 1, getpinteger(), MPI_MAX, MPI_COMM_FEMTOOLS, ierr)
            assert(ierr == MPI_SUCCESS)
            noits = noits_max
 #endif

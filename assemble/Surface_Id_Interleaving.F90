@@ -32,6 +32,7 @@ module surface_id_interleaving
   use fields
   use fldebug
   use mpi_interfaces
+  use parallel_tools
 
   implicit none
 
@@ -101,7 +102,7 @@ contains
     if(isparallel()) then
 #ifdef HAVE_MPI
       ! Max. coplanar_id must be global to ensure consistent global surface ids
-      call mpi_allreduce(max_coplanar_id, all_max_coplanar_id, 1, getpinteger(), MPI_MAX, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(max_coplanar_id, all_max_coplanar_id, 1, getpinteger(), MPI_MAX, MPI_COMM_FEMTOOLS, ierr)
       assert(ierr == MPI_SUCCESS)
       max_coplanar_id = all_max_coplanar_id
 #endif

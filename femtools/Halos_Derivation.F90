@@ -45,6 +45,7 @@ module halos_derivation
   use parallel_tools
   use sparse_tools
   use linked_lists
+  use parallel_tools
 
   implicit none
 
@@ -632,7 +633,7 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_WORLD
+      lcommunicator = MPI_COMM_FEMTOOLS
     end if
     assert(size(knowns_sizes) == getnprocs(communicator = lcommunicator))
     
@@ -936,7 +937,7 @@ contains
     if (present(communicator)) then
       zz => Zoltan_Create(communicator)
     else
-      zz => Zoltan_Create(MPI_COMM_WORLD)
+      zz => Zoltan_Create(MPI_COMM_FEMTOOLS)
     end if
 
     ! Convert the sets to zoltan's input (a bunch of arrays)

@@ -265,7 +265,7 @@ Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
 
 qsortd.o: Global_Parameters.o
 
-Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o \
+Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o Parallel_Tools.o \
 	MPI_Interfaces.o 
 Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Diagnostics.o \
@@ -281,7 +281,7 @@ Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Repair.o Sparse_Tools.o \
   Data_structures.o Fields_Manipulation.o Halos_Communications.o \
-	Linked_Lists.o
+	Linked_Lists.o Parallel_Tools.o
 Halos_IO.o: ../include/Halos_IO.h
 Halos_Ownership.o: Futils.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o Halos_Numbering.o
 Halos_Numbering.o: Data_structures.o Futils.o Halo_Data_Types.o \
