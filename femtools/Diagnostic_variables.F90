@@ -2986,7 +2986,9 @@ contains
                deallocate(det0%update_vector)
             end if
             allocate(det0%k(n_stages,xfield%dim))
+            det0%k = 0.
             allocate(det0%update_vector(xfield%dim))
+            det0%update_vector=0.
          end if
          det0 => det0%next
       end do
@@ -3088,9 +3090,6 @@ contains
          search_loop: do
             !compute the local coordinates of the arrival point
             !with respect to this element
-            ewrite(2,*) 'update_vector',det0%update_vector
-            ewrite(2,*) 'element',det0%element
-            ewrite(2,*) 'dim', xfield%dim, mesh_dim(xfield)
             arrival_local_coords=&
                  local_coords(xfield,det0%element,det0%update_vector)
             if(minval(arrival_local_coords)>-search_tolerance) then
@@ -3138,6 +3137,7 @@ contains
                else
                   det_send => det0
                   det0 => det0%next
+                  ewrite(-1,*) 'ELEMENT NUMBER ', det0%element
                   ewrite(-1,*) 'MOVING A DETECTOR'
                   !this face goes into another computational domain
                   proc_local_number=fetch(ihash,&
@@ -3514,7 +3514,7 @@ contains
 
     type(array_ptr), dimension(:), allocatable :: &
          &send_list_array_serialise, receive_list_array_serialise
-    type(detector_type), pointer :: node, node_rec
+    type(detector_type), pointer :: detector, detector_received
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
@@ -3528,11 +3528,16 @@ contains
  
     type(integer_hash_table) :: ihash_inverse
     integer :: halo_level, gensaa, gensaaa, target_proc_a, mapped_val_a
+    integer :: ki 
 
     type(element_type), pointer :: shape
 
     type(mesh_type) :: pwc_mesh
     type(vector_field) :: pwc_positions
+
+    !stuff for sending RK info
+    logical :: have_update_vector
+    integer :: update_start, k_start,n_stages
 
     xfield => extract_vector_field(state(1),"Coordinate")
     shape=>ele_shape(xfield,1)
@@ -3573,22 +3578,37 @@ contains
     end if
     !==============================================
 
+    have_update_vector = &
+         &have_option("io/detectors/lagrangian_timestepping/explicit_runge_k&
+         &utta_guided_search") 
+    call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+         &h/n& &_stages",n_stages)
+
+    number_of_columns=dim+4
+    if(have_update_vector) then
+       !we need to include the RK update vector in serial array
+       update_start = number_of_columns+1
+       number_of_columns=number_of_columns+dim
+       !we need to include the RK k values in the serial array
+       k_start = number_of_columns+1
+       number_of_columns=number_of_columns+dim*n_stages
+    end if
+
     do i=1, number_neigh_processors
 
-       node => send_list_array(i)%firstnode
+       detector => send_list_array(i)%firstnode
 
        dim=vfield%dim
 
        number_detectors_to_send=send_list_array(i)%length
-       number_of_columns=dim+4
 
        allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
 
        do j=1, send_list_array(i)%length
 
-          global_ele=node%element
+          global_ele=detector%element
 
-          if (node%element>0) then
+          if (detector%element>0) then
 
              univ_ele = halo_universal_number(ele_halo, global_ele)
 
@@ -3599,13 +3619,22 @@ contains
 
           end if
 
-          send_list_array_serialise(i)%ptr(j,1:dim)=node%position
+          send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
           send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
-          send_list_array_serialise(i)%ptr(j,dim+2)=node%dt
-          send_list_array_serialise(i)%ptr(j,dim+3)=node%id_number
-          send_list_array_serialise(i)%ptr(j,dim+4)=node%type
-
-          node => node%next
+          send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
+          send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
+          send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
+          if(have_update_vector) then
+             send_list_array_serialise(i)%ptr(&
+                  &j,update_start+1:update_start+dim)=&
+                  &detector%update_vector
+             do ki = 1, n_stages
+                send_list_array_serialise(i)%ptr(j,&
+                     k_start+(ki-1)*dim+1:k_start+ki*dim) =&
+                     &detector%k(ki,:)
+             end do
+          end if
+          detector => detector%next
  
        end do
 
@@ -3628,10 +3657,9 @@ contains
 
     ewrite(1,*) "gens length is:", key_count(gens)    
 
+    !I THINK THIS DOES NOTHING - CJC
     do i=1, key_count(gens)
-
       call fetch_pair(gens, i, gensaa, gensaaa)
-  
     end do
 
     do i=1, number_neigh_processors
@@ -3653,44 +3681,60 @@ contains
 
           univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1); 
 
-          !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
-
+          !!! added this line below since I had to add extra code to cope
+          !!! with issues after adapt+zoltan. In particular, after adapt +
+          !!! zoltan, the element that owns a detector can be negative,
+          !!! i.e., this current proc does not see it/own it. This can
+          !!! happen due to floating errors if det in element boundary
+          !!! Ana SG wrote the above, I think it can be ditched now -- cjc
           if (univ_ele/=-1) then
-
              global_ele=fetch(gens,univ_ele)
-
-          else
-         
+          else        
              global_ele=-1
-      
           end if
 
-          allocate(node_rec)
+          allocate(detector_received)
 
-          allocate(node_rec%position(dim))
+          allocate(detector_received%position(vfield%dim))
 
-          node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dim)
-          node_rec%element=global_ele
-          node_rec%dt=receive_list_array_serialise(i)%ptr(j,dim+2)
-!         node_rec%type = LAGRANGIAN_DETECTOR
-          node_rec%type = receive_list_array_serialise(i)%ptr(j,dim+4)
-          node_rec%local = .true. 
-          node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dim+3)
-          node_rec%initial_owner=getprocno()
+          detector_received%position=&
+               receive_list_array_serialise(i)%ptr(j,1:dim)
+          detector_received%element=global_ele
+          detector_received%dt=receive_list_array_serialise(i)%ptr(j,dim+2)
+          detector_received%type = &
+               receive_list_array_serialise(i)%ptr(j,dim+4)
+          detector_received%local = .true. 
+          detector_received%id_number=&
+               receive_list_array_serialise(i)%ptr(j,dim+3)
+          if(have_update_vector) then
+             allocate(detector_received%update_vector(vfield%dim))
+             allocate(detector_received%k(n_stages,vfield%dim))
+             detector_received%update_vector = &
+                  receive_list_array_serialise(i)%ptr(j,update_start+1:&
+                  &update_start+dim)
+             do ki = 1, n_stages
+                detector_received%k(ki,:) = &
+                  receive_list_array_serialise(i)%ptr(&
+                  j,update_start+dim*(ki-1)+1:&
+                  &update_start+dim*ki)
+             end do
+             detector_received%search_complete=.false.
+          end if
+          detector_received%initial_owner=getprocno()
  
-          allocate(node_rec%local_coords(local_coord_count(shape)))    
+          allocate(detector_received%local_coords(local_coord_count(shape)))    
   
         !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary   
 
-          if (node_rec%element/=-1) then
+          if (detector_received%element/=-1) then
  
-              node_rec%local_coords=local_coords(xfield,node_rec%element,node_rec%position)
+              detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
 
           end if
 
-          node_rec%name=default_stat%name_of_detector_in_read_order(node_rec%id_number)
+          detector_received%name=default_stat%name_of_detector_in_read_order(detector_received%id_number)
 
-          call insert(receive_list_array(i),node_rec) 
+          call insert(receive_list_array(i),detector_received) 
           
        end do
 
