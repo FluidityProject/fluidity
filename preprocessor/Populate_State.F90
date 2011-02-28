@@ -2998,6 +2998,8 @@ contains
        call check_stokes_options
     case ("foams")
        call check_foams_options
+    case ("multiphase")
+       call check_multiphase_options
     case default
        ewrite(0,*) "Problem type:", trim(problem_type)
        FLAbort("Error unknown problem_type")
@@ -3831,4 +3833,36 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
   end subroutine check_foams_options
   
+  subroutine check_multiphase_options
+    !!< Options checking for multi-phase flow simulations.
+    ! This currently assumes that all phases have prognostic velocity fields;
+    ! we will deal with prescribed velocities later.
+
+    integer :: nmat, i
+    logical :: have_vfrac, prognostic_velocity
+    
+    integer :: diagnostic_vfrac_count
+
+    nmat = option_count("/material_phase")
+
+    do i = 0, nmat-1
+       have_vfrac = have_option("/material_phase["//int2str(i)//&
+            "]/scalar_field::PhaseVolumeFraction")
+       prognostic_velocity = have_option("/material_phase["//int2str(i)//&
+            "]/vector_field::Velocity")
+       if(prognostic_velocity .and. .not.have_vfrac) then
+          FLExit("All phases need a PhaseVolumeFraction.")
+       end if
+    end do
+    
+    diagnostic_vfrac_count = option_count('/material_phase/&
+                &scalar_field::PhaseVolumeFraction/&
+                &diagnostic')
+    if(diagnostic_vfrac_count > 1) then
+      ewrite(-1,*) diagnostic_vfrac_count, 'diagnostic PhaseVolumeFractions.'
+      FLExit("Only 1 diagnostic PhaseVolumeFraction is allowed")
+    end if
+
+  end subroutine check_multiphase_options
+
 end module populate_state_module
