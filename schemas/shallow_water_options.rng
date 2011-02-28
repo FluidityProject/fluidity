@@ -890,6 +890,23 @@ requires a distinct name for the options dictionary.</a:documentation>
         <ref name="velocity_boundary_conditions"/>
       </element>
     </zeroOrMore>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>Source</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <element name="prescribed">
+          <optional>
+            <ref name="mesh_choice"/>
+          </optional>
+          <ref name="prescribed_vector_field_no_adapt"/>
+        </element>
+      </element>
+    </optional>
     <ref name="prognostic_vector_output_options"/>
     <ref name="prognostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>

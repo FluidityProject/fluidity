@@ -327,12 +327,14 @@ contains
     end subroutine get_d_rhs
 
     subroutine get_u_rhs(u_rhs,U,D,dt,g, &
-         coriolis_mat,div_mat)
+         coriolis_mat,div_mat,u_mass_mat,source)
       implicit none
       type(vector_field), intent(inout) :: u_rhs
       type(vector_field), intent(inout) :: U
+      type(vector_field), intent(in), optional :: source
       type(scalar_field), intent(inout) :: D
-      type(block_csr_matrix), intent(in) :: coriolis_mat, div_mat
+      type(block_csr_matrix), intent(in) :: coriolis_mat, div_mat 
+      type(block_csr_matrix), intent(in), optional :: u_mass_mat
       real, intent(in) :: dt, g
       !Construct the explicit contribution to the right-hand side 
       !of the u equation
@@ -356,6 +358,12 @@ contains
       !Pressure gradient
       call mult_T(vec,div_mat,D)
       call addto(u_rhs,vec,scale=-dt*g)
+
+      !Source term
+      if (present(source)) then
+        call mult(vec,u_mass_mat,source)
+        call addto(u_rhs,vec,scale=dt)
+      end if
 
       ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(1,:)))
       ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2,:)))

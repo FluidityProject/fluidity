@@ -734,6 +734,17 @@ prognostic_velocity_field =
          },
          velocity_boundary_conditions
       }*,
+      ## Source
+      element vector_field {
+         attribute name { "Source" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_vector_field_no_adapt
+            }
+         )
+      }?,  
       prognostic_vector_output_options,
       prognostic_vector_stat_options,
       vector_convergence_options,
