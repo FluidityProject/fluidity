@@ -75,11 +75,11 @@ unittest: $(TEST_BINARIES)
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 test_python_state:  python_state.o test_python_state_main.o test_python_state.o python_statec.o lib/
-	$(CXX) -o $@ $(filter %.o,$^) $(LIBS) 
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBS) 
 
 # link this TESTNAME_main_f.o with TESTNAME.o from TESTNAME.F90
 %: %_main.o %.o lib/
-	$(CXX) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) 
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) 
 
 # make a temp sym-link to the directory containing fluidity, adapt and sam libs
 lib/:

@@ -35,7 +35,7 @@ CFLAGS  = @CFLAGS@ @CPPFLAGS@ -I../../include
 CXX = @CXX@ -I../../include
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
 
-LFLAGS  = @LFLAGS@
+LDFLAGS  = @LDFLAGS@
 
 LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
 LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
@@ -75,7 +75,7 @@ unittest: $(TEST_BINARIES)
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 %: %_main.o %.o lib/
-	$(CXX) -o $@ $(filter %.o,$^) -L../../lib/ -lfemtools $(LIBS) @PROFILING_FLAG@
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) -L../../lib/ -lfemtools $(LIBS) @PROFILING_FLAG@
 
 
 # make a temp sym-link to the directory containing fluidity, adapt and sam libs

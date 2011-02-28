@@ -36,7 +36,7 @@ CFLAGS  = @CFLAGS@ -I../../include
 CXX = @CXX@ -I../../include
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include 
 
-LFLAGS  = @LFLAGS@
+LDFLAGS  = @LDFLAGS@
 
 LIBS = ./lib/libadaptivity.a ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a @LIBS@
 FLIBS = @FLIBS@
@@ -85,7 +85,7 @@ unittest: $(TEST_BINARIES)
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 %: %_main.o %.o lib/
-	$(CXX) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) @PROFILING_FLAG@
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) @PROFILING_FLAG@
 
 # make a temp sym-link to the directory containing fluidity and adaptivity
 lib/:
