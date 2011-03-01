@@ -29,4 +29,4 @@ copy_tests:
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_E)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/steady_periodic/steady_dt_dx_E/' | sed 's/src\/mesh/src\/mesh_E/' > steady_dt_dx_E.swml
 clean:
 	rm -f *.vtu *.stat steady_dt_*.swml
-	cd src; rm mesh*
+	cd src; rm -f mesh*
