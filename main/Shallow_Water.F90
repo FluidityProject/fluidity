@@ -210,7 +210,8 @@
           v_field => extract_vector_field(state(1), "VelocitySource")
           v_field_cartesian => extract_vector_field(state(1), "CartesianVelocitySource")
           call update_cartesian_vector_field(state(1), v_field_cartesian, v_field)
-       end if 
+          call project_cartesian_field_to_local(state(1), v_field)
+        end if 
 
        call execute_timestep(state(1), dt)
        call adjoint_register_timestep(timestep, dt, state)
@@ -1549,6 +1550,11 @@
         call adj_chkierr(ierr)
 
         call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
+        if (has_vector_field(state(1), "VelocitySource")) then
+          v_field => extract_vector_field(state(1), "VelocitySource")
+          v_field_cartesian => extract_vector_field(state(1), "CartesianVelocitySource")
+          call update_cartesian_vector_field(state(1), v_field_cartesian, v_field)
+        end if 
 
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
