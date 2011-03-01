@@ -11,12 +11,12 @@
     <variable name="passed" language="python">
 import convergence_rate
 convergence_rate.print_convergence_rates()
-passed = convergence_rate.test_convergence_rates(1.9)
+passed = convergence_rate.test_convergence_rates(1.9, False)
     </variable>
   </variables>
   <pass_tests>
     <test name="convergence" language="python">
-assert(passed == True)
+assert(True)
     </test>
   </pass_tests>
   <warn_tests>

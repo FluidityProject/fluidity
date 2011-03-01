@@ -87,10 +87,10 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">0.0</real_value>
       </constant>
     </dump_period>
-    <output_coordinates name="Cartesian"/>
+    <output_coordinates name="Manifold"/>
     <output_mesh name="CoordinateMesh"/>
   </io>
   <timestepping>
@@ -253,7 +253,7 @@
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalSolutionLayerThickness" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
