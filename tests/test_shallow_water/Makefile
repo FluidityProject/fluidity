@@ -1,4 +1,4 @@
-default: input
+all: input
 
 input: clean
 	gmsh -2 src/basin.geo > gmsh.log 2> gmsh_err.log

@@ -28,17 +28,20 @@ def test_convergence(statfiles, fields, tol):
     for i in range(len(statfiles)):
       if i==0:
         continue
-      if max(get_convergence(statfiles[i-1], statfiles[i], field)) < tol:
+      if min(get_convergence(statfiles[i-1], statfiles[i], field)) < tol:
           return False
   return True      
 
-def test_convergence_rates(tol):
+def test_convergence_rates(tol, only_spacetime):
   fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
   statfiles = ["steady_dt_A.stat", "steady_dt_B.stat", "steady_dt_C.stat", "steady_dt_D.stat", "steady_dt_E.stat"]
   res1 = test_convergence(statfiles, fields, tol)
   statfiles = ["steady_dt_dx_A.stat", "steady_dt_dx_B.stat", "steady_dt_dx_C.stat", "steady_dt_dx_D.stat", "steady_dt_dx_E.stat"]
   res2 = test_convergence(statfiles, fields, tol)
-  return res1 and res2
+  if (only_spacetime):
+    return res2
+  else:
+    return res1 and res2
 
   
 def print_convergence(statfiles, fields):
