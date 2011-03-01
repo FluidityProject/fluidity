@@ -85,8 +85,12 @@ contains
     
     integer :: i, lnprocs
 
+#ifdef HAVE_MPI
     halo%communicator = MPI_COMM_FEMTOOLS
-   
+#else
+    halo%communicator = -1
+#endif  
+
     ! Set nprocs
     if(present(communicator)) then
 #ifdef HAVE_MPI

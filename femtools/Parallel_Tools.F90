@@ -44,7 +44,7 @@ module parallel_tools
        pending_communication, valid_communicator, next_mpi_tag, &
        MPI_COMM_FEMTOOLS, set_communicator
 
-  integer(c_int) :: MPI_COMM_FEMTOOLS = default_comm
+  integer(c_int), bind(c) :: MPI_COMM_FEMTOOLS = MPI_COMM_WORLD
 
   interface allmax
     module procedure allmax_integer, allmax_real
@@ -1001,7 +1001,7 @@ contains
 
   end function parallel_filename_with_extension
 
-  subroutine set_communicator(communicator)
+  subroutine set_communicator(communicator) bind(c)
     !!< Set mpi_comm_femtools to the provided communicator
     !!< If this subroutine is not used, mpi_comm_femtools = mpi_comm_world
 

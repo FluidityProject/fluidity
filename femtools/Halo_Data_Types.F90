@@ -32,7 +32,6 @@ module halo_data_types
   use futils
   use global_parameters, only : FIELD_NAME_LEN
   use mpi_interfaces
-  use parallel_tools
   use reference_counting
 
   implicit none
