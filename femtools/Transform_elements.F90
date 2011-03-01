@@ -962,7 +962,7 @@ contains
       case(1)
          do gi=1,compute_ngi
             J(:,:,gi)=transpose(matmul(X(:,:), x_shape%dn(:, gi, :)))
-            detJ_local(gi)=sum(sqrt(abs(J(:,:,gi))))
+            detJ_local(gi)=sqrt(sum(J(:, :, gi)**2))
          end do
       case(2)
          do gi=1,compute_ngi
