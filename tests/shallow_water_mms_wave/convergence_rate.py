@@ -34,9 +34,9 @@ def test_convergence(statfiles, fields, tol):
 
 def test_convergence_rates(tol):
   fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
-  statfiles = ["steady_dt_A.stat", "steady_dt_B.stat", "steady_dt_C.stat", "steady_dt_D.stat", "steady_dt_E.stat"]
+  statfiles = ["wave_dt_A.stat", "wave_dt_B.stat", "wave_dt_C.stat", "wave_dt_D.stat", "wave_dt_E.stat"]
   res1 = test_convergence(statfiles, fields, tol)
-  statfiles = ["steady_dt_dx_A.stat", "steady_dt_dx_B.stat", "steady_dt_dx_C.stat", "steady_dt_dx_D.stat", "steady_dt_dx_E.stat"]
+  statfiles = ["wave_dt_dx_A.stat", "wave_dt_dx_B.stat", "wave_dt_dx_C.stat", "wave_dt_dx_D.stat", "wave_dt_dx_E.stat"]
   res2 = test_convergence(statfiles, fields, tol)
   return res1 and res2
 
@@ -54,9 +54,9 @@ def print_convergence_rates():
   print ""
   print " =============== Time decreasing, mesh constant ================="
   fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
-  statfiles = ["steady_dt_A.stat", "steady_dt_B.stat", "steady_dt_C.stat", "steady_dt_D.stat", "steady_dt_E.stat"]
+  statfiles = ["wave_dt_A.stat", "wave_dt_B.stat", "wave_dt_C.stat", "wave_dt_D.stat", "wave_dt_E.stat"]
   print_convergence(statfiles, fields)
   print ""
   print " =============== Time decreasing, mesh resolution increasing ================"
-  statfiles = ["steady_dt_dx_A.stat", "steady_dt_dx_B.stat", "steady_dt_dx_C.stat", "steady_dt_dx_D.stat", "steady_dt_dx_E.stat"]
+  statfiles = ["wave_dt_dx_A.stat", "wave_dt_dx_B.stat", "wave_dt_dx_C.stat", "wave_dt_dx_D.stat", "wave_dt_dx_E.stat"]
   print_convergence(statfiles, fields)
