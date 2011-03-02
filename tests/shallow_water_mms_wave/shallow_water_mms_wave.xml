@@ -9,7 +9,7 @@
   </problem_definition>
   <variables>
     <variable name="passed" language="python">
-import convergence_rate
+import convergence_rate_steady
 convergence_rate.print_convergence_rates()
 passed = convergence_rate.test_convergence_rates(1.9, False)
     </variable>
