@@ -2988,7 +2988,7 @@ contains
     case ("fluids")
     case ("oceans")
        call check_ocean_options
-    case ("large_scale_ocean_options")
+    case ("large_scale_ocean")
        call check_large_scale_ocean_options
     case ("multimaterial")
        call check_multimaterial_options
@@ -3398,7 +3398,7 @@ contains
           end if
        end if
        if (.not.have_option(trim(velocity_path)//"/temporal_discretisation/discontinuous_galerkin/maximum_courant_number_per_subcycle")) then
-         FLExit("You need to switch on velocity/prognostic/temporal_discretisation/discontinuous_galerkin/maximum_courant_number_per_subcycle ")
+        ewrite(0,*)  ("WARNING: You may wish to switch on velocity/prognostic/temporal_discretisation/discontinuous_galerkin/maximum_courant_number_per_subcycle ")
        end if
        if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/advection_scheme/project_velocity_to_continuous")) then
          FLExit("You need to switch on velocity/prognostic/spatial_discretisation/discontinuous_galerkin/advection_scheme/project_velocity_to_continuous ")
