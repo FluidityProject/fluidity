@@ -166,11 +166,7 @@
 
     call insert_time_in_state(state)
 
-    call setup_cartesian_vector_fields(state(1))
-    if (has_vector_field(state(1), "VelocitySource")) then
-      v_field => extract_vector_field(state(1), "VelocitySource")
-      call setup_cartesian_vector_field(state(1), v_field)
-    end if 
+    call setup_cartesian_fields(state(1))
 
     call allocate_and_insert_additional_fields(state(1))
 
@@ -211,13 +207,15 @@
        if (has_vector_field(state(1), "VelocitySource")) then
           v_field => extract_vector_field(state(1), "VelocitySource")
           v_field_cartesian => extract_vector_field(state(1), "CartesianVelocitySource")
-          call update_cartesian_vector_field(state(1), v_field_cartesian, v_field)
+          call set_cartesian_field(state(1), v_field_cartesian, v_field)
           call project_cartesian_field_to_local(state(1), v_field)
         end if 
 
        call execute_timestep(state(1), dt)
        call adjoint_register_timestep(timestep, dt, state)
 
+       call project_local_to_cartesian(state(1))
+       call map_to_manifold(state(1))
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
@@ -269,7 +267,7 @@
 
       call mangle_options_tree_adjoint
       call populate_state(state)
-      call setup_cartesian_vector_fields(state(1), adjoint=.true.)
+      call setup_cartesian_fields(state(1), adjoint=.true.)
       call allocate_and_insert_additional_fields(state(1))
       call check_diagnostic_dependencies(state)
       call compute_matrix_transposes(matrices)
@@ -551,9 +549,10 @@
 
     end subroutine execute_timestep_setup
 
-    subroutine allocate_and_insert_additional_fields(state)
+    subroutine allocate_and_insert_additional_fields(state, adjoint)
       !!< Allocate and insert fields not specified in schema
       type(state_type), intent(inout) :: state
+      logical, intent(in), optional :: adjoint
 
       ! coriolis
       type(scalar_field) :: f
@@ -580,11 +579,19 @@
       call insert(state, f, "Coriolis")
       call deallocate(f)
 
-      call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
-      call zero(U_local)
-      U_local%option_path=U%option_path
-      call insert(state, U_local, "LocalVelocity")
-      call deallocate(U_local)
+      if (present_and_true(adjoint)) then
+        call allocate(U_local, mesh_dim(U), U%mesh, "AdjointLocalVelocity")
+        call zero(U_local)
+        U_local%option_path=U%option_path
+        call insert(state, U_local, "AdjointLocalVelocity")
+        call deallocate(U_local)
+      else
+        call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
+        call zero(U_local)
+        U_local%option_path=U%option_path
+        call insert(state, U_local, "LocalVelocity")
+        call deallocate(U_local)
+      endif
 
       if (has_vector_field(state, "VelocitySource")) then
         call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocitySource")
@@ -700,9 +707,10 @@
       
     end subroutine project_cartesian_to_local_ele
 
-    subroutine project_local_to_cartesian(state)
+    subroutine project_local_to_cartesian(state, adjoint)
       !!< Project the local velocity to cartesian coordinates
       type(state_type), intent(inout) :: state
+      logical, intent(in), optional :: adjoint
 
       integer :: ele
       type(vector_field), pointer :: X, U_local, U_cartesian
@@ -710,7 +718,11 @@
       ewrite(1,*) "In project_local_to_cartesian"
 
       X=>extract_vector_field(state, "CartesianCoordinate")
-      U_local=>extract_vector_field(state, "LocalVelocity")
+      if (present_and_true(adjoint)) then
+        U_local=>extract_vector_field(state, "AdjointLocalVelocity")
+      else
+        U_local=>extract_vector_field(state, "LocalVelocity")
+      endif
       U_cartesian=>extract_vector_field(state, "CartesianVelocity")
 
       do ele=1, element_count(U_cartesian)
@@ -839,7 +851,7 @@
 
       ! Whichever coordinate we're outputting on, we still need to
       ! project the local velocity to cartesian coordinates
-      call project_local_to_cartesian(state(1))
+      call project_local_to_cartesian(state(1), adjoint)
 
       ! Extract and reinsert the required coordinate field so that
       ! get_external_coordinate_field picks up the correct field
@@ -848,13 +860,7 @@
          call insert(state(1), X, "Coordinate")
       else if(trim(output_coordinate)=="Manifold") then
          ! map velocity to manifold
-         v_field => extract_vector_field(state(1), "Velocity")
-         call map_to_manifold(state(1), v_field)
-         ! map source to manifold
-         if (has_vector_field(state(1), "Source")) then
-           v_field => extract_vector_field(state(1), "Source")
-           call map_to_manifold(state(1), v_field)
-         end if
+         call map_to_manifold(state(1))
          ! the mapping should be happening for each vector field!
          X=>extract_vector_field(state(1), "ManifoldCoordinate")
          call insert(state(1), X, "Coordinate")
@@ -926,7 +932,7 @@
 
     end subroutine set_velocity_from_geostrophic_balance
 
-    subroutine setup_cartesian_vector_fields(state, adjoint)
+    subroutine setup_cartesian_fields(state, adjoint)
       ! sets up the cartesian coordinate and velocity fields using the
       ! mappings provided in the .swml
       implicit none
@@ -934,7 +940,7 @@
       type(state_type), intent(inout):: state
       logical, intent(in), optional :: adjoint
 
-      type(vector_field), pointer :: X, U
+      type(vector_field), pointer :: X, U, v_field
       type(vector_field) :: X_manifold, U_manifold
       type(vector_field) :: X_cartesian, U_cartesian
       type(tensor_field) :: map
@@ -983,7 +989,14 @@
       call get_option("/geometry/embedded_manifold/vector_map", vector_map)
       call set_from_python_function(map, vector_map, X, time=0.0)
 
-      call update_cartesian_vector_field(state, U_cartesian, U)
+      call set_cartesian_field(state, U_cartesian, U)
+
+      ! setup additional cartesian fields
+      if (has_vector_field(state, "VelocitySource")) then
+        v_field => extract_vector_field(state, "VelocitySource")
+        call setup_cartesian_field(state, v_field)
+      end if 
+
 
       ! deallocate fields
       call deallocate(X_manifold)
@@ -992,10 +1005,11 @@
       call deallocate(U_cartesian)
       call deallocate(map)
 
-    end subroutine setup_cartesian_vector_fields
+    end subroutine setup_cartesian_fields
 
-    subroutine setup_cartesian_vector_field(state, field)
-      ! sets up the cartesian coordinate and velocity fields using the
+    subroutine setup_cartesian_field(state, field)
+      ! copies the field to the corresponding manifold field 
+      ! and sets up the cartesian field using the
       ! mappings provided in the .swml
       implicit none
 
@@ -1007,7 +1021,7 @@
       type(vector_field) :: v_field_cartesian
       type(mesh_type), pointer :: U_mesh
 
-      ewrite(1,*) "In setup_cartesian_vector_field for field ", trim(field%name)
+      ewrite(1,*) "In setup_cartesian_field for field ", trim(field%name)
 
       X => extract_vector_field(state, "Coordinate")
       if (present_and_true(adjoint)) then
@@ -1029,15 +1043,15 @@
       call insert(state, v_field_manifold, "Manifold"//trim(field%name))
       call insert(state, v_field_cartesian, "Cartesian"//trim(field%name))
 
-      call update_cartesian_vector_field(state, v_field_cartesian, v_field_manifold)
+      call set_cartesian_field(state, v_field_cartesian, v_field_manifold)
 
       ! deallocate fields
       call deallocate(v_field_manifold)
       call deallocate(v_field_cartesian)
 
-    end subroutine setup_cartesian_vector_field
-    
-    subroutine update_cartesian_vector_field(state, field_cartesian, field)
+    end subroutine setup_cartesian_field
+
+    subroutine set_cartesian_field(state, field_cartesian, field)
       type(state_type), intent(inout) :: state
       type(vector_field) :: field
       type(vector_field) :: field_cartesian
@@ -1049,31 +1063,48 @@
       map => extract_tensor_field(state, "VectorMap")
 
       do node=1, node_count(field_cartesian)
-         call set_cartesian_vector_field(field_cartesian, field, map, node)
+         call set_cartesian_field_node(field_cartesian, field, map, node)
       end do
 
-    end subroutine update_cartesian_vector_field
-    
-    subroutine set_cartesian_vector_field(U_cartesian, U, map, node)
+    end subroutine set_cartesian_field
+
+    subroutine set_cartesian_field_node(field_cartesian, field, map, node)
       implicit none
 
-      type(vector_field), intent(inout) :: U_cartesian
-      type(vector_field), intent(in) :: U
+      type(vector_field), intent(inout) :: field_cartesian
+      type(vector_field), intent(in) :: field
       type(tensor_field), intent(in) :: map
       integer, intent(in) :: node
 
-      real, dimension(U%dim) :: U_val
-      real, dimension(U_cartesian%dim, U%dim) :: map_val
+      real, dimension(field%dim) :: field_val
+      real, dimension(field_cartesian%dim, field%dim) :: map_val
 
-      U_val = node_val(U, node)
+      field_val = node_val(field, node)
       map_val = node_val(map, node)
 
-      call set(U_cartesian, node, matmul(map_val,U_val))
+      call set(field_cartesian, node, matmul(map_val,field_val))
 
-    end subroutine set_cartesian_vector_field
+    end subroutine set_cartesian_field_node
 
-    subroutine map_to_manifold(state, field)
-      ! maps velocity field back to the manifold for output using the
+    subroutine map_to_manifold(state)
+      ! maps the state fields back to the manifold for output using the
+      ! mapping provided in the .swml
+      implicit none
+      type(state_type), intent(in) :: state
+
+      type(vector_field), pointer :: v_field_cartesian
+
+      v_field => extract_vector_field(state, "Velocity")
+      call map_field_to_manifold(state, v_field)
+      if (has_vector_field(state, "VelocitySource")) then
+        v_field => extract_vector_field(state, "VelocitySource")
+        call map_field_to_manifold(state, v_field)
+      end if
+
+    end subroutine map_to_manifold
+    
+    subroutine map_field_to_manifold(state, field)
+      ! maps field back to the manifold for output using the
       ! mapping provided in the .swml
       implicit none
 
@@ -1089,31 +1120,31 @@
       map => extract_tensor_field(state, "VectorMap")
 
       do node=1, node_count(field_manifold)
-         call set_manifold_velocity(field_manifold, field_cartesian, map, node)
+         call map_manifold_node(field_manifold, field_cartesian, map, node)
       end do
 
       call set(field, field_manifold)
 
-    end subroutine map_to_manifold
+    end subroutine map_field_to_manifold
 
-    subroutine set_manifold_velocity(U_manifold, U_cartesian, map, node)
+    subroutine map_manifold_node(field_manifold, field_cartesian, map, node)
       implicit none
 
-      type(vector_field), intent(inout) :: U_manifold
-      type(vector_field), intent(in) :: U_cartesian
+      type(vector_field), intent(inout) :: field_manifold
+      type(vector_field), intent(in) :: field_cartesian
       type(tensor_field), intent(in) :: map
       integer, intent(in) :: node
 
-      real, dimension(U_cartesian%dim, U_manifold%dim) :: map_val
+      real, dimension(field_cartesian%dim, field_manifold%dim) :: map_val
       integer :: d
 
       map_val = node_val(map, node)
 
-      do d=1, U_manifold%dim
-         call set(U_manifold, d, node, dot_product(node_val(U_cartesian, node), map_val(:,d)))
+      do d=1, field_manifold%dim
+         call set(field_manifold, d, node, dot_product(node_val(field_cartesian, node), map_val(:,d)))
       end do
 
-    end subroutine set_manifold_velocity
+    end subroutine map_manifold_node
 
     subroutine read_command_line()
       implicit none
@@ -1245,8 +1276,8 @@
       ! (in fluidity this would be done as each equation is registered)
       u => extract_vector_field(states(1), "Velocity")
       eta => extract_scalar_field(states(1), "LayerThickness")
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::VelocityDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LocalVelocity", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::LocalVelocityDelta", trim(u%option_path))
       ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(eta%option_path))
       ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(eta%option_path))
 
@@ -1283,7 +1314,7 @@
         ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
@@ -1303,7 +1334,7 @@
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
         call adj_chkierr(ierr)
         ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
         call adj_chkierr(ierr)
@@ -1337,11 +1368,11 @@
       character(len=OPTION_PATH_LEN) :: buf, functional_name
 
       ! Set up adj_variables
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
+      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::VelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
+      ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
       call adj_chkierr(ierr)
@@ -1543,12 +1574,6 @@
         call adj_chkierr(ierr)
 
         call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
-        if (has_vector_field(state(1), "VelocitySource")) then
-          v_field => extract_vector_field(state(1), "VelocitySource")
-          v_field_cartesian => extract_vector_field(state(1), "CartesianVelocitySource")
-          call update_cartesian_vector_field(state(1), v_field_cartesian, v_field)
-        end if 
-
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
@@ -1566,7 +1591,7 @@
             call adj_chkierr(ierr)
             path = adjoint_field_path(path)
 
-            ! variable_name should be something like Fluid::Velocity or Fluid::LayerThickness
+            ! variable_name should be something like Fluid::LocalVelocity or Fluid::LayerThickness
             select case(rhs%klass)
               case(ADJ_SCALAR_FIELD)
                 call field_from_adj_vector(rhs, sfield_rhs)
@@ -1640,6 +1665,8 @@
             endif
           end do
 
+          call project_local_to_cartesian(state(1), adjoint=.true.)
+          call map_to_manifold(state(1))
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
           call write_diagnostics(state, current_time, dt, equation+1)

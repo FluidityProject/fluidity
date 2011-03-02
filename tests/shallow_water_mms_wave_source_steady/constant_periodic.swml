@@ -153,11 +153,15 @@
         </initial_condition>
         <vector_field name="Source" rank="1">
           <prescribed>
+            <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X, t):
+  from math import sin, pi
   c = 1.0
-  return [c]</string_value>
+  return [sin(2*pi*c*t)]
+  #return [c]
+</string_value>
               </python>
             </value>
             <output/>
@@ -268,7 +272,7 @@
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalSolutionLayerThickness" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>

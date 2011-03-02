@@ -10,13 +10,13 @@
   <variables>
     <variable name="passed" language="python">
 import convergence_rate2
-convergence_rate.print_convergence_rates()
-passed = convergence_rate.test_convergence_rates(1.9, False)
+convergence_rate2.print_convergence_rates()
+passed = convergence_rate2.test_convergence_rates(1.8, False)
     </variable>
   </variables>
   <pass_tests>
     <test name="convergence" language="python">
-assert(True)
+assert(passed)
     </test>
   </pass_tests>
   <warn_tests>
