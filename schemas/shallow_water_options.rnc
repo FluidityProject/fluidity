@@ -256,52 +256,7 @@ start =
                }
             }?,
             element coriolis {
-               (
-                  ## f-plane approximation
-                  ## This means the Coriolis force looks like:
-                  ##   f k x u
-                  ## where k is the z unit vector
-                  ##    and u the velocity vector
-                  ##    and f is constant
-                  element f_plane {
-                     ## f-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f is constant
-                     element f {
-                        real
-                     }
-                  }|
-                  ## Beta-plane approximation
-                  ## This means the Coriolis force looks like:
-                  ##   f k x u
-                  ## where k is the z unit vector
-                  ##    and u the velocity vector
-                  ##    and f=f_0+beta . (x,y,z)
-                  element beta_plane {
-                     ## Beta-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f=f_0+beta . (x,y,z)
-                     element f_0 {
-                        real
-                     },
-                     ## Beta-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f=f_0+beta . (x,y,z)
-                     ## usually only the y-component of beta is non-zero
-                     element beta {
-                        real_dim_vector
-                     }
-                  }
-               )
+               python_code
             }?
          },
          ## The material or phase options

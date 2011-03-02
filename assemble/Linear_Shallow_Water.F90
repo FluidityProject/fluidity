@@ -48,7 +48,7 @@ module linear_shallow_water
 contains 
   subroutine setup_wave_matrices(state,u_sparsity,wave_sparsity,ct_sparsity, &
        h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,div_mat,&
-       wave_mat,big_mat,dt,theta,D0,g,f0,beta)
+       wave_mat,big_mat,dt,theta,D0,g)
     implicit none
     type(state_type), intent(inout) :: state
     type(csr_sparsity), intent(inout) :: u_sparsity, wave_sparsity, &
@@ -56,10 +56,9 @@ contains
     type(csr_matrix), intent(inout) :: h_mass_mat, wave_mat
     type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
          inverse_coriolis_mat, div_mat, big_mat
-    real , intent(in) :: dt,theta,D0,g,f0
-    real, dimension(:), intent(in) :: beta
+    real , intent(in) :: dt,theta,D0,g
     !! Layer thickness
-    type(scalar_field), pointer :: D
+    type(scalar_field), pointer :: D, f
     !! velocity.
     type(vector_field), pointer :: U, X, up
     integer :: dim, ele
@@ -69,6 +68,7 @@ contains
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
+    f=>extract_scalar_field(state, "Coriolis")
     U=>extract_vector_field(state, "LocalVelocity")
     X=>extract_vector_field(state, "CartesianCoordinate")
     up=>extract_vector_field(state, "Up")
@@ -98,10 +98,9 @@ contains
 
     !Assemble matrices
     do ele = 1, ele_count(D)
-       call assemble_shallow_water_matrices_ele(D,U,X,up,ele, &
+       call assemble_shallow_water_matrices_ele(D,f,U,X,up,ele, &
             h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-            div_mat,big_mat,&
-            f0,beta,dt,theta)
+            div_mat,big_mat,dt,theta)
     end do
 
     if(have_option("/debug/check_inverse_coriolis_matrix")) then
@@ -215,7 +214,7 @@ contains
       !
       type(scalar_field) :: h_residual, h_mem
       type(vector_field) :: u_residual, u_mem
-      integer :: dim, d1
+      integer :: dim
       !
       dim = mesh_dim(u)
       !
@@ -372,20 +371,19 @@ contains
       call deallocate(vec)
     end subroutine get_u_rhs
 
-    subroutine assemble_shallow_water_matrices_ele(D,U,X,up,ele, &
+    subroutine assemble_shallow_water_matrices_ele(D,f,U,X,up,ele, &
          h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-         div_mat,big_mat,f0,beta,dt,theta)
+         div_mat,big_mat,dt,theta)
 
       implicit none
-      type(scalar_field), intent(in) :: D
+      type(scalar_field), intent(in) :: D, f
       type(vector_field), intent(in) :: U, X, up
       type(csr_matrix), intent(inout) :: h_mass_mat
       type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
            inverse_coriolis_mat, div_mat, big_mat
 
       integer, intent(in) :: ele
-      real, intent(in) :: f0,dt,theta
-      real, intent(in), dimension(:) :: beta
+      real, intent(in) :: dt,theta
 
       !Assemble h_mass_mat, u_mass_mat, coriolis_mat, inverse_coriolis_mat,
       !div_mat and then big_mat
@@ -393,7 +391,6 @@ contains
       integer, dimension(:), pointer :: D_ele, U_ele
       type(element_type) :: D_shape, u_shape
       real, dimension(ele_ngi(x,ele)) :: f_gi
-      real, dimension(X%dim, ele_ngi(x,ele)) :: x_gi
       real, dimension(X%dim, ele_ngi(up,ele)) :: up_gi
       real, dimension(mesh_dim(U)*ele_loc(U,ele), &
                  mesh_dim(U)*ele_loc(U,ele)) :: l_big_mat, l_coriolis_mat
@@ -414,8 +411,7 @@ contains
       D_ele => ele_nodes(D, ele)
       U_ele => ele_nodes(U, ele)
 
-      x_gi = ele_val_at_quad(X,ele)
-      f_gi = f0! + matmul(beta,x_gi)
+      f_gi = ele_val_at_quad(f,ele)
       up_gi = ele_val_at_quad(up,ele)
 
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &

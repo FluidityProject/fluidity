@@ -97,9 +97,8 @@
                                          ! matrices in this state so that
                                          ! the adjoint callbacks can use
                                          ! them
-    real :: f0, D0, g, theta, itheta
+    real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
-    real, dimension(:), allocatable :: beta
     integer :: timestep, nonlinear_iterations
     integer :: ierr
 
@@ -187,6 +186,9 @@
     if (size(state)/=1) then
        FLExit("Multiple material_phases are not supported")
     end if
+
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
 
     ! Always output the initial conditions.
     call output_state(state)
@@ -304,29 +306,11 @@
 
     subroutine get_parameters()
       implicit none
-      integer :: dim
       type(vector_field), pointer :: u, v_field
       type(scalar_field), pointer :: eta
       type(vector_field) :: dummy_field
 
       !Get some parameters
-      !Coriolis
-      call get_option("/geometry/dimension",dim)
-      allocate(beta(dim))
-      if(have_option("/physical_parameters/coriolis")) then
-         if(have_option("/physical_parameters/coriolis/f_plane")) then
-            call get_option("/physical_parameters/coriolis/f_plane/f",f0)
-            beta = 0.0
-         else if(have_option("/physical_parameters/coriolis/beta_plane")) then
-            call get_option("/physical_parameters/coriolis/beta_plane/f_0",f0)
-            call get_option("/physical_parameters/coriolis/beta_plane/beta",beta)
-         else
-            FLExit('Your chosen Coriolis option is not supported')
-         end if
-      else
-         f0 = 0.
-         beta = 0.
-      end if
       !gravity
       call get_option("/physical_parameters/gravity/magnitude", g)
       !theta
@@ -342,7 +326,7 @@
       call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
            h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
            div_mat,wave_mat,big_mat, &
-           dt,theta,D0,g,f0,beta)
+           dt,theta,D0,g)
 
       call project_cartesian_to_local(state(1))
       if (has_vector_field(state(1), "VelocitySource")) then
@@ -571,20 +555,34 @@
       !!< Allocate and insert fields not specified in schema
       type(state_type), intent(inout) :: state
 
+      ! coriolis
+      type(scalar_field) :: f
       ! velocity in local coordinates
       type(vector_field) :: U_local
       ! direction of up
       type(vector_field) :: up
 
       type(vector_field), pointer :: X, X_m, U
-      character(len=PYTHON_FUNC_LEN) :: upvec
+      character(len=PYTHON_FUNC_LEN) :: coriolis, upvec
+      integer :: stat
 
       X=>extract_vector_field(state, "CartesianCoordinate")
       X_m=>extract_vector_field(state, "ManifoldCoordinate")
       U=>extract_vector_field(state, "CartesianVelocity")
 
+      call allocate(f, X%mesh, "Coriolis")
+      call get_option("/physical_parameters/coriolis", coriolis, stat)
+      if(stat==0) then
+         call set_from_python_function(f, coriolis, X_m, time=0.0)
+      else
+         call zero(f)
+      end if
+      call insert(state, f, "Coriolis")
+      call deallocate(f)
+
       call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
       call zero(U_local)
+      U_local%option_path=U%option_path
       call insert(state, U_local, "LocalVelocity")
       call deallocate(U_local)
 
@@ -941,7 +939,6 @@
       type(vector_field) :: X_cartesian, U_cartesian
       type(tensor_field) :: map
       type(mesh_type), pointer :: x_mesh, U_mesh
-      integer :: node, stat
       character(len=PYTHON_FUNC_LEN) :: projection, vector_map
 
       ewrite(1,*) "In setup_cartesian_vector_fields"
@@ -1008,10 +1005,7 @@
       type(vector_field), pointer :: X, v_field
       type(vector_field) :: v_field_manifold
       type(vector_field) :: v_field_cartesian
-      type(tensor_field) :: map
       type(mesh_type), pointer :: U_mesh
-      integer :: node, stat
-      character(len=PYTHON_FUNC_LEN) :: projection, vector_map
 
       ewrite(1,*) "In setup_cartesian_vector_field for field ", trim(field%name)
 
@@ -1030,7 +1024,6 @@
       v_field_manifold%option_path=v_field%option_path
       call allocate(v_field_cartesian, 3, U_mesh, "Cartesian"//trim(field%name))
       call zero(v_field_cartesian)
-      !U_cartesian%option_path=U%option_path
 
       ! insert fields into state
       call insert(state, v_field_manifold, "Manifold"//trim(field%name))

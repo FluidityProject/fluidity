@@ -313,52 +313,7 @@ This is usually disabled.</a:documentation>
         </optional>
         <optional>
           <element name="coriolis">
-            <choice>
-              <element name="f_plane">
-                <a:documentation>f-plane approximation
-This means the Coriolis force looks like:
-  f k x u
-where k is the z unit vector
-   and u the velocity vector
-   and f is constant</a:documentation>
-                <element name="f">
-                  <a:documentation>f-plane approximation
-This means the Coriolis force looks like:
-  f k x u
-where k is the z unit vector
-   and u the velocity vector
-   and f is constant</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </element>
-              <element name="beta_plane">
-                <a:documentation>Beta-plane approximation
-This means the Coriolis force looks like:
-  f k x u
-where k is the z unit vector
-   and u the velocity vector
-   and f=f_0+beta . (x,y,z)</a:documentation>
-                <element name="f_0">
-                  <a:documentation>Beta-plane approximation
-This means the Coriolis force looks like:
-  f k x u
-where k is the z unit vector
-   and u the velocity vector
-   and f=f_0+beta . (x,y,z)</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="beta">
-                  <a:documentation>Beta-plane approximation
-This means the Coriolis force looks like:
-  f k x u
-where k is the z unit vector
-   and u the velocity vector
-   and f=f_0+beta . (x,y,z)
-usually only the y-component of beta is non-zero</a:documentation>
-                  <ref name="real_dim_vector"/>
-                </element>
-              </element>
-            </choice>
+            <ref name="python_code"/>
           </element>
         </optional>
       </element>
