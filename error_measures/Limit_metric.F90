@@ -194,7 +194,11 @@ contains
       ewrite(-1, *) "Expected elements: ", xpct
       FLAbort("Invalid number of expected elements")
     end if
-    ewrite(2, *) "Expected elements: ", xpct
+    if (lglobal) then
+      ewrite(2, *) "Expected global n/o elements: ", xpct
+    else
+      ewrite(2, *) "Expected n/o elements: ", xpct
+    end if
 
   end function expected_elements
 
