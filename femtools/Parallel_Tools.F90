@@ -1005,7 +1005,7 @@ contains
     !!< Set mpi_comm_femtools to the provided communicator
     !!< If this subroutine is not used, mpi_comm_femtools = mpi_comm_world
 
-    integer, intent(in) :: communicator
+    integer(c_int), intent(in) :: communicator
 
     MPI_COMM_FEMTOOLS = communicator
 
