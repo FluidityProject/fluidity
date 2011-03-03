@@ -3433,7 +3433,7 @@ contains
     case ("fluids")
     case ("oceans")
        call check_ocean_options
-    case ("large_scale_ocean")
+    case ("large_scale_ocean_options")
        call check_large_scale_ocean_options
     case ("multimaterial")
        call check_multimaterial_options
