@@ -1110,6 +1110,11 @@ contains
           call allocate_and_insert_scalar_field('', states(1), parent_mesh='PressureMesh', field_name='harmonic'//int2str(i))
       end do
     end if
+    
+    ! insert radiation fields into states(1)
+    if (have_option('/radiation')) then
+       call allocate_and_insert_radiation_fields(states(1))
+    end if
 
     ! insert miscellaneous scalar fields
     do i=1, size(field_locations)
@@ -1298,6 +1303,443 @@ contains
                   =dont_allocate_prognostic_value_spaces)
       end if
     end subroutine allocate_and_insert_irradiance
+    
+    subroutine allocate_and_insert_radiation_fields(state)
+    
+      !!< Allocate and insert all the fields associated with radiation modelling for each neutral particle object present into states(1)
+      
+      !! This is states(1) as all the radiation fields are inserted into this
+      type(state_type), intent(inout) :: state    
+      
+      ! local variables
+      integer :: g,d,np,l,s ! loop index for energy groups, delayed group, neutral object, fl<-->rad material links, state
+      integer :: number_of_neutral_particle_object
+      integer :: number_of_energy_groups 
+      integer :: number_of_delayed_groups 
+      integer :: fl_mat_phase_to_rad_mat_links 
+      integer :: number_of_fluids_states
+      integer :: material_phase_number
+      logical, dimension(:), allocatable :: material_phase_number_found
+      character(len=OPTION_PATH_LEN) :: field_name, field_path, np_field_path, delayed_field_path
+      character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
+      character(len=OPTION_PATH_LEN) :: object_name, object_path, delayed_path, method_path
+      character(len=OPTION_PATH_LEN) :: mesh_name_np_sol,mesh_name_np_mat,mesh_name_delayed_sol
+      type(scalar_field) :: aux_sfield
+      type(mesh_type), pointer :: x_mesh
+      
+      ewrite(1,*) 'Allocate and insert radiation fields'
+            
+      ! deduce the number of neutral particle object instances
+      number_of_neutral_particle_object = option_count('/radiation/neutral_particle')
+      
+      ewrite(1,*) 'Number of neutral particle objects',number_of_neutral_particle_object
+      
+      neutral_particle_object_loop: do np = 1, number_of_neutral_particle_object
+         
+         !  the object options path, - 1 needed as options count from 0
+         object_path = '/radiation/neutral_particle['//int2str(np - 1)//']' 
+
+         ! get the object name
+         call get_option(trim(object_path)//'/name',object_name)
+         
+         ! the np mesh path's for this object
+         mesh_name_np_sol      = 'NeutralParticleMesh'  
+         mesh_name_np_mat      = 'NeutralParticleMaterialMesh'
+         mesh_name_delayed_sol = 'DelayedNeutronMesh'        
+
+         ! Insert the Keff as a constant scalar field for output
+         x_mesh => extract_mesh(states, 'CoordinateMesh')
+         call allocate(aux_sfield, x_mesh, 'NeutralParticleKeff'//trim(object_name), field_type=FIELD_TYPE_CONSTANT)
+         aux_sfield%option_path = ''
+         call zero(aux_sfield)
+         call insert(state, aux_sfield, trim(aux_sfield%name))
+         call deallocate(aux_sfield)
+                                       
+         ! deduce the number of neutral particle flux fields to create = number_energy_groups 
+         call get_option(trim(object_path)//'/number_of_energy_groups',number_of_energy_groups)         
+            
+         ! set the method path
+         method_path = trim(object_path)//'/method_diffusion'
+                                 
+         ! create the neutral particle flux fields needed for each energy group g within state using the template
+         ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
+         group_loop: do g = 1,number_of_energy_groups
+            
+            np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFluxTemplate'
+                                    
+            ! form the field name using the object name and group number 
+            field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
+                  
+            call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                  state, &
+                                                  parent_mesh = trim(mesh_name_np_sol), & 
+                                                  field_name = trim(field_name), &
+                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+            
+            ! no option path for Old such as not in output
+            np_field_path = ''
+                                    
+            ! form the field name using the object name and group number 
+            field_name = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(object_name)
+                  
+            call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                  state, &
+                                                  parent_mesh = trim(mesh_name_np_sol), & 
+                                                  field_name = trim(field_name), &
+                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+                  
+         end do group_loop
+                  
+         ! now allocate and insert the time run prescribed source fields into state for this np object
+         include_prescribed_source_if: if (have_option(trim(object_path)//'/time_run/include_prescribed_source')) then
+         
+            prescribed_source_loop: do s = 1,option_count(trim(object_path)//'/time_run/include_prescribed_source/source_scalar_field')
+               
+               field_path = trim(object_path)//'/time_run/include_prescribed_source/source_scalar_field['//int2str(s - 1)//']'
+            
+               field_name = 'NeutralParticlePrescribedSource'//int2str(s)//trim(object_name)
+            
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+            
+            end do prescribed_source_loop
+         
+         end if include_prescribed_source_if
+
+         ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the region id
+         region_id_if: if (have_option(trim(object_path)//'/region_id_material_mapping')) then
+            
+            ! insert the fission field 
+            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadFissionTemplate'
+            
+            region_fission_field: if (have_option(field_path)) then
+            
+               field_name = 'RadRegionFission'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                        
+            end if region_fission_field
+
+            ! insert the power field 
+            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadPowerTemplate'
+            
+            region_power_field: if (have_option(field_path)) then
+            
+               field_name = 'RadRegionPower'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                            
+            end if region_power_field   
+
+         end if region_id_if
+         
+         ! if linked with multimaterial then insert the relevant fields 
+         ! ie. RadMaterialVolumeFraction, RadMaterialTemperature and RadMaterialFission and RadMaterialPower
+         multimaterial_link: if (have_option(trim(object_path)//'/link_with_multimaterial')) then
+         
+            ! find the number of fluids state - ie. material_phase
+            number_of_fluids_states = option_count('/material_phase')
+            
+            ! find the number of option links between fluids material_phases and physical radiation materials for this object
+            fl_mat_phase_to_rad_mat_links = option_count(trim(object_path)//'/link_with_multimaterial&
+                                                         &/fluids_material_phase_to_physical_radiation_material_map')
+            
+            ! exit code if user error of not assigning enough material mappings
+            if (number_of_fluids_states /= fl_mat_phase_to_rad_mat_links) then
+               
+               ewrite(-1,*) 'Radiation input error for the object ',trim(object_name)
+               FLExit('Not every fluid material_phase has an assigned radiation material when using link_with_multimaterial')
+            
+            end if
+
+            ! check that there is no duplication of mapping
+            allocate(material_phase_number_found(number_of_fluids_states))
+            material_phase_number_found = .false.
+            
+            ! loop the fl<-->rt material links
+            fl_to_rad_material_links_loop: do l = 1, fl_mat_phase_to_rad_mat_links
+               
+               ! get the material phase name with which this link is concerned (- 1 needed as options count from 0)
+               call get_option(trim(object_path)//'/link_with_multimaterial&
+                              &/fluids_material_phase_to_physical_radiation_material_map['//int2str(l - 1)//']&
+                              &/name',material_phase_name_link) 
+               
+               ! find which material_phase (or state) this name is associated with, initialise to 0 such as can exit if none found
+               material_phase_number = 0
+               state_loop: do s = 1, number_of_fluids_states
+                  
+                  ! get the material phase name
+                  call get_option('/material_phase['//int2str(s - 1)//']/name',material_phase_name)
+                  
+                  ! see if the name's match 
+                  name_match_if: if (trim(material_phase_name_link) == trim(material_phase_name)) then
+                     
+                     ! if this material_phase already mapped then this is a user input error so exit
+                     another_match_found: if (material_phase_number_found(s)) then
+                     
+                        ewrite(-1,*) 'Radiation input error for the object ',trim(object_name),& 
+                                    &' for fluids_material_phase_to_physical_radiation_material_map ',l,&
+                                    &' for material_phase ',s
+                        FLExit('Name of material_phase appeared more than once in fluids to radiation material mapping')
+                     
+                     end if another_match_found
+                     
+                     ! assign the material phase number
+                     material_phase_number = s
+                     
+                     ! set the found flag
+                     material_phase_number_found(s) = .true.
+                     
+                     ! exit loop 
+                     exit state_loop
+                  
+                  end if name_match_if   
+               
+               end do state_loop
+               
+               ! if no matching material names were found then exit - user error
+               no_match_if: if (material_phase_number == 0) then
+               
+                  ewrite(-1,*) 'Radiation input error for the object ',trim(object_name),& 
+                              &' for fluids_material_phase_to_physical_radiation_material_map ',l
+                  FLExit('Name of material phase link does not match any of the fluids material_phase names')
+               
+               end if no_match_if
+               
+               ! create and input the RadMaterialVolumeFraction into state that is always on the NeutralParticleMaterialMesh
+               field_path = trim(object_path)//'/link_with_multimaterial&
+                           &/fluids_material_phase_to_physical_radiation_material_map['//int2str(l - 1)//']&
+                           &/scalar_field::RadMaterialVolumeFractionTemplate'
+               
+               field_name = 'RadMaterialVolumeFraction'//int2str(material_phase_number)//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                              
+            end do fl_to_rad_material_links_loop
+            
+            deallocate(material_phase_number_found)
+            
+            ! create and input the multimaterial RadMaterialTemperature into state that is always on the NeutralParticleMaterialMesh
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadMaterialTemperatureTemplate'
+            radmaterialtemperature_if: if (have_option(trim(field_path))) then
+            
+               field_name = 'RadMaterialTemperature'//trim(object_name)
+            
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+            
+            end if radmaterialtemperature_if
+
+            ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the multimaterial
+            
+            ! insert the fission field 
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadFissionTemplate'
+            
+            multimaterial_fission_field: if (have_option(field_path)) then
+            
+               field_name = 'RadMaterialFission'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                        
+            end if multimaterial_fission_field
+
+            ! insert the power field 
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadPowerTemplate'
+            
+            multimaterial_power_field: if (have_option(field_path)) then
+            
+               field_name = 'RadMaterialPower'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                            
+            end if multimaterial_power_field   
+                     
+         end if multimaterial_link
+
+         ! if linked with porous media then insert the RadPorosity, RadPorousTemperatureMedia, RadPorousFission and RadPorousPower fields
+         ! for this object into state, that are always on the NeutralParticleMaterialMesh 
+         porous_link: if (have_option(trim(object_path)//'/link_with_porous_media')) then
+         
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorosityTemplate'
+            
+            field_name = 'RadPorosity'//trim(object_name)
+            
+            call allocate_and_insert_scalar_field(trim(field_path), &
+                                                  state, &
+                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  field_name = trim(field_name), &
+                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorousTemperatureTemplate'
+            
+            radtemperatureporous_if: if (have_option(trim(field_path))) then
+            
+               field_name = 'RadPorousTemperature'//trim(object_name)
+            
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+            
+            end if radtemperatureporous_if
+            
+            ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the porous media
+            
+            ! insert the fission field 
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadFissionTemplate'
+            
+            porous_fission_field: if (have_option(field_path)) then
+            
+               field_name = 'RadPorousFission'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                        
+            end if porous_fission_field
+
+            ! insert the power field 
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPowerTemplate'
+            
+            porous_power_field: if (have_option(field_path)) then
+            
+               field_name = 'RadPorousPower'//trim(object_name)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                            
+            end if porous_power_field   
+            
+         end if porous_link
+                        
+         ! insert the total fission and power that are always on the NeutralParticleMaterialMesh
+            
+         ! insert the fission field 
+         field_path = trim(object_path)//'/scalar_field::RadFissionTemplate'
+         
+         total_fission_field: if (have_option(field_path)) then
+            
+            field_name = 'RadTotalFission'//trim(object_name)
+
+            call allocate_and_insert_scalar_field(trim(field_path), &
+                                                  state, &
+                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  field_name = trim(field_name), &
+                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                        
+         end if total_fission_field
+
+         ! insert the power field 
+         field_path = trim(object_path)//'/scalar_field::RadPowerTemplate'
+         
+         total_power_field: if (have_option(field_path)) then
+            
+            field_name = 'RadTotalPower'//trim(object_name)
+
+            call allocate_and_insert_scalar_field(trim(field_path), &
+                                                  state, &
+                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  field_name = trim(field_name), &
+                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                          
+         end if total_power_field   
+            
+         ! insert delayed fields if needed  that are always on the DelayedNeutronMesh                 
+         have_delayed_if: if (have_option(trim(object_path)//'/delayed_neutron_precursor')) then
+                                 
+            ! set the delayed path
+            delayed_path = trim(object_path)//'/delayed_neutron_precursor'                
+                                                                   
+            ! get the number of delayed groups
+            call get_option(trim(delayed_path)//'/number_delayed_neutron_precursor_groups',number_of_delayed_groups)
+                                    
+            dgroup_loop: do d = 1,number_of_delayed_groups
+                     
+               ! form the correct field name dependent on the linking options
+               delayed_region_id_if: if (have_option(trim(delayed_path)//'/link_with_region_id')) then
+  
+                  ! the field template path
+                  delayed_field_path = trim(delayed_path)//'/link_with_region_id/scalar_field::DelayedNeutronPrecursorTemplate'
+               
+                  field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Region'//trim(object_name)
+                 
+                  call allocate_and_insert_scalar_field(trim(delayed_field_path), &
+                                                        state, &
+                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        field_name = trim(field_name), &
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                                                                
+               end if delayed_region_id_if
+                  
+               delayed_multimaterial_if: if (have_option(trim(delayed_path)//'/link_with_multimaterial')) then  
+
+                  ! the field template path
+                  delayed_field_path = trim(delayed_path)//'/link_with_multimaterial/scalar_field::DelayedNeutronPrecursorTemplate'
+               
+                  field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Material'//trim(object_name)
+                 
+                  call allocate_and_insert_scalar_field(trim(delayed_field_path), &
+                                                        state, &
+                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        field_name = trim(field_name), &
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                  
+               end if delayed_multimaterial_if
+                  
+               delayed_porous_if: if (have_option(trim(delayed_path)//'/link_with_porous_media')) then  
+
+                  ! the field template path
+                  delayed_field_path = trim(delayed_path)//'/link_with_porous_media/scalar_field::DelayedNeutronPrecursorTemplate'
+               
+                  field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Porous'//trim(object_name)
+                 
+                  call allocate_and_insert_scalar_field(trim(delayed_field_path), &
+                                                        state, &
+                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        field_name = trim(field_name), &
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                                          
+               end if delayed_porous_if 
+                              
+            end do dgroup_loop  
+                                                
+         end if have_delayed_if           
+                               
+      end do neutral_particle_object_loop
+             
+    end subroutine allocate_and_insert_radiation_fields
 
   end subroutine allocate_and_insert_fields
 
@@ -2371,7 +2813,7 @@ contains
       nsfields=scalar_field_count(states(p))
 
       ! Loop over scalar fields
-      do f=1, nsfields
+      sfields_loop: do f=1, nsfields
 
         sfield => extract_scalar_field(states(p), f)
 
@@ -2380,7 +2822,10 @@ contains
 
         ! Get field name - this checks if the field has an option_path
         call get_option(trim(field_path)//"/name", field_name, stat)
-
+        
+        ! Cycle this loop for the radiation fields NeutralParticle
+        if (field_name(1:15) == 'NeutralParticle') cycle sfields_loop
+        
         if((stat==0).and.(.not.aliased(sfield))) then
 
           prognostic=have_option(trim(sfield%option_path)//"/prognostic")
@@ -2431,7 +2876,7 @@ contains
 
         end if
 
-      end do
+      end do sfields_loop
 
       ! Get number of vector fields that are children of this state
       nvfields=vector_field_count(states(p))
