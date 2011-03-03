@@ -695,7 +695,6 @@ prognostic_velocity_field =
          attribute rank { "1" },
          (
             element prescribed {
-               mesh_choice?,
                prescribed_vector_field_no_adapt
             }
          )
@@ -785,6 +784,15 @@ prognostic_layerthickness_field =
       element mean_layer_thickness {
          real
       },
+      ## Source
+      element scalar_field {
+         attribute name { "Source" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }
+         )
+      }?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       adaptivity_options_prognostic_scalar_field,

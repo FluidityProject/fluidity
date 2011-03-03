@@ -855,9 +855,6 @@ requires a distinct name for the options dictionary.</a:documentation>
           <value>1</value>
         </attribute>
         <element name="prescribed">
-          <optional>
-            <ref name="mesh_choice"/>
-          </optional>
           <ref name="prescribed_vector_field_no_adapt"/>
         </element>
       </element>
@@ -951,6 +948,17 @@ requires a distinct name for the options dictionary.</a:documentation>
 Will be replaced by a field in due course</a:documentation>
       <ref name="real"/>
     </element>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>Source</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="prescribed_scalar_field_no_adapt"/>
+        </element>
+      </element>
+    </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>

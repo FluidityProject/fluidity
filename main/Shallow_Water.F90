@@ -203,7 +203,7 @@
 
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
-            exclude_nonreprescribed=.true., time=current_time+dt)
+            exclude_nonreprescribed=.true., time=current_time + (theta * dt))
        if (has_vector_field(state(1), "VelocitySource")) then
           v_field => extract_vector_field(state(1), "VelocitySource")
           v_field_cartesian => extract_vector_field(state(1), "CartesianVelocitySource")
@@ -214,6 +214,8 @@
        call execute_timestep(state(1), dt)
        call adjoint_register_timestep(timestep, dt, state)
 
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time + dt)
        call project_local_to_cartesian(state(1))
        call map_to_manifold(state(1))
        call calculate_diagnostic_variables(state,&
@@ -398,14 +400,14 @@
       real, intent(in) :: dt
 
       !! Layer thickness
-      type(scalar_field), pointer :: D
+      type(scalar_field), pointer :: D, d_src
       !! velocity
       type(vector_field), pointer :: U
       !! Source term
       type(vector_field), pointer :: source
 
       !!Intermediate fields
-      type(scalar_field) :: d_rhs, delta_d, old_d
+      type(scalar_field) :: d_rhs, delta_d, old_d, md_src
       type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
       type(scalar_field) :: velocity_cpt, old_velocity_cpt
       integer :: dim, nit, d1
@@ -475,6 +477,16 @@
 
          !Construct explicit parts of h rhs in wave equation
          call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
+
+         if (has_scalar_field(state, "LayerThicknessSource")) then
+           d_src => extract_scalar_field(state, "LayerThicknessSource")
+           call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
+           call zero(md_src)
+           call mult(md_src, h_mass_mat, d_src)
+           call addto(d_rhs, md_src, scale=dt)
+           call deallocate(md_src)
+         endif
+
          !Solve wave equation for D update
          delta_d%option_path = d%option_path
          call petsc_solve(delta_d, wave_mat, d_rhs)
