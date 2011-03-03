@@ -171,6 +171,12 @@ contains
 
     INTEGER :: adapt_count
 
+    ! the neutral particle (np) object associated radiation materials 
+    type(np_radmat_type), dimension(:), allocatable :: np_radmats
+   
+    ! the neutral particle (np) associated radiation material (radmat) interpolation instructions (ii)
+    type (np_radmat_ii_type), dimension(:), allocatable :: np_radmats_ii
+
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
     ewrite(1,*) "Options sanity check successful"
@@ -221,7 +227,9 @@ contains
 
     ! Initialise radiation specific data types - needs to be after populate state
     if(have_option("/radiation")) then
-        call radiation_initialise()
+        call radiation_initialise(state(1), &
+                                  np_radmats, &
+                                  np_radmats_ii)
     end if
 
     ewrite(3,*)'before have_option test'
@@ -420,6 +428,14 @@ contains
     ! Initialise k_epsilon
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_init(state(1))
+    end if
+
+    ! radiation eigenvalue run solve
+    if(have_option("/radiation")) then
+       call radiation_solve(state(1), &
+                            np_radmats, &
+                            np_radmats_ii, &
+                            invoke_eigenvalue_solve=.true.)
     end if
 
     ! ******************************
@@ -814,6 +830,14 @@ contains
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
+       ! radiation time run solve - which may be coupled to fluids via diagnostic fields
+       if( have_option("/radiation") ) then
+          call radiation_solve(state(1), &
+                               np_radmats, &
+                               np_radmats_ii, &
+                               invoke_eigenvalue_solve=.false.)
+       end if
+          
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
@@ -912,6 +936,12 @@ contains
 
     if (have_option("/material_phase[0]/sediment")) then
         call sediment_cleanup()
+    end if
+
+    ! radiation cleanup
+    if( have_option("/radiation") ) then
+       call radiation_cleanup(np_radmats, &
+                              np_radmats_ii)
     end if
 
     ! closing .stat, .convergence and .detector files
