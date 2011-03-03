@@ -26,19 +26,19 @@ module unittest_tools
   end interface
 
   interface operator(.feq.)
-    module procedure fequals_scalar_op, fequals_array_op, fequals_array_scalar_op, fequals_matrix_op
+    module procedure fequals_scalar_op, fequals_array_op, fequals_array_scalar_op, fequals_matrix_op, fequals_matrix_scalar_op
   end interface
 
   interface operator(.fne.)
-    module procedure fne_scalar_op, fne_array_op, fne_array_scalar_op, fne_matrix_op
+    module procedure fne_scalar_op, fne_array_op, fne_array_scalar_op, fne_matrix_op, fne_matrix_scalar_op
   end interface
 
   interface fequals
-    module procedure fequals_scalar, fequals_array, fequals_array_scalar, fequals_matrix, dcsr_fequals
+    module procedure fequals_scalar, fequals_array, fequals_array_scalar, fequals_matrix, fequals_matrix_scalar, dcsr_fequals
   end interface
 
   interface fnequals
-    module procedure fne_scalar, fne_array, fne_array_scalar, fne_matrix
+    module procedure fne_scalar, fne_array, fne_array_scalar, fne_matrix, fne_matrix_scalar
   end interface
   
   interface is_nan
@@ -166,6 +166,26 @@ module unittest_tools
     nequals = fnequals(mat1, mat2)
 
   end function fne_matrix_op
+  
+  pure function fequals_matrix_scalar_op(mat1, float2) result(equals)
+    real, dimension(:, :), intent(in) :: mat1
+    real, intent(in) :: float2
+    
+    logical :: equals
+
+    equals = fequals(mat1, float2)
+
+  end function fequals_matrix_scalar_op
+  
+  pure function fne_matrix_scalar_op(mat1, float2) result (nequals)
+    real, dimension(:, :), intent(in) :: mat1
+    real, intent(in) :: float2
+    
+    logical :: nequals
+
+    nequals = fnequals(mat1, float2)
+
+  end function fne_matrix_scalar_op
 
   pure function fequals_scalar(float1, float2, tol) result(equals)
     !!< This function checks if float1 == float2, to within tol (or
@@ -288,9 +308,40 @@ module unittest_tools
     
     logical :: nequals
 
-    nequals = .not. fequals_matrix(mat1, mat2, tol = tol)
+    nequals = .not. fequals(mat1, mat2, tol = tol)
 
   end function fne_matrix
+
+  pure function fequals_matrix_scalar(mat1, float2, tol) result(equals)
+    real, dimension(:, :), intent(in) :: mat1
+    real, intent(in) :: float2
+    real, optional, intent(in) :: tol
+    
+    logical :: equals
+
+    integer :: i
+
+    do i = 1, size(mat1, 1)
+      if(fnequals(mat1(i, :), float2, tol = tol)) then
+        equals = .false.
+        return
+      end if
+    end do
+
+    equals = .true.
+
+  end function fequals_matrix_scalar
+  
+  pure function fne_matrix_scalar(mat1, float2, tol) result (nequals)
+    real, dimension(:, :), intent(in) :: mat1
+    real, intent(in) :: float2
+    real, optional, intent(in) :: tol
+    
+    logical :: nequals
+
+    nequals = .not. fequals(mat1, float2, tol = tol)
+
+  end function fne_matrix_scalar
 
   function dcsr_fequals(A, B, tol)
     !!< Checks if the dynamic matrices A and B are the same
