@@ -84,7 +84,7 @@ THREADS=1
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $<
 
-default: bin/@FLUIDITY@
+default: bin/shallow_water bin/@FLUIDITY@
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
@@ -389,7 +389,7 @@ clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; ../tools/testharness.py --clean >/dev/null
 
-test: fltools bin/@FLUIDITY@ serialtest
+test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest
 
 serialtest:
 ifeq (@MBA2D@,yes)
