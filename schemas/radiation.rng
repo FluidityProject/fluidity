@@ -1,0 +1,1013 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!-- The radiation options -->
+  <define name="all_neutral_particle_mesh">
+    <optional>
+      <ref name="neutral_particle_mesh"/>
+    </optional>
+    <optional>
+      <ref name="neutral_particle_material_mesh"/>
+    </optional>
+    <optional>
+      <ref name="delayed_neutron_mesh"/>
+    </optional>
+  </define>
+  <define name="neutral_particle_mesh">
+    <element name="mesh">
+      <a:documentation>The mesh associated with the neutral particle solution</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>NeutralParticleMesh</value>
+      </attribute>
+      <element name="from_mesh">
+        <a:documentation>Derived from the mesh</a:documentation>
+        <ref name="comment"/>
+        <element name="mesh">
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>CoordinateMesh</value>
+          </attribute>
+        </element>
+        <optional>
+          <element name="mesh_shape">
+            <a:documentation>The trial space basis function options</a:documentation>
+            <ref name="comment"/>
+            <optional>
+              <element name="polynomial_degree">
+                <a:documentation>The order of the basis functions</a:documentation>
+                <ref name="comment"/>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <element name="mesh_continuity">
+          <a:documentation>The continuity associated with the mesh</a:documentation>
+          <ref name="comment"/>
+          <element name="string_value">
+            <value>continuous</value>
+          </element>
+        </element>
+        <ref name="exclude_mesh_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="neutral_particle_material_mesh">
+    <element name="mesh">
+      <a:documentation>The mesh associated with the material mapping used to solve for the neutral particle 
+is always volume element wise (ie. DG order zero or FV)</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>NeutralParticleMaterialMesh</value>
+      </attribute>
+      <element name="from_mesh">
+        <a:documentation>Derived from the mesh</a:documentation>
+        <ref name="comment"/>
+        <element name="mesh">
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>CoordinateMesh</value>
+          </attribute>
+        </element>
+        <element name="mesh_shape">
+          <a:documentation>The trial space basis function options</a:documentation>
+          <ref name="comment"/>
+          <element name="polynomial_degree">
+            <a:documentation>The order of the basis functions</a:documentation>
+            <ref name="comment"/>
+            <element name="integer_value">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <value>0</value>
+            </element>
+          </element>
+        </element>
+        <element name="mesh_continuity">
+          <a:documentation>The continuity associated with the mesh</a:documentation>
+          <ref name="comment"/>
+          <element name="string_value">
+            <value>discontinuous</value>
+          </element>
+        </element>
+        <ref name="exclude_mesh_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="delayed_neutron_mesh">
+    <element name="mesh">
+      <a:documentation>The mesh associated with the delayed precursor concentration solution</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>DelayedNeutronMesh</value>
+      </attribute>
+      <element name="from_mesh">
+        <a:documentation>Derived from the mesh</a:documentation>
+        <ref name="comment"/>
+        <element name="mesh">
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>CoordinateMesh</value>
+          </attribute>
+        </element>
+        <optional>
+          <element name="mesh_shape">
+            <a:documentation>The trial space basis function options</a:documentation>
+            <ref name="comment"/>
+            <optional>
+              <element name="polynomial_degree">
+                <a:documentation>The order of the basis functions</a:documentation>
+                <ref name="comment"/>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <a:documentation>The continuity associated with the mesh</a:documentation>
+            <ref name="comment"/>
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <ref name="exclude_mesh_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="exclude_mesh_stat">
+    <element name="stat">
+      <ref name="comment"/>
+      <choice>
+        <element name="exclude_from_stat">
+          <a:documentation>Exclude this mesh from the .stat file</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="include_in_stat">
+          <a:documentation>Include this mesh in the .stat file</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="radiation">
+    <element name="radiation">
+      <a:documentation>Radiation model </a:documentation>
+      <ref name="comment"/>
+      <oneOrMore>
+        <ref name="particle"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="particle">
+    <element name="neutral_particle">
+      <a:documentation>neutral particle object, each instance is tagged with a string name</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <ref name="number_of_energy_groups"/>
+      <ref name="radiation_method"/>
+      <ref name="problem_run"/>
+      <ref name="read_radiation_material_data_set"/>
+      <ref name="radiation_material_mapping"/>
+      <optional>
+        <ref name="Rad_Fission_and_Power_Template"/>
+      </optional>
+      <optional>
+        <ref name="delayed_precursor"/>
+      </optional>
+    </element>
+  </define>
+  <define name="radiation_method">
+    <element name="method_diffusion">
+      <a:documentation>Multigroup diffusion </a:documentation>
+      <ref name="comment"/>
+      <ref name="neutral_particle_flux_template_diffusion"/>
+    </element>
+  </define>
+  <define name="number_of_energy_groups">
+    <element name="number_of_energy_groups">
+      <a:documentation>The number of energy groups</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer"/>
+    </element>
+  </define>
+  <define name="neutral_particle_flux_template_diffusion">
+    <element name="scalar_field">
+      <a:documentation>The template neutral particle flux density scalar field for diffusion method equation</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>NeutralParticleFluxTemplate</value>
+      </attribute>
+      <ref name="prognostic_neutral_particle_diffusion_removal_source_scalar_field"/>
+    </element>
+  </define>
+  <define name="prognostic_neutral_particle_diffusion_removal_source_scalar_field">
+    <element name="prognostic">
+      <a:documentation>Field Type</a:documentation>
+      <ref name="comment"/>
+      <ref name="radiation_diffusion_spatial_discretisation"/>
+      <ref name="radiation_diffusion_inner_solver_options"/>
+      <oneOrMore>
+        <ref name="radiation_initial_conditions"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="radiation_diffusion_boundary_conditions"/>
+      </zeroOrMore>
+      <ref name="radiation_output_options"/>
+      <ref name="radiation_stat_options"/>
+      <ref name="scalar_convergence_options"/>
+      <ref name="prognostic_detector_options"/>
+      <ref name="scalar_steady_state_options"/>
+      <ref name="adaptivity_options_scalar_field"/>
+      <ref name="interpolation_algorithm_scalar"/>
+    </element>
+  </define>
+  <define name="radiation_diffusion_spatial_discretisation">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <ref name="comment"/>
+      <element name="continuous_galerkin">
+        <a:documentation>Continuous galerkin formulation</a:documentation>
+        <ref name="comment"/>
+      </element>
+    </element>
+  </define>
+  <define name="radiation_diffusion_inner_solver_options">
+    <element name="solver">
+      <a:documentation>The inner solver options</a:documentation>
+      <ref name="comment"/>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+  </define>
+  <define name="radiation_initial_conditions">
+    <element name="initial_condition">
+      <a:documentation>Initial condition for WholeMesh for all groups</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <choice>
+        <element name="constant">
+          <a:documentation>Constant value</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="from_file">
+          <a:documentation>Initialise the field from an existing file (indended
+primarily for use in checkpointing). The file mesh must match
+the mesh of this field  (except for piecewise constant fields 
+which will be remapped back from the discontinuous nodal values). 
+In parallel the process number is
+appended to the filename, e.g. if the file_name attribute is
+set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
+          <attribute name="file_name">
+            <data type="string"/>
+          </attribute>
+          <ref name="vtu_input_format"/>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="radiation_diffusion_boundary_conditions">
+    <element name="boundary_conditions">
+      <a:documentation>The problem boundary conditions </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <ref name="surface_ids"/>
+      <ref name="diffusion_bc_type"/>
+    </element>
+  </define>
+  <define name="surface_ids">
+    <element name="surface_ids">
+      <a:documentation>The surface id associated with this boundary condition</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer_vector"/>
+    </element>
+  </define>
+  <define name="diffusion_bc_type">
+    <choice>
+      <a:documentation>Type</a:documentation>
+      <ref name="diffusion_vacuum"/>
+      <ref name="diffusion_reflective"/>
+      <ref name="diffusion_dirichlet"/>
+    </choice>
+  </define>
+  <define name="diffusion_vacuum">
+    <element name="type">
+      <a:documentation>Vacuum</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>vacuum</value>
+      </attribute>
+      <element name="constant">
+        <ref name="comment"/>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <value>0.5</value>
+      </element>
+    </element>
+  </define>
+  <define name="diffusion_reflective">
+    <element name="type">
+      <a:documentation>Reflective</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>reflective</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="diffusion_dirichlet">
+    <element name="type">
+      <a:documentation>Dirichlet </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>dirichlet</value>
+      </attribute>
+      <ref name="input_choice_real"/>
+    </element>
+  </define>
+  <define name="radiation_output_options">
+    <element name="output">
+      <a:documentation>Specify what is written to vtu dump files</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <element name="exclude_from_vtu">
+          <a:documentation>Exclude this field from dump files</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="radiation_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to the .stat file</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <element name="exclude_from_stat">
+          <a:documentation>Exclude this field from the .stat file</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="problem_run">
+    <choice>
+      <ref name="eigenvalue_run"/>
+      <ref name="time_run"/>
+    </choice>
+  </define>
+  <define name="eigenvalue_run">
+    <element name="eigenvalue_run">
+      <a:documentation>Eigenvalue run </a:documentation>
+      <ref name="comment"/>
+      <ref name="eigenvalue_run_solver"/>
+      <ref name="flux_normalisation_options"/>
+    </element>
+  </define>
+  <define name="eigenvalue_run_solver">
+    <group>
+      <a:documentation>Eigen Solver Algorithm</a:documentation>
+      <element name="power_iteration">
+        <a:documentation>Power Iterations</a:documentation>
+        <ref name="comment"/>
+        <ref name="power_iteration_element"/>
+      </element>
+    </group>
+  </define>
+  <define name="flux_normalisation_options">
+    <element name="flux_normalisation">
+      <a:documentation>The neutron flux eigenvector normalisation </a:documentation>
+      <ref name="comment"/>
+      <choice>
+        <element name="total_power">
+          <a:documentation>normalise too a total power</a:documentation>
+          <ref name="comment"/>
+          <ref name="real"/>
+        </element>
+        <element name="total_flux">
+          <a:documentation>normalise too a total flux</a:documentation>
+          <ref name="comment"/>
+          <ref name="real"/>
+        </element>
+        <element name="total_fission">
+          <a:documentation>normalise too a total fission</a:documentation>
+          <ref name="comment"/>
+          <ref name="real"/>
+        </element>
+        <element name="total_production">
+          <a:documentation>normalise too a total production</a:documentation>
+          <ref name="comment"/>
+          <ref name="real"/>
+        </element>
+      </choice>
+      <optional>
+        <element name="domain_symmetry_factor">
+          <a:documentation>normalisation domain symmetry factor</a:documentation>
+          <ref name="comment"/>
+          <ref name="integer"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="power_iteration_element">
+    <element name="maximum">
+      <a:documentation>The maximum number of power iterations</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer"/>
+    </element>
+    <element name="flux_tolerance">
+      <a:documentation>The power iteration tolerance for the flux</a:documentation>
+      <ref name="comment"/>
+      <ref name="real"/>
+    </element>
+    <element name="keff_tolerance">
+      <a:documentation>The power iteration tolerance for the eigenvalue called keff</a:documentation>
+      <ref name="comment"/>
+      <ref name="real"/>
+    </element>
+    <optional>
+      <ref name="scatter_group_iteration_options"/>
+    </optional>
+    <optional>
+      <element name="exit_if_successive_keff_converged">
+        <a:documentation>Exit the power iteration loop if a prescribed number of consecutive keff are converged
+irrespective of the flux eigenvector convergence </a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="terminate_if_not_converged">
+        <a:documentation>Terminate the simulation if the maximum number of power
+iterations is reached and the tolerance criteria (both flux and keff) are not met.</a:documentation>
+        <ref name="comment"/>
+        <empty/>
+      </element>
+    </optional>
+  </define>
+  <define name="scatter_group_iteration_options">
+    <element name="scatter_group_iteration">
+      <a:documentation>The scatter group iteration options (if not present then only one iteration)</a:documentation>
+      <ref name="comment"/>
+      <element name="maximum">
+        <a:documentation>The maximum number of scatter group iterations</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+      <element name="flux_tolerance">
+        <a:documentation>The scatter group iteration tolerance for the flux</a:documentation>
+        <ref name="comment"/>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="highest_upscatter_group">
+          <a:documentation>The highest upscatter group, if enabled scatter iterations after the
+first will start sweeping down from this group</a:documentation>
+          <ref name="comment"/>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="terminate_if_not_converged">
+          <a:documentation>Terminate the simulation if the maximum number of scatter
+iterations is reached and the tolerance criterion is not met.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <optional>
+        <ref name="whole_domain_energy_group_rebalance_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="time_run">
+    <element name="time_run">
+      <a:documentation>Perform a time dependent run. Can also be used for steady state run via one large time step.</a:documentation>
+      <ref name="comment"/>
+      <ref name="radiation_temporal_discretisation"/>
+      <ref name="energy_group_iteration_options"/>
+      <optional>
+        <ref name="prescribed_source"/>
+      </optional>
+    </element>
+  </define>
+  <define name="radiation_temporal_discretisation">
+    <element name="temporal_discretisation">
+      <a:documentation>The temporal discretisation options </a:documentation>
+      <ref name="comment"/>
+      <element name="theta">
+        <a:documentation>the theta value</a:documentation>
+        <ref name="comment"/>
+        <ref name="real"/>
+      </element>
+    </element>
+  </define>
+  <define name="energy_group_iteration_options">
+    <element name="energy_group_iteration">
+      <a:documentation>Set the energy group iteration</a:documentation>
+      <ref name="comment"/>
+      <element name="maximum">
+        <a:documentation>The maximum number of energy group iterations</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+      <element name="tolerance">
+        <a:documentation>The energy group iteration tolerance </a:documentation>
+        <ref name="comment"/>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <ref name="scatter_group_iteration_options"/>
+      </optional>
+      <optional>
+        <element name="terminate_if_not_converged">
+          <a:documentation>Terminate the simulation if the maximum number of energy group
+iterations is reached and the tolerance criterion is not met.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <optional>
+        <ref name="whole_domain_energy_group_rebalance_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="whole_domain_energy_group_rebalance_options">
+    <element name="whole_domain_group_rebalance">
+      <a:documentation>Whole domain rebalance acceleration of group iteration   </a:documentation>
+      <ref name="comment"/>
+      <choice>
+        <element name="all_group">
+          <a:documentation>One rebalance factor for ALL groups </a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="within_group">
+          <a:documentation>One rebalance factor for EACH group</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="prescribed_source">
+    <element name="include_prescribed_source">
+      <a:documentation>Include prescribed source</a:documentation>
+      <ref name="comment"/>
+      <oneOrMore>
+        <element name="source_scalar_field">
+          <a:documentation>Prescribed source term for a particular energy group</a:documentation>
+          <ref name="comment"/>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <choice>
+            <element name="energy_group">
+              <a:documentation>The energy group this source is associated with </a:documentation>
+              <ref name="comment"/>
+              <ref name="integer"/>
+            </element>
+            <element name="all_group">
+              <a:documentation>All energy groups associated with this source</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </choice>
+          <element name="prescribed">
+            <ref name="comment"/>
+            <ref name="prescribed_source_scalar_field"/>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="prescribed_source_scalar_field">
+    <ref name="prescribed_values_scalar_field"/>
+    <ref name="radiation_output_options"/>
+    <ref name="radiation_stat_options"/>
+    <ref name="prescribed_detector_options"/>
+  </define>
+  <define name="read_radiation_material_data_set">
+    <oneOrMore>
+      <element name="radiation_material_data_set_from_file">
+        <a:documentation>Read radiation material data set from multiple external files</a:documentation>
+        <ref name="comment"/>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <ref name="number_of_scatter_moments"/>
+        <element name="format_wims9plus">
+          <a:documentation>a format that is a extension of the wims9 LISTTO interface that includes
+extra data (eg. velocity, delayed, energy released) and with the options 
+to read different data items (eg. total or absorption)</a:documentation>
+          <ref name="comment"/>
+          <element name="maximum_record_length">
+            <a:documentation>The maximum line (or record) length of the input file</a:documentation>
+            <ref name="comment"/>
+            <ref name="integer"/>
+          </element>
+        </element>
+        <oneOrMore>
+          <element name="physical_material">
+            <a:documentation>define each physical material</a:documentation>
+            <ref name="comment"/>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <oneOrMore>
+              <element name="interpolation_dimension">
+                <a:documentation>define the tabulated interpolation dimensions for this physical material</a:documentation>
+                <ref name="comment"/>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <choice>
+                  <a:documentation>set the interpolation attribute for this dimension</a:documentation>
+                  <element name="interpolation_attribute_none">
+                    <a:documentation>No attribute so the first radmat of this dimension of this physical material will be used</a:documentation>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="interpolation_attribute_prescribed">
+                    <a:documentation>Prescribed interpolation values</a:documentation>
+                    <ref name="comment"/>
+                    <ref name="real"/>
+                  </element>
+                  <element name="interpolation_attribute_scalar_field">
+                    <a:documentation>Associate this dimension with a particular scalar field</a:documentation>
+                    <ref name="comment"/>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
+                <element name="interpolation_values">
+                  <a:documentation>define the interpolation values for this dimension as a float list</a:documentation>
+                  <ref name="comment"/>
+                  <ref name="real_vector"/>
+                </element>
+              </element>
+            </oneOrMore>
+          </element>
+        </oneOrMore>
+      </element>
+    </oneOrMore>
+  </define>
+  <define name="number_of_scatter_moments">
+    <element name="number_of_scatter_moments">
+      <a:documentation>The number of scatter moments associated with this material data set</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer"/>
+    </element>
+  </define>
+  <define name="radiation_material_mapping">
+    <optional>
+      <element name="region_id_material_mapping">
+        <a:documentation>The region id to radiation physical material mapping. This option is intended for radiation alone with no consideration of 
+the rest of the fluids state. This must be used with a prescribed physical material interpolation attribute. </a:documentation>
+        <ref name="comment"/>
+        <oneOrMore>
+          <element name="region_to_physical_radiation_material_map">
+            <ref name="comment"/>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="region_id"/>
+            <ref name="radiation_material"/>
+          </element>
+        </oneOrMore>
+        <optional>
+          <ref name="Rad_Fission_and_Power_Template"/>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="link_with_multimaterial">
+        <a:documentation>Link with multimaterial model</a:documentation>
+        <ref name="comment"/>
+        <oneOrMore>
+          <element name="fluids_material_phase_to_physical_radiation_material_map">
+            <a:documentation>The fluids material_phase to radiation physical material mapping</a:documentation>
+            <ref name="comment"/>
+            <ref name="radiation_material"/>
+            <ref name="Rad_MaterialVolumeFraction_Template"/>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </oneOrMore>
+        <optional>
+          <ref name="Rad_MaterialTemperature_Template"/>
+        </optional>
+        <optional>
+          <ref name="Rad_Fission_and_Power_Template"/>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="link_with_porous_media">
+        <a:documentation>Link with the porous media model</a:documentation>
+        <ref name="comment"/>
+        <oneOrMore>
+          <element name="porous_media_region_to_physical_radiation_material_map">
+            <ref name="comment"/>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="region_id"/>
+            <ref name="radiation_material"/>
+          </element>
+        </oneOrMore>
+        <ref name="Rad_Porosity_Template"/>
+        <optional>
+          <ref name="Rad_PorousTemperature_Template"/>
+        </optional>
+        <optional>
+          <ref name="Rad_Fission_and_Power_Template"/>
+        </optional>
+      </element>
+    </optional>
+  </define>
+  <define name="radiation_material">
+    <element name="radiation_data_set_name">
+      <a:documentation>radiation physical data set file name</a:documentation>
+      <ref name="comment"/>
+      <attribute name="file_name">
+        <data type="string"/>
+      </attribute>
+    </element>
+    <element name="radiation_physical_material_name">
+      <a:documentation>radiation physical material name</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="region_id">
+    <element name="region_id">
+      <a:documentation>the region id</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer_vector"/>
+    </element>
+  </define>
+  <define name="Rad_MaterialVolumeFraction_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the neutral particle flux density material volume fraction scalar field
+that is used for the cross section mapping and interpolation,
+that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadMaterialVolumeFractionTemplate</value>
+      </attribute>
+      <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_MaterialTemperature_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the temperature scalar field associated with multimaterial
+that is used for the cross section interpolation,
+that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadMaterialTemperatureTemplate</value>
+      </attribute>
+      <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Porosity_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the porosity scalar field
+that is used for the cross section interpolation,
+that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadPorosityTemplate</value>
+      </attribute>
+      <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_PorousTemperature_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the porous temperature scalar field
+that is used for the cross section interpolation,
+that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadPorousTemperatureTemplate</value>
+      </attribute>
+      <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
+    <choice>
+      <element name="prescribed">
+        <ref name="comment"/>
+        <ref name="prescribed_scalar_field"/>
+      </element>
+      <element name="diagnostic">
+        <ref name="comment"/>
+        <ref name="scalar_diagnostic_algorithms"/>
+        <ref name="diagnostic_scalar_field"/>
+      </element>
+    </choice>
+  </define>
+  <define name="Rad_Fission_and_Power_Template">
+    <ref name="Rad_Fission_Template"/>
+    <ref name="Rad_Power_Template"/>
+  </define>
+  <define name="Rad_Fission_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the fission density scalar field, this is always defined on the NeutralParticleMaterialMesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadFissionTemplate</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Power_Template">
+    <element name="scalar_field">
+      <a:documentation>The template for the power density scalar field for diagnostics and coupling,
+this is always defined on the NeutralParticleMaterialMesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadPowerTemplate</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+    <element name="diagnostic">
+      <ref name="comment"/>
+      <ref name="internal_algorithm"/>
+      <ref name="radiation_output_options"/>
+      <ref name="radiation_stat_options"/>
+      <ref name="diagnostic_detector_options"/>
+    </element>
+  </define>
+  <define name="delayed_precursor">
+    <element name="delayed_neutron_precursor">
+      <a:documentation>Delayed neutron precursor </a:documentation>
+      <ref name="comment"/>
+      <element name="number_delayed_neutron_precursor_groups">
+        <a:documentation>The number of delayed neutron precursor groups</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+      <element name="read_delayed_lambda_spectrum_from_data_set">
+        <a:documentation>The dataset from which to read the delayed lambda and spectrum from</a:documentation>
+        <ref name="comment"/>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+      <optional>
+        <element name="link_with_region_id">
+          <a:documentation>link with region id, requires the neutron object to be linked with region id also</a:documentation>
+          <ref name="comment"/>
+          <ref name="delayed_neutron_precursor_diagnostic_template"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="link_with_multimaterial">
+          <a:documentation>link with multimaterial, requires the neutron object to be linked with multimaterial also</a:documentation>
+          <ref name="comment"/>
+          <ref name="prompt_delayed_coupling_option"/>
+          <ref name="delayed_neutron_precursor_prognostic_or_diagnostic_template"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="link_with_porous_media">
+          <a:documentation>link with porous media, requires the neutron object to be linked with porous media also</a:documentation>
+          <ref name="comment"/>
+          <ref name="delayed_neutron_precursor_diagnostic_template"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="prompt_delayed_coupling_option">
+    <choice>
+      <ref name="prompt_delayed_coupling_semi_implicit_option"/>
+      <ref name="prompt_delayed_coupling_implicit_option"/>
+      <ref name="prompt_delayed_coupling_explicit_option"/>
+    </choice>
+  </define>
+  <define name="prompt_delayed_coupling_implicit_option">
+    <element name="prompt_delayed_coupling_implicit">
+      <a:documentation>Implicit coupling between prompt and delayed neutron equations</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="prompt_delayed_coupling_semi_implicit_option">
+    <element name="prompt_delayed_coupling_semi_implicit">
+      <a:documentation>Semi-implicit coupling between prompt and delayed neutron equations</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="prompt_delayed_coupling_explicit_option">
+    <element name="prompt_delayed_coupling_explicit">
+      <a:documentation>Explicit coupling between prompt and delayed neutron equations</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="delayed_neutron_precursor_prognostic_or_diagnostic_template">
+    <element name="scalar_field">
+      <a:documentation> The template delayed neutron precursor scalar field,
+ that is defined with the DelayedNeutronMeshTemplate mesh
+ Field Type:
+  - use prognostic for time run
+  - use diagnostic for eigenvalue run</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>DelayedNeutronPrecursorTemplate</value>
+      </attribute>
+      <choice>
+        <ref name="prognostic_delayed_neutron_advection_decay_source_scalar_field"/>
+        <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+      </choice>
+    </element>
+  </define>
+  <define name="delayed_neutron_precursor_diagnostic_template">
+    <element name="scalar_field">
+      <a:documentation>The template delayed neutron precursor scalar field,
+that is defined with the DelayedNeutronMeshTemplate mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>DelayedNeutronPrecursorTemplate</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+    </element>
+  </define>
+  <define name="prognostic_delayed_neutron_advection_decay_source_scalar_field">
+    <element name="prognostic">
+      <ref name="comment"/>
+      <element name="equation">
+        <a:documentation>Solve a delayed neutron advection-decay-source equation</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>AdvectionDiffusion</value>
+        </attribute>
+      </element>
+      <element name="spatial_discretisation">
+        <a:documentation>Spatial discretisation options</a:documentation>
+        <ref name="comment"/>
+        <choice>
+          <element name="continuous_galerkin">
+            <a:documentation>Continuous galerkin formulation</a:documentation>
+            <ref name="advection_stabilisation_options"/>
+            <ref name="cg_advection_terms"/>
+          </element>
+          <element name="discontinuous_galerkin">
+            <a:documentation>Discontinuous galerkin formulation</a:documentation>
+            <ref name="dg_advection_scheme"/>
+            <ref name="dg_upwind_stabilisation"/>
+          </element>
+        </choice>
+        <ref name="conservative_advection_option"/>
+      </element>
+      <element name="temporal_discretisation">
+        <a:documentation>The temporal discretisation options </a:documentation>
+        <ref name="comment"/>
+        <element name="theta">
+          <a:documentation>the theta value</a:documentation>
+          <ref name="comment"/>
+          <ref name="real"/>
+        </element>
+        <optional>
+          <ref name="temporal_discontinuous_galerkin_options"/>
+        </optional>
+      </element>
+      <element name="solver">
+        <a:documentation>The solver options</a:documentation>
+        <ref name="comment"/>
+        <ref name="linear_solver_options_asym"/>
+      </element>
+      <oneOrMore>
+        <ref name="radiation_initial_conditions"/>
+      </oneOrMore>
+      <ref name="prognostic_scalar_output_options"/>
+      <ref name="prognostic_scalar_stat_options"/>
+      <ref name="scalar_convergence_options"/>
+      <ref name="prognostic_detector_options"/>
+      <ref name="scalar_steady_state_options"/>
+      <ref name="adaptivity_options_scalar_field"/>
+      <ref name="interpolation_algorithm_scalar"/>
+    </element>
+  </define>
+</grammar>

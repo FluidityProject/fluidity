@@ -12,6 +12,7 @@ include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
+include "radiation.rnc"
 
 start =
    (
@@ -1883,6 +1884,7 @@ start =
          biology?,
          forcing?,
          reduced_model?,
+         radiation?,
          ## Porous Media
          element porous_media {
             ## Specify scalar field Porosity
@@ -2316,6 +2318,7 @@ geometry =
             attribute name { "PressureMesh" },
             mesh_info
          }?,
+         all_neutral_particle_mesh?,
          element mesh {
             attribute name { xsd:string },
             mesh_info,
