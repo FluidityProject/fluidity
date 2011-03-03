@@ -84,7 +84,7 @@ THREADS=1
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $<
 
-default: bin/shallow_water bin/@FLUIDITY@
+default: bin/@FLUIDITY@
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
