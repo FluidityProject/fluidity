@@ -238,7 +238,7 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", &
-            "buoyancy")
+            "buoyancy", "vacuum")
 
           call allocate(surface_field, surface_mesh, name="value")
           call insert_surface_field(field, i+1, surface_field)
@@ -255,6 +255,10 @@ contains
           call deallocate(surface_field)
           
        case("zero_flux")
+       
+          ! nothing to be done here
+
+       case("reflective")
        
           ! nothing to be done here
        
@@ -715,7 +719,7 @@ contains
        ! be constant or set from a generic or python function.
        select case(trim(bc_type))
 
-       case("dirichlet", "neumann", "weakdirichlet")
+       case("dirichlet", "neumann", "weakdirichlet", "vacuum")
 
           bc_type_path=trim(bc_path_i)//"/type[0]"
 
@@ -762,6 +766,10 @@ contains
           call initialise_field(surface_field, bc_type_path, bc_position)
           
        case( "zero_flux" )
+       
+          ! nothing to be done here
+
+       case( "reflective" )
        
           ! nothing to be done here
 
