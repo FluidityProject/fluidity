@@ -1464,6 +1464,7 @@ AC_OUTPUT(Makefile
           decomp/Makefile
 	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
+          radiation/Makefile radiation/tests/Makefile
           diagnostics/Makefile
           main/Makefile
           scripts/Makefile tools/Makefile

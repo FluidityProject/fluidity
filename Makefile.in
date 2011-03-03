@@ -273,6 +273,8 @@ endif
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
 	@cd diagnostics;   	$(MAKE)
+	@echo "    MAKE radiation"
+	@cd radiation; $(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE adjoint"
@@ -318,6 +320,10 @@ clean-light:
 	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
+	@echo "    CLEAN radiation"
+	@cd radiation; $(MAKE) clean
+	@echo "    CLEAN radiation/tests"
+	@cd radiation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
 	@echo "    CLEAN assemble/tests"
@@ -446,6 +452,8 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
+	@echo "    UNITTEST radiation"
+	@cd radiation/tests; $(MAKE) unittest
 
 
 unittest: build_unittest

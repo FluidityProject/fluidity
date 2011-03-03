@@ -98,6 +98,7 @@ module fluids_module
   use reduced_model_runtime
   use implicit_solids
   use sediment
+  use radiation
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -217,6 +218,11 @@ contains
 
     ! Read state from .flml file
     call populate_state(state)
+
+    ! Initialise radiation specific data types - needs to be after populate state
+    if(have_option("/radiation")) then
+        call radiation_initialise()
+    end if
 
     ewrite(3,*)'before have_option test'
 
