@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>rad_1d_6grp_hom_inf_eig</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+       fluidity rad_1d_6grp_hom_inf_eig.flml 
+    </command_line>
+    <!-- Radiation diffusion eigenvalue problem with 1 material, 6 energy groups with upscatter with all reflective BC using a 1d geometry compared to analytic solution for the keff and flux ratio, this is ABC problem 75-->
+  </problem_definition>
+  <variables>
+    <variable name="Keffneutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+Keffneutron = max(v.GetScalarRange("NeutralParticleKeffneutron"))
+    </variable>
+    <variable name="FluxGroup1neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup1neutron = max(v.GetScalarRange("NeutralParticleFluxGroup1neutron"))
+    </variable>
+    <variable name="FluxGroup2neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup2neutron = max(v.GetScalarRange("NeutralParticleFluxGroup2neutron"))
+    </variable>
+    <variable name="FluxGroup3neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup3neutron = max(v.GetScalarRange("NeutralParticleFluxGroup3neutron"))
+    </variable>    
+    <variable name="FluxGroup4neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup4neutron = max(v.GetScalarRange("NeutralParticleFluxGroup4neutron"))
+    </variable>    
+    <variable name="FluxGroup5neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup5neutron = max(v.GetScalarRange("NeutralParticleFluxGroup5neutron"))
+    </variable>    
+    <variable name="FluxGroup6neutron" language="python">
+import vtktools
+v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
+FluxGroup6neutron = max(v.GetScalarRange("NeutralParticleFluxGroup6neutron"))
+    </variable>    
+  </variables>
+  <pass_tests>
+    <test name="Check Keffneutron against analytic with tolerance 1.0e-06" language="python">
+analytic_keff = 1.6
+print 'Relative error compared to analytic: ',abs((Keffneutron - analytic_keff)/analytic_keff)
+assert abs((Keffneutron - analytic_keff)/analytic_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 5 to group 6 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.48
+flux_ratio = FluxGroup5neutron / FluxGroup6neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 2 to group 1 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.48
+flux_ratio = FluxGroup2neutron / FluxGroup1neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 4 to group 5 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.3125
+flux_ratio = FluxGroup4neutron / FluxGroup5neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 3 to group 2 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.3125
+flux_ratio = FluxGroup3neutron / FluxGroup2neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 4 to group 6 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.15
+flux_ratio = FluxGroup4neutron / FluxGroup6neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+    <test name="Check Flux ratio of group 3 to group 1 against analytic with tolerance 1.0e-06" language="python">
+analytic_flux_ratio = 0.15
+flux_ratio = FluxGroup3neutron / FluxGroup1neutron 
+print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
+assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
