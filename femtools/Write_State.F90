@@ -394,6 +394,13 @@ contains
       include_scalar_field_in_vtu=.not.aliased(field)
       return
     end if
+    
+    if (field_name(1:19) == 'NeutralParticleKeff') then
+      field => extract_scalar_field(state(istate), field_name)
+      ! Radiation Keff is special, always included (unless it's aliased)
+      include_scalar_field_in_vtu=.not.aliased(field)
+      return
+    end if
       
     if (.not. has_scalar_field(state(istate), field_name)) then
       ! not even in state, so no
