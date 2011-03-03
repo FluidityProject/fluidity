@@ -912,7 +912,7 @@
       have_source = .false.
       if (has_vector_field(state, "VelocitySource")) then
         have_source = .true.
-        source => extract_vector_field(state, "VelocitySource")
+        source => extract_vector_field(state, "LocalVelocitySource")
       end if
 
       ewrite(2,*) 'inside', sum(D%val)
@@ -931,7 +931,6 @@
         call get_u_rhs(u_tmp,U,D,dt,g, &
            coriolis_mat,div_mat)
      end if
-
 
       ewrite(3,*) 'SW: TESTING BALANCED INITIAL CONDITION'
       ewrite(3,*) 'SW: infty norm of u_tmp(1)=', maxval(abs(u_tmp%val(1,:)))
@@ -958,15 +957,18 @@
       type(tensor_field) :: map
       type(mesh_type), pointer :: x_mesh, U_mesh
       character(len=PYTHON_FUNC_LEN) :: projection, vector_map
+      character(len=FIELD_NAME_LEN) :: vel_name
 
       ewrite(1,*) "In setup_cartesian_vector_fields"
 
       X => extract_vector_field(state, "Coordinate")
       if (present_and_true(adjoint)) then
-        U => extract_vector_field(state, "AdjointVelocity")
+        vel_name = "AdjointVelocity"
       else
-        U => extract_vector_field(state, "Velocity")
+        vel_name = "Velocity"
       end if
+
+      U => extract_vector_field(state, trim(vel_name))
       x_mesh => extract_mesh(state, "CoordinateMesh")
       U_mesh => extract_mesh(state, "VelocityMesh")
 
@@ -974,13 +976,13 @@
       call allocate(X_manifold, mesh_dim(X), x_mesh, "ManifoldCoordinate")
       call zero(X_manifold)
       call set(X_manifold, X)
-      call allocate(U_manifold, mesh_dim(X), U_mesh, "ManifoldVelocity")
+      call allocate(U_manifold, mesh_dim(X), U_mesh, "Manifold" // trim(vel_name))
       call zero(U_manifold)
       call set(U_manifold, U)
       U_manifold%option_path=U%option_path
       call allocate(X_cartesian, 3, x_mesh, "CartesianCoordinate")
       call zero(X_cartesian)
-      call allocate(U_cartesian, 3, U_mesh, "CartesianVelocity")
+      call allocate(U_cartesian, 3, U_mesh, "Cartesian" // trim(vel_name))
       call zero(U_cartesian)
       U_cartesian%option_path=U%option_path
       !call set_option("/material_phase::Fluid/vector_field::CartesianVelocity/prognostic/stat/exclude_from_stat")
@@ -989,9 +991,9 @@
 
       ! insert fields into state
       call insert(state, X_manifold, "ManifoldCoordinate")
-      call insert(state, U_manifold, "ManifoldVelocity")
+      call insert(state, U_manifold, "Manifold" // trim(vel_name))
       call insert(state, X_cartesian, "CartesianCoordinate")
-      call insert(state, U_cartesian, "CartesianVelocity")
+      call insert(state, U_cartesian, "Cartesian" // trim(vel_name))
       call insert(state, map, "VectorMap")
 
       ! set cartesian field values using mappings from .swml
@@ -1019,7 +1021,7 @@
 
     end subroutine setup_cartesian_fields
 
-    subroutine setup_cartesian_field(state, field)
+    subroutine setup_cartesian_field(state, field, adjoint)
       ! copies the field to the corresponding manifold field 
       ! and sets up the cartesian field using the
       ! mappings provided in the .swml
@@ -1027,6 +1029,7 @@
 
       type(state_type), intent(inout):: state
       type(vector_field), intent(in) :: field
+      logical, intent(in), optional :: adjoint
 
       type(vector_field), pointer :: X, v_field
       type(vector_field) :: v_field_manifold
@@ -1098,16 +1101,22 @@
 
     end subroutine set_cartesian_field_node
 
-    subroutine map_to_manifold(state)
+    subroutine map_to_manifold(state, adjoint)
       ! maps the state fields back to the manifold for output using the
       ! mapping provided in the .swml
       implicit none
       type(state_type), intent(in) :: state
+      logical, intent(in), optional :: adjoint
 
       type(vector_field), pointer :: v_field_cartesian
 
-      v_field => extract_vector_field(state, "Velocity")
+      if (present_and_true(adjoint)) then
+        v_field => extract_vector_field(state, "AdjointVelocity")
+      else
+        v_field => extract_vector_field(state, "Velocity")
+      endif
       call map_field_to_manifold(state, v_field)
+
       if (has_vector_field(state, "VelocitySource")) then
         v_field => extract_vector_field(state, "VelocitySource")
         call map_field_to_manifold(state, v_field)
@@ -1314,22 +1323,22 @@
     subroutine adjoint_register_initial_u_condition(balanced)
       logical, intent(in) :: balanced
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: I, L, gC
+      type(adj_block) :: I, L, gC, E, P
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: u0, eta0
+      type(adj_variable) :: local_u0, manifold_u0, cartesian_u0, eta0
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
 
       if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
+        ierr = adj_create_block("ManifoldVelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+        ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
+        ierr = adj_create_equation(variable=manifold_u0, blocks=(/I/), targets=(/manifold_u0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -1337,6 +1346,46 @@
 
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(I)
+
+        ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_create_block("CartesianEmbedding", block=E, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_coefficient(E, coefficient=-1.0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(variable=cartesian_u0, blocks=(/E, I/), targets=(/manifold_u0, cartesian_u0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(I)
+        ierr = adj_destroy_block(E)
+
+        ierr = adj_create_block("LocalVelocityIdentity", block=I, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_create_block("LocalProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_coefficient(P, coefficient=-1.0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=local_u0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(variable=local_u0, blocks=(/P, I/), targets=(/cartesian_u0, local_u0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(I)
+        ierr = adj_destroy_block(P)
       else
         ! The equation we have to register is the derivation of u0 from geostrophic balance
         ierr = adj_create_block("Coriolis", block=L, context=c_loc(matrices))
@@ -1346,12 +1395,12 @@
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=local_u0)
         call adj_chkierr(ierr)
         ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(variable=u0, blocks=(/L, gC/), targets=(/u0, eta0/), equation=equation)
+        ierr = adj_create_equation(variable=local_u0, blocks=(/L, gC/), targets=(/local_u0, eta0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -1360,6 +1409,51 @@
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(L)
         ierr = adj_destroy_block(gC)
+
+        ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_block("LocalProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_hermitian(block=P, hermitian=ADJ_TRUE)
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_coefficient(P, coefficient=-1.0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(variable=cartesian_u0, blocks=(/P, I/), targets=(/local_u0, cartesian_u0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(P)
+        ierr = adj_destroy_block(I)
+
+        ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u0)
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_block("CartesianEmbedding", block=E, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_coefficient(E, coefficient=-1.0)
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_hermitian(E, hermitian=ADJ_TRUE)
+
+        ierr = adj_create_block("ManifoldVelocityIdentity", block=I, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+
+        ierr = adj_create_equation(variable=manifold_u0, blocks=(/E, I/), targets=(/cartesian_u0, manifold_u0/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_destroy_equation(equation)
+        ierr = adj_destroy_block(E)
+        ierr = adj_destroy_block(I)
       endif
 #endif
     end subroutine adjoint_register_initial_u_condition
@@ -1369,10 +1463,10 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, E, P, MI, CI
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta
+      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, manifold_u, cartesian_u
       real :: start_time
 
       integer :: j, nfunctionals
@@ -1385,6 +1479,10 @@
       ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u)
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
       call adj_chkierr(ierr)
@@ -1430,11 +1528,29 @@
       call adj_chkierr(ierr)
 
       ! Blocks for u_n equation
-      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=Iu)
+      ierr = adj_create_block("LocalVelocityIdentity", context=c_loc(matrices), block=Iu)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=minusIu)
+      ierr = adj_create_block("LocalVelocityIdentity", context=c_loc(matrices), block=minusIu)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusIu, coefficient=-1.0)
+      call adj_chkierr(ierr)
+
+      ! Blocks for embedded manifold business
+      ierr = adj_create_block("LocalProjection", context=c_loc(matrices), block=P)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_hermitian(P, hermitian=ADJ_TRUE)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(P, coefficient=-1.0)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("CartesianEmbedding", context=c_loc(matrices), block=E)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_hermitian(E, hermitian=ADJ_TRUE)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(E, coefficient=-1.0)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("ManifoldVelocityIdentity", context=c_loc(matrices), block=MI)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("CartesianVelocityIdentity", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
 
       ! Ahah! Now we can register our lovely equations. They are pretty, aren't they?
@@ -1470,6 +1586,22 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
+      ierr = adj_create_equation(cartesian_u, blocks=(/P, CI/), &
+                                    & targets=(/u, cartesian_u/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
+      ierr = adj_create_equation(manifold_u, blocks=(/E, MI/), &
+                                    & targets=(/cartesian_u, manifold_u/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
+
       ! And now we gots to destroy some blocks
       ierr = adj_destroy_block(Iu)
       call adj_chkierr(ierr)
@@ -1491,6 +1623,14 @@
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(MC)
       call adj_chkierr(ierr)
+      ierr = adj_destroy_block(E)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(P)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(MI)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(CI)
+      call adj_chkierr(ierr)
 
       ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
@@ -1499,13 +1639,13 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
+        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars, extras=adj_meshes)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
         ! We also need to check if these variables will be used
-        call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
+        call adj_record_anything_necessary(adjointer, timestep=timestep, functional=trim(functional_name), states=states)
       end do
 
       ! And that's it!
@@ -1677,8 +1817,6 @@
             endif
           end do
 
-          call project_local_to_cartesian(state(1), adjoint=.true.)
-          call map_to_manifold(state(1))
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
           call write_diagnostics(state, current_time, dt, equation+1)

@@ -202,6 +202,7 @@ module adjoint_functional_evaluation
 
     write(buffer, *) timestep
     call python_run_string("n = " // trim(buffer))
+    call python_run_string("timestep = " // trim(buffer))
 
     ! OK! We're ready for the user's code:
     call python_run_string(trim(code))

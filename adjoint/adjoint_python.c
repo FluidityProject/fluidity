@@ -99,7 +99,7 @@ void adj_variables_from_python(char* function, int function_len,
   pEndT=PyFloat_FromDouble(end_time);
   pTimes = PyTuple_New(2);
   PyTuple_SetItem(pTimes, 0, pStartT);
-  PyTuple_SetItem(pTimes, 1, pStartT);
+  PyTuple_SetItem(pTimes, 1, pEndT);
 
   // Timestep.
   pTimestep = PyLong_FromLong(timestep);
