@@ -46,19 +46,19 @@ assert(minalphas == 0.0)
 assert(maxalphas == 1.0)
   </test>
   <test name="Checking min/max Pressure" language="python">
-assert(abs(minp + 0.633239633) &lt; 1e-5)
-assert(abs(maxp - 3.006577834) &lt; 1e-5)
+assert(abs(minp + 0.633239633) &lt; 1e-2)
+assert(abs(maxp - 3.006577834) &lt; 1e-2)
   </test>
   <test name="Checking min/max Velocity magnitue" language="python">
-assert(abs(minvelmag - 0.231289951) &lt; 1e-5)
-assert(abs(maxvelmag - 1.290072367) &lt; 1e-5)
+assert(abs(minvelmag - 0.231289951) &lt; 1e-2)
+assert(abs(maxvelmag - 1.290072367) &lt; 1e-2)
   </test>
   <test name="Checking min/max Absorption Velocity magnitue" language="python">
-assert(abs(minabsorptionvelmag) &lt; 1e-5)
-assert(abs(maxabsorptionvelmag - 4.398005454) &lt; 1e-5)
+assert(abs(minabsorptionvelmag) &lt; 1e-2)
+assert(abs(maxabsorptionvelmag - 4.398005454) &lt; 1e-2)
   </test>
   <test name="Checking drag force" language="python">
-assert(abs(dragforce - 1.038625499) &lt; 1e-7)
+assert(abs(dragforce - 1.038625499) &lt; 1e-2)
   </test>
   <test name="Checking End time" language="python">
 assert((0.9 - simulationtime) &lt; 0.0)
