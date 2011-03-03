@@ -87,7 +87,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.0</real_value>
+        <real_value rank="0">5.0</real_value>
       </constant>
     </dump_period>
     <output_coordinates name="Manifold"/>
