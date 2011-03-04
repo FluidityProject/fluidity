@@ -1,21 +1,51 @@
 # The radiation options
 
-all_neutral_particle_mesh = 
+radiation = 
    (
-      neutral_particle_mesh?,
+      ## Radiation model 
+      element radiation {
+         comment,
+                  
+         particle+    
+      }
+   )         
+
+
+particle = 
+   (
+      ## neutral particle object, each instance is tagged with a string name
+      element neutral_particle {
+         comment,
+         
+         attribute name { xsd:string },
+
+         neutral_particle_mesh,
       
-      neutral_particle_material_mesh?, 
-      
-      delayed_neutron_mesh?         
-   )
+         neutral_particle_material_mesh, 
+         
+         number_of_energy_groups,
+                  
+         radiation_method,             
+
+         problem_run,
+                  
+         read_radiation_material_data_set,
+         
+         radiation_material_mapping,
+         
+         Rad_Fission_and_Power_Template?,
+                  
+         delayed_precursor?    
+      }  
+   )  
 
 
 neutral_particle_mesh = 
    (         
-      ## The mesh associated with the neutral particle solution
+      ## The template mesh associated with the neutral particle solution
       element mesh {
          comment,
-         attribute name { "NeutralParticleMesh" },
+         attribute name { "NeutralParticleMeshTemplate" },
          ## Derived from the mesh
          element from_mesh { 
             comment,
@@ -49,11 +79,11 @@ neutral_particle_mesh =
 
 neutral_particle_material_mesh = 
    (         
-      ## The mesh associated with the material mapping used to solve for the neutral particle 
+      ## The template mesh associated with the material mapping used to solve for the neutral particle 
       ## is always volume element wise (ie. DG order zero or FV)
       element mesh {
          comment,
-         attribute name { "NeutralParticleMaterialMesh" },
+         attribute name { "NeutralParticleMaterialMeshTemplate" },
          
          ## Derived from the mesh
          element from_mesh { 
@@ -89,43 +119,6 @@ neutral_particle_material_mesh =
    )
 
 
-delayed_neutron_mesh = 
-   (         
-      ## The mesh associated with the delayed precursor concentration solution
-      element mesh {
-         comment,
-         attribute name { "DelayedNeutronMesh" },
-         ## Derived from the mesh
-         element from_mesh { 
-            comment,
-            (
-               element mesh{
-                  comment,
-                  attribute name { "CoordinateMesh" }
-               }
-            ),
-            ## The trial space basis function options
-            element mesh_shape {
-               comment,
-               ## The order of the basis functions
-               element polynomial_degree {
-                  comment,
-                  integer
-               }?
-            }?,
-            ## The continuity associated with the mesh
-            element mesh_continuity {
-               comment,
-               element string_value{
-                  "continuous" | "discontinuous" 
-               }
-            }?, 
-            exclude_mesh_stat
-         }        
-      }
-   )
-
-
 exclude_mesh_stat = 
    (
       element stat{ 
@@ -142,41 +135,6 @@ exclude_mesh_stat =
          )
       }
    )
-
-radiation = 
-   (
-      ## Radiation model 
-      element radiation {
-         comment,
-                  
-         particle+    
-      }
-   )         
-
-
-particle = 
-   (
-      ## neutral particle object, each instance is tagged with a string name
-      element neutral_particle {
-         comment,
-         
-         attribute name { xsd:string },
-         
-         number_of_energy_groups,
-                  
-         radiation_method,             
-
-         problem_run,
-                  
-         read_radiation_material_data_set,
-         
-         radiation_material_mapping,
-         
-         Rad_Fission_and_Power_Template?,
-                  
-         delayed_precursor?    
-      }  
-   )  
 
 
 radiation_method = 
@@ -896,6 +854,7 @@ delayed_precursor =
       ## Delayed neutron precursor 
       element delayed_neutron_precursor {  
          comment,  
+         delayed_neutron_mesh,
          ## The number of delayed neutron precursor groups
          element number_delayed_neutron_precursor_groups {
             comment,
@@ -923,6 +882,43 @@ delayed_precursor =
             delayed_neutron_precursor_diagnostic_template            
          }?
       }               
+   )
+
+
+delayed_neutron_mesh = 
+   (         
+      ## The template mesh associated with the delayed precursor concentration solution
+      element mesh {
+         comment,
+         attribute name { "DelayedNeutronMeshTemplate" },
+         ## Derived from the mesh
+         element from_mesh { 
+            comment,
+            (
+               element mesh{
+                  comment,
+                  attribute name { "CoordinateMesh" }
+               }
+            ),
+            ## The trial space basis function options
+            element mesh_shape {
+               comment,
+               ## The order of the basis functions
+               element polynomial_degree {
+                  comment,
+                  integer
+               }?
+            }?,
+            ## The continuity associated with the mesh
+            element mesh_continuity {
+               comment,
+               element string_value{
+                  "continuous" | "discontinuous" 
+               }
+            }?, 
+            exclude_mesh_stat
+         }        
+      }
    )
 
 

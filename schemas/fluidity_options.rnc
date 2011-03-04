@@ -2318,7 +2318,6 @@ geometry =
             attribute name { "PressureMesh" },
             mesh_info
          }?,
-         all_neutral_particle_mesh?,
          element mesh {
             attribute name { xsd:string },
             mesh_info,

@@ -40,7 +40,7 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>multimaterial</value>
             <value>porous_media</value>
             <value>stokes</value>
-            <value>large_scale_ocean</value>
+            <value>large_scale_ocean_options</value>
             <value>implicit_solids</value>
             <value>foams</value>
             <value>multiphase</value>
@@ -3183,9 +3183,6 @@ This determines the order in which scalar_fields are solved for:
           </attribute>
           <ref name="mesh_info"/>
         </element>
-      </optional>
-      <optional>
-        <ref name="all_neutral_particle_mesh"/>
       </optional>
       <zeroOrMore>
         <element name="mesh">

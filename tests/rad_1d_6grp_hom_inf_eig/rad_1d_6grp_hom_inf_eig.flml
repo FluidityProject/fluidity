@@ -32,33 +32,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="NeutralParticleMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_continuity>
-          <string_value>continuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="NeutralParticleMaterialMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">0</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">3</integer_value>
@@ -74,7 +47,7 @@
         <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="NeutralParticleMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -112,6 +85,33 @@
   </material_phase>
   <radiation>
     <neutral_particle name="neutron">
+      <mesh name="NeutralParticleMeshTemplate">
+        <from_mesh>
+          <mesh name="CoordinateMesh"/>
+          <mesh_continuity>
+            <string_value>continuous</string_value>
+          </mesh_continuity>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+        </from_mesh>
+      </mesh>
+      <mesh name="NeutralParticleMaterialMeshTemplate">
+        <from_mesh>
+          <mesh name="CoordinateMesh"/>
+          <mesh_shape>
+            <polynomial_degree>
+              <integer_value rank="0">0</integer_value>
+            </polynomial_degree>
+          </mesh_shape>
+          <mesh_continuity>
+            <string_value>discontinuous</string_value>
+          </mesh_continuity>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+        </from_mesh>
+      </mesh>
       <number_of_energy_groups>
         <integer_value rank="0">6</integer_value>
       </number_of_energy_groups>

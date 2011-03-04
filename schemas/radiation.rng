@@ -1,23 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <!-- The radiation options -->
-  <define name="all_neutral_particle_mesh">
-    <optional>
+  <define name="radiation">
+    <element name="radiation">
+      <a:documentation>Radiation model </a:documentation>
+      <ref name="comment"/>
+      <oneOrMore>
+        <ref name="particle"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="particle">
+    <element name="neutral_particle">
+      <a:documentation>neutral particle object, each instance is tagged with a string name</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
       <ref name="neutral_particle_mesh"/>
-    </optional>
-    <optional>
       <ref name="neutral_particle_material_mesh"/>
-    </optional>
-    <optional>
-      <ref name="delayed_neutron_mesh"/>
-    </optional>
+      <ref name="number_of_energy_groups"/>
+      <ref name="radiation_method"/>
+      <ref name="problem_run"/>
+      <ref name="read_radiation_material_data_set"/>
+      <ref name="radiation_material_mapping"/>
+      <optional>
+        <ref name="Rad_Fission_and_Power_Template"/>
+      </optional>
+      <optional>
+        <ref name="delayed_precursor"/>
+      </optional>
+    </element>
   </define>
   <define name="neutral_particle_mesh">
     <element name="mesh">
-      <a:documentation>The mesh associated with the neutral particle solution</a:documentation>
+      <a:documentation>The template mesh associated with the neutral particle solution</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMesh</value>
+        <value>NeutralParticleMeshTemplate</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -54,11 +74,11 @@
   </define>
   <define name="neutral_particle_material_mesh">
     <element name="mesh">
-      <a:documentation>The mesh associated with the material mapping used to solve for the neutral particle 
+      <a:documentation>The template mesh associated with the material mapping used to solve for the neutral particle 
 is always volume element wise (ie. DG order zero or FV)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMaterialMesh</value>
+        <value>NeutralParticleMaterialMeshTemplate</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -94,51 +114,6 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
       </element>
     </element>
   </define>
-  <define name="delayed_neutron_mesh">
-    <element name="mesh">
-      <a:documentation>The mesh associated with the delayed precursor concentration solution</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>DelayedNeutronMesh</value>
-      </attribute>
-      <element name="from_mesh">
-        <a:documentation>Derived from the mesh</a:documentation>
-        <ref name="comment"/>
-        <element name="mesh">
-          <ref name="comment"/>
-          <attribute name="name">
-            <value>CoordinateMesh</value>
-          </attribute>
-        </element>
-        <optional>
-          <element name="mesh_shape">
-            <a:documentation>The trial space basis function options</a:documentation>
-            <ref name="comment"/>
-            <optional>
-              <element name="polynomial_degree">
-                <a:documentation>The order of the basis functions</a:documentation>
-                <ref name="comment"/>
-                <ref name="integer"/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-        <optional>
-          <element name="mesh_continuity">
-            <a:documentation>The continuity associated with the mesh</a:documentation>
-            <ref name="comment"/>
-            <element name="string_value">
-              <choice>
-                <value>continuous</value>
-                <value>discontinuous</value>
-              </choice>
-            </element>
-          </element>
-        </optional>
-        <ref name="exclude_mesh_stat"/>
-      </element>
-    </element>
-  </define>
   <define name="exclude_mesh_stat">
     <element name="stat">
       <ref name="comment"/>
@@ -152,35 +127,6 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
-    </element>
-  </define>
-  <define name="radiation">
-    <element name="radiation">
-      <a:documentation>Radiation model </a:documentation>
-      <ref name="comment"/>
-      <oneOrMore>
-        <ref name="particle"/>
-      </oneOrMore>
-    </element>
-  </define>
-  <define name="particle">
-    <element name="neutral_particle">
-      <a:documentation>neutral particle object, each instance is tagged with a string name</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <data type="string"/>
-      </attribute>
-      <ref name="number_of_energy_groups"/>
-      <ref name="radiation_method"/>
-      <ref name="problem_run"/>
-      <ref name="read_radiation_material_data_set"/>
-      <ref name="radiation_material_mapping"/>
-      <optional>
-        <ref name="Rad_Fission_and_Power_Template"/>
-      </optional>
-      <optional>
-        <ref name="delayed_precursor"/>
-      </optional>
     </element>
   </define>
   <define name="radiation_method">
@@ -865,6 +811,7 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
     <element name="delayed_neutron_precursor">
       <a:documentation>Delayed neutron precursor </a:documentation>
       <ref name="comment"/>
+      <ref name="delayed_neutron_mesh"/>
       <element name="number_delayed_neutron_precursor_groups">
         <a:documentation>The number of delayed neutron precursor groups</a:documentation>
         <ref name="comment"/>
@@ -899,6 +846,51 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
           <ref name="delayed_neutron_precursor_diagnostic_template"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="delayed_neutron_mesh">
+    <element name="mesh">
+      <a:documentation>The template mesh associated with the delayed precursor concentration solution</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>DelayedNeutronMeshTemplate</value>
+      </attribute>
+      <element name="from_mesh">
+        <a:documentation>Derived from the mesh</a:documentation>
+        <ref name="comment"/>
+        <element name="mesh">
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>CoordinateMesh</value>
+          </attribute>
+        </element>
+        <optional>
+          <element name="mesh_shape">
+            <a:documentation>The trial space basis function options</a:documentation>
+            <ref name="comment"/>
+            <optional>
+              <element name="polynomial_degree">
+                <a:documentation>The order of the basis functions</a:documentation>
+                <ref name="comment"/>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <a:documentation>The continuity associated with the mesh</a:documentation>
+            <ref name="comment"/>
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <ref name="exclude_mesh_stat"/>
+      </element>
     </element>
   </define>
   <define name="prompt_delayed_coupling_option">
