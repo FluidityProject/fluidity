@@ -59,7 +59,8 @@ module integer_set_module
   end interface
 
   interface insert
-    module procedure integer_set_insert, integer_set_insert_multiple
+    module procedure integer_set_insert, integer_set_insert_multiple, &
+      integer_set_insert_set
   end interface
 
   interface deallocate
@@ -83,7 +84,7 @@ module integer_set_module
   end interface
   
   interface copy
-    module procedure integer_set_copy
+    module procedure integer_set_copy, integer_set_copy_multiple
   end interface
   
   interface set_intersection
@@ -156,6 +157,16 @@ module integer_set_module
     end do
   end subroutine integer_set_insert_multiple
 
+  subroutine integer_set_insert_set(iset, value_set)
+    type(integer_set), intent(inout) :: iset
+    type(integer_set), intent(in) :: value_set
+    integer :: i
+
+    do i=1, key_count(value_set)
+      call insert(iset, fetch(value_set,i))
+    end do
+  end subroutine integer_set_insert_set
+  
   pure function integer_set_length_single(iset) result(len)
     type(integer_set), intent(in) :: iset
     integer :: len
@@ -278,6 +289,18 @@ module integer_set_module
   
   end subroutine integer_set_copy
 
+  subroutine integer_set_copy_multiple(iset_copy, iset)
+    type(integer_set), dimension(:), intent(out) :: iset_copy
+    type(integer_set), dimension(:), intent(in) :: iset
+    
+    integer :: n
+    
+    do n=1, size(iset)
+      call copy(iset_copy(n), iset(n))
+    end do
+  
+  end subroutine integer_set_copy_multiple
+  
   subroutine set_minus(minus, A, B)
   ! minus = A \ B
     type(integer_set), intent(out) :: minus
