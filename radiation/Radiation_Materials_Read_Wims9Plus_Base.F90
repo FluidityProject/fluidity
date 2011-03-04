@@ -1873,15 +1873,16 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   integer function number_substrings_within_string(main_string,sub_string) 
+   function number_substrings_within_string(main_string,sub_string) 
       
       !!< count the number of whole non overlapping sub_string's within the main_string
       
       character(len=*), intent(in) :: main_string
       character(len=*), intent(in) :: sub_string
       
-      ! local variables
       integer :: number_substrings_within_string
+      
+      ! local variables
       integer :: substring_lower_bound
       integer :: substring_pos
       
