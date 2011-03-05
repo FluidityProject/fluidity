@@ -2703,6 +2703,7 @@ contains
              end do
              
              !Flush the detector lists
+             !We need to put proper deallocates in these flushes
              do k=1, number_neigh_processors
                 if (send_list_array(k)%length/=0) then  
                    call flush_det(send_list_array(k))
@@ -3085,6 +3086,7 @@ contains
    !Loop over all the detectors
    det0 => detector_list0%firstnode
    do det_count=1, detector_list0%length
+      ewrite(2,*) det_count
       !Only move Lagrangian detectors
       if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
          search_loop: do
@@ -3135,10 +3137,10 @@ contains
                      exit search_loop
                   end if
                else
-                  det_send => det0
-                  det0 => det0%next
                   ewrite(-1,*) 'ELEMENT NUMBER ', det0%element
                   ewrite(-1,*) 'MOVING A DETECTOR'
+                  det_send => det0
+                  det0 => det0%next
                   !this face goes into another computational domain
                   proc_local_number=fetch(ihash,&
                        &element_owner(vfield%mesh,det_send%element))
@@ -3581,8 +3583,7 @@ contains
     have_update_vector = &
          &have_option("io/detectors/lagrangian_timestepping/explicit_runge_k&
          &utta_guided_search") 
-    call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
-         &h/n& &_stages",n_stages)
+    call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search/n_stages",n_stages)
 
     number_of_columns=dim+4
     if(have_update_vector) then
