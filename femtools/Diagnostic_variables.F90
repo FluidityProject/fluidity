@@ -1414,7 +1414,7 @@ contains
 
                  default_stat%detector_file_unit=free_unit()
 
-                 call get_option("io/detectors/detector_array/from_file/file_name",detector_file_filename)
+                 call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
       open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
@@ -1459,11 +1459,11 @@ contains
            default_stat%detector_checkpoint_unit=free_unit()
 
            if (have_option("/io/detectors/static_detector")) then
-               call get_option("io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+               call get_option("/io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
            elseif (have_option("/io/detectors/lagrangian_detector")) then 
-               call get_option("io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+               call get_option("/io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
            else 
-               call get_option("io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+               call get_option("/io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
            end if 
 
            open(unit=default_stat%detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
@@ -2579,15 +2579,15 @@ contains
        allocate(receive_list_array(number_neigh_processors))
           
        !Get RK guided options
-       if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
             & then
-          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
                &h/search_tolerance",search_tolerance)
-          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
                &h/n&
                &_stages",n_stages)
           allocate(stage_weights(n_stages*(n_stages-1)/2))
-          option_rank = option_shape("io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
+          option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
                &uid&
                &ed_search/stage_weights")
           if(option_rank(2).ne.-1) then
@@ -2598,7 +2598,7 @@ contains
              ewrite(-1,*) 'size actually was', option_rank(1)
              FLExit('Stage Array wrong size')
           end if
-          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
+          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
                &ed_search/stage_weights",stage_weights)
           allocate(stage_matrix(n_stages,n_stages))
           stage_matrix = 0.
@@ -2612,7 +2612,7 @@ contains
              end do
           end do
           allocate(timestep_weights(n_stages))
-          option_rank = option_shape("io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
+          option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
                &uid&
                &ed_search/timestep_weights")
           if(option_rank(2).ne.-1) then
@@ -2621,7 +2621,7 @@ contains
           if(option_rank(1).ne.size(timestep_weights)) then
              FLExit('Timestep Array wrong size')
           end if
-          call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
+          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
                &ed_search/timestep_weights",timestep_weights)
        else
           n_stages = 1
@@ -2629,7 +2629,7 @@ contains
        
 !       subcycling
        RKstages_loop: do stage = 1, n_stages
-          if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+          if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
                & then
              if(stage.eq.1) then
                 call initialise_rk_guided_search(default_stat%detector_list)
@@ -2660,7 +2660,7 @@ contains
                 !than leaving the physical domain. In this subroutine
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
-                if(have_option("io/detectors/lagrangian_timestepping/explici&
+                if(have_option("/io/detectors/lagrangian_timestepping/explici&
                      &t_runge_kutta_guided_search")) then
                    call move_detectors_guided_search(&
                         &default_stat%detector_list)
@@ -2688,6 +2688,9 @@ contains
              !This call serialises send_list_array,
              !sends it, receives serialised receive_list_array,
              !unserialises that.
+             do i = 1, number_neigh_processors
+                ewrite (3,*) send_list_array(i)%length, 'CJC'
+             end do
              call serialise_lists_exchange_receive(&
                   state,send_list_array,receive_list_array,&
                   number_neigh_processors,ihash)
@@ -2718,7 +2721,7 @@ contains
           end do detector_timestepping_loop
        end do RKstages_loop
 
-       if(have_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
+       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
             & then       
           call deallocate_rk_guided_search(default_stat%detector_list)
        end if
@@ -3544,6 +3547,7 @@ contains
     xfield => extract_vector_field(state(1),"Coordinate")
     shape=>ele_shape(xfield,1)
     vfield => extract_vector_field(state(1),"Velocity")
+    dim=vfield%dim
  
     !set up sendrequest tags because we are going to do an MPI_Isend
     !these are used by wait_all
@@ -3581,64 +3585,69 @@ contains
     !==============================================
 
     have_update_vector = &
-         &have_option("io/detectors/lagrangian_timestepping/explicit_runge_k&
-         &utta_guided_search") 
-    call get_option("io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search/n_stages",n_stages)
+         &have_option("/io/detectors/lagrangian_timestepping/explicit_runge_k&
+         &utta_guided_search")
+    if(have_update_vector) then
+       call get_option("/io/detectors/lagrangian_timestepping/explicit_runge&
+            &_kutta_guided_search/n_stages",n_stages)
+    else
+       n_stages = 1
+    end if
 
     number_of_columns=dim+4
     if(have_update_vector) then
        !we need to include the RK update vector in serial array
-       update_start = number_of_columns+1
+       update_start = number_of_columns
        number_of_columns=number_of_columns+dim
        !we need to include the RK k values in the serial array
-       k_start = number_of_columns+1
+       k_start = number_of_columns
        number_of_columns=number_of_columns+dim*n_stages
     end if
-
+    
     do i=1, number_neigh_processors
 
        detector => send_list_array(i)%firstnode
 
-       dim=vfield%dim
-
        number_detectors_to_send=send_list_array(i)%length
+       ewrite(2,*) 'CJC in serialise', number_detectors_to_send
 
        allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
 
-       do j=1, send_list_array(i)%length
+       if(number_detectors_to_send>0) then
+          do j=1, send_list_array(i)%length
 
-          global_ele=detector%element
+             global_ele=detector%element
 
-          if (detector%element>0) then
+             if (detector%element>0) then
 
-             univ_ele = halo_universal_number(ele_halo, global_ele)
+                univ_ele = halo_universal_number(ele_halo, global_ele)
 
-          else
+             else
 
-          !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
-             univ_ele =-1
+!!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
+                univ_ele =-1
 
-          end if
+             end if
+             ewrite(2,*) 'CJC in loop', j,size(send_list_array_serialise(i)%ptr)
+             send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
+             send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
+             send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
+             send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
+             send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
+             if(have_update_vector) then
+                send_list_array_serialise(i)%ptr(&
+                     &j,update_start+1:update_start+dim)=&
+                     &detector%update_vector
+                do ki = 1, n_stages
+                   send_list_array_serialise(i)%ptr(j,&
+                        k_start+(ki-1)*dim+1:k_start+ki*dim) =&
+                        &detector%k(ki,:)
+                end do
+             end if
+             detector => detector%next
 
-          send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
-          send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
-          send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
-          send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
-          send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
-          if(have_update_vector) then
-             send_list_array_serialise(i)%ptr(&
-                  &j,update_start+1:update_start+dim)=&
-                  &detector%update_vector
-             do ki = 1, n_stages
-                send_list_array_serialise(i)%ptr(j,&
-                     k_start+(ki-1)*dim+1:k_start+ki*dim) =&
-                     &detector%k(ki,:)
-             end do
-          end if
-          detector => detector%next
- 
-       end do
-
+          end do
+       end if
        target_proc=fetch(ihash_inverse, i)
 
        call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
