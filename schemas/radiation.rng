@@ -17,8 +17,6 @@
       <attribute name="name">
         <data type="string"/>
       </attribute>
-      <ref name="neutral_particle_mesh"/>
-      <ref name="neutral_particle_material_mesh"/>
       <ref name="radiation_method"/>
       <ref name="problem_run"/>
       <ref name="read_radiation_material_data_set"/>
@@ -31,12 +29,72 @@
       </optional>
     </element>
   </define>
-  <define name="neutral_particle_mesh">
-    <element name="mesh">
-      <a:documentation>The mesh associated with the neutral particle solution</a:documentation>
+  <define name="radiation_method">
+    <element name="method">
+      <a:documentation>Multigroup diffusion </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMesh</value>
+        <value>MultiGroupDiffusion</value>
+      </attribute>
+      <ref name="number_of_energy_groups"/>
+      <oneOrMore>
+        <ref name="neutral_particle_flux_group_set_diffusion_field"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="number_of_energy_groups">
+    <element name="number_of_energy_groups">
+      <a:documentation>The number of energy groups</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer"/>
+    </element>
+  </define>
+  <define name="neutral_particle_flux_group_set_diffusion_field">
+    <element name="neutral_particle_flux_group_set_field">
+      <a:documentation>The neutral particle flux density  group set field for diffusion method equation</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <ref name="group_set"/>
+      <ref name="neutral_particle_mesh_group_set"/>
+      <ref name="neutral_particle_material_mesh_group_set"/>
+      <ref name="neutral_particle_flux_diffusion_field"/>
+    </element>
+  </define>
+  <define name="group_set">
+    <choice>
+      <element name="group_all">
+        <a:documentation>Apply to all groups</a:documentation>
+        <ref name="comment"/>
+      </element>
+      <element name="group_individual">
+        <a:documentation>Apply to an individual group</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+      <element name="group_set">
+        <a:documentation>Apply to a consecutive set of groups</a:documentation>
+        <ref name="comment"/>
+        <element name="start_group">
+          <a:documentation>The start group number of this set</a:documentation>
+          <ref name="comment"/>
+          <ref name="integer"/>
+        </element>
+        <element name="end_group">
+          <a:documentation>The end group number of this set</a:documentation>
+          <ref name="comment"/>
+          <ref name="integer"/>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="neutral_particle_mesh_group_set">
+    <element name="mesh">
+      <a:documentation>The function space associated with the neutral particle solution for this group set</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>NeutralParticleMeshGroupSet</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -71,13 +129,13 @@
       </element>
     </element>
   </define>
-  <define name="neutral_particle_material_mesh">
+  <define name="neutral_particle_material_mesh_group_set">
     <element name="mesh">
-      <a:documentation>The mesh associated with the material mapping used to solve for the neutral particle 
+      <a:documentation>The function space associated with the material mapping used to solve for the neutral particle for this group set 
 is always volume element wise (ie. DG order zero or FV)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMaterialMesh</value>
+        <value>NeutralParticleMaterialMeshGroupSet</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -128,27 +186,9 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
       </choice>
     </element>
   </define>
-  <define name="radiation_method">
-    <element name="method">
-      <a:documentation>Multigroup diffusion </a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>MultiGroupDiffusion</value>
-      </attribute>
-      <ref name="number_of_energy_groups"/>
-      <ref name="neutral_particle_flux_diffusion"/>
-    </element>
-  </define>
-  <define name="number_of_energy_groups">
-    <element name="number_of_energy_groups">
-      <a:documentation>The number of energy groups</a:documentation>
-      <ref name="comment"/>
-      <ref name="integer"/>
-    </element>
-  </define>
-  <define name="neutral_particle_flux_diffusion">
+  <define name="neutral_particle_flux_diffusion_field">
     <element name="scalar_field">
-      <a:documentation>The neutral particle flux density scalar field for diffusion method equation</a:documentation>
+      <a:documentation>The neutral particle flux density scalar field for diffusion method equation for this group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>NeutralParticleFlux</value>
@@ -196,7 +236,7 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
   </define>
   <define name="radiation_initial_conditions">
     <element name="initial_condition">
-      <a:documentation>Initial condition for WholeMesh for all groups</a:documentation>
+      <a:documentation>Initial condition for WholeMesh for this group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>WholeMesh</value>
@@ -225,7 +265,7 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
   </define>
   <define name="radiation_diffusion_boundary_conditions">
     <element name="boundary_conditions">
-      <a:documentation>The problem boundary conditions </a:documentation>
+      <a:documentation>The problem boundary conditions for this group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <data type="string"/>

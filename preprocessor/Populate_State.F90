@@ -449,9 +449,13 @@ contains
     logical, optional, intent(in):: skip_extrusion
     
     character(len=FIELD_NAME_LEN) :: mesh_name    
-    character(len=OPTION_PATH_LEN) :: mesh_path,object_path,object_name
+    character(len=OPTION_PATH_LEN) :: mesh_path,object_path,object_name,method_path,np_flux_group_set_path
     logical :: incomplete, updated
-    integer :: number_of_neutral_particle_object,np
+    integer :: number_of_neutral_particle_object
+    integer :: np,g_set
+    integer :: number_of_np_group_set_fields
+
+    ewrite(1,*) 'Insert radiation derived meshes'
       
     ! deduce the number of neutral particle object instances
     number_of_neutral_particle_object = option_count('/radiation/neutral_particle')
@@ -463,62 +467,76 @@ contains
 
        ! get the object name
        call get_option(trim(object_path)//'/name',object_name)
+         
+       ! set the method path
+       method_path = trim(object_path)//'/method'
+       
+       ! deduce the number of neutral particle flux group set fields
+       number_of_np_group_set_fields = option_count(trim(method_path)//'/neutral_particle_flux_group_set_field')
+         
+       ! create the neutral_particle_flux_group_set_fields as needed
+       group_set_loop: do g_set = 1,number_of_np_group_set_fields
+            
+          ! set the group set path
+          np_flux_group_set_path = trim(method_path)//'/neutral_particle_flux_group_set_field['//int2str(g_set - 1)//']'
     
-       ! Updated becomes true if we manage to set up the mesh 
-       updated=.false.
-       ! Incomplete becomes true if we have to skip the mesh
-       incomplete=.false.
+          ! Updated becomes true if we manage to set up the mesh 
+          updated=.false.
+          ! Incomplete becomes true if we have to skip the mesh
+          incomplete=.false.
 
-       ! form the mesh path for the NeutralParticleMesh for this object
-       mesh_path = trim(object_path)//'/mesh::NeutralParticleMesh'
+          ! form the mesh path for the NeutralParticleMeshGroupSet for this object
+          mesh_path = trim(np_flux_group_set_path)//'/mesh::NeutralParticleMeshGroupSet'
        
-       have_mesh: if (have_option(trim(mesh_path))) then
+          have_mesh: if (have_option(trim(mesh_path))) then
        
-          ! form the mesh name that will be allocated and inserted
-          mesh_name = 'NeutralParticleMesh'//trim(object_name)
+             ! form the mesh name that will be allocated and inserted
+             mesh_name = 'NeutralParticleMeshGroupSet'//int2str(g_set)//trim(object_name)
        
-          ! insert the NeutralParticleMesh for this object
-          call insert_derived_mesh(trim(mesh_path), &
-                                   trim(mesh_name), &
-                                   incomplete, &
-                                   updated, &
-                                   states, &
-                                   skip_extrusion = skip_extrusion)
+             ! insert the NeutralParticleMesh for this object
+             call insert_derived_mesh(trim(mesh_path), &
+                                      trim(mesh_name), &
+                                      incomplete, &
+                                      updated, &
+                                      states, &
+                                      skip_extrusion = skip_extrusion)
 
-         ! exit unresolvable dependencies.
-          if (.not.updated) then
-             FLExit("Unresolvable mesh dependencies for radiation solution mesh")
-          end if
+            ! exit unresolvable dependencies.
+             if (.not.updated) then
+                FLExit("Unresolvable mesh dependencies for radiation solution mesh")
+             end if
        
-       end if have_mesh
+          end if have_mesh
 
-       ! Updated becomes true if we manage to set up the mesh 
-       updated=.false.
-       ! Incomplete becomes true if we have to skip the mesh
-       incomplete=.false.
+          ! Updated becomes true if we manage to set up the mesh 
+          updated=.false.
+          ! Incomplete becomes true if we have to skip the mesh
+          incomplete=.false.
 
-       ! form the mesh path for the NeutralParticleMaterialMesh for this object
-       mesh_path = trim(object_path)//'/mesh::NeutralParticleMaterialMesh'
+          ! form the mesh path for the NeutralParticleMaterialMeshGroupSet for this object
+          mesh_path = trim(np_flux_group_set_path)//'/mesh::NeutralParticleMaterialMeshGroupSet'
        
-       have_material_mesh: if (have_option(trim(mesh_path)))then
+          have_material_mesh: if (have_option(trim(mesh_path)))then
        
-          ! form the mesh name that will be allocated and inserted
-          mesh_name = 'NeutralParticleMaterialMesh'//trim(object_name)
+             ! form the mesh name that will be allocated and inserted
+             mesh_name = 'NeutralParticleMaterialMeshGroupSet'//int2str(g_set)//trim(object_name)
        
-          ! insert the NeutralParticleMaterialMesh for this object
-          call insert_derived_mesh(trim(mesh_path), &
-                                   trim(mesh_name), &
-                                   incomplete, &
-                                   updated, &
-                                   states, &
-                                   skip_extrusion = skip_extrusion)
+             ! insert the NeutralParticleMaterialMesh for this object
+             call insert_derived_mesh(trim(mesh_path), &
+                                      trim(mesh_name), &
+                                      incomplete, &
+                                      updated, &
+                                      states, &
+                                      skip_extrusion = skip_extrusion)
           
-          ! exit unresolvable dependencies.
-          if (.not.updated) then
-             FLExit("Unresolvable mesh dependencies for radiation material mesh")
-          end if
+             ! exit unresolvable dependencies.
+             if (.not.updated) then
+                FLExit("Unresolvable mesh dependencies for radiation material mesh")
+             end if
        
-       end if have_material_mesh
+          end if have_material_mesh
+       
+       end do group_set_loop
        
        ! insert the delayed mesh if needed
        delayed: if (have_option(trim(object_path)//'/delayed_neutron_precursor')) then
@@ -529,7 +547,7 @@ contains
           incomplete=.false.
 
           ! form the mesh path for the DelayedNeutronMesh for this object
-          mesh_path = trim(object_path)//'/delayed_neutron_precursor/mesh::DelayedNeutronMesh'
+          mesh_path = trim(np_flux_group_set_path)//'/delayed_neutron_precursor/mesh::DelayedNeutronMesh'
        
           have_delayed_mesh: if (have_option(trim(mesh_path)))then
        
@@ -1462,18 +1480,20 @@ contains
       type(state_type), intent(inout) :: state    
       
       ! local variables
-      integer :: g,d,np,l,s ! loop index for energy groups, delayed group, neutral object, fl<-->rad material links, state
+      integer :: g,d,np,l,s,g_set ! loop index for energy groups, delayed group, neutral object, fl<-->rad material links, state, group set
       integer :: number_of_neutral_particle_object
       integer :: number_of_energy_groups 
       integer :: number_of_delayed_groups 
       integer :: fl_mat_phase_to_rad_mat_links 
       integer :: number_of_fluids_states
       integer :: material_phase_number
+      integer :: number_of_np_group_set_fields
+      integer :: start_group, end_group      
       logical, dimension(:), allocatable :: material_phase_number_found
       character(len=OPTION_PATH_LEN) :: field_name, field_path, np_field_path, delayed_field_path
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
       character(len=OPTION_PATH_LEN) :: object_name, object_path, delayed_path, method_path, method_name
-      character(len=OPTION_PATH_LEN) :: mesh_name_np_sol,mesh_name_np_mat,mesh_name_delayed_sol
+      character(len=OPTION_PATH_LEN) :: fn_space_name, np_flux_group_set_path
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
       
@@ -1492,11 +1512,6 @@ contains
          ! get the object name
          call get_option(trim(object_path)//'/name',object_name)
          
-         ! the np mesh path's for this object
-         mesh_name_np_sol      = 'NeutralParticleMesh'//trim(object_name)  
-         mesh_name_np_mat      = 'NeutralParticleMaterialMesh'//trim(object_name)
-         mesh_name_delayed_sol = 'DelayedNeutronMesh'//trim(object_name)        
-
          ! Insert the Keff as a constant scalar field for output
          x_mesh => extract_mesh(states, 'CoordinateMesh')
          call allocate(aux_sfield, x_mesh, 'NeutralParticleKeff'//trim(object_name), field_type=FIELD_TYPE_CONSTANT)
@@ -1517,36 +1532,74 @@ contains
          ! create the multigroup diffusion fields
          np_method: if (trim(method_name) == 'MultiGroupDiffusion') then
                                                                         
-            ! create the neutral particle flux fields needed for each energy group g within state 
-            ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
-            group_loop: do g = 1,number_of_energy_groups
+            ! deduce the number of neutral particle flux group set fields
+            number_of_np_group_set_fields = option_count(trim(method_path)//'/neutral_particle_flux_group_set_field')
+         
+            ! create the neutral_particle_flux_group_set_fields as needed
+            group_set_loop: do g_set = 1,number_of_np_group_set_fields
             
-               np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFlux'
-                                    
-               ! form the field name using the object name and group number 
-               field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
-                  
-               call allocate_and_insert_scalar_field(trim(np_field_path), &
-                                                     state, &
-                                                     parent_mesh = trim(mesh_name_np_sol), & 
-                                                     field_name = trim(field_name), &
-                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+               ! set the group set path
+               np_flux_group_set_path = trim(method_path)//'/neutral_particle_flux_group_set_field['//int2str(g_set - 1)//']'
             
-               ! no option path for Old such as not in output
-               np_field_path = ''
+               ! find the group start and end bounds for this set
+               group_all: if (have_option(trim(np_flux_group_set_path)//'/group_all')) then
+               
+                  start_group = 1
+                  
+                  end_group = number_of_energy_groups
+               
+               else if (have_option(trim(np_flux_group_set_path)//'/group_individual')) then group_all
+               
+                  call get_option(trim(np_flux_group_set_path)//'/group_individual',start_group)
+               
+                  end_group = start_group
+            
+               else if (have_option(trim(np_flux_group_set_path)//'/group_set')) then group_all 
+           
+                  call get_option(trim(np_flux_group_set_path)//'/group_set/start_group',start_group)
+
+                  call get_option(trim(np_flux_group_set_path)//'/group_set/end_group',end_group)
+            
+               end if group_all
+
+               ! the function space name associated with this np_flux_group_set_field solution 
+               fn_space_name = 'NeutralParticleMeshGroupSet'//int2str(g_set)//trim(object_name)  
+                                 
+               ! create the neutral particle flux fields needed 
+               ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
+               group_loop: do g = start_group,end_group
+            
+                  np_field_path = trim(np_flux_group_set_path)//'/scalar_field::NeutralParticleFlux'
                                     
-               ! form the field name using the object name and group number 
-               field_name = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(object_name)
+                  ! form the field name using the object name and group number 
+                  field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
                   
-               call allocate_and_insert_scalar_field(trim(np_field_path), &
-                                                     state, &
-                                                     parent_mesh = trim(mesh_name_np_sol), & 
-                                                     field_name = trim(field_name), &
-                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+                  call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                        state, &
+                                                        parent_mesh = trim(fn_space_name), & 
+                                                        field_name = trim(field_name), &
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+            
+                  ! no option path for Old such as not in output
+                  np_field_path = ''
+                                    
+                  ! form the field name using the object name and group number 
+                  field_name = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(object_name)
                   
-            end do group_loop
+                  call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                        state, &
+                                                        parent_mesh = trim(fn_space_name), & 
+                                                        field_name = trim(field_name), &
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+                  
+               end do group_loop
+         
+            end do group_set_loop
          
          end if np_method
+
+         ! set the function space name to the first np_flux_group_set_field material space 
+         fn_space_name = 'NeutralParticleMaterialMeshGroupSet1'//trim(object_name)  
                   
          ! now allocate and insert the time run prescribed source fields into state for this np object
          include_prescribed_source_if: if (have_option(trim(object_path)//'/time_run/include_prescribed_source')) then
@@ -1559,7 +1612,7 @@ contains
             
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
             
@@ -1579,7 +1632,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                         
@@ -1594,7 +1647,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                             
@@ -1684,7 +1737,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                               
@@ -1700,7 +1753,7 @@ contains
             
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
             
@@ -1717,7 +1770,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                         
@@ -1732,7 +1785,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                             
@@ -1750,7 +1803,7 @@ contains
             
             call allocate_and_insert_scalar_field(trim(field_path), &
                                                   state, &
-                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  parent_mesh = trim(fn_space_name), &
                                                   field_name = trim(field_name), &
                                                   dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
 
@@ -1762,7 +1815,7 @@ contains
             
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
             
@@ -1779,7 +1832,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                         
@@ -1794,7 +1847,7 @@ contains
 
                call allocate_and_insert_scalar_field(trim(field_path), &
                                                      state, &
-                                                     parent_mesh = trim(mesh_name_np_mat), &
+                                                     parent_mesh = trim(fn_space_name), &
                                                      field_name = trim(field_name), &
                                                      dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                             
@@ -1813,7 +1866,7 @@ contains
 
             call allocate_and_insert_scalar_field(trim(field_path), &
                                                   state, &
-                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  parent_mesh = trim(fn_space_name), &
                                                   field_name = trim(field_name), &
                                                   dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                         
@@ -1828,7 +1881,7 @@ contains
 
             call allocate_and_insert_scalar_field(trim(field_path), &
                                                   state, &
-                                                  parent_mesh = trim(mesh_name_np_mat), &
+                                                  parent_mesh = trim(fn_space_name), &
                                                   field_name = trim(field_name), &
                                                   dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                           
@@ -1842,6 +1895,9 @@ contains
                                                                    
             ! get the number of delayed groups
             call get_option(trim(delayed_path)//'/number_delayed_neutron_precursor_groups',number_of_delayed_groups)
+
+            ! set the function space name to the DelayedNeutronMesh 
+            fn_space_name = 'DelayedNeutronMesh'//trim(object_name)  
                                     
             dgroup_loop: do d = 1,number_of_delayed_groups
                      
@@ -1855,7 +1911,7 @@ contains
                  
                   call allocate_and_insert_scalar_field(trim(delayed_field_path), &
                                                         state, &
-                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        parent_mesh = trim(fn_space_name), &
                                                         field_name = trim(field_name), &
                                                         dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                                                                 
@@ -1870,7 +1926,7 @@ contains
                  
                   call allocate_and_insert_scalar_field(trim(delayed_field_path), &
                                                         state, &
-                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        parent_mesh = trim(fn_space_name), &
                                                         field_name = trim(field_name), &
                                                         dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                   
@@ -1885,7 +1941,7 @@ contains
                  
                   call allocate_and_insert_scalar_field(trim(delayed_field_path), &
                                                         state, &
-                                                        parent_mesh = trim(mesh_name_delayed_sol), &
+                                                        parent_mesh = trim(fn_space_name), &
                                                         field_name = trim(field_name), &
                                                         dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
                                           

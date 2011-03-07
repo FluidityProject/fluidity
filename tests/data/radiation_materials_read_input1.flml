@@ -68,75 +68,78 @@
   </material_phase>
   <radiation>
     <neutral_particle name="neutron">
-      <mesh name="NeutralParticleMesh">
-        <from_mesh>
-          <mesh name="CoordinateMesh"/>
-          <mesh_continuity>
-            <string_value>continuous</string_value>
-          </mesh_continuity>
-          <stat>
-            <exclude_from_stat/>
-          </stat>
-        </from_mesh>
-      </mesh>
-      <mesh name="NeutralParticleMaterialMesh">
-        <from_mesh>
-          <mesh name="CoordinateMesh"/>
-          <mesh_shape>
-            <polynomial_degree>
-              <integer_value rank="0">0</integer_value>
-            </polynomial_degree>
-          </mesh_shape>
-          <mesh_continuity>
-            <string_value>discontinuous</string_value>
-          </mesh_continuity>
-          <stat>
-            <exclude_from_stat/>
-          </stat>
-        </from_mesh>
-      </mesh>
       <method name="MultiGroupDiffusion">
         <number_of_energy_groups>
           <integer_value rank="0">2</integer_value>
         </number_of_energy_groups>
-        <scalar_field name="NeutralParticleFlux">
-          <prognostic>
-            <spatial_discretisation>
-              <continuous_galerkin/>
-            </spatial_discretisation>
-            <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="sor"/>
-              <relative_error>
-                <real_value rank="0">1.0e-8</real_value>
-              </relative_error>
-              <max_iterations>
-                <integer_value rank="0">100</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-            <initial_condition name="WholeMesh">
-              <constant>
-                <real_value rank="0">1.0</real_value>
-              </constant>
-            </initial_condition>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-            <consistent_interpolation/>
-          </prognostic>
-        </scalar_field>
+        <neutral_particle_flux_group_set_field name="all">
+          <group_all/>
+          <mesh name="NeutralParticleMeshGroupSet">
+            <from_mesh>
+              <mesh name="CoordinateMesh"/>
+              <mesh_continuity>
+                <string_value>continuous</string_value>
+              </mesh_continuity>
+              <stat>
+                <exclude_from_stat/>
+              </stat>
+            </from_mesh>
+          </mesh>
+          <mesh name="NeutralParticleMaterialMeshGroupSet">
+            <from_mesh>
+              <mesh name="CoordinateMesh"/>
+              <mesh_shape>
+                <polynomial_degree>
+                  <integer_value rank="0">0</integer_value>
+                </polynomial_degree>
+              </mesh_shape>
+              <mesh_continuity>
+                <string_value>discontinuous</string_value>
+              </mesh_continuity>
+              <stat>
+                <exclude_from_stat/>
+              </stat>
+            </from_mesh>
+          </mesh>
+          <scalar_field name="NeutralParticleFlux">
+            <prognostic>
+              <spatial_discretisation>
+                <continuous_galerkin/>
+              </spatial_discretisation>
+              <solver>
+                <iterative_method name="cg"/>
+                <preconditioner name="sor"/>
+                <relative_error>
+                  <real_value rank="0">1.0e-08</real_value>
+                </relative_error>
+                <max_iterations>
+                  <integer_value rank="0">100</integer_value>
+                </max_iterations>
+                <never_ignore_solver_failures/>
+                <diagnostics>
+                  <monitors/>
+                </diagnostics>
+              </solver>
+              <initial_condition name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </initial_condition>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+              <consistent_interpolation/>
+            </prognostic>
+          </scalar_field>
+        </neutral_particle_flux_group_set_field>
       </method>
       <time_run>
         <temporal_discretisation>

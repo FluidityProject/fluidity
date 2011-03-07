@@ -18,11 +18,7 @@ particle =
          comment,
          
          attribute name { xsd:string },
-
-         neutral_particle_mesh,
-      
-         neutral_particle_material_mesh, 
-                           
+                                 
          radiation_method,             
 
          problem_run,
@@ -38,12 +34,84 @@ particle =
    )  
 
 
-neutral_particle_mesh = 
+radiation_method = 
+   (
+      ## Multigroup diffusion 
+      element method {
+            comment,
+            
+            attribute name { "MultiGroupDiffusion" },
+            
+            number_of_energy_groups,
+                        
+            neutral_particle_flux_group_set_diffusion_field+
+      }         
+   )
+
+
+number_of_energy_groups = 
+   (
+      ## The number of energy groups
+      element number_of_energy_groups {
+         comment, 
+         integer
+      }     
+   )
+
+   
+neutral_particle_flux_group_set_diffusion_field =
+   (
+      ## The neutral particle flux density  group set field for diffusion method equation
+      element neutral_particle_flux_group_set_field {
+         comment,
+         
+         attribute name { xsd:string },
+         
+         group_set,
+
+         neutral_particle_mesh_group_set,
+               
+         neutral_particle_material_mesh_group_set, 
+         
+         neutral_particle_flux_diffusion_field
+      }          
+   )
+
+
+group_set = 
+   (
+      ## Apply to all groups
+      element group_all {
+         comment
+      }|
+      ## Apply to an individual group
+      element group_individual {
+         comment,
+         integer
+      }|
+      ## Apply to a consecutive set of groups
+      element group_set {
+         comment,
+         ## The start group number of this set
+         element start_group {
+            comment,
+            integer
+         },
+         ## The end group number of this set
+         element end_group {
+            comment,
+            integer
+         }
+      }
+   )
+
+   
+neutral_particle_mesh_group_set = 
    (         
-      ## The mesh associated with the neutral particle solution
+      ## The function space associated with the neutral particle solution for this group set
       element mesh {
          comment,
-         attribute name { "NeutralParticleMesh" },
+         attribute name { "NeutralParticleMeshGroupSet" },
          ## Derived from the mesh
          element from_mesh { 
             comment,
@@ -75,13 +143,13 @@ neutral_particle_mesh =
    )
 
 
-neutral_particle_material_mesh = 
+neutral_particle_material_mesh_group_set = 
    (         
-      ## The mesh associated with the material mapping used to solve for the neutral particle 
+      ## The function space associated with the material mapping used to solve for the neutral particle for this group set 
       ## is always volume element wise (ie. DG order zero or FV)
       element mesh {
          comment,
-         attribute name { "NeutralParticleMaterialMesh" },
+         attribute name { "NeutralParticleMaterialMeshGroupSet" },
          
          ## Derived from the mesh
          element from_mesh { 
@@ -134,49 +202,24 @@ exclude_mesh_stat =
       }
    )
 
-
-radiation_method = 
-   (
-      ## Multigroup diffusion 
-      element method {
-            comment,
-            
-            attribute name { "MultiGroupDiffusion" },
-            
-            number_of_energy_groups,
-                        
-            neutral_particle_flux_diffusion
-      }         
-   )
-
-
-number_of_energy_groups = 
-   (
-      ## The number of energy groups
-      element number_of_energy_groups {
-         comment, 
-         integer
-      }     
-   )
-
    
-neutral_particle_flux_diffusion =
+neutral_particle_flux_diffusion_field =
    (
-      ## The neutral particle flux density scalar field for diffusion method equation
+      ## The neutral particle flux density scalar field for diffusion method equation for this group set
       element scalar_field {
          comment,
          attribute name { "NeutralParticleFlux" },
          prognostic_neutral_particle_diffusion_removal_source_scalar_field
       }          
    )
-
+   
 
 prognostic_neutral_particle_diffusion_removal_source_scalar_field = 
    (
       ## Field Type
       element prognostic {
          comment,
-         
+                           
          radiation_diffusion_spatial_discretisation,
       
          radiation_diffusion_inner_solver_options,
@@ -196,7 +239,7 @@ prognostic_neutral_particle_diffusion_removal_source_scalar_field =
          interpolation_algorithm_scalar
       }
    )
-   
+
    
 radiation_diffusion_spatial_discretisation = 
    (
@@ -225,7 +268,7 @@ radiation_diffusion_inner_solver_options =
    
 radiation_initial_conditions = 
    (
-      ## Initial condition for WholeMesh for all groups
+      ## Initial condition for WholeMesh for this group set
       element initial_condition {
          comment,
          attribute name { "WholeMesh" },
@@ -256,7 +299,7 @@ radiation_initial_conditions =
    
 radiation_diffusion_boundary_conditions = 
    (
-      ## The problem boundary conditions 
+      ## The problem boundary conditions for this group set
       element boundary_conditions {
          comment,
          
