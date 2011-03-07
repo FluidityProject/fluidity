@@ -186,8 +186,8 @@ contains
     integer, allocatable, dimension(:) :: boundary_ids, element_owner
     
     character(len = parallel_filename_len(filename)) :: lfilename
-    integer :: i, j, nodes, dim, node_attributes, boundaries,&
-         & ele_attributes, loc, sloc, elements, edges, edge_count
+    integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
+         & ele_attributes, loc, sloc, elements, edges, edge_count, stat
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -235,21 +235,25 @@ contains
     if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
       call allocate(field, dim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
     else
-      call allocate(field, dim, mesh, name="Coordinate")
+       call get_option("/geometry/dimension", xdim, stat)
+       if(stat/=0) then
+          xdim=dim
+       end if
+       call allocate(field, xdim, mesh, name="Coordinate")
     end if
 
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
     if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
-      allocate(read_buffer(dim+node_attributes+boundaries+2))
+      allocate(read_buffer(xdim+node_attributes+boundaries+2))
     else
-      allocate(read_buffer(dim+node_attributes+boundaries+1))
+      allocate(read_buffer(xdim+node_attributes+boundaries+1))
     end if
 
     if(node_attributes==1) then ! this assumes the node attribute are column numbers
       allocate(field%mesh%columns(1:nodes))
-    end if
+   end if
 
     do i=1,nodes
        if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
@@ -262,11 +266,11 @@ contains
          end if
        else
          read(node_unit,*) read_buffer
-         forall (j=1:dim)
+         forall (j=1:xdim)
             field%val(j,i)=read_buffer(j+1)
          end forall
          if (node_attributes==1) then
-           field%mesh%columns(i)=floor(read_buffer(dim+2))
+           field%mesh%columns(i)=floor(read_buffer(xdim+2))
          end if
        end if
     end do
@@ -428,8 +432,8 @@ contains
     integer :: node_unit, ele_unit
     real, allocatable, dimension(:) :: read_buffer
     character(len=6) :: write_buffer
-    integer :: i, j, nodes, dim, node_attributes, boundaries,&
-         & ele_attributes, loc, elements
+    integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
+         & ele_attributes, loc, elements, stat
     integer, allocatable, dimension(:) :: node_order
 
     type(mesh_type), dimension(:), allocatable, save :: meshes
@@ -489,7 +493,11 @@ contains
     end select
     
     call allocate(meshes(counter), nodes, elements, shape, name="CoordinateMesh")
-    call allocate(field, dim, meshes(counter), name=filename//' Coordinate')
+    call get_option("/geometry/dimension", xdim, stat)
+    if(stat/=0) then
+       xdim=dim
+    end if
+    call allocate(field, xdim, meshes(counter), name=filename//' Coordinate')
     allocate(attribs(node_attributes))
     do j=1,node_attributes
        write(write_buffer,'(i0)') j
@@ -499,21 +507,21 @@ contains
        call allocate(bndry_mark,meshes(counter),&
             name='Boundary Marker')
 
-    allocate(read_buffer(dim+node_attributes+boundaries+1))
+    allocate(read_buffer(xdim+node_attributes+boundaries+1))
 
     do i=1,nodes
        read(node_unit,*) read_buffer
 
-       forall (j=1:dim)
+       forall (j=1:xdim)
           field%val(j,i)=read_buffer(j+1)
        end forall
 
        forall (j=1:node_attributes)
-          attribs(j)%val(i)=read_buffer(j+1+dim)
+          attribs(j)%val(i)=read_buffer(j+1+xdim)
        end forall
 
        if (boundaries>0) then
-          bndry_mark%val(i)=read_buffer(1+1+dim+node_attributes)
+          bndry_mark%val(i)=read_buffer(1+1+xdim+node_attributes)
        end if
 
     end do
@@ -688,8 +696,9 @@ contains
     integer, allocatable, dimension(:) :: boundary_ids
     
     character(len = parallel_filename_len(filename)) :: lfilename
-    integer :: i, j, nodes, dim, node_attributes, boundaries,&
-         & ele_attributes, loc, sloc, elements, edges, edge_count
+    integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
+         & ele_attributes, loc, sloc, elements, edges, edge_count,&
+         & stat
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -737,16 +746,20 @@ contains
     ! Field has an upper index of 3. Therefore, if dim==3 and
     ! node_attributes>0 then we get an out of bounds reference. Assume
     ! here that when there are node attributes they can be ignored.
-    call allocate(field, dim, mesh, name="Coordinate")
+    call get_option("/geometry/dimension", xdim, stat)
+    if(stat/=0) then
+       xdim=dim
+    end if
+    call allocate(field, xdim, mesh, name="Coordinate")
 
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    allocate(read_buffer(dim+node_attributes+boundaries+1))
+    allocate(read_buffer(xdim+node_attributes+boundaries+1))
 
     do i=1,nodes
        read(node_unit,*) read_buffer
-       forall (j=1:dim)
+       forall (j=1:xdim)
           field%val(j,i)=read_buffer(j+1)
        end forall
     end do
@@ -901,8 +914,8 @@ contains
     integer, allocatable, dimension(:) :: boundary_ids, element_owner
 
     character(len = parallel_filename_len(filename)) :: lfilename
-    integer :: i, j, nodes, dim, node_attributes, boundaries, &
-         ele_attributes, loc, sloc, elements, edges, edge_count
+    integer :: i, j, nodes, dim, xdim, node_attributes, boundaries, &
+         ele_attributes, loc, sloc, elements, edges, edge_count, stat
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -939,12 +952,16 @@ contains
     end select
 
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
-    call allocate(field, dim, mesh, name="Coordinate")
+    call get_option("/geometry/dimension", xdim, stat)
+    if(stat/=0) then
+       xdim=dim
+    end if
+    call allocate(field, xdim, mesh, name="Coordinate")
 
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    allocate(read_buffer(dim+node_attributes+boundaries+1))
+    allocate(read_buffer(xdim+node_attributes+boundaries+1))
 
     if(node_attributes==1) then ! this assumes the node attribute are column numbers
        allocate(field%mesh%columns(1:nodes))
@@ -952,11 +969,11 @@ contains
 
     do i = 1, nodes
        read(node_unit,*) read_buffer
-       forall (j=1:dim)
+       forall (j=1:xdim)
           field%val(j,i)=read_buffer(j+1)
        end forall
        if (node_attributes==1) then
-          field%mesh%columns(i)=floor(read_buffer(dim+1))
+          field%mesh%columns(i)=floor(read_buffer(xdim+1))
        end if
     end do
 

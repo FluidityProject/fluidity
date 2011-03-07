@@ -5,22 +5,8 @@
   </simulation_name>
   <geometry>
     <dimension>
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">3</integer_value>
     </dimension>
-    <embedded_manifold>
-      <projection>
-        <string_value lines="20" type="python">def val(X,t):
-  return (X[0],0.0,0.0)</string_value>
-      </projection>
-      <vector_map>
-        <string_value lines="20" type="python">def val(X,t):
-  return ([1], [0], [0])</string_value>
-      </vector_map>
-      <up>
-        <string_value lines="20" type="python">def val(X,t):
-  return (0.0,0.0,1.0)</string_value>
-      </up>
-    </embedded_manifold>
     <mesh name="CoordinateMesh">
       <from_file file_name="src/mesh">
         <format name="triangle"/>
@@ -112,6 +98,26 @@
       <magnitude>
         <real_value rank="0">1.0</real_value>
       </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <adjoint_storage>
+            <exists_in_forward/>
+          </adjoint_storage>
+        </prescribed>
+      </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="Fluid">

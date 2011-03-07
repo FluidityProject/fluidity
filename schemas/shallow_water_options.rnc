@@ -6,6 +6,8 @@ include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
 include "adjoint_options.rnc"
+include "physical_parameters.rnc"
+include "mesh_options.rnc"
 
 start =
    (
@@ -25,21 +27,7 @@ start =
             element dimension {
                element integer_value {
                   attribute rank {"0"},
-                  ("2"|"1")
-               }
-            },
-            element embedded_manifold {
-               ## documentation goes here
-               element projection{
-                  python_code
-               },
-               ## documentation goes here
-               element vector_map{
-                  python_code
-               },
-               ## The direction of up
-               element up{
-                  python_code
+                  ("3")
                }
             },
             ## The position mesh
@@ -248,13 +236,7 @@ start =
          },
          ## The physical parameters
          element physical_parameters {
-            ## Set a gravity to be included in the buoyancy term.
-            element gravity {
-               ## Acceleration due to gravity. 9.8 m/s^2 on earth.
-               element magnitude {
-                  real
-               }
-            }?,
+            gravity_options,
             element coriolis {
                python_code
             }?
@@ -3566,6 +3548,11 @@ vector_field_choice =
          element vector_field {
             attribute rank { "1" },
             attribute name { xsd:string },
+            ## If this is not set, the dimension of the vector field is
+            ## that set by /geometry/dimension
+            element dimension {
+               integer
+            }?,
             ## Field type
             (
                element prescribed {

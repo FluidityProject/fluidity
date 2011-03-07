@@ -217,3 +217,71 @@ extrusion_options =
           integer
       }?
    )
+
+# Most common mesh choices
+mesh_choice = 
+   (
+      element mesh {
+         attribute name { xsd:string }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }
+   )
+
+# Same choices, but with VelocityMesh offered first
+velocity_mesh_choice =
+   (
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
+# Same choices, but with PressureMesh offered first
+pressure_mesh_choice =
+   (
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
+# Same choices, but with CoordinateMesh offered first
+coordinate_mesh_choice =
+   (
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )

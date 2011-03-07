@@ -5,25 +5,10 @@
   </simulation_name>
   <geometry>
     <dimension>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">3</integer_value>
     </dimension>
-    <embedded_manifold>
-      <projection>
-        <string_value lines="20" type="python">from spheretools import polar2cart
-r=1.0
-val=polar2cart(r)</string_value>
-      </projection>
-      <vector_map>
-        <string_value lines="20" type="python">from spheretools import spherical_basis_vecs
-val=spherical_basis_vecs()</string_value>
-      </vector_map>
-      <up>
-        <string_value lines="20" type="python">from spheretools import spherical_up
-val=spherical_up()</string_value>
-      </up>
-    </embedded_manifold>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sp_sphere">
+      <from_file file_name="sphere">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -64,11 +49,11 @@ val=spherical_up()</string_value>
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <real_value rank="0">0.0</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_coordinates name="Cartesian"/>
     <output_mesh name="VelocityMesh"/>
   </io>
@@ -83,22 +68,40 @@ val=spherical_up()</string_value>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">0</real_value>
+      <real_value rank="0">864000</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">10</real_value>
+        <real_value rank="0">9.80616</real_value>
       </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <python>
+              <string_value lines="20" type="python">from spheretools import spherical_down
+val=spherical_down()</string_value>
+            </python>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <adjoint_storage>
+            <exists_in_forward/>
+          </adjoint_storage>
+        </prescribed>
+      </vector_field>
     </gravity>
     <coriolis>
-      <f_plane>
-        <f>
-          <real_value rank="0">1.0313e-04</real_value>
-          <comment>1.0313e-04</comment>
-        </f>
-      </f_plane>
+      <string_value lines="20" type="python">from Williamson_RHwave import omega
+from spheretools import coriolis
+val=coriolis(omega)</string_value>
     </coriolis>
   </physical_parameters>
   <material_phase name="Fluid">
@@ -124,11 +127,8 @@ val=spherical_up()</string_value>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-16</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1.0e-16</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -191,13 +191,10 @@ val=spherical_up()</string_value>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-16</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1.0e-16</real_value>
-          </absolute_error>
           <max_iterations>
-            <integer_value rank="0">1000</integer_value>
+            <integer_value rank="0">2000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -206,12 +203,12 @@ val=spherical_up()</string_value>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
-   return real(sin(k[1]*X[1])*exp(1j*k[0]*X[0]))</string_value>
+            <string_value lines="20" type="python">from Williamson_RHwave import initial_height
+val=initial_height()</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">5.0</real_value>
+          <real_value rank="0">8e3</real_value>
         </mean_layer_thickness>
         <output/>
         <stat/>

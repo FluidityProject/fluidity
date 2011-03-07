@@ -7,6 +7,8 @@
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
   <include href="adjoint_options.rng"/>
+  <include href="physical_parameters.rng"/>
+  <include href="mesh_options.rng"/>
   <start>
     <element name="shallow_water_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -26,24 +28,7 @@ characters in the simulation name should be avoided.</a:documentation>
             <attribute name="rank">
               <value>0</value>
             </attribute>
-            <choice>
-              <value>2</value>
-              <value>1</value>
-            </choice>
-          </element>
-        </element>
-        <element name="embedded_manifold">
-          <element name="projection">
-            <a:documentation>documentation goes here</a:documentation>
-            <ref name="python_code"/>
-          </element>
-          <element name="vector_map">
-            <a:documentation>documentation goes here</a:documentation>
-            <ref name="python_code"/>
-          </element>
-          <element name="up">
-            <a:documentation>The direction of up</a:documentation>
-            <ref name="python_code"/>
+            <value>3</value>
           </element>
         </element>
         <element name="mesh">
@@ -302,15 +287,7 @@ This is usually disabled.</a:documentation>
       </element>
       <element name="physical_parameters">
         <a:documentation>The physical parameters</a:documentation>
-        <optional>
-          <element name="gravity">
-            <a:documentation>Set a gravity to be included in the buoyancy term.</a:documentation>
-            <element name="magnitude">
-              <a:documentation>Acceleration due to gravity. 9.8 m/s^2 on earth.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </element>
-        </optional>
+        <ref name="gravity_options"/>
         <optional>
           <element name="coriolis">
             <ref name="python_code"/>
@@ -4267,6 +4244,13 @@ ocean biology is being simulated.</a:documentation>
         <attribute name="name">
           <data type="string"/>
         </attribute>
+        <optional>
+          <element name="dimension">
+            <a:documentation>If this is not set, the dimension of the vector field is
+that set by /geometry/dimension</a:documentation>
+            <ref name="integer"/>
+          </element>
+        </optional>
         <choice>
           <a:documentation>Field type</a:documentation>
           <element name="prescribed">

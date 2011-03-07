@@ -60,7 +60,7 @@ contains
     !! Layer thickness
     type(scalar_field), pointer :: D, f
     !! velocity.
-    type(vector_field), pointer :: U, X, up
+    type(vector_field), pointer :: U, X, down
     integer :: dim, ele
 
     ewrite(2,*) 'dt',dt,'theta',theta
@@ -70,8 +70,8 @@ contains
     D=>extract_scalar_field(state, "LayerThickness")
     f=>extract_scalar_field(state, "Coriolis")
     U=>extract_vector_field(state, "LocalVelocity")
-    X=>extract_vector_field(state, "CartesianCoordinate")
-    up=>extract_vector_field(state, "Up")
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
 
     dim = mesh_dim(U)
 
@@ -98,7 +98,7 @@ contains
 
     !Assemble matrices
     do ele = 1, ele_count(D)
-       call assemble_shallow_water_matrices_ele(D,f,U,X,up,ele, &
+       call assemble_shallow_water_matrices_ele(D,f,U,X,down,ele, &
             h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
             div_mat,big_mat,dt,theta)
     end do
@@ -371,13 +371,13 @@ contains
       call deallocate(vec)
     end subroutine get_u_rhs
 
-    subroutine assemble_shallow_water_matrices_ele(D,f,U,X,up,ele, &
+    subroutine assemble_shallow_water_matrices_ele(D,f,U,X,down,ele, &
          h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
          div_mat,big_mat,dt,theta)
 
       implicit none
       type(scalar_field), intent(in) :: D, f
-      type(vector_field), intent(in) :: U, X, up
+      type(vector_field), intent(in) :: U, X, down
       type(csr_matrix), intent(inout) :: h_mass_mat
       type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
            inverse_coriolis_mat, div_mat, big_mat
@@ -391,7 +391,7 @@ contains
       integer, dimension(:), pointer :: D_ele, U_ele
       type(element_type) :: D_shape, u_shape
       real, dimension(ele_ngi(x,ele)) :: f_gi
-      real, dimension(X%dim, ele_ngi(up,ele)) :: up_gi
+      real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
       real, dimension(mesh_dim(U)*ele_loc(U,ele), &
                  mesh_dim(U)*ele_loc(U,ele)) :: l_big_mat, l_coriolis_mat
       integer :: dim1, dim2, nloc, dim, gi
@@ -412,7 +412,7 @@ contains
       U_ele => ele_nodes(U, ele)
 
       f_gi = ele_val_at_quad(f,ele)
-      up_gi = ele_val_at_quad(up,ele)
+      up_gi = -ele_val_at_quad(down,ele)
 
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
            detwei=detwei, detJ=detJ)

@@ -5,7 +5,7 @@ dt_D = 0.125
 dt_E = 0.0625
 source_swml = wave_periodic_source.swml
 
-input: clean copy_tests
+input: clean copy_tests; cd src; make input
 
 run: copy_tests run_dt run_dt_dx
 
@@ -27,4 +27,4 @@ copy_tests:
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_D)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_dx_D/' | sed 's/src\/mesh/src\/mesh_D/' > wave_dt_dx_D.swml
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_E)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_dx_E/' | sed 's/src\/mesh/src\/mesh_E/' > wave_dt_dx_E.swml
 clean:
-	rm -f *.vtu *.stat wave_dt_*.swml
+	rm -f *.vtu *.stat wave_dt_*.swml src/mesh*
