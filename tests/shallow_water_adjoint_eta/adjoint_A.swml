@@ -76,7 +76,6 @@
         <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_coordinates name="Manifold"/>
     <output_mesh name="CoordinateMesh"/>
   </io>
   <timestepping>

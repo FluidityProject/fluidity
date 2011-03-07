@@ -139,16 +139,6 @@ start =
                real
             }?,
             (
-               ## The coordinates used for output
-               element output_coordinates {
-                  attribute name { "Cartesian" }
-               }|
-               ## The coordinates used for output
-               element output_coordinates {
-                  attribute name { "Manifold" }
-               }
-            ),
-            (
                ## The mesh on to which all the fields will be
                ## interpolated for VTK output.
                element output_mesh {

@@ -54,7 +54,6 @@
         <integer_value rank="0">100</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_coordinates name="Cartesian"/>
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>

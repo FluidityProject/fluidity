@@ -166,20 +166,6 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
           </element>
         </optional>
         <choice>
-          <element name="output_coordinates">
-            <a:documentation>The coordinates used for output</a:documentation>
-            <attribute name="name">
-              <value>Cartesian</value>
-            </attribute>
-          </element>
-          <element name="output_coordinates">
-            <a:documentation>The coordinates used for output</a:documentation>
-            <attribute name="name">
-              <value>Manifold</value>
-            </attribute>
-          </element>
-        </choice>
-        <choice>
           <element name="output_mesh">
             <a:documentation>The mesh on to which all the fields will be
 interpolated for VTK output.</a:documentation>
