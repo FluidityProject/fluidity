@@ -52,9 +52,7 @@
           <coordinate_map>
             <string_value lines="20" type="python">def val(X,t):
   result = list(X)
-  print result
   result[0]=result[0]-1.0
-  print result
   return result</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -159,7 +157,7 @@
   k = 2.0*pi
   Ku = 0.0
   x=X[0]  
-  return [c*sin(k*x + t)]</string_value>
+  return [c*sin(k*x + t),0,0]</string_value>
           </python>
         </initial_condition>
         <vector_field name="Source" rank="1">
@@ -171,7 +169,7 @@
   c = 1.0
   k = 2.0*pi
   x=X[0]  
-  return [-c*k*cos(k*x + t) + c*cos(k*x + t)]</string_value>
+  return [-c*k*cos(k*x + t) + c*cos(k*x + t),0,0]</string_value>
               </python>
             </value>
             <output/>
@@ -340,7 +338,7 @@
   k = 2.0*pi
   Ku = 0.0
   x=X[0]
-  return [c*sin(k*x + t)]</string_value>
+  return [c*sin(k*x + t),0,0]</string_value>
           </python>
         </value>
         <output/>

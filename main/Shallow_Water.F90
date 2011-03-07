@@ -203,6 +203,7 @@
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + (theta * dt))
        if (has_vector_field(state(1), "VelocitySource")) then
+          v_field => extract_vector_field(state(1), "VelocitySource")
           call project_cartesian_field_to_local(state(1), v_field)
         end if 
 
@@ -637,7 +638,7 @@
 
       X=>extract_vector_field(state, "Coordinate")
       U_local=>extract_vector_field(state, "Local"//field%name)
-      U_cartesian=>extract_vector_field(state, "Cartesian"//field%name)
+      U_cartesian=>extract_vector_field(state, field%name)
 
       do ele=1, element_count(U_local)
 

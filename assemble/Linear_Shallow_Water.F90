@@ -338,7 +338,7 @@ contains
       !Construct the explicit contribution to the right-hand side 
       !of the u equation
 
-      integer :: dim
+      integer :: dim, i
       type(vector_field) :: rhs2, vec
 
       ewrite(2,*) 'outside', sum(D%val)
@@ -364,8 +364,9 @@ contains
         call addto(u_rhs,vec,scale=dt)
       end if
 
-      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(1,:)))
-      ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(2,:)))
+      do i=1,u_rhs%dim
+         ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(i,:)))
+      end do
 
       call deallocate(rhs2)
       call deallocate(vec)

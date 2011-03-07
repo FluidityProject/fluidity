@@ -155,7 +155,7 @@
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01
-  return [coef*sin(k_x*(X[0]+t))]</string_value>
+  return [coef*sin(k_x*(X[0]+t)),0,0]</string_value>
           </python>
         </initial_condition>
         <output/>
@@ -285,7 +285,7 @@
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01
-  return [coef*sin(k_x*(X[0]+t))]</string_value>
+  return [coef*sin(k_x*(X[0]+t)),0,0]</string_value>
           </python>
         </value>
         <output/>

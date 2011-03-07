@@ -156,7 +156,7 @@
   h = 1.0
   c = 1.0
   x = X[0]
-  return [h * sin(2*pi*x + c*t)]</string_value>
+  return [h * sin(2*pi*x + c*t),0,0]</string_value>
           </python>
         </initial_condition>
         <vector_field name="Source" rank="1">
@@ -168,7 +168,7 @@
   h = 1.0
   c = 1.0
   x = X[0]
-  return [-2*pi*h*sin(2*pi*x + c*t) + c*h*cos(2*pi*x + c*t)]</string_value>
+  return [-2*pi*h*sin(2*pi*x + c*t) + c*h*cos(2*pi*x + c*t),0,0]</string_value>
               </python>
             </value>
             <output/>
@@ -358,7 +358,7 @@
   h = 1.0
   c = 1.0
   x = X[0]
-  return [h * sin(2*pi*x + c*t)]</string_value>
+  return [h * sin(2*pi*x + c*t),0,0]</string_value>
           </python>
         </value>
         <output/>
