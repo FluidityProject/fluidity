@@ -33,7 +33,6 @@ module radiation_solve_module
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use state_module  
-   use diagnostic_variables   
    
    use radiation_materials
    use radiation_materials_interpolation
