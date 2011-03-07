@@ -33,11 +33,13 @@ module radiation_solve_module
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use state_module  
+   use diagnostic_variables   
    
    use radiation_materials
    use radiation_materials_interpolation
    use radiation_solve_power_iteration
    use radiation_normalise_flux
+   use radiation_diagnostics
 
    implicit none
    
@@ -62,7 +64,7 @@ contains
 
       ! local variables
       real :: keff
-      
+            
       ! form the material data interpolation/mixing instructions
       call form(np_radmat_ii, &
                 np_radmat, &
@@ -86,7 +88,9 @@ contains
       call normalise_neutral_particle_flux(state, &
                                            np_radmat)
                         
-      ! calculate output diagnostics
+      ! output diagnostics
+      call radiation_eigenvalue_set_diagnostics(state, &
+                                                np_radmat%name)
             
       ! output the solution
             

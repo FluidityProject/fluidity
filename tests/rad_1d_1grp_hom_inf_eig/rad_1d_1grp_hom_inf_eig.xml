@@ -13,9 +13,8 @@
   </problem_definition>
   <variables>
     <variable name="Keffneutron" language="python">
-import vtktools
-v = vtktools.vtu("rad_1d_1grp_hom_inf_eig_1.vtu")
-Keffneutron = max(v.GetScalarRange("NeutralParticleKeffneutron"))
+from fluidity_tools import stat_parser as stat
+Keffneutron = stat("rad_1d_1grp_hom_inf_eig.stat")["NeutralParticleKeffneutron1"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>

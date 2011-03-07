@@ -39,6 +39,7 @@ module radiation
    use radiation_materials
    use radiation_materials_interpolation
    use radiation_check_options_module
+   use radiation_diagnostics
    use radiation_solve_module
    
    implicit none
@@ -93,9 +94,12 @@ contains
          call create(np_radmats_ii(np), &
                      np_radmats(np), &
                      state)
+      
+         ! register the radiation diagnostics for stat file for this np
+         call radiation_register_diagnostics(trim(np_radmat_option_path))
                   
       end do np_loop
-      
+            
       ewrite(1,*) 'Finished initialise radiation model'
       
    end subroutine radiation_initialise

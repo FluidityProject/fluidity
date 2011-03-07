@@ -43,14 +43,32 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = Radiation.o Radiation_Materials.o Radiation_Check_Options.o Radiation_Materials_Data_Types.o Radiation_Materials_Create.o \
-       Radiation_Materials_Destroy.o Radiation_Materials_Read.o Radiation_Materials_Read_Wims9Plus.o \
-       Radiation_Materials_Read_Wims9Plus_Base.o Radiation_Materials_Operations.o Radiation_Materials_Interpolation.o \
-       Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials_Interpolation_Create.o Radiation_Materials_Interpolation_Destroy.o \
-       Radiation_Materials_Interpolation_Form_II.o Radiation_Materials_Interpolation_Form_Radmat_Vele.o \
-       Radiation_Solve.o Radiation_Solve_Power_Iteration.o Radiation_Solve_Scatter_Iteration.o \
-       Radiation_Solve_Group_Set.o Radiation_Extract_Flux_Field.o Radiation_Normalise_Flux.o Create_Unittest_Input.o \
-       Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o 
+OBJS = Radiation.o \
+       Radiation_Materials.o \
+       Radiation_Check_Options.o \
+       Radiation_Materials_Data_Types.o \
+       Radiation_Materials_Create.o \
+       Radiation_Materials_Destroy.o \
+       Radiation_Materials_Read.o \
+       Radiation_Materials_Read_Wims9Plus.o \
+       Radiation_Materials_Read_Wims9Plus_Base.o \
+       Radiation_Materials_Operations.o \
+       Radiation_Materials_Interpolation.o \
+       Radiation_Materials_Interpolation_Data_Types.o \
+       Radiation_Materials_Interpolation_Create.o \
+       Radiation_Materials_Interpolation_Destroy.o \
+       Radiation_Materials_Interpolation_Form_II.o \
+       Radiation_Materials_Interpolation_Form_Radmat_Vele.o \
+       Radiation_Solve.o \
+       Radiation_Solve_Power_Iteration.o \
+       Radiation_Solve_Scatter_Iteration.o \
+       Radiation_Solve_Group_Set.o \
+       Radiation_Extract_Flux_Field.o \
+       Radiation_Normalise_Flux.o \
+       Create_Unittest_Input.o \
+       Radiation_Check_Flux_Convergence.o \
+       Radiation_Copy_Flux_Values.o \
+       Radiation_Diagnostics.o 
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -74,8 +92,8 @@ default: $(OBJS)
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Radiation.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Check_Options.o Radiation_Solve.o
-Radiation_Solve.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Solve_Power_Iteration.o Radiation_Normalise_Flux.o
+Radiation.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Check_Options.o Radiation_Diagnostics.o Radiation_Solve.o
+Radiation_Solve.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Solve_Power_Iteration.o Radiation_Normalise_Flux.o Radiation_Diagnostics.o
 Radiation_Solve_Power_Iteration.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Solve_Scatter_Iteration.o Radiation_Extract_Flux_Field.o Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o
 Radiation_Solve_Scatter_Iteration.o: Radiation_Materials.o Radiation_Materials_Interpolation.o Radiation_Solve_Group_Set.o 
 Radiation_Solve_Group_Set.o: Radiation_Materials.o Radiation_Extract_Flux_Field.o Radiation_Materials_Interpolation.o
@@ -98,6 +116,7 @@ Radiation_Materials_Interpolation_Destroy.o: Radiation_Materials_Interpolation_D
 Radiation_Materials_Interpolation_Form_II.o: Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials_Interpolation_Create.o Radiation_Materials_Data_Types.o
 Radiation_Materials_Interpolation_Form_Radmat_Vele.o: Radiation_Materials.o Radiation_Materials_Interpolation_Data_Types.o
 Create_Unittest_Input.o: Radiation_Materials_Data_Types.o Radiation_Materials_Create.o 
+Radiation_Diagnostics.o: 
 
 clean:
 	rm -f *.o *.d *.mod

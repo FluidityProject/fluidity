@@ -225,13 +225,6 @@ contains
     ! Read state from .flml file
     call populate_state(state)
 
-    ! Initialise radiation specific data types - needs to be after populate state
-    if(have_option("/radiation")) then
-        call radiation_initialise(state(1), &
-                                  np_radmats, &
-                                  np_radmats_ii)
-    end if
-
     ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
@@ -396,6 +389,13 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
+    ! Initialise radiation specific data types and register radiation diagnostics
+    if(have_option("/radiation")) then
+        call radiation_initialise(state(1), &
+                                  np_radmats, &
+                                  np_radmats_ii)
+    end if
+
     call initialise_diagnostics(filename, state)
 
     ! Checkpoint at start
@@ -414,7 +414,6 @@ contains
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
-
 
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
 
@@ -436,6 +435,10 @@ contains
                             np_radmats, &
                             np_radmats_ii, &
                             invoke_eigenvalue_solve=.true.)
+      
+      ! write the radiation eigenvalue diagnostics
+      call write_diagnostics(state, current_time, dt, timestep)
+      
     end if
 
     ! ******************************
