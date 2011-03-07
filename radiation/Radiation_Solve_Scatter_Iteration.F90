@@ -44,7 +44,7 @@ module radiation_solve_scatter_iteration
 
    use radiation_materials
    use radiation_materials_interpolation
-   use radiation_assemble_solve_group_set
+   use radiation_assemble_solve_group
 
    implicit none
    
@@ -223,14 +223,14 @@ contains
       
       group_loop: do g = start_group,number_of_energy_groups
          
-         ! Assemble and solve the group set g neutral particle balance
-         call np_assemble_solve_group_set(state, &
-                                          trim(np_radmat_name), &
-                                          np_radmat, &
-                                          np_radmat_ii, &
-                                          g, &
-                                          number_of_energy_groups, &
-                                          keff = keff)
+         ! Assemble and solve the group g neutral particle balance
+         call np_assemble_solve_group(state, &
+                                      trim(np_radmat_name), &
+                                      np_radmat, &
+                                      np_radmat_ii, &
+                                      g, &
+                                      number_of_energy_groups, &
+                                      keff = keff)
          
       end do group_loop      
       

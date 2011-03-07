@@ -25,7 +25,7 @@
       <ref name="read_radiation_material_data_set"/>
       <ref name="radiation_material_mapping"/>
       <optional>
-        <ref name="Rad_Fission_and_Power_Template"/>
+        <ref name="Rad_Total_Fission_and_Power"/>
       </optional>
       <optional>
         <ref name="delayed_precursor"/>
@@ -34,10 +34,10 @@
   </define>
   <define name="neutral_particle_mesh">
     <element name="mesh">
-      <a:documentation>The template mesh associated with the neutral particle solution</a:documentation>
+      <a:documentation>The mesh associated with the neutral particle solution</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMeshTemplate</value>
+        <value>NeutralParticleMesh</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -74,11 +74,11 @@
   </define>
   <define name="neutral_particle_material_mesh">
     <element name="mesh">
-      <a:documentation>The template mesh associated with the material mapping used to solve for the neutral particle 
+      <a:documentation>The mesh associated with the material mapping used to solve for the neutral particle 
 is always volume element wise (ie. DG order zero or FV)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleMaterialMeshTemplate</value>
+        <value>NeutralParticleMaterialMesh</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -133,7 +133,7 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
     <element name="method_diffusion">
       <a:documentation>Multigroup diffusion </a:documentation>
       <ref name="comment"/>
-      <ref name="neutral_particle_flux_template_diffusion"/>
+      <ref name="neutral_particle_flux_diffusion"/>
     </element>
   </define>
   <define name="number_of_energy_groups">
@@ -143,12 +143,12 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
       <ref name="integer"/>
     </element>
   </define>
-  <define name="neutral_particle_flux_template_diffusion">
+  <define name="neutral_particle_flux_diffusion">
     <element name="scalar_field">
-      <a:documentation>The template neutral particle flux density scalar field for diffusion method equation</a:documentation>
+      <a:documentation>The neutral particle flux density scalar field for diffusion method equation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>NeutralParticleFluxTemplate</value>
+        <value>NeutralParticleFlux</value>
       </attribute>
       <ref name="prognostic_neutral_particle_diffusion_removal_source_scalar_field"/>
     </element>
@@ -225,7 +225,7 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
       <a:documentation>The problem boundary conditions </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <data type="string" datatypeLibrary=""/>
+        <data type="string"/>
       </attribute>
       <ref name="surface_ids"/>
       <ref name="diffusion_bc_type"/>
@@ -540,7 +540,7 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
   <define name="read_radiation_material_data_set">
     <oneOrMore>
       <element name="radiation_material_data_set_from_file">
-        <a:documentation>Read radiation material data set from multiple external files</a:documentation>
+        <a:documentation>Read radiation material data set from file</a:documentation>
         <ref name="comment"/>
         <attribute name="file_name">
           <data type="string"/>
@@ -626,7 +626,7 @@ the rest of the fluids state. This must be used with a prescribed physical mater
           </element>
         </oneOrMore>
         <optional>
-          <ref name="Rad_Fission_and_Power_Template"/>
+          <ref name="Rad_Region_Fission_and_Power"/>
         </optional>
       </element>
     </optional>
@@ -639,17 +639,17 @@ the rest of the fluids state. This must be used with a prescribed physical mater
             <a:documentation>The fluids material_phase to radiation physical material mapping</a:documentation>
             <ref name="comment"/>
             <ref name="radiation_material"/>
-            <ref name="Rad_MaterialVolumeFraction_Template"/>
+            <ref name="Rad_MaterialVolumeFraction"/>
             <attribute name="name">
               <data type="string"/>
             </attribute>
           </element>
         </oneOrMore>
         <optional>
-          <ref name="Rad_MaterialTemperature_Template"/>
+          <ref name="Rad_MaterialTemperature"/>
         </optional>
         <optional>
-          <ref name="Rad_Fission_and_Power_Template"/>
+          <ref name="Rad_Material_Fission_and_Power"/>
         </optional>
       </element>
     </optional>
@@ -667,12 +667,12 @@ the rest of the fluids state. This must be used with a prescribed physical mater
             <ref name="radiation_material"/>
           </element>
         </oneOrMore>
-        <ref name="Rad_Porosity_Template"/>
+        <ref name="Rad_Porosity"/>
         <optional>
-          <ref name="Rad_PorousTemperature_Template"/>
+          <ref name="Rad_PorousTemperature"/>
         </optional>
         <optional>
-          <ref name="Rad_Fission_and_Power_Template"/>
+          <ref name="Rad_Porous_Fission_and_Power"/>
         </optional>
       </element>
     </optional>
@@ -700,56 +700,51 @@ the rest of the fluids state. This must be used with a prescribed physical mater
       <ref name="integer_vector"/>
     </element>
   </define>
-  <define name="Rad_MaterialVolumeFraction_Template">
+  <define name="Rad_MaterialVolumeFraction">
     <element name="scalar_field">
-      <a:documentation>The template for the neutral particle flux density material volume fraction scalar field
-that is used for the cross section mapping and interpolation,
-that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <a:documentation>The neutral particle flux density material volume fraction scalar field
+that is used for the cross section mapping and interpolation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadMaterialVolumeFractionTemplate</value>
+        <value>RadMaterialVolumeFraction</value>
       </attribute>
       <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
         <a:documentation>Field Type</a:documentation>
       </ref>
     </element>
   </define>
-  <define name="Rad_MaterialTemperature_Template">
+  <define name="Rad_MaterialTemperature">
     <element name="scalar_field">
-      <a:documentation>The template for the temperature scalar field associated with multimaterial
-that is used for the cross section interpolation,
-that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <a:documentation>The temperature scalar field associated with multimaterial
+that is used for the cross section interpolation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadMaterialTemperatureTemplate</value>
+        <value>RadMaterialTemperature</value>
       </attribute>
       <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
         <a:documentation>Field Type</a:documentation>
       </ref>
     </element>
   </define>
-  <define name="Rad_Porosity_Template">
+  <define name="Rad_Porosity">
     <element name="scalar_field">
-      <a:documentation>The template for the porosity scalar field
-that is used for the cross section interpolation,
-that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <a:documentation>The porosity scalar field that is used for the cross section interpolation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadPorosityTemplate</value>
+        <value>RadPorosity</value>
       </attribute>
       <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
         <a:documentation>Field Type</a:documentation>
       </ref>
     </element>
   </define>
-  <define name="Rad_PorousTemperature_Template">
+  <define name="Rad_PorousTemperature">
     <element name="scalar_field">
-      <a:documentation>The template for the porous temperature scalar field
-that is used for the cross section interpolation,
-that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentation>
+      <a:documentation>The porous temperature scalar field
+that is used for the cross section interpolation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadPorousTemperatureTemplate</value>
+        <value>RadPorousTemperature</value>
       </attribute>
       <ref name="prescribed_or_scalar_diagnostic_algorithms_scalar_field">
         <a:documentation>Field Type</a:documentation>
@@ -769,29 +764,112 @@ that is defined with the NeutralParticleMaterialMeshTemplate mesh</a:documentati
       </element>
     </choice>
   </define>
-  <define name="Rad_Fission_and_Power_Template">
-    <ref name="Rad_Fission_Template"/>
-    <ref name="Rad_Power_Template"/>
+  <define name="Rad_Region_Fission_and_Power">
+    <ref name="Rad_Region_Fission"/>
+    <ref name="Rad_Region_Power"/>
   </define>
-  <define name="Rad_Fission_Template">
+  <define name="Rad_Region_Fission">
     <element name="scalar_field">
-      <a:documentation>The template for the fission density scalar field, this is always defined on the NeutralParticleMaterialMesh</a:documentation>
+      <a:documentation>The fission density scalar field</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadFissionTemplate</value>
+        <value>RadRegionFission</value>
       </attribute>
       <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
         <a:documentation>Field Type</a:documentation>
       </ref>
     </element>
   </define>
-  <define name="Rad_Power_Template">
+  <define name="Rad_Region_Power">
     <element name="scalar_field">
-      <a:documentation>The template for the power density scalar field for diagnostics and coupling,
-this is always defined on the NeutralParticleMaterialMesh</a:documentation>
+      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>RadPowerTemplate</value>
+        <value>RadRegionPower</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Material_Fission_and_Power">
+    <ref name="Rad_Material_Fission"/>
+    <ref name="Rad_Material_Power"/>
+  </define>
+  <define name="Rad_Material_Fission">
+    <element name="scalar_field">
+      <a:documentation>The fission density scalar field</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadMaterialFission</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Material_Power">
+    <element name="scalar_field">
+      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadMaterialPower</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Porous_Fission_and_Power">
+    <ref name="Rad_Porous_Fission"/>
+    <ref name="Rad_Porous_Power"/>
+  </define>
+  <define name="Rad_Porous_Fission">
+    <element name="scalar_field">
+      <a:documentation>The fission density scalar field</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadPorousFission</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Porous_Power">
+    <element name="scalar_field">
+      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadPorousPower</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Total_Fission_and_Power">
+    <ref name="Rad_Total_Fission"/>
+    <ref name="Rad_Total_Power"/>
+  </define>
+  <define name="Rad_Total_Fission">
+    <element name="scalar_field">
+      <a:documentation>The fission density scalar field</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadTotalFission</value>
+      </attribute>
+      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+        <a:documentation>Field Type</a:documentation>
+      </ref>
+    </element>
+  </define>
+  <define name="Rad_Total_Power">
+    <element name="scalar_field">
+      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>RadTotalPower</value>
       </attribute>
       <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
         <a:documentation>Field Type</a:documentation>
@@ -828,7 +906,7 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
         <element name="link_with_region_id">
           <a:documentation>link with region id, requires the neutron object to be linked with region id also</a:documentation>
           <ref name="comment"/>
-          <ref name="delayed_neutron_precursor_diagnostic_template"/>
+          <ref name="delayed_neutron_precursor_diagnostic"/>
         </element>
       </optional>
       <optional>
@@ -836,24 +914,24 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
           <a:documentation>link with multimaterial, requires the neutron object to be linked with multimaterial also</a:documentation>
           <ref name="comment"/>
           <ref name="prompt_delayed_coupling_option"/>
-          <ref name="delayed_neutron_precursor_prognostic_or_diagnostic_template"/>
+          <ref name="delayed_neutron_precursor_prognostic_or_diagnostic"/>
         </element>
       </optional>
       <optional>
         <element name="link_with_porous_media">
           <a:documentation>link with porous media, requires the neutron object to be linked with porous media also</a:documentation>
           <ref name="comment"/>
-          <ref name="delayed_neutron_precursor_diagnostic_template"/>
+          <ref name="delayed_neutron_precursor_diagnostic"/>
         </element>
       </optional>
     </element>
   </define>
   <define name="delayed_neutron_mesh">
     <element name="mesh">
-      <a:documentation>The template mesh associated with the delayed precursor concentration solution</a:documentation>
+      <a:documentation>The mesh associated with the delayed precursor concentration solution</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>DelayedNeutronMeshTemplate</value>
+        <value>DelayedNeutronMesh</value>
       </attribute>
       <element name="from_mesh">
         <a:documentation>Derived from the mesh</a:documentation>
@@ -918,16 +996,15 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
       <ref name="comment"/>
     </element>
   </define>
-  <define name="delayed_neutron_precursor_prognostic_or_diagnostic_template">
+  <define name="delayed_neutron_precursor_prognostic_or_diagnostic">
     <element name="scalar_field">
-      <a:documentation> The template delayed neutron precursor scalar field,
- that is defined with the DelayedNeutronMeshTemplate mesh
+      <a:documentation> The delayed neutron precursor scalar field
  Field Type:
   - use prognostic for time run
   - use diagnostic for eigenvalue run</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>DelayedNeutronPrecursorTemplate</value>
+        <value>DelayedNeutronPrecursor</value>
       </attribute>
       <choice>
         <ref name="prognostic_delayed_neutron_advection_decay_source_scalar_field"/>
@@ -935,13 +1012,12 @@ this is always defined on the NeutralParticleMaterialMesh</a:documentation>
       </choice>
     </element>
   </define>
-  <define name="delayed_neutron_precursor_diagnostic_template">
+  <define name="delayed_neutron_precursor_diagnostic">
     <element name="scalar_field">
-      <a:documentation>The template delayed neutron precursor scalar field,
-that is defined with the DelayedNeutronMeshTemplate mesh</a:documentation>
+      <a:documentation>The delayed neutron precursor scalar field</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>DelayedNeutronPrecursorTemplate</value>
+        <value>DelayedNeutronPrecursor</value>
       </attribute>
       <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
     </element>

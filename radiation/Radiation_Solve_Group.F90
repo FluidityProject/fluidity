@@ -27,10 +27,10 @@
 
 #include "fdebug.h"
 
-module radiation_assemble_solve_group_set
+module radiation_assemble_solve_group
 
-   !!< This module contains procedures associated with solving the set 
-   !!< of groups g neutral particle block matrix problem
+   !!< This module contains procedures associated with solving the 
+   !!< group g neutral particle matrix problem
 
    ! keep in this order, please:
    use quadrature
@@ -56,7 +56,7 @@ module radiation_assemble_solve_group_set
    
    private 
 
-   public :: np_assemble_solve_group_set
+   public :: np_assemble_solve_group
    
    type np_group_g_assemble_options_type
       character(len=OPTION_PATH_LEN) :: spatial_discretisation
@@ -73,15 +73,15 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_assemble_solve_group_set(state, &
-                                          np_radmat_name, &
-                                          np_radmat, &
-                                          np_radmat_ii, &
-                                          g, &
-                                          number_of_energy_groups, &
-                                          keff) 
+   subroutine np_assemble_solve_group(state, &
+                                      np_radmat_name, &
+                                      np_radmat, &
+                                      np_radmat_ii, &
+                                      g, &
+                                      number_of_energy_groups, &
+                                      keff) 
    
-      !!< Assemble and solve the group set g neutral particle block matrix problem
+      !!< Assemble and solve the group g neutral particle matrix problem
       !!< If keff variable is present then this is an eigenvalue solve, else this is a time run solve
 
       type(state_type), intent(inout) :: state
@@ -94,8 +94,8 @@ contains
       
       ! local variables
       integer :: vele,sele
-      type(scalar_field), pointer :: np_flux 
-      type(scalar_field), pointer :: np_flux_old
+      type(scalar_field_pointer), dimension(:), pointer :: np_flux 
+      type(scalar_field_pointer), dimension(:), pointer :: np_flux_old      
       type(csr_matrix) :: matrix
       type(scalar_field) :: rhs
       type(csr_sparsity), pointer :: sparsity
@@ -106,22 +106,23 @@ contains
       integer, dimension(:), allocatable :: bc_types
       type(scalar_field) :: bc_value
                  
-      ! extract flux to be solved for 
-      call extract_flux_group_g(state, &
-                                trim(np_radmat_name), &
-                                g, &  
-                                np_flux = np_flux, &
-                                np_flux_old = np_flux_old)
+      ! extract the neutral particle flux fields for all energy groups
+      call extract_flux_all_group(state, &
+                                  trim(np_radmat_name), & 
+                                  number_of_energy_groups, &
+                                  np_flux     = np_flux, &
+                                  np_flux_old = np_flux_old)
       
+      ! get the solver options for group g
       call get_group_g_assemble_options(np_group_g_assemble_options, &
-                                        np_flux%option_path, &
+                                        np_flux(g)%ptr%option_path, &
                                         np_radmat%option_path, &
                                         (.not. present(keff)))
       
       ! allocate the solution field passed to the solve for a time run 
       alloc_delta: if (.not. present(keff)) then
          
-         call allocate(delta_np_flux, np_flux%mesh, name = 'DeltaNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name))
+         call allocate(delta_np_flux, np_flux(g)%ptr%mesh, name = 'DeltaNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name))
          
          ! set the time run initial guess
          call zero(delta_np_flux)
@@ -129,19 +130,24 @@ contains
       end if alloc_delta
       
       ! determine the sparsity pattern of matrix assuming first order connections 
-      sparsity => get_csr_sparsity_firstorder(state, np_flux%mesh, np_flux%mesh)
+      sparsity => get_csr_sparsity_firstorder(state, np_flux(g)%ptr%mesh, np_flux(g)%ptr%mesh)
       
       ! allocate the matrix and rhs vector used for solving
       call allocate(matrix, sparsity, name = 'MatrixNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name))
-      call allocate(rhs, np_flux%mesh, name = 'RHSNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name))
+      call allocate(rhs, np_flux(g)%ptr%mesh, name = 'RHSNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name))
       
       call zero(matrix)
       call zero(rhs)
       
+      ! currently assume all energy groups point to the same coordinate mesh
       positions => extract_vector_field(state, "Coordinate")
       
+      ! if the above assumption was to be broken then the there would need to be a sweep of the other groups
+      ! fluxes (new and old) to see which needs supermeshing to a new field and then the pointer within the 
+      ! scalar_field_pointer np_flux (or _old) is then changed such that no code change below is needed
+      
       ! volume integrations 
-      volume_element_loop: do vele = 1, ele_count(np_flux)      
+      volume_element_loop: do vele = 1, ele_count(np_flux(g)%ptr)      
          
          ! get the vele cross section as needed for this group
          call form(radmat_vele, &
@@ -159,7 +165,6 @@ contains
                                        g, &
                                        number_of_energy_groups, &
                                        state, &
-                                       trim(np_radmat_name), &
                                        np_flux, &
                                        np_flux_old, &
                                        radmat_vele, &
@@ -175,14 +180,14 @@ contains
       
       ! surface integrations for vacuum conditions for diffusion theory
       
-      allocate(bc_types(surface_element_count(np_flux)))
+      allocate(bc_types(surface_element_count(np_flux(g)%ptr)))
 
-      call get_entire_boundary_condition(np_flux, &
+      call get_entire_boundary_condition(np_flux(g)%ptr, &
                                          (/"vacuum"/), &
                                          bc_value, &
                                          bc_types)
 
-      surface_element_loop: do sele = 1,surface_element_count(np_flux)
+      surface_element_loop: do sele = 1,surface_element_count(np_flux(g)%ptr)
          
          vacuum_bc: if (bc_types(sele) == 1) then
          
@@ -190,7 +195,7 @@ contains
                                                  positions, &
                                                  matrix, & 
                                                  bc_value, &
-                                                 np_flux)
+                                                 np_flux(g)%ptr)
          
          end if vacuum_bc
          
@@ -203,18 +208,18 @@ contains
       ! apply direchlet BC
       call apply_dirichlet_conditions(matrix, &
                                       rhs, &
-                                      np_flux)
+                                      np_flux(g)%ptr)
             
       ! solve the linear system 
       ! - for eig solve use the latest solution as initial guess
       ! - for time solve update the state solution arrays after
       solve: if (present(keff)) then
       
-         call petsc_solve(np_flux, &
+         call petsc_solve(np_flux(g)%ptr, &
                           matrix, &
                           rhs, &
                           state, &
-                          option_path = trim(np_flux%option_path) )
+                          option_path = trim(np_flux(g)%ptr%option_path) )
       
       else solve
       
@@ -222,15 +227,15 @@ contains
                           matrix, &
                           rhs, &
                           state, &
-                          option_path = trim(np_flux%option_path) )
+                          option_path = trim(np_flux(g)%ptr%option_path) )
          
-         call addto(np_flux, &
+         call addto(np_flux(g)%ptr, &
                     delta_np_flux)
       
       end if solve
       
       ! set the direchlet bc nodes to be consistent
-      call set_dirichlet_consistent(np_flux)
+      call set_dirichlet_consistent(np_flux(g)%ptr)
       
       ! deallocate the matrix and rhs vector used for solving
       call deallocate(matrix)
@@ -242,12 +247,16 @@ contains
          call deallocate(delta_np_flux)
          
       end if dealloc_delta
+
+      ! deallocate the np flux pointer fields
+      call deallocate_flux_all_group(np_flux     = np_flux, &
+                                     np_flux_old = np_flux_old)
       
       ! deallocate the prescribed source options data
       if (allocated(np_group_g_assemble_options%prescribed_source_energy_group)) deallocate(np_group_g_assemble_options%prescribed_source_energy_group)
       if (allocated(np_group_g_assemble_options%prescribed_source_field_name))   deallocate(np_group_g_assemble_options%prescribed_source_field_name)
       
-   end subroutine np_assemble_solve_group_set
+   end subroutine np_assemble_solve_group
 
    ! --------------------------------------------------------------------------
 
@@ -339,7 +348,6 @@ contains
                                        g, &
                                        number_of_energy_groups, &
                                        state, &
-                                       np_radmat_name, &
                                        np_flux, &
                                        np_flux_old, &
                                        radmat_vele, &
@@ -352,15 +360,16 @@ contains
       !!< Assemble the volume element vele contribution to the global matrix and rhs for this np for group g
       !!< The optional argument keff is used to determine whether this is a eigenvalue or time dependent assemble
       
+      ! the np_flux (and old) fields have the same positions mesh here (so they may actually be the supermesh flux)
+      
       ! the assemble for time run is still under development and is currently known to be incorrect 
       
       integer, intent(in) :: vele
       integer, intent(in) :: g
       integer, intent(in) :: number_of_energy_groups 
       type(state_type), intent(in) :: state    
-      character(len=*), intent(in) :: np_radmat_name
-      type(scalar_field), intent(inout) :: np_flux 
-      type(scalar_field), intent(in) :: np_flux_old
+      type(scalar_field_pointer), dimension(:), pointer :: np_flux 
+      type(scalar_field_pointer), dimension(:), pointer :: np_flux_old       
       type(radmat_type), intent(in) :: radmat_vele      
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(inout) :: rhs
@@ -375,15 +384,11 @@ contains
       real :: timestep
       real :: theta
       real :: timestep_theta
-      real, dimension(ele_ngi(np_flux, vele)) :: detwei
-      real, dimension(ele_loc(np_flux, vele), ele_ngi(np_flux, vele), mesh_dim(np_flux)) :: dshape
-      real, dimension(ele_loc(np_flux, vele), ele_loc(np_flux, vele)) :: mass_matrix     
-      real, dimension(ele_loc(np_flux, vele), ele_loc(np_flux, vele)) :: diffusivity_matrix
-      real, dimension(positions%dim, positions%dim, ele_ngi(np_flux, vele)) :: diffusivity_gi                 
-      real, dimension(ele_loc(np_flux, vele), ele_loc(np_flux, vele)) :: matrix_addto
-      real, dimension(ele_loc(np_flux, vele)) :: rhs_addto      
-      real, dimension(:), allocatable :: np_flux_vele_val
-      real, dimension(:), allocatable :: np_flux_old_vele_val
+      real, dimension(ele_ngi(np_flux(g)%ptr, vele)) :: detwei
+      real, dimension(ele_loc(np_flux(g)%ptr, vele), ele_ngi(np_flux(g)%ptr, vele), mesh_dim(np_flux(g)%ptr)) :: dshape
+      real, dimension(positions%dim, positions%dim, ele_ngi(np_flux(g)%ptr, vele)) :: diffusivity_gi                 
+      real, dimension(ele_loc(np_flux(g)%ptr, vele), ele_loc(np_flux(g)%ptr, vele)) :: matrix_addto
+      real, dimension(ele_loc(np_flux(g)%ptr, vele)) :: rhs_addto      
       type(scalar_field), pointer :: prescribed_isotropic_source_field 
       
       ! form the timestep*theta use for time run and shorter variable names
@@ -403,10 +408,7 @@ contains
       rhs_addto    = 0.0
             
       ! form the velement jacobian transform and gauss weight
-      call transform_to_physical(positions, vele, ele_shape(np_flux, vele), dshape = dshape, detwei = detwei)
-      
-      ! form the vele mass matrix
-      mass_matrix = shape_shape(ele_shape(np_flux,vele),ele_shape(np_flux,vele),detwei)
+      call transform_to_physical(positions, vele, ele_shape(np_flux(g)%ptr, vele), dshape = dshape, detwei = detwei)
             
       ! form the vele diffusion tensor coeff which is diagonal and the same value for 
       ! each gauss point as volume element wise
@@ -414,77 +416,85 @@ contains
       diffusivity_gi(1,1,:) = radmat_vele%diffusion(g,1)
       if (positions%dim > 1) diffusivity_gi(2,2,:) = radmat_vele%diffusion(g,2)
       if (positions%dim > 2) diffusivity_gi(3,3,:) = radmat_vele%diffusion(g,3)
-      
-      ! form the vele diffusion matrix
-      diffusivity_matrix = dshape_tensor_dshape(dshape, diffusivity_gi, dshape, detwei)
-         
+            
+      ! add the diffusion matrix   
       keff_or_time_diff: if (present(keff)) then
          
-         matrix_addto = matrix_addto + diffusivity_matrix
+         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, diffusivity_gi, dshape, detwei)
          
       else keff_or_time_diff
          
-         matrix_addto = matrix_addto + diffusivity_matrix
+         ! theta and dt need including ...
+         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, diffusivity_gi, dshape, detwei)
          
       end if keff_or_time_diff
                
       ! add the vele removal term 
       keff_or_time_removal: if (present(keff)) then
          
-         matrix_addto = matrix_addto + mass_matrix*radmat_vele%removal(g,1)
+         matrix_addto = matrix_addto + shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                   ele_shape(np_flux(g)%ptr,vele),detwei)*&
+                                       radmat_vele%removal(g,1)
          
       else keff_or_time_removal
          
-         matrix_addto = matrix_addto + mass_matrix*radmat_vele%removal(g,1)
+         ! theta and dt need including ...
+         matrix_addto = matrix_addto + shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                   ele_shape(np_flux(g)%ptr,vele),detwei)*&
+                                       radmat_vele%removal(g,1)
          
       end if keff_or_time_removal 
                                 
-      ! include the isotropic sources - scatter, fission, delayed and prescribed
+      ! include the isotropic sources - scatter, production, delayed and prescribed
          
       ! include the other group to this group g scatter source and the spectrum production source         
       group_loop: do g_dash = 1,number_of_energy_groups
-               
-         ! get the vele scalar flux values of group g_dash
-         call extract_flux_group_g_vele_val(state, &
-                                            trim(np_radmat_name), & 
-                                            g_dash, &
-                                            vele, &
-                                            np_flux_vele_val = np_flux_vele_val, &
-                                            np_flux_old_vele_val = np_flux_old_vele_val) 
-                  
+                                 
          keff_or_time: if (present(keff)) then
             
-            ! add the scatter
+            ! add the scatter - not the within group
             not_within_group_eig: if (g /= g_dash) then
                   
-               rhs_addto = rhs_addto + matmul(mass_matrix,np_flux_vele_val)* &
+               rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                          ele_shape(np_flux(g_dash)%ptr,vele),detwei), &
+                                              ele_val(np_flux(g_dash)%ptr,vele))* &
                                        radmat_vele%scatter(g_dash,g,1)
           
             end if not_within_group_eig
             
             ! add the spectrum production - this is the eigenvector
-            rhs_addto = rhs_addto + matmul(mass_matrix,np_flux_old_vele_val)* &
+            rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                       ele_shape(np_flux_old(g_dash)%ptr,vele),detwei), &
+                                           ele_val(np_flux_old(g_dash)%ptr,vele))* &
                                     radmat_vele%production(g_dash)*radmat_vele%prompt_spectrum(g)/keff
                                           
          else keff_or_time
   
-            ! add the scatter
+            ! add the scatter - not the within group
             not_within_group_time: if (g /= g_dash) then
                   
-               rhs_addto = rhs_addto + matmul(mass_matrix,(theta*np_flux_vele_val + (1.0-theta)*np_flux_old_vele_val))* &
+               rhs_addto = rhs_addto + (theta*matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                                 ele_shape(np_flux(g_dash)%ptr,vele),detwei), &
+                                                     ele_val(np_flux(g_dash)%ptr,vele)) + &
+                                        (1.0-theta)*matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                                       ele_shape(np_flux_old(g_dash)%ptr,vele),detwei), &
+                                                           ele_val(np_flux_old(g_dash)%ptr,vele)))* &                                       
                                        radmat_vele%scatter(g_dash,g,1)
+
             end if not_within_group_time
 
             ! add the spectrum production    
-            rhs_addto = rhs_addto + matmul(mass_matrix,(theta*np_flux_vele_val + (1.0-theta)*np_flux_old_vele_val))* &
+            rhs_addto = rhs_addto + (theta*matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                              ele_shape(np_flux(g_dash)%ptr,vele),detwei), &
+                                                  ele_val(np_flux(g_dash)%ptr,vele)) + &
+                                     (1.0-theta)*matmul(shape_shape(ele_shape(np_flux(g)%ptr,vele), &
+                                                                    ele_shape(np_flux_old(g_dash)%ptr,vele),detwei), &
+                                                        ele_val(np_flux_old(g_dash)%ptr,vele)))* &                                       
                                     radmat_vele%production(g_dash)*radmat_vele%prompt_spectrum(g)
                            
          end if keff_or_time
                                  
       end do group_loop
-
-      if (allocated(np_flux_vele_val))     deallocate(np_flux_vele_val)
-      if (allocated(np_flux_old_vele_val)) deallocate(np_flux_old_vele_val)
       
       ! if time run include the prescribed source and delayed source
       time_run: if (.not. present(keff)) then
@@ -510,7 +520,7 @@ contains
                                                                              trim(np_group_g_assemble_options%prescribed_source_field_name(s)), &
                                                                              stat=status)
                    
-                   rhs_addto = rhs_addto + shape_rhs(ele_shape(np_flux,vele),detwei*ele_val(prescribed_isotropic_source_field,vele))
+                   rhs_addto = rhs_addto + shape_rhs(ele_shape(np_flux(g)%ptr,vele),detwei*ele_val(prescribed_isotropic_source_field,vele))
                   
                end if source_this_group
                
@@ -522,12 +532,12 @@ contains
        
       ! insert the local vele matrix and rhs into the global arrays 
       call addto(matrix, &
-                 ele_nodes(np_flux, vele), &
-                 ele_nodes(np_flux, vele), &
+                 ele_nodes(np_flux(g)%ptr, vele), &
+                 ele_nodes(np_flux(g)%ptr, vele), &
                  matrix_addto)
 
       call addto(rhs, &
-                 ele_nodes(np_flux, vele), &
+                 ele_nodes(np_flux(g)%ptr, vele), &
                  rhs_addto)
               
    end subroutine assemble_np_group_g_vele
@@ -548,7 +558,7 @@ contains
       type(vector_field), intent(in) :: positions
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(in) :: bc_value
-      type(scalar_field), intent(in) :: np_flux 
+      type(scalar_field), pointer :: np_flux 
       
       ! local variables
       integer, dimension(face_loc(np_flux, face)) :: face_nodes
@@ -574,4 +584,4 @@ contains
 
    ! --------------------------------------------------------------------------
 
-end module radiation_assemble_solve_group_set
+end module radiation_assemble_solve_group

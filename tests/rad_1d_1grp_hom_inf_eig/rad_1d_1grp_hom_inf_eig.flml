@@ -85,7 +85,7 @@
   </material_phase>
   <radiation>
     <neutral_particle name="neutron">
-      <mesh name="NeutralParticleMeshTemplate">
+      <mesh name="NeutralParticleMesh">
         <from_mesh>
           <mesh name="CoordinateMesh"/>
           <mesh_continuity>
@@ -96,7 +96,7 @@
           </stat>
         </from_mesh>
       </mesh>
-      <mesh name="NeutralParticleMaterialMeshTemplate">
+      <mesh name="NeutralParticleMaterialMesh">
         <from_mesh>
           <mesh name="CoordinateMesh"/>
           <mesh_shape>
@@ -116,7 +116,7 @@
         <integer_value rank="0">1</integer_value>
       </number_of_energy_groups>
       <method_diffusion>
-        <scalar_field name="NeutralParticleFluxTemplate">
+        <scalar_field name="NeutralParticleFlux">
           <prognostic>
             <spatial_discretisation>
               <continuous_galerkin/>
@@ -125,7 +125,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.0e-6</real_value>
+                <real_value rank="0">1.0e-08</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">100</integer_value>

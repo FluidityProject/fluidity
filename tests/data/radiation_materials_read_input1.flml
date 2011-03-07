@@ -68,7 +68,7 @@
   </material_phase>
   <radiation>
     <neutral_particle name="neutron">
-      <mesh name="NeutralParticleMeshTemplate">
+      <mesh name="NeutralParticleMesh">
         <from_mesh>
           <mesh name="CoordinateMesh"/>
           <mesh_continuity>
@@ -79,7 +79,7 @@
           </stat>
         </from_mesh>
       </mesh>
-      <mesh name="NeutralParticleMaterialMeshTemplate">
+      <mesh name="NeutralParticleMaterialMesh">
         <from_mesh>
           <mesh name="CoordinateMesh"/>
           <mesh_shape>
@@ -99,7 +99,7 @@
         <integer_value rank="0">2</integer_value>
       </number_of_energy_groups>
       <method_diffusion>
-        <scalar_field name="NeutralParticleFluxTemplate">
+        <scalar_field name="NeutralParticleFlux">
           <prognostic>
             <spatial_discretisation>
               <continuous_galerkin/>
@@ -108,10 +108,10 @@
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0"/>
+                <real_value rank="0">1.0e-08</real_value>
               </relative_error>
               <max_iterations>
-                <integer_value rank="0"/>
+                <integer_value rank="0">100</integer_value>
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
@@ -120,17 +120,9 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0"/>
+                <real_value rank="0">1.0</real_value>
               </constant>
             </initial_condition>
-            <boundary_conditions>
-              <surface_ids>
-                <integer_value rank="1"/>
-              </surface_ids>
-              <type name="vacuum">
-                <constant rank="0">0.5</constant>
-              </type>
-            </boundary_conditions>
             <output/>
             <stat/>
             <convergence>
@@ -154,10 +146,10 @@
         </temporal_discretisation>
         <energy_group_iteration>
           <maximum>
-            <integer_value rank="0"/>
+            <integer_value rank="0">100</integer_value>
           </maximum>
           <tolerance>
-            <real_value rank="0"/>
+            <real_value rank="0">1.0e-8</real_value>
           </tolerance>
         </energy_group_iteration>
       </time_run>
@@ -181,7 +173,7 @@
           </interpolation_dimension>
         </physical_material>
       </radiation_material_data_set_from_file>
-      <scalar_field name="RadPowerTemplate">
+      <scalar_field name="RadTotalPower">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <output/>
@@ -192,7 +184,7 @@
         </diagnostic>
       </scalar_field>
       <delayed_neutron_precursor>
-        <mesh name="DelayedNeutronMeshTemplate">
+        <mesh name="DelayedNeutronMesh">
           <from_mesh>
             <mesh name="CoordinateMesh"/>
             <stat>

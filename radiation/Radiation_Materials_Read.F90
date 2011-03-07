@@ -74,13 +74,12 @@ contains
       read_velocity_data = .false.      
       if (have_option(trim(np_radmat%option_path)//'/time_run')) read_velocity_data = .true.
          
-      ! see if there is a need for the power data for this object (ie. RadPowerTemplate exists and/or an eigenvalue run 
-      ! is normalised to a prescribed power and/or RadPowerTemplate has been invoked in the input - set the module variable
+      ! see if there is a need for the power data for this object 
       check_need_power: if (have_option(trim(np_radmat%option_path)//'/eigenvalue_run/flux_normalisation/total_power') .or. &
-                            have_option(trim(np_radmat%option_path)//'/scalar_field::RadPowerTemplate') .or. &
-                            have_option(trim(np_radmat%option_path)//'/region_id_material_mapping/scalar_field::RadPowerTemplate') .or. &
-                            have_option(trim(np_radmat%option_path)//'/link_with_multimaterial/scalar_field::RadPowerTemplate') .or. &
-                            have_option(trim(np_radmat%option_path)//'/link_with_porous_media/scalar_field::RadPowerTemplate')) then
+                            have_option(trim(np_radmat%option_path)//'/scalar_field::RadTotalPower') .or. &
+                            have_option(trim(np_radmat%option_path)//'/region_id_material_mapping/scalar_field::RadRegionPower') .or. &
+                            have_option(trim(np_radmat%option_path)//'/link_with_multimaterial/scalar_field::RadMaterialPower') .or. &
+                            have_option(trim(np_radmat%option_path)//'/link_with_porous_media/scalar_field::RadPorousPower')) then
             
          read_power_data = .true.
             

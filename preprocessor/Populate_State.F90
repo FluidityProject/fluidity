@@ -469,8 +469,8 @@ contains
        ! Incomplete becomes true if we have to skip the mesh
        incomplete=.false.
 
-       ! form the mesh path for the NeutralParticleMeshTemplate for this object
-       mesh_path = trim(object_path)//'/mesh::NeutralParticleMeshTemplate'
+       ! form the mesh path for the NeutralParticleMesh for this object
+       mesh_path = trim(object_path)//'/mesh::NeutralParticleMesh'
        
        have_mesh: if (have_option(trim(mesh_path))) then
        
@@ -497,8 +497,8 @@ contains
        ! Incomplete becomes true if we have to skip the mesh
        incomplete=.false.
 
-       ! form the mesh path for the NeutralParticleMaterialMeshTemplate for this object
-       mesh_path = trim(object_path)//'/mesh::NeutralParticleMaterialMeshTemplate'
+       ! form the mesh path for the NeutralParticleMaterialMesh for this object
+       mesh_path = trim(object_path)//'/mesh::NeutralParticleMaterialMesh'
        
        have_material_mesh: if (have_option(trim(mesh_path)))then
        
@@ -528,8 +528,8 @@ contains
           ! Incomplete becomes true if we have to skip the mesh
           incomplete=.false.
 
-          ! form the mesh path for the DelayedNeutronMeshTemplate for this object
-          mesh_path = trim(object_path)//'/delayed_neutron_precursor/mesh::DelayedNeutronMeshTemplate'
+          ! form the mesh path for the DelayedNeutronMesh for this object
+          mesh_path = trim(object_path)//'/delayed_neutron_precursor/mesh::DelayedNeutronMesh'
        
           have_delayed_mesh: if (have_option(trim(mesh_path)))then
        
@@ -1511,11 +1511,11 @@ contains
          ! set the method path
          method_path = trim(object_path)//'/method_diffusion'
                                  
-         ! create the neutral particle flux fields needed for each energy group g within state using the template
+         ! create the neutral particle flux fields needed for each energy group g within state 
          ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
          group_loop: do g = 1,number_of_energy_groups
             
-            np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFluxTemplate'
+            np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFlux'
                                     
             ! form the field name using the object name and group number 
             field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
@@ -1559,11 +1559,11 @@ contains
          
          end if include_prescribed_source_if
 
-         ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the region id
+         ! insert the fission and power that are associated with the region id
          region_id_if: if (have_option(trim(object_path)//'/region_id_material_mapping')) then
             
             ! insert the fission field 
-            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadFissionTemplate'
+            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadRegionFission'
             
             region_fission_field: if (have_option(field_path)) then
             
@@ -1578,7 +1578,7 @@ contains
             end if region_fission_field
 
             ! insert the power field 
-            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadPowerTemplate'
+            field_path = trim(object_path)//'/region_id_material_mapping/scalar_field::RadRegionPower'
             
             region_power_field: if (have_option(field_path)) then
             
@@ -1667,10 +1667,10 @@ contains
                
                end if no_match_if
                
-               ! create and input the RadMaterialVolumeFraction into state that is always on the NeutralParticleMaterialMesh
+               ! create and input the RadMaterialVolumeFraction into state
                field_path = trim(object_path)//'/link_with_multimaterial&
                            &/fluids_material_phase_to_physical_radiation_material_map['//int2str(l - 1)//']&
-                           &/scalar_field::RadMaterialVolumeFractionTemplate'
+                           &/scalar_field::RadMaterialVolumeFraction'
                
                field_name = 'RadMaterialVolumeFraction'//int2str(material_phase_number)//trim(object_name)
 
@@ -1684,8 +1684,8 @@ contains
             
             deallocate(material_phase_number_found)
             
-            ! create and input the multimaterial RadMaterialTemperature into state that is always on the NeutralParticleMaterialMesh
-            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadMaterialTemperatureTemplate'
+            ! create and input the multimaterial RadMaterialTemperature into state 
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadMaterialTemperature'
             radmaterialtemperature_if: if (have_option(trim(field_path))) then
             
                field_name = 'RadMaterialTemperature'//trim(object_name)
@@ -1698,10 +1698,10 @@ contains
             
             end if radmaterialtemperature_if
 
-            ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the multimaterial
+            ! insert the fission and power that are associated with the multimaterial
             
             ! insert the fission field 
-            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadFissionTemplate'
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadMaterialFission'
             
             multimaterial_fission_field: if (have_option(field_path)) then
             
@@ -1716,7 +1716,7 @@ contains
             end if multimaterial_fission_field
 
             ! insert the power field 
-            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadPowerTemplate'
+            field_path = trim(object_path)//'/link_with_multimaterial/scalar_field::RadMaterialPower'
             
             multimaterial_power_field: if (have_option(field_path)) then
             
@@ -1732,11 +1732,11 @@ contains
                      
          end if multimaterial_link
 
-         ! if linked with porous media then insert the RadPorosity, RadPorousTemperatureMedia, RadPorousFission and RadPorousPower fields
-         ! for this object into state, that are always on the NeutralParticleMaterialMesh 
+         ! if linked with porous media then insert the RadPorosity, RadPorousTemperatureMedia,
+         ! RadPorousFission and RadPorousPower fields for this object into state
          porous_link: if (have_option(trim(object_path)//'/link_with_porous_media')) then
          
-            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorosityTemplate'
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorosity'
             
             field_name = 'RadPorosity'//trim(object_name)
             
@@ -1746,7 +1746,7 @@ contains
                                                   field_name = trim(field_name), &
                                                   dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
 
-            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorousTemperatureTemplate'
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorousTemperature'
             
             radtemperatureporous_if: if (have_option(trim(field_path))) then
             
@@ -1760,10 +1760,10 @@ contains
             
             end if radtemperatureporous_if
             
-            ! insert the fission and power that are always on the NeutralParticleMaterialMesh that are associated with the porous media
+            ! insert the fission and power that are associated with the porous media
             
             ! insert the fission field 
-            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadFissionTemplate'
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorousFission'
             
             porous_fission_field: if (have_option(field_path)) then
             
@@ -1778,7 +1778,7 @@ contains
             end if porous_fission_field
 
             ! insert the power field 
-            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPowerTemplate'
+            field_path = trim(object_path)//'/link_with_porous_media/scalar_field::RadPorousPower'
             
             porous_power_field: if (have_option(field_path)) then
             
@@ -1794,10 +1794,10 @@ contains
             
          end if porous_link
                         
-         ! insert the total fission and power that are always on the NeutralParticleMaterialMesh
+         ! insert the total fission and power
             
          ! insert the fission field 
-         field_path = trim(object_path)//'/scalar_field::RadFissionTemplate'
+         field_path = trim(object_path)//'/scalar_field::RadTotalFission'
          
          total_fission_field: if (have_option(field_path)) then
             
@@ -1812,7 +1812,7 @@ contains
          end if total_fission_field
 
          ! insert the power field 
-         field_path = trim(object_path)//'/scalar_field::RadPowerTemplate'
+         field_path = trim(object_path)//'/scalar_field::RadTotalPower'
          
          total_power_field: if (have_option(field_path)) then
             
@@ -1826,7 +1826,7 @@ contains
                                           
          end if total_power_field   
             
-         ! insert delayed fields if needed  that are always on the DelayedNeutronMesh                 
+         ! insert delayed fields if needed              
          have_delayed_if: if (have_option(trim(object_path)//'/delayed_neutron_precursor')) then
                                  
             ! set the delayed path
@@ -1840,8 +1840,8 @@ contains
                ! form the correct field name dependent on the linking options
                delayed_region_id_if: if (have_option(trim(delayed_path)//'/link_with_region_id')) then
   
-                  ! the field template path
-                  delayed_field_path = trim(delayed_path)//'/link_with_region_id/scalar_field::DelayedNeutronPrecursorTemplate'
+                  ! the field path
+                  delayed_field_path = trim(delayed_path)//'/link_with_region_id/scalar_field::DelayedNeutronPrecursor'
                
                   field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Region'//trim(object_name)
                  
@@ -1855,8 +1855,8 @@ contains
                   
                delayed_multimaterial_if: if (have_option(trim(delayed_path)//'/link_with_multimaterial')) then  
 
-                  ! the field template path
-                  delayed_field_path = trim(delayed_path)//'/link_with_multimaterial/scalar_field::DelayedNeutronPrecursorTemplate'
+                  ! the field path
+                  delayed_field_path = trim(delayed_path)//'/link_with_multimaterial/scalar_field::DelayedNeutronPrecursor'
                
                   field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Material'//trim(object_name)
                  
@@ -1870,8 +1870,8 @@ contains
                   
                delayed_porous_if: if (have_option(trim(delayed_path)//'/link_with_porous_media')) then  
 
-                  ! the field template path
-                  delayed_field_path = trim(delayed_path)//'/link_with_porous_media/scalar_field::DelayedNeutronPrecursorTemplate'
+                  ! the field path
+                  delayed_field_path = trim(delayed_path)//'/link_with_porous_media/scalar_field::DelayedNeutronPrecursor'
                
                   field_name = 'DelayedNeutronPrecursorGroup'//int2str(d)//'Porous'//trim(object_name)
                  

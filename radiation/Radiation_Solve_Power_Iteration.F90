@@ -270,8 +270,8 @@ contains
       k_top    = 0.0
       k_bottom = 0.0
       
-      ! extract the positions - assuming each group has the same topological mesh
-      positions => extract_vector_field(state, "Coordinate",stat=status)  
+      ! extract the positions - assuming each group has the same topological mesh now
+      positions => extract_vector_field(state, "Coordinate", stat=status)  
       
       ! extract the neutral particle flux fields for all energy groups
       call extract_flux_all_group(state, &
@@ -279,18 +279,19 @@ contains
                                   number_of_energy_groups, &
                                   np_flux = np_flux, &
                                   np_flux_old = np_flux_old)
-                       
-      ! loop the volume elements to perform the integration
-      velement_loop: do vele = 1,ele_count(positions)
+      
+      ! integrate each energy group
+      group_loop: do g = 1,number_of_energy_groups
+
+         ! loop the volume elements to perform the integration
+         velement_loop: do vele = 1,ele_count(np_flux(g)%ptr)
                                                                       
-         ! get the vele production cross section for all energy groups
-         call form(radmat_vele, &
-                   np_radmat_ii, &
-                   np_radmat, &
-                   vele, &
-                   form_production = .true.)
-                  
-         group_loop: do g = 1,number_of_energy_groups
+            ! get the vele production cross section for all energy groups
+            call form(radmat_vele, &
+                      np_radmat_ii, &
+                      np_radmat, &
+                      vele, &
+                      form_production = .true.)
         
             ! allocate the jacobian transform and gauss weight array for this vele
             allocate(detwei_vele(ele_ngi(np_flux(g)%ptr,vele)))
@@ -310,12 +311,12 @@ contains
          
             deallocate(detwei_vele)
             deallocate(mass_matrix_vele)
-                        
-         end do group_loop
+                                 
+            call destroy(radmat_vele)
          
-         call destroy(radmat_vele)
-         
-      end do velement_loop
+         end do velement_loop
+
+      end do group_loop
       
       ! form the latest keff estimate
       keff = keff_old*k_top/k_bottom

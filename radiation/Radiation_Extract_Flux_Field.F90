@@ -43,8 +43,7 @@ module radiation_extract_flux_field
 
    public :: extract_flux_all_group, &
              deallocate_flux_all_group, &
-             extract_flux_group_g, &
-             extract_flux_group_g_vele_val 
+             extract_flux_group_g 
 
 contains
 
@@ -132,47 +131,16 @@ contains
       type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux 
       type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux_old
       
-      ! local variables
-      integer :: g
-      
       check_present: if (present(np_flux)) then
       
-         check_associated: if (associated(np_flux)) then
-       
-            do g = 1,size(np_flux)
-                
-               ! I understand why this isnt needed
-               !call deallocate(np_flux(g)%ptr)
-               
-               ! I dont understand why this isnt needed
-               !deallocate(np_flux(g)%ptr)
-       
-            end do      
+         if (associated(np_flux)) deallocate(np_flux)
             
-            deallocate(np_flux)
-      
-         end if check_associated
-      
       end if check_present
 
       check_present_old: if (present(np_flux_old)) then
       
-         check_associated_old: if (associated(np_flux_old)) then
-       
-            do g = 1,size(np_flux_old)
-               
-               ! I understand why this isnt needed
-               !call deallocate(np_flux_old(g)%ptr)
-               
-               ! I dont understand why this isnt needed
-               !deallocate(np_flux_old(g)%ptr)
-       
-            end do      
+         if (associated(np_flux_old)) deallocate(np_flux_old)
             
-            deallocate(np_flux_old)
-      
-         end if check_associated_old
-      
       end if check_present_old
 
    end subroutine deallocate_flux_all_group
@@ -223,68 +191,6 @@ contains
       end if extract_old
             
    end subroutine extract_flux_group_g
-
-   ! --------------------------------------------------------------------------
-
-   subroutine extract_flux_group_g_vele_val(state, &
-                                            np_radmat_name, & 
-                                            g, &
-                                            vele, &
-                                            np_flux_vele_val, &
-                                            np_flux_old_vele_val) 
-   
-      !!< Extract the volume element (vele) values for neutral particle latest and old flux fields for group g from state
-
-      type(state_type), intent(in) :: state
-      character(len=*), intent(in) :: np_radmat_name
-      integer, intent(in) :: g
-      integer, intent(in) :: vele
-      real, dimension(:), allocatable, intent(inout), optional :: np_flux_vele_val
-      real, dimension(:), allocatable, intent(inout), optional :: np_flux_old_vele_val
-      
-      ! local variables
-      type(scalar_field), pointer :: np_flux 
-      type(scalar_field), pointer :: np_flux_old
-
-      extract_latest: if (present(np_flux_vele_val)) then
-      
-         call  extract_flux_group_g(state, &                                          
-                                    np_radmat_name, & 
-                                    g, &
-                                    np_flux = np_flux)
-                                       
-         latest_not_allocated: if(.not. allocated(np_flux_vele_val)) then
-                 
-            allocate(np_flux_vele_val(ele_loc(np_flux, &
-                                              vele)))         
-         
-         end if latest_not_allocated
-
-         np_flux_vele_val = ele_val(np_flux, &
-                                    vele)
-          
-      end if extract_latest     
-            
-      extract_old: if (present(np_flux_old_vele_val)) then
-      
-         call  extract_flux_group_g(state, &                                          
-                                    np_radmat_name, & 
-                                    g, &
-                                    np_flux_old = np_flux_old)
-
-         old_not_allocated: if(.not. allocated(np_flux_old_vele_val)) then
-
-            allocate(np_flux_old_vele_val(ele_loc(np_flux_old, &
-                                              vele)))         
-
-         end if old_not_allocated
-         
-         np_flux_old_vele_val = ele_val(np_flux_old, &
-                                        vele)      
-                  
-      end if extract_old
-                 
-   end subroutine extract_flux_group_g_vele_val
 
    ! --------------------------------------------------------------------------
 
