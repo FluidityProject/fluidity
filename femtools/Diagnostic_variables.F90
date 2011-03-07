@@ -2445,6 +2445,7 @@ contains
     real, allocatable, dimension(:) :: stage_weights, timestep_weights
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
+    logical :: first_loop
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2496,9 +2497,9 @@ contains
     !gives the processor number that owns the detector, this is then
     !allmax-ed so that the processor with the largest processor number gets
     !the detector.
-  
+
     if (default_stat%detector_list%length/=0) then
-        if (timestep==1) then
+       if (timestep==1) then
 
           allocate(global_det_count(default_stat%detector_list%length))
           global_det_count = -1
@@ -2507,7 +2508,7 @@ contains
              if(detector%element>0) then
                 global_det_count(i)=getprocno()
              end if
-            detector => detector%next
+             detector => detector%next
           end do
 
           do i = 1, size(global_det_count)
@@ -2519,20 +2520,20 @@ contains
              if (global_det_count(i)/=getprocno()) then
                 call remove(default_stat%detector_list,detector)
              else 
-               detector => detector%next
-            end if
-           
-          end do   
+                detector => detector%next
+             end if
+
+          end do
 
           !Any detectors that have the -1 as owner means that 
           !nobody owns that detector. Make it static.
           detector => default_stat%detector_list%firstnode
           do i = 1, default_stat%detector_list%length
-            if (global_det_count(i)==-1) then
-               ewrite(-1,*) 'Warning: converting detector to static'
-               detector%type = STATIC_DETECTOR
-            end if
-            detector => detector%next
+             if (global_det_count(i)==-1) then
+                ewrite(-1,*) 'Warning: converting detector to static'
+                detector%type = STATIC_DETECTOR
+             end if
+             detector => detector%next
           end do
 
           deallocate(global_det_count)
@@ -2569,15 +2570,25 @@ contains
     do j=1, default_stat%detector_list%length
        detector%dt=dt
        detector => detector%next
-    end do  
+    end do
 
     !this loop continues until all detectors have completed their timestep
     !this is measured by checking if the send and receive lists are empty
     !in all processors
-    if (move_detectors.and.(timestep/=0)) then
+
+    !check if detectors any are Lagrangian
+    any_lagrangian=.false.
+    detector => default_stat%detector_list%firstnode
+    do i = 1, default_stat%detector_list%length         
+       if (detector%type==LAGRANGIAN_DETECTOR)&
+            &any_lagrangian=.true. 
+       detector => detector%next
+    end do
+    
+    if (move_detectors.and.(timestep/=0).and.any_lagrangian) then
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
-          
+
        !Get RK guided options
        if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
             & then
@@ -2626,8 +2637,8 @@ contains
        else
           n_stages = 1
        end if
-       
-!       subcycling
+
+       !       subcycling
        RKstages_loop: do stage = 1, n_stages
           if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
                & then
@@ -2639,6 +2650,7 @@ contains
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
           ! lists are empty in all processors
+          first_loop = .true.
           detector_timestepping_loop: do  
 
              !check if detectors any are Lagrangian
@@ -2649,12 +2661,12 @@ contains
                      &any_lagrangian=.true. 
                 detector => detector%next
              end do
-             
+
              if (any_lagrangian) then
                 !This is the actual call to move the detectors
                 !The hash table is used to work out which processor
                 !corresponds to which entry in the send_list_array
-                
+
                 !Detectors leaving the domain from non-owned elements
                 !are entering a domain on another processor rather 
                 !than leaving the physical domain. In this subroutine
@@ -2669,55 +2681,59 @@ contains
                    call move_detectors_bisection_method(&
                         state, dt, ihash, send_list_array)
                 end if
+
+                !Work out whether all send lists are empty,
+                !in which case exit.
+                !This is slightly Byzantine, I think it would
+                !also work if it was initially zero, and then
+                !set to 1 if any of the lists were not empty. CJC
+                all_send_lists_empty=number_neigh_processors
+                do k=1, number_neigh_processors
+                   if (send_list_array(k)%length==0) then
+                      all_send_lists_empty=all_send_lists_empty-1
+                   end if
+                end do
+                call allmax(all_send_lists_empty)
+                if (all_send_lists_empty==0) exit
+
+                !This call serialises send_list_array,
+                !sends it, receives serialised receive_list_array,
+                !unserialises that.
+                do i = 1, number_neigh_processors
+                   ewrite (3,*) send_list_array(i)%length, 'CJC'
+                end do
+                call serialise_lists_exchange_receive(&
+                     state,send_list_array,receive_list_array,&
+                     number_neigh_processors,ihash)
+
+                !This call moves detectors into the detector_list
+                !I'm still unsure about how detectors are removed
+                !from the detector list if they are sent.
+                do i=1, number_neigh_processors
+                   if  (receive_list_array(i)%length/=0) then      
+                      call move_det_from_receive_list_to_det_list(&
+                           default_stat%detector_list,receive_list_array(i))
+                   end if
+                end do
+
+                !Flush the detector lists
+                !We need to put proper deallocates in these flushes
+                do k=1, number_neigh_processors
+                   if (send_list_array(k)%length/=0) then  
+                      call flush_det(send_list_array(k))
+                   end if
+                end do
+                do k=1, number_neigh_processors
+                   if (receive_list_array(k)%length/=0) then  
+                      call flush_det(receive_list_array(k))
+                   end if
+                end do
+
+             else
+                if(first_loop) exit
              end if
-             
-             !Work out whether all send lists are empty,
-             !in which case exit.
-             !This is slightly Byzantine, I think it would
-             !also work if it was initially zero, and then
-             !set to 1 if any of the lists were not empty. CJC
-             all_send_lists_empty=number_neigh_processors
-             do k=1, number_neigh_processors
-                if (send_list_array(k)%length==0) then
-                   all_send_lists_empty=all_send_lists_empty-1
-                end if
-             end do
-             call allmax(all_send_lists_empty)
-             if (all_send_lists_empty==0) exit
-             
-             !This call serialises send_list_array,
-             !sends it, receives serialised receive_list_array,
-             !unserialises that.
-             do i = 1, number_neigh_processors
-                ewrite (3,*) send_list_array(i)%length, 'CJC'
-             end do
-             call serialise_lists_exchange_receive(&
-                  state,send_list_array,receive_list_array,&
-                  number_neigh_processors,ihash)
-             
-             !This call moves detectors into the detector_list
-             !I'm still unsure about how detectors are removed
-             !from the detector list if they are sent.
-             do i=1, number_neigh_processors
-                if  (receive_list_array(i)%length/=0) then      
-                   call move_det_from_receive_list_to_det_list(&
-                        default_stat%detector_list,receive_list_array(i))
-                end if
-             end do
-             
-             !Flush the detector lists
-             !We need to put proper deallocates in these flushes
-             do k=1, number_neigh_processors
-                if (send_list_array(k)%length/=0) then  
-                   call flush_det(send_list_array(k))
-                end if
-             end do
-             do k=1, number_neigh_processors
-                if (receive_list_array(k)%length/=0) then  
-                   call flush_det(receive_list_array(k))
-                end if
-             end do
-             
+             first_loop = .false.
+
           end do detector_timestepping_loop
        end do RKstages_loop
 
@@ -2734,110 +2750,110 @@ contains
 
        if(getprocno() == 1) then
           if(default_stat%binary_detector_output) then
-            write(default_stat%detector_unit) time
-            write(default_stat%detector_unit) dt
+             write(default_stat%detector_unit) time
+             write(default_stat%detector_unit) dt
           else
-            format_buffer=reals_format(1)
-            write(default_stat%detector_unit, format_buffer, advance="no") time
-            write(default_stat%detector_unit, format_buffer, advance="no") dt
+             format_buffer=reals_format(1)
+             write(default_stat%detector_unit, format_buffer, advance="no") time
+             write(default_stat%detector_unit, format_buffer, advance="no") dt
           end if
        end if
 
        ! Next columns contain the positions of all the detectors.
-      
+
        detector => default_stat%detector_list%firstnode
 
        positionloop: do i=1, default_stat%detector_list%length
 
-       if(getprocno() == 1) then
-          if(default_stat%binary_detector_output) then
-            write(default_stat%detector_unit) detector%position
-          else
-            format_buffer=reals_format(size(detector%position))
-            write(default_stat%detector_unit, format_buffer, advance="no") &
-                  detector%position
+          if(getprocno() == 1) then
+             if(default_stat%binary_detector_output) then
+                write(default_stat%detector_unit) detector%position
+             else
+                format_buffer=reals_format(size(detector%position))
+                write(default_stat%detector_unit, format_buffer, advance="no") &
+                     detector%position
+             end if
           end if
-       end if
 
-       detector => detector%next
+          detector => detector%next
 
        end do positionloop
 
        phaseloop: do phase=1,size(state)
 
-           do i=1, size(default_stat%detector_sfield_list(phase)%ptr)
-              ! Output statistics for each scalar field.
-              sfield=>extract_scalar_field(state(phase), &
-                   &                       default_stat%detector_sfield_list(phase)%ptr(i))
+          do i=1, size(default_stat%detector_sfield_list(phase)%ptr)
+             ! Output statistics for each scalar field.
+             sfield=>extract_scalar_field(state(phase), &
+                  &                       default_stat%detector_sfield_list(phase)%ptr(i))
 
-              if(.not. detector_field(sfield)) then
+             if(.not. detector_field(sfield)) then
                 cycle
-              end if
-          
-              detector => default_stat%detector_list%firstnode
+             end if
 
-              do j=1, default_stat%detector_list%length
+             detector => default_stat%detector_list%firstnode
+
+             do j=1, default_stat%detector_list%length
                 value =  detector_value(sfield, detector)
 
                 if(getprocno() == 1) then
-                
-                    if(default_stat%binary_detector_output) then
-                       write(default_stat%detector_unit) value
-                    else
-                       format_buffer=reals_format(1)
-                       write(default_stat%detector_unit, format_buffer, advance="no") value
-                    end if
-                
-                 end if
 
-                 detector => detector%next
+                   if(default_stat%binary_detector_output) then
+                      write(default_stat%detector_unit) value
+                   else
+                      format_buffer=reals_format(1)
+                      write(default_stat%detector_unit, format_buffer, advance="no") value
+                   end if
 
-              end do
-           end do
-
-           allocate(vvalue(0))
- 
-           do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
-              ! Output statistics for each vector field
-          
-              vfield => extract_vector_field(state(phase), &
-                   & default_stat%detector_vfield_list(phase)%ptr(i))
-          
-              if(.not. detector_field(vfield)) then
-                 cycle
-              end if
-
-              if (size(vvalue)/=vfield%dim) then
-                 deallocate(vvalue)
-                 allocate(vvalue(vfield%dim))
-              end if
-
-              detector => default_stat%detector_list%firstnode
-
-              do j=1, default_stat%detector_list%length
-            
-                 vvalue =  detector_value(vfield, detector)
-             
-                 ! Only the first process should write statistics information
-             
-              if(getprocno() == 1) then
-                
-                if(default_stat%binary_detector_output) then
-                  write(default_stat%detector_unit) vvalue
-                else
-                  format_buffer=reals_format(vfield%dim)
-                  write(default_stat%detector_unit, format_buffer, advance="no") vvalue
                 end if
 
-              end if
+                detector => detector%next
 
-              detector => detector%next
+             end do
+          end do
 
-              end do            
-        
-           end do
+          allocate(vvalue(0))
 
-            deallocate(vvalue)
+          do i = 1, size(default_stat%detector_vfield_list(phase)%ptr)
+             ! Output statistics for each vector field
+
+             vfield => extract_vector_field(state(phase), &
+                  & default_stat%detector_vfield_list(phase)%ptr(i))
+
+             if(.not. detector_field(vfield)) then
+                cycle
+             end if
+
+             if (size(vvalue)/=vfield%dim) then
+                deallocate(vvalue)
+                allocate(vvalue(vfield%dim))
+             end if
+
+             detector => default_stat%detector_list%firstnode
+
+             do j=1, default_stat%detector_list%length
+
+                vvalue =  detector_value(vfield, detector)
+
+                ! Only the first process should write statistics information
+
+                if(getprocno() == 1) then
+
+                   if(default_stat%binary_detector_output) then
+                      write(default_stat%detector_unit) vvalue
+                   else
+                      format_buffer=reals_format(vfield%dim)
+                      write(default_stat%detector_unit, format_buffer, advance="no") vvalue
+                   end if
+
+                end if
+
+                detector => detector%next
+
+             end do
+
+          end do
+
+          deallocate(vvalue)
 
        end do phaseloop
 
@@ -2845,11 +2861,11 @@ contains
        ! Only the first process should write statistics information
 
        if(getprocno() == 1) then
-           if(.not. default_stat%binary_detector_output) then
+          if(.not. default_stat%binary_detector_output) then
              ! Output end of line
              write(default_stat%detector_unit,'(a)') ""
-           end if
-           flush(default_stat%detector_unit)
+          end if
+          flush(default_stat%detector_unit)
        end if
 
     else
@@ -2862,11 +2878,11 @@ contains
 
     if (timestep/=0) then
 
-      allocate(send_list_array(number_neigh_processors))
-      allocate(receive_list_array(number_neigh_processors))
+       allocate(send_list_array(number_neigh_processors))
+       allocate(receive_list_array(number_neigh_processors))
 
-      detector => default_stat%detector_list%firstnode
-      do i = 1, default_stat%detector_list%length
+       detector => default_stat%detector_list%firstnode
+       do i = 1, default_stat%detector_list%length
 
           if (detector%element>0) then
 
@@ -2883,68 +2899,68 @@ contains
                 call move_det_to_send_list(default_stat%detector_list,node_to_send,send_list_array(list_neigh_processor))
 
              else
-    
+
                 detector => detector%next
 
              end if
 
           else
-     
+
              detector => detector%next
 
           end if
-         
-      end do
 
-      all_send_lists_empty=number_neigh_processors
-      do k=1, number_neigh_processors
+       end do
 
-         if (send_list_array(k)%length==0) then
-         
-            all_send_lists_empty=all_send_lists_empty-1
-  
-         end if
+       all_send_lists_empty=number_neigh_processors
+       do k=1, number_neigh_processors
 
-      end do
+          if (send_list_array(k)%length==0) then
 
-      call allmax(all_send_lists_empty)
+             all_send_lists_empty=all_send_lists_empty-1
 
-      if (all_send_lists_empty/=0) then
+          end if
+
+       end do
+
+       call allmax(all_send_lists_empty)
+
+       if (all_send_lists_empty/=0) then
 
           call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
 
-      end if
+       end if
 
-      do i=1, number_neigh_processors
+       do i=1, number_neigh_processors
 
-         if  (receive_list_array(i)%length/=0) then      
-        
-            call move_det_from_receive_list_to_det_list(default_stat%detector_list,receive_list_array(i))
-     
-         end if
+          if  (receive_list_array(i)%length/=0) then      
 
-      end do
+             call move_det_from_receive_list_to_det_list(default_stat%detector_list,receive_list_array(i))
+
+          end if
+
+       end do
 
 
-   !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
+!!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
 
        do k=1, number_neigh_processors
 
-         if (send_list_array(k)%length/=0) then  
+          if (send_list_array(k)%length/=0) then  
 
              call flush_det(send_list_array(k))
 
-         end if
+          end if
 
        end do
 
        do k=1, number_neigh_processors
 
-         if (receive_list_array(k)%length/=0) then  
+          if (receive_list_array(k)%length/=0) then  
 
              call flush_det(receive_list_array(k))
 
-         end if
+          end if
 
        end do
 
@@ -2963,15 +2979,15 @@ contains
 
     if (totaldet_global/=default_stat%total_num_det) then
 
-        ewrite(2,*) "We have either duplication or have lost some det"
+       ewrite(2,*) "We have either duplication or have lost some det"
 
-        ewrite(2,*) "totaldet_global", totaldet_global
+       ewrite(2,*) "totaldet_global", totaldet_global
 
-        ewrite(2,*) "default_stat%total_num_det", default_stat%total_num_det
+       ewrite(2,*) "default_stat%total_num_det", default_stat%total_num_det
 
     end if
 
-   contains
+  contains
 
     !Subroutine to allocate the RK stages, and update vector
     subroutine initialise_rk_guided_search(detector_list0)
@@ -3062,106 +3078,106 @@ contains
          end if
          det0 => det0%next
       end do
- end subroutine set_stage
+    end subroutine set_stage
 
- !Subroutine to find the element containing 
- !detector%update_vector -- CJC
- !before leaving the processor or computational domain
- !detectors leaving the computational domain are set to STATIC
- !detectors leaving the processor domain are added to the list 
- !of detectors to communicate to the other processor
- !This works by searching for the element containing the next point 
- !in the RK through element faces
- !This is done by computing the local coordinates of the target point,
- !finding the local coordinate closest to -infinity
- !and moving to the element through that face
- subroutine move_detectors_guided_search(detector_list0)
-   type(detector_linked_list), intent(inout) :: detector_list0
-   !
-   type(detector_type), pointer :: det0, det_send
-   integer :: det_count
-   logical :: owned
-   real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
-   integer, dimension(:), pointer :: neigh_list
-   integer :: neigh, proc_local_number
-   logical :: make_static
-   !
-   !Loop over all the detectors
-   det0 => detector_list0%firstnode
-   do det_count=1, detector_list0%length
-      ewrite(2,*) det_count
-      !Only move Lagrangian detectors
-      if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
-         search_loop: do
-            !compute the local coordinates of the arrival point
-            !with respect to this element
-            arrival_local_coords=&
-                 local_coords(xfield,det0%element,det0%update_vector)
-            if(minval(arrival_local_coords)>-search_tolerance) then
-               !the arrival point is in this element
-               det0%search_complete = .true.
-               !move on to the next detector
-               det0 => det0%next
-               exit search_loop
-            end if
-            !the arrival point is not in this element, try to get
-            ! closer to
-            !it by searching in the coordinate direction in which it is
-            !furthest away
-            neigh = minval(minloc(arrival_local_coords))
-            neigh_list=>ele_neigh(xfield,det0%element)
-            if(neigh_list(neigh)>0) then
-               !the neighbouring element is also on this domain
-               !so update the element and try again
-               det0%element = neigh_list(neigh)
-            else
-               !check if this element is owned (to decide where
-               !to send particles leaving the processor domain)
-               if(element_owned(vfield,det0%element)) then
-                  !this face goes outside of the computational domain
-                  !try all of the faces with negative local coordinate
-                  !just in case we went through a corner
-                  make_static=.true.
-                  face_search: do neigh = 1, size(arrival_local_coords)
-                     if(arrival_local_coords(neigh)<-search_tolerance&
-                          & .and. &
-                          & neigh_list(neigh)>0) then
-                        make_static = .false.
-                        det0%element = neigh_list(neigh)
-                        exit face_search
-                     end if
-                  end do face_search
-                  if (make_static) then
-                     det0%type=STATIC_DETECTOR
-                     !move on to the next detector
-                     det0%position = det0%update_vector
-                     !move on to the next detector
-                     det0 => det0%next
-                     exit search_loop
-                  end if
-               else
-                  ewrite(-1,*) 'ELEMENT NUMBER ', det0%element
-                  ewrite(-1,*) 'MOVING A DETECTOR'
-                  det_send => det0
-                  det0 => det0%next
-                  !this face goes into another computational domain
-                  proc_local_number=fetch(ihash,&
-                       &element_owner(vfield%mesh,det_send%element))
-
-                  call move_det_to_send_list(detector_list0&
-                       &,det_send&
-                       &,send_list_array(proc_local_number))
+    !Subroutine to find the element containing 
+    !detector%update_vector -- CJC
+    !before leaving the processor or computational domain
+    !detectors leaving the computational domain are set to STATIC
+    !detectors leaving the processor domain are added to the list 
+    !of detectors to communicate to the other processor
+    !This works by searching for the element containing the next point 
+    !in the RK through element faces
+    !This is done by computing the local coordinates of the target point,
+    !finding the local coordinate closest to -infinity
+    !and moving to the element through that face
+    subroutine move_detectors_guided_search(detector_list0)
+      type(detector_linked_list), intent(inout) :: detector_list0
+      !
+      type(detector_type), pointer :: det0, det_send
+      integer :: det_count
+      logical :: owned
+      real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
+      integer, dimension(:), pointer :: neigh_list
+      integer :: neigh, proc_local_number
+      logical :: make_static
+      !
+      !Loop over all the detectors
+      det0 => detector_list0%firstnode
+      do det_count=1, detector_list0%length
+         ewrite(2,*) det_count
+         !Only move Lagrangian detectors
+         if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
+            search_loop: do
+               !compute the local coordinates of the arrival point
+               !with respect to this element
+               arrival_local_coords=&
+                    local_coords(xfield,det0%element,det0%update_vector)
+               if(minval(arrival_local_coords)>-search_tolerance) then
+                  !the arrival point is in this element
+                  det0%search_complete = .true.
                   !move on to the next detector
+                  det0 => det0%next
                   exit search_loop
                end if
-            end if
-         end do search_loop
-      else
-         !move on to the next detector
-         det0 => det0%next
-      end if
-   end do
- end subroutine move_detectors_guided_search
+               !the arrival point is not in this element, try to get
+               ! closer to
+               !it by searching in the coordinate direction in which it is
+               !furthest away
+               neigh = minval(minloc(arrival_local_coords))
+               neigh_list=>ele_neigh(xfield,det0%element)
+               if(neigh_list(neigh)>0) then
+                  !the neighbouring element is also on this domain
+                  !so update the element and try again
+                  det0%element = neigh_list(neigh)
+               else
+                  !check if this element is owned (to decide where
+                  !to send particles leaving the processor domain)
+                  if(element_owned(vfield,det0%element)) then
+                     !this face goes outside of the computational domain
+                     !try all of the faces with negative local coordinate
+                     !just in case we went through a corner
+                     make_static=.true.
+                     face_search: do neigh = 1, size(arrival_local_coords)
+                        if(arrival_local_coords(neigh)<-search_tolerance&
+                             & .and. &
+                             & neigh_list(neigh)>0) then
+                           make_static = .false.
+                           det0%element = neigh_list(neigh)
+                           exit face_search
+                        end if
+                     end do face_search
+                     if (make_static) then
+                        det0%type=STATIC_DETECTOR
+                        !move on to the next detector
+                        det0%position = det0%update_vector
+                        !move on to the next detector
+                        det0 => det0%next
+                        exit search_loop
+                     end if
+                  else
+                     ewrite(-1,*) 'ELEMENT NUMBER ', det0%element
+                     ewrite(-1,*) 'MOVING A DETECTOR'
+                     det_send => det0
+                     det0 => det0%next
+                     !this face goes into another computational domain
+                     proc_local_number=fetch(ihash,&
+                          &element_owner(vfield%mesh,det_send%element))
+
+                     call move_det_to_send_list(detector_list0&
+                          &,det_send&
+                          &,send_list_array(proc_local_number))
+                     !move on to the next detector
+                     exit search_loop
+                  end if
+               end if
+            end do search_loop
+         else
+            !move on to the next detector
+            det0 => det0%next
+         end if
+      end do
+    end subroutine move_detectors_guided_search
 
     function reals_format(reals)
       character(len=10) :: reals_format

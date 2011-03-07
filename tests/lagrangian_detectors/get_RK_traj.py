@@ -1,11 +1,11 @@
 from scipy import *
-
+from pylab import *
 x = 0.5+0.25*arange(0,100.)/100.
 y = zeros(100) + 0.5
 
 t = 0.
 dt = 0.1
-tmax = 12.566370614359172
+tmax = 8
 
 def vel(x,y):
     return [-(y-0.5),x-0.5]
@@ -18,6 +18,9 @@ while(t<tmax):
     [k4_x,k4_y] = vel(x+dt*k3_x,y+dt*k3_y)
     x = x + dt*(k1_x/6.+k2_x/3. + k3_x/3. + k4_x/6.)
     y = y + dt*(k1_y/6.+k2_y/3. + k3_y/3. + k4_y/6.)
+
+plot(x,y,'.')
+show()
 
 x.tofile('Xvals.txt',sep=' ')
 y.tofile('Yvals.txt',sep=' ')

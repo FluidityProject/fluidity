@@ -92,7 +92,7 @@
       <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">12.566370614359172</real_value>
+      <real_value rank="0">8</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
