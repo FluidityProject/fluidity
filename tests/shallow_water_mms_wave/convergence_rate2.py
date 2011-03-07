@@ -1,5 +1,5 @@
 from fluidity_tools import stat_parser as stat
-from math import log
+from math import log, isnan
 
 def get_convergence(statfileA, statfileB, field):
   dt_A = stat(statfileA)["ElapsedTime"]['value'][1] - stat(statfileA)["ElapsedTime"]['value'][0]
@@ -28,7 +28,8 @@ def test_convergence(statfiles, fields, tol):
     for i in range(len(statfiles)):
       if i==0:
         continue
-      if min(get_convergence(statfiles[i-1], statfiles[i], field)) < tol:
+      c = min(get_convergence(statfiles[i-1], statfiles[i], field))
+      if isnan(c) or c < tol:
           return False
   return True      
 
