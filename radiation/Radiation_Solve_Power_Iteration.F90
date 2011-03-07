@@ -181,7 +181,7 @@ contains
       call get_option(trim(np_radmat_option_path)//'/name',np_radmat_name)
       
       ! get the number of energy groups
-      call get_option(trim(np_radmat_option_path)//'/number_of_energy_groups',number_of_energy_groups)
+      call get_option(trim(np_radmat_option_path)//'/method/number_of_energy_groups',number_of_energy_groups)
                   
       ! get the maximum number of power iterations for this np 
       power_iteration_option_path = trim(np_radmat_option_path)//'/eigenvalue_run/power_iteration'

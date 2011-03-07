@@ -22,9 +22,7 @@ particle =
          neutral_particle_mesh,
       
          neutral_particle_material_mesh, 
-         
-         number_of_energy_groups,
-                  
+                           
          radiation_method,             
 
          problem_run,
@@ -140,8 +138,12 @@ exclude_mesh_stat =
 radiation_method = 
    (
       ## Multigroup diffusion 
-      element method_diffusion {
+      element method {
             comment,
+            
+            attribute name { "MultiGroupDiffusion" },
+            
+            number_of_energy_groups,
                         
             neutral_particle_flux_diffusion
       }         

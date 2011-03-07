@@ -19,7 +19,6 @@
       </attribute>
       <ref name="neutral_particle_mesh"/>
       <ref name="neutral_particle_material_mesh"/>
-      <ref name="number_of_energy_groups"/>
       <ref name="radiation_method"/>
       <ref name="problem_run"/>
       <ref name="read_radiation_material_data_set"/>
@@ -130,9 +129,13 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
     </element>
   </define>
   <define name="radiation_method">
-    <element name="method_diffusion">
+    <element name="method">
       <a:documentation>Multigroup diffusion </a:documentation>
       <ref name="comment"/>
+      <attribute name="name">
+        <value>MultiGroupDiffusion</value>
+      </attribute>
+      <ref name="number_of_energy_groups"/>
       <ref name="neutral_particle_flux_diffusion"/>
     </element>
   </define>

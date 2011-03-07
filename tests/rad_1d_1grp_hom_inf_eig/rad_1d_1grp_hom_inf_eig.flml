@@ -112,10 +112,10 @@
           </stat>
         </from_mesh>
       </mesh>
-      <number_of_energy_groups>
-        <integer_value rank="0">1</integer_value>
-      </number_of_energy_groups>
-      <method_diffusion>
+      <method name="MultiGroupDiffusion">
+        <number_of_energy_groups>
+          <integer_value rank="0">1</integer_value>
+        </number_of_energy_groups>
         <scalar_field name="NeutralParticleFlux">
           <prognostic>
             <spatial_discretisation>
@@ -166,7 +166,7 @@
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-      </method_diffusion>
+      </method>
       <eigenvalue_run>
         <power_iteration>
           <maximum>

@@ -191,7 +191,7 @@ contains
       end do dataset_loop
 
       ! determine the number of energy groups, delayed groups for this object 
-      call get_option(trim(np_radmat_option_path)//"/number_of_energy_groups",np_radmat_size%number_of_energy_groups)              
+      call get_option(trim(np_radmat_option_path)//"/method/number_of_energy_groups",np_radmat_size%number_of_energy_groups)              
              
       ! get the number of delayed groups for this object
       delayed_if: if (have_option(trim(np_radmat_option_path)//"/delayed_neutron_precursor")) then

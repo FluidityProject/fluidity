@@ -1472,7 +1472,7 @@ contains
       logical, dimension(:), allocatable :: material_phase_number_found
       character(len=OPTION_PATH_LEN) :: field_name, field_path, np_field_path, delayed_field_path
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
-      character(len=OPTION_PATH_LEN) :: object_name, object_path, delayed_path, method_path
+      character(len=OPTION_PATH_LEN) :: object_name, object_path, delayed_path, method_path, method_name
       character(len=OPTION_PATH_LEN) :: mesh_name_np_sol,mesh_name_np_mat,mesh_name_delayed_sol
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
@@ -1504,41 +1504,49 @@ contains
          call zero(aux_sfield)
          call insert(state, aux_sfield, trim(aux_sfield%name))
          call deallocate(aux_sfield)
-                                       
-         ! deduce the number of neutral particle flux fields to create = number_energy_groups 
-         call get_option(trim(object_path)//'/number_of_energy_groups',number_of_energy_groups)         
             
          ! set the method path
-         method_path = trim(object_path)//'/method_diffusion'
-                                 
-         ! create the neutral particle flux fields needed for each energy group g within state 
-         ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
-         group_loop: do g = 1,number_of_energy_groups
+         method_path = trim(object_path)//'/method'
+         
+         ! get the method name
+         call get_option(trim(object_path)//'/method/name',method_name)
+
+         ! get the number_energy_groups 
+         call get_option(trim(method_path)//'/number_of_energy_groups',number_of_energy_groups)         
+         
+         ! create the multigroup diffusion fields
+         np_method: if (trim(method_name) == 'MultiGroupDiffusion') then
+                                                                        
+            ! create the neutral particle flux fields needed for each energy group g within state 
+            ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
+            group_loop: do g = 1,number_of_energy_groups
             
-            np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFlux'
+               np_field_path = trim(method_path)//'/scalar_field::NeutralParticleFlux'
                                     
-            ! form the field name using the object name and group number 
-            field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
+               ! form the field name using the object name and group number 
+               field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(object_name)
                   
-            call allocate_and_insert_scalar_field(trim(np_field_path), &
-                                                  state, &
-                                                  parent_mesh = trim(mesh_name_np_sol), & 
-                                                  field_name = trim(field_name), &
-                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+               call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_sol), & 
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
             
-            ! no option path for Old such as not in output
-            np_field_path = ''
+               ! no option path for Old such as not in output
+               np_field_path = ''
                                     
-            ! form the field name using the object name and group number 
-            field_name = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(object_name)
+               ! form the field name using the object name and group number 
+               field_name = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(object_name)
                   
-            call allocate_and_insert_scalar_field(trim(np_field_path), &
-                                                  state, &
-                                                  parent_mesh = trim(mesh_name_np_sol), & 
-                                                  field_name = trim(field_name), &
-                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
+               call allocate_and_insert_scalar_field(trim(np_field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(mesh_name_np_sol), & 
+                                                     field_name = trim(field_name), &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
                   
-         end do group_loop
+            end do group_loop
+         
+         end if np_method
                   
          ! now allocate and insert the time run prescribed source fields into state for this np object
          include_prescribed_source_if: if (have_option(trim(object_path)//'/time_run/include_prescribed_source')) then

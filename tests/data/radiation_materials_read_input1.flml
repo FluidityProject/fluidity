@@ -95,10 +95,10 @@
           </stat>
         </from_mesh>
       </mesh>
-      <number_of_energy_groups>
-        <integer_value rank="0">2</integer_value>
-      </number_of_energy_groups>
-      <method_diffusion>
+      <method name="MultiGroupDiffusion">
+        <number_of_energy_groups>
+          <integer_value rank="0">2</integer_value>
+        </number_of_energy_groups>
         <scalar_field name="NeutralParticleFlux">
           <prognostic>
             <spatial_discretisation>
@@ -108,7 +108,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.0e-08</real_value>
+                <real_value rank="0">1.0e-8</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">100</integer_value>
@@ -137,7 +137,7 @@
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-      </method_diffusion>
+      </method>
       <time_run>
         <temporal_discretisation>
           <theta>
