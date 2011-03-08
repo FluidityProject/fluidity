@@ -1,13 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">rad_1d_2grp_hom_zerobc_eig</string_value>
+    <string_value lines="1">rad_1d_2grp_hom_zerobc_eig_A</string_value>
     <comment>Radiation problem:
 - 1 dim
 - 2 group
 - 1 material (homogeneous)
 - all zero BC
-- eigenvalue run</comment>
+- eigenvalue run
+
+Running multiple np for different mesh resolutions</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -17,7 +19,7 @@
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="rad_1d_2grp_hom_zerobc_eig">
+      <from_file file_name="rad_1d_2grp_hom_zerobc_eig_A">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -34,7 +36,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">3</integer_value>
+        <integer_value rank="0">2</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -125,9 +127,9 @@
               </spatial_discretisation>
               <solver>
                 <iterative_method name="cg"/>
-                <preconditioner name="icc"/>
+                <preconditioner name="sor"/>
                 <relative_error>
-                  <real_value rank="0">1.0e-08</real_value>
+                  <real_value rank="0">1.0e-010</real_value>
                 </relative_error>
                 <max_iterations>
                   <integer_value rank="0">1000</integer_value>
@@ -184,10 +186,10 @@
             <integer_value rank="0">100</integer_value>
           </maximum>
           <flux_tolerance>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </flux_tolerance>
           <keff_tolerance>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </keff_tolerance>
         </power_iteration>
         <flux_normalisation>
