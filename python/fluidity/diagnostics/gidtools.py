@@ -52,6 +52,7 @@ def ToGidNodeOrder(nodes, type):
   newNodes = nodes
   
   if type.GetElementTypeId() == elements.ELEMENT_QUAD:
+    newNodes = copy.deepcopy(nodes)
     newNodes[2] = nodes[3]
     newNodes[3] = nodes[2]
       
