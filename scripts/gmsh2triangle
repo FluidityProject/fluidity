@@ -171,7 +171,7 @@ for i in range(nodecount):
 newnodecount = nodecount-len(isolated)
 
 nodefile=file(basename+".node", 'w')
-nodefile.write(`newnodecount`+" "+`dim`+" 0 0\n")
+nodefile.write(`newnodecount`+" "+`options.dim`+" 0 0\n")
 j=0
 for i in range(nodecount):    
     if not(i+1 in isolated):

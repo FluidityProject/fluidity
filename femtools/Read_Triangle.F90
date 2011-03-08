@@ -187,7 +187,7 @@ contains
     
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
-         & ele_attributes, loc, sloc, elements, edges, edge_count, stat
+         & ele_attributes, loc, sloc, elements, edges, edge_count
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -206,7 +206,7 @@ contains
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
     
     ! Read node file header.
-    read (node_unit, *) nodes, dim, node_attributes, boundaries
+    read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
     ele_unit=free_unit()
 
@@ -232,20 +232,16 @@ contains
     
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
 
-    if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
-      call allocate(field, dim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
+    if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
+      call allocate(field, xdim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
     else
-       call get_option("/geometry/dimension", xdim, stat)
-       if(stat/=0) then
-          xdim=dim
-       end if
        call allocate(field, xdim, mesh, name="Coordinate")
     end if
 
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
+    if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
       allocate(read_buffer(xdim+node_attributes+boundaries+2))
     else
       allocate(read_buffer(xdim+node_attributes+boundaries+1))
@@ -256,13 +252,13 @@ contains
    end if
 
     do i=1,nodes
-       if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
+       if ((xdim==2).and.(have_option('/geometry/spherical_earth/'))) then
          read(node_unit,*) read_buffer
-         forall (j=1:dim+1)
+         forall (j=1:xdim+1)
             field%val(j,i)=read_buffer(j+1)
          end forall
          if (node_attributes==1) then
-           field%mesh%columns(i)=floor(read_buffer(dim+2))
+           field%mesh%columns(i)=floor(read_buffer(xdim+2))
          end if
        else
          read(node_unit,*) read_buffer
@@ -292,6 +288,9 @@ contains
 
     close(node_unit)
     close(ele_unit)
+
+    ! Get the mesh dimension so we know which files to look for
+    dim=shape%dim
 
     ! Open edge file
     select case (dim)
@@ -433,7 +432,7 @@ contains
     real, allocatable, dimension(:) :: read_buffer
     character(len=6) :: write_buffer
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
-         & ele_attributes, loc, elements, stat
+         & ele_attributes, loc, elements
     integer, allocatable, dimension(:) :: node_order
 
     type(mesh_type), dimension(:), allocatable, save :: meshes
@@ -468,7 +467,7 @@ contains
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
     
     ! Read node file header.
-    read (node_unit, *) nodes, dim, node_attributes, boundaries
+    read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
     ele_unit=free_unit()
 
@@ -493,10 +492,6 @@ contains
     end select
     
     call allocate(meshes(counter), nodes, elements, shape, name="CoordinateMesh")
-    call get_option("/geometry/dimension", xdim, stat)
-    if(stat/=0) then
-       xdim=dim
-    end if
     call allocate(field, xdim, meshes(counter), name=filename//' Coordinate')
     allocate(attribs(node_attributes))
     do j=1,node_attributes
@@ -580,7 +575,7 @@ contains
 
   end function read_triangle_files_to_state
 
-  function read_triangle_simple(filename, quad_degree, quad_ngi, no_faces, quad_family) result (field)
+  function read_triangle_simple(filename, quad_degree, quad_ngi, no_faces, quad_family, mdim) result (field)
     !!< A simpler mechanism for reading a triangle file into a field.
     !!< In parallel the filename must *not* include the process number.
     
@@ -593,6 +588,8 @@ contains
     logical, intent(in), optional :: no_faces
     !! What quadrature family to use
     integer, intent(in), optional :: quad_family
+    !! Dimension of mesh
+    integer, intent(in), optional :: mdim
 
     type(vector_field) :: field
     type(quadrature_type) :: quad
@@ -604,6 +601,10 @@ contains
       call identify_triangle_file(parallel_filename(filename), dim, loc)
     else
       call identify_triangle_file(filename, dim, loc)
+    end if
+
+    if (present(mdim)) then
+       dim=mdim
     end if
 
     if (present(quad_degree)) then
@@ -697,8 +698,7 @@ contains
     
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
-         & ele_attributes, loc, sloc, elements, edges, edge_count,&
-         & stat
+         & ele_attributes, loc, sloc, elements, edges, edge_count
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -717,7 +717,7 @@ contains
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
     
     ! Read node file header.
-    read (node_unit, *) nodes, dim, node_attributes, boundaries
+    read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
     ele_unit=free_unit()
 
@@ -746,10 +746,6 @@ contains
     ! Field has an upper index of 3. Therefore, if dim==3 and
     ! node_attributes>0 then we get an out of bounds reference. Assume
     ! here that when there are node attributes they can be ignored.
-    call get_option("/geometry/dimension", xdim, stat)
-    if(stat/=0) then
-       xdim=dim
-    end if
     call allocate(field, xdim, mesh, name="Coordinate")
 
     ! Drop the local reference to mesh - now field owns the only reference.
@@ -781,6 +777,9 @@ contains
 
     close(node_unit)
     close(ele_unit)
+
+    ! Get the mesh dimension so we know which files to look for
+    dim=shape%dim
 
     ! Open edge file
     select case (dim)
@@ -915,7 +914,7 @@ contains
 
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries, &
-         ele_attributes, loc, sloc, elements, edges, edge_count, stat
+         ele_attributes, loc, sloc, elements, edges, edge_count
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
@@ -929,7 +928,7 @@ contains
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
 
     ! Read node file header.
-    read (node_unit, *) nodes, dim, node_attributes, boundaries
+    read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
     ele_unit=free_unit()
 
@@ -952,10 +951,7 @@ contains
     end select
 
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
-    call get_option("/geometry/dimension", xdim, stat)
-    if(stat/=0) then
-       xdim=dim
-    end if
+
     call allocate(field, xdim, mesh, name="Coordinate")
 
     ! Drop the local reference to mesh - now field owns the only reference.
@@ -994,6 +990,9 @@ contains
 
     close(node_unit)
     close(ele_unit)
+
+    ! Get the mesh dimension so we know which files to look for
+    dim=shape%dim
 
     ! Open edge file
     select case (dim)

@@ -206,7 +206,7 @@ contains
 
   function read_mesh_simple(filename, quad_degree, &
        quad_ngi, no_faces, &
-       quad_family, format ) &
+       quad_family, mdim, format ) &
        result (field)
 
     ! A simpler mechanism for reading a mesh file into a field.
@@ -221,6 +221,8 @@ contains
     logical, intent(in), optional :: no_faces
     ! What quadrature family to use
     integer, intent(in), optional :: quad_family
+    ! Dimension of mesh
+    integer, intent(in), optional :: mdim
 
     type(vector_field) :: field
 
@@ -237,7 +239,7 @@ contains
     select case( trim(meshFormat) )
     case("triangle")
        field = read_triangle_files(filename, quad_degree, quad_ngi, &
-            no_faces, quad_family)
+            no_faces, quad_family, mdim)
 
     case("gmsh")
        field = read_gmsh_file(filename, quad_degree, quad_ngi, &

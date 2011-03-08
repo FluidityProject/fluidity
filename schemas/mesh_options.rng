@@ -34,6 +34,11 @@ surface or region IDs.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
+        <optional>
+          <element name="dimension">
+            <ref name="integer"/>
+          </element>
+        </optional>
         <ref name="from_file_mesh_stat_options"/>
         <ref name="comment"/>
       </element>

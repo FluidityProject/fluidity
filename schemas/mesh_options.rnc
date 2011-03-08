@@ -24,6 +24,9 @@ mesh_info =
             }
          ),
          attribute file_name { xsd:string },
+         element dimension {
+            integer
+         }?,
          from_file_mesh_stat_options,
          comment
       }|

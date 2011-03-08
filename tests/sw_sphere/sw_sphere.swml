@@ -54,7 +54,6 @@
         <real_value rank="0">0.0</real_value>
       </constant>
     </dump_period>
-    <output_coordinates name="Cartesian"/>
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>

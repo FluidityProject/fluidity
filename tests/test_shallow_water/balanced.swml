@@ -10,6 +10,9 @@
     <mesh name="CoordinateMesh">
       <from_file file_name="basin">
         <format name="triangle"/>
+        <dimension>
+          <integer_value rank="0">2</integer_value>
+        </dimension>
         <stat>
           <include_in_stat/>
         </stat>

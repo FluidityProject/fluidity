@@ -1,7 +1,7 @@
 default: input
 
 input: clean
-	gmsh -2 src/basin.geo > gmsh.log 2> gmsh_err.log
+	gmsh -3 src/basin.geo > gmsh.log 2> gmsh_err.log
 	../../scripts/gmsh2triangle src/basin.msh
 
 clean:

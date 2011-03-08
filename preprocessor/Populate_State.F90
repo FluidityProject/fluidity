@@ -172,7 +172,7 @@ contains
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
     logical :: from_file, extruded
-    integer :: dim, loc, column_ids
+    integer :: dim, mdim, loc, column_ids
     integer :: quad_family
     
     call tic(TICTOC_ID_IO_READ)
@@ -249,9 +249,20 @@ contains
 
          else if(trim(mesh_file_format)=="triangle" &
               .or. trim(mesh_file_format)=="gmsh") then
-            ! Read mesh from triangle file
-            position=read_mesh_files(trim(mesh_file_name), quad_degree=quad_degree, &
-                 quad_family=quad_family, format=mesh_file_format)
+            ! Get mesh dimension if present
+            call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
+            ! Read mesh
+            if(stat==0) then
+               position=read_mesh_files(trim(mesh_file_name), &
+                    quad_degree=quad_degree, &
+                    quad_family=quad_family, mesh_dim=mdim, &
+                    format=mesh_file_format)
+            else
+               position=read_mesh_files(trim(mesh_file_name), &
+                    quad_degree=quad_degree, &
+                    quad_family=quad_family, &
+                    format=mesh_file_format)
+            end if
             mesh=position%mesh
          else if(trim(mesh_file_format) == "vtu") then
             position_ptr => vtk_cache_read_positions_field(mesh_file_name)
