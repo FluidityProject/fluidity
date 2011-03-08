@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>rad_1d_2grp_hom_zerobc_eig</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+       fluidity rad_1d_2grp_hom_zerobc_eig.flml 
+    </command_line>
+    <!-- Radiation diffusion eigenvalue problem with one material, two energy groups no upscatter with all zero BC using a 1d geometry compared to PANTHER reference solution for the keff -->
+  </problem_definition>
+  <variables>
+    <variable name="Keffneutron" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron = stat("rad_1d_2grp_hom_zerobc_eig.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check Keffneutron against PANTHER reference" language="python">
+reference_keff = 1.0
+print 'Relative error compared to reference: ',abs((Keffneutron - reference_keff)/reference_keff)
+assert abs((Keffneutron - reference_keff)/reference_keff) &lt; 3.5e-05
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
