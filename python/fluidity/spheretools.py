@@ -12,19 +12,17 @@ def polar2cart(r):
         return r*array([cos(theta)*cos(phi),sin(theta)*cos(phi),sin(phi)])
     return val
 
-def cart2polar():
+def cart2polar(X):
     #convert Cartesian coordinates to polar coordinates
     from math import asin,atan2,pi,sqrt
     from numpy import array
-    def val(X,t):
-        x = X[0]
-        y = X[1]
-        z = X[2]
-        r = sqrt(x**2 + y**2 + z**2)
-        phi = asin(z/r)
-        theta = atan2(y,x)
-        return array([theta,phi])
-    return val
+    x = X[0]
+    y = X[1]
+    z = X[2]
+    r = sqrt(x**2 + y**2 + z**2)
+    phi = asin(z/r)
+    theta = atan2(y,x)
+    return array([theta,phi])
 
 def spherical_basis_vecs():
     #return unit vectors in theta, phi
@@ -41,8 +39,7 @@ def spherical_down():
     from math import sin, cos, pi
     from numpy import array
     def val(X,t):
-        theta = 2*pi*X[0]/360
-        phi = 2*pi*X[1]/360
+        ([theta,phi]) = cart2polar(X)
         return -array([cos(theta)*cos(phi), sin(theta)*cos(phi), sin(phi)])
     return val
 
