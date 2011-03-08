@@ -255,7 +255,7 @@ contains
             if(stat==0) then
                position=read_mesh_files(trim(mesh_file_name), &
                     quad_degree=quad_degree, &
-                    quad_family=quad_family, mesh_dim=mdim, &
+                    quad_family=quad_family, mdim=mdim, &
                     format=mesh_file_format)
             else
                position=read_mesh_files(trim(mesh_file_name), &
