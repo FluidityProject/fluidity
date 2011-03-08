@@ -70,6 +70,11 @@ module tetrahedron_intersection_module
       assert(present(surface_shape))
     end if
 
+
+    assert(shape%degree == 1)
+    assert(shape%numbering%family == FAMILY_SIMPLEX)
+    assert(shape%dim == 3)
+
     tet_cnt = 1
     tet_array(1) = tetA
 
