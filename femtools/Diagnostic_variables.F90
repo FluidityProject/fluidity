@@ -2577,13 +2577,7 @@ contains
     !in all processors
 
     !check if detectors any are Lagrangian
-    any_lagrangian=.false.
-    detector => default_stat%detector_list%firstnode
-    do i = 1, default_stat%detector_list%length         
-       if (detector%type==LAGRANGIAN_DETECTOR)&
-            &any_lagrangian=.true. 
-       detector => detector%next
-    end do
+    any_lagrangian=check_any_lagrangian(default_stat%detector_list)
     
     if (move_detectors.and.(timestep/=0).and.any_lagrangian) then
        allocate(send_list_array(number_neigh_processors))
@@ -2654,13 +2648,7 @@ contains
           detector_timestepping_loop: do  
 
              !check if detectors any are Lagrangian
-             any_lagrangian=.false.
-             detector => default_stat%detector_list%firstnode
-             do i = 1, default_stat%detector_list%length         
-                if (detector%type==LAGRANGIAN_DETECTOR)&
-                     &any_lagrangian=.true. 
-                detector => detector%next
-             end do
+             any_lagrangian=check_any_lagrangian(default_stat%detector_list)
 
              if (any_lagrangian) then
                 !This is the actual call to move the detectors
@@ -2736,11 +2724,6 @@ contains
 
           end do detector_timestepping_loop
        end do RKstages_loop
-
-       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
-            & then       
-          call deallocate_rk_guided_search(default_stat%detector_list)
-       end if
 
        deallocate(send_list_array)
        deallocate(receive_list_array)
@@ -2873,7 +2856,7 @@ contains
        call write_mpi_out(state,time,dt)
 
     end if
-
+    
 !!! at the end of write_detectors subroutine I need to loop over all the detectors in the list and check that I own them (the element where they are). If not, they need to be sent to the processor owner before adaptivity happens
 
     if (timestep/=0) then
@@ -2969,6 +2952,12 @@ contains
 
     end if
 
+    if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
+         &ta_guided_search"))&
+         & then       
+       call deallocate_rk_guided_search(default_stat%detector_list)
+    end if
+
     call deallocate(ihash) 
 
     totaldet_global=default_stat%detector_list%length
@@ -2988,6 +2977,28 @@ contains
     end if
 
   contains
+
+    !function to check if there are any lagrangian particles globally
+    function check_any_lagrangian(detector_list0)
+      logical :: check_any_lagrangian
+      type(detector_linked_list), intent(inout) :: detector_list0
+      type(detector_type), pointer :: det0
+      integer :: i0
+      integer :: checkint 
+      
+      checkint = 0
+      det0 => detector_list0%firstnode
+      do i = 1, detector_list0%length         
+         if (det0%type==LAGRANGIAN_DETECTOR) then
+            checkint = 1
+            exit
+         end if
+         det0 => det0%next
+      end do
+      call allmax(checkint)
+      check_any_lagrangian = .false.
+      if(checkint>0) check_any_lagrangian = .true.
+    end function check_any_lagrangian
 
     !Subroutine to allocate the RK stages, and update vector
     subroutine initialise_rk_guided_search(detector_list0)
@@ -3625,7 +3636,6 @@ contains
        detector => send_list_array(i)%firstnode
 
        number_detectors_to_send=send_list_array(i)%length
-       ewrite(2,*) 'CJC in serialise', number_detectors_to_send
 
        allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
 
@@ -3644,14 +3654,13 @@ contains
                 univ_ele =-1
 
              end if
-             ewrite(2,*) 'CJC in loop', j,size(send_list_array_serialise(i)%ptr)
              send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
              send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
              send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
              send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
              send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
              if(have_update_vector) then
-                send_list_array_serialise(i)%ptr(&
+               send_list_array_serialise(i)%ptr(&
                      &j,update_start+1:update_start+dim)=&
                      &detector%update_vector
                 do ki = 1, n_stages
@@ -3741,8 +3750,8 @@ contains
              do ki = 1, n_stages
                 detector_received%k(ki,:) = &
                   receive_list_array_serialise(i)%ptr(&
-                  j,update_start+dim*(ki-1)+1:&
-                  &update_start+dim*ki)
+                  j,k_start+dim*(ki-1)+1:&
+                  &k_start+dim*ki)
              end do
              detector_received%search_complete=.false.
           end if
@@ -3759,7 +3768,6 @@ contains
           end if
 
           detector_received%name=default_stat%name_of_detector_in_read_order(detector_received%id_number)
-
           call insert(receive_list_array(i),detector_received) 
           
        end do
