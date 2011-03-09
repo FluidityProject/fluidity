@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_detectors</name>
+  <owner userid="colin"/>
+  <tags>flml parallel</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="last_locations_error" language="python">
+from readtool import readstat
+last_locations_error = readstat()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="CorrectLagrangianTrajectory" language="python">
+assert abs(last_locations_error).max() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
