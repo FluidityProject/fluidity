@@ -573,11 +573,13 @@ contains
       
       matrix_addto = shape_shape(face_shape(np_flux, face), &
                                  face_shape(np_flux, face), &
-                                 detwei*face_val_at_quad(bc_value,face))
+                                 detwei*ele_val_at_quad(bc_value,face))
       
+      face_nodes = face_global_nodes(np_flux, &
+                                     face)      
       call addto(matrix, &
                  face_nodes, &
-                 face_global_nodes(np_flux, face), &
+                 face_nodes, &
                  matrix_addto)
                 
    end subroutine assemble_np_group_g_sele_vacuum

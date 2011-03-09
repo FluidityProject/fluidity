@@ -327,7 +327,6 @@ diffusion_bc_type =
       ## Type
       (
          diffusion_vacuum|
-         diffusion_reflective|
          diffusion_dirichlet
       )   
    )
@@ -335,25 +334,11 @@ diffusion_bc_type =
       
 diffusion_vacuum = 
    (
-      ## Vacuum
+      ## Vacuum, requires value of 0.5
       element type {
          comment,
          attribute name { "vacuum" },
-         element constant {
-            comment,
-            attribute rank {"0"},
-            ("0.5")  
-         }                
-      }
-   )
-
-
-diffusion_reflective = 
-   (
-      ## Reflective
-      element type {
-         comment,
-         attribute name { "reflective" }
+         input_choice_real                
       }
    )
 
@@ -483,12 +468,6 @@ power_iteration_element =
          real
       },
       scatter_group_iteration_options?,
-      ## Exit the power iteration loop if a prescribed number of consecutive keff are converged
-      ## irrespective of the flux eigenvector convergence 
-      element exit_if_successive_keff_converged { 
-         comment,
-         integer
-      }?, 
       ## Terminate the simulation if the maximum number of power
       ## iterations is reached and the tolerance criteria (both flux and keff) are not met.
       element terminate_if_not_converged {
@@ -1060,17 +1039,7 @@ delayed_neutron_mesh =
 prompt_delayed_coupling_option =
    (
       prompt_delayed_coupling_semi_implicit_option|
-      prompt_delayed_coupling_implicit_option|              
       prompt_delayed_coupling_explicit_option
-   )
-
-
-prompt_delayed_coupling_implicit_option = 
-   (
-      ## Implicit coupling between prompt and delayed neutron equations
-      element prompt_delayed_coupling_implicit {
-         comment
-      }   
    )
 
 

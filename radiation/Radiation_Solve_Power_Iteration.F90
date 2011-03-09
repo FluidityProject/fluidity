@@ -57,7 +57,6 @@ module radiation_solve_power_iteration
    
    type power_iteration_options_type
       integer :: max_power_iteration
-      integer :: exit_if_successive_keff_converged
       real :: keff_tolerance
       real :: flux_tolerance
       logical :: terminate_if_not_converged_power            
@@ -81,7 +80,6 @@ contains
       
       ! local variables
       integer :: ipower
-      integer :: number_keff_pass
       integer :: number_all_convereged_pass
       integer :: number_of_energy_groups
       real :: keff_old
@@ -95,9 +93,8 @@ contains
       ! initialise the keff
       keff = 1.0
       
-      ! intialise the number of all convergence passes in power iterations and keff
+      ! intialise the number of all convergence passes in power iterations
       number_all_convereged_pass = 0
-      number_keff_pass = 0
       
       call get_power_iteration_options(trim(np_radmat%option_path), &
                                        np_radmat_name, &
@@ -132,7 +129,6 @@ contains
          call check_power_iteration_convergence(power_iteration_converged, &
                                                 keff, &
                                                 keff_old, &
-                                                number_keff_pass, &
                                                 number_all_convereged_pass, &
                                                 state, &
                                                 trim(np_radmat_name), &
@@ -193,17 +189,7 @@ contains
       ! get the flux power iteration tolerance
       call get_option(trim(power_iteration_option_path)//'/flux_tolerance',power_iteration_options%flux_tolerance)
 
-      power_iteration_options%terminate_if_not_converged_power = have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')
-         
-      have_exit_keff: if (have_option(trim(power_iteration_option_path)//'/exit_if_successive_keff_converged')) then
-         
-         call get_option(trim(power_iteration_option_path)//'/exit_if_successive_keff_converged',power_iteration_options%exit_if_successive_keff_converged)
-                  
-      else have_exit_keff
-         
-         power_iteration_options%exit_if_successive_keff_converged = 0
-            
-      end if have_exit_keff
+      power_iteration_options%terminate_if_not_converged_power = have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')         
             
    end subroutine get_power_iteration_options
 
@@ -332,7 +318,6 @@ contains
    subroutine check_power_iteration_convergence(power_iteration_converged, &
                                                 keff, &
                                                 keff_old, &
-                                                number_keff_pass, &
                                                 number_all_convereged_pass, &
                                                 state, &
                                                 np_radmat_name, &
@@ -340,13 +325,11 @@ contains
                                                 power_iteration_options) 
    
       !!< Check the convergence of the power iterations via the keff and flux
-      !!< If option chosen exit solely if keff converged a chosen number of times
       !!< Always insist on atleast 2 successive convergence passes   
       
       logical, intent(out) :: power_iteration_converged
       real, intent(in) :: keff
       real, intent(in) :: keff_old
-      integer, intent(inout) :: number_keff_pass
       integer, intent(inout) :: number_all_convereged_pass 
       type(state_type), intent(in) :: state
       character(len=*), intent(in) :: np_radmat_name
@@ -368,7 +351,7 @@ contains
          
       else find_change_keff
          
-         change_keff = abs(keff - keff_old)
+         FLAbort('ERROR the radiation eigenvalue Keff is not > 0')
                   
       end if find_change_keff
       
@@ -383,32 +366,7 @@ contains
       
       end if check_keff 
       
-      ewrite(1,*) 'change_keff,keff_converged: ',change_keff,keff_converged
-      
-      ! check if enough successive keff converged if chosen
-      check_successive_keff: if (power_iteration_options%exit_if_successive_keff_converged > 0) then 
-      
-            increase_one: if (keff_converged) then
-               
-               number_keff_pass = number_keff_pass + 1
-               
-            else increase_one
-            
-               number_keff_pass = 0
-            
-            end if increase_one
-            
-            successive_keff_converged: if (number_keff_pass == power_iteration_options%exit_if_successive_keff_converged) then 
-              
-               power_iteration_converged = .true. 
-               
-               ewrite(1,*) '   '//int2str(power_iteration_options%exit_if_successive_keff_converged)//' sucessive keff converged so exit power iteration'
-               
-               return
-               
-            end if successive_keff_converged
-               
-      end if check_successive_keff
+      ewrite(1,*) 'change_keff,keff_converged: ',change_keff,keff_converged     
       
       ! check the flux convergence
       call check_np_flux_convergence(state, &

@@ -1,14 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">rad_1d_2grp_hom_zerobc_eig_A</string_value>
+    <string_value lines="1">rad_1d_1grp_hom_vacbc_eig_A</string_value>
     <comment>Radiation problem:
 - 1 dim
-- 2 group
+- 1 group
 - 1 material (homogeneous)
-- all zero BC
-- eigenvalue run
-</comment>
+- all vacuum BC
+- eigenvalue run</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -18,7 +17,7 @@
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="rad_1d_2grp_hom_zerobc_eig_A">
+      <from_file file_name="rad_1d_1grp_hom_vacbc_eig_A">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -83,12 +82,29 @@
         </detectors>
       </prescribed>
     </vector_field>
+    <scalar_field name="MaxEdgeWeightOnNodes" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <radiation>
     <neutral_particle name="neutron">
       <method name="MultiGroupDiffusion">
         <number_of_energy_groups>
-          <integer_value rank="0">2</integer_value>
+          <integer_value rank="0">1</integer_value>
         </number_of_energy_groups>
         <neutral_particle_flux_group_set_field name="all">
           <group_all/>
@@ -150,9 +166,9 @@
                 <surface_ids>
                   <integer_value shape="1" rank="1">1</integer_value>
                 </surface_ids>
-                <type name="dirichlet">
+                <type name="vacuum">
                   <constant>
-                    <real_value rank="0">0.0</real_value>
+                    <real_value rank="0">0.5</real_value>
                   </constant>
                 </type>
               </boundary_conditions>
@@ -160,9 +176,9 @@
                 <surface_ids>
                   <integer_value shape="1" rank="1">2</integer_value>
                 </surface_ids>
-                <type name="dirichlet">
+                <type name="vacuum">
                   <constant>
-                    <real_value rank="0">0.0</real_value>
+                    <real_value rank="0">0.5</real_value>
                   </constant>
                 </type>
               </boundary_conditions>
@@ -200,7 +216,7 @@
           </total_flux>
         </flux_normalisation>
       </eigenvalue_run>
-      <radiation_material_data_set_from_file file_name="rad_1d_2grp_hom_zerobc_eig">
+      <radiation_material_data_set_from_file file_name="rad_1d_1grp_hom_vacbc_eig">
         <number_of_scatter_moments>
           <integer_value rank="0">1</integer_value>
         </number_of_scatter_moments>
@@ -223,7 +239,7 @@
           <region_id>
             <integer_value shape="1" rank="1">1</integer_value>
           </region_id>
-          <radiation_data_set_name file_name="rad_1d_2grp_hom_zerobc_eig"/>
+          <radiation_data_set_name file_name="rad_1d_1grp_hom_vacbc_eig"/>
           <radiation_physical_material_name name="fuel"/>
         </region_to_physical_radiation_material_map>
       </region_id_material_mapping>

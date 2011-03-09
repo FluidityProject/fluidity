@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>rad_1d_1grp_hom_vacbc_eig</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+fluidity rad_1d_1grp_hom_vacbc_eig_A.flml 
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_B.flml
+sed -i 's/_A/_B/' rad_1d_1grp_hom_vacbc_eig_B.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_B.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_B.flml
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_C.flml
+sed -i 's/_A/_C/' rad_1d_1grp_hom_vacbc_eig_C.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_C.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_C.flml
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_D.flml
+sed -i 's/_A/_D/' rad_1d_1grp_hom_vacbc_eig_D.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_D.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_D.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_E.flml
+sed -i 's/_A/_E/' rad_1d_1grp_hom_vacbc_eig_E.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_E.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_E.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_F.flml
+sed -i 's/_A/_F/' rad_1d_1grp_hom_vacbc_eig_F.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_F.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_F.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_G.flml
+sed -i 's/_A/_G/' rad_1d_1grp_hom_vacbc_eig_G.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_G.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_G.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_H.flml
+sed -i 's/_A/_H/' rad_1d_1grp_hom_vacbc_eig_H.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_H.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_H.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_I.flml
+sed -i 's/_A/_I/' rad_1d_1grp_hom_vacbc_eig_I.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_I.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_I.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_J.flml
+sed -i 's/_A/_J/' rad_1d_1grp_hom_vacbc_eig_J.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_J.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_J.flml       
+
+cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_K.flml
+sed -i 's/_A/_K/' rad_1d_1grp_hom_vacbc_eig_K.flml
+
+fluidity rad_1d_1grp_hom_vacbc_eig_K.flml 
+
+rm -f rad_1d_1grp_hom_vacbc_eig_K.flml       
+    </command_line>
+    <!-- Radiation diffusion eigenvalue problem with one material, one energy group with all vacuum BC using a 1d geometry compared to a fine mesh BEANS linear cg solution for different mesh resolutions checking against the expected rate of convergence-->
+  </problem_definition>
+  <variables>
+    <variable name="Keffneutron_A" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_A = stat("rad_1d_1grp_hom_vacbc_eig_A.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_B" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_B = stat("rad_1d_1grp_hom_vacbc_eig_B.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_C" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_C = stat("rad_1d_1grp_hom_vacbc_eig_C.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_D" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_D = stat("rad_1d_1grp_hom_vacbc_eig_D.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_E" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_E = stat("rad_1d_1grp_hom_vacbc_eig_E.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_F" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_F = stat("rad_1d_1grp_hom_vacbc_eig_F.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_G" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_G = stat("rad_1d_1grp_hom_vacbc_eig_G.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_H" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_H = stat("rad_1d_1grp_hom_vacbc_eig_H.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_I" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_I = stat("rad_1d_1grp_hom_vacbc_eig_I.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_J" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_J = stat("rad_1d_1grp_hom_vacbc_eig_J.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+    <variable name="Keffneutron_K" language="python">
+from fluidity_tools import stat_parser as stat
+Keffneutron_K = stat("rad_1d_1grp_hom_vacbc_eig_K.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check Keffneutron_A against equivalent cg BEANS reference" language="python">
+reference_keff = 0.852113610862
+print 'Relative error compared to reference: ',abs((Keffneutron_A - reference_keff)/reference_keff)
+assert abs((Keffneutron_A - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_B against equivalent cg BEANS reference" language="python">
+reference_keff = 0.880058482051
+print 'Relative error compared to reference: ',abs((Keffneutron_B - reference_keff)/reference_keff)
+assert abs((Keffneutron_B - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_C against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.886868598269
+print 'Relative error compared to reference: ',abs((Keffneutron_C - reference_keff)/reference_keff)
+assert abs((Keffneutron_C - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_D against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.88856143693
+print 'Relative error compared to reference: ',abs((Keffneutron_D - reference_keff)/reference_keff)
+assert abs((Keffneutron_D - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_E against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.888984056312
+print 'Relative error compared to reference: ',abs((Keffneutron_E - reference_keff)/reference_keff)
+assert abs((Keffneutron_E - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_F against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889089671645
+print 'Relative error compared to reference: ',abs((Keffneutron_F - reference_keff)/reference_keff)
+assert abs((Keffneutron_F - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_G against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889116078741
+print 'Relative error compared to reference: ',abs((Keffneutron_G - reference_keff)/reference_keff)
+assert abs((Keffneutron_G - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_H against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889122681105
+print 'Relative error compared to reference: ',abs((Keffneutron_H - reference_keff)/reference_keff)
+assert abs((Keffneutron_H - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_I against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889124322876
+print 'Relative error compared to reference: ',abs((Keffneutron_I - reference_keff)/reference_keff)
+assert abs((Keffneutron_I - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_J against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889124740121
+print 'Relative error compared to reference: ',abs((Keffneutron_J - reference_keff)/reference_keff)
+assert abs((Keffneutron_J - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_K against against equivalent cg BEANS reference" language="python">
+reference_keff = 0.889124845372
+print 'Relative error compared to reference: ',abs((Keffneutron_K - reference_keff)/reference_keff)
+assert abs((Keffneutron_K - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+    <test name="Check Keffneutron_K against against very fine cg BEANS reference" language="python">
+reference_keff = 0.889124884645
+print 'Relative error compared to reference: ',abs((Keffneutron_K - reference_keff)/reference_keff)
+assert abs((Keffneutron_K - reference_keff)/reference_keff) &lt; 1.0e-06
+    </test>
+
+    <test name="Check Keffneutron_A to Keffneutron_B convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_A
+keff_two = Keffneutron_B
+
+mesh_one = 2
+mesh_two = 4
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 1.5e-02
+    </test>
+    <test name="Check Keffneutron_C to Keffneutron_D convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_C
+keff_two = Keffneutron_D
+
+mesh_one = 8
+mesh_two = 16
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 8.0e-04
+    </test>
+    <test name="Check Keffneutron_E to Keffneutron_F convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_E
+keff_two = Keffneutron_F
+
+mesh_one = 32
+mesh_two = 64
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 1.4e-04
+    </test>
+    <test name="Check Keffneutron_G to Keffneutron_H convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_G
+keff_two = Keffneutron_H
+
+mesh_one = 128
+mesh_two = 256
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 5.0e-03
+    </test>
+    <test name="Check Keffneutron_I to Keffneutron_J convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_I
+keff_two = Keffneutron_J
+
+mesh_one = 512
+mesh_two = 1024
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 1.8e-03
+    </test>
+    <test name="Check Keffneutron_B to Keffneutron_K convergence with regard to the fine mesh cg linear solution" language="python">
+from math import log
+
+reference_keff = 0.889124884645
+
+keff_one = Keffneutron_B
+keff_two = Keffneutron_K
+
+mesh_one = 4
+mesh_two = 2048
+
+expected_convergence_ratio = 2.0
+
+keff_one_error = abs((keff_one - reference_keff)/reference_keff) 
+keff_two_error = abs((keff_two - reference_keff)/reference_keff) 
+
+convergence_ratio = abs(  log(keff_two_error / keff_one_error)  /  log(mesh_two / mesh_one)  )
+
+print 'Convergence Ratio:',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 1.51e-01
+    </test>
+
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

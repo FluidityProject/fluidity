@@ -258,10 +258,6 @@ contains
        
           ! nothing to be done here
 
-       case("reflective")
-       
-          ! nothing to be done here
-       
        case( "k_epsilon" )
        
           if(.not. have_option &
@@ -766,10 +762,6 @@ contains
           call initialise_field(surface_field, bc_type_path, bc_position)
           
        case( "zero_flux" )
-       
-          ! nothing to be done here
-
-       case( "reflective" )
        
           ! nothing to be done here
 
