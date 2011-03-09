@@ -268,7 +268,7 @@ contains
          deallocate(detwei,vel_int)
 
          call allsum(tarea)
-         call allsumv(uav(ns,:))
+         call allsum(uav(ns,:))
 
          do i=1,surface_field1%dim
             uav(ns,i)=uav(ns,i)/tarea

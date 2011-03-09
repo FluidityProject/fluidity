@@ -38,7 +38,7 @@ module parallel_tools
   private
 
   public :: halgetnb, halgetnb_simple
-  public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals,&
+  public :: allor, alland, allmax, allmin, allsum, allmean, allfequals,&
        get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
        pending_communication, valid_communicator, next_mpi_tag, &
@@ -58,10 +58,6 @@ module parallel_tools
     module procedure allsum_integer, allsum_real, allsum_integer_vector, &
       & allsum_real_vector
   end interface allsum
-  
-  interface allsumv
-    module procedure allsum_integer_vector, allsum_real_vector
-  end interface
   
   interface parallel_filename_len
     module procedure parallel_filename_no_extension_len, &

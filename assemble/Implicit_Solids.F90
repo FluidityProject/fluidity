@@ -1242,7 +1242,7 @@ contains
     end do
     
     do i = 1, number_of_solids
-       call allsumv(particle_force(i, :))
+       call allsum(particle_force(i, :))
     end do
     do i = 1, velocity%dim
        do j = 1, number_of_solids
@@ -1314,8 +1314,8 @@ contains
        node1 => node1%next
     end do
 
-    call allsumv(wall_temperature)
-    call allsumv(solid_mass)
+    call allsum(wall_temperature)
+    call allsum(solid_mass)
 
     wall_temperature = wall_temperature / solid_mass
 
@@ -1357,7 +1357,7 @@ contains
        node1 => node1%next
     end do
 
-    call allsumv(q)
+    call allsum(q)
 
     T_w_avg = 0.; q_avg = 0.
     do i = 1, number_of_solids

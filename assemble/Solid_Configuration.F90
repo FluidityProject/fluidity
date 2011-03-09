@@ -1670,7 +1670,7 @@ contains
        end do
     end do
     call allsum(total_volume)
-    call allsumv(particle_mass)
+    call allsum(particle_mass)
     call deallocate(lumped_mass)
     if (myrank==0) then
        ewrite(0,*) 'Total Solid Volume: ',total_volume
