@@ -291,13 +291,16 @@ start =
                }?,
                element lagrangian_timestepping {
                   (
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
-                     }|
                      ## Use explicit runge kutta method with
                      ## binary search
                      element explicit_runge_kutta_guided_search {
+                        ## Number of subdivisions of the timestep
+                        ## increase this if you are not happy with your 
+                        ## detector trajectory accuracy, or if particles
+                        ## are jumping out of the domain a lot
+                        element subcycles {
+                           integer
+                        },
                         ## Tolerance for deciding if detector is in a given
                         ## element. Recommended value 1.0e-10.
                         element search_tolerance {
@@ -335,6 +338,10 @@ start =
                         element timestep_weights {
                            real_vector
                         }
+                     }|
+                     ## Use binary search algorithm
+                     element binary_search {
+                        empty
                      }
                   )
                }?

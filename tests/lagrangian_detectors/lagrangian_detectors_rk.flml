@@ -67,6 +67,9 @@
       </detector_array>
       <lagrangian_timestepping>
         <explicit_runge_kutta_guided_search>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
           <search_tolerance>
             <real_value rank="0">1.0e-10</real_value>
           </search_tolerance>

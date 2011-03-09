@@ -2440,7 +2440,8 @@ contains
     type(element_type), pointer :: shape
 
     !RK stuff - cjc
-    integer :: stage, n_stages
+    integer :: stage, n_stages, n_subcycles, cycle
+    real :: rk_dt
     integer, dimension(2) :: option_rank
     real, allocatable, dimension(:) :: stage_weights, timestep_weights
     real, allocatable, dimension(:,:) :: stage_matrix
@@ -2628,23 +2629,26 @@ contains
           end if
           call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
                &ed_search/timestep_weights",timestep_weights)
+          call get_option("/io/detectors/lagrangian_timestepping/explicit_ru&
+               &nge_kutta_guided_search/subcycles",n_subcycles)
+          rk_dt = dt/n_subcycles
        else
+          n_subcycles = 1
           n_stages = 1
        end if
 
-       !       subcycling
+       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_&
+            &kutta_guided_search")) then
+          call initialise_rk_guided_search(default_stat%detector_list)
+       end if
+       subcycling_loop: do cycle = 1, n_subcycles
        RKstages_loop: do stage = 1, n_stages
-          if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
-               & then
-             if(stage.eq.1) then
-                call initialise_rk_guided_search(default_stat%detector_list)
-             end if
-             call set_stage(default_stat%detector_list)
+          if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
+             call set_stage(default_stat%detector_list,rk_dt,stage)
           end if
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
           ! lists are empty in all processors
-          first_loop = .true.
           detector_timestepping_loop: do  
 
              !check if detectors any are Lagrangian
@@ -2716,14 +2720,11 @@ contains
                       call flush_det(receive_list_array(k))
                    end if
                 end do
-
-             else
-                if(first_loop) exit
              end if
-             first_loop = .false.
 
           end do detector_timestepping_loop
        end do RKstages_loop
+       end do subcycling_loop
 
        deallocate(send_list_array)
        deallocate(receive_list_array)
@@ -3049,8 +3050,10 @@ contains
 
     !Subroutine to compute the vector to search for the next RK stage
     !cjc
-    subroutine set_stage(detector_list0)
+    subroutine set_stage(detector_list0,dt0,stage0)
       type(detector_linked_list), intent(inout) :: detector_list0
+      real, intent(in) :: dt0
+      integer, intent(in) :: stage0
       !
       type(detector_type), pointer :: det0
       integer :: det_count,j0
@@ -3060,29 +3063,29 @@ contains
       do det_count=1, detector_list0%length 
          if(det0%type==LAGRANGIAN_DETECTOR) then
             det0%search_complete = .false.
-            if(stage.eq.1) then
+            if(stage0.eq.1) then
                det0%update_vector = det0%position
             end if
             !stage vector is computed by evaluating velocity at current
             !position
             stage_local_coords=&
                  local_coords(xfield,det0%element,det0%update_vector)
-            det0%k(stage,:) = &
+            det0%k(stage0,:) = &
                  & eval_field(det0%element, vfield, stage_local_coords)
-            if(stage<n_stages) then
+            if(stage0<n_stages) then
                !update vector maps from current position to place required
                !for computing next stage vector
                det0%update_vector = det0%position
-               do j0 = 1, stage
+               do j0 = 1, stage0
                   det0%update_vector = det0%update_vector + &
-                       dt*stage_matrix(stage+1,j0)*det0%k(j0,:)
+                       dt0*stage_matrix(stage0+1,j0)*det0%k(j0,:)
                end do
             else
                !update vector maps from current position to final position
                det0%update_vector = det0%position
                do j0 = 1, n_stages
                   det0%update_vector = det0%update_vector + &
-                       dt*timestep_weights(j0)*det0%k(j0,:)
+                       dt0*timestep_weights(j0)*det0%k(j0,:)
                end do
                det0%position = det0%update_vector
             end if
