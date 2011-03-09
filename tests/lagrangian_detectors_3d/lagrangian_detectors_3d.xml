@@ -12,7 +12,7 @@ mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_3d.flml
   </problem_definition>
   <variables>
     <variable name="last_locations_error" language="python">
-from readtool_3d import readstat
+from readtool_3d import readstat_3d
 last_locations_error = readstat_3d()
     </variable>
   </variables>
