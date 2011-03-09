@@ -101,6 +101,12 @@ module detector_tools
          if(allocated(detector%position)) then
             deallocate(detector%position)
          end if
+         if(allocated(detector%k)) then
+            deallocate(detector%k)
+         end if
+         if(allocated(detector%update_vector)) then
+            deallocate(detector%update_vector)
+         end if
          deallocate(detector)
       end if
       detector => null()
