@@ -3633,7 +3633,7 @@ Valid values of \lstinline+dim+ are 1 and 2.
 
 \section{Memory statistics}
 
-The memory statistics are automatically output in the .stat file, if one is
+The memory statistics are automatically output in the \lstinline+.stat+ file, if one is
 in use, however there are some routines which may be useful for debugging
 purposes.
 
@@ -3677,9 +3677,9 @@ the memory peaks in some part of a simulation, for example one timestep. If
 
 \section{Register diagnostics in the .stat file}
 
-The way registered diagnostics are added to the .stat file is similar to the way the options are checked. The script scripts/make\_register\_diagnostics is executed when Fluidity is compiled. All the modules that contain a subroutine called MODULENAME\_register\_diagnostic are in turn listed in preprocessor/register\_diagnostics.F90. These subroutines are therefore executed before the simulation starts and they register the diagnostics appearing in the module.\\
+The way registered diagnostics are added to the \lstinline+.stat+ file is similar to the way the options are checked. The script \lstinline+scripts/make_register_diagnostics+ is executed when Fluidity is compiled. All the modules that contain a subroutine called \lstinline+MODULE_NAME_register_diagnostic+ are in turn listed in \lstinline+preprocessor/register_diagnostics.F90+. These subroutines are executed before the simulation starts and they register the diagnostics appearing in the module.\\
  
-A diagnotic has the type registered\_diagnostic\_item, i.e.
+A diagnostic has the type \lstinline+registered_diagnostic_item+, i.e.
 
 \begin{lstlisting}
 type registered_diagnostic_item
@@ -3699,43 +3699,37 @@ subroutine register_diagnostic(dim, name, statistic, material_phase)
   integer, intent(in) :: dim
   character(len=*), intent(in) :: name, statistic 
   character(len=*), intent(in), optional ::  material_phase
-  type(registered_diagnostic_item), pointer :: diagnostic_item, iterator => NULL()
 \end{lstlisting}
 
-It initialises all the attributes of the diagnostic and appends it to a list of registered diagnostics. An error occurs if the diagnostic has already been registered. 
-
-The registered diagnostics are added to the header of the .stat file in the subroutine initialise\_diagnostics. The attributes of each registered diagnostic is printed in the log after the initialisation by:
+It initialises all the attributes of the diagnostic and appends it to a list of registered diagnostics. An error occurs if the diagnostic has already been registered. The registered diagnostics are added to the header of the \lstinline+.stat+ file in the subroutine \lstinline+initialise_diagnostics+. After the initialisation, the attributes of each registered diagnostic are printed in the log by:
 
 \begin{lstlisting}
 subroutine print_registered_diagnostics
-  type(registered_diagnostic_item), pointer :: iterator => NULL()
 \end{lstlisting}
 
-The value of the diagnostics are set by:
+The value of a diagnostic is set by:
 
 \begin{lstlisting}
 subroutine set_diagnostic(name, statistic, material_phase, value)
   character(len=*), intent(in) :: name, statistic 
   character(len=*), intent(in), optional ::  material_phase
   real, dimension(:), intent(in) :: value
-  integer :: i
 \end{lstlisting}
 
-which searches for the appropriate diagnostic in the list of registered diagnostics and set its value.
+which searches for the appropriate diagnostic in the list of registered diagnostics and sets its value.
 Finally, the diagnostics are destroyed by:
 
 \begin{lstlisting}
 subroutine destroy_registered_diagnostics
-  type(registered_diagnostic_item), pointer :: next, iterator
 \end{lstlisting}
 
-This subroutine is called when unitialising the diagnostics.\\
+This subroutine is called to clean up the diagnostics in \lstinline+uninitialise_diagnostics+.\\
 
-To summarise, the procedure to register diagnostics in the .stat file is the following.
+To summarise, the procedure to register diagnostics in the \lstinline+.stat+ file is the following.
 
 \begin{enumerate}
-\item In the module where the diagnostic is created, add a public subroutine called\\ MODULENAME\_register\_diagnostic. In this subroutine, call register\_diagnostic for each diagnostic to register, specifying its dimension, statistic name, statistic type and material phase (the latter being optional).
-\item Set the value of each diagnostic by calling set\_diagnostic.
+\item In the module where the diagnostic is created, add a public subroutine called\\ \lstinline+MODULE_NAME_register_diagnostic+. In this subroutine, call \lstinline+register_diagnostic+ for each diagnostic to register, specifying its dimension, statistic name, statistic type and material phase (the latter being optional).
+\item Set the value of each diagnostic by calling \lstinline+set_diagnostic+.
 \end{enumerate}
 
 
