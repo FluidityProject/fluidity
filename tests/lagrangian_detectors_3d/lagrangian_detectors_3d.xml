@@ -2,12 +2,12 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>lagrangian_detectors</name>
+  <name>lagrangian_detectors_3d</name>
   <owner userid="colin"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml
+mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_3d.flml
     </command_line>
   </problem_definition>
   <variables>
