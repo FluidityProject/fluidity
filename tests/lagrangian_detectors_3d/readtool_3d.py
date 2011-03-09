@@ -1,6 +1,6 @@
 from fluidity_tools import stat_parser
 from numpy import zeros,fromfile, ones, shape
-def readstat():
+def readstat_3d():
     s = stat_parser("lagrangian_detectors.detectors")
 
     last_locations_error = zeros((3,100))
