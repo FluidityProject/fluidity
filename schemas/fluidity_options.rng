@@ -376,7 +376,8 @@ element. Recommended value 1.0e-10.</a:documentation>
                       <ref name="real"/>
                     </element>
                     <element name="n_stages">
-                      <a:documentation>Number of RK stages</a:documentation>
+                      <a:documentation>Number of RK stages
+For the RK4 method, it should be 4.</a:documentation>
                       <ref name="integer"/>
                     </element>
                     <element name="stage_weights">

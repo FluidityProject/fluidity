@@ -307,6 +307,7 @@ start =
                            real
                         },
                         ## Number of RK stages
+                        ## For the RK4 method, it should be 4.
                         element n_stages {
                            integer
                         },
