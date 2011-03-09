@@ -11,7 +11,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file>
+      <from_file file_name="dummy">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
