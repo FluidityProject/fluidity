@@ -430,7 +430,7 @@ contains
                density_at_quad(ele_ngi(density, 1)), &
                olddensity_at_quad(ele_ngi(density, 1)), &
                nlvelocity_at_quad(nonlinearvelocity%dim, ele_ngi(nonlinearvelocity, 1)), &
-               density_grad_at_quad(ele_ngi(density,1), field%dim), &
+               density_grad_at_quad(field%dim, ele_ngi(density,1)), &
                j_mat(field%dim, field%dim, ele_ngi(density, 1)))
       
       do ele=1, element_count(test_mesh)
@@ -491,8 +491,7 @@ contains
             
             ele_mat = shape_dshape(test_shape, dfield_t, &
                                    detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad)) + &
-                      shape_shape_vector(test_shape, field_shape, detwei, &
-                                         transpose(density_grad_at_quad))
+                      shape_shape_vector(test_shape, field_shape, detwei, density_grad_at_quad)
         end if
         
         ! Stabilisation does not return the right shape for this operator!

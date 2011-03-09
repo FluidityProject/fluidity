@@ -88,7 +88,7 @@ contains
     type(element_type), pointer :: streamfunction_shape, v_shape
     real, dimension(velocity%dim, &
          ele_loc(velocity,ele)) :: V_loc
-    real, dimension(ele_ngi(streamfunction,ele),mesh_dim(velocity)) :: &
+    real, dimension(mesh_dim(velocity), ele_ngi(streamfunction,ele)) :: &
          sfn_grad_quad
  
     !----------------------------------------------------------------------
@@ -117,19 +117,19 @@ contains
     ! z-component of velocity is zero. If we're 3d then this is component 3.
     ! If we're 2d, check for presence of N to see if we're (x,y) or (x,z)
     if(velocity%dim==2) then
-       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(:,2))
+       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(2,:))
        V_loc(1,:) = matmul(vmass_mat_loc,V_loc(1,:))
-       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(1,:))
        V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
     else if(have_option("/physical_parameters/buoyancy_frequency")) then
        V_loc(1,:) = 0.
-       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(1,:))
        V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
        V_loc(3,:) = 0.
     else
-       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(:,2))
+       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(2,:))
        V_loc(1,:) = matmul(vmass_mat_loc,V_loc(1,:))
-       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(1,:))
        V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
        V_loc(3,:) = 0.
     end if

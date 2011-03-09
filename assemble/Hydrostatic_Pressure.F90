@@ -287,7 +287,7 @@ module hydrostatic_pressure
       shape => ele_shape(grad_h, ele)
       little_mass = shape_shape(shape, shape, detwei)
       
-      grad_gi = transpose(ele_grad_at_quad(source, ele, dshape))
+      grad_gi = ele_grad_at_quad(source, ele, dshape)
       g_gi = ele_val_at_quad(vertical_normal, ele)
       
       do i = 1, size(grad_h_gi, 2)
@@ -685,7 +685,7 @@ module hydrostatic_pressure
     ! /
     ! | -N_A grad gp dV
     ! /
-    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(hp, ele, dn_t)), detwei))
+    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), ele_grad_at_quad(hp, ele, dn_t), detwei))
 
   end subroutine subtract_given_hydrostatic_pressure_gradient_element_scalar
   

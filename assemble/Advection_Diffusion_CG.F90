@@ -788,7 +788,7 @@ contains
     type(element_type), pointer :: t_shape
     
     real, dimension(ele_ngi(density, ele)) :: density_at_quad
-    real, dimension(ele_ngi(density, ele), velocity%dim) :: densitygrad_at_quad
+    real, dimension(velocity%dim, ele_ngi(density, ele)) :: densitygrad_at_quad
     real, dimension(ele_ngi(density, ele)) :: udotgradrho_at_quad
     
     assert(have_advection)
@@ -808,7 +808,7 @@ contains
                        +(1.-density_theta)*ele_val_at_quad(olddensity, ele)
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
-      udotgradrho_at_quad = sum(transpose(densitygrad_at_quad)*velocity_at_quad, 1)
+      udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
     end select
                 
     if(integrate_advection_by_parts) then

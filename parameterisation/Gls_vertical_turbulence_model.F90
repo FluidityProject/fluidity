@@ -1136,7 +1136,7 @@ subroutine gls_buoyancy(state)
 
             type(element_type), pointer                :: NN2_shape, MM2_shape
             real, dimension(ele_ngi(velocity,ele))     :: detwei, shear, drho_dz
-            real, dimension(ele_ngi(velocity,ele),dim) :: grad_theta_gi, du_dz
+            real, dimension(dim, ele_ngi(velocity,ele)) :: grad_theta_gi, du_dz
             real, dimension(dim,ele_ngi(velocity,ele)) :: grav_at_quads
             type(element_type), pointer                :: theta_shape, velocity_shape
             integer, dimension(:), pointer             :: element_nodes
@@ -1169,19 +1169,19 @@ subroutine gls_buoyancy(state)
             end if
             grad_theta_gi=ele_grad_at_quad(rho, ele, dtheta_t)
             do i=1,ele_ngi(velocity,ele)
-                drho_dz(i)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+                drho_dz(i)=dot_product(grad_theta_gi(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
             end do
             grad_theta_gi=ele_grad_at_quad(NU, ele, dtheta_t)
             do i=1,ele_ngi(velocity,ele)
-                du_dz(i,1)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+                du_dz(1,i)=dot_product(grad_theta_gi(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
             end do        
             grad_theta_gi=ele_grad_at_quad(NV, ele, dtheta_t)
             do i=1,ele_ngi(velocity,ele)
-                du_dz(i,2)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+                du_dz(2,i)=dot_product(grad_theta_gi(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
             end do
             shear = 0.0
             do i = 1, dim - 1
-              shear = shear + du_dz(:,i) ** 2
+              shear = shear + du_dz(i,:) ** 2
             end do
               
             element_nodes => ele_nodes(NN2, ele)

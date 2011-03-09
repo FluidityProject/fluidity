@@ -1513,7 +1513,7 @@ contains
       call allocate(dg_position, position%dim, t%mesh, name="DG_Coordinate")
       call remap_field(position, dg_position)
       allocate (e_vec_1(position%dim),dt_t(ele_loc(limiting_t, 1), ele_ngi(limiting_t, 1), mesh_dim(limiting_t)))
-      allocate (grad_t(limiting_t%mesh%shape%ngi, mesh_dim(limiting_t)))
+      allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
     end if
 
     ! Loop through the elements
@@ -1595,7 +1595,7 @@ contains
                 grad_t=ele_grad_at_quad(limiting_t, neighbouring_ele, dt_t)
 
                 ! Calculate the gradient in the desired direction
-                grad=dot_product(grad_t(1,:),e_vec_1)
+                grad=dot_product(grad_t(:,1),e_vec_1)
 
                 extra_val = node_val(limiting_t,neighbouring_nodes(k))+grad*e_dist
 

@@ -631,7 +631,7 @@ contains
           & dshape = hp_dshape)
       end if
       
-      vec_gi = vec_gi - transpose(ele_grad_at_quad(hp, ele, hp_dshape))
+      vec_gi = vec_gi - ele_grad_at_quad(hp, ele, hp_dshape)
     
     end subroutine add_hp_ele
     
@@ -739,7 +739,7 @@ contains
     ! /
     ! | -N_A grad gp dV
     ! /
-    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(gp, ele, dshape)), detwei))
+    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), ele_grad_at_quad(gp, ele, dshape), detwei))
   
   end subroutine subtract_given_geostrophic_pressure_gradient_element
           

@@ -156,7 +156,7 @@ contains
       
     little_mass = shape_shape(shape, shape, detwei)
     do i = 1, size(fields)
-      little_rhs(:, (i - 1) * positions%dim + 1:i * positions%dim) = transpose(shape_vector_rhs(shape, transpose(ele_grad_at_quad(fields(i), ele, dshape)), detwei))
+      little_rhs(:, (i - 1) * positions%dim + 1:i * positions%dim) = transpose(shape_vector_rhs(shape, ele_grad_at_quad(fields(i), ele, dshape), detwei))
     end do
     call solve(little_mass, little_rhs)
       
@@ -187,7 +187,7 @@ contains
     nodes => ele_nodes(positions, ele)
     call addto(masslump, nodes, sum(shape_shape(shape, shape, detwei), 2))
     do i = 1, size(rhs)
-      call addto(rhs(i), nodes, shape_vector_rhs(shape, transpose(ele_grad_at_quad(fields(i), ele, dshape)), detwei))
+      call addto(rhs(i), nodes, shape_vector_rhs(shape, ele_grad_at_quad(fields(i), ele, dshape), detwei))
     end do
       
   end subroutine assemble_grad_ele

@@ -1166,7 +1166,7 @@ contains
     integer :: i, j
     ! Variables for buoyancy adjustment by vertical diffusion
     real, dimension(ele_loc(T,ele), ele_ngi(T,ele), mesh_dim(T)) :: dt_rho
-    real, dimension(ele_ngi(T,ele),mesh_dim(T)) :: grad_rho
+    real, dimension(mesh_dim(T), ele_ngi(T,ele)) :: grad_rho
     real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: grav_at_quads
     real, dimension(ele_ngi(T,ele)) :: buoyancysample 
     real, dimension(ele_ngi(T,ele)) :: drho_dz
@@ -1301,7 +1301,7 @@ contains
        end do
        dr = maxval(rad) - minval(rad)
        do i = 1, ele_ngi(T,ele)
-          drho_dz(i) = dot_product(grad_rho(i,:), grav_at_quads(:,i))
+          drho_dz(i) = dot_product(grad_rho(:,i), grav_at_quads(:,i))
           ! Note test to limit mixing to adverse changes in density wrt gravity
           if (drho_dz(i) > 0.0) drho_dz(i) = 0.0
           ! Form the coefficient of diffusion to deliver the required mixing

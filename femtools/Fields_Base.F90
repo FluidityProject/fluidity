@@ -2416,13 +2416,13 @@ contains
     integer, intent(in) :: ele_number
     real, dimension(ele_loc(field,ele_number), &
          &          ele_ngi(field,ele_number),&
-         &          mesh_dim(field)),                   intent(in) :: dn
-    real, dimension(field%mesh%shape%ngi, mesh_dim(field)) :: quad_grad
+         &          mesh_dim(field)), intent(in) :: dn
+    real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_grad
     
     integer :: i
 
-    do i=1,mesh_dim(field)
-       quad_grad(:,i)=matmul(ele_val(field, ele_number),dn(:,:,i))
+    do i=1, mesh_dim(field)
+       quad_grad(i,:)=matmul(ele_val(field, ele_number),dn(:,:,i))
     end do
     
   end function ele_grad_at_quad

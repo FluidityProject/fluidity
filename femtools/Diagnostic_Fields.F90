@@ -1410,7 +1410,7 @@ contains
     integer :: dim, i
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(ri, ele)) :: denomenator_gi, detwei
-    real, dimension(ele_ngi(ri, ele), mesh_dim(ri)) :: grad_theta_gi
+    real, dimension(mesh_dim(ri), ele_ngi(ri, ele)) :: grad_theta_gi
     real, dimension(ele_loc(ri, ele), ele_ngi(ri, ele), mesh_dim(ri)) :: dn_t
     real, dimension(ele_loc(perturbation_density, ele), ele_ngi(perturbation_density, ele), mesh_dim(ri)) :: dtheta_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(ri)) :: du_t
@@ -1451,7 +1451,7 @@ contains
       ! Note well: if \frac{d\theta}{dz} and
       ! ((\frac{du}{dz})^2 + \frac{dv}{dz})^2 are zero, then we pick up a value
       ! of NaN here
-      & shape_rhs(ri_shape, -detwei * g * grad_theta_gi(:, dim) / denomenator_gi) &
+      & shape_rhs(ri_shape, -detwei * g * grad_theta_gi(dim, :) / denomenator_gi) &
       & )
     
   end subroutine assemble_richardson_number_element

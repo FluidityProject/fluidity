@@ -300,7 +300,7 @@ module vertical_balance_pressure
     ! /
     ! | -N_A grad vbp dV
     ! /
-    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(vbp, ele, dn_t)), detwei))
+    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), ele_grad_at_quad(vbp, ele, dn_t), detwei))
 
   end subroutine subtract_given_vertical_balance_pressure_gradient_element
 

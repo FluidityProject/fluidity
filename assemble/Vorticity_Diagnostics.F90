@@ -207,7 +207,7 @@ contains
     coriolis_gi(W_, :) = coriolis(ele_val_at_quad(positions, ele))
     
     vorticity_gi = ele_curl_at_quad(velocity, ele, du_t)
-    grad_theta_gi = transpose(ele_grad_at_quad(perturbation_density, ele, dtheta_t))
+    grad_theta_gi = ele_grad_at_quad(perturbation_density, ele, dtheta_t)
     
     element_nodes => ele_nodes(pv, ele)
     
@@ -282,7 +282,7 @@ contains
     
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(rel_pv, ele)) :: detwei
-    real, dimension(ele_ngi(rel_pv, ele), mesh_dim(rel_pv)) :: grad_theta_gi, vorticity_gi
+    real, dimension(mesh_dim(rel_pv), ele_ngi(rel_pv, ele)) :: grad_theta_gi, vorticity_gi
     real, dimension(ele_loc(rel_pv, ele), ele_ngi(rel_pv, ele), mesh_dim(rel_pv)) :: dn_t
     real, dimension(ele_loc(perturbation_density, ele), ele_ngi(perturbation_density, ele), mesh_dim(rel_pv)) :: dtheta_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(rel_pv)) :: du_t
@@ -310,13 +310,13 @@ contains
         & dshape = dtheta_t)
     end if
     
-    vorticity_gi = transpose(ele_curl_at_quad(velocity, ele, du_t))
+    vorticity_gi = ele_curl_at_quad(velocity, ele, du_t)
     grad_theta_gi = ele_grad_at_quad(perturbation_density, ele, dtheta_t)
     
     element_nodes => ele_nodes(rel_pv, ele)
     
     call addto(rel_pv, element_nodes, &
-      & shape_rhs(rel_pv_shape, detwei * sum(vorticity_gi * grad_theta_gi, 2)) &
+      & shape_rhs(rel_pv_shape, detwei * sum(vorticity_gi * grad_theta_gi, 1)) &
       & )
     
   end subroutine assemble_relative_potential_vorticity_element

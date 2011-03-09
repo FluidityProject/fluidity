@@ -268,7 +268,7 @@ contains
       type(vector_field), intent(inout) :: rhs
       
       real, dimension(ele_ngi(positions, ele)) :: detwei
-      real, dimension(ele_ngi(source, ele), positions%dim) :: grad_source_gi
+      real, dimension(positions%dim, ele_ngi(source, ele)) :: grad_source_gi
       real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
       
       call transform_to_physical(positions, ele, ele_shape(source, ele), &
@@ -277,9 +277,9 @@ contains
       grad_source_gi = ele_grad_at_quad(source, ele, dshape)
       
       call addto(rhs, 1, ele_nodes(rhs, ele), &
-        & shape_rhs(ele_shape(rhs, ele), grad_source_gi(:, 2) * detwei))
+        & shape_rhs(ele_shape(rhs, ele), grad_source_gi(2,:) * detwei))
       call addto(rhs, 2, ele_nodes(rhs, ele), &
-        & shape_rhs(ele_shape(rhs, ele), -grad_source_gi(:, 1) * detwei))
+        & shape_rhs(ele_shape(rhs, ele), -grad_source_gi(1,:) * detwei))
         
     end subroutine assemble_perp_ele
     
@@ -290,7 +290,7 @@ contains
       type(vector_field), intent(inout) :: perp
       
       real, dimension(ele_ngi(positions, ele)) :: detwei
-      real, dimension(ele_ngi(source, ele), positions%dim) :: grad_source_gi
+      real, dimension(positions%dim, ele_ngi(source, ele)) :: grad_source_gi
       real, dimension(ele_loc(perp, ele), perp%dim) :: little_rhs
       real, dimension(ele_loc(perp, ele), ele_loc(perp, ele)) :: little_mass
       real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
@@ -304,8 +304,8 @@ contains
       shape => ele_shape(perp, ele)
       
       little_mass = shape_shape(shape, shape, detwei)
-      little_rhs(:, 1) = shape_rhs(shape, grad_source_gi(:, 2) * detwei)
-      little_rhs(:, 2) = shape_rhs(shape, -grad_source_gi(:, 1) * detwei)
+      little_rhs(:, 1) = shape_rhs(shape, grad_source_gi(2,:) * detwei)
+      little_rhs(:, 2) = shape_rhs(shape, -grad_source_gi(1,:) * detwei)
         
       call solve(little_mass, little_rhs)
       
@@ -789,7 +789,7 @@ contains
       
     element_nodes => ele_nodes(s_field, ele)
       
-    call addto(s_field, element_nodes, -dshape_dot_vector_rhs(dn_t, transpose(ele_grad_at_quad(source_field, ele, dn_t)), detwei))
+    call addto(s_field, element_nodes, -dshape_dot_vector_rhs(dn_t, ele_grad_at_quad(source_field, ele, dn_t), detwei))
     
   end subroutine assemble_scalar_laplacian_ele
 
