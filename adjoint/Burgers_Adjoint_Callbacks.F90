@@ -37,19 +37,14 @@ module burgers_adjoint_callbacks
     use fields
     use sparse_matrices_fields
     use spud, only: get_option, have_option
-    use adjoint_variable_lookup, only: adj_var_lookup
+    use adjoint_global_variables, only: adj_var_lookup
     use mangle_options_tree, only: adjoint_field_path
     use mangle_dirichlet_rows_module
     implicit none
 
-    integer, parameter :: IDENTITY_MATRIX = 30
-    ! things that can live in %flags
-    integer, parameter :: MATRIX_INVERTED = 1
-
     private
 
     public :: register_burgers_operator_callbacks
-    public :: IDENTITY_MATRIX, MATRIX_INVERTED
 
     contains
 
@@ -99,7 +94,7 @@ module burgers_adjoint_callbacks
       ! an identity matrix. Instead, we'll fill it in with a special tag
       ! that we'll catch later on in the solution of the adjoint equations.
       output%ptr = c_null_ptr
-      output%klass = IDENTITY_MATRIX
+      output%klass = ADJ_IDENTITY_MATRIX
       output%flags = 0
 
     end subroutine velocity_identity_assembly_callback
@@ -127,21 +122,22 @@ module burgers_adjoint_callbacks
         FLAbort("The coefficient in burgers_operator_assembly_callback has to be 1.0")
       end if
 
-      assert(nvar==2)
-      if (variables(1)%timestep==variables(2)%timestep-1) then
+      if (nvar==2) then
+        if (variables(1)%timestep==variables(2)%timestep-1) then
+          call field_from_adj_vector(dependencies(1), previous_u)
+          call field_from_adj_vector(dependencies(2), iter_u)
+        else if(variables(2)%timestep==variables(1)%timestep-1) then
+          call field_from_adj_vector(dependencies(2), previous_u)
+          call field_from_adj_vector(dependencies(1), iter_u)
+        else
+          FLAbort("Dependencies have no contiguous timesteps.")
+        end if
+      else if (nvar==1) then
         call field_from_adj_vector(dependencies(1), previous_u)
-        call field_from_adj_vector(dependencies(2), iter_u)
-      else if(variables(2)%timestep==variables(1)%timestep-1) then
-        call field_from_adj_vector(dependencies(2), previous_u)
         call field_from_adj_vector(dependencies(1), iter_u)
       else
-        assert(variables(1)%timestep==variables(2)%timestep)
-        call field_from_adj_vector(dependencies(1), previous_u)
-        call field_from_adj_vector(dependencies(1), iter_u)
+        FLAbort("Unknown number of dependencies in burgers_operator_assembly_callback")
       end if
-
-      print*, "get_boundary_condition_count(previous_u)", get_boundary_condition_count(previous_u)
-      print *,"previous_u%name", previous_u%name
 
       call get_option(trim(adjoint_field_path("/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/theta")), &
                                         & theta, default=0.5)
@@ -177,7 +173,9 @@ module burgers_adjoint_callbacks
 
       ! And transpose of desired ...
       if (hermitian == ADJ_TRUE) then
-        output = matrix_to_adj_matrix(transpose(burgers_mat))
+        burgers_mat_T = transpose(burgers_mat)
+        output = matrix_to_adj_matrix(burgers_mat_T)
+        call deallocate(burgers_mat_T)
       else
         output = matrix_to_adj_matrix(burgers_mat)
       end if
@@ -224,10 +222,11 @@ module burgers_adjoint_callbacks
       type(adj_vector), intent(out) :: output
 
       type(state_type), pointer :: matrices
-      type(csr_matrix), pointer :: diffusion_mat, mass_mat, timestepping_mat, tmp
+      type(csr_matrix), pointer :: diffusion_mat, mass_mat
+      type(csr_matrix) :: timestepping_mat
       type(mesh_type), pointer :: u_mesh
       ! Input/output variables
-      type(scalar_field) :: u_input
+      type(scalar_field) :: u_input, previous_u, iter_u
       type(scalar_field) :: u_output
       real :: theta, dt
 
@@ -242,39 +241,48 @@ module burgers_adjoint_callbacks
       diffusion_mat => extract_csr_matrix(matrices, "DiffusionMatrix")
       mass_mat => extract_csr_matrix(matrices, "MassMatrix")
 
-      call field_from_adj_vector(input, u_input)
-      print*, "get_boundary_condition_count(u_input)", get_boundary_condition_count(u_input)
-      print *, u_input%name
+      if (nvar==2) then
+        if (variables(1)%timestep==variables(2)%timestep-1) then
+          call field_from_adj_vector(dependencies(1), previous_u)
+          call field_from_adj_vector(dependencies(2), iter_u)
+        else if(variables(2)%timestep==variables(1)%timestep-1) then
+          call field_from_adj_vector(dependencies(2), previous_u)
+          call field_from_adj_vector(dependencies(1), iter_u)
+        else
+          FLAbort("Dependencies have no contiguous timesteps.")
+        end if
+      else if (nvar==1) then
+        call field_from_adj_vector(dependencies(1), previous_u)
+        call field_from_adj_vector(dependencies(1), iter_u)
+      else
+        FLAbort("Unknown number of dependencies in timestepping_operator_assembly_callback")
+      end if
 
+      ! Ensure that the input velocity has indeed dirichlet bc attached
+      ! Ensure that the input velocity has indeed dirichlet bc attached
+      if (get_boundary_condition_count(previous_u)==0) then
+        FLAbort("Velocity in callback must have dirichlet conditions attached")
+      end if
+
+      call field_from_adj_vector(input, u_input)
+      
       call allocate(u_output, u_mesh, "TimeSteppingAdjointVelocityOutput")
       call zero(u_output)
 
       call allocate(timestepping_mat, mass_mat%sparsity, name="TimesteppingMatrix")
-      call allocate(tmp, mass_mat%sparsity, name="TemporaryMatrix")
       call zero(timestepping_mat)
-      call zero(tmp)
 
       if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
-        call addto(tmp, mass_mat)
-        call scale(tmp, 1.0/dt)
-        call addto(timestepping_mat, tmp)
+        call addto(timestepping_mat, mass_mat, scale=1.0/dt)
       end if
 
 !        call mult(tmp, advection_mat, u_input)
 !        call scale(tmp, theta - 1.0)
 !        call addto(u_output, tmp)
 
-      call set(tmp, diffusion_mat)
-      call scale(tmp, theta - 1.0)
-      call addto(timestepping_mat, tmp)
+      call addto(timestepping_mat, diffusion_mat, scale=theta - 1.0)
 
-      call deallocate(tmp)
-
-      ! Ensure that the input velocity has indeed dirichlet bc attached
-      if (get_boundary_condition_count(u_input)==0) then
-        FLAbort("Velocity in callback must have dirichlet conditions attached")
-      end if
-      call mangle_dirichlet_rows(timestepping_mat, u_input, keep_diag=.false.)
+      call mangle_dirichlet_rows(timestepping_mat, previous_u, keep_diag=.false.)
 
       if (hermitian==ADJ_FALSE) then
         call mult(u_output, timestepping_mat, u_input)
@@ -284,6 +292,7 @@ module burgers_adjoint_callbacks
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
+      call deallocate(timestepping_mat)
     end subroutine timestepping_operator_action_callback
 
 

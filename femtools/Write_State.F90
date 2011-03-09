@@ -193,15 +193,16 @@ contains
   
   end subroutine update_dump_times
 
-  subroutine write_state(dump_no, state, increment)
+  subroutine write_state(dump_no, state, adjoint)
     !!< Data output routine. Write output data.
 
     integer, intent(inout) :: dump_no
     type(state_type), dimension(:), intent(inout) :: state
-    integer, intent(in), optional :: increment ! for adjoint problems this will be -1
+    logical, intent(in), optional :: adjoint
 
     character(len = OPTION_PATH_LEN) :: dump_filename, dump_format
     integer :: max_dump_no, stat
+    integer :: increment
 
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
@@ -220,11 +221,13 @@ contains
         FLAbort("Unrecognised dump file format.")      
     end select
 
-    if (present(increment)) then
-      dump_no = modulo(dump_no + increment, max_dump_no)
+    if (present_and_true(adjoint)) then
+      increment = -1
     else
-      dump_no = modulo(dump_no + 1, max_dump_no)
+      increment = 1
     end if
+
+    dump_no = modulo(dump_no + increment, max_dump_no)
     call update_dump_times
 
     call profiler_toc("I/O")

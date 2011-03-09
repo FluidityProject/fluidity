@@ -61,7 +61,8 @@
     use libadjoint_data_callbacks
     use adjoint_functional_evaluation
     use adjoint_python
-    use adjoint_variable_lookup
+    use adjoint_global_variables
+    use adjoint_main_loop, only: compute_adjoint
 #include "libadjoint/adj_fortran.h"
 #endif
 
@@ -116,7 +117,6 @@
 
 
 #ifdef HAVE_ADJOINT
-    type(adj_adjointer) :: adjointer
     type(adj_variable), dimension(:), allocatable :: adj_meshes
 
     ierr = adj_create_adjointer(adjointer)
@@ -260,7 +260,7 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state)
+      call compute_adjoint(state, dump_no)
 
       call deallocate_transform_cache
       call deallocate_reserve_state
@@ -519,15 +519,8 @@
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in), optional :: adjoint
-      integer :: increment
 
-      if (present_and_true(adjoint)) then
-        increment = -1
-      else
-        increment = 1
-      end if
-
-      call write_state(dump_no, state, increment)
+      call write_state(dump_no, state, adjoint)
     end subroutine output_state
 
     subroutine read_command_line()
@@ -729,6 +722,7 @@
         ! We also need to check if these variables will be used
         call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
       end do
+      call adjoint_record_velocity(timestep=0, iteration=1, states=states)
 #endif
     end subroutine adjoint_register_initial_condition
 
@@ -752,20 +746,24 @@
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
-      if (iteration==1) then
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=nonlinear_iterations-1, auxiliary=ADJ_FALSE, variable=iter_u) 
-      else 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
-      end if
-      call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=nonlinear_iterations-1, auxiliary=ADJ_FALSE, variable=previous_u)
       call adj_chkierr(ierr)
+      if (iteration==1) then
+        ! Set up adj_blocks
+        ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+        call adj_chkierr(ierr)
+        ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+        call adj_chkierr(ierr)
+      else 
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
+        call adj_chkierr(ierr)
+        ! Set up adj_blocks
+        ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+        call adj_chkierr(ierr)
+        ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+        call adj_chkierr(ierr)
+      end if
       
-      ! Set up adj_blocks
-      ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
-      call adj_chkierr(ierr)
-      ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
-      call adj_chkierr(ierr)
       
       ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
       call adj_chkierr(ierr)
@@ -821,7 +819,6 @@
       call adj_chkierr(ierr)
 
       u => extract_scalar_field(states(1), "Velocity")
-      print *, "record field with get_boundary_condition_count(u)", get_boundary_condition_count(u)
       u_vec = field_to_adj_vector(u)
 
       storage = adj_storage_memory_incref(u_vec);
@@ -829,199 +826,4 @@
       call adj_chkierr(ierr);
 #endif
     end subroutine adjoint_record_velocity
-
-
-#ifdef HAVE_ADJOINT
-    subroutine compute_adjoint(state)
-      type(state_type), dimension(:), intent(inout) :: state
-
-      type(adj_vector) :: rhs
-      type(adj_vector) :: soln
-      type(adj_matrix) :: lhs
-      type(adj_variable) :: adj_var
-
-      integer :: equation
-      integer :: ierr
-      integer :: no_functionals
-      integer :: functional
-
-      real :: finish_time, dt
-      integer :: end_timestep, start_timestep, no_timesteps, timestep
-      real :: start_time, end_time
-
-      character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
-      type(stat_type), dimension(:), allocatable :: functional_stats
-
-      character(len=ADJ_NAME_LEN) :: variable_name
-      type(scalar_field) :: sfield_soln, sfield_rhs
-      type(vector_field) :: vfield_soln, vfield_rhs
-      type(csr_matrix) :: csr_mat
-      type(block_csr_matrix) :: block_csr_mat
-      integer :: dim
-      character(len=ADJ_DICT_LEN) :: path
-
-      call get_option("/timestepping/timestep", dt)
-      call get_option("/timestepping/finish_time", finish_time)
-      call get_option("/simulation_name", simulation_base_name)
-
-      ! Switch the html output on if you are interested what the adjointer has registered
-      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_forward.html", ADJ_FORWARD)
-      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_adjoint.html", ADJ_ADJOINT)
-      call adj_chkierr(ierr)
-
-      call insert_time_in_state(state)
-
-      no_functionals = option_count("/adjoint/functional")
-
-      ! Initialise the .stat files
-      allocate(functional_stats(no_functionals))
-
-      do functional=0,no_functionals-1
-        default_stat = functional_stats(functional + 1)
-        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
-        call initialise_diagnostics(trim(simulation_name) // '_adjoint_' // trim(functional_name), state)
-        functional_stats(functional + 1) = default_stat
-
-        ! Register the callback to compute delJ/delu
-        ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
-        call adj_chkierr(ierr)
-      end do
-
-      call get_option("/geometry/dimension", dim) 
-      assert(dim==1)   ! only 1D is supported  
-
-      ierr = adj_timestep_count(adjointer, no_timesteps)
-      call adj_chkierr(ierr)
-
-      do timestep=no_timesteps-1,0,-1
-        ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
-        call adj_chkierr(ierr)
-        current_time = end_time
-        call set_option("/timestepping/current_time", current_time)
-
-        ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
-        call adj_chkierr(ierr)
-
-        ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
-        call adj_chkierr(ierr)
-
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
-        do functional=0,no_functionals-1
-          ! Set up things for this particular functional here
-          ! e.g. .stat file, change names for vtus, etc.
-          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
-          call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
-          default_stat = functional_stats(functional + 1)
-
-          do equation=end_timestep,start_timestep,-1
-            ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
-            call adj_chkierr(ierr)
-
-            ! Now solve lhs . adjoint = rhs
-            ierr = adj_variable_get_name(adj_var, variable_name)
-            ierr = adj_dict_find(adj_var_lookup, trim(variable_name), path)
-            call adj_chkierr(ierr)
-            path = adjoint_field_path(path)
-
-            ! variable_name should be something like Fluid::LocalVelocity 
-            select case(rhs%klass)
-              case(ADJ_SCALAR_FIELD)
-                call field_from_adj_vector(rhs, sfield_rhs)
-                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name)))
-                call zero(sfield_soln)
-                sfield_soln%option_path = trim(path)
-
-                select case(lhs%klass)
-                  case(IDENTITY_MATRIX)
-                    call set(sfield_soln, sfield_rhs)
-                  case(ADJ_CSR_MATRIX)
-                    call matrix_from_adj_matrix(lhs, csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
-                      call mult(sfield_soln, csr_mat, sfield_rhs)
-                    else
-                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
-                    endif
-                  case(ADJ_BLOCK_CSR_MATRIX)
-                    FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
-                  case default
-                    FLAbort("Unknown lhs%klass")
-                end select
-
-                call insert(state(1), sfield_soln, trim(sfield_soln%name))
-                soln = field_to_adj_vector(sfield_soln)
-                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
-                call adj_chkierr(ierr)
-                call deallocate(sfield_soln)
-              case(ADJ_VECTOR_FIELD)
-                call field_from_adj_vector(rhs, vfield_rhs)
-                call allocate(vfield_soln, dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
-                call zero(vfield_soln)
-                vfield_soln%option_path = trim(path)
-
-                select case(lhs%klass)
-                  case(IDENTITY_MATRIX)
-                    call set(vfield_soln, vfield_rhs)
-                  case(ADJ_CSR_MATRIX)
-                    call matrix_from_adj_matrix(lhs, csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
-                      call mult(vfield_soln, csr_mat, vfield_rhs)
-                    else
-                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
-                    endif
-                  case(ADJ_BLOCK_CSR_MATRIX)
-                    call matrix_from_adj_matrix(lhs, block_csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
-                      call mult(vfield_soln, block_csr_mat, vfield_rhs)
-                    else
-                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
-                    endif
-                  case default
-                    FLAbort("Unknown lhs%klass")
-                end select
-
-                call insert(state(1), vfield_soln, trim(vfield_soln%name))
-                soln = field_to_adj_vector(vfield_soln)
-                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
-                call adj_chkierr(ierr)
-                call deallocate(vfield_soln)
-              case default
-                FLAbort("Unknown rhs%klass")
-            end select
-
-            ! Destroy lhs and rhs
-            call femtools_vec_destroy_proc(rhs)
-            if (lhs%klass /= IDENTITY_MATRIX) then
-              call femtools_mat_destroy_proc(lhs)
-            endif
-          end do
-
-          call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
-          call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-          call write_diagnostics(state, current_time, dt, equation+1)
-
-          if (do_write_state(current_time, timestep, adjoint=.true.)) then
-            call output_state(state, adjoint=.true.)
-          endif
-
-          functional_stats(functional + 1) = default_stat
-        end do
-
-        ! Now forget
-        ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
-        call adj_chkierr(ierr)
-      end do
-
-      call get_option("/timestepping/finish_time", finish_time)
-      assert(current_time == finish_time)
-
-      ! Clean up stat files
-      do functional=0,no_functionals-1
-        default_stat = functional_stats(functional + 1)
-        call close_diagnostic_files
-        call uninitialise_diagnostics
-        functional_stats(functional + 1) = default_stat
-      end do
-    end subroutine compute_adjoint
-#endif
-
   end program burgers_equation

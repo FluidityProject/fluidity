@@ -41,7 +41,7 @@ module adjoint_functional_evaluation
   use python_state
   use libadjoint_data_callbacks
   use field_options
-  use adjoint_variable_lookup, only: adj_var_lookup
+  use adjoint_global_variables, only: adj_var_lookup
   use mangle_options_tree, only: adjoint_field_path
   use adjoint_python, only: adj_variables_from_python
 

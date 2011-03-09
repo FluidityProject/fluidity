@@ -27,11 +27,12 @@
 
 #include "fdebug.h"
 
-module adjoint_variable_lookup
+module adjoint_global_variables
 #ifdef HAVE_ADJOINT
 #include "libadjoint/adj_fortran.h"
   use libadjoint
 
   type(adj_dictionary) :: adj_var_lookup
+  type(adj_adjointer)  :: adjointer
 #endif
-end module adjoint_variable_lookup
+end module adjoint_global_variables

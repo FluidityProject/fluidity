@@ -60,7 +60,7 @@
     use libadjoint_data_callbacks
     use adjoint_functional_evaluation
     use adjoint_python
-    use adjoint_variable_lookup
+    use adjoint_global_variables
 #include "libadjoint/adj_fortran.h"
 #endif
     implicit none
@@ -124,7 +124,6 @@
     integer, save :: dump_no=0
     real :: energy
 #ifdef HAVE_ADJOINT
-    type(adj_adjointer) :: adjointer
     type(adj_variable), dimension(:), allocatable :: adj_meshes
 
     ierr = adj_create_adjointer(adjointer)
@@ -839,20 +838,12 @@
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in), optional :: adjoint
 
-      integer :: increment
-
       ! project the local velocity to cartesian coordinates
       call project_local_to_cartesian(state(1), adjoint)
 
       ! Now we're ready to call write_state
 
-      if (present_and_true(adjoint)) then
-        increment = -1
-      else
-        increment = 1
-      endif
-      call write_state(dump_no, state, increment=increment)
-
+      call write_state(dump_no, state, adjoint)
     end subroutine output_state
 
     subroutine set_velocity_from_geostrophic_balance(state,div_mat,&

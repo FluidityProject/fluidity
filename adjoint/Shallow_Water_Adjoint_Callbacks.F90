@@ -37,18 +37,13 @@ module shallow_water_adjoint_callbacks
     use fields
     use sparse_matrices_fields
     use spud, only: get_option
-    use adjoint_variable_lookup, only: adj_var_lookup
+    use adjoint_global_variables, only: adj_var_lookup
     use mangle_options_tree, only: adjoint_field_path
     implicit none
-
-    integer, parameter :: IDENTITY_MATRIX = 30
-    ! things that can live in %flags
-    integer, parameter :: MATRIX_INVERTED = 1
 
     private
 
     public :: register_sw_operator_callbacks
-    public :: IDENTITY_MATRIX, MATRIX_INVERTED
 
     contains
 
@@ -111,7 +106,7 @@ module shallow_water_adjoint_callbacks
       ! an identity matrix. Instead, we'll fill it in with a special tag
       ! that we'll catch later on in the solution of the adjoint equations.
       output%ptr = c_null_ptr
-      output%klass = IDENTITY_MATRIX
+      output%klass = ADJ_IDENTITY_MATRIX
       output%flags = 0
 
     end subroutine velocity_identity_assembly_callback
@@ -146,7 +141,7 @@ module shallow_water_adjoint_callbacks
       ! an identity matrix. Instead, we'll fill it in with a special tag
       ! that we'll catch later on in the solution of the adjoint equations.
       output%ptr = c_null_ptr
-      output%klass = IDENTITY_MATRIX
+      output%klass = ADJ_IDENTITY_MATRIX
       output%flags = 0
 
     end subroutine layerthickness_identity_assembly_callback
@@ -221,10 +216,10 @@ module shallow_water_adjoint_callbacks
 
       if (hermitian == ADJ_FALSE) then
         output = matrix_to_adj_matrix(inv_coriolis_mat)
-        output%flags = MATRIX_INVERTED
+        output%flags = ADJ_MATRIX_INVERTED
       else if (hermitian == ADJ_TRUE) then
         output = matrix_to_adj_matrix(inv_coriolis_mat_T)
-        output%flags = MATRIX_INVERTED
+        output%flags = ADJ_MATRIX_INVERTED
       end if
     end subroutine coriolis_assembly_callback
 

@@ -37,12 +37,6 @@ use sparse_tools
 
 implicit none
 
-  private 
-  public :: field_to_adj_vector, field_from_adj_vector, adj_register_femtools_data_callbacks
-  public :: matrix_to_adj_matrix, matrix_from_adj_matrix, mesh_type_to_adj_vector, mesh_type_from_adj_vector
-  public :: femtools_vec_destroy_proc
-  public :: femtools_mat_destroy_proc
-
   interface field_to_adj_vector
     module procedure scalar_field_to_adj_vector, vector_field_to_adj_vector, tensor_field_to_adj_vector
   end interface
@@ -60,7 +54,17 @@ implicit none
   end interface
 
   integer, parameter :: ADJ_SCALAR_FIELD=1, ADJ_VECTOR_FIELD=2, ADJ_TENSOR_FIELD=3, ADJ_CSR_MATRIX=11, ADJ_BLOCK_CSR_MATRIX=12, ADJ_MESH_TYPE=21
+  integer, parameter :: ADJ_IDENTITY_MATRIX = 30
+  ! things that can live in %flags
+  integer, parameter :: ADJ_MATRIX_INVERTED = 1
+
+  private 
+  public :: field_to_adj_vector, field_from_adj_vector, adj_register_femtools_data_callbacks
+  public :: matrix_to_adj_matrix, matrix_from_adj_matrix, mesh_type_to_adj_vector, mesh_type_from_adj_vector
+  public :: femtools_vec_destroy_proc
+  public :: femtools_mat_destroy_proc
   public :: ADJ_SCALAR_FIELD, ADJ_VECTOR_FIELD, ADJ_TENSOR_FIELD, ADJ_CSR_MATRIX, ADJ_BLOCK_CSR_MATRIX, ADJ_MESH_TYPE
+  public :: ADJ_IDENTITY_MATRIX, ADJ_MATRIX_INVERTED
 
   contains
 
