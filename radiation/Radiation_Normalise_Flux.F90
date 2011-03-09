@@ -29,7 +29,7 @@
 
 module radiation_normalise_flux
 
-   !!< This module contains procedures associated with normalising the radiation neutral particle flux 
+   !!< This module contains procedures associated with normalising the radiation particle flux 
    
    use futils
    use global_parameters, only : OPTION_PATH_LEN
@@ -42,22 +42,22 @@ module radiation_normalise_flux
    
    private 
 
-   public :: normalise_neutral_particle_flux
+   public :: normalise_particle_flux
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine normalise_neutral_particle_flux(state,np_radmat) 
+   subroutine normalise_particle_flux(state,np_radmat) 
    
-      !!< Normalise the neutral particle flux
+      !!< Normalise the particle flux
 
       type(state_type), intent(inout) :: state
       type(np_radmat_type), intent(in) :: np_radmat
       
       
       
-   end subroutine normalise_neutral_particle_flux
+   end subroutine normalise_particle_flux
 
    ! --------------------------------------------------------------------------
 

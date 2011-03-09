@@ -83,9 +83,9 @@ contains
       
       end if eig_solver
             
-      ! normalise the neutral particle flux solution
-      call normalise_neutral_particle_flux(state, &
-                                           np_radmat)
+      ! normalise the particle flux solution
+      call normalise_particle_flux(state, &
+                                   np_radmat)
                         
       ! output diagnostics
       call radiation_eigenvalue_set_diagnostics(state, &

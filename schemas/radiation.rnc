@@ -6,32 +6,67 @@ radiation =
       element radiation {
          comment,
                   
-         particle+    
+         particle_type_neutron?, 
+         
+         particle_type_photon?    
       }
    )         
 
 
-particle = 
+particle_type_neutron = 
    (
-      ## neutral particle object, each instance is tagged with a string name
-      element neutral_particle {
+      ## Particle type neutron
+      element particle_type {
          comment,
-         
-         attribute name { xsd:string },
-                                 
-         radiation_method,             
 
-         problem_run,
-                  
-         read_radiation_material_data_set,
-         
-         radiation_material_mapping,
-         
-         Rad_Total_Fission_and_Power?,
-                  
-         delayed_precursor?    
-      }  
+         attribute name { "neutron" },
+                                      
+         problem_run_neutron,
+
+         particle_type_generic, 
+                           
+         delayed_precursor?             
+      }
    )  
+
+
+particle_type_photon = 
+   (
+      ## Particle type photon
+      element particle_type {
+         comment,
+
+         attribute name { "photon" },
+
+         problem_run_photon,
+                                      
+         particle_type_generic                           
+      }
+   )  
+
+
+particle_type_generic = 
+   (
+      radiation_method,             
+                
+      read_radiation_material_data_set,
+         
+      radiation_material_mapping
+   )
+   
+
+problem_run_neutron = 
+   (
+      eigenvalue_run|
+         
+      time_run
+   )
+   
+
+problem_run_photon = 
+   (
+      time_run
+   )
 
 
 radiation_method = 
@@ -68,10 +103,8 @@ neutral_particle_flux_group_set_diffusion_field =
          attribute name { xsd:string },
          
          group_set,
-
-         neutral_particle_mesh_group_set,
                
-         neutral_particle_material_mesh_group_set, 
+         particle_type_material_mesh_choice, 
          
          neutral_particle_flux_diffusion_field
       }          
@@ -105,101 +138,16 @@ group_set =
       }
    )
 
-   
-neutral_particle_mesh_group_set = 
-   (         
-      ## The function space associated with the neutral particle solution for this group set
-      element mesh {
-         comment,
-         attribute name { "NeutralParticleMeshGroupSet" },
-         ## Derived from the mesh
-         element from_mesh { 
-            comment,
-            (
-               element mesh {
-                  comment,
-                  attribute name { "CoordinateMesh" }
-               }
-            ),
-            ## The trial space basis function options
-            element mesh_shape {
-               comment,
-               ## The order of the basis functions
-               element polynomial_degree {
-                  comment,
-                  integer
-               }?
-            }?,
-            ## The continuity associated with the mesh
-            element mesh_continuity {
-               comment,
-               element string_value{
-                  "continuous" 
-               }
-            },
-            exclude_mesh_stat 
-         } 
-      }       
-   )
 
-
-neutral_particle_material_mesh_group_set = 
-   (         
-      ## The function space associated with the material mapping used to solve for the neutral particle for this group set 
-      ## is always volume element wise (ie. DG order zero or FV)
-      element mesh {
-         comment,
-         attribute name { "NeutralParticleMaterialMeshGroupSet" },
-         
-         ## Derived from the mesh
-         element from_mesh { 
-            comment,
-            (
-               element mesh{
-                  comment,
-                  attribute name { "CoordinateMesh" }
-               }
-            ),
-            ## The trial space basis function options
-            element mesh_shape {
-               comment,
-               ## The order of the basis functions
-               element polynomial_degree {
-                  comment,
-                  element integer_value { 
-                     attribute rank {"0"},
-                     ("0")     
-                  }       
-               }
-            },
-            ## The continuity associated with the mesh
-            element mesh_continuity {
-               comment,
-               element string_value{
-                  "discontinuous" 
-               }
-            },
-            exclude_mesh_stat 
-         }        
-      }
-   )
-
-
-exclude_mesh_stat = 
+particle_type_material_mesh_choice = 
    (
-      element stat{ 
-         comment,
-         (
-            ## Exclude this mesh from the .stat file
-            element exclude_from_stat{
-               comment
-            }|
-            ## Include this mesh in the .stat file
-            element include_in_stat {
-               comment
-            }  
-         )
+      element mesh {
+         attribute name { "ParticleMaterialMesh" }
+      }|
+      element mesh {
+         attribute name { string }
       }
+   
    )
 
    
@@ -209,6 +157,7 @@ neutral_particle_flux_diffusion_field =
       element scalar_field {
          comment,
          attribute name { "NeutralParticleFlux" },
+                  
          prognostic_neutral_particle_diffusion_removal_source_scalar_field
       }          
    )
@@ -219,6 +168,8 @@ prognostic_neutral_particle_diffusion_removal_source_scalar_field =
       ## Field Type
       element prognostic {
          comment,
+
+         particle_type_mesh_choice,
                            
          radiation_diffusion_spatial_discretisation,
       
@@ -238,6 +189,18 @@ prognostic_neutral_particle_diffusion_removal_source_scalar_field =
          adaptivity_options_scalar_field,
          interpolation_algorithm_scalar
       }
+   )
+
+
+particle_type_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "ParticleMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   
    )
 
    
@@ -377,14 +340,6 @@ radiation_stat_options =
             comment
          }?
       }
-   )
-   
-
-problem_run = 
-   (
-      eigenvalue_run|
-         
-      time_run
    )
 
 
@@ -613,25 +568,42 @@ prescribed_source =
 
 prescribed_source_scalar_field = 
    (
+      particle_type_prescribed_source_mesh_choice,
+      
       prescribed_values_scalar_field,
+      
       radiation_output_options,
+      
       radiation_stat_options,
+      
       prescribed_detector_options   
+   )
+
+
+particle_type_prescribed_source_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "ParticlePrescribedSourceMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   
    )
    
      
 read_radiation_material_data_set =
    (
-      ## Read radiation material data set from file
+      ## Read radiation material data set from file 
+      ## (Include any file name extensions in the file name as well as the path if needed)
       element radiation_material_data_set_from_file {
          comment,
          attribute file_name { xsd:string },
          number_of_scatter_moments,
          (   
-            ## a format that is a extension of the wims9 LISTTO interface that includes
-            ## extra data (eg. velocity, delayed, energy released) and with the options 
-            ## to read different data items (eg. total or absorption)
-            element format_wims9plus {
+            ## A keyword based embedded radiation data type format file, of which a subset 
+            ## includes the formatted file produced via a LISTTO from WIMS9
+            element format_radmats {
                comment,
                ## The maximum line (or record) length of the input file
                element maximum_record_length {
@@ -697,8 +669,7 @@ radiation_material_mapping =
             attribute name { xsd:string },
             region_id,
             radiation_material
-         }+, 
-         Rad_Region_Fission_and_Power? 
+         }+
       }?,      
       ## Link with multimaterial model
       element link_with_multimaterial {
@@ -710,8 +681,7 @@ radiation_material_mapping =
             Rad_MaterialVolumeFraction,        
             attribute name { xsd:string }
          }+,
-         Rad_MaterialTemperature?,
-         Rad_Material_Fission_and_Power?
+         Rad_MaterialTemperature?
       }?,         
       ## Link with the porous media model
       element link_with_porous_media {
@@ -723,8 +693,7 @@ radiation_material_mapping =
             radiation_material
          }+,
          Rad_Porosity,
-         Rad_PorousTemperature?, 
-         Rad_Porous_Fission_and_Power?            
+         Rad_PorousTemperature?           
       }?   
    )
    
@@ -809,156 +778,19 @@ prescribed_or_scalar_diagnostic_algorithms_scalar_field =
    ( 
       element prescribed {
          comment,
+         
+         particle_type_material_mesh_choice,
+         
          prescribed_scalar_field
       }|            
       element diagnostic {
          comment,
+         
          scalar_diagnostic_algorithms,
+         
+         particle_type_material_mesh_choice,
+         
          diagnostic_scalar_field
-      }            
-   )
-
-
-Rad_Region_Fission_and_Power = 
-   (
-       Rad_Region_Fission,
-              
-       Rad_Region_Power    
-   )
-
-
-Rad_Region_Fission = 
-   (
-      ## The fission density scalar field
-      element scalar_field {
-         comment,
-         attribute name { "RadRegionFission" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Region_Power = 
-   (
-      ## The power density scalar field for diagnostics and coupling
-      element scalar_field {
-         comment,
-         attribute name { "RadRegionPower" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Material_Fission_and_Power = 
-   (
-       Rad_Material_Fission,
-              
-       Rad_Material_Power    
-   )
-
-
-Rad_Material_Fission = 
-   (
-      ## The fission density scalar field
-      element scalar_field {
-         comment,
-         attribute name { "RadMaterialFission" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Material_Power = 
-   (
-      ## The power density scalar field for diagnostics and coupling
-      element scalar_field {
-         comment,
-         attribute name { "RadMaterialPower" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Porous_Fission_and_Power = 
-   (
-       Rad_Porous_Fission,
-              
-       Rad_Porous_Power    
-   )
-
-
-Rad_Porous_Fission = 
-   (
-      ## The fission density scalar field
-      element scalar_field {
-         comment,
-         attribute name { "RadPorousFission" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Porous_Power = 
-   (
-      ## The power density scalar field for diagnostics and coupling
-      element scalar_field {
-         comment,
-         attribute name { "RadPorousPower" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Total_Fission_and_Power = 
-   (
-       Rad_Total_Fission,
-              
-       Rad_Total_Power    
-   )
-
-
-Rad_Total_Fission = 
-   (
-      ## The fission density scalar field
-      element scalar_field {
-         comment,
-         attribute name { "RadTotalFission" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-Rad_Total_Power = 
-   (
-      ## The power density scalar field for diagnostics and coupling
-      element scalar_field {
-         comment,
-         attribute name { "RadTotalPower" },
-         ## Field Type
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt     
-      }          
-   ) 
-
-
-radiation_internal_algorithm_diagnostic_scalar_field_no_adapt = 
-   ( 
-      element diagnostic {
-         comment,
-         
-         internal_algorithm,
-         
-         radiation_output_options,
-      
-         radiation_stat_options,
-      
-         diagnostic_detector_options                  
       }            
    )
 
@@ -968,7 +800,6 @@ delayed_precursor =
       ## Delayed neutron precursor 
       element delayed_neutron_precursor {  
          comment,  
-         delayed_neutron_mesh,
          ## The number of delayed neutron precursor groups
          element number_delayed_neutron_precursor_groups {
             comment,
@@ -997,44 +828,7 @@ delayed_precursor =
          }?
       }               
    )
-
-
-delayed_neutron_mesh = 
-   (         
-      ## The mesh associated with the delayed precursor concentration solution
-      element mesh {
-         comment,
-         attribute name { "DelayedNeutronMesh" },
-         ## Derived from the mesh
-         element from_mesh { 
-            comment,
-            (
-               element mesh{
-                  comment,
-                  attribute name { "CoordinateMesh" }
-               }
-            ),
-            ## The trial space basis function options
-            element mesh_shape {
-               comment,
-               ## The order of the basis functions
-               element polynomial_degree {
-                  comment,
-                  integer
-               }?
-            }?,
-            ## The continuity associated with the mesh
-            element mesh_continuity {
-               comment,
-               element string_value{
-                  "continuous" | "discontinuous" 
-               }
-            }?, 
-            exclude_mesh_stat
-         }        
-      }
-   )
-
+   
 
 prompt_delayed_coupling_option =
    (
@@ -1069,7 +863,9 @@ delayed_neutron_precursor_prognostic_or_diagnostic =
       ##   - use diagnostic for eigenvalue run
       element scalar_field {
          comment,
+         
          attribute name { "DelayedNeutronPrecursor" },
+                  
          (
             prognostic_delayed_neutron_advection_decay_source_scalar_field|
             radiation_internal_algorithm_diagnostic_scalar_field_no_adapt
@@ -1083,9 +879,29 @@ delayed_neutron_precursor_diagnostic =
       ## The delayed neutron precursor scalar field
       element scalar_field {
          comment,
+         
          attribute name { "DelayedNeutronPrecursor" },
+         
          radiation_internal_algorithm_diagnostic_scalar_field_no_adapt
       }
+   )
+
+
+radiation_internal_algorithm_diagnostic_scalar_field_no_adapt = 
+   ( 
+      element diagnostic {
+         comment,
+         
+         internal_algorithm,
+
+         delayed_particle_type_mesh_choice,
+         
+         radiation_output_options,
+      
+         radiation_stat_options,
+      
+         diagnostic_detector_options                  
+      }            
    )
 
 
@@ -1093,6 +909,8 @@ prognostic_delayed_neutron_advection_decay_source_scalar_field =
    (
       element prognostic {
          comment,
+
+         delayed_particle_type_mesh_choice,
 
          ## Solve a delayed neutron advection-decay-source equation
          element equation {
@@ -1142,4 +960,16 @@ prognostic_delayed_neutron_advection_decay_source_scalar_field =
          adaptivity_options_scalar_field,
          interpolation_algorithm_scalar
       }
+   )
+
+
+delayed_particle_type_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "DelayedParticleMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   
    )

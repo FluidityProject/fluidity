@@ -33,73 +33,73 @@ rm -f rad_1d_2grp_hom_zerobc_eig_D.flml
     <!-- Radiation diffusion eigenvalue problem with one material, two energy groups no upscatter with all zero BC using a 1d geometry compared to PANTHER reference solution for the keff and also the fine mesh linear cg solution for different mesh resolutions -->
   </problem_definition>
   <variables>
-    <variable name="Keffneutron_A" language="python">
+    <variable name="neutronKeff_A" language="python">
 from fluidity_tools import stat_parser as stat
-Keffneutron_A = stat("rad_1d_2grp_hom_zerobc_eig_A.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+neutronKeff_A = stat("rad_1d_2grp_hom_zerobc_eig_A.stat")["neutronKeff1"]["Value"][0]
     </variable>
-    <variable name="Keffneutron_B" language="python">
+    <variable name="neutronKeff_B" language="python">
 from fluidity_tools import stat_parser as stat
-Keffneutron_B = stat("rad_1d_2grp_hom_zerobc_eig_B.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+neutronKeff_B = stat("rad_1d_2grp_hom_zerobc_eig_B.stat")["neutronKeff1"]["Value"][0]
     </variable>
-    <variable name="Keffneutron_C" language="python">
+    <variable name="neutronKeff_C" language="python">
 from fluidity_tools import stat_parser as stat
-Keffneutron_C = stat("rad_1d_2grp_hom_zerobc_eig_C.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+neutronKeff_C = stat("rad_1d_2grp_hom_zerobc_eig_C.stat")["neutronKeff1"]["Value"][0]
     </variable>
-    <variable name="Keffneutron_D" language="python">
+    <variable name="neutronKeff_D" language="python">
 from fluidity_tools import stat_parser as stat
-Keffneutron_D = stat("rad_1d_2grp_hom_zerobc_eig_D.stat")["NeutralParticleKeffneutron1"]["Value"][0]
+neutronKeff_D = stat("rad_1d_2grp_hom_zerobc_eig_D.stat")["neutronKeff1"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Check Keffneutron_A against PANTHER reference" language="python">
+    <test name="Check neutronKeff_A against PANTHER reference" language="python">
 reference_keff = 1.0
-print 'Relative error compared to reference: ',abs((Keffneutron_A - reference_keff)/reference_keff)
-assert abs((Keffneutron_A - reference_keff)/reference_keff) &lt; 4.2e-03
+print 'Relative error compared to reference: ',abs((neutronKeff_A - reference_keff)/reference_keff)
+assert abs((neutronKeff_A - reference_keff)/reference_keff) &lt; 4.2e-03
     </test>
-    <test name="Check Keffneutron_B against PANTHER reference" language="python">
+    <test name="Check neutronKeff_B against PANTHER reference" language="python">
 reference_keff = 1.0
-print 'Relative error compared to reference: ',abs((Keffneutron_B - reference_keff)/reference_keff)
-assert abs((Keffneutron_B - reference_keff)/reference_keff) &lt; 3.9e-03
+print 'Relative error compared to reference: ',abs((neutronKeff_B - reference_keff)/reference_keff)
+assert abs((neutronKeff_B - reference_keff)/reference_keff) &lt; 3.9e-03
     </test>
-    <test name="Check Keffneutron_C against PANTHER reference" language="python">
+    <test name="Check neutronKeff_C against PANTHER reference" language="python">
 reference_keff = 1.0
-print 'Relative error compared to reference: ',abs((Keffneutron_C - reference_keff)/reference_keff)
-assert abs((Keffneutron_C - reference_keff)/reference_keff) &lt; 3.1e-05
+print 'Relative error compared to reference: ',abs((neutronKeff_C - reference_keff)/reference_keff)
+assert abs((neutronKeff_C - reference_keff)/reference_keff) &lt; 3.1e-05
     </test>
-    <test name="Check Keffneutron_D against PANTHER reference" language="python">
+    <test name="Check neutronKeff_D against PANTHER reference" language="python">
 reference_keff = 1.0
-print 'Relative error compared to reference: ',abs((Keffneutron_D - reference_keff)/reference_keff)
-assert abs((Keffneutron_D - reference_keff)/reference_keff) &lt; 1.8e-05
+print 'Relative error compared to reference: ',abs((neutronKeff_D - reference_keff)/reference_keff)
+assert abs((neutronKeff_D - reference_keff)/reference_keff) &lt; 1.8e-05
     </test>
 
-    <test name="Check Keffneutron_A against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
+    <test name="Check neutronKeff_A against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
-print 'Relative error compared to reference: ',abs((Keffneutron_A - reference_keff)/reference_keff)
-assert abs((Keffneutron_A - reference_keff)/reference_keff) &lt; 4.1e-03
+print 'Relative error compared to reference: ',abs((neutronKeff_A - reference_keff)/reference_keff)
+assert abs((neutronKeff_A - reference_keff)/reference_keff) &lt; 4.1e-03
     </test>
-    <test name="Check Keffneutron_B against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
+    <test name="Check neutronKeff_B against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
-print 'Relative error compared to reference: ',abs((Keffneutron_B - reference_keff)/reference_keff)
-assert abs((Keffneutron_B - reference_keff)/reference_keff) &lt; 3.9e-03
+print 'Relative error compared to reference: ',abs((neutronKeff_B - reference_keff)/reference_keff)
+assert abs((neutronKeff_B - reference_keff)/reference_keff) &lt; 3.9e-03
     </test>
-    <test name="Check Keffneutron_C against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
+    <test name="Check neutronKeff_C against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
-print 'Relative error compared to reference: ',abs((Keffneutron_C - reference_keff)/reference_keff)
-assert abs((Keffneutron_C - reference_keff)/reference_keff) &lt; 1.8e-05
+print 'Relative error compared to reference: ',abs((neutronKeff_C - reference_keff)/reference_keff)
+assert abs((neutronKeff_C - reference_keff)/reference_keff) &lt; 1.8e-05
     </test>
-    <test name="Check Keffneutron_D against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
+    <test name="Check neutronKeff_D against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
-print 'Relative error compared to reference: ',abs((Keffneutron_D - reference_keff)/reference_keff)
-assert abs((Keffneutron_D - reference_keff)/reference_keff) &lt; 4.4e-06
+print 'Relative error compared to reference: ',abs((neutronKeff_D - reference_keff)/reference_keff)
+assert abs((neutronKeff_D - reference_keff)/reference_keff) &lt; 4.4e-06
     </test>
 
-    <test name="Check Keffneutron_C to Keffneutron_D convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check neutronKeff_C to neutronKeff_D convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.999986731726
 
-keff_one = Keffneutron_C
-keff_two = Keffneutron_D
+keff_one = neutronKeff_C
+keff_two = neutronKeff_D
 
 mesh_one = 89
 mesh_two = 178

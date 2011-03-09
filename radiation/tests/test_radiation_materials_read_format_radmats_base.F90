@@ -25,14 +25,14 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-subroutine test_radiation_materials_read_wims9plus_base
+subroutine test_radiation_materials_read_format_radmats_base
    
-   !!< Test the procedures contained within the module radiation_materials_read_wims9plus_base in Radiation_Materials_Read_Wims9Plus_Base.F90
+   !!< Test the procedures contained within the module radiation_materials_read_format_radmats_base in Radiation_Materials_Read_Format_Radmats_Base.F90
    
    use futils
    use unittest_tools  
 
-   use radiation_materials_read_wims9plus_base 
+   use radiation_materials_read_format_radmats_base 
    use radiation_materials_data_types
    use radiation_materials_create
    use radiation_materials_destroy
@@ -51,208 +51,200 @@ subroutine test_radiation_materials_read_wims9plus_base
    has_warned = .false.
    
    ! open the input files that will be used
-   call open_wims9plus_input(file_unit = file_unit_1, &
-                             file_name = rad_input_test_dir//'radiation_materials_read_input1.wims9plus_data')
+   call open_format_radmats_input(file_unit = file_unit_1, &
+                                  file_name = rad_input_test_dir//'radiation_materials_read_input1.radmats')
 
-   call open_wims9plus_input(file_unit = file_unit_2, &
-                             file_name = rad_input_test_dir//'radiation_materials_read_input2.wims9plus_data')
+   call open_format_radmats_input(file_unit = file_unit_2, &
+                                  file_name = rad_input_test_dir//'radiation_materials_read_input2.radmats')
 
-   call open_wims9plus_input(file_unit = file_unit_3, &
-                             file_name = rad_input_test_dir//'radiation_materials_read_input3.wims9plus_data')
+   call open_format_radmats_input(file_unit = file_unit_3, &
+                                  file_name = rad_input_test_dir//'radiation_materials_read_input3.radmats')
 
-   call open_wims9plus_input(file_unit = file_unit_4, &
-                             file_name = rad_input_test_dir//'radiation_materials_read_input4.wims9plus_data')
+   call open_format_radmats_input(file_unit = file_unit_4, &
+                                  file_name = rad_input_test_dir//'radiation_materials_read_input4.radmats')
    
-   call test_keyword_list_initialise_wims9plus_two_scatter_moments(keyword_list_two_moments) 
+   call test_keyword_list_initialise_format_radmats_two_scatter_moments(keyword_list_two_moments) 
    
-   call test_deduce_number_of_items_wims9plus(file_unit                 = file_unit_1, &
-                                              total_number_of_radmats   = 10,&
-                                              number_of_scatter_moments = 2, &
-                                              number_of_energy_groups   = 2, &
-                                              number_non_thermal_groups = 1, &
-                                              number_of_delayed_groups  = 6, &
-                                              record_len                = 132, &
-                                              keyword_list              = keyword_list_two_moments)
+   call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_1, &
+                                                   total_number_of_radmats   = 10,&
+                                                   number_of_scatter_moments = 2, &
+                                                   number_of_energy_groups   = 2, &
+                                                   number_non_thermal_groups = 1, &
+                                                   number_of_delayed_groups  = 6, &
+                                                   record_len                = 132, &
+                                                   keyword_list              = keyword_list_two_moments)
    
-   call test_deduce_number_of_items_wims9plus(file_unit                 = file_unit_2, &
-                                              total_number_of_radmats   = 10 ,&
-                                              number_of_scatter_moments = 2, &
-                                              number_of_energy_groups   = 6, &
-                                              number_non_thermal_groups = 3, &
-                                              number_of_delayed_groups  = 8, &
-                                              record_len                = 132, &
-                                              keyword_list              = keyword_list_two_moments)
+   call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_2, &
+                                                   total_number_of_radmats   = 10 ,&
+                                                   number_of_scatter_moments = 2, &
+                                                   number_of_energy_groups   = 6, &
+                                                   number_non_thermal_groups = 3, &
+                                                   number_of_delayed_groups  = 8, &
+                                                   record_len                = 132, &
+                                                   keyword_list              = keyword_list_two_moments)
    
-   call test_deduce_number_of_items_wims9plus(file_unit                 = file_unit_3, &
-                                              total_number_of_radmats   = 10 ,&
-                                              number_of_scatter_moments = 2, &
-                                              number_of_energy_groups   = 11, &
-                                              number_non_thermal_groups = 5, &
-                                              number_of_delayed_groups  = 0, &
-                                              record_len                = 132, &
-                                              keyword_list              = keyword_list_two_moments)
+   call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_3, &
+                                                   total_number_of_radmats   = 10 ,&
+                                                   number_of_scatter_moments = 2, &
+                                                   number_of_energy_groups   = 11, &
+                                                   number_non_thermal_groups = 5, &
+                                                   number_of_delayed_groups  = 0, &
+                                                   record_len                = 132, &
+                                                   keyword_list              = keyword_list_two_moments)
    
-   call test_deduce_number_of_items_wims9plus(file_unit                 = file_unit_4, &
-                                              total_number_of_radmats   = 10 ,&
-                                              number_of_scatter_moments = 2, &
-                                              number_of_energy_groups   = 172, &
-                                              number_non_thermal_groups = 92, &
-                                              number_of_delayed_groups  = 0, &
-                                              record_len                = 132, &
-                                              keyword_list              = keyword_list_two_moments)
+   call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_4, &
+                                                   total_number_of_radmats   = 10 ,&
+                                                   number_of_scatter_moments = 2, &
+                                                   number_of_energy_groups   = 172, &
+                                                   number_non_thermal_groups = 92, &
+                                                   number_of_delayed_groups  = 0, &
+                                                   record_len                = 132, &
+                                                   keyword_list              = keyword_list_two_moments)
 
    ! create the np_radmat's associated with the input files opened above
    call create_np_radmat_input1(np_radmat_1)
    
-   call test_read_scatter_mom_wims9plus(file_unit      = file_unit_1, &
-                                        record_len     = 132, &
-                                        dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                        np_radmat_size = np_radmat_1%np_radmat_size, &
-                                        keyword_list   = keyword_list_two_moments) 
+   call test_read_scatter_mom_format_radmats(file_unit      = file_unit_1, &
+                                             record_len     = 132, &
+                                             dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                             np_radmat_size = np_radmat_1%np_radmat_size, &
+                                             keyword_list   = keyword_list_two_moments) 
                                        
-   call test_read_absorption_and_total_wims9plus(file_unit      = file_unit_1, &
-                                                 record_len     = 132, &
-                                                 dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                 np_radmat_size = np_radmat_1%np_radmat_size, &
-                                                 keyword_list   = keyword_list_two_moments) 
+   call test_read_absorption_and_total_format_radmats(file_unit      = file_unit_1, &
+                                                      record_len     = 132, &
+                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
+                                                      keyword_list   = keyword_list_two_moments) 
    
-   call test_calculate_removal_moments_wims9plus(file_unit      = file_unit_1, &
-                                                 record_len     = 132, &
-                                                 dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                 np_radmat_size = np_radmat_1%np_radmat_size, &
-                                                 keyword_list   = keyword_list_two_moments) 
+   call test_calculate_removal_moments_format_radmats(file_unit      = file_unit_1, &
+                                                      record_len     = 132, &
+                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
+                                                      keyword_list   = keyword_list_two_moments) 
       
-   call test_read_or_associate_transport_and_diffusion_wims9plus(file_unit      = file_unit_1, &
-                                                                 record_len     = 132, &
-                                                                 dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                                 np_radmat_size = np_radmat_1%np_radmat_size, &
-                                                                 keyword_list   = keyword_list_two_moments, &
-                                                                 problem_dim    = 3)
+   call test_read_or_associate_transport_and_diffusion_format_radmats(file_unit      = file_unit_1, &
+                                                                      record_len     = 132, &
+                                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
+                                                                      keyword_list   = keyword_list_two_moments, &
+                                                                      problem_dim    = 3)
 
-   call test_read_fission_data_wims9plus(file_unit                 = file_unit_1, &
-                                         record_len                = 132, &
-                                         dataset_radmat            = np_radmat_1%dataset_radmats(1), &
-                                         np_radmat_size            = np_radmat_1%np_radmat_size, &
-                                         keyword_list              = keyword_list_two_moments, &
-                                         number_non_thermal_groups = 1 ) 
-      
-   call test_read_velocity_style_data_wims9plus(file_unit           = file_unit_1, &
-                                                keyword_line_number = 1055, &
-                                                keyword_find        = (/14/), &
-                                                record_len          = 132, &
-                                                dataset_radmat      = np_radmat_1%dataset_radmats(1), &
-                                                np_radmat_size      = np_radmat_1%np_radmat_size, &
-                                                keyword_list        = keyword_list_two_moments)
+   call test_read_fission_data_format_radmats(file_unit                 = file_unit_1, &
+                                              record_len                = 132, &
+                                              dataset_radmat            = np_radmat_1%dataset_radmats(1), &
+                                              np_radmat_size            = np_radmat_1%np_radmat_size, &
+                                              keyword_list              = keyword_list_two_moments, &
+                                              number_non_thermal_groups = 1 ) 
+         
+   call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
+                                                     keyword_line_number = 1044, &
+                                                     keyword_find        = (/16/), &
+                                                     record_len          = 132, &
+                                                     dataset_radmat      = np_radmat_1%dataset_radmats(1), &
+                                                     np_radmat_size      = np_radmat_1%np_radmat_size, &
+                                                     keyword_list        = keyword_list_two_moments)
    
-   call test_read_velocity_style_data_wims9plus(file_unit           = file_unit_1, &
-                                                keyword_line_number = 1044, &
-                                                keyword_find        = (/16/), &
-                                                record_len          = 132, &
-                                                dataset_radmat      = np_radmat_1%dataset_radmats(1), &
-                                                np_radmat_size      = np_radmat_1%np_radmat_size, &
-                                                keyword_list        = keyword_list_two_moments)
-   
-   call test_read_velocity_style_data_wims9plus(file_unit           = file_unit_1, &
-                                                keyword_line_number = 1060, &
-                                                keyword_find        = (/17/), &
-                                                record_len          = 132, &
-                                                dataset_radmat      = np_radmat_1%dataset_radmats(1), &
-                                                np_radmat_size      = np_radmat_1%np_radmat_size, &
-                                                keyword_list        = keyword_list_two_moments)
+   call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
+                                                     keyword_line_number = 1060, &
+                                                     keyword_find        = (/17/), &
+                                                     record_len          = 132, &
+                                                     dataset_radmat      = np_radmat_1%dataset_radmats(1), &
+                                                     np_radmat_size      = np_radmat_1%np_radmat_size, &
+                                                     keyword_list        = keyword_list_two_moments)
    
    ! read the delayed data - beta, lambda and spectrum
-   call test_read_delayed_data_wims9plus(file_unit               = file_unit_1, &
-                                         record_len              = 132, &
-                                         dataset_radmat          = np_radmat_1%dataset_radmats(1), &
-                                         np_radmat_size          = np_radmat_1%np_radmat_size, &
-                                         delayed_lambda_spectrum = np_radmat_1%delayed_lambda_spectrum, &
-                                         keyword_list            = keyword_list_two_moments) 
+   call test_read_delayed_data_format_radmats(file_unit               = file_unit_1, &
+                                              record_len              = 132, &
+                                              dataset_radmat          = np_radmat_1%dataset_radmats(1), &
+                                              np_radmat_size          = np_radmat_1%np_radmat_size, &
+                                              delayed_lambda_spectrum = np_radmat_1%delayed_lambda_spectrum, &
+                                              keyword_list            = keyword_list_two_moments) 
    
    ! read the energy released through the power rotuine
-   call test_read_power_data_wims9plus(file_unit      = file_unit_1, &
-                                       record_len     = 132, &
-                                       dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                       np_radmat_size = np_radmat_1%np_radmat_size, &
-                                       test_power     = .false., &
-                                       keyword_list   = keyword_list_two_moments)
+   call test_read_power_data_format_radmats(file_unit      = file_unit_1, &
+                                            record_len     = 132, &
+                                            dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                            np_radmat_size = np_radmat_1%np_radmat_size, &
+                                            test_power     = .false., &
+                                            keyword_list   = keyword_list_two_moments)
 
-   call test_calculate_power_wims9plus(dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                       np_radmat_size = np_radmat_1%np_radmat_size) 
+   call test_calculate_power_format_radmats(dataset_radmat = np_radmat_1%dataset_radmats(1), &
+                                            np_radmat_size = np_radmat_1%np_radmat_size) 
    
    ! get rid of the comparison np_radmat's 
    call destroy(np_radmat_1)   
 
-   call test_read_wims9plus_siga_style_xsection(file_unit           = file_unit_1, &
-                                                keyword_line_number = 976, &
-                                                number_of_groups    = 2, &
-                                                record_len          = 132, &
-                                                values_expected     = (/8.110421E-06,&
-                                                                      &1.643668E-04/), &
-                                                number_groups_to_read_in = 2)
+   call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_1, &
+                                                     keyword_line_number = 110, &
+                                                     number_of_groups    = 2, &
+                                                     record_len          = 132, &
+                                                     values_expected     = (/8.110421E-06,&
+                                                                           &1.643668E-04/), &
+                                                     number_groups_to_read_in = 2)
 
-   call test_read_wims9plus_siga_style_xsection(file_unit           = file_unit_2, &
-                                                keyword_line_number = 1969, &
-                                                number_of_groups    = 6, &
-                                                record_len          = 132, &
-                                                values_expected     = (/1.319194E-01,&
-                                                                      &2.411816E-01, &
-                                                                      &3.394288E-01, &
-                                                                      &3.457756E-01, &
-                                                                      &0.0, &
-                                                                      &0.0/), &
-                                                number_groups_to_read_in = 4) ! this is intentially 4, less than number of groups
+   call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_2, &
+                                                     keyword_line_number = 301, &
+                                                     number_of_groups    = 6, &
+                                                     record_len          = 132, &
+                                                     values_expected     = (/1.319194E-01,&
+                                                                           &2.411816E-01, &
+                                                                           &3.394288E-01, &
+                                                                           &3.457756E-01, &
+                                                                           &0.0, &
+                                                                           &0.0/), &
+                                                     number_groups_to_read_in = 4) ! this is intentially 4, less than number of groups
 
-   call test_read_wims9plus_siga_style_xsection(file_unit           = file_unit_3, &
-                                                keyword_line_number = 3001, &
-                                                number_of_groups    = 11, &
-                                                record_len          = 132, &
-                                                values_expected     = (/2.738271E+00, &
-                                                                       &2.499367E+00, &
-                                                                       &2.442142E+00, &
-                                                                       &2.437577E+00, &
-                                                                       &2.432429E+00, &
-                                                                       &2.432092E+00, &
-                                                                       &2.436949E+00, &
-                                                                       &2.440309E+00, &
-                                                                       &2.440377E+00, &
-                                                                       &2.438720E+00, &
-                                                                       &0.0/), &
-                                                number_groups_to_read_in = 10) ! this is intentially 10, less than number of groups
+   call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_3, &
+                                                     keyword_line_number = 188, &
+                                                     number_of_groups    = 11, &
+                                                     record_len          = 132, &
+                                                     values_expected     = (/2.738271E+00, &
+                                                                            &2.499367E+00, &
+                                                                            &2.442142E+00, &
+                                                                            &2.437577E+00, &
+                                                                            &2.432429E+00, &
+                                                                            &2.432092E+00, &
+                                                                            &2.436949E+00, &
+                                                                            &2.440309E+00, &
+                                                                            &2.440377E+00, &
+                                                                            &2.438720E+00, &
+                                                                            &0.0/), &
+                                                     number_groups_to_read_in = 10) ! this is intentially 10, less than number of groups
 
-   call test_read_wims9plus_siga_style_xsection(file_unit           = file_unit_4, &
-                                                keyword_line_number = 82, &
-                                                number_of_groups    = 172, &
-                                                record_len          = 132, &
-                                                values_expected     = (/ &
- & 2.089550E-01,  2.485903E-01,  2.644520E-01,  2.984862E-01,  3.185046E-01,  3.539481E-01,  3.858338E-01,  4.903702E-01, &
- & 5.163930E-01,  5.248332E-01,  4.775521E-01,  4.099437E-01,  4.847418E-01,  4.518094E-01,  5.865291E-01,  7.013625E-01, &
- & 4.122334E-01,  2.872880E-01,  2.669537E-01,  2.683544E-01,  2.947675E-01,  3.370069E-01,  4.822639E-01,  7.277249E-01, &
- & 8.941768E-01,  9.970101E-01,  1.003968E+00,  1.098100E+00,  1.285010E+00,  1.397355E+00,  1.613572E+00,  1.941810E+00, &
- & 2.153307E+00,  2.320652E+00,  2.554434E+00,  2.769150E+00,  3.076663E+00,  3.359049E+00,  3.620728E+00,  3.874037E+00, &
- & 4.026507E+00,  4.518819E+00,  5.114379E+00,  5.616333E+00,  6.321034E+00,  6.956129E+00,  7.844631E+00,  8.632944E+00, &
- & 9.619372E+00,  1.058024E+01,  1.178970E+01,  1.327812E+01,  1.461586E+01,  1.587692E+01,  1.665795E+01,  1.808908E+01, &
- & 1.940919E+01,  2.083848E+01,  2.235409E+01,  2.511900E+01,  2.886036E+01,  3.164473E+01,  3.626163E+01,  4.261498E+01, &
- & 4.654334E+01,  5.173311E+01,  5.880960E+01,  6.267722E+01,  6.682759E+01,  7.075751E+01,  7.284831E+01,  7.476070E+01, &
- & 7.758511E+01,  8.074845E+01,  8.351167E+01,  8.692976E+01,  9.038523E+01,  9.393508E+01,  9.761094E+01,  1.020737E+02, &
- & 1.088284E+02,  1.158879E+02,  1.232408E+02,  1.302733E+02,  1.347374E+02,  1.386949E+02,  1.432659E+02,  1.495224E+02, &
- & 1.572276E+02,  1.617291E+02,  1.677197E+02,  1.731993E+02,  1.775074E+02,  1.822171E+02,  1.869414E+02,  1.913817E+02, &
- & 1.928876E+02,  1.944672E+02,  1.967196E+02,  2.008826E+02,  2.035590E+02,  2.047278E+02,  2.066640E+02,  2.087655E+02, &
- & 2.108638E+02,  2.130535E+02,  2.151775E+02,  2.175135E+02,  2.190806E+02,  2.199592E+02,  2.214925E+02,  2.230495E+02, &
- & 2.241339E+02,  2.257568E+02,  2.278691E+02,  2.292958E+02,  2.300670E+02,  2.307459E+02,  2.312166E+02,  2.319174E+02, &
- & 2.328348E+02,  2.335032E+02,  2.339801E+02,  2.347147E+02,  2.353331E+02,  2.357657E+02,  2.364720E+02,  2.373150E+02, &
- & 2.380760E+02,  2.394885E+02,  2.407173E+02,  2.421575E+02,  2.436422E+02,  2.454617E+02,  2.489747E+02,  2.529494E+02, &
- & 2.560681E+02,  2.574273E+02,  2.591718E+02,  2.613451E+02,  2.623516E+02,  2.636213E+02,  2.652172E+02,  2.659079E+02, &
- & 2.662866E+02,  2.668592E+02,  2.676411E+02,  2.680734E+02,  2.679538E+02,  2.673873E+02,  2.669008E+02,  2.659517E+02, &
- & 2.652504E+02,  2.646380E+02,  2.634840E+02,  2.632521E+02,  2.632120E+02,  2.622048E+02,  2.613729E+02,  2.598454E+02, &
- & 2.610915E+02,  2.593094E+02,  2.618567E+02,  2.575697E+02,  2.589347E+02,  2.511682E+02,  2.502860E+02,  2.678501E+02, &
- & 2.569172E+02,  2.541621E+02,  2.636447E+02,  2.454069E+02/), &
-                                                number_groups_to_read_in = 172)
+   call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_4, &
+                                                     keyword_line_number = 2, &
+                                                     number_of_groups    = 172, &
+                                                     record_len          = 132, &
+                                                     values_expected     = (/ &
+ & 8.067299E-03,  6.038252E-03,  5.409664E-03,  5.968075E-03,  7.794893E-03,  1.007881E-02,  3.085696E-03,  2.508856E-04, &
+ & 1.246804E-04,  1.170927E-04,  1.101318E-04,  8.987960E-05,  8.768449E-05,  8.835270E-05,  8.829044E-05,  8.277333E-05, &
+ & 6.385334E-05,  3.538791E-05,  3.413362E-05,  3.358710E-05,  3.340005E-05,  3.180470E-05,  3.018787E-05,  2.948743E-05, &
+ & 2.919953E-05,  2.932990E-05,  2.985447E-05,  3.122614E-05,  3.146842E-05,  3.239765E-05,  3.448074E-05,  3.824649E-05, &
+ & 4.158788E-05,  4.501959E-05,  5.346744E-05,  5.797070E-05,  6.766545E-05,  7.434823E-05,  8.332580E-05,  8.529446E-05, &
+ & 8.688278E-05,  9.702778E-05,  1.058806E-04,  1.166753E-04,  1.229638E-04,  1.241919E-04,  1.515886E-04,  1.604488E-04, &
+ & 1.735822E-04,  1.989856E-04,  2.330108E-04,  2.261882E-04,  2.872929E-04,  2.276664E-04,  3.208860E-04,  4.138338E-04, &
+ & 4.372362E-04,  4.386278E-04,  4.670197E-04,  5.642580E-04,  5.043866E-04,  4.964821E-04,  1.004975E-03,  8.220389E-04, &
+ & 5.121720E-04,  1.590378E-03,  1.040307E-03,  6.230862E-04,  2.889554E-03,  8.162664E-04,  1.125000E-03,  6.190391E-04, &
+ & 7.096766E-04,  1.457212E-03,  1.163117E-02,  1.115339E-03,  4.095611E-04,  6.373236E-04,  1.285890E-03,  1.238334E-02, &
+ & 1.469368E-03,  6.760540E-04,  1.679034E-03,  3.935889E-04,  9.094165E-04,  3.415513E-03,  3.908598E-04,  1.971280E-02, &
+ & 9.017391E-04,  1.196401E-03,  5.350327E-04,  1.695218E-04,  6.623784E-04,  3.787110E-04,  5.305748E-04,  2.315603E-04, &
+ & 2.075522E-04,  2.152663E-04,  2.265663E-04,  2.606361E-04,  3.793263E-04,  8.698702E-04,  5.660166E-04,  3.079374E-04, &
+ & 2.928140E-04,  2.969397E-04,  3.061724E-04,  3.200321E-04,  3.338119E-04,  3.432857E-04,  3.665170E-04,  4.040914E-04, &
+ & 4.503087E-04,  5.965551E-04,  1.095904E-03,  1.630850E-03,  1.811831E-03,  1.819887E-03,  1.752076E-03,  1.598265E-03, &
+ & 1.387934E-03,  1.263386E-03,  1.192312E-03,  1.103408E-03,  1.042265E-03,  1.007934E-03,  9.667788E-04,  9.309679E-04, &
+ & 9.063189E-04,  8.805951E-04,  8.701653E-04,  8.695509E-04,  8.781026E-04,  8.998969E-04,  9.680308E-04,  1.088646E-03, &
+ & 1.223964E-03,  1.304494E-03,  1.437788E-03,  1.668983E-03,  1.826163E-03,  2.091639E-03,  2.571622E-03,  2.833519E-03, &
+ & 2.959912E-03,  3.095748E-03,  3.067261E-03,  2.897151E-03,  2.822073E-03,  2.856051E-03,  2.935983E-03,  3.100944E-03, &
+ & 3.239625E-03,  3.421451E-03,  3.722558E-03,  3.938990E-03,  4.221414E-03,  4.486343E-03,  4.736976E-03,  5.152412E-03, &
+ & 5.621122E-03,  6.179927E-03,  6.846588E-03,  7.523764E-03,  8.249716E-03,  9.194903E-03,  1.049205E-02,  1.243735E-02, &
+ & 1.504008E-02,  1.775471E-02,  2.132482E-02,  3.129871E-02/), &
+                                                     number_groups_to_read_in = 172)
 
-   call test_read_wims9plus_sigs_style_xsection(file_unit           = file_unit_2, &
-                                                keyword_line_number = 1971, &
-                                                number_of_groups    = 6, &
-                                                record_len          = 132, &
-                                                values_expected     = reshape((/ &
+   call test_read_format_radmats_sigs_style_xsection(file_unit           = file_unit_2, &
+                                                     keyword_line_number = 303, &
+                                                     number_of_groups    = 6, &
+                                                     record_len          = 132, &
+                                                     values_expected     = reshape((/ &
 !!!GROUP      1 FIRST      1 LAST      3
 !!!  1.340728E-01  2.518163E-02  1.290233E-05
 !!!GROUP      2 FIRST      2 LAST      3
@@ -271,14 +263,14 @@ subroutine test_radiation_materials_read_wims9plus_base
 & 0.000000E-00,0.000000E-00,5.875821E-03,3.363762E-01,5.222967E-04,-1.882949E-13, &
 & 0.000000E-00,0.000000E-00,0.000000E-00,2.930392E-02,3.323453E-01,1.958612E-03, &
 & 0.000000E-00,0.000000E-00,0.000000E-00,2.042756E-05,3.644267E-02,3.808241E-01 &
-                                                                    & /),(/6,6/)), &
-                                                 keyword_list       = keyword_list_two_moments)
+                                                                         & /),(/6,6/)), &
+                                                      keyword_list       = keyword_list_two_moments)
 
-   call test_read_wims9plus_sigs_style_xsection(file_unit           = file_unit_3, &
-                                                keyword_line_number = 2910, &
-                                                number_of_groups    = 11, &
-                                                record_len          = 132, &
-                                                values_expected     = reshape((/ &
+   call test_read_format_radmats_sigs_style_xsection(file_unit           = file_unit_3, &
+                                                     keyword_line_number = 97, &
+                                                     number_of_groups    = 11, &
+                                                     record_len          = 132, &
+                                                     values_expected     = reshape((/ &
 !!!GROUP      1 FIRST      1 LAST      8
 !!!  1.916469E-02 -6.137192E-03 -8.297635E-07 -3.124828E-08 -3.743999E-11  1.630492E-13  4.069419E-15  7.149059E-15
 !!!GROUP      2 FIRST      2 LAST     10
@@ -313,22 +305,22 @@ subroutine test_radiation_materials_read_wims9plus_base
 &  0.000000E-00, 2.569627E-15, 0.000000E-00, 0.000000E-00, 0.000000E-00,-1.009163E-05,-3.814381E-04,-1.178535E-02, 3.047878E-02,-5.521337E-04,-3.853524E-06,  &
 &  0.000000E-00, 4.603376E-16, 0.000000E-00, 0.000000E-00, 0.000000E-00,-1.606018E-07,-1.049360E-05,-1.532755E-03,-1.343326E-02, 1.696245E-02,-1.894755E-03,  &
 &  0.000000E-00, 0.000000E-00, 0.000000E-00, 0.000000E-00, 0.000000E-00,-1.281481E-08,-3.559836E-08,-4.955521E-05,-9.057373E-04,-5.232302E-03,-5.618228E-03  &
-                                                                    & /),(/11,11/)), &
-                                                keyword_list       = keyword_list_two_moments)
+                                                                         & /),(/11,11/)), &
+                                                     keyword_list       = keyword_list_two_moments)
 
    call test_count_number_lines_with_keyword(file_unit              = file_unit_1, &
                                              record_len             = 132, &
                                              keyword_list           = keyword_list_two_moments, &
                                              keyword_to_count       = 2, &
-                                             keyword_to_stop        = 1, &
-                                             keyword_count_expected = 49, &
-                                             line_number_expected   = 867) 
+                                             keyword_to_stop        = 19, &
+                                             keyword_count_expected = 10, &
+                                             line_number_expected   = 199) 
 
    call test_find_line_with_any_keyword(file_unit                    = file_unit_1, &
                                         record_len                   = 132, &
                                         keyword_list                 = keyword_list_two_moments, &
-                                        first_keyword_found_expected = 2, &
-                                        line_number_expected         = 61) 
+                                        first_keyword_found_expected = 1, &
+                                        line_number_expected         = 1) 
    
    ! this will use file_unit_1
    call test_find_line_with_any_desired_keyword(record_len   = 132, &
@@ -371,7 +363,7 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine test_keyword_list_initialise_wims9plus_two_scatter_moments(keyword_list)
+   subroutine test_keyword_list_initialise_format_radmats_two_scatter_moments(keyword_list)
       
       !!< Test the procedure that initialises the keyword list assuming two scatter moments
       
@@ -381,8 +373,8 @@ contains
       integer :: k
       character(len=21), dimension(23) :: keyword_list_check     
                    
-      call keyword_list_initialise_wims9plus(number_of_scatter_moments = 2, &
-                                             keyword_list = keyword_list)
+      call keyword_list_initialise_format_radmats(number_of_scatter_moments = 2, &
+                                                  keyword_list = keyword_list)
       
       ! check that the size of the keyword_list is correct
       first_check: if (size(keyword_list) /= 23) then
@@ -395,7 +387,7 @@ contains
       
       end if first_check
 
-      call report_test("[test_keyword_list_initialise_wims9plus_two_scatter_moments]", &
+      call report_test("[test_keyword_list_initialise_format_radmats_two_scatter_moments]", &
                        has_failed, &
                        has_warned, &
                        "failed keyword_list wrong size")   
@@ -437,14 +429,14 @@ contains
       
          end if second_check
 
-         call report_test("[test_keyword_list_initialise_wims9plus_two_scatter_moments]", &
+         call report_test("[test_keyword_list_initialise_format_radmats_two_scatter_moments]", &
                          has_failed, &
                          has_warned, &
                          "failed keyword_list has incorrect element "//int2str(k))   
       
       end do keyword_loop
             
-   end subroutine test_keyword_list_initialise_wims9plus_two_scatter_moments
+   end subroutine test_keyword_list_initialise_format_radmats_two_scatter_moments
    
    ! --------------------------------------------------------------------------
 
@@ -477,16 +469,16 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_deduce_number_of_items_wims9plus(file_unit, &
-                                                    total_number_of_radmats, &
-                                                    number_of_scatter_moments, &
-                                                    number_of_energy_groups, &
-                                                    number_non_thermal_groups, &
-                                                    number_of_delayed_groups, &
-                                                    record_len, &
-                                                    keyword_list)
+   subroutine test_deduce_number_of_items_format_radmats(file_unit, &
+                                                         total_number_of_radmats, &
+                                                         number_of_scatter_moments, &
+                                                         number_of_energy_groups, &
+                                                         number_non_thermal_groups, &
+                                                         number_of_delayed_groups, &
+                                                         record_len, &
+                                                         keyword_list)
       
-      !!< Test the procedure that deduces from a wims9plus input file the number of rad mats, the number of scatter moments, 
+      !!< Test the procedure that deduces from a format_radmats input file the number of rad mats, the number of scatter moments, 
       !!< the number of energy groups, the number of non thermal energy groups and the number of delayed groups
       
       integer, intent(in) :: file_unit
@@ -499,23 +491,23 @@ contains
       character(len=21), dimension(:), intent(in) :: keyword_list   
        
       ! local variables
-      integer :: total_number_of_radmats_wims9plus
-      integer :: number_of_energy_groups_wims9plus
-      integer :: number_non_thermal_groups_wims9plus
-      integer :: number_of_scatter_moments_wims9plus
-      integer :: number_of_delayed_groups_wims9plus
+      integer :: total_number_of_radmats_format_radmats
+      integer :: number_of_energy_groups_format_radmats
+      integer :: number_non_thermal_groups_format_radmats
+      integer :: number_of_scatter_moments_format_radmats
+      integer :: number_of_delayed_groups_format_radmats
                                                 
-      call deduce_number_of_items_wims9plus(file_unit, &
-                                            total_number_of_radmats_wims9plus, &
-                                            number_of_energy_groups_wims9plus, &
-                                            number_non_thermal_groups_wims9plus, &
-                                            number_of_scatter_moments_wims9plus, &
-                                            number_of_delayed_groups_wims9plus, &
-                                            record_len, &
-                                            keyword_list)
+      call deduce_number_of_items_format_radmats(file_unit, &
+                                                 total_number_of_radmats_format_radmats, &
+                                                 number_of_energy_groups_format_radmats, &
+                                                 number_non_thermal_groups_format_radmats, &
+                                                 number_of_scatter_moments_format_radmats, &
+                                                 number_of_delayed_groups_format_radmats, &
+                                                 record_len, &
+                                                 keyword_list)
      
       ! first check
-      check_number_of_energy_groups: if (number_of_energy_groups_wims9plus == number_of_energy_groups) then
+      check_number_of_energy_groups: if (number_of_energy_groups_format_radmats == number_of_energy_groups) then
             
          has_failed = .false.
                                             
@@ -525,13 +517,13 @@ contains
                             
       end if check_number_of_energy_groups
             
-      call report_test("[test_deduce_number_of_items_wims9plus]", &
+      call report_test("[test_deduce_number_of_items_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed as wrong number of energy groups")   
             
       ! second check
-      check_number_of_energy_thermal_groups: if (number_non_thermal_groups_wims9plus == number_non_thermal_groups) then
+      check_number_of_energy_thermal_groups: if (number_non_thermal_groups_format_radmats == number_non_thermal_groups) then
             
          has_failed = .false.
                                             
@@ -541,13 +533,13 @@ contains
                             
       end if check_number_of_energy_thermal_groups
             
-      call report_test("[test_deduce_number_of_items_wims9plus]", &
+      call report_test("[test_deduce_number_of_items_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed as wrong number of thermal energy groups")   
             
       ! third check
-      check_number_of_delayed_groups: if (number_of_delayed_groups_wims9plus == number_of_delayed_groups) then
+      check_number_of_delayed_groups: if (number_of_delayed_groups_format_radmats == number_of_delayed_groups) then
             
          has_failed = .false.
                                             
@@ -557,13 +549,13 @@ contains
                             
       end if check_number_of_delayed_groups
             
-      call report_test("[test_deduce_number_of_items_wims9plus]", &
+      call report_test("[test_deduce_number_of_items_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed as wrong number of delayed groups")   
 
       ! fourth check
-      check_number_of_scatter_moments: if (number_of_scatter_moments_wims9plus == number_of_scatter_moments) then
+      check_number_of_scatter_moments: if (number_of_scatter_moments_format_radmats == number_of_scatter_moments) then
             
          has_failed = .false.
                                             
@@ -573,13 +565,13 @@ contains
                             
       end if check_number_of_scatter_moments
             
-      call report_test("[test_deduce_number_of_items_wims9plus]", &
+      call report_test("[test_deduce_number_of_items_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed as wrong number of scatter moments")   
 
       ! fourth check
-      check_number_of_macro: if (total_number_of_radmats_wims9plus == total_number_of_radmats) then
+      check_number_of_macro: if (total_number_of_radmats_format_radmats == total_number_of_radmats) then
             
          has_failed = .false.
                                             
@@ -589,20 +581,20 @@ contains
                             
       end if check_number_of_macro
             
-      call report_test("[test_deduce_number_of_items_wims9plus]", &
+      call report_test("[test_deduce_number_of_items_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed as wrong number of radiation materials")   
                                           
-   end subroutine test_deduce_number_of_items_wims9plus
+   end subroutine test_deduce_number_of_items_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_scatter_mom_wims9plus(file_unit, &
-                                             record_len, &
-                                             dataset_radmat, &
-                                             np_radmat_size, &
-                                             keyword_list)
+   subroutine test_read_scatter_mom_format_radmats(file_unit, &
+                                                   record_len, &
+                                                   dataset_radmat, &
+                                                   np_radmat_size, &
+                                                   keyword_list)
       
       !!< Test the procedure that reads in the scatter data numbers
       
@@ -622,14 +614,14 @@ contains
       logical :: exit_if_eof
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
       
       line_number = 0
       rewind(unit=file_unit)                  
@@ -655,7 +647,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_read_scatter_mom_wims9plus]", &
+               call report_test("[test_read_scatter_mom_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -668,17 +660,17 @@ contains
             line_number_macro = line_number
                           
             ! now read in the required values
-            call read_scatter_mom_wims9plus(file_unit, &
-                                            line_number, &
-                                            dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat), &
-                                            record_len, &
-                                            keyword_list)
+            call read_scatter_mom_format_radmats(file_unit, &
+                                                 line_number, &
+                                                 dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                 record_len, &
+                                                 keyword_list)
             
             ! check each moment matrix
             mom_loop: do m = 1,size(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%scatter,3)
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%scatter(:,:,m), &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%scatter(:,:,m))
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%scatter(:,:,m))
 
                if (has_failed) exit pmat_loop
             
@@ -695,22 +687,22 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_scatter_mom_wims9plus]", &
+      call report_test("[test_read_scatter_mom_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
       
-   end subroutine test_read_scatter_mom_wims9plus
+   end subroutine test_read_scatter_mom_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_absorption_and_total_wims9plus(file_unit, &
-                                                       record_len, &
-                                                       dataset_radmat, &
-                                                       np_radmat_size, &
-                                                       keyword_list)
+   subroutine test_read_absorption_and_total_format_radmats(file_unit, &
+                                                            record_len, &
+                                                            dataset_radmat, &
+                                                            np_radmat_size, &
+                                                            keyword_list)
       
       !!< Test the procedure that reads in the absorption or total data numbers. This will also implicitly read in the scatter data.
       
@@ -729,14 +721,14 @@ contains
       logical :: exit_if_eof
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
       
       line_number = 0
       rewind(unit=file_unit)                  
@@ -762,7 +754,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_read_absorption_and_total_wims9plus]", &
+               call report_test("[test_read_absorption_and_total_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -775,19 +767,19 @@ contains
             line_number_macro = line_number
                           
             ! now read in the required values
-            call read_absorption_and_total_wims9plus(file_unit, &
-                                                     line_number, &
-                                                     dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat), &
-                                                     record_len, &
-                                                     keyword_list)
+            call read_absorption_and_total_format_radmats(file_unit, &
+                                                          line_number, &
+                                                          dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                          record_len, &
+                                                          keyword_list)
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%total, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%total)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%total)
 
             if (has_failed) exit pmat_loop
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%absorption, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%absorption)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%absorption)
 
             if (has_failed) exit pmat_loop
             
@@ -802,22 +794,22 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_absorption_and_total_wims9plus]", &
+      call report_test("[test_read_absorption_and_total_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
             
-   end subroutine test_read_absorption_and_total_wims9plus
+   end subroutine test_read_absorption_and_total_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_calculate_removal_moments_wims9plus(file_unit, &
-                                                       record_len, &
-                                                       dataset_radmat, &
-                                                       np_radmat_size, &
-                                                       keyword_list)
+   subroutine test_calculate_removal_moments_format_radmats(file_unit, &
+                                                            record_len, &
+                                                            dataset_radmat, &
+                                                            np_radmat_size, &
+                                                            keyword_list)
       
       !!< Test the procedure that calculates the removal moments. This will also read in the total and absorption (which itself will 
       !!< read in the scatter data)
@@ -838,14 +830,14 @@ contains
       logical :: exit_if_eof
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
       
       line_number = 0
       rewind(unit=file_unit)                  
@@ -871,7 +863,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_calculate_removal_moments_wims9plus]", &
+               call report_test("[test_calculate_removal_moments_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -884,17 +876,17 @@ contains
             line_number_macro = line_number
                           
             ! now read in the required values
-            call calculate_removal_moments_wims9plus(file_unit, &
-                                                     line_number, &
-                                                     dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat), &
-                                                     record_len, &
-                                                     keyword_list)
+            call calculate_removal_moments_format_radmats(file_unit, &
+                                                          line_number, &
+                                                          dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                          record_len, &
+                                                          keyword_list)
             
             ! check each moment matrix
             mom_loop: do m = 1,size(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%removal,2)
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%removal(:,m), &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%removal(:,m))
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%removal(:,m))
 
                if (has_failed) exit pmat_loop
             
@@ -913,23 +905,23 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_calculate_removal_moments_wims9plus]", &
+      call report_test("[test_calculate_removal_moments_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
                   
-   end subroutine test_calculate_removal_moments_wims9plus
+   end subroutine test_calculate_removal_moments_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_or_associate_transport_and_diffusion_wims9plus(file_unit, &
-                                                                       record_len, &
-                                                                       dataset_radmat, &
-                                                                       np_radmat_size, &
-                                                                       keyword_list, &
-                                                                       problem_dim)
+   subroutine test_read_or_associate_transport_and_diffusion_format_radmats(file_unit, &
+                                                                            record_len, &
+                                                                            dataset_radmat, &
+                                                                            np_radmat_size, &
+                                                                            keyword_list, &
+                                                                            problem_dim)
       
       !!< Test the procedure that reads the transport or diffusion data. This will also read in the total and absorption (which itself will 
       !!< read in the scatter data)
@@ -951,14 +943,14 @@ contains
       logical :: exit_if_eof
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
       
       line_number = 0
       rewind(unit=file_unit)                  
@@ -984,7 +976,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_read_or_associate_transport_and_diffusion_wims9plus]", &
+               call report_test("[test_read_or_associate_transport_and_diffusion_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -999,20 +991,20 @@ contains
             ! now read in the required values for each dimension
             dim_loop: do idim = 1,problem_dim              
 
-               call read_or_associate_transport_and_diffusion_wims9plus(file_unit, &
-                                                                        line_number, &
-                                                                        dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat), &
-                                                                        idim, &
-                                                                        record_len, &
-                                                                        keyword_list)
+               call read_or_associate_transport_and_diffusion_format_radmats(file_unit, &
+                                                                             line_number, &
+                                                                             dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                                             idim, &
+                                                                             record_len, &
+                                                                             keyword_list)
             
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%transport(:,idim), &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%transport(:,idim))
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%transport(:,idim))
 
                if (has_failed) exit pmat_loop
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%diffusion(:,idim), &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%diffusion(:,idim))
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%diffusion(:,idim))
 
                if (has_failed) exit pmat_loop
 
@@ -1029,23 +1021,23 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_or_associate_transport_and_diffusion_wims9plus]", &
+      call report_test("[test_read_or_associate_transport_and_diffusion_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
       
-   end subroutine test_read_or_associate_transport_and_diffusion_wims9plus
+   end subroutine test_read_or_associate_transport_and_diffusion_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_fission_data_wims9plus(file_unit, &
-                                               record_len, &
-                                               dataset_radmat, &
-                                               np_radmat_size, &
-                                               keyword_list, &
-                                               number_non_thermal_groups)
+   subroutine test_read_fission_data_format_radmats(file_unit, &
+                                                    record_len, &
+                                                    dataset_radmat, &
+                                                    np_radmat_size, &
+                                                    keyword_list, &
+                                                    number_non_thermal_groups)
       
       !!< Test the procedure that reads the fission data. 
       
@@ -1065,14 +1057,14 @@ contains
       logical :: exit_if_eof
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
       
       line_number = 0
       rewind(unit=file_unit)                  
@@ -1098,7 +1090,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_read_fission_data_wims9plus]", &
+               call report_test("[test_read_fission_data_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -1111,30 +1103,30 @@ contains
             line_number_macro = line_number
                           
             ! now read in the required values
-            call read_fission_data_wims9plus(file_unit, &
-                                             line_number, &
-                                             dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat), &
-                                             number_non_thermal_groups, &
-                                             record_len, &
-                                             keyword_list)
+            call read_fission_data_format_radmats(file_unit, &
+                                                  line_number, &
+                                                  dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                  number_non_thermal_groups, &
+                                                  record_len, &
+                                                  keyword_list)
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%fission, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%fission)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%fission)
 
             if (has_failed) exit pmat_loop
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%production, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%production)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%production)
 
             if (has_failed) exit pmat_loop
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%np_released_per_fission, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%np_released_per_fission)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%np_released_per_fission)
 
             if (has_failed) exit pmat_loop
             
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%prompt_spectrum, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%prompt_spectrum)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%prompt_spectrum)
 
             if (has_failed) exit pmat_loop
                                     
@@ -1149,24 +1141,24 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_fission_data_wims9plus]", &
+      call report_test("[test_read_fission_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
       
-   end subroutine test_read_fission_data_wims9plus
+   end subroutine test_read_fission_data_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_velocity_style_data_wims9plus(file_unit, &
-                                                      keyword_line_number, &
-                                                      keyword_find, &
-                                                      record_len, &
-                                                      dataset_radmat, &
-                                                      np_radmat_size, &
-                                                      keyword_list)
+   subroutine test_read_velocity_style_data_format_radmats(file_unit, &
+                                                           keyword_line_number, &
+                                                           keyword_find, &
+                                                           record_len, &
+                                                           dataset_radmat, &
+                                                           np_radmat_size, &
+                                                           keyword_list)
       
       !!< Test the procedure that reads in a velocity style data numbers
       !!< This assumes that the keyword is at the keyword_line_number which is read to first
@@ -1184,7 +1176,7 @@ contains
       integer :: rmat
       integer :: pmat
       integer :: number_of_groups
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                   
       line_number = 0
       rewind(unit=file_unit)
@@ -1197,11 +1189,11 @@ contains
                           exit_if_eof=.false.)
           
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
             
       number_of_groups_if: if (keyword_find(1) == 17) then
             
@@ -1214,12 +1206,12 @@ contains
       end if number_of_groups_if
             
       ! now read in the required values
-      call read_velocity_style_data_wims9plus(file_unit, &
-                                              dataset_radmat_wims9plus, &
-                                              number_of_groups, &
-                                              keyword_find, &
-                                              record_len, &
-                                              keyword_list)
+      call read_velocity_style_data_format_radmats(file_unit, &
+                                                   dataset_radmat_format_radmats, &
+                                                   number_of_groups, &
+                                                   keyword_find, &
+                                                   record_len, &
+                                                   keyword_list)
 
       ! now check the read in values with the expected values to a default tolerance
       pmat_loop: do pmat = 1,size(dataset_radmat%physical_radmats)
@@ -1229,22 +1221,22 @@ contains
             check_values: if (keyword_find(1) == 14) then
             
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%velocity, &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%velocity)
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%velocity)
                                                               
             else if (keyword_find(1) == 15) then 
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%power, &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%power)
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%power)
 
             else if (keyword_find(1) == 16) then 
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission, &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission)
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission)
                                         
             else if (keyword_find(1) == 17) then 
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%beta, &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%beta)
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%beta)
 
             end if check_values
 
@@ -1254,23 +1246,23 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_velocity_style_data_wims9plus]", &
+      call report_test("[test_read_velocity_style_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
             
-   end subroutine test_read_velocity_style_data_wims9plus
+   end subroutine test_read_velocity_style_data_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_delayed_data_wims9plus(file_unit, &
-                                               record_len, &
-                                               dataset_radmat, &
-                                               np_radmat_size, &
-                                               delayed_lambda_spectrum, &
-                                               keyword_list)
+   subroutine test_read_delayed_data_format_radmats(file_unit, &
+                                                    record_len, &
+                                                    dataset_radmat, &
+                                                    np_radmat_size, &
+                                                    delayed_lambda_spectrum, &
+                                                    keyword_list)
       
       !!< Test the procedure that reads in the delayed data numbers
       
@@ -1284,29 +1276,29 @@ contains
       ! local variables
       integer :: pmat
       integer :: rmat
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
-      type(delayed_lambda_spectrum_type) :: delayed_lambda_spectrum_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
+      type(delayed_lambda_spectrum_type) :: delayed_lambda_spectrum_format_radmats
       
       ! intiialise the read in data types
-      call allocate(dataset_radmat_wims9plus, &
+      call allocate(dataset_radmat_format_radmats, &
                     np_radmat_size, &
                     dmat=1)
 
-      call zero(dataset_radmat_wims9plus)
+      call zero(dataset_radmat_format_radmats)
  
-      call allocate(delayed_lambda_spectrum_wims9plus, &
+      call allocate(delayed_lambda_spectrum_format_radmats, &
                     np_radmat_size%number_of_delayed_groups, &
                     np_radmat_size%number_of_energy_groups)
 
-      call zero(delayed_lambda_spectrum_wims9plus)
+      call zero(delayed_lambda_spectrum_format_radmats)
                         
       ! now read in the required values
-      call read_delayed_data_wims9plus(file_unit, &
-                                       dataset_radmat_wims9plus, &
-                                       record_len, &
-                                       keyword_list, &
-                                       delayed_lambda_spectrum_wims9plus, &
-                                       read_delayed_lambda_spectrum = .true.)
+      call read_delayed_data_format_radmats(file_unit, &
+                                            dataset_radmat_format_radmats, &
+                                            record_len, &
+                                            keyword_list, &
+                                            delayed_lambda_spectrum_format_radmats, &
+                                            read_delayed_lambda_spectrum = .true.)
 
       ! now check the read in values with the expected values to a default tolerance
             
@@ -1315,7 +1307,7 @@ contains
          rmat_loop: do rmat = 1,size(dataset_radmat%physical_radmats(pmat)%radmats)
                           
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%beta, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%beta)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%beta)
 
             if (has_failed) exit pmat_loop
                                     
@@ -1323,40 +1315,40 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_delayed_data_wims9plus]", &
+      call report_test("[test_read_delayed_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "beta failed values read in not what expected,")   
             
       has_failed =  fnequals(delayed_lambda_spectrum%lambda, &
-                             delayed_lambda_spectrum_wims9plus%lambda)
+                             delayed_lambda_spectrum_format_radmats%lambda)
 
-      call report_test("[test_read_delayed_data_wims9plus]", &
+      call report_test("[test_read_delayed_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "lambda failed values read in not what expected")   
             
       has_failed =  fnequals(delayed_lambda_spectrum%spectrum, &
-                             delayed_lambda_spectrum_wims9plus%spectrum)
+                             delayed_lambda_spectrum_format_radmats%spectrum)
             
-      call report_test("[test_read_delayed_data_wims9plus]", &
+      call report_test("[test_read_delayed_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "spectrum failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
-      call destroy(delayed_lambda_spectrum_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
+      call destroy(delayed_lambda_spectrum_format_radmats)
                   
-   end subroutine test_read_delayed_data_wims9plus
+   end subroutine test_read_delayed_data_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_power_data_wims9plus(file_unit, &
-                                             record_len, &
-                                             dataset_radmat, &
-                                             np_radmat_size, &
-                                             test_power, &
-                                             keyword_list)
+   subroutine test_read_power_data_format_radmats(file_unit, &
+                                                  record_len, &
+                                                  dataset_radmat, &
+                                                  np_radmat_size, &
+                                                  test_power, &
+                                                  keyword_list)
       
       !!< Test the procedure that reads in the power data numbers
       !!< The power variable may not be read in but formed from the fission and energy released
@@ -1372,17 +1364,17 @@ contains
       ! local variables
       integer :: pmat
       integer :: rmat
-      type(dataset_radmat_type) :: dataset_radmat_wims9plus
+      type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_wims9plus,np_radmat_size,dmat=1)
-      call zero(dataset_radmat_wims9plus)
+      call allocate(dataset_radmat_format_radmats,np_radmat_size,dmat=1)
+      call zero(dataset_radmat_format_radmats)
                         
       ! now read in the required values
-      call read_power_data_wims9plus(file_unit, &
-                                      dataset_radmat_wims9plus, &
-                                      record_len, &
-                                      keyword_list)
+      call read_power_data_format_radmats(file_unit, &
+                                          dataset_radmat_format_radmats, &
+                                          record_len, &
+                                          keyword_list)
 
       ! now check the read in values with the expected values to a default tolerance
       pmat_loop: do pmat = 1,size(dataset_radmat%physical_radmats)
@@ -1390,14 +1382,14 @@ contains
          rmat_loop: do rmat = 1,size(dataset_radmat%physical_radmats(pmat)%radmats)
                           
             has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission, &
-                                   dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission)
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%energy_released_per_fission)
 
             if (has_failed) exit pmat_loop
                
             check_power: if (test_power) then                                            
 
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%power, &
-                                      dataset_radmat_wims9plus%physical_radmats(pmat)%radmats(rmat)%power)
+                                      dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%power)
 
                if (has_failed) exit pmat_loop
                   
@@ -1407,19 +1399,19 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_power_data_wims9plus]", &
+      call report_test("[test_read_power_data_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      call destroy(dataset_radmat_wims9plus)
+      call destroy(dataset_radmat_format_radmats)
       
-   end subroutine test_read_power_data_wims9plus
+   end subroutine test_read_power_data_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_calculate_power_wims9plus(dataset_radmat, &
-                                             np_radmat_size)
+   subroutine test_calculate_power_format_radmats(dataset_radmat, &
+                                                  np_radmat_size)
       
       !!< Test the procedure that calculates the power data from the fission and energy released
       
@@ -1449,7 +1441,7 @@ contains
       end do pmat_loop_zero
       
       ! calc the power
-      call calculate_power_wims9plus(dataset_radmat)
+      call calculate_power_format_radmats(dataset_radmat)
       
       ! check the power
       pmat_loop_check: do pmat = 1,size(dataset_radmat%physical_radmats)
@@ -1465,23 +1457,23 @@ contains
             
       end do pmat_loop_check
 
-      call report_test("[test_calculate_power_wims9plus]", &
+      call report_test("[test_calculate_power_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values calculated not what expected for pmat "//int2str(pmat)//" for rmat "//int2str(rmat))   
             
       call destroy(dataset_radmat_tmp)
       
-   end subroutine test_calculate_power_wims9plus
+   end subroutine test_calculate_power_format_radmats
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_wims9plus_siga_style_xsection(file_unit, &
-                                                      keyword_line_number, &
-                                                      number_of_groups, &
-                                                      record_len, &
-                                                      values_expected, &
-                                                      number_groups_to_read_in)
+   subroutine test_read_format_radmats_siga_style_xsection(file_unit, &
+                                                           keyword_line_number, &
+                                                           number_of_groups, &
+                                                           record_len, &
+                                                           values_expected, &
+                                                           number_groups_to_read_in)
       
       !!< Test the procedure that reads in the absorption (or SIGA) style cross section values
       !!< This assumes that the keyword is at the keyword_line_number which is read to first
@@ -1495,7 +1487,7 @@ contains
       
       ! local variables
       integer :: line_number
-      real, dimension(:), allocatable :: values_wims9plus
+      real, dimension(:), allocatable :: values_format_radmats
                   
       line_number = 0
       rewind(unit=file_unit)
@@ -1508,18 +1500,18 @@ contains
                           exit_if_eof=.false.)
             
       ! intiialise the values read in array
-      allocate(values_wims9plus(number_of_groups))
-      values_wims9plus = 0.0
+      allocate(values_format_radmats(number_of_groups))
+      values_format_radmats = 0.0
             
       ! now read in the required values
-      call read_wims9plus_siga_style_xsection(values_wims9plus, &
-                                              line_number, &
-                                              file_unit, &
-                                              record_len, &
-                                              number_groups_to_read_in=number_groups_to_read_in)
+      call read_format_radmats_siga_style_xsection(values_format_radmats, &
+                                                   line_number, &
+                                                   file_unit, &
+                                                   record_len, &
+                                                   number_groups_to_read_in=number_groups_to_read_in)
 
       ! now check the read in values with the expected values to a default tolerance
-      check_values: if (fequals(values_expected,values_wims9plus)) then
+      check_values: if (fequals(values_expected,values_format_radmats)) then
             
          has_failed = .false.
                                             
@@ -1529,23 +1521,23 @@ contains
                             
       end if check_values
             
-      call report_test("[test_read_wims9plus_siga_style_xsection]", &
+      call report_test("[test_read_format_radmats_siga_style_xsection]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      deallocate(values_wims9plus)                                  
+      deallocate(values_format_radmats)                                  
       
-   end subroutine test_read_wims9plus_siga_style_xsection
+   end subroutine test_read_format_radmats_siga_style_xsection
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_wims9plus_sigs_style_xsection(file_unit, &
-                                                      keyword_line_number, &
-                                                      number_of_groups, &
-                                                      record_len, &
-                                                      values_expected, &
-                                                      keyword_list)
+   subroutine test_read_format_radmats_sigs_style_xsection(file_unit, &
+                                                           keyword_line_number, &
+                                                           number_of_groups, &
+                                                           record_len, &
+                                                           values_expected, &
+                                                           keyword_list)
       
       !!< Test the procedure that reads in the scatter moment style cross section values
       !!< This read in assumes that the current line position is at the line with the keyword (eg. SCATTER MOMENT      1)
@@ -1559,7 +1551,7 @@ contains
       
       ! local variables
       integer :: line_number
-      real, dimension(:,:), allocatable :: values_wims9plus
+      real, dimension(:,:), allocatable :: values_format_radmats
                         
       line_number = 0
       rewind(unit=file_unit)
@@ -1572,18 +1564,18 @@ contains
                           exit_if_eof=.false.)
             
       ! intiialise the values read in array
-      allocate(values_wims9plus(number_of_groups,number_of_groups))
-      values_wims9plus = 0.0
+      allocate(values_format_radmats(number_of_groups,number_of_groups))
+      values_format_radmats = 0.0
             
       ! now read in the required values
-      call read_wims9plus_sigs_style_xsection(values_wims9plus, &
-                                              line_number, &
-                                              file_unit, &
-                                              record_len, &
-                                              keyword_list)
+      call read_format_radmats_sigs_style_xsection(values_format_radmats, &
+                                                   line_number, &
+                                                   file_unit, &
+                                                   record_len, &
+                                                   keyword_list)
 
       ! now check the read in values with the expected values to a default tolerance
-      check_values: if (fequals(values_expected,values_wims9plus)) then
+      check_values: if (fequals(values_expected,values_format_radmats)) then
             
          has_failed = .false.
                                            
@@ -1593,14 +1585,14 @@ contains
                             
       end if check_values
             
-      call report_test("[test_read_wims9plus_sigs_style_xsection]", &
+      call report_test("[test_read_format_radmats_sigs_style_xsection]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
-      deallocate(values_wims9plus)
+      deallocate(values_format_radmats)
             
-   end subroutine test_read_wims9plus_sigs_style_xsection
+   end subroutine test_read_format_radmats_sigs_style_xsection
    
    ! --------------------------------------------------------------------------
 
@@ -1697,7 +1689,7 @@ contains
       ! dont exit if end of file
       exit_if_eof = .false.
             
-      ! first search for word one - being MACRO in the wims9plus list            
+      ! first search for word one - being MACRO in the format_radmats list            
       call find_line_with_any_keyword(file_unit, &
                                       line_number, &
                                       first_keyword_found, &
@@ -1760,7 +1752,7 @@ contains
       ! dont exit if end of file
       exit_if_eof = .false.
             
-      ! first search for word one - being MACRO in the wims9plus list
+      ! first search for word one - being MACRO in the format_radmats list
       allocate(keyword_find(1))
       keyword_find(1) = 1  
             
@@ -1787,7 +1779,7 @@ contains
                        has_warned, &
                        "failed as wrong first keyword found first or end of file")   
                         
-      check_correct_line_number: if (line_number == 867) then
+      check_correct_line_number: if (line_number == 1) then
             
          has_failed = .false.
             
@@ -1833,7 +1825,7 @@ contains
                        has_warned, &
                        "failed as wrong keyword found first or end of file")   
                         
-      check_correct_line_number_again: if (line_number == 872) then
+      check_correct_line_number_again: if (line_number == 6) then
             
          has_failed = .false.
             
@@ -1899,7 +1891,7 @@ contains
       rewind(unit=file_unit_1)
             
       ! read some lines
-      line_loop1: do line = 1,122
+      line_loop1: do line = 1,146
                
          call read_next_line_seq(file_unit_1, &
                                  line_string, &
@@ -1911,7 +1903,7 @@ contains
       end do line_loop1
             
       ! test that we have the correct line            
-      check_correct_line1: if (trim(line_string) == '  1.288531E-04  1.792035E-03') then
+      check_correct_line1: if (trim(line_string) == '  3.608233E-01  4.655511E-03') then
                
          has_failed = .false.
             
@@ -1927,7 +1919,7 @@ contains
                        "failed as incorrect first line_string read")   
             
       ! read some more lines
-      line_loop2: do line = 1,921
+      line_loop2: do line = 1,5
             
          call read_next_line_seq(file_unit_1, &
                                  line_string, &
@@ -1939,7 +1931,7 @@ contains
       end do line_loop2
             
       ! test that we have the correct line            
-      check_correct_line2: if (trim(line_string) == 'END') then
+      check_correct_line2: if (trim(line_string) == '  2.453666E-02 -1.374331E-03') then
                
          has_failed = .false.
             
@@ -1955,7 +1947,7 @@ contains
                        "failed as incorrect second line_string read")   
 
       ! read some more lines
-      line_loop3: do line = 1,29
+      line_loop3: do line = 1,55
             
          call read_next_line_seq(file_unit_1, &
                                  line_string, &
@@ -2004,7 +1996,7 @@ contains
       rewind(unit=file_unit_1)
             
       ! read some lines forward
-      line_loop1: do line = 1,122
+      line_loop1: do line = 1,80
                
          call read_next_line_seq(file_unit_1, &
                                  line_string, &
@@ -2016,7 +2008,7 @@ contains
       end do line_loop1
             
       ! read some lines backward
-      line_loop2: do line = 1,13
+      line_loop2: do line = 1,4
                
          call read_previous_line_seq(file_unit_1, &
                                      line_string, &
@@ -2027,7 +2019,7 @@ contains
       end do line_loop2
           
       ! test that we have the correct line            
-      check_correct_line1: if (trim(line_string) == '  2.011938E+00  5.258210E-02') then
+      check_correct_line1: if (trim(line_string) == '  2.527262E-02 -1.623783E-03') then
                
          has_failed = .false.
             
@@ -2087,7 +2079,7 @@ contains
                               exit_if_eof = .false.)
         
       ! test that we have the correct line            
-      check_correct_line1: if (trim(line_string) == 'MESH_MATERIALS ') then
+      check_correct_line1: if (trim(line_string) == 'MACRO      1') then
                
          has_failed = .false.
             
@@ -2137,7 +2129,7 @@ contains
                               exit_if_eof = .false.)
                     
       ! test that we have the correct line            
-      check_correct_line1: if (trim(line_string) == 'EIGENVALUE ') then
+      check_correct_line1: if (trim(line_string) == '  4.883432E-06  3.137488E-01') then
                
          has_failed = .false.
             
@@ -2155,7 +2147,7 @@ contains
       ! second test
       call go_to_line_seq(file_unit_1, &
                           line_number, &
-                          go_to_line_number = 595, &
+                          go_to_line_number = 191, &
                           exit_if_eor       = .false., &
                           exit_if_eof       = .false.)
 
@@ -2168,7 +2160,7 @@ contains
                               exit_if_eof = .false.)
                     
       ! test that we have the correct line            
-      check_correct_line2: if (trim(line_string) == 'GROUP      1 FIRST      1 LAST      2') then
+      check_correct_line2: if (trim(line_string) == 'DELAYED_GROUPS') then
                
          has_failed = .false.
             
@@ -2186,7 +2178,7 @@ contains
       ! third test backwards
       call go_to_line_seq(file_unit_1, &
                           line_number, &
-                          go_to_line_number = 55, &
+                          go_to_line_number = 54, &
                           exit_if_eor       = .false., &
                           exit_if_eof       = .false.)
 
@@ -2199,7 +2191,7 @@ contains
                               exit_if_eof = .false.)
                   
       ! test that we have the correct line            
-      check_correct_line3: if (trim(line_string) == '  B10          2   2.206270E-04  B11          4   8.924460E-04  C           13   8.148154E-02  He3         23   3.718941E-11') then
+      check_correct_line3: if (trim(line_string) == '  1.907523E-02 -7.976619E-04') then
                
          has_failed = .false.
             
@@ -2226,8 +2218,8 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine open_wims9plus_input(file_unit, &
-                                   file_name)
+   subroutine open_format_radmats_input(file_unit, &
+                                        file_name)
 
       !!< Open the input files that are used for the unittesting
       
@@ -2247,7 +2239,7 @@ contains
       
          has_failed = .true.
          
-         call report_test("[open_wims9plus_input]", &
+         call report_test("[open_format_radmats_input]", &
                           has_failed, &
                           has_warned, &
                           "failed as input file not found, for input file "//trim(file_name))  
@@ -2266,7 +2258,7 @@ contains
             
             has_failed = .true.
          
-            call report_test("[open_wims9plus_input]", &
+            call report_test("[open_format_radmats_input]", &
                              has_failed, &
                              has_warned, &
                              "failed as input file open iostat /= 0, for input file "//trim(file_name))   
@@ -2275,8 +2267,8 @@ contains
             
       end if no_input
    
-   end subroutine open_wims9plus_input
+   end subroutine open_format_radmats_input
    
    ! --------------------------------------------------------------------------
 
-end subroutine test_radiation_materials_read_wims9plus_base
+end subroutine test_radiation_materials_read_format_radmats_base

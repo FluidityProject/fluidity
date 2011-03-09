@@ -61,44 +61,43 @@ contains
                                    np_radmats_ii) 
       
       !!< Initialise the radiation model. First check the options and then 
-      !!< create and set the radiation material databases for each object.
-      !!< Then create the the np_radmat_ii_type for each np. 
-      !!< Initialisation of the relevant fields/meshes has occurs in populate state in the preprocessor
+      !!< create and set the radiation material databases as well is interpolation 
+      !!< instructions for each particle type.
       
       type(state_type), intent(in) :: state
       type(np_radmat_type), dimension(:), allocatable, intent(inout) :: np_radmats
       type (np_radmat_ii_type), dimension(:), allocatable, intent(inout) :: np_radmats_ii
       
       ! local variable
-      integer :: np 
+      integer :: p 
       character(len=OPTION_PATH_LEN) :: np_radmat_option_path   
       
       ewrite(1,*) 'Initialise radiation model'
                      
-      allocate(np_radmats(option_count('/radiation/neutral_particle')))
+      allocate(np_radmats(option_count('/radiation/particle_type')))
       
-      allocate(np_radmats_ii(option_count('/radiation/neutral_particle')))
+      allocate(np_radmats_ii(option_count('/radiation/particle_type')))
       
       call radiation_check_options()
 
-      np_loop: do np = 1,option_count('/radiation/neutral_particle')
+      particle_type_loop: do p = 1,option_count('/radiation/particle_type')
     
          ! - 1 needed as options count from 0
-         np_radmat_option_path = '/radiation/neutral_particle['//int2str(np - 1)//']'
+         np_radmat_option_path = '/radiation/particle_type['//int2str(p - 1)//']'
       
-         call create(np_radmats(np), &
+         call create(np_radmats(p), &
                      trim(np_radmat_option_path))
          
-         call np_radmat_read(np_radmats(np))
+         call np_radmat_read(np_radmats(p))
          
-         call create(np_radmats_ii(np), &
-                     np_radmats(np), &
+         call create(np_radmats_ii(p), &
+                     np_radmats(p), &
                      state)
       
-         ! register the radiation diagnostics for stat file for this np
+         ! register the radiation diagnostics for stat file for this p
          call radiation_register_diagnostics(trim(np_radmat_option_path))
                   
-      end do np_loop
+      end do particle_type_loop
             
       ewrite(1,*) 'Finished initialise radiation model'
       
@@ -115,17 +114,17 @@ contains
       type (np_radmat_ii_type), dimension(:), allocatable, intent(inout) :: np_radmats_ii
       
       ! local variable
-      integer :: np 
+      integer :: p 
       
       ewrite(1,*) 'Cleanup radiation model'
       
-      np_loop: do np = 1,size(np_radmats)
+      particle_type_loop: do p = 1,size(np_radmats)
       
-         call destroy(np_radmats(np))
+         call destroy(np_radmats(p))
          
-         call destroy(np_radmats_ii(np))
+         call destroy(np_radmats_ii(p))
       
-      end do np_loop 
+      end do particle_type_loop 
       
       if (allocated(np_radmats)) deallocate(np_radmats)
 
@@ -140,7 +139,7 @@ contains
                               np_radmats_ii, &
                               invoke_eigenvalue_solve) 
                               
-      !!< Invoke the relevant radiation solver for each neutral particle
+      !!< Invoke the relevant radiation solver for each particle type
       
       type(state_type), intent(inout) :: state
       type(np_radmat_type), dimension(:), allocatable, intent(in) :: np_radmats
@@ -148,37 +147,37 @@ contains
       logical, intent(in) :: invoke_eigenvalue_solve
 
       ! local variable
-      integer :: np 
+      integer :: p 
       
-      np_loop: do np = 1,size(np_radmats)
+      particle_type_loop: do p = 1,size(np_radmats)
       
          which_solve: if (invoke_eigenvalue_solve) then
             
-            solve_eig: if (have_option(trim(np_radmats(np)%option_path)//'/eigenvalue_run')) then
+            solve_eig: if (have_option(trim(np_radmats(p)%option_path)//'/eigenvalue_run')) then
                
-               ewrite(1,*) 'Solve radiation model eigenvalue for np ',trim(np_radmats(np)%option_path)
+               ewrite(1,*) 'Solve radiation model eigenvalue for particle type ',trim(np_radmats(p)%name)
                
                call radiation_solve_eigenvalue(state, &
-                                               np_radmats_ii(np), &
-                                               np_radmats(np))
+                                               np_radmats_ii(p), &
+                                               np_radmats(p))
             
             end if solve_eig
             
          else which_solve
 
-            solve_time: if (have_option(trim(np_radmats(np)%option_path)//'/time_run')) then
+            solve_time: if (have_option(trim(np_radmats(p)%option_path)//'/time_run')) then
                
-               ewrite(1,*) 'Solve radiation model time for np ',trim(np_radmats(np)%option_path)
+               ewrite(1,*) 'Solve radiation model time for particle type ',trim(np_radmats(p)%name)
                
                call radiation_solve_time(state, &
-                                         np_radmats_ii(np), &
-                                         np_radmats(np))
+                                         np_radmats_ii(p), &
+                                         np_radmats(p))
 
             end if solve_time
       
          end if which_solve
 
-      end do np_loop 
+      end do particle_type_loop 
             
    end subroutine radiation_solve
 

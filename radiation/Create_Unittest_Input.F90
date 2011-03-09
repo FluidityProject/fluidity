@@ -44,7 +44,7 @@ contains
 
    subroutine create_np_radmat_input1(np_radmat)
 
-      !!< Create the np_radmat associated with the input file rad_input_test_dir//'test_radiation_materials_wims9plus.input1'
+      !!< Create the np_radmat associated with the input file rad_input_test_dir//'test_radiation_materials_format_radmats.input1'
       !!< this effectively hard codes in the values so that they can be compared against the read in value.
       !!< When used this implicity is also testing the allocate, zero and destroy procedures.
       
@@ -71,20 +71,20 @@ contains
       call zero(np_radmat)
       
       ! set the option paths
-      np_radmat%option_path = '/radiation/neutral_particle[0]'
-      np_radmat%dataset_radmats(1)%option_path = '/radiation/neutral_particle[0]/radiation_material_data_set_from_file[0]'
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%option_path =  '/radiation/neutral_particle[0]/radiation_material_data_set_from_file[0]/physical_material[0]'
+      np_radmat%option_path = '/radiation/particle_type[0]'
+      np_radmat%dataset_radmats(1)%option_path = '/radiation/particle_type[0]/radiation_material_data_set_from_file[0]'
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%option_path =  '/radiation/particle_type[0]/radiation_material_data_set_from_file[0]/physical_material[0]'
 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%velocity = (/10.0,20.0/) 
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%velocity = (/10.0,20.0/)    
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%velocity = (/0.0,0.0/) 
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%velocity = (/0.0,0.0/)    
 
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
@@ -389,16 +389,16 @@ contains
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%prompt_spectrum_set = .false.
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%prompt_spectrum_set = .false.
        
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%velocity_set = .true.
-      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%velocity_set = .true.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%velocity_set = .false.
+      np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%velocity_set = .false.
        
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%beta_set = .true.
       np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%beta_set = .true.

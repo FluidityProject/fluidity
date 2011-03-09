@@ -18,6 +18,30 @@
         </stat>
       </from_file>
     </mesh>
+    <mesh name="ParticleMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="ParticleMaterialMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">4</integer_value>
@@ -67,42 +91,35 @@
     </vector_field>
   </material_phase>
   <radiation>
-    <neutral_particle name="neutron">
+    <particle_type name="neutron">
+      <eigenvalue_run>
+        <power_iteration>
+          <maximum>
+            <integer_value rank="0">100</integer_value>
+          </maximum>
+          <flux_tolerance>
+            <real_value rank="0">1.0e-8</real_value>
+          </flux_tolerance>
+          <keff_tolerance>
+            <real_value rank="0">1.0e-8</real_value>
+          </keff_tolerance>
+        </power_iteration>
+        <flux_normalisation>
+          <total_power>
+            <real_value rank="0">1.0</real_value>
+          </total_power>
+        </flux_normalisation>
+      </eigenvalue_run>
       <method name="MultiGroupDiffusion">
         <number_of_energy_groups>
           <integer_value rank="0">2</integer_value>
         </number_of_energy_groups>
         <neutral_particle_flux_group_set_field name="all">
           <group_all/>
-          <mesh name="NeutralParticleMeshGroupSet">
-            <from_mesh>
-              <mesh name="CoordinateMesh"/>
-              <mesh_continuity>
-                <string_value>continuous</string_value>
-              </mesh_continuity>
-              <stat>
-                <exclude_from_stat/>
-              </stat>
-            </from_mesh>
-          </mesh>
-          <mesh name="NeutralParticleMaterialMeshGroupSet">
-            <from_mesh>
-              <mesh name="CoordinateMesh"/>
-              <mesh_shape>
-                <polynomial_degree>
-                  <integer_value rank="0">0</integer_value>
-                </polynomial_degree>
-              </mesh_shape>
-              <mesh_continuity>
-                <string_value>discontinuous</string_value>
-              </mesh_continuity>
-              <stat>
-                <exclude_from_stat/>
-              </stat>
-            </from_mesh>
-          </mesh>
+          <mesh name="ParticleMaterialMesh"/>
           <scalar_field name="NeutralParticleFlux">
             <prognostic>
+              <mesh name="ParticleMesh"/>
               <spatial_discretisation>
                 <continuous_galerkin/>
               </spatial_discretisation>
@@ -141,30 +158,15 @@
           </scalar_field>
         </neutral_particle_flux_group_set_field>
       </method>
-      <time_run>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
-        <energy_group_iteration>
-          <maximum>
-            <integer_value rank="0">100</integer_value>
-          </maximum>
-          <tolerance>
-            <real_value rank="0">1.0e-8</real_value>
-          </tolerance>
-        </energy_group_iteration>
-      </time_run>
-      <radiation_material_data_set_from_file file_name="data/radiation_materials_read_input1">
+      <radiation_material_data_set_from_file file_name="data/radiation_materials_read_input1.radmats">
         <number_of_scatter_moments>
           <integer_value rank="0">2</integer_value>
         </number_of_scatter_moments>
-        <format_wims9plus>
+        <format_radmats>
           <maximum_record_length>
             <integer_value rank="0">132</integer_value>
           </maximum_record_length>
-        </format_wims9plus>
+        </format_radmats>
         <physical_material name="fuel">
           <interpolation_dimension name="one">
             <interpolation_attribute_prescribed>
@@ -176,30 +178,12 @@
           </interpolation_dimension>
         </physical_material>
       </radiation_material_data_set_from_file>
-      <scalar_field name="RadTotalPower">
-        <diagnostic>
-          <algorithm name="Internal" material_phase_support="multiple"/>
-          <output/>
-          <stat/>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-        </diagnostic>
-      </scalar_field>
       <delayed_neutron_precursor>
-        <mesh name="DelayedNeutronMesh">
-          <from_mesh>
-            <mesh name="CoordinateMesh"/>
-            <stat>
-              <exclude_from_stat/>
-            </stat>
-          </from_mesh>
-        </mesh>
         <number_delayed_neutron_precursor_groups>
           <integer_value rank="0">6</integer_value>
         </number_delayed_neutron_precursor_groups>
-        <read_delayed_lambda_spectrum_from_data_set file_name="data/radiation_materials_read_input1"/>
+        <read_delayed_lambda_spectrum_from_data_set file_name="data/radiation_materials_read_input1.radmats"/>
       </delayed_neutron_precursor>
-    </neutral_particle>
+    </particle_type>
   </radiation>
 </fluidity_options>

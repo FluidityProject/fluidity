@@ -82,8 +82,8 @@ contains
       ewrite(1,*) 'Radiation eigenvalue run register diagnostics for np name ',trim(np_radmat_name)
       
       call register_diagnostic(dim       = 1, &
-                               name      = "NeutralParticleKeff"//trim(np_radmat_name), &
-                               statistic = "Value")
+                               name      = trim(np_radmat_name)//'Keff', &
+                               statistic = 'Value')
       
    end subroutine radiation_eigenvalue_register_diagnostics
    
@@ -105,12 +105,12 @@ contains
       ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for np name ',trim(np_radmat_name)
       
       keff_field => extract_scalar_field(state, &
-                                         "NeutralParticleKeff"//trim(np_radmat_name))
+                                         trim(np_radmat_name)//'Keff')
       
       keff = node_val(keff_field,1)
  
-      call set_diagnostic(name      = "NeutralParticleKeff"//trim(np_radmat_name),  &
-                          statistic = "Value", &
+      call set_diagnostic(name      = trim(np_radmat_name)//'Keff',  &
+                          statistic = 'Value', &
                           value     = (/keff/))
       
    end subroutine radiation_eigenvalue_set_diagnostics

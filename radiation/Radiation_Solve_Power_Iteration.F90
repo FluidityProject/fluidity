@@ -142,7 +142,7 @@ contains
       end do power_iteration
       
       ! set the Keff into the constant scalar field for output
-      keff_field => extract_scalar_field(state,'NeutralParticleKeff'//trim(np_radmat_name))    
+      keff_field => extract_scalar_field(state,trim(np_radmat_name)//'Keff')    
        
       call set(keff_field,keff) 
        

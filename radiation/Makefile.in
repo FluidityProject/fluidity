@@ -50,8 +50,8 @@ OBJS = Radiation.o \
        Radiation_Materials_Create.o \
        Radiation_Materials_Destroy.o \
        Radiation_Materials_Read.o \
-       Radiation_Materials_Read_Wims9Plus.o \
-       Radiation_Materials_Read_Wims9Plus_Base.o \
+       Radiation_Materials_Read_Format_Radmats.o \
+       Radiation_Materials_Read_Format_Radmats_Base.o \
        Radiation_Materials_Operations.o \
        Radiation_Materials_Interpolation.o \
        Radiation_Materials_Interpolation_Data_Types.o \
@@ -105,9 +105,9 @@ Radiation_Materials.o: Radiation_Materials_Data_Types.o Radiation_Materials_Crea
 Radiation_Materials_Data_Types.o: 
 Radiation_Materials_Create.o: Radiation_Materials_Data_Types.o 
 Radiation_Materials_Destroy.o: Radiation_Materials_Data_Types.o
-Radiation_Materials_Read.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Wims9Plus.o
-Radiation_Materials_Read_Wims9Plus.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Wims9Plus_Base.o 
-Radiation_Materials_Read_Wims9Plus_Base.o: Radiation_Materials_Data_Types.o 
+Radiation_Materials_Read.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats.o
+Radiation_Materials_Read_Format_Radmats.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats_Base.o 
+Radiation_Materials_Read_Format_Radmats_Base.o: Radiation_Materials_Data_Types.o 
 Radiation_Materials_Operations.o: Radiation_Materials_Data_Types.o
 Radiation_Materials_Interpolation.o: Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials_Interpolation_Create.o Radiation_Materials_Interpolation_Destroy.o Radiation_Materials_Interpolation_Form_II.o Radiation_Materials_Interpolation_Form_Radmat_Vele.o 
 Radiation_Materials_Interpolation_Data_Types.o: 

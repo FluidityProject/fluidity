@@ -83,7 +83,7 @@ contains
 
       ! intiialise the read in data type from the options
       call create(np_radmat_readin, &
-                  np_radmat_option_path = "/radiation/neutral_particle[0]")
+                  np_radmat_option_path = "/radiation/particle_type[0]")
                                                       
       call np_radmat_read(np_radmat_readin)         
 
@@ -122,12 +122,12 @@ contains
 
       ! intiialise the read in data type from the options
       call create(np_radmat_readin, &
-                  np_radmat_option_path = "/radiation/neutral_particle[0]")
+                  np_radmat_option_path = "/radiation/particle_type[0]")
                                                       
       call read_in_dataset_radmat(np_radmat_readin%dataset_radmats(1), &
                                   np_radmat_readin%delayed_lambda_spectrum, &
                                   read_delayed_lambda_spectrum = .true., &
-                                  read_velocity_data           = .true., &
+                                  read_velocity_data           = .false., &
                                   read_power_data              = .true.)         
 
       has_failed = .not. radmat_type_equals(np_radmat_readin%dataset_radmats(1), &

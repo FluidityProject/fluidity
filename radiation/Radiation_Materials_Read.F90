@@ -34,7 +34,7 @@ module radiation_materials_read
    use spud
 
    use radiation_materials_data_types 
-   use radiation_materials_read_wims9plus    
+   use radiation_materials_read_format_radmats    
    
    implicit none
    
@@ -75,11 +75,7 @@ contains
       if (have_option(trim(np_radmat%option_path)//'/time_run')) read_velocity_data = .true.
          
       ! see if there is a need for the power data for this object 
-      check_need_power: if (have_option(trim(np_radmat%option_path)//'/eigenvalue_run/flux_normalisation/total_power') .or. &
-                            have_option(trim(np_radmat%option_path)//'/scalar_field::RadTotalPower') .or. &
-                            have_option(trim(np_radmat%option_path)//'/region_id_material_mapping/scalar_field::RadRegionPower') .or. &
-                            have_option(trim(np_radmat%option_path)//'/link_with_multimaterial/scalar_field::RadMaterialPower') .or. &
-                            have_option(trim(np_radmat%option_path)//'/link_with_porous_media/scalar_field::RadPorousPower')) then
+      check_need_power: if (have_option(trim(np_radmat%option_path)//'/eigenvalue_run/flux_normalisation/total_power')) then
             
          read_power_data = .true.
             
@@ -151,23 +147,22 @@ contains
       ! get the problem dimension from the options
       call get_option("/geometry/dimension",problem_dimension) 
     
-      read_data_set_if: if (have_option(trim(dataset_radmat%option_path)//'/format_wims9plus')) then
+      read_data_set_if: if (have_option(trim(dataset_radmat%option_path)//'/format_radmats')) then
 
-         ! find the wim9 file name from the options
+         ! find the format radmats file name from the options
          call get_option(trim(dataset_radmat%option_path)//'/file_name',filename)
-         filename = trim(filename) // ".wims9plus_data"
 
-         ! set the wims9plus record length used for reading from the options
-         call get_option(trim(dataset_radmat%option_path)//"/format_wims9plus/maximum_record_length",record_len) 
+         ! set the radmats file record length used for reading from the options
+         call get_option(trim(dataset_radmat%option_path)//"/format_radmats/maximum_record_length",record_len) 
                   
-         call read_wims9plus(trim(filename), &
-                             dataset_radmat, &
-                             delayed_lambda_spectrum, &
-                             read_delayed_lambda_spectrum, &
-                             read_velocity_data, &
-                             read_power_data, &
-                             problem_dimension, &
-                             record_len)         
+         call read_format_radmats(trim(filename), &
+                                  dataset_radmat, &
+                                  delayed_lambda_spectrum, &
+                                  read_delayed_lambda_spectrum, &
+                                  read_velocity_data, &
+                                  read_power_data, &
+                                  problem_dimension, &
+                                  record_len)         
       
       else read_data_set_if 
       

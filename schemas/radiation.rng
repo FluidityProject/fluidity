@@ -5,29 +5,52 @@
     <element name="radiation">
       <a:documentation>Radiation model </a:documentation>
       <ref name="comment"/>
-      <oneOrMore>
-        <ref name="particle"/>
-      </oneOrMore>
+      <optional>
+        <ref name="particle_type_neutron"/>
+      </optional>
+      <optional>
+        <ref name="particle_type_photon"/>
+      </optional>
     </element>
   </define>
-  <define name="particle">
-    <element name="neutral_particle">
-      <a:documentation>neutral particle object, each instance is tagged with a string name</a:documentation>
+  <define name="particle_type_neutron">
+    <element name="particle_type">
+      <a:documentation>Particle type neutron</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <data type="string"/>
+        <value>neutron</value>
       </attribute>
-      <ref name="radiation_method"/>
-      <ref name="problem_run"/>
-      <ref name="read_radiation_material_data_set"/>
-      <ref name="radiation_material_mapping"/>
-      <optional>
-        <ref name="Rad_Total_Fission_and_Power"/>
-      </optional>
+      <ref name="problem_run_neutron"/>
+      <ref name="particle_type_generic"/>
       <optional>
         <ref name="delayed_precursor"/>
       </optional>
     </element>
+  </define>
+  <define name="particle_type_photon">
+    <element name="particle_type">
+      <a:documentation>Particle type photon</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>photon</value>
+      </attribute>
+      <ref name="problem_run_photon"/>
+      <ref name="particle_type_generic"/>
+    </element>
+  </define>
+  <define name="particle_type_generic">
+    <ref name="radiation_method"/>
+    <ref name="read_radiation_material_data_set"/>
+    <ref name="radiation_material_mapping"/>
+  </define>
+  <define name="problem_run_neutron">
+    <choice>
+      <ref name="eigenvalue_run"/>
+      <ref name="time_run"/>
+    </choice>
+  </define>
+  <define name="problem_run_photon">
+    <ref name="time_run"/>
   </define>
   <define name="radiation_method">
     <element name="method">
@@ -57,8 +80,7 @@
         <data type="string"/>
       </attribute>
       <ref name="group_set"/>
-      <ref name="neutral_particle_mesh_group_set"/>
-      <ref name="neutral_particle_material_mesh_group_set"/>
+      <ref name="particle_type_material_mesh_choice"/>
       <ref name="neutral_particle_flux_diffusion_field"/>
     </element>
   </define>
@@ -89,102 +111,19 @@
       </element>
     </choice>
   </define>
-  <define name="neutral_particle_mesh_group_set">
-    <element name="mesh">
-      <a:documentation>The function space associated with the neutral particle solution for this group set</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>NeutralParticleMeshGroupSet</value>
-      </attribute>
-      <element name="from_mesh">
-        <a:documentation>Derived from the mesh</a:documentation>
-        <ref name="comment"/>
-        <element name="mesh">
-          <ref name="comment"/>
-          <attribute name="name">
-            <value>CoordinateMesh</value>
-          </attribute>
-        </element>
-        <optional>
-          <element name="mesh_shape">
-            <a:documentation>The trial space basis function options</a:documentation>
-            <ref name="comment"/>
-            <optional>
-              <element name="polynomial_degree">
-                <a:documentation>The order of the basis functions</a:documentation>
-                <ref name="comment"/>
-                <ref name="integer"/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-        <element name="mesh_continuity">
-          <a:documentation>The continuity associated with the mesh</a:documentation>
-          <ref name="comment"/>
-          <element name="string_value">
-            <value>continuous</value>
-          </element>
-        </element>
-        <ref name="exclude_mesh_stat"/>
+  <define name="particle_type_material_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ParticleMaterialMesh</value>
+        </attribute>
       </element>
-    </element>
-  </define>
-  <define name="neutral_particle_material_mesh_group_set">
-    <element name="mesh">
-      <a:documentation>The function space associated with the material mapping used to solve for the neutral particle for this group set 
-is always volume element wise (ie. DG order zero or FV)</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>NeutralParticleMaterialMeshGroupSet</value>
-      </attribute>
-      <element name="from_mesh">
-        <a:documentation>Derived from the mesh</a:documentation>
-        <ref name="comment"/>
-        <element name="mesh">
-          <ref name="comment"/>
-          <attribute name="name">
-            <value>CoordinateMesh</value>
-          </attribute>
-        </element>
-        <element name="mesh_shape">
-          <a:documentation>The trial space basis function options</a:documentation>
-          <ref name="comment"/>
-          <element name="polynomial_degree">
-            <a:documentation>The order of the basis functions</a:documentation>
-            <ref name="comment"/>
-            <element name="integer_value">
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <value>0</value>
-            </element>
-          </element>
-        </element>
-        <element name="mesh_continuity">
-          <a:documentation>The continuity associated with the mesh</a:documentation>
-          <ref name="comment"/>
-          <element name="string_value">
-            <value>discontinuous</value>
-          </element>
-        </element>
-        <ref name="exclude_mesh_stat"/>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
       </element>
-    </element>
-  </define>
-  <define name="exclude_mesh_stat">
-    <element name="stat">
-      <ref name="comment"/>
-      <choice>
-        <element name="exclude_from_stat">
-          <a:documentation>Exclude this mesh from the .stat file</a:documentation>
-          <ref name="comment"/>
-        </element>
-        <element name="include_in_stat">
-          <a:documentation>Include this mesh in the .stat file</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </choice>
-    </element>
+    </choice>
   </define>
   <define name="neutral_particle_flux_diffusion_field">
     <element name="scalar_field">
@@ -200,6 +139,7 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
     <element name="prognostic">
       <a:documentation>Field Type</a:documentation>
       <ref name="comment"/>
+      <ref name="particle_type_mesh_choice"/>
       <ref name="radiation_diffusion_spatial_discretisation"/>
       <ref name="radiation_diffusion_inner_solver_options"/>
       <oneOrMore>
@@ -216,6 +156,20 @@ is always volume element wise (ie. DG order zero or FV)</a:documentation>
       <ref name="adaptivity_options_scalar_field"/>
       <ref name="interpolation_algorithm_scalar"/>
     </element>
+  </define>
+  <define name="particle_type_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ParticleMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="radiation_diffusion_spatial_discretisation">
     <element name="spatial_discretisation">
@@ -331,12 +285,6 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
         </element>
       </optional>
     </element>
-  </define>
-  <define name="problem_run">
-    <choice>
-      <ref name="eigenvalue_run"/>
-      <ref name="time_run"/>
-    </choice>
   </define>
   <define name="eigenvalue_run">
     <element name="eigenvalue_run">
@@ -551,24 +499,39 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
     </element>
   </define>
   <define name="prescribed_source_scalar_field">
+    <ref name="particle_type_prescribed_source_mesh_choice"/>
     <ref name="prescribed_values_scalar_field"/>
     <ref name="radiation_output_options"/>
     <ref name="radiation_stat_options"/>
     <ref name="prescribed_detector_options"/>
   </define>
+  <define name="particle_type_prescribed_source_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ParticlePrescribedSourceMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
   <define name="read_radiation_material_data_set">
     <oneOrMore>
       <element name="radiation_material_data_set_from_file">
-        <a:documentation>Read radiation material data set from file</a:documentation>
+        <a:documentation>Read radiation material data set from file 
+(Include any file name extensions in the file name as well as the path if needed)</a:documentation>
         <ref name="comment"/>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
         <ref name="number_of_scatter_moments"/>
-        <element name="format_wims9plus">
-          <a:documentation>a format that is a extension of the wims9 LISTTO interface that includes
-extra data (eg. velocity, delayed, energy released) and with the options 
-to read different data items (eg. total or absorption)</a:documentation>
+        <element name="format_radmats">
+          <a:documentation>A keyword based embedded radiation data type format file, of which a subset 
+includes the formatted file produced via a LISTTO from WIMS9</a:documentation>
           <ref name="comment"/>
           <element name="maximum_record_length">
             <a:documentation>The maximum line (or record) length of the input file</a:documentation>
@@ -644,9 +607,6 @@ the rest of the fluids state. This must be used with a prescribed physical mater
             <ref name="radiation_material"/>
           </element>
         </oneOrMore>
-        <optional>
-          <ref name="Rad_Region_Fission_and_Power"/>
-        </optional>
       </element>
     </optional>
     <optional>
@@ -667,9 +627,6 @@ the rest of the fluids state. This must be used with a prescribed physical mater
         <optional>
           <ref name="Rad_MaterialTemperature"/>
         </optional>
-        <optional>
-          <ref name="Rad_Material_Fission_and_Power"/>
-        </optional>
       </element>
     </optional>
     <optional>
@@ -689,9 +646,6 @@ the rest of the fluids state. This must be used with a prescribed physical mater
         <ref name="Rad_Porosity"/>
         <optional>
           <ref name="Rad_PorousTemperature"/>
-        </optional>
-        <optional>
-          <ref name="Rad_Porous_Fission_and_Power"/>
         </optional>
       </element>
     </optional>
@@ -774,141 +728,21 @@ that is used for the cross section interpolation</a:documentation>
     <choice>
       <element name="prescribed">
         <ref name="comment"/>
+        <ref name="particle_type_material_mesh_choice"/>
         <ref name="prescribed_scalar_field"/>
       </element>
       <element name="diagnostic">
         <ref name="comment"/>
         <ref name="scalar_diagnostic_algorithms"/>
+        <ref name="particle_type_material_mesh_choice"/>
         <ref name="diagnostic_scalar_field"/>
       </element>
     </choice>
-  </define>
-  <define name="Rad_Region_Fission_and_Power">
-    <ref name="Rad_Region_Fission"/>
-    <ref name="Rad_Region_Power"/>
-  </define>
-  <define name="Rad_Region_Fission">
-    <element name="scalar_field">
-      <a:documentation>The fission density scalar field</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadRegionFission</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Region_Power">
-    <element name="scalar_field">
-      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadRegionPower</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Material_Fission_and_Power">
-    <ref name="Rad_Material_Fission"/>
-    <ref name="Rad_Material_Power"/>
-  </define>
-  <define name="Rad_Material_Fission">
-    <element name="scalar_field">
-      <a:documentation>The fission density scalar field</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadMaterialFission</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Material_Power">
-    <element name="scalar_field">
-      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadMaterialPower</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Porous_Fission_and_Power">
-    <ref name="Rad_Porous_Fission"/>
-    <ref name="Rad_Porous_Power"/>
-  </define>
-  <define name="Rad_Porous_Fission">
-    <element name="scalar_field">
-      <a:documentation>The fission density scalar field</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadPorousFission</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Porous_Power">
-    <element name="scalar_field">
-      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadPorousPower</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Total_Fission_and_Power">
-    <ref name="Rad_Total_Fission"/>
-    <ref name="Rad_Total_Power"/>
-  </define>
-  <define name="Rad_Total_Fission">
-    <element name="scalar_field">
-      <a:documentation>The fission density scalar field</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadTotalFission</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="Rad_Total_Power">
-    <element name="scalar_field">
-      <a:documentation>The power density scalar field for diagnostics and coupling</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>RadTotalPower</value>
-      </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-        <a:documentation>Field Type</a:documentation>
-      </ref>
-    </element>
-  </define>
-  <define name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
-    <element name="diagnostic">
-      <ref name="comment"/>
-      <ref name="internal_algorithm"/>
-      <ref name="radiation_output_options"/>
-      <ref name="radiation_stat_options"/>
-      <ref name="diagnostic_detector_options"/>
-    </element>
   </define>
   <define name="delayed_precursor">
     <element name="delayed_neutron_precursor">
       <a:documentation>Delayed neutron precursor </a:documentation>
       <ref name="comment"/>
-      <ref name="delayed_neutron_mesh"/>
       <element name="number_delayed_neutron_precursor_groups">
         <a:documentation>The number of delayed neutron precursor groups</a:documentation>
         <ref name="comment"/>
@@ -943,51 +777,6 @@ that is used for the cross section interpolation</a:documentation>
           <ref name="delayed_neutron_precursor_diagnostic"/>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="delayed_neutron_mesh">
-    <element name="mesh">
-      <a:documentation>The mesh associated with the delayed precursor concentration solution</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>DelayedNeutronMesh</value>
-      </attribute>
-      <element name="from_mesh">
-        <a:documentation>Derived from the mesh</a:documentation>
-        <ref name="comment"/>
-        <element name="mesh">
-          <ref name="comment"/>
-          <attribute name="name">
-            <value>CoordinateMesh</value>
-          </attribute>
-        </element>
-        <optional>
-          <element name="mesh_shape">
-            <a:documentation>The trial space basis function options</a:documentation>
-            <ref name="comment"/>
-            <optional>
-              <element name="polynomial_degree">
-                <a:documentation>The order of the basis functions</a:documentation>
-                <ref name="comment"/>
-                <ref name="integer"/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-        <optional>
-          <element name="mesh_continuity">
-            <a:documentation>The continuity associated with the mesh</a:documentation>
-            <ref name="comment"/>
-            <element name="string_value">
-              <choice>
-                <value>continuous</value>
-                <value>discontinuous</value>
-              </choice>
-            </element>
-          </element>
-        </optional>
-        <ref name="exclude_mesh_stat"/>
-      </element>
     </element>
   </define>
   <define name="prompt_delayed_coupling_option">
@@ -1034,9 +823,20 @@ that is used for the cross section interpolation</a:documentation>
       <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
     </element>
   </define>
+  <define name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+    <element name="diagnostic">
+      <ref name="comment"/>
+      <ref name="internal_algorithm"/>
+      <ref name="delayed_particle_type_mesh_choice"/>
+      <ref name="radiation_output_options"/>
+      <ref name="radiation_stat_options"/>
+      <ref name="diagnostic_detector_options"/>
+    </element>
+  </define>
   <define name="prognostic_delayed_neutron_advection_decay_source_scalar_field">
     <element name="prognostic">
       <ref name="comment"/>
+      <ref name="delayed_particle_type_mesh_choice"/>
       <element name="equation">
         <a:documentation>Solve a delayed neutron advection-decay-source equation</a:documentation>
         <ref name="comment"/>
@@ -1089,5 +889,19 @@ that is used for the cross section interpolation</a:documentation>
       <ref name="adaptivity_options_scalar_field"/>
       <ref name="interpolation_algorithm_scalar"/>
     </element>
+  </define>
+  <define name="delayed_particle_type_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>DelayedParticleMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
   </define>
 </grammar>
