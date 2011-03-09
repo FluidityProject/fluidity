@@ -72,4 +72,5 @@ clean:
 
 Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Variable_Lookup.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
 Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Variable_Lookup.o Mangle_Options_Tree.o
+Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Variable_Lookup.o Mangle_Options_Tree.o
 

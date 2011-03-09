@@ -120,11 +120,6 @@ end subroutine
         call zero(newx_tensor)
         newx = field_to_adj_vector(newx_tensor)
         call deallocate(newx_tensor)
-      case(ADJ_MESH_TYPE)
-        call c_f_pointer(x%ptr, x_mesh)
-        newx_mesh = x_mesh
-        ! FIXME: should I be incref'ing newx_mesh here?
-        newx = mesh_type_to_adj_vector(newx_mesh)
       case default
         FLAbort("Unknown x%klass")
     end select
@@ -155,8 +150,6 @@ end subroutine
       call c_f_pointer(y%ptr, y_tensor)
       call c_f_pointer(x%ptr, x_tensor)
       call addto(y_tensor, x_tensor, alpha)
-    else if (y%klass == ADJ_MESH_TYPE) then
-      continue
     else
       FLAbort("adj_vector class not supported.")
     end if

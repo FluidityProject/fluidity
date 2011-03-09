@@ -352,7 +352,7 @@ module mangle_options_tree
   end subroutine mangle_options_tree_adjoint
 
   function adjoint_field_path(fwd_path) result(adj_path)
-    character(len=OPTION_PATH_LEN), intent(in) :: fwd_path
+    character(len=*), intent(in) :: fwd_path
     character(len=OPTION_PATH_LEN) :: adj_path
 
     integer :: j, k

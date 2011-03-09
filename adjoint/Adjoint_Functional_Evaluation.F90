@@ -321,24 +321,21 @@ module adjoint_functional_evaluation
           if (has_scalar_field(states(state), trim(field_name))) then
             sfield => extract_scalar_field(states(state), trim(field_name))
             record = field_to_adj_vector(sfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
-            call femtools_vec_destroy_proc(record)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
             cycle
           end if
 
           if (has_vector_field(states(state), trim(field_name))) then
             vfield => extract_vector_field(states(state), trim(field_name))
             record = field_to_adj_vector(vfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
-            call femtools_vec_destroy_proc(record)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
             cycle
           end if
 
           if (has_tensor_field(states(state), trim(field_name))) then
             tfield => extract_tensor_field(states(state), trim(field_name))
             record = field_to_adj_vector(tfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory(record))
-            call femtools_vec_destroy_proc(record)
+            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
             cycle
           end if
 

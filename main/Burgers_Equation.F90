@@ -53,6 +53,18 @@
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
     use adjoint_functionals
+    use mangle_options_tree
+    use mangle_dirichlet_rows_module
+#ifdef HAVE_ADJOINT
+    use burgers_adjoint_callbacks
+    use libadjoint
+    use libadjoint_data_callbacks
+    use adjoint_functional_evaluation
+    use adjoint_python
+    use adjoint_variable_lookup
+#include "libadjoint/adj_fortran.h"
+#endif
+
     implicit none
 
 #ifdef HAVE_PETSC
@@ -60,12 +72,16 @@
 #endif
 
     type(state_type), dimension(:), pointer :: state
+    type(state_type), target :: matrices ! We collect all the cached                                                                                                                                           
+                                         ! matrices in this state so that
+                                         ! the adjoint callbacks can use
+                                         ! them
+
     integer :: timestep
+    real :: theta
     integer :: ierr
     integer :: dim
 
-    !! Matrices
-    type(csr_matrix) :: mass_matrix, diffusion_matrix
     character(len = OPTION_PATH_LEN) :: simulation_name
 
     integer :: stat
@@ -73,12 +89,6 @@
     logical :: stationary_problem, adjoint
     real :: change, tolerance
 
-    ! will be number of material_phases x number of timesteps
-    type(state_type), dimension(:,:), pointer :: forward_state, adjoint_state
-
-    integer :: no_timesteps
-
-    type(scalar_field), pointer :: u, rhs
     integer :: dump_no=0
 
 
@@ -103,7 +113,19 @@
         integer, intent(out) :: i
       end subroutine petscinitialize
     end interface
-    
+
+
+#ifdef HAVE_ADJOINT
+    type(adj_adjointer) :: adjointer
+    type(adj_variable), dimension(:), allocatable :: adj_meshes
+
+    ierr = adj_create_adjointer(adjointer)
+    ! Register the data callbacks
+    call adj_register_femtools_data_callbacks(adjointer)
+    ! Register the operator callbacks
+    call register_burgers_operator_callbacks(adjointer)
+#endif  
+
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
@@ -116,9 +138,26 @@
     call python_init()
     call read_command_line()
 
-    call forward_options_dictionary
+    call mangle_options_tree_forward
+    
+    adjoint = have_option("/adjoint")
+#ifndef HAVE_ADJOINT
+    if (adjoint) then
+      FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
+    endif
+#else
+    if (.not. adjoint) then
+      ! disable the adjointer
+      ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)                                                                                                                                     
+      call adj_chkierr(ierr)
+    end if
+#endif
+    
     call populate_state(state)
+    call adjoint_register_initial_condition(state)
+
     call insert_time_in_state(state)
+
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
@@ -144,42 +183,18 @@
     end if
     
     ! Set up the matrices that don't change (everything but the nonlinear term)
-    call setup_matrices(state(1), mass_matrix, diffusion_matrix)
-    call insert(state, mass_matrix, "MassMatrix")
-    call insert(state, diffusion_matrix, "DiffusionMatrix")
-    call deallocate(mass_matrix)
-    call deallocate(diffusion_matrix)
-
-    ! Allocate the space to store the forward system through time.
-    adjoint = have_option("/adjoint")
-    stationary_problem = have_option("/timestepping/steady_state")
-
-    if (adjoint) then
-      if (stationary_problem) then
-        allocate(forward_state(1,1))
-      else
-        no_timesteps = get_number_of_timesteps()
-        allocate(forward_state(1,1:no_timesteps+1))
-      end if
-    end if
+    call setup_matrices(state(1), matrices)
 
     ! Always output the initial conditions.
     call output_state(state)
     if (stationary_problem) then
       call get_option("/timestepping/steady_state/tolerance", tolerance)
     end if
+    
+    ! Compute the diagnostics for the initial timestep
+    call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+    call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
-    if ((.not. stationary_problem) .and. adjoint) then
-      ! We need a small amount of hackery. The initial Rhs should
-      ! be the initial condition for u.
-      u => extract_scalar_field(state(1), "Velocity")
-      rhs => extract_scalar_field(state(1), "VelocityRhs", stat=stat)
-      if (stat == 0) then
-        call set(rhs, u)
-      end if
-      call insert(state(1), u, "IteratedVelocity1")
-      call copy_forward_state(state, forward_state(:,1))
-    end if
 
     timestep=0
     timestep_loop: do 
@@ -189,10 +204,11 @@
       ! we evaluate at the correct "shifted" time level:
       call set_boundary_conditions_values(state, shift_time=.true.)
       
-      ! evaluate prescribed fields at time = current_time+dt
-      call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+      ! evaluate prescribed fields at time = current_time+theta*dt
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
+      call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+theta*dt)
 
-      call execute_timestep(state(1), dt, change=change)
+      call execute_timestep(state, matrices, timestep, dt, change=change)
 
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -206,29 +222,18 @@
           exit timestep_loop
         end if
       end if
-
-      if ((.not. stationary_problem) .and. adjoint) then
-        ! Why doesn't bounds checking in the compiler do this for me?
-        assert(timestep+1 <= size(forward_state, 2))
-        call copy_forward_state(state, forward_state(:,timestep+1))
-      end if
-
+      
       if (do_write_state(current_time, timestep)) then
         call output_state(state)
       end if
 
       call write_diagnostics(state, current_time, dt, timestep)
-      call delete_iterated_fields(state)
 
     end do timestep_loop
 
     ! One last dump
     call output_state(state)
     call write_diagnostics(state, current_time, dt, timestep)
-
-    if (adjoint) then
-      call copy_forward_state(state, forward_state(:,size(forward_state, 2)))
-    end if
 
     call deallocate(state)
     call deallocate_transform_cache
@@ -237,48 +242,36 @@
     call uninitialise_diagnostics
 
     if (.not. adjoint) then
+      call deallocate(matrices)
       call print_references(0)
     end if
 
     ! Now compute the adjoint
+#ifdef HAVE_ADJOINT
     if (adjoint) then
       ewrite(1,*) "Entering adjoint computation"
-
       call clear_options
       call read_command_line
-      if (.not. have_option("/io/dump_period_in_timesteps/constant")) then
-        call set_option('/io/dump_period_in_timesteps/constant', 1, stat=stat)
-      end if
-      call mangle_forward_options_paths(forward_state)
-      call adjoint_options_dictionary
+
+      call mangle_options_tree_adjoint
       call populate_state(state)
-
-      ! Check the diagnostic field dependencies for circular dependencies
       call check_diagnostic_dependencies(state)
-      call get_option('/simulation_name', simulation_name)
-      call initialise_diagnostics(trim(simulation_name),state)
-
-      allocate(adjoint_state(size(state), size(forward_state)))
-      adjoint_state(:, size(forward_state)) = state
-      deallocate(state)
+      call compute_matrix_transposes(matrices)
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(forward_state, adjoint_state)
-
-      call deallocate(adjoint_state)
-      deallocate(adjoint_state)
-      call deallocate(forward_state)
-      deallocate(forward_state)
+      call compute_adjoint(state)
 
       call deallocate_transform_cache
-      call deallocate_reserve_state    
-      call close_diagnostic_files
+      call deallocate_reserve_state
 
+      call deallocate(state)
+      call deallocate(matrices)
       call print_references(0)
     else
       ewrite(1,*) "No adjoint specified, not entering adjoint computation"
     end if
+#endif
 
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
@@ -307,9 +300,11 @@
     
     end subroutine insert_time_in_state
 
-    subroutine execute_timestep(state, dt, change)
+    subroutine execute_timestep(states, matrices, timestep, dt, change)
       implicit none
-      type(state_type), intent(inout) :: state
+      type(state_type), dimension(:), intent(inout) :: states
+      type(state_type), intent(inout) :: matrices
+      integer, intent(in) :: timestep
       real, intent(in) :: dt
       real, intent(out), optional :: change
 
@@ -327,11 +322,11 @@
       integer :: nonlinear_iterations, nit
       real :: theta
       real :: nonlin_change
-      logical :: adjoint, save_rhs
+      logical :: adjoint
       integer :: stat
 
-      mass_matrix => extract_csr_matrix(state, "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(state, "DiffusionMatrix")
+      mass_matrix => extract_csr_matrix(matrices, "MassMatrix")
+      diffusion_matrix => extract_csr_matrix(matrices, "DiffusionMatrix")
 
       u => extract_scalar_field(state, "Velocity")
       x => extract_vector_field(state, "Coordinate")
@@ -346,7 +341,6 @@
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
       adjoint = have_option("/adjoint")
-      save_rhs = have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/scalar_field::Rhs")
 
       call allocate(iterated_velocity, u%mesh, "IteratedVelocity")
       call set(iterated_velocity, u)
@@ -356,24 +350,15 @@
       call allocate(lhs_matrix, mass_matrix%sparsity, name="LeftHandSide")
       call allocate(advection_matrix, mass_matrix%sparsity, name="AdvectionMatrix")
       call allocate(rhs, u%mesh, "RightHandSide")
-      if (save_rhs) then
-       srhs => extract_scalar_field(state, "VelocityRhs")
-      end if
 
       nonlinear_loop: do nit=1,nonlinear_iterations
         call assemble_advection_matrix(advection_matrix, x, u, iterated_velocity)
 
         call assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
-        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state)
-        if (save_rhs) then
-          call assemble_small_right_hand_side(srhs, mass_matrix, u)
-        end if
+        call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state(1))
         
         call mangle_dirichlet_rows(lhs_matrix, u, keep_diag=.true., rhs=rhs)
         call apply_dirichlet_conditions(lhs_matrix, rhs, u)
-        if (save_rhs) then
-          call apply_dirichlet_conditions(lhs_matrix, srhs, u)  ! Put the values of the BCs on the right-hand side
-        end if
 
         call set(old_iterated_velocity, iterated_velocity)
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
@@ -384,25 +369,10 @@
         nonlin_change = norm2(iterated_velocity_difference, x)
         ewrite(1,*) "L2 norm of change in velocity: ", nonlin_change
 
+        ! Tell libadjoint about the equations we are solving
         if (adjoint) then
-          ! If we are adjointing, we need to store all the iterated velocities
-          ! as well to propagate backwards in time
-          if (nit /= nonlinear_iterations) then
-            call allocate(stored_iterated_velocity, iterated_velocity%mesh, "IteratedVelocity" // int2str(nit))
-            call set(stored_iterated_velocity, iterated_velocity)
-            stored_iterated_velocity%option_path = u%option_path
-            call insert(state, stored_iterated_velocity, trim(stored_iterated_velocity%name))
-            call deallocate(stored_iterated_velocity)
-          end if
-
-          ! We might be also interested in the rhs of the forward state: For example in order to be able to compute <rhs, lambda>, which should give J(u)
-          if (save_rhs) then
-            call allocate(stored_iterated_srhs, srhs%mesh, "IteratedRhs" // int2str(nit))
-            call set(stored_iterated_srhs, srhs)
-            stored_iterated_srhs%option_path = srhs%option_path
-            call insert(state, stored_iterated_srhs, trim(stored_iterated_srhs%name))
-            call deallocate(stored_iterated_srhs)
-          end if
+          call adjoint_register_timestep_iteration(timestep, dt, nit, states)
+          call adjoint_record_velocity(timestep, nit, states)
         end if
 
         if (sig_hup .or. sig_int) then
@@ -523,7 +493,6 @@
       call addto(rhs, tmp)
 
       x => extract_vector_field(state, "Coordinate")
-      call add_neumann_boundary_conditions(rhs, x, u)
 
       src => extract_scalar_field(state, "VelocitySource", stat=stat)
       if (stat == 0) then
@@ -534,78 +503,7 @@
       call deallocate(tmp)
 
     end subroutine assemble_right_hand_side
-
     
-    ! The right hand side without the dependency of the old velocity field.
-    subroutine assemble_small_right_hand_side(rhs, mass_matrix, u) 
-      type(scalar_field), intent(inout) :: rhs
-      type(csr_matrix), intent(in) :: mass_matrix
-      type(scalar_field), intent(in), pointer :: u
-
-      type(scalar_field) :: tmp
-      type(scalar_field), pointer :: src
-      integer :: stat
-
-      type(vector_field), pointer :: x
-      type(mesh_type), pointer :: mesh
-
-      call zero(rhs)
-
-      mesh => u%mesh
-      call allocate(tmp, mesh, "TemporaryField")
-
-      x => extract_vector_field(state, "Coordinate")
-      call add_neumann_boundary_conditions(rhs, x, u)
-
-      src => extract_scalar_field(state, "VelocitySource", stat=stat)
-      if (stat == 0) then
-        call mult(tmp, mass_matrix, src)
-        call addto(rhs, tmp)
-      end if
-
-      call deallocate(tmp)
-
-    end subroutine assemble_small_right_hand_side
-    
-    
-    subroutine add_neumann_boundary_conditions(rhs, x, u)
-      type(scalar_field), intent(inout) :: rhs
-      type(scalar_field), intent(in) :: u
-      type(vector_field), intent(in) :: x
-
-      type(scalar_field) :: bc_value
-      integer, dimension(surface_element_count(u)) :: bc_type_list
-      integer :: sele
-      real :: viscosity
-
-      call get_option(trim(u%option_path) // "/prognostic/viscosity", viscosity)
-      call get_entire_boundary_condition(u, (/"neumann"/), bc_value, bc_type_list)
-      do sele=1,surface_element_count(u)
-        if (bc_type_list(sele) == 0) then
-          cycle
-        end if
-
-        call add_neumann_boundary_conditions_ele(rhs, x, u, sele, bc_value, viscosity)
-      end do
-      call deallocate(bc_value)
-    end subroutine add_neumann_boundary_conditions
-
-    subroutine add_neumann_boundary_conditions_ele(rhs, x, u, sele, bc_value, viscosity)
-      type(scalar_field), intent(inout) :: rhs
-      type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: bc_value, u
-      integer, intent(in) :: sele
-      real, intent(in) :: viscosity
-
-      real, dimension(face_ngi(u, sele)) :: detwei_face
-      real, dimension(face_loc(u, sele), face_loc(u, sele)) :: face_mat
-
-      call transform_facet_to_physical(x, sele, detwei_face)
-      face_mat = shape_shape(face_shape(u, sele), face_shape(u, sele), detwei_face)
-      call addto(rhs, face_global_nodes(u, sele), viscosity * matmul(face_mat, ele_val(bc_value, sele)))
-
-    end subroutine add_neumann_boundary_conditions_ele
-
     subroutine advance_current_time(current_time, dt)
       implicit none
       real, intent(inout) :: current_time, dt
@@ -689,9 +587,10 @@
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
 
-    subroutine setup_matrices(state, mass_matrix, diffusion_matrix)
+    subroutine setup_matrices(state, matrices)
       type(state_type), intent(inout) :: state
-      type(csr_matrix), intent(out) :: mass_matrix, diffusion_matrix
+      type(state_type), intent(inout) :: matrices
+      type(csr_matrix) :: mass_matrix, diffusion_matrix
 
       real :: viscosity
       integer :: ele
@@ -715,6 +614,12 @@
       end do
 
       call scale(diffusion_matrix, viscosity)
+    
+      call insert(matrices, mass_matrix, "MassMatrix")
+      call insert(matrices, diffusion_matrix, "DiffusionMatrix")
+      call insert(matrices, u%mesh, "VelocityMesh")
+      call deallocate(mass_matrix)
+      call deallocate(diffusion_matrix)
     end subroutine setup_matrices
 
     subroutine setup_matrices_ele(x, u, ele, mass_matrix, diffusion_matrix)
@@ -737,1236 +642,386 @@
 
     end subroutine setup_matrices_ele
 
-    subroutine compute_adjoint(forward_state, adjoint_state)
-      ! material_phases x time
-      type(state_type), intent(inout), dimension(:,:) :: forward_state
-      type(state_type), intent(inout), dimension(:,:) :: adjoint_state
+    subroutine compute_matrix_transposes(matrices)                                                                                                                                                             
+      type(state_type), intent(inout) :: matrices
+      type(csr_matrix), pointer :: mass_matrix
+      type(csr_matrix) :: mass_matrix_T
+      type(csr_matrix), pointer :: diffusion_matrix
+      type(csr_matrix) :: diffusion_matrix_T
 
+      mass_matrix => extract_csr_matrix(matrices, "MassMatrix")
+      mass_matrix_T = transpose(mass_matrix, symmetric_sparsity=.true.)
+      call insert(matrices, mass_matrix_T, "MassMatrixTranspose")
+      call deallocate(mass_matrix_T)
 
-      assert(size(forward_state, 1) == 1) ! one phase
-      assert(size(adjoint_state, 1) == 1) ! one phase
+      diffusion_matrix => extract_csr_matrix(matrices, "DiffusionMatrix")
+      diffusion_matrix_T = transpose(diffusion_matrix, symmetric_sparsity=.true.)
+      call insert(matrices, diffusion_matrix_T, "DiffusionMatrixTranspose")
+      call deallocate(diffusion_matrix_T)
+    end subroutine compute_matrix_transposes
 
-      if (have_option("/timestepping/steady_state")) then
-        call steady_state_adjoint(forward_state, adjoint_state)
-      else
-        call time_dependent_adjoint(forward_state, adjoint_state)
-      end if
-
-    end subroutine compute_adjoint
-
-    function compute_GT_ISP(sparsity, u, x, Au) result(GT)
-      type(csr_sparsity), intent(in) :: sparsity
-      type(scalar_field), intent(in), target :: u
-      type(scalar_field), intent(in) :: Au
-      type(vector_field), intent(in) :: x
-
-      type(csr_matrix) :: GT
-      type(csr_matrix) :: advection_matrix
-      
-      type(scalar_field) :: node_colour
-      integer :: no_colours
-      integer :: colour
-
-      type(scalar_field) :: perturbed_u
-      type(scalar_field) :: perturbed_Au
-      real :: h
-
-      integer :: node
-      integer, dimension(:), pointer :: connected_nodes
-
+    subroutine adjoint_register_initial_condition(states)
+      type(state_type), dimension(:), intent(in) :: states
+#ifdef HAVE_ADJOINT
+      ! Register the initial condition.
+      type(adj_block) :: I
+      integer :: ierr
+      type(adj_equation) :: equation
+      type(adj_variable) :: u0
+      real :: start_time
+      real :: dt
+      integer :: nfunctionals, j
+      character(OPTION_PATH_LEN) :: buf, functional_name, mesh_name
+      type(adj_variable), dimension(:), allocatable :: vars
+      integer :: nmeshes
       type(mesh_type), pointer :: mesh
-      mesh => u%mesh
+      type(scalar_field), pointer :: u
+      type(adj_vector) :: mesh_vec
 
-      call colour_graph(sparsity, mesh, node_colour, no_colours)
+      ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
+      call adj_chkierr(ierr)
 
-      call allocate(GT, sparsity, name="ForwardOperatorDerivative")
-      call allocate(advection_matrix, sparsity, name="PerturbedAdvectionMatrix")
-      call zero(GT)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+      call adj_chkierr(ierr)
 
-      call allocate(perturbed_u, mesh, "PerturbedVelocity")
-      perturbed_u%option_path = u%option_path
-      call allocate(perturbed_Au, mesh, "PerturbedAu")
+      ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
+      call adj_chkierr(ierr)
 
-      do colour=1,no_colours
-        ! Could be smarter about how to choose h.
-        ! However, since A(.) is linear in u, for this problem the step size
-        ! does not matter as you compute the exact derivative.
-        h = 1.0
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
 
-        call set(perturbed_u, u)
-
-        ! Select the nodes of the currently-considered colour and perturb them
-        do node=1,node_count(u%mesh)
-          if (node_val(node_colour, node) == float(colour)) then
-            call addto(perturbed_u, node, h)
-          end if
-        end do
-
-        call assemble_advection_matrix(advection_matrix, x, perturbed_u, perturbed_u)
-        call mult(perturbed_Au, advection_matrix, u)
-
-        ! Subtract off Au
-        call addto(perturbed_Au, Au, scale=-1.0)
-
-        ! And divide by h
-        call scale(perturbed_Au, 1.0/h)
-
-        ! So now perturbed_Au contains the information for all of the rows of GT associated
-        ! with this node. We need to split it up into the different rows.
-
-        do node=1,node_count(u%mesh)
-          if (node_val(node_colour, node) == float(colour)) then
-            connected_nodes => row_m_ptr(sparsity, node)
-            call set(GT, node, connected_nodes, node_val(perturbed_Au, connected_nodes))
-          end if
-        end do
-      end do
-
-      call deallocate(advection_matrix)
-      call deallocate(perturbed_Au)
-      call deallocate(perturbed_u)
-      call deallocate(node_colour)
-
-    end function compute_GT_ISP
-
-    subroutine colour_graph(sparsity, mesh, node_colour, no_colours)
-      type(csr_sparsity), intent(in) :: sparsity
-      type(mesh_type), intent(inout) :: mesh
-
-      type(csr_sparsity) :: isp_sparsity
-      type(scalar_field), intent(out) :: node_colour
-      integer, intent(out) :: no_colours
-
-      isp_sparsity=mat_sparsity_to_isp_sparsity(sparsity)                                                                                                                                                    
-      call colour_sparsity(isp_sparsity, mesh, node_colour, no_colours)
-      call deallocate(isp_sparsity)
-      ewrite(1, *) "Using ", no_colours, " colours"
-
-    end subroutine colour_graph
-
-
-    subroutine colour_graph_manual(sparsity, mesh, node_colour, no_colours)
-      type(csr_sparsity), intent(in) :: sparsity
-      type(mesh_type), intent(inout) :: mesh
-
-      type(scalar_field), intent(out) :: node_colour
-      integer, intent(out) :: no_colours
-
-      integer :: i
-      integer, dimension(:), pointer :: row
-
-      ! This is just to shut up the compiler about not using sparsity
-      row => row_m_ptr(sparsity, 1)
-
-      ! Here we cheat. Colouring a 1D mesh is quite easy. 
-      ! We don't actually need to look at the sparsity at all.
-      ! But for more general problems, you need to colour based on the sparsity
-      ! pattern, so I added it to the arguments.
-
-      
-      call allocate(node_colour, mesh, "NodeColouring")
-
-      no_colours = 3
-
-      do i=1,node_count(mesh)
-        call set(node_colour, i, float(mod(i-1, 3) + 1))
-      end do
-    end subroutine colour_graph_manual
-
-    function get_number_of_timesteps() result(no_timesteps)
-      integer :: no_timesteps
-      real :: start_time, dt, finish_time
-      integer :: final_timestep, stat
-
-      if (have_option("/timestepping/steady_state")) then
-        no_timesteps = 1
-        return
-      end if
+      ierr = adj_destroy_equation(equation)
+      ierr = adj_destroy_block(I)
 
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
-      call get_option("/timestepping/finish_time", finish_time)
-      call get_option("/timestepping/final_timestep", final_timestep, stat=stat)
 
-      no_timesteps = ceiling((finish_time - start_time) / dt)
-      if (stat == 0) then
-        no_timesteps = min(no_timesteps, final_timestep)
+      ! We should also set up the adj_meshes variable, as this will be necessary for every functional evaluation
+      nmeshes = option_count("/geometry/mesh")
+      allocate(adj_meshes(nmeshes))
+      do j=0,nmeshes-1
+        call get_option("/geometry/mesh[" // int2str(j) // "]/name", mesh_name)
+        ierr = adj_create_variable(trim(mesh_name), timestep=0, iteration=0, auxiliary=ADJ_TRUE, variable=adj_meshes(j+1))
+        call adj_chkierr(ierr)
+        mesh => extract_mesh(states, trim(mesh_name))
+        mesh_vec = mesh_type_to_adj_vector(mesh)
+        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory_incref(mesh_vec))
+        call adj_chkierr(ierr)
+      end do
+
+      ! We also may as well set the option paths for each variable now, since we know them here
+      ! (in fluidity this would be done as each equation is registered)
+      u => extract_scalar_field(states(1), "Velocity")
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
+
+      ! We may as well set the times for this timestep now
+      ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
+      ! And we also may as well set the functional dependencies now
+      nfunctionals = option_count("/adjoint/functional")
+      do j=0,nfunctionals-1
+        call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
+        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
+        call adj_chkierr(ierr)
+        deallocate(vars)
+
+        ! We also need to check if these variables will be used
+        call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
+      end do
+#endif
+    end subroutine adjoint_register_initial_condition
+
+    subroutine adjoint_register_timestep_iteration(timestep, dt, iteration, states)
+      integer, intent(in) :: timestep, iteration
+      real, intent(in) :: dt
+      type(state_type), dimension(:), intent(in) :: states
+#ifdef HAVE_ADJOINT
+      type(adj_block) :: timestepping_block, burgers_block
+      type(adj_nonlinear_block) :: burgers_advection_block, timestepping_advection_block
+      integer :: ierr
+      type(adj_equation) :: equation
+      type(adj_variable) :: u, previous_u, iter_u
+      real :: start_time
+
+      integer :: j, nfunctionals, nonlinear_iterations
+      type(adj_variable), dimension(:), allocatable :: vars
+      character(len=OPTION_PATH_LEN) :: buf, functional_name
+      
+      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
+      ! Set up adj_variables
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
+      call adj_chkierr(ierr)
+      if (iteration==1) then
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=nonlinear_iterations-1, auxiliary=ADJ_FALSE, variable=iter_u) 
+      else 
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
       end if
-    end function get_number_of_timesteps
+      call adj_chkierr(ierr)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=nonlinear_iterations-1, auxiliary=ADJ_FALSE, variable=previous_u)
+      call adj_chkierr(ierr)
+      
+      ! Set up adj_blocks
+      ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+      call adj_chkierr(ierr)
+      ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+      call adj_chkierr(ierr)
+      
+      ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("BurgersOperator", burgers_advection_block, context=c_loc(matrices), block=burgers_block)
+      call adj_chkierr(ierr)
+      
+      ! Now we can register our lovely equation.
+      ierr = adj_create_equation(u, blocks=(/timestepping_block, burgers_block/), &
+                                          & targets=(/previous_u, u/), equation=equation)
+      call adj_chkierr(ierr)
 
-    subroutine forward_options_dictionary
-      ! Change the options dictionary to make it suitable
-      ! for the forward model.
-      integer :: i, nfields, nfields_to_delete
-      character(len=OPTION_PATH_LEN) :: path, field_name
-      character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete
-      integer :: stat
+      ierr = adj_register_equation(adjointer, equation)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_equation(equation)
+      call adj_chkierr(ierr)
 
-      nfields = option_count("/material_phase[0]/scalar_field")
-      allocate(fields_to_delete(nfields))
+      ! And now we gots to destroy some blocks
+      ierr = adj_destroy_block(timestepping_block)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(burgers_block)
+      call adj_chkierr(ierr)
 
-      ! We need to delete fields that are marked as only living in the adjoint.
-      nfields_to_delete = 0
-
-      do i=0,nfields-1
-        path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
-        call get_option(trim(path)//"/name", field_name)
-
-        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/exists_in_adjoint')) then
-          ! We can't actually delete it now, because if we have scalar_field[0,1,2]
-          ! and delete scalar_field[1],
-          ! now the numbering will be scalar_field[0,1]
-          ! and the loop will go all wrong.
-          nfields_to_delete = nfields_to_delete + 1
-          fields_to_delete(nfields_to_delete) = field_name
-        end if
+      ! Set the times and functional dependencies for this timestep
+      call get_option("/timestepping/current_time", start_time)
+      ierr = adj_timestep_set_times(adjointer, timestep=timestep, start=start_time, end=start_time+dt)
+      nfunctionals = option_count("/adjoint/functional")
+      do j=0,nfunctionals-1
+        call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
+        call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
+        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars, extras=adj_meshes)
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep, functional=trim(functional_name), &
+                                                      & dependencies=vars)
+        call adj_chkierr(ierr)
+        deallocate(vars)
+        ! We also need to check if these variables will be used
+        call adj_record_anything_necessary(adjointer, timestep=timestep, functional=trim(functional_name), states=states)
       end do
 
-      do i=1,nfields_to_delete
-        path = "/material_phase[0]/scalar_field::" // trim(fields_to_delete(i))
-        call delete_option(trim(path))
-      end do
-
-      deallocate(fields_to_delete)
-
-      ! We delete this because if it exists in the forward run,
-      ! write_diagnostics wants to print it out in the stat file.
-      call delete_option("/adjoint/functional", stat=stat)
-
-    end subroutine forward_options_dictionary
-
-    subroutine adjoint_options_dictionary
-      ! Change the options dictionary to make it suitable
-      ! for the adjoint model
-
-      integer :: i, nfields, nfields_to_delete, nfields_to_move
-      character(len=OPTION_PATH_LEN) :: path, field_name, simulation_name
-      character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete, fields_to_move
-      integer :: stat
-      real :: finish_time, current_time, dt
-
-      nfields = option_count("/material_phase[0]/scalar_field")
-      allocate(fields_to_delete(nfields))
-
-      ! We need to delete fields that are marked as only living in the forward model.
-      nfields_to_delete = 0
-
-      do i=0,nfields-1
-        path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
-        call get_option(trim(path)//"/name", field_name)
-
-        if (have_option(trim(complete_field_path(trim(path))) // '/adjoint_storage/exists_in_forward')) then
-          ! We can't actually delete it now, because if we have scalar_field[0,1,2]
-          ! and delete scalar_field[1],
-          ! now the numbering will be scalar_field[0,1]
-          ! and the loop will go all wrong.
-          nfields_to_delete = nfields_to_delete + 1
-          fields_to_delete(nfields_to_delete) = field_name
-        end if
-      end do
-
-      do i=1,nfields_to_delete
-        path = "/material_phase[0]/scalar_field::" // trim(fields_to_delete(i))
-        call delete_option(trim(path))
-      end do
-
-      deallocate(fields_to_delete)
-
-      nfields = option_count("/material_phase[0]/scalar_field")
-      allocate(fields_to_move(nfields))
-      nfields_to_move = 0
-
-      ! Now we need to go through and change the names of all prognostic fields
-      ! to AdjointOldName.
-      do i=0,nfields-1
-        path = "/material_phase[0]/scalar_field["//int2str(i)//"]"
-        call get_option(trim(path) // "/name", field_name)
-        if (have_option(trim(path) // "/prognostic")) then
-          ! We can't actually move it now, for exactly the same reason as above
-          nfields_to_move = nfields_to_move + 1
-          fields_to_move(nfields_to_move) = field_name
-        end if
-      end do
-
-      do i=1,nfields_to_move
-        path = "/material_phase[0]/scalar_field::"
-        call move_option(trim(path) // trim(fields_to_move(i)), trim(path) // "Adjoint" // trim(fields_to_move(i)), stat=stat)
-        assert(stat == SPUD_NO_ERROR)
-        ! Delete any sources specified for the forward model -- we deal with these ourselves
-        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/scalar_field::Source", stat=stat)
-        ! And delete any initial conditions -- we will also specify these
-        call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/initial_condition", stat=stat)
-        call set_option(trim(path) // "Adjoint" // trim(fields_to_move(i)) // "/prognostic/initial_condition/constant", 0.0, stat=stat)
-      end do
-
-      deallocate(fields_to_move)
-
-      ! And the simulation name
-      call get_option("/simulation_name", simulation_name)
-      call set_option("/simulation_name", trim(simulation_name) // "_adjoint", stat=stat)
-
-      ! And the timestepping information
-      call get_option("/timestepping/current_time", current_time)
-      call get_option("/timestepping/finish_time", finish_time)
-      call get_option("/timestepping/timestep", dt)
-
-      call set_option("/timestepping/current_time", finish_time)
-      call set_option("/timestepping/finish_time", current_time)
-      call set_option("/timestepping/timestep", -dt)
-
-    end subroutine adjoint_options_dictionary
-
-    subroutine mangle_forward_options_paths(forward_state)
-      ! We need to mangle the option_paths of the forward_state fields
-      ! to change their name to AdjointWhatever
-      type(state_type), dimension(:,:), intent(inout) :: forward_state
-
-      type(scalar_field), pointer :: sfield
-      type(vector_field), pointer :: vfield
-      type(tensor_field), pointer :: tfield
-      integer :: i, nfields, time, phase
-
-      character(len=OPTION_PATH_LEN) :: new_path
-      integer :: idx
-
-      do phase=1,size(forward_state, 1)
-        do time=1,size(forward_state, 2)
-          nfields = scalar_field_count(forward_state(phase, time))
-          do i=1,nfields
-            sfield => extract_scalar_field(forward_state(phase, time), i)
-            ! If we have a prognostic field
-            if (have_option(trim(sfield%option_path) // '/prognostic')) then
-              idx = index(sfield%option_path, "_field::") + len("_field::") - 1
-              assert(idx /= 0)
-              new_path(1:idx) = sfield%option_path(1:idx)
-              new_path(idx+1:idx+8) = "Adjoint"
-              new_path(idx+8:len_trim(sfield%option_path)+7) = sfield%option_path(idx+1:len_trim(sfield%option_path))
-              new_path(len_trim(sfield%option_path)+8:) = " "
-              sfield%option_path = new_path
-            end if
-          end do
-
-          nfields = vector_field_count(forward_state(phase, time))
-          do i=1,nfields
-            vfield => extract_vector_field(forward_state(phase, time), i)
-            ! If we have a prognostic field
-            if (have_option(trim(vfield%option_path) // '/prognostic')) then
-              idx = index(vfield%option_path, "_field::") + len("_field::") - 1
-              assert(idx /= 0)
-              new_path(1:idx) = vfield%option_path(1:idx)
-              new_path(idx+1:idx+8) = "Adjoint"
-              new_path(idx+8:len_trim(vfield%option_path)+7) = vfield%option_path(idx+1:len_trim(vfield%option_path))
-              vfield%option_path = new_path
-            end if
-          end do
-
-          nfields = tensor_field_count(forward_state(phase, time))
-          do i=1,nfields
-            tfield => extract_tensor_field(forward_state(phase, time), i)
-            ! If we have a prognostic field
-            if (have_option(trim(tfield%option_path) // '/prognostic')) then
-              idx = index(tfield%option_path, "_field::") + len("_field::") - 1
-              assert(idx /= 0)
-              new_path(1:idx) = tfield%option_path(1:idx)
-              new_path(idx+1:idx+8) = "Adjoint"
-              new_path(idx+8:len_trim(tfield%option_path)+7) = tfield%option_path(idx+1:len_trim(tfield%option_path))
-              tfield%option_path = new_path
-            end if
-          end do
-        end do
-      end do
-    end subroutine mangle_forward_options_paths
-
-    subroutine copy_forward_state(in_states, out_states)
-      ! Copy the fields we need from in_state to out_state
-      ! This routine is used to record information for the adjoint equation.
-      ! Running backwards in time requires certain information about the
-      ! forward state through time, and so we need to store that.
-
-      type(state_type), dimension(:), intent(in) :: in_states
-      type(state_type), dimension(size(in_states)), intent(out) :: out_states
-
-      type(mesh_type), pointer :: mesh
-      type(vector_field), pointer :: x
-
-      integer :: i
-      integer :: state, field
-      type(scalar_field), pointer :: sfield
-      type(scalar_field) :: cpy
-      integer :: stat
-
-      x => extract_vector_field(in_states, "Coordinate")
-      if (have_option("/mesh_adaptivity")) then
-        FLExit("Sorry, /adjoint and /mesh_adaptivity are currently incompatible")
-      end if
-      call insert(out_states, x, "Coordinate")
-
-      do state=1,size(in_states)
-        do field=1,scalar_field_count(in_states(state))
-          sfield => extract_scalar_field(in_states(state), field)
-          if (have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // '/adjoint_storage/exists_in_both/record') .or. &
-              have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // '/adjoint_storage/exists_in_forward/record')) then
-            call allocate(cpy, sfield%mesh, trim(sfield%name))
-            call set(cpy, sfield)
-            cpy%option_path = sfield%option_path
-            call insert(out_states(state), cpy, trim(in_states(state)%scalar_names(field)))
-            call deallocate(cpy)
-          end if
-        end do
-      end do
-
-      call populate_boundary_conditions(out_states)
-      call set_boundary_conditions_values(out_states)
-
-      do i=1,mesh_count(in_states(1))
-        mesh => extract_mesh(in_states(1), i)
-        call insert(out_states, mesh, trim(mesh%name))
-      end do
-
-      call insert(out_states, extract_csr_matrix(in_states(1), "MassMatrix"), "MassMatrix")
-      call insert(out_states, extract_csr_matrix(in_states(1), "DiffusionMatrix"), "DiffusionMatrix")
-
-      out_states%name = in_states%name
-    end subroutine copy_forward_state
-
-    subroutine mangle_dirichlet_rows(matrix, field, keep_diag, rhs)
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(in) :: field
-      logical, intent(in) :: keep_diag
-      type(scalar_field), intent(inout), optional :: rhs
-
-      integer :: i, j, node
-      character(len=FIELD_NAME_LEN) :: bctype
-      integer, dimension(:), pointer :: node_list
-      type(scalar_field), pointer :: bc_field
-
-      real,  dimension(:), pointer :: row
-      real, pointer :: diag_ptr
-      real :: diag
-
-      do i=1,get_boundary_condition_count(field)
-        call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
-
-        if (bctype /= "dirichlet") cycle
-        bc_field => extract_surface_field(field, i, "value")
-
-        do j=1,size(node_list)
-          node = node_list(j)
-          diag_ptr => diag_val_ptr(matrix, node)
-          diag = diag_ptr
-          row  => row_val_ptr(matrix, node)
-          row = 0
-          if (keep_diag) then
-            diag_ptr = 1.0
-          end if
-
-          if (present(rhs)) then
-            call set(rhs, node, node_val(bc_field, j))
-          end if
-        end do
-      end do
-    end subroutine mangle_dirichlet_rows
-
-    subroutine set_inactive_rows(matrix, field)
-      ! Any nodes associated with Dirichlet BCs, we make them inactive
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(in) :: field
-
-      integer :: i
-      character(len=FIELD_NAME_LEN) :: bctype
-      integer, dimension(:), pointer :: node_list
-
-      do i=1,get_boundary_condition_count(field)
-        call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
-        if (bctype /= "dirichlet") cycle
-        call set_inactive(matrix, node_list)
-      end do
-
-    end subroutine set_inactive_rows
-
-    subroutine compute_inactive_rows(x, A, rhs)                                                                                                                                                                              
-      type(scalar_field), intent(inout):: x                                                                                                                                                                                 
-      type(csr_matrix), intent(in):: A                                                                                                                                                                                      
-      type(scalar_field), intent(inout):: rhs                                                                                                                                                                               
-
-      logical, dimension(:), pointer:: inactive_mask                                                                                                                                                                        
-      integer:: i                                                                                                                                                                                                           
-
-      inactive_mask => get_inactive_mask(A)                                                                                                                                                                                 
-
-      if (.not. associated(inactive_mask)) return                                                                                                                                                                           
-
-      do i=1, size(A,1)                                                                                                                                                                                                     
-        if (inactive_mask(i)) then                                                                                                                                                                                          
-
-          ! we want [rhs_i - ((L+U)*x)_i]/A_ii, where L+U is off-diag part of A                                                                                                                                             
-          ! by setting x_i to zero before this is the same as [rhs_i- (A*x)_i]/A_ii                                                                                                                                         
-          call set(x, i, 0.0)                                                                                                                                                                                               
-          call set(x, i, (node_val(rhs,i)- &                                                                                                                                                                                
-          dot_product(row_val_ptr(A,i),node_val(x, row_m_ptr(A,i))) &                                                                                                                                                    
-          &  )/val(A,i,i) )                                                                                                                                                                
-
-        end if                                                                                                                                                                                                              
-      end do                                                                                                                                                                                                                
-    end subroutine compute_inactive_rows
-
-    subroutine differentiate_V(x, sparsity, u_left, u_right, arg, contraction, adjoint, output)
-      ! The core routine for the time-dependent adjoint equation.
-      ! So, here's the arguments:
-      type(vector_field), intent(in) :: x
-
-      ! The sparsity of the advection operator
-      type(csr_sparsity), intent(in) :: sparsity
-
-      ! u_left and u_right are the arguments to the nonlinear velocity at which
-      ! the advection matrix is assembled.
-      ! nu = (1-itheta) * u_left + itheta * u_right
-      type(scalar_field), intent(in), target :: u_left, u_right
-
-      ! arg is an integer saying what we are differentiating with respect to.
-      ! arg == -1 means differentiating with respect to the u_left argument.
-      ! arg == +1 means differentiating with respect to the u_right argument.
-      ! arg ==  0 means that u_left and u_right are actually the same, and we're
-      !           taking the derivative with respect to that.
-      integer, intent(in) :: arg
-
-      ! So, the derivative of V is a rank-3 tensor. But we can't store them,
-      ! so we immediately contract it with something else to give a rank-2
-      ! tensor. What is it we're contracting it with?
-      type(scalar_field), intent(in) :: contraction
-
-      ! If you write down the form of G, we only ever multiply blocks of G
-      ! by known vectors -- adjoint values previously computed. So this
-      ! argument is the adjoint value to multiply it by.
-      type(scalar_field), intent(in) :: adjoint
-
-      ! The output, which is
-      ! (diff(V[(1-itheta) * u_left + itheta * u_right], whatever) * contraction) * adjoint
-      !                                                  ^ depends on arg
-      !                                                            ^ rank-3 tensor contraction
-      !                                                                           ^ plain old matrix multiplication
-      type(scalar_field), intent(inout) :: output
-
-      type(scalar_field) :: node_colour
-      type(mesh_type), pointer :: mesh
-      integer :: no_colours
-      integer :: colour
-      integer :: node
-      integer, dimension(:), pointer :: connected_nodes
-
-      type(csr_matrix) :: V ! the advection matrix, possibly perturbed, and possibly not
-      type(scalar_field) :: perturbed ! some perturbed argument to assemble_advection_matrix
-      type(scalar_field) :: Vc ! the unperturbed advection matrix, multiplied by contraction
-      type(scalar_field) :: pVc ! the perturbed advection matrix, multiplied by contraction
-      real, parameter :: h=1.0 ! the perturbation size; since our differentiation is exact regardless of h, we choose it to be 1.0
-
-      call zero(output)
-      mesh => u_left%mesh
-
-      call allocate(V, sparsity, name="AdvectionMatrix")
-      ! Firstly, assemble V unperturbed to get Vu
-      call assemble_advection_matrix(V, x, u_left, u_right)
-
-      ! We zero the rows, but not the columns.
-      ! I don't know if this is the right thing to do, or 
-      ! indeed what is the right thing to do.
-      ! This needs a lot more thought.
-      ! However, let's blunder on for now.
-
-      call mangle_dirichlet_rows(V, u_left, keep_diag=.true.)
-      call allocate(Vc, mesh, "UnperturbedVTimesContraction")
-      call allocate(pVc, mesh, "PerturbedVTimesContraction")
-      call mult(Vc, V, contraction)
-
-      call colour_graph(sparsity, mesh, node_colour, no_colours)
-      call allocate(perturbed, mesh, "PerturbedArgument")
-      call zero(perturbed)
-      perturbed%option_path = u_left%option_path
-
-      do colour=1,no_colours
-
-        if (arg == -1) then
-          ! We are perturbing the left-hand argument to V
-          call set(perturbed, u_left)
-        else if (arg == 0) then
-          ! In this case, u_left IS u_right, so it's all the same 
-          call set(perturbed, u_left)
-        else if (arg == 1) then
-          ! Here, we're perturbing u_right
-          call set(perturbed, u_right)
-        else
-          FLAbort("invalid value for arg")
-        end if
-
-        ! Assemble the perturbed state
-        do node=1,node_count(mesh)
-          if (node_val(node_colour, node) == float(colour)) then
-            call addto(perturbed, node, h)
-          end if
-        end do
-
-        call zero(V)
-        if (arg == -1) then
-          ! We are perturbing the left-hand argument to V
-          call assemble_advection_matrix(V, x, perturbed, u_right)
-        else if (arg == 0) then
-          ! In this case, u_left IS u_right, so it's all the same 
-          call assemble_advection_matrix(V, x, perturbed, perturbed)
-        else if (arg == 1) then
-          ! Here, we're perturbing u_right
-          call assemble_advection_matrix(V, x, u_left, perturbed)
-        else
-          FLAbort("invalid value for arg")
-        end if
-
-        ! OK. So we've assembled the perturbed V. We multiply that by contraction:
-        call mangle_dirichlet_rows(V, u_left, keep_diag=.true.)
-        call mult(pVc, V, contraction)
-
-        ! Now subtract off the unperturbed V * contraction:
-        call addto(pVc, Vc, scale=-1.0)
-
-        ! And divide by h:
-        call scale(pVc, 1.0/h)
-
-        ! So now pVc contains all the rows of GT associated with this colour.
-        ! So let's extract out each row in turn, and multiply it by adjoint.
-        do node=1,node_count(mesh)
-          if (node_val(node_colour, node) == float(colour)) then
-            connected_nodes => row_m_ptr(sparsity, node)
-            ! node_val(pVc, connected_nodes) IS the row of GT associated with this node.
-            call set(output, node, dot_product(node_val(pVc, connected_nodes), node_val(adjoint, connected_nodes)))
-          end if
-        end do
-      end do
-
-      call deallocate(V)
-      call deallocate(Vc)
-      call deallocate(pVc)
-      call deallocate(perturbed)
-      call deallocate(node_colour)
-    end subroutine differentiate_V
-
-    subroutine steady_state_adjoint(forward_state, adjoint_state)
-      ! material_phases x time
-      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
-
-      type(scalar_field), pointer :: adjoint
+#endif
+    end subroutine adjoint_register_timestep_iteration
+
+    subroutine adjoint_record_velocity(timestep, iteration, states)
+      integer, intent(in) :: timestep, iteration
+      type(state_type), dimension(:), intent(in) :: states
+#ifdef HAVE_ADJOINT
+      type(adj_storage_data) :: storage
+      integer :: ierr
+      type(adj_vector) :: u_vec
       type(scalar_field), pointer :: u
-      type(vector_field), pointer :: x
-      type(scalar_field) :: Au
-      type(scalar_field), pointer :: rhs
-      type(state_type), dimension(size(forward_state,1)) :: derivatives
+      type(adj_variable) :: u_var
 
-      type(csr_matrix) :: A, AT, GT, lhs, advection_matrix
-      type(csr_matrix), target :: diffusion_matrix
-      type(csr_matrix) :: mass_matrix
-      type(csr_sparsity), pointer :: sparsity
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u_var)
+      call adj_chkierr(ierr)
 
-      real :: current_time, dt
-      real :: J
+      u => extract_scalar_field(states(1), "Velocity")
+      print *, "record field with get_boundary_condition_count(u)", get_boundary_condition_count(u)
+      u_vec = field_to_adj_vector(u)
 
-      u => extract_scalar_field(forward_state(1,1), "Velocity")
-      adjoint  => extract_scalar_field(adjoint_state(1,1), "AdjointVelocity")
-      x => extract_vector_field(adjoint_state(1,1), "Coordinate")
+      storage = adj_storage_memory_incref(u_vec);
+      ierr = adj_record_variable(adjointer, u_var, storage);
+      call adj_chkierr(ierr);
+#endif
+    end subroutine adjoint_record_velocity
 
-      call setup_matrices(forward_state(1,1), mass_matrix, diffusion_matrix)
-      sparsity => diffusion_matrix%sparsity
 
-      ! Assemble A again, to compute A^T
-      call allocate(A, sparsity, name="ForwardOperator")
-      call set(A, diffusion_matrix)
+#ifdef HAVE_ADJOINT
+    subroutine compute_adjoint(state)
+      type(state_type), dimension(:), intent(inout) :: state
 
-      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
-      call assemble_advection_matrix(advection_matrix, x, u, u)
-      call addto(A, advection_matrix)
+      type(adj_vector) :: rhs
+      type(adj_vector) :: soln
+      type(adj_matrix) :: lhs
+      type(adj_variable) :: adj_var
 
-      call allocate(Au, u%mesh, "Au")
-      ! We also want (the nonlinear part of A) * u
-      ! to subtract off in the formula for G^T later
-      call mult(Au, advection_matrix, u)
-      call deallocate(advection_matrix)
+      integer :: equation
+      integer :: ierr
+      integer :: no_functionals
+      integer :: functional
 
-      call mangle_dirichlet_rows(A, u, keep_diag=.true.)
-      AT = transpose(A, symmetric_sparsity=.true.)
-      call deallocate(A)
+      real :: finish_time, dt
+      integer :: end_timestep, start_timestep, no_timesteps, timestep
+      real :: start_time, end_time
 
-      ! OK! Now to compute G^T.
-      if (.not. have_option(trim(u%option_path) // "/prognostic/remove_advection_term")) then
-        ewrite(1,*) "Equation is nonlinear, so computing derivatives of nonlinear terms"
-        GT = compute_GT_ISP(sparsity, u, x, Au)
-      else ! equation is linear, so G^T is zero
-        ewrite(1,*) "Equation is linear, so not computing derivatives of nonlinear terms"
-        call allocate(GT, sparsity, name="ForwardOperatorDerivative")
-        call zero(GT)
-      end if
-      call deallocate(Au)
+      character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
+      type(stat_type), dimension(:), allocatable :: functional_stats
 
-      call allocate(lhs, sparsity, name="AdjointOperator")
-      call set(lhs, AT)
-      call deallocate(AT)
+      character(len=ADJ_NAME_LEN) :: variable_name
+      type(scalar_field) :: sfield_soln, sfield_rhs
+      type(vector_field) :: vfield_soln, vfield_rhs
+      type(csr_matrix) :: csr_mat
+      type(block_csr_matrix) :: block_csr_mat
+      integer :: dim
+      character(len=ADJ_DICT_LEN) :: path
 
-      call addto(lhs, GT)
-      call deallocate(GT)
-
-      call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
-      call functional_derivative(forward_state, current_time, dt, 1, derivatives)
-      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
+      call get_option("/timestepping/finish_time", finish_time)
+      call get_option("/simulation_name", simulation_base_name)
 
-      call deallocate(mass_matrix)
-      call deallocate(diffusion_matrix)
+      ! Switch the html output on if you are interested what the adjointer has registered
+      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_forward.html", ADJ_FORWARD)
+      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_adjoint.html", ADJ_ADJOINT)
+      call adj_chkierr(ierr)
 
-      call zero(adjoint)
-      call set_inactive_rows(lhs, u)
-      call petsc_solve(adjoint, lhs, rhs)
-      call compute_inactive_rows(adjoint, lhs, rhs)
-      call deallocate(lhs)
-      call deallocate(derivatives)
+      call insert_time_in_state(state)
 
-      call calculate_diagnostic_variables(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
-      call calculate_diagnostic_variables_new(adjoint_state(:, 1), exclude_nonrecalculated = .true.)
+      no_functionals = option_count("/adjoint/functional")
 
-      if (have_option("/adjoint/functional")) then
-        J = functional(forward_state, current_time, dt, 1)
-        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
-      else
-        call write_diagnostics(adjoint_state(:, 1), current_time, dt, 1)
-      end if
+      ! Initialise the .stat files
+      allocate(functional_stats(no_functionals))
 
-      call output_state(adjoint_state(:, 1), adjoint=.true.)
-    end subroutine steady_state_adjoint
+      do functional=0,no_functionals-1
+        default_stat = functional_stats(functional + 1)
+        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+        call initialise_diagnostics(trim(simulation_name) // '_adjoint_' // trim(functional_name), state)
+        functional_stats(functional + 1) = default_stat
 
-    function iteration_count(state) result(count)
-      type(state_type), intent(in) :: state
-      integer :: count
-
-      integer :: i
-      type(scalar_field), pointer :: iterated_velocity
-      integer :: stat
-
-      count = 0
-      do
-        i = count + 1
-        iterated_velocity => extract_scalar_field(state, "IteratedVelocity" // int2str(i), stat=stat)
-        if (stat /= 0) exit
-        count = i
-      end do
-    end function iteration_count
-
-    subroutine time_dependent_adjoint(forward_state, adjoint_state)
-      ! material_phases x time
-      type(state_type), intent(inout), dimension(:,:) :: forward_state
-      type(state_type), intent(inout), dimension(:,:) :: adjoint_state
-      integer :: timesteps, timestep
-      real :: current_time, dt, finish_time
-      real :: J
-      logical :: have_functional
-      integer :: iteration
-      integer :: count
-
-      timesteps = size(forward_state, 2)
-
-      call get_option("/timestepping/current_time", current_time)
-      call get_option("/timestepping/timestep", dt)
-
-      timestep = timesteps
-      have_functional = have_option("/adjoint/functional")
-
-      call compute_final_adjoint_state(forward_state, adjoint_state, timestep)
-
-      ! Rewind any nonlinear iterations, na ja?
-      ! These neither cause evaluations of the functional, nor the functional derivative,
-      ! nor diagnostics, nor output dumps, nor lines in the stat file, nor do they
-      ! rewind time. But we still have to do them! 
-      count = iteration_count(forward_state(1, timestep))
-      do iteration=count-1,1,-1
-        call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
+        ! Register the callback to compute delJ/delu
+        ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
+        call adj_chkierr(ierr)
       end do
 
-      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
+      call get_option("/geometry/dimension", dim) 
+      assert(dim==1)   ! only 1D is supported  
 
-      if (have_functional) then
-        J = functional(forward_state, current_time, dt, timestep)
-        !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-      else
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-      end if
+      ierr = adj_timestep_count(adjointer, no_timesteps)
+      call adj_chkierr(ierr)
 
-      call output_state(adjoint_state(:, timestep), adjoint=.true.)
+      do timestep=no_timesteps-1,0,-1
+        ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
+        call adj_chkierr(ierr)
+        current_time = end_time
+        call set_option("/timestepping/current_time", current_time)
 
-      call advance_current_time(current_time, dt)
-      timestep = timestep - 1
-      call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
+        ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
+        call adj_chkierr(ierr)
 
-      do while (timestep > 1)
-        ! Now compute the AdjointVelocity at the timestep itself
-        call compute_adjoint_timestep(forward_state, adjoint_state, timestep)
+        ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
+        call adj_chkierr(ierr)
 
-        call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-        call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-        if (have_functional) then
-          J = functional(forward_state, current_time, dt, timestep)
-          !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-        else
-          call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-        end if
-        call output_state(adjoint_state(:, timestep), adjoint=.true.)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
+        do functional=0,no_functionals-1
+          ! Set up things for this particular functional here
+          ! e.g. .stat file, change names for vtus, etc.
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
+          default_stat = functional_stats(functional + 1)
 
-        ! Rewind any nonlinear iterations
-        count = iteration_count(forward_state(1, timestep))
-        do iteration=count-1,1,-1
-          call rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
+          do equation=end_timestep,start_timestep,-1
+            ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
+            call adj_chkierr(ierr)
+
+            ! Now solve lhs . adjoint = rhs
+            ierr = adj_variable_get_name(adj_var, variable_name)
+            ierr = adj_dict_find(adj_var_lookup, trim(variable_name), path)
+            call adj_chkierr(ierr)
+            path = adjoint_field_path(path)
+
+            ! variable_name should be something like Fluid::LocalVelocity 
+            select case(rhs%klass)
+              case(ADJ_SCALAR_FIELD)
+                call field_from_adj_vector(rhs, sfield_rhs)
+                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name)))
+                call zero(sfield_soln)
+                sfield_soln%option_path = trim(path)
+
+                select case(lhs%klass)
+                  case(IDENTITY_MATRIX)
+                    call set(sfield_soln, sfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(sfield_soln, csr_mat, sfield_rhs)
+                    else
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
+
+                call insert(state(1), sfield_soln, trim(sfield_soln%name))
+                soln = field_to_adj_vector(sfield_soln)
+                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
+                call adj_chkierr(ierr)
+                call deallocate(sfield_soln)
+              case(ADJ_VECTOR_FIELD)
+                call field_from_adj_vector(rhs, vfield_rhs)
+                call allocate(vfield_soln, dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
+                call zero(vfield_soln)
+                vfield_soln%option_path = trim(path)
+
+                select case(lhs%klass)
+                  case(IDENTITY_MATRIX)
+                    call set(vfield_soln, vfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(vfield_soln, csr_mat, vfield_rhs)
+                    else
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, block_csr_mat)
+                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                      call mult(vfield_soln, block_csr_mat, vfield_rhs)
+                    else
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
+                    endif
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
+
+                call insert(state(1), vfield_soln, trim(vfield_soln%name))
+                soln = field_to_adj_vector(vfield_soln)
+                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
+                call adj_chkierr(ierr)
+                call deallocate(vfield_soln)
+              case default
+                FLAbort("Unknown rhs%klass")
+            end select
+
+            ! Destroy lhs and rhs
+            call femtools_vec_destroy_proc(rhs)
+            if (lhs%klass /= IDENTITY_MATRIX) then
+              call femtools_mat_destroy_proc(lhs)
+            endif
+          end do
+
+          call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+          call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+          call write_diagnostics(state, current_time, dt, equation+1)
+
+          if (do_write_state(current_time, timestep, adjoint=.true.)) then
+            call output_state(state, adjoint=.true.)
+          endif
+
+          functional_stats(functional + 1) = default_stat
         end do
 
-        call advance_current_time(current_time, dt)
-        timestep = timestep - 1
-        call setup_adjoint_state(forward_state(:, timestep), adjoint_state(:, timestep))
+        ! Now forget
+        ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
+        call adj_chkierr(ierr)
       end do
 
-      call compute_initial_adjoint_state(forward_state, adjoint_state)
-
-      call calculate_diagnostic_variables(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      call calculate_diagnostic_variables_new(adjoint_state(:, timestep), exclude_nonrecalculated = .true.)
-      if (have_functional) then
-        J = functional(forward_state, current_time, dt, timestep)
-        !write(0,'(a, f0.5, a, f0.5)') "J(t=", current_time, ") == ", J
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-      else
-        call write_diagnostics(adjoint_state(:, timestep), current_time, dt, timestep)
-      end if
-      call output_state(adjoint_state(:, timestep), adjoint=.true.)
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)
-    end subroutine time_dependent_adjoint
 
-    subroutine compute_final_adjoint_state(forward_state, adjoint_state, timestep)
-      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
-      integer, intent(in) :: timestep
-
-      type(state_type), dimension(size(forward_state,1)) :: derivatives
-      type(scalar_field), pointer :: rhs, adjoint, u, u_left, u_right
-      type(csr_matrix) :: L, LT
-      real :: current_time, dt, theta
-      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
-      type(csr_matrix) :: advection_matrix
-      type(vector_field), pointer :: x
-      integer :: count, old_count
-
-      count = iteration_count(forward_state(1, timestep))
-      old_count = iteration_count(forward_state(1, timestep-1))
-      u => extract_scalar_field(forward_state(1, timestep), "Velocity")
-      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
-      x => extract_vector_field(forward_state(1, timestep), "Coordinate")
-      call zero(adjoint)
-
-      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
-      call get_option("/timestepping/current_time", current_time)
-      call get_option("/timestepping/timestep", dt)
-
-      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
-
-      call allocate(advection_matrix, diffusion_matrix%sparsity, name="AdvectionMatrix")
-      u_left => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
-      u_right => extract_scalar_field(forward_state(1, timestep-1), "IteratedVelocity" // int2str(old_count))
-
-      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-      call allocate(L, diffusion_matrix%sparsity, name="LeftHandSide")
-
-      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
-      call deallocate(advection_matrix)
-      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
-      LT = transpose(L, symmetric_sparsity=.true.)
-      call deallocate(L)
-
-      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
-      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
-      
-      call set_inactive_rows(LT, u)
-      call petsc_solve(adjoint, LT, rhs)
-      call compute_inactive_rows(adjoint, LT, rhs)
-
-      ! We'll also insert it as IteratedAdjointVelocityN
-      call insert(adjoint_state(1, timestep), adjoint, "IteratedAdjointVelocity" // int2str(count))
-
-      call deallocate(derivatives)
-      call deallocate(LT)
-    end subroutine compute_final_adjoint_state
-
-    subroutine compute_initial_adjoint_state(forward_state, adjoint_state)
-      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
-
-      type(state_type), dimension(size(forward_state,1)) :: derivatives
-      type(scalar_field), pointer :: rhs, adjoint, u, u_left, u_right
-      real :: current_time, dt, theta
-      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
-      type(vector_field), pointer :: x
-      type(scalar_field) :: output, contraction
-      type(csr_sparsity), pointer :: sparsity
-      type(csr_matrix) :: advection_matrix, T
-      integer :: count, i
-
-      u => extract_scalar_field(forward_state(1, 1), "Velocity")
-      adjoint => extract_scalar_field(adjoint_state(1, 1), "AdjointVelocity")
-      x => extract_vector_field(forward_state(1, 1), "Coordinate")
-      call zero(adjoint)
-
-      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
-      call get_option("/timestepping/current_time", current_time)
-      call get_option("/timestepping/timestep", dt)
-
-      mass_matrix => extract_csr_matrix(forward_state(1, 1), "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(forward_state(1, 1), "DiffusionMatrix")
-      sparsity => mass_matrix%sparsity
-
-      ! ---------------------------------------------------------------------------------
-      ! dJ/du
-      ! ---------------------------------------------------------------------------------
-      call functional_derivative(forward_state, current_time, dt, 1, derivatives)
-      rhs => extract_scalar_field(derivatives(1), "VelocityDerivative")
-      call addto(adjoint, rhs)
-      call deallocate(derivatives)
-
-      call allocate(output, u%mesh, "OutputVector")
-      call allocate(contraction, u%mesh, "ContractionVector")
-
-      ! ---------------------------------------------------------------------------------
-      ! the G-blocks multiplying the adjoint RHS
-      ! ---------------------------------------------------------------------------------
-      ! The first G-block is a special case.
-      u_left => u
-      u_right => u
-
-      call set(contraction, u)
-      call scale(contraction, 1-theta)
-      call addto(contraction, extract_scalar_field(forward_state(1, 2), "IteratedVelocity1"), scale=theta)
-
-      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, &
-           & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"), output)
-      call addto(adjoint, output, scale=-1.0)
-
-      ! Now loop over the others
-      count = iteration_count(forward_state(1, 2))
-      do i=2,count
-        u_right => extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i-1))
-
-        call set(contraction, u)
-        call scale(contraction, 1-theta)
-        call addto(contraction, extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i)), scale=theta)
-        call differentiate_V(x, sparsity, u_left, u_right, -1, contraction, &
-             & extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)), output)
-        call addto(adjoint, output, scale=-1.0)
+      ! Clean up stat files
+      do functional=0,no_functionals-1
+        default_stat = functional_stats(functional + 1)
+        call close_diagnostic_files
+        call uninitialise_diagnostics
+        functional_stats(functional + 1) = default_stat
       end do
+    end subroutine compute_adjoint
+#endif
 
-      call deallocate(contraction)
-
-      ! ---------------------------------------------------------------------------------
-      ! the transpose of the forward timestepping operators
-      ! ---------------------------------------------------------------------------------
-      ! Again, the first T-block is a special case.
-
-      ! Remember, 
-      ! T = M/dt + (theta - 1) * V + (theta - 1) * D
-
-      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
-      u_left => u
-      u_right => u
-      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-      call allocate(T, sparsity, name="TimesteppingOperator")
-      call set(T, mass_matrix)
-      call scale(T, 1.0/abs(dt))
-
-      call addto(T, diffusion_matrix, scale=theta-1.0)
-      call addto(T, advection_matrix, scale=theta-1.0)
-      call mangle_dirichlet_rows(T, u, keep_diag=.false.)
-
-      call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity1"))
-      call addto(adjoint, output)
-
-      do i=2,count
-        u_right => extract_scalar_field(forward_state(1, 2), "IteratedVelocity" // int2str(i-1))
-        call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-        call set(T, mass_matrix)
-        call scale(T, 1.0/abs(dt))
-        call addto(T, diffusion_matrix, scale=theta-1.0)
-        call addto(T, advection_matrix, scale=theta-1.0)
-        call mangle_dirichlet_rows(T, u, keep_diag=.false.)
-
-        call mult_T(output, T, extract_scalar_field(adjoint_state(1, 2), "IteratedAdjointVelocity" // int2str(i)))
-        call addto(adjoint, output)
-      end do
-      
-      call deallocate(advection_matrix)
-      call deallocate(T)
-      call deallocate(output)
-
-      ! Note that we don't need to invert any operators, because the top-left block is
-      ! just the identity matrix. That's why we've been accumulating the right-hand side
-      ! into adjoint, not into an rhs variable, because the adjoint is the rhs.
-      
-    end subroutine compute_initial_adjoint_state
-
-    subroutine rewind_nonlinear_iteration(forward_state, adjoint_state, timestep, iteration)
-      type(state_type), intent(inout), dimension(:,:) :: forward_state, adjoint_state
-      integer, intent(in) :: timestep, iteration
-
-      type(scalar_field) :: rhs, contraction, adjoint
-      type(scalar_field), pointer :: u, u_left, u_right
-      real :: dt, theta
-      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
-      type(vector_field), pointer :: x
-      type(csr_sparsity), pointer :: sparsity
-      type(csr_matrix) :: advection_matrix, L, LT
-
-      u => extract_scalar_field(forward_state(1, timestep-1), "Velocity")
-      call allocate(adjoint, u%mesh, "IteratedAdjointVelocity" // int2str(iteration))
-      adjoint%option_path = u%option_path
-      call zero(adjoint)
-      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
-      x => extract_vector_field(adjoint_state(1, timestep), "Coordinate")
-      sparsity => diffusion_matrix%sparsity
-
-      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
-      call get_option("/timestepping/timestep", dt)
-
-      ! Assemble the right-hand side. This is the relevant G-block multiplied by the last value
-      ! of the adjoint velocity that we've just computed.
-
-      call allocate(rhs, adjoint%mesh, "NonlinearIterationRightHandSide")
-      call zero(rhs)
-      call allocate(contraction, adjoint%mesh, "ContractionVector")
-      call set(contraction, u)
-      call scale(contraction, (1.0 - theta))
-      call addto(contraction, extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration+1)), scale=theta)
-
-      u_left => u
-      u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration))
-
-      call differentiate_V(x, sparsity, u_left, u_right, 1, contraction, &
-           & extract_scalar_field(adjoint_state(1, timestep), "IteratedAdjointVelocity" // int2str(iteration+1)), rhs)
-      call scale(rhs, -1.0)
-
-      call deallocate(contraction)
-
-      ! OK. Now we have to assemble the operator. This is the relevant operator we solved
-      ! for IteratedVelocity // int2str(iteration), transposed.
-      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
-      u_left => u
-      if (iteration == 1) then
-        u_right => u
-      else
-        u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(iteration-1))
-      end if
-      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-      call allocate(L, sparsity, name="LeftHandSide")
-      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
-      call deallocate(advection_matrix)
-      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
-      LT = transpose(L, symmetric_sparsity=.true.)
-      call deallocate(L)
-
-      call set_inactive_rows(LT, u)
-      call petsc_solve(adjoint, LT, rhs)
-      call compute_inactive_rows(adjoint, LT, rhs)
-
-      call deallocate(LT)
-      call deallocate(rhs)
-
-      call insert(adjoint_state(1, timestep), adjoint, trim(adjoint%name))
-      call deallocate(adjoint)
-    end subroutine rewind_nonlinear_iteration
-
-    subroutine compute_adjoint_timestep(forward_state, adjoint_state, timestep)
-      type(state_type), dimension(:,:), intent(in) :: forward_state
-      type(state_type), dimension(:,:), intent(inout) :: adjoint_state
-      integer :: timestep
-
-      type(state_type), dimension(size(forward_state,1)) :: derivatives
-      type(scalar_field), pointer :: djdu, adjoint, u, u_left, u_right, next_adjoint
-      real :: current_time, dt, theta
-      type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
-      type(vector_field), pointer :: x
-      type(scalar_field) :: output, contraction, rhs
-      type(csr_sparsity), pointer :: sparsity
-      type(csr_matrix) :: advection_matrix, T, L, LT
-      integer :: count, i
-
-      u => extract_scalar_field(forward_state(1, timestep), "Velocity")
-      adjoint => extract_scalar_field(adjoint_state(1, timestep), "AdjointVelocity")
-      next_adjoint => extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity1")
-      x => extract_vector_field(forward_state(1, timestep), "Coordinate")
-      call zero(adjoint)
-
-      call get_option(trim(u%option_path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
-      call get_option("/timestepping/current_time", current_time)
-      call get_option("/timestepping/timestep", dt)
-
-      mass_matrix => extract_csr_matrix(forward_state(1, timestep), "MassMatrix")
-      diffusion_matrix => extract_csr_matrix(forward_state(1, timestep), "DiffusionMatrix")
-      sparsity => mass_matrix%sparsity
-
-      call allocate(rhs, u%mesh, "AdjointTimestepRightHandSide")
-      call zero(rhs)
-
-      ! ---------------------------------------------------------------------------------
-      ! dJ/du
-      ! ---------------------------------------------------------------------------------
-      call functional_derivative(forward_state, current_time, dt, timestep, derivatives)
-      djdu => extract_scalar_field(derivatives(1), "VelocityDerivative")
-      call addto(rhs, djdu)
-      call deallocate(derivatives)
-
-      call allocate(output, u%mesh, "OutputVector")
-      call allocate(contraction, u%mesh, "ContractionVector")
-
-      ! ---------------------------------------------------------------------------------
-      ! the G-blocks multiplying the adjoint RHS
-      ! ---------------------------------------------------------------------------------
-      ! The first G-block is a special case.
-      u_left => u
-      u_right => u
-
-      call set(contraction, u)
-      call scale(contraction, 1-theta)
-      call addto(contraction, extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity1"), scale=theta)
-
-      call differentiate_V(x, sparsity, u_left, u_right, 0, contraction, next_adjoint, output)
-      call addto(rhs, output, scale=-1.0)
-
-      ! Now loop over the others
-      count = iteration_count(forward_state(1, timestep+1))
-      do i=2,count
-        u_right => extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i-1))
-
-        call set(contraction, u)
-        call scale(contraction, 1-theta)
-        call addto(contraction, extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i)), scale=theta)
-        call differentiate_V(x, sparsity, u_left, u_right, -1, contraction, &
-             & extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity" // int2str(i)), output)
-        call addto(rhs, output, scale=-1.0)
-      end do
-
-      call deallocate(contraction)
-
-      ! ---------------------------------------------------------------------------------
-      ! the transpose of the forward timestepping operators
-      ! ---------------------------------------------------------------------------------
-      ! Again, the first T-block is a special case.
-
-      ! Remember, 
-      ! T = M/dt + (theta - 1) * V + (theta - 1) * D
-
-      call allocate(advection_matrix, sparsity, name="AdvectionMatrix")
-      u_left => u
-      u_right => u
-      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-      call allocate(T, sparsity, name="TimesteppingOperator")
-      call set(T, mass_matrix)
-      call scale(T, 1.0/abs(dt))
-
-      call addto(T, diffusion_matrix, scale=theta-1.0)
-      call addto(T, advection_matrix, scale=theta-1.0)
-      call mangle_dirichlet_rows(T, u, keep_diag=.false.)
-
-      call mult_T(output, T, next_adjoint)
-      call addto(rhs, output)
-
-      do i=2,count
-        u_right => extract_scalar_field(forward_state(1, timestep+1), "IteratedVelocity" // int2str(i-1))
-        call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-        call set(T, mass_matrix)
-        call scale(T, 1.0/abs(dt))
-        call addto(T, diffusion_matrix, scale=theta-1.0)
-        call addto(T, advection_matrix, scale=theta-1.0)
-        call mangle_dirichlet_rows(T, u, keep_diag=.false.)
-
-        call mult_T(output, T, extract_scalar_field(adjoint_state(1, timestep+1), "IteratedAdjointVelocity" // int2str(i)))
-        call addto(rhs, output)
-      end do
-      
-      call deallocate(T)
-      call deallocate(output)
-
-      ! OK! All of those terms have been assembling the RHS.
-      ! Now we need to assemble the operator to invert onto RHS.
-      u_left => extract_scalar_field(forward_state(1,timestep-1), "Velocity")
-      count = iteration_count(forward_state(1, timestep))
-      if (count > 1) then
-        u_right => extract_scalar_field(forward_state(1,timestep), "IteratedVelocity" // int2str(count-1))
-      else
-        u_right => extract_scalar_field(forward_state(1,timestep-1), "Velocity")
-      end if
-      call assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-
-      call allocate(L, sparsity, name="LeftHandSide")
-      call assemble_left_hand_side(L, mass_matrix, advection_matrix, diffusion_matrix, abs(dt), theta, u)
-      call deallocate(advection_matrix)
-      call mangle_dirichlet_rows(L, u, keep_diag=.true.)
-      LT = transpose(L, symmetric_sparsity=.true.)
-      call deallocate(L)
-
-      call set_inactive_rows(LT, u)
-      call petsc_solve(adjoint, LT, rhs)
-      call compute_inactive_rows(adjoint, LT, rhs)
-
-      call deallocate(LT)
-      call deallocate(rhs)
-
-      call insert(adjoint_state(1,timestep), adjoint, "IteratedAdjointVelocity" // int2str(count))
-      
-    end subroutine compute_adjoint_timestep
-
-    subroutine setup_adjoint_state(forward_state, adjoint_state)
-      type(state_type), dimension(:), intent(in) :: forward_state
-      type(state_type), dimension(:), intent(inout) :: adjoint_state
-
-      type(mesh_type), pointer :: external_mesh
-      type(vector_field), pointer :: x
-
-      external_mesh => get_external_mesh(forward_state)
-      x => extract_vector_field(forward_state, "Coordinate")
-      call insert(adjoint_state, external_mesh, name=trim(external_mesh%name))
-      call insert(adjoint_state, x, "Coordinate")
-      call insert_derived_meshes(adjoint_state)
-      call allocate_and_insert_fields(adjoint_state)
-      call set_prescribed_field_values(adjoint_state)
-    end subroutine setup_adjoint_state
-
-    subroutine delete_iterated_fields(states)
-      type(state_type), dimension(:), intent(inout) :: states
-      type(scalar_field), pointer :: sfield
-      integer :: field, state
-      character(len=OPTION_PATH_LEN), dimension(:), allocatable :: fields_to_delete
-      integer :: nfields_to_delete
-
-      do state=1,size(states)
-        allocate(fields_to_delete(scalar_field_count(states(state))))
-        nfields_to_delete = 0
-
-        do field=1,scalar_field_count(states(state))
-          sfield => extract_scalar_field(states(state), field)
-          if (index(trim(sfield%name), "Iterated") /= 0) then
-            nfields_to_delete = nfields_to_delete + 1
-            fields_to_delete(nfields_to_delete) = trim(sfield%name)
-          end if
-        end do
-
-        do field=1,nfields_to_delete
-          call remove_scalar_field(states(state), trim(fields_to_delete(field)))
-        end do
-
-        deallocate(fields_to_delete)
-      end do
-    end subroutine delete_iterated_fields
   end program burgers_equation

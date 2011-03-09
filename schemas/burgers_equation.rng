@@ -13,6 +13,7 @@
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
+  <include href="adjoint_options.rng"/>
   <start>
     <element name="burgers_equation">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -285,21 +286,6 @@ Recommended to be 0.5.</a:documentation>
               </element>
             </element>
           </optional>
-          <optional>
-            <!-- If enabled, save the right hand side of the discrete equations. -->
-            <element name="scalar_field">
-              <attribute name="name">
-                <value>Rhs</value>
-              </attribute>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <element name="diagnostic">
-                <empty/>
-              </element>
-              <ref name="adjoint_storage"/>
-            </element>
-          </optional>
         </element>
       </element>
       <zeroOrMore>
@@ -376,39 +362,6 @@ This is cheaper especially if you are enforcing discrete properties on the field
       <ref name="recalculation_options"/>
     </optional>
   </define>
-  <define name="adjoint_storage">
-    <element name="adjoint_storage">
-      <a:documentation>Informs the model whether the field should be computed only in the
-forward model, the adjoint model, or in both.
-If /adjoint is not enabled, this has no effect whatsoever.</a:documentation>
-      <choice>
-        <element name="exists_in_both">
-          <a:documentation>Include the field in both the forward and adjoint states.</a:documentation>
-          <optional>
-            <element name="record">
-              <a:documentation>If enabled, this element tells the model that this field must be stored
-through time in order to compute the adjoint model.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-        <element name="exists_in_forward">
-          <a:documentation>Include the field only in the forward state.</a:documentation>
-          <optional>
-            <element name="record">
-              <a:documentation>If enabled, this element tells the model that this field must be stored
-through time in order to compute the adjoint model.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-        <element name="exists_in_adjoint">
-          <a:documentation>Include the field only in the adjoint state.</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-    </element>
-  </define>
   <define name="io">
     <element name="io">
       <a:documentation>Options to do with I/O</a:documentation>
@@ -440,37 +393,6 @@ interpolated for VTK output.</a:documentation>
           </attribute>
         </element>
       </choice>
-    </element>
-  </define>
-  <define name="adjoint_options">
-    <element name="adjoint">
-      <a:documentation>Turn on the solution of the adjoint problem.
-To compute the adjoint you must either specify code for the functional
-or for its derivative. If the derivative is not specified, then
-the independent set perturbation method will be used to approximate
-its derivative. </a:documentation>
-      <optional>
-        <element name="functional">
-          <a:documentation>The functional to be computed.</a:documentation>
-          <element name="algorithm">
-            <a:documentation>Python code for the functional</a:documentation>
-            <attribute name="name">
-              <value>functional</value>
-            </attribute>
-            <ref name="python_code"/>
-          </element>
-        </element>
-      </optional>
-      <element name="functional_derivative">
-        <a:documentation>The derivative of the functional at each time level.</a:documentation>
-        <element name="algorithm">
-          <a:documentation>Python code for the functional derivative</a:documentation>
-          <attribute name="name">
-            <value>functional_derivative</value>
-          </attribute>
-          <ref name="python_code"/>
-        </element>
-      </element>
     </element>
   </define>
 </grammar>

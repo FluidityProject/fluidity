@@ -12,6 +12,7 @@ include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
+include "adjoint_options.rnc"
 
 start =
    (
@@ -229,15 +230,6 @@ material_phase =
                         prescribed_scalar_field_no_adapt,
                         recalculation_options?
                      }
-                  }?,
-                  # If enabled, save the right hand side of the discrete equations.
-                  element scalar_field {
-                     attribute name { "Rhs" },
-                     attribute rank { "0" },
-                     element diagnostic {
-                        empty
-                     },
-                     adjoint_storage
                   }?
                }
             },
@@ -298,33 +290,6 @@ diagnostic_scalar_field =
       recalculation_options?
    )
 
-adjoint_storage =
-   (
-      ## Informs the model whether the field should be computed only in the
-      ## forward model, the adjoint model, or in both.
-      ## If /adjoint is not enabled, this has no effect whatsoever.
-      element adjoint_storage {
-         (
-            ## Include the field in both the forward and adjoint states.
-            element exists_in_both {
-               ## If enabled, this element tells the model that this field must be stored
-               ## through time in order to compute the adjoint model.
-               element record { empty }?
-            }|
-            ## Include the field only in the forward state.
-            element exists_in_forward {
-               ## If enabled, this element tells the model that this field must be stored
-               ## through time in order to compute the adjoint model.
-               element record { empty }?
-            }|
-            ## Include the field only in the adjoint state.
-            element exists_in_adjoint {
-               empty
-            }
-         )
-      }
-   )
-
 io =
    ## Options to do with I/O
    element io {
@@ -348,27 +313,4 @@ io =
      )
   } 
 
-adjoint_options =
-   ## Turn on the solution of the adjoint problem.
-   ## To compute the adjoint you must either specify code for the functional
-   ## or for its derivative. If the derivative is not specified, then
-   ## the independent set perturbation method will be used to approximate
-   ## its derivative. 
-   element adjoint {
-      ## The functional to be computed.
-      element functional {
-        ## Python code for the functional
-        element algorithm {
-           attribute name { "functional" },
-           python_code
-        }
-      }?,
-      ## The derivative of the functional at each time level.
-      element functional_derivative {
-        ## Python code for the functional derivative
-        element algorithm {
-           attribute name { "functional_derivative" },
-           python_code
-        }
-      }
-   }
+
