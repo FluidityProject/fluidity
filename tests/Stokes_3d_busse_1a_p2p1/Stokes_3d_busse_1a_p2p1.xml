@@ -29,8 +29,8 @@ rms_vel=(stat("Busse_3D_C1.stat")["Mantle"]["Velocity%magnitude"]["l2norm"][-1])
 assert(abs(nu_top-3.65) &lt; 0.05)
 </test>
 
-<test name="RMS Velocity Validity: 40.9 .lt. V_RMS .lt. 41.0" language="python">
-assert(abs(rms_vel-40.95) &lt; 0.05)
+<test name="RMS Velocity Validity: 40.9 .lt. V_RMS .lt. 41.1" language="python">
+assert(abs(rms_vel-41.0) &lt; 0.1)
 </test>
 
 </pass_tests>                                                                                                                                                                                                
