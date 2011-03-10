@@ -172,9 +172,11 @@ module burgers_adjoint_callbacks
       ! And transpose of desired ...
       if (hermitian == ADJ_TRUE) then
         burgers_mat_T = transpose(burgers_mat)
+        call set_inactive_rows(burgers_mat_T, previous_u)
         output = matrix_to_adj_matrix(burgers_mat_T)
         call deallocate(burgers_mat_T)
       else
+        call set_inactive_rows(burgers_mat, previous_u)
         output = matrix_to_adj_matrix(burgers_mat)
       end if
       call deallocate(burgers_mat)

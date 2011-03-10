@@ -41,6 +41,7 @@ module adjoint_main_loop
     use populate_state_module
     use signal_vars
     use mangle_options_tree
+    use mangle_dirichlet_rows_module
     use sparse_tools
     use sparse_matrices_fields
     use write_state_module
@@ -159,6 +160,7 @@ module adjoint_main_loop
                       call mult(sfield_soln, csr_mat, sfield_rhs)
                     else
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
+                      call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
@@ -186,6 +188,7 @@ module adjoint_main_loop
                       call mult(vfield_soln, csr_mat, vfield_rhs)
                     else
                       call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
+                      call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, block_csr_mat)
@@ -193,6 +196,7 @@ module adjoint_main_loop
                       call mult(vfield_soln, block_csr_mat, vfield_rhs)
                     else
                       call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
+                      call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                     endif
                   case default
                     FLAbort("Unknown lhs%klass")

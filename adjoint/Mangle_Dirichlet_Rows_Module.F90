@@ -24,7 +24,7 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-  
+
 #include "fdebug.h"
 module mangle_dirichlet_rows_module
   use sparse_matrices_fields
@@ -33,22 +33,22 @@ module mangle_dirichlet_rows_module
   use boundary_conditions_from_options
   use boundary_conditions
 
-  interface mangle_dirichlet_rows 
-    module procedure mangle_dirichlet_rows_scalar
+  interface mangle_dirichlet_rows
+    module procedure mangle_dirichlet_rows_csr_scalar
   end interface
 
   interface set_inactive_rows
-    module procedure set_inactive_rows_scalar
+    module procedure set_inactive_rows_csr_scalar
   end interface
 
   interface compute_inactive_rows
-    module procedure compute_inactive_rows_scalar
+    module procedure compute_inactive_rows_csr_scalar, compute_inactive_rows_csr_vector, compute_inactive_rows_block_csr_vector
   end interface
 
 
   contains
 
-    subroutine mangle_dirichlet_rows_scalar(matrix, field, keep_diag, rhs)
+    subroutine mangle_dirichlet_rows_csr_scalar(matrix, field, keep_diag, rhs)
         type(csr_matrix), intent(inout) :: matrix
         type(scalar_field), intent(in) :: field
         logical, intent(in) :: keep_diag
@@ -84,9 +84,9 @@ module mangle_dirichlet_rows_module
             end if
           end do
         end do
-    end subroutine mangle_dirichlet_rows_scalar
+    end subroutine mangle_dirichlet_rows_csr_scalar
 
-    subroutine set_inactive_rows_scalar(matrix, field)
+    subroutine set_inactive_rows_csr_scalar(matrix, field)
       ! Any nodes associated with Dirichlet BCs, we make them inactive
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(in) :: field
@@ -101,31 +101,47 @@ module mangle_dirichlet_rows_module
         call set_inactive(matrix, node_list)
       end do
 
-    end subroutine set_inactive_rows_scalar
+    end subroutine set_inactive_rows_csr_scalar
 
-    subroutine compute_inactive_rows_scalar(x, A, rhs)
-      type(scalar_field), intent(inout):: x          
-      type(csr_matrix), intent(in):: A              
-      type(scalar_field), intent(inout):: rhs  
+    subroutine compute_inactive_rows_csr_scalar(x, A, rhs)
+      type(scalar_field), intent(inout):: x
+      type(csr_matrix), intent(in):: A
+      type(scalar_field), intent(inout):: rhs
       logical, dimension(:), pointer:: inactive_mask
-      integer:: i                                  
+      integer:: i
 
-      inactive_mask => get_inactive_mask(A)       
+      inactive_mask => get_inactive_mask(A)
 
       if (.not. associated(inactive_mask)) return
 
-      do i=1, size(A,1)                         
-        if (inactive_mask(i)) then             
+      do i=1, size(A,1)
+        if (inactive_mask(i)) then
 
-          ! we want [rhs_i - ((L+U)*x)_i]/A_ii, where L+U is off-diag part of A                                                                 
-          ! by setting x_i to zero before this is the same as [rhs_i- (A*x)_i]/A_ii                                                            
-          call set(x, i, 0.0)                                                                                                                 
-          call set(x, i, (node_val(rhs,i)- &                                                                                                 
-          dot_product(row_val_ptr(A,i),node_val(x, row_m_ptr(A,i))) &                                                                       
-          &  )/val(A,i,i) )                                                                                                                
+          ! we want [rhs_i - ((L+U)*x)_i]/A_ii, where L+U is off-diag part of A
+          ! by setting x_i to zero before this is the same as [rhs_i- (A*x)_i]/A_ii
+          call set(x, i, 0.0)
+          call set(x, i, (node_val(rhs,i)- &
+          dot_product(row_val_ptr(A,i),node_val(x, row_m_ptr(A,i))) &
+          &  )/val(A,i,i) )
 
-        end if                                                                                                                            
-      end do                                                                                                                             
-    end subroutine compute_inactive_rows_scalar
+        end if
+      end do
+    end subroutine compute_inactive_rows_csr_scalar
+
+    subroutine compute_inactive_rows_csr_vector(x, A, rhs)
+      type(vector_field), intent(inout):: x
+      type(csr_matrix), intent(in):: A
+      type(vector_field), intent(inout):: rhs
+
+      FLAbort("Not implemented yet")
+    end subroutine compute_inactive_rows_csr_vector
+
+    subroutine compute_inactive_rows_block_csr_vector(x, A, rhs)
+      type(vector_field), intent(inout):: x
+      type(block_csr_matrix), intent(in):: A
+      type(vector_field), intent(inout):: rhs
+
+      FLAbort("Not implemented yet")
+    end subroutine compute_inactive_rows_block_csr_vector
 
 end module mangle_dirichlet_rows_module
