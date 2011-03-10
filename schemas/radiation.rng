@@ -38,11 +38,6 @@
       <ref name="particle_type_generic"/>
     </element>
   </define>
-  <define name="particle_type_generic">
-    <ref name="radiation_method"/>
-    <ref name="read_radiation_material_data_set"/>
-    <ref name="radiation_material_mapping"/>
-  </define>
   <define name="problem_run_neutron">
     <choice>
       <ref name="eigenvalue_run"/>
@@ -51,6 +46,71 @@
   </define>
   <define name="problem_run_photon">
     <ref name="time_run"/>
+  </define>
+  <define name="particle_type_generic">
+    <optional>
+      <ref name="energy_group_set"/>
+    </optional>
+    <ref name="radiation_method"/>
+    <ref name="read_radiation_material_data_set"/>
+    <ref name="radiation_material_mapping"/>
+  </define>
+  <define name="energy_group_set">
+    <element name="energy_group_set">
+      <a:documentation>Define a group set of consecutive energy groups, where each group 
+within the set shares the group set options. The global 
+group numbering starts at 1 from the first group within 
+the first group set then increases in the order the group 
+sets are defined.</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <ref name="number_of_energy_groups"/>
+      <ref name="angular_discretisation"/>
+    </element>
+  </define>
+  <define name="number_of_energy_groups">
+    <element name="number_of_energy_groups">
+      <a:documentation>The number of energy groups</a:documentation>
+      <ref name="comment"/>
+      <ref name="integer"/>
+    </element>
+  </define>
+  <define name="angular_discretisation">
+    <element name="angular_discretisation">
+      <a:documentation>The angular discetisation assoicated with this energy group set</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>diffusion</value>
+      </attribute>
+      <ref name="particle_type_material_mesh_choice"/>
+      <ref name="particle_flux_diffusion_field"/>
+    </element>
+  </define>
+  <define name="particle_type_material_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ParticleMaterialMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="particle_flux_diffusion_field">
+    <element name="scalar_field">
+      <a:documentation>The particle flux scalar field for diffusion method equation for this group set</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>ParticleFlux</value>
+      </attribute>
+      <ref name="prognostic_neutral_particle_diffusion_removal_source_scalar_field"/>
+    </element>
   </define>
   <define name="radiation_method">
     <element name="method">
@@ -63,13 +123,6 @@
       <oneOrMore>
         <ref name="neutral_particle_flux_group_set_diffusion_field"/>
       </oneOrMore>
-    </element>
-  </define>
-  <define name="number_of_energy_groups">
-    <element name="number_of_energy_groups">
-      <a:documentation>The number of energy groups</a:documentation>
-      <ref name="comment"/>
-      <ref name="integer"/>
     </element>
   </define>
   <define name="neutral_particle_flux_group_set_diffusion_field">
@@ -108,20 +161,6 @@
           <ref name="comment"/>
           <ref name="integer"/>
         </element>
-      </element>
-    </choice>
-  </define>
-  <define name="particle_type_material_mesh_choice">
-    <choice>
-      <element name="mesh">
-        <attribute name="name">
-          <value>ParticleMaterialMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
       </element>
     </choice>
   </define>

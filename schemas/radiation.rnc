@@ -43,16 +43,6 @@ particle_type_photon =
          particle_type_generic                           
       }
    )  
-
-
-particle_type_generic = 
-   (
-      radiation_method,             
-                
-      read_radiation_material_data_set,
-         
-      radiation_material_mapping
-   )
    
 
 problem_run_neutron = 
@@ -69,6 +59,87 @@ problem_run_photon =
    )
 
 
+particle_type_generic = 
+   (
+      
+      energy_group_set?,
+            
+      radiation_method,             
+                
+      read_radiation_material_data_set,
+         
+      radiation_material_mapping
+   )
+
+
+energy_group_set = 
+   (
+      ## Define a group set of consecutive energy groups, where each group 
+      ## within the set shares the group set options. The global 
+      ## group numbering starts at 1 from the first group within 
+      ## the first group set then increases in the order the group 
+      ## sets are defined.
+      element energy_group_set {
+         comment, 
+         
+         attribute name { xsd:string },
+         
+         number_of_energy_groups,
+         
+         angular_discretisation         
+      }
+   )
+
+
+number_of_energy_groups = 
+   (
+      ## The number of energy groups
+      element number_of_energy_groups {
+         comment, 
+         integer
+      }     
+   )
+
+
+angular_discretisation = 
+   (
+      ## The angular discetisation assoicated with this energy group set
+      element angular_discretisation {
+         comment, 
+         
+         attribute name { "diffusion" },
+
+         particle_type_material_mesh_choice, 
+         
+         particle_flux_diffusion_field         
+      }
+   )
+
+
+particle_type_material_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "ParticleMaterialMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   
+   )
+
+   
+particle_flux_diffusion_field =
+   (
+      ## The particle flux scalar field for diffusion method equation for this group set
+      element scalar_field {
+         comment,
+         attribute name { "ParticleFlux" },
+                  
+         prognostic_neutral_particle_diffusion_removal_source_scalar_field
+      }          
+   )
+
+
 radiation_method = 
    (
       ## Multigroup diffusion 
@@ -81,16 +152,6 @@ radiation_method =
                         
             neutral_particle_flux_group_set_diffusion_field+
       }         
-   )
-
-
-number_of_energy_groups = 
-   (
-      ## The number of energy groups
-      element number_of_energy_groups {
-         comment, 
-         integer
-      }     
    )
 
    
@@ -136,18 +197,6 @@ group_set =
             integer
          }
       }
-   )
-
-
-particle_type_material_mesh_choice = 
-   (
-      element mesh {
-         attribute name { "ParticleMaterialMesh" }
-      }|
-      element mesh {
-         attribute name { string }
-      }
-   
    )
 
    
