@@ -187,6 +187,7 @@
 
     ! Always output the initial conditions.
     call output_state(state)
+    stationary_problem = have_option("/timestepping/steady_state")
     if (stationary_problem) then
       call get_option("/timestepping/steady_state/tolerance", tolerance)
     end if

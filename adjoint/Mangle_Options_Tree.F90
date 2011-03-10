@@ -359,11 +359,12 @@ module mangle_options_tree
     integer :: no_fwd_slash
     integer :: no_colons
 
+    adj_path = ""
     no_fwd_slash = 0
     j = 1
     k = 1
     ! First mode: find the second slash in /material_phase::whatever/scalar_field::whatever
-    do while(j <= OPTION_PATH_LEN .and. no_fwd_slash /= 2)
+    do while(j <= OPTION_PATH_LEN .and. k <= len_trim(fwd_path) .and. no_fwd_slash /= 2)
       adj_path(j:j) = fwd_path(k:k)
       if (fwd_path(k:k) == "/") then
         no_fwd_slash = no_fwd_slash + 1
@@ -375,7 +376,7 @@ module mangle_options_tree
     no_colons = 0
 
     ! Now that we are here, we need to move to the next :: in between this slash and the next / (if any)
-    do while (j <= OPTION_PATH_LEN .and. no_fwd_slash == 2 .and. no_colons /= 2)
+    do while (j <= OPTION_PATH_LEN .and. k <= len_trim(fwd_path) .and. no_fwd_slash == 2 .and. no_colons /= 2)
       adj_path(j:j) = fwd_path(k:k)
       if (fwd_path(k:k) == "/") then
         no_fwd_slash = no_fwd_slash + 1
@@ -393,7 +394,7 @@ module mangle_options_tree
       j = j + 7
     end if
 
-    do while(k <= OPTION_PATH_LEN)
+    do while(k <= len_trim(fwd_path))
       adj_path(j:j) = fwd_path(k:k)
       j = j + 1
       k = k + 1

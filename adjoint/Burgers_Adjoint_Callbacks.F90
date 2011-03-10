@@ -36,7 +36,7 @@ module burgers_adjoint_callbacks
     use state_module
     use fields
     use sparse_matrices_fields
-    use spud, only: get_option, have_option
+    use spud
     use adjoint_global_variables, only: adj_var_lookup
     use mangle_options_tree, only: adjoint_field_path
     use mangle_dirichlet_rows_module
@@ -139,10 +139,8 @@ module burgers_adjoint_callbacks
         FLAbort("Unknown number of dependencies in burgers_operator_assembly_callback")
       end if
 
-      call get_option(trim(adjoint_field_path("/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/theta")), &
-                                        & theta, default=0.5)
-      call get_option("/timestepping/timestep", &
-                                        & dt)
+      call get_option(trim(adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+      call get_option("/timestepping/timestep", dt)
 
       call c_f_pointer(context, matrices)
       u_mesh => extract_mesh(matrices, "VelocityMesh")
@@ -158,8 +156,8 @@ module burgers_adjoint_callbacks
       call allocate(burgers_mat, mass_mat%sparsity, name="BurgersAdjointOutput")
       call zero(burgers_mat)
 
-      if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
-        call addto(burgers_mat, mass_mat, 1.0/dt)
+      if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
+        call addto(burgers_mat, mass_mat, 1.0/abs(dt))
       end if
       !call addto(burgers_mat, advection_mat, theta)
       call addto(burgers_mat, diffusion_mat, theta)
@@ -232,7 +230,7 @@ module burgers_adjoint_callbacks
 
       call c_f_pointer(context, matrices)
       
-      call get_option(trim(adjoint_field_path("/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/theta")), &
+      call get_option(trim(adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), &
                                         & theta, default=0.5)
       call get_option("/timestepping/timestep", dt)
 
@@ -272,7 +270,7 @@ module burgers_adjoint_callbacks
       call allocate(timestepping_mat, mass_mat%sparsity, name="TimesteppingMatrix")
       call zero(timestepping_mat)
 
-      if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/vector_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
+      if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
         call addto(timestepping_mat, mass_mat, scale=1.0/dt)
       end if
 
