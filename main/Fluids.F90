@@ -1069,10 +1069,20 @@ contains
     ! Discrete properties
     call enforce_discrete_properties(state)
 
-    ! Timestep adapt
-    if(have_option("/timestepping/adaptive_timestep")) then
-      call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-      call set_option("/timestepping/timestep", dt)
+    if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
+        if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
+            call get_option("/timestepping/adaptive_timestep/minimum_timestep", dt)
+            call set_option("/timestepping/timestep", dt)
+        else
+            ewrite(-1,*) "Warning: you have adaptive timestep adjustment after &&
+                          && adapt, but have not set a minimum timestep"
+        end if
+    else
+        ! Timestep adapt
+        if(have_option("/timestepping/adaptive_timestep")) then
+            call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
+            call set_option("/timestepping/timestep", dt)
+        end if
     end if
 
     ! Ocean boundaries

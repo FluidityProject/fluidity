@@ -439,6 +439,10 @@ hr_adaptivity =
             }?,
             integer
          }?,
+         ## Use the minimum timestep at an adapt and ramp back up the maximum
+         element adaptive_timestep_at_adapt {
+            empty
+         }?,
          ## The maximum number of nodes this simulation may use.
          ## In parallel, by default, this is the global maximum number of nodes.
          ##

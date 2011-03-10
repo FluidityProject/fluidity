@@ -819,6 +819,14 @@ start =
                      "none"|"MellorYamda"|"Burchard98"|"Burchard01"|"Blumberg"
                      }
                   }?,
+                  ## Smooth buoyancy frequency before using it?
+                  element smooth_buoyancy{
+                    empty
+                  }?,
+                  ## Smooth velocity shear before using it?
+                  element smooth_shear{
+                    empty
+                  }?,
                   ## Do you want the boundary conditions to be set automatically?
                   ## Make sure the ocean geometry settings are enabled for this option
                   element calculate_boundaries {

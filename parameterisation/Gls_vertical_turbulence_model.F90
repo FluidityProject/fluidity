@@ -326,6 +326,9 @@ subroutine gls_init(state)
     ewrite(1,*) "sigma_k: ",sigma_k
     ewrite(1,*) "sigma_psi: ",sigma_psi
     ewrite(1,*) "Calculating BCs: ", calculate_bcs
+    ewrite(1,*) "Using wall function: ", gls_wall_option
+    ewrite(1,*) "Smoothing NN2: ", have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_buoyancy/')
+    ewrite(1,*) "Smoothing MM2: ", have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_shear/')
     ewrite(1,*) "--------------------------------------------"
 
     ! intilise surface - only if we need to though
@@ -588,14 +591,14 @@ subroutine gls_diffusivity(state)
 
     type(state_type), intent(inout)  :: state
     
-    type(scalar_field), pointer      :: tke, psi
+    type(scalar_field), pointer      :: tke_state, psi
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
-    real                             :: epslim, tke_cur 
+    real                             :: psi_limit, tke_cur, limit, epslim
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     type(vector_field), pointer      :: positions, velocity
-    type(scalar_field)               :: remaped_K_M
+    type(scalar_field)               :: remaped_K_M, tke
     type(tensor_field)               :: remaped_background_visc
 
 
@@ -604,7 +607,7 @@ subroutine gls_diffusivity(state)
 
     ewrite(1,*) "In gls_diffusivity"
 
-    tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
+    tke_state => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
     eddy_visc_KM  => extract_tensor_field(state, "GLSEddyViscosityKM",stat)
     eddy_diff_KH => extract_tensor_field(state, "GLSEddyDiffusivityKH",stat)
@@ -612,19 +615,41 @@ subroutine gls_diffusivity(state)
     positions => extract_vector_field(state, "Coordinate")
     velocity => extract_vector_field(state, "Velocity")
 
+    call allocate(tke, tke_state%mesh, name="MyLocalTKE")
+    if (gls_n > 0) then
+        ! set the TKE to use below to the unaltered TKE
+        ! with no chnages tothe upper/lower surfaces
+        ! Applies to k-kl model only
+        call set (tke, local_tke)
+    else
+        ! Use the altered TKE to get the surface diffusivity correct
+        call set (tke, tke_state)
+    end if
+
     ! call the bc code, but specify we want dirichlet
-    call gls_psi_bc(state, 'dirichlet')
-    ! copy the values onto the mesh using the global node id
-    do i=1,NNodes_sur
-        call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
-    end do
-    do i=1,NNodes_bot
-        call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    end do
+    if (gls_n < 0) then
+        call gls_psi_bc(state, 'dirichlet')
+        ! copy the values onto the mesh using the global node id
+        do i=1,NNodes_sur
+            call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
+        end do
+        do i=1,NNodes_bot
+            call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
+        end do
+    end if
 
     exp1 = 3.0 + gls_p/gls_n
     exp2 = 1.5 + gls_m/gls_n
     exp3 =       - 1.0/gls_n
+
+    if (gls_n > 0) then
+        do i=1,nNodes
+            tke_cur = node_val(tke,i)
+            psi_limit = (sqrt(0.56) * tke_cur**(exp2) * (1./sqrt(max(node_val(NN2,i)+1e-10,0.))) &
+                        & * cm0**(gls_p / gls_n))**(-gls_n)
+            call set(psi,i,max(psi_min,min(node_val(psi,i),psi_limit)))
+        end do
+    end if
    
     do i=1,nNodes
 
@@ -640,16 +665,17 @@ subroutine gls_diffusivity(state)
         else
             epslim = eps_min
         end if
-
-        ! clip at eps_min
-        if (gls_n > 0) then
-            call set(eps,i, min(node_val(eps,i),max(eps_min,epslim)))
-        else
-            call set(eps,i, max(node_val(eps,i),max(eps_min,epslim)))
-        end if
+        call set(eps,i, max(node_val(eps,i),max(eps_min,epslim)))
 
         ! compute dissipative scale
         call set(ll,i,cde*sqrt(tke_cur**3.)/node_val(eps,i))
+        if (gls_n > 0) then
+            if (node_val(NN2,i) > 0) then
+                limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
+                call set(ll,i,min(limit,node_val(ll,i)))
+            end if
+        end if
+
     end do
 
     ! calc fwall
@@ -731,6 +757,7 @@ subroutine gls_diffusivity(state)
 
     call deallocate(remaped_background_visc)
     call deallocate(remaped_K_M) 
+    call deallocate(tke)
 
 end subroutine gls_diffusivity
 
@@ -1087,11 +1114,12 @@ subroutine gls_buoyancy(state)
     type(scalar_field), pointer           :: pert_rho
     type(vector_field), pointer           :: positions, gravity
     type(vector_field), pointer           :: velocity
-    type(scalar_field)                    :: NU,NV
+    type(scalar_field)                    :: NU, NV, MM2_av, NN2_av, inverse_lumpedmass
     type(scalar_field), pointer           :: lumpedmass
     real                                  :: g
-    logical                               :: on_sphere
+    logical                               :: on_sphere, smooth_buoyancy, smooth_shear
     integer                               :: ele, i, dim
+    type(csr_matrix), pointer             :: mass
 
     ! grab variables required from state - already checked in init, so no need to check here
     positions => extract_vector_field(state, "Coordinate")
@@ -1107,6 +1135,8 @@ subroutine gls_buoyancy(state)
 
     call get_option("/physical_parameters/gravity/magnitude", g)
     on_sphere = have_option('/geometry/spherical_earth/')
+    smooth_buoyancy = have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_buoyancy/')
+    smooth_shear = have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_shear/')
     dim = mesh_dim(NN2)
     
     call zero(NN2)
@@ -1120,6 +1150,32 @@ subroutine gls_buoyancy(state)
     NN2%val = NN2%val / lumpedmass%val
     lumpedmass => get_lumped_mass(state, MM2%mesh)
     MM2%val = MM2%val / lumpedmass%val
+
+    if (smooth_shear) then
+        call allocate(MM2_av, MM2%mesh, "MM2_averaged")
+        call allocate(inverse_lumpedmass, MM2%mesh, "InverseLumpedMass")
+        mass => get_mass_matrix(state, MM2%mesh)
+        lumpedmass => get_lumped_mass(state, MM2%mesh)
+        call invert(lumpedmass, inverse_lumpedmass)
+        call mult( MM2_av, mass, MM2) 
+        call scale(MM2_av, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+        call set(MM2, MM2_av)
+        call deallocate(inverse_lumpedmass)
+        call deallocate(MM2_av)
+    end if
+
+    if (smooth_buoyancy) then
+        call allocate(NN2_av, NN2%mesh, "NN2_averaged")
+        call allocate(inverse_lumpedmass, NN2%mesh, "InverseLumpedMass")
+        mass => get_mass_matrix(state, NN2%mesh)
+        lumpedmass => get_lumped_mass(state, NN2%mesh)
+        call invert(lumpedmass, inverse_lumpedmass)
+        call mult( NN2_av, mass, NN2) 
+        call scale(NN2_av, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+        call set(NN2, NN2_av)
+        call deallocate(NN2_av)
+        call deallocate(inverse_lumpedmass)
+    end if
 
     call deallocate(NU)
     call deallocate(NV)

@@ -980,6 +980,18 @@ See manual for equations.</a:documentation>
                     </element>
                   </optional>
                   <optional>
+                    <element name="smooth_buoyancy">
+                      <a:documentation>Smooth buoyancy frequency before using it?</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="smooth_shear">
+                      <a:documentation>Smooth velocity shear before using it?</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="calculate_boundaries">
                       <a:documentation>Do you want the boundary conditions to be set automatically?
 Make sure the ocean geometry settings are enabled for this option</a:documentation>

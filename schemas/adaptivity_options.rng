@@ -506,6 +506,12 @@ nodes).</a:documentation>
           <ref name="integer"/>
         </element>
       </optional>
+      <optional>
+        <element name="adaptive_timestep_at_adapt">
+          <a:documentation>Use the minimum timestep at an adapt and ramp back up the maximum</a:documentation>
+          <empty/>
+        </element>
+      </optional>
       <element name="maximum_number_of_nodes">
         <a:documentation>The maximum number of nodes this simulation may use.
 In parallel, by default, this is the global maximum number of nodes.
