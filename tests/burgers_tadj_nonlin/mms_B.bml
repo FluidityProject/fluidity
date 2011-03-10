@@ -108,9 +108,7 @@
         </viscosity>
         <stat/>
         <adjoint_storage>
-          <exists_in_both>
-            <record/>
-          </exists_in_both>
+          <exists_in_both/>
         </adjoint_storage>
         <scalar_field name="Source" rank="0">
           <prescribed>
@@ -173,9 +171,7 @@ for i in range(field.node_count):
         </value>
         <do_not_recalculate/>
         <adjoint_storage>
-          <exists_in_forward>
-            <record/>
-          </exists_in_forward>
+          <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
@@ -286,36 +282,17 @@ elif time == 1.0:
           </python>
         </value>
         <adjoint_storage>
-          <exists_in_both>
-            <record/>
-          </exists_in_both>
+          <exists_in_both/>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
   </material_phase>
   <adjoint>
-    <functional>
-      <algorithm name="functional">
-        <string_value lines="20" type="python">J = 0.0
-if time == 1.0:
-  import numpy
-  coord  = states[n]["Fluid"].vector_fields["Coordinate"]
-  u      = states[n]["Fluid"].scalar_fields["Velocity"]
-  target = states[n]["Fluid"].scalar_fields["TargetVelocity"]
-  
-  for ele in range(u.element_count):
-    t = Transform(ele, coord)
-    shape = u.ele_shape(ele)
-    m = t.shape_shape(shape, shape)
-    v = u.ele_val(ele) - target.ele_val(ele)
-    J += numpy.sum(numpy.outer(v, v) * m)
-    
-  J = 0.5 * J</string_value>
-      </algorithm>
-    </functional>
-    <functional_derivative>
-      <algorithm name="functional_derivative">
-        <string_value lines="20" type="python">import numpy
+    <functional name="dummy">
+      <functional_derivative>
+        <algorithm name="functional_derivative">
+          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
+import numpy
 
 coord = states[n]["Fluid"].vector_fields["Coordinate"]
 u = states[n]["Fluid"].scalar_fields["Velocity"]
@@ -331,8 +308,14 @@ if time == 1.0:
     t = Transform(ele, coord)
     du.addto(du.ele_nodes(ele), numpy.dot(integrand, t.detwei))
     
-#print "&lt;dJ/du, du/dm&gt;: ", numpy.dot(du.val, dudm.val)</string_value>
-      </algorithm>
-    </functional_derivative>
+#print "&amp;lt;dJ/du, du/dm&amp;gt;: ", numpy.dot(du.val, dudm.val)</string_value>
+        </algorithm>
+      </functional_derivative>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
   </adjoint>
 </burgers_equation>

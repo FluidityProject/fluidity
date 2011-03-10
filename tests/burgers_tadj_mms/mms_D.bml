@@ -107,9 +107,7 @@
         </viscosity>
         <stat/>
         <adjoint_storage>
-          <exists_in_both>
-            <record/>
-          </exists_in_both>
+          <exists_in_both/>
         </adjoint_storage>
       </prognostic>
     </scalar_field>
@@ -148,9 +146,7 @@ for ele in range(field.element_count):
         </algorithm>
         <stat/>
         <adjoint_storage>
-          <exists_in_both>
-            <record/>
-          </exists_in_both>
+          <exists_in_both/>
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
@@ -227,11 +223,11 @@ field[0] = 0.0; field[-1] = 0.0</string_value>
     </scalar_field>
   </material_phase>
   <adjoint>
-    <functional_derivative>
-      <algorithm name="functional_derivative">
-        <string_value lines="20" type="python">import numpy
-
-
+    <functional name="dummy">
+      <functional_derivative>
+        <algorithm name="functional_derivative">
+          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
+import numpy
 src = states[n]["Fluid"].scalar_fields["MAdjointFinalSource"]
 
 du = derivatives["FluidDerivatives"].scalar_fields["VelocityDerivative"]
@@ -243,7 +239,13 @@ elif time == 1.0:
   du[0] = 0.0; du[-1] = 0.0
 else:
   print "Warning: should only be called with time == 0.0 and time == 1.0!"</string_value>
-      </algorithm>
-    </functional_derivative>
+        </algorithm>
+      </functional_derivative>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
   </adjoint>
 </burgers_equation>
