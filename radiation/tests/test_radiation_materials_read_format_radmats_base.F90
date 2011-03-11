@@ -401,7 +401,7 @@ contains
       keyword_list_check(6)  = 'SIGTRANZ'
       keyword_list_check(7)  = 'DIFFUSIONX'
       keyword_list_check(8)  = 'DIFFUSIONY' 
-      keyword_list_check(9)  = 'DIFFUSIONX' 
+      keyword_list_check(9)  = 'DIFFUSIONZ' 
       keyword_list_check(10) = 'SIGFISS' 
       keyword_list_check(11) = 'FISSNU' 
       keyword_list_check(12) = 'PRODUCTION'       
