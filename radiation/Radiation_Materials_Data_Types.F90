@@ -29,7 +29,7 @@
 
 module radiation_materials_data_types
    
-   !!< define the radiation materials data type used for each neutral particle object
+   !!< define the radiation materials data type used for each particle type
    
    ! this currently uses dynamic allocatable embedded data types, but may be more flexible if
    ! using dynamic pointer embedded data types with reference counting
@@ -40,12 +40,12 @@ module radiation_materials_data_types
    
    private 
 
-   public :: np_radmat_type, &
+   public :: particle_radmat_type, &
              delayed_lambda_spectrum_type, &
              dataset_radmat_type, &
              physical_radmat_type, &
              radmat_type, &
-             np_radmat_size_type
+             particle_radmat_size_type
 
    ! the basic radiation material type (eg. uranium oxide at a certain temperature)
    type radmat_type         
@@ -60,7 +60,7 @@ module radiation_materials_data_types
       real, dimension(:),     allocatable :: production
       real, dimension(:),     allocatable :: power
       real, dimension(:),     allocatable :: energy_released_per_fission
-      real, dimension(:),     allocatable :: np_released_per_fission      
+      real, dimension(:),     allocatable :: particle_released_per_fission      
       real, dimension(:),     allocatable :: prompt_spectrum
       real, dimension(:),     allocatable :: velocity
       
@@ -69,20 +69,20 @@ module radiation_materials_data_types
       
       !! logical flags for whether data has been set in or not 
       !! set means it has been allocated, initialised and then values read in or calculated
-      logical :: total_set                       = .false.
-      logical :: absorption_set                  = .false.
-      logical :: scatter_set                     = .false.
-      logical :: removal_set                     = .false.
-      logical, dimension(3) :: transport_set     = .false.
-      logical, dimension(3) :: diffusion_set     = .false.
-      logical :: fission_set                     = .false.
-      logical :: production_set                  = .false. 
-      logical :: power_set                       = .false.
-      logical :: energy_released_per_fission_set = .false.
-      logical :: np_released_per_fission_set     = .false.      
-      logical :: prompt_spectrum_set             = .false.
-      logical :: velocity_set                    = .false.
-      logical:: beta_set                         = .false.            
+      logical :: total_set                         = .false.
+      logical :: absorption_set                    = .false.
+      logical :: scatter_set                       = .false.
+      logical :: removal_set                       = .false.
+      logical, dimension(3) :: transport_set       = .false.
+      logical, dimension(3) :: diffusion_set       = .false.
+      logical :: fission_set                       = .false.
+      logical :: production_set                    = .false. 
+      logical :: power_set                         = .false.
+      logical :: energy_released_per_fission_set   = .false.
+      logical :: particle_released_per_fission_set = .false.      
+      logical :: prompt_spectrum_set               = .false.
+      logical :: velocity_set                      = .false.
+      logical:: beta_set                           = .false.            
    end type radmat_type
 
    
@@ -121,8 +121,8 @@ module radiation_materials_data_types
    end type delayed_lambda_spectrum_type
 
 
-   ! the size of the np radmat data type needed for initialisation from either options or other
-   type np_radmat_size_type
+   ! the size of the particle radmat data type needed for initialisation from either options or other
+   type particle_radmat_size_type
       integer :: total_number_radmats
       integer :: total_number_physical_radmats
       integer :: total_number_dataset_radmats      
@@ -135,17 +135,17 @@ module radiation_materials_data_types
       integer :: number_of_delayed_groups      
 
       logical :: size_set = .false.
-   end type np_radmat_size_type
+   end type particle_radmat_size_type
 
    
-   ! the collection of radiation data sets associated with a neutral particle object
-   type np_radmat_type            
-      !! the np_radmat_type name
+   ! the collection of radiation data sets associated with a particle type
+   type particle_radmat_type            
+      !! the particle_radmat_type name
       character(len=OPTION_PATH_LEN) :: name="/uninitialised_name/"
       !! path to options in the options tree
       character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
-      !! the size tags of the np_radmat
-      type(np_radmat_size_type) ::  np_radmat_size  
+      !! the size tags of the particle_radmat
+      type(particle_radmat_size_type) ::  particle_radmat_size  
       !! the datasets associated with this neutral particle object
       type(dataset_radmat_type), dimension(:), allocatable :: dataset_radmats
       !! the delayed lambda and spectrum data for this neutral particle object
@@ -156,6 +156,6 @@ module radiation_materials_data_types
       logical :: created = .false.
       !! a flag to say that this type has been read in
       logical :: readin = .false.      
-   end type np_radmat_type
+   end type particle_radmat_type
 
 end module radiation_materials_data_types

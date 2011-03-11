@@ -29,7 +29,7 @@
 
 module radiation_extract_flux_field
 
-   !!< This module contains procedures associated with extracting the neutral particle flux fields from state
+   !!< This module contains procedures associated with extracting the particle flux fields from state
    
    use futils
    use global_parameters, only : OPTION_PATH_LEN
@@ -50,33 +50,31 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine extract_flux_all_group(state, &
-                                     np_radmat_name, &
+                                     particle_name, &
                                      number_of_energy_groups, &
-                                     np_flux, &
-                                     np_flux_old)
+                                     particle_flux, &
+                                     particle_flux_old)
 
-      !!< Extract the pointer array to the neutral particle flux fields for a particular np object
-      !!< If a general version of this routine doesnt already exist then it needs creating
-      !!<  - this would take a field name list and return them in sequential order
+      !!< Extract the pointer array to the particle flux fields for a particular type
 
       type(state_type), intent(in) :: state      
-      character(len=*), intent(in) :: np_radmat_name   
+      character(len=*), intent(in) :: particle_name   
       integer, intent(in) :: number_of_energy_groups         
-      type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux 
-      type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux_old
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
       
       ! local variables
       integer :: g
       
-      check_present: if (present(np_flux)) then
+      check_present: if (present(particle_flux)) then
       
-         check_associated: if (.not. associated(np_flux)) then
+         check_associated: if (.not. associated(particle_flux)) then
       
-            allocate(np_flux(number_of_energy_groups))
+            allocate(particle_flux(number_of_energy_groups))
          
             group_loop: do g = 1,number_of_energy_groups
          
-               allocate(np_flux(g)%ptr)
+               allocate(particle_flux(g)%ptr)
          
             end do group_loop
                   
@@ -88,15 +86,15 @@ contains
       
       end if check_present
       
-      check_present_old: if (present(np_flux_old)) then
+      check_present_old: if (present(particle_flux_old)) then
       
-         check_associated_old: if (.not. associated(np_flux_old)) then
+         check_associated_old: if (.not. associated(particle_flux_old)) then
       
-            allocate(np_flux_old(number_of_energy_groups))
+            allocate(particle_flux_old(number_of_energy_groups))
          
             group_loop_old: do g = 1,number_of_energy_groups
          
-               allocate(np_flux_old(g)%ptr)
+               allocate(particle_flux_old(g)%ptr)
          
             end do group_loop_old
                   
@@ -111,10 +109,10 @@ contains
       group_loop_extract: do g = 1,number_of_energy_groups
          
          call extract_flux_group_g(state, &
-                                   trim(np_radmat_name), & 
+                                   trim(particle_name), & 
                                    g, &
-                                   np_flux = np_flux(g)%ptr, &
-                                   np_flux_old = np_flux_old(g)%ptr)
+                                   particle_flux = particle_flux(g)%ptr, &
+                                   particle_flux_old = particle_flux_old(g)%ptr)
          
       end do group_loop_extract
         
@@ -122,24 +120,23 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine deallocate_flux_all_group(np_flux, &
-                                        np_flux_old)
+   subroutine deallocate_flux_all_group(particle_flux, &
+                                        particle_flux_old)
       
-      !!< Deallocate the pointer array to the neutral particle flux fields
-      !!< If a general version of this routine doesnt already exist then it needs creating
+      !!< Deallocate the pointer array to the particle flux fields
       
-      type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux 
-      type(scalar_field_pointer), dimension(:), pointer, optional :: np_flux_old
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
       
-      check_present: if (present(np_flux)) then
+      check_present: if (present(particle_flux)) then
       
-         if (associated(np_flux)) deallocate(np_flux)
+         if (associated(particle_flux)) deallocate(particle_flux)
             
       end if check_present
 
-      check_present_old: if (present(np_flux_old)) then
+      check_present_old: if (present(particle_flux_old)) then
       
-         if (associated(np_flux_old)) deallocate(np_flux_old)
+         if (associated(particle_flux_old)) deallocate(particle_flux_old)
             
       end if check_present_old
 
@@ -148,43 +145,43 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine extract_flux_group_g(state, &
-                                   np_radmat_name, & 
+                                   particle_name, & 
                                    g, &
-                                   np_flux, &
-                                   np_flux_old) 
+                                   particle_flux, &
+                                   particle_flux_old) 
    
-      !!< Extract the neutral particle latest and old flux fields for group g from state
+      !!< Extract the particle latest and old flux fields for group g from state
 
       type(state_type), intent(in) :: state
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_name
       integer, intent(in) :: g
-      type(scalar_field), pointer, optional :: np_flux 
-      type(scalar_field), pointer, optional :: np_flux_old
+      type(scalar_field), pointer, optional :: particle_flux 
+      type(scalar_field), pointer, optional :: particle_flux_old
       
       ! local variables
       integer :: status
       character(len=OPTION_PATH_LEN) :: field_name
       character(len=OPTION_PATH_LEN) :: field_name_old      
 
-      extract_latest: if (present(np_flux)) then
+      extract_latest: if (present(particle_flux)) then
             
-         ! form the field name using the np_radmat_name and group number g 
-         field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name)
+         ! form the field name using the particle_name and group number g 
+         field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_name)
 
          ! extract the field
-         np_flux => extract_scalar_field(state, &
+         particle_flux => extract_scalar_field(state, &
                                          trim(field_name), &
                                          stat=status)
 
       end if extract_latest
        
-      extract_old: if (present(np_flux_old)) then
+      extract_old: if (present(particle_flux_old)) then
        
-         ! form the old field name using the np_radmat_name and group g number
-         field_name_old = 'OldNeutralParticleFluxGroup'//int2str(g)//trim(np_radmat_name)
+         ! form the old field name using the particle_name and group g number
+         field_name_old = 'OldParticleFluxGroup'//int2str(g)//trim(particle_name)
 
          ! extract the field
-         np_flux_old => extract_scalar_field(state, &
+         particle_flux_old => extract_scalar_field(state, &
                                              trim(field_name_old), &
                                              stat=status)
       

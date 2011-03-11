@@ -41,23 +41,23 @@ module radiation_check_flux_convergence
    
    private 
 
-   public ::check_np_flux_convergence 
+   public ::check_particle_flux_convergence 
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine check_np_flux_convergence(state, &
-                                        np_radmat_name, &
-                                        number_of_energy_groups, &
-                                        flux_tolerance, &
-                                        max_change_flux, &
-                                        flux_converged)  
+   subroutine check_particle_flux_convergence(state, &
+                                              particle_name, &
+                                              number_of_energy_groups, &
+                                              flux_tolerance, &
+                                              max_change_flux, &
+                                              flux_converged)  
       
-      !!< Check the neutral particle flux relative convergence for all energy groups 
+      !!< Check the particle flux relative convergence for all energy groups 
 
       type(state_type), intent(in) :: state
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_name
       integer, intent(in) :: number_of_energy_groups  
       real, intent(in) :: flux_tolerance
       real, intent(out) :: max_change_flux
@@ -68,8 +68,8 @@ contains
       integer :: n
       logical :: found_non_zero_value
       real :: difference
-      type(scalar_field), pointer :: np_flux 
-      type(scalar_field), pointer :: np_flux_old
+      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: particle_flux_old
       
       max_change_flux      = 0.0
       flux_converged       = .false.
@@ -78,26 +78,26 @@ contains
       group_loop: do g = 1,number_of_energy_groups
          
          call extract_flux_group_g(state, &
-                                   trim(np_radmat_name), & 
+                                   trim(particle_name), & 
                                    g, &  
-                                   np_flux = np_flux, &
-                                   np_flux_old = np_flux_old)
+                                   particle_flux = particle_flux, &
+                                   particle_flux_old = particle_flux_old)
          
-         node_loop: do n = 1,node_count(np_flux)
+         node_loop: do n = 1,node_count(particle_flux)
             
             ! if the flux old is zero (say for a zero BC) then cycle as no need to find relative error
-            if (abs(node_val(np_flux_old,n)) <= epsilon(0.0)) cycle node_loop
+            if (abs(node_val(particle_flux_old,n)) <= epsilon(0.0)) cycle node_loop
             
             ! on first find of non zero value set a flag
             if (.not. found_non_zero_value) found_non_zero_value = .true.
             
             ! the absolute difference
-            difference = abs(node_val(np_flux,n) - node_val(np_flux_old,n))
+            difference = abs(node_val(particle_flux,n) - node_val(particle_flux_old,n))
             
             ! the maximum change over all groups and space                  
-            max_change_flux = max( max_change_flux, difference/abs(node_val(np_flux_old,n)) )
+            max_change_flux = max( max_change_flux, difference/abs(node_val(particle_flux_old,n)) )
                                
-            check_flux: if (difference < abs(node_val(np_flux_old,n)*flux_tolerance)) then
+            check_flux: if (difference < abs(node_val(particle_flux_old,n)*flux_tolerance)) then
                
                flux_converged = .true.
                
@@ -118,13 +118,13 @@ contains
          
          flux_converged = .true.
          
-         ewrite(1,*) 'WARNING no non zero old neutral particle flux values found in check converegence'
+         ewrite(1,*) 'WARNING no non zero old particle flux values found in check converegence'
       
       end if no_non_zero
       
       ewrite(1,*) 'max_change_flux,flux_converged: ',max_change_flux,flux_converged  
       
-   end subroutine check_np_flux_convergence  
+   end subroutine check_particle_flux_convergence  
 
    ! --------------------------------------------------------------------------
 

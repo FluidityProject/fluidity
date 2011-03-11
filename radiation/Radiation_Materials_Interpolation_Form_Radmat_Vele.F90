@@ -53,8 +53,8 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine form_radmat_vele(radmat_vele, &
-                               np_radmat_ii, &
-                               np_radmat, &
+                               particle_radmat_ii, &
+                               particle_radmat, &
                                vele, &
                                form_all, &
                                form_total, &
@@ -67,7 +67,7 @@ contains
                                form_production, &
                                form_power, &
                                form_energy_released_per_fission, &
-                               form_np_released_per_fission , &
+                               form_particle_released_per_fission , &
                                form_prompt_spectrum, &
                                form_velocity , &
                                form_beta) 
@@ -77,8 +77,8 @@ contains
       !!< The formed components are allocated, zeroed then set via interpolation of the databases
 
       type(radmat_type), intent(out) :: radmat_vele 
-      type(np_radmat_ii_type), intent(in) :: np_radmat_ii  
-      type(np_radmat_type), intent(in) :: np_radmat 
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii  
+      type(particle_radmat_type), intent(in) :: particle_radmat 
       integer, intent(in) :: vele 
       logical, intent(in), optional :: form_all
       logical, intent(in), optional :: form_total
@@ -91,7 +91,7 @@ contains
       logical, intent(in), optional :: form_production
       logical, intent(in), optional :: form_power
       logical, intent(in), optional :: form_energy_released_per_fission
-      logical, intent(in), optional :: form_np_released_per_fission
+      logical, intent(in), optional :: form_particle_released_per_fission
       logical, intent(in), optional :: form_prompt_spectrum
       logical, intent(in), optional :: form_velocity
       logical, intent(in), optional :: form_beta
@@ -110,64 +110,64 @@ contains
       logical :: allocate_production
       logical :: allocate_power
       logical :: allocate_energy_released_per_fission
-      logical :: allocate_np_released_per_fission
+      logical :: allocate_particle_released_per_fission
       logical :: allocate_prompt_spectrum
       logical :: allocate_velocity
       logical :: allocate_beta
        
       ! allocate the radmat_vele - only the components as needed
       
-      allocate_all                         = .false.
-      allocate_total                       = .false.
-      allocate_absorption                  = .false.
-      allocate_scatter                     = .false.
-      allocate_removal                     = .false.
-      allocate_transport                   = .false.
-      allocate_diffusion                   = .false.
-      allocate_fission                     = .false.
-      allocate_production                  = .false.
-      allocate_power                       = .false.
-      allocate_energy_released_per_fission = .false.
-      allocate_np_released_per_fission     = .false.
-      allocate_prompt_spectrum             = .false.
-      allocate_velocity                    = .false.
-      allocate_beta                        = .false. 
+      allocate_all                           = .false.
+      allocate_total                         = .false.
+      allocate_absorption                    = .false.
+      allocate_scatter                       = .false.
+      allocate_removal                       = .false.
+      allocate_transport                     = .false.
+      allocate_diffusion                     = .false.
+      allocate_fission                       = .false.
+      allocate_production                    = .false.
+      allocate_power                         = .false.
+      allocate_energy_released_per_fission   = .false.
+      allocate_particle_released_per_fission = .false.
+      allocate_prompt_spectrum               = .false.
+      allocate_velocity                      = .false.
+      allocate_beta                          = .false. 
       
-      if (present(form_all))                         allocate_all                         = form_all
-      if (present(form_total))                       allocate_total                       = form_total
-      if (present(form_absorption))                  allocate_absorption                  = form_absorption
-      if (present(form_scatter))                     allocate_scatter                     = form_scatter
-      if (present(form_removal))                     allocate_removal                     = form_removal
-      if (present(form_transport))                   allocate_transport                   = form_transport
-      if (present(form_diffusion))                   allocate_diffusion                   = form_diffusion
-      if (present(form_fission))                     allocate_fission                     = form_fission
-      if (present(form_production))                  allocate_production                  = form_production
-      if (present(form_power))                       allocate_power                       = form_power
-      if (present(form_energy_released_per_fission)) allocate_energy_released_per_fission = form_energy_released_per_fission
-      if (present(form_np_released_per_fission))     allocate_np_released_per_fission     = form_np_released_per_fission
-      if (present(form_prompt_spectrum))             allocate_prompt_spectrum             = form_prompt_spectrum
-      if (present(form_velocity))                    allocate_velocity                    = form_velocity
-      if (present(form_beta))                        allocate_beta                        = form_beta
+      if (present(form_all))                           allocate_all                           = form_all
+      if (present(form_total))                         allocate_total                         = form_total
+      if (present(form_absorption))                    allocate_absorption                    = form_absorption
+      if (present(form_scatter))                       allocate_scatter                       = form_scatter
+      if (present(form_removal))                       allocate_removal                       = form_removal
+      if (present(form_transport))                     allocate_transport                     = form_transport
+      if (present(form_diffusion))                     allocate_diffusion                     = form_diffusion
+      if (present(form_fission))                       allocate_fission                       = form_fission
+      if (present(form_production))                    allocate_production                    = form_production
+      if (present(form_power))                         allocate_power                         = form_power
+      if (present(form_energy_released_per_fission))   allocate_energy_released_per_fission   = form_energy_released_per_fission
+      if (present(form_particle_released_per_fission)) allocate_particle_released_per_fission = form_particle_released_per_fission
+      if (present(form_prompt_spectrum))               allocate_prompt_spectrum               = form_prompt_spectrum
+      if (present(form_velocity))                      allocate_velocity                      = form_velocity
+      if (present(form_beta))                          allocate_beta                          = form_beta
             
       call allocate(radmat_vele, &
-                    np_radmat%np_radmat_size%number_of_energy_groups, &
-                    np_radmat%max_number_of_scatter_moments, &
-                    np_radmat%np_radmat_size%number_of_delayed_groups, &
-                    allocate_all                         = allocate_all, &
-                    allocate_total                       = allocate_total, &
-                    allocate_absorption                  = allocate_absorption, &
-                    allocate_scatter                     = allocate_scatter, &
-                    allocate_removal                     = allocate_removal, &
-                    allocate_transport                   = allocate_transport, &
-                    allocate_diffusion                   = allocate_diffusion, &
-                    allocate_fission                     = allocate_fission, &
-                    allocate_production                  = allocate_production, &
-                    allocate_power                       = allocate_power, &
-                    allocate_energy_released_per_fission = allocate_energy_released_per_fission, &
-                    allocate_np_released_per_fission     = allocate_np_released_per_fission, &
-                    allocate_prompt_spectrum             = allocate_prompt_spectrum, &
-                    allocate_velocity                    = allocate_velocity, &
-                    allocate_beta                        = allocate_beta)
+                    particle_radmat%particle_radmat_size%number_of_energy_groups, &
+                    particle_radmat%max_number_of_scatter_moments, &
+                    particle_radmat%particle_radmat_size%number_of_delayed_groups, &
+                    allocate_all                           = allocate_all, &
+                    allocate_total                         = allocate_total, &
+                    allocate_absorption                    = allocate_absorption, &
+                    allocate_scatter                       = allocate_scatter, &
+                    allocate_removal                       = allocate_removal, &
+                    allocate_transport                     = allocate_transport, &
+                    allocate_diffusion                     = allocate_diffusion, &
+                    allocate_fission                       = allocate_fission, &
+                    allocate_production                    = allocate_production, &
+                    allocate_power                         = allocate_power, &
+                    allocate_energy_released_per_fission   = allocate_energy_released_per_fission, &
+                    allocate_particle_released_per_fission = allocate_particle_released_per_fission, &
+                    allocate_prompt_spectrum               = allocate_prompt_spectrum, &
+                    allocate_velocity                      = allocate_velocity, &
+                    allocate_beta                          = allocate_beta)
 
       ! zero the radmat_vele - only the components allocated      
        call zero(radmat_vele)
@@ -175,15 +175,15 @@ contains
       ! now ADD into the radmat_vele the necessary interpolated material data
        
       ! use the region id ii
-      region_id: if (allocated(np_radmat_ii%region_id_vele_ii)) then
+      region_id: if (allocated(particle_radmat_ii%region_id_vele_ii)) then
          
-         dmat = np_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%dataset_radmat_number 
+         dmat = particle_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%dataset_radmat_number 
          
-         pmat = np_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%physical_radmat_vele_ii%physical_radmat_number
+         pmat = particle_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%physical_radmat_vele_ii%physical_radmat_number
          
          call form_radmat_vele_region_id_ii(radmat_vele, &
-                                             np_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%physical_radmat_vele_ii, &
-                                             np_radmat%dataset_radmats(dmat)%physical_radmats(pmat))  
+                                            particle_radmat_ii%region_id_vele_ii(vele)%dataset_vele_ii%physical_radmat_vele_ii, &
+                                            particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat))  
                
       end if region_id             
       
@@ -380,22 +380,22 @@ contains
                
          end if energy_released_per_fission
          
-         np_released_per_fission: if (allocated(radmat_vele%np_released_per_fission)) then
+         particle_released_per_fission: if (allocated(radmat_vele%particle_released_per_fission)) then
             
             if (size(physical_radmat%radmats) == 1) then
                
-               radmat_vele%np_released_per_fission = physical_radmat%radmats(1)%np_released_per_fission
+               radmat_vele%particle_released_per_fission = physical_radmat%radmats(1)%particle_released_per_fission
                
             else 
                               
-               radmat_vele%np_released_per_fission = (1.0 - physical_radmat_vele_ii%fraction(1))* &
-                                   physical_radmat%radmats(physical_radmat_vele_ii%radmat_base_coordinate(1))%np_released_per_fission + &
+               radmat_vele%particle_released_per_fission = (1.0 - physical_radmat_vele_ii%fraction(1))* &
+                                   physical_radmat%radmats(physical_radmat_vele_ii%radmat_base_coordinate(1))%particle_released_per_fission + &
                                    physical_radmat_vele_ii%fraction(1)* &
-                                   physical_radmat%radmats(physical_radmat_vele_ii%radmat_base_coordinate(1) + 1)%np_released_per_fission
+                                   physical_radmat%radmats(physical_radmat_vele_ii%radmat_base_coordinate(1) + 1)%particle_released_per_fission
             
             end if 
                
-         end if np_released_per_fission
+         end if particle_released_per_fission
          
          prompt_spectrum: if (allocated(radmat_vele%prompt_spectrum)) then
             
@@ -450,7 +450,7 @@ contains
       
       else one_dim
       
-         FLAbort('Only 1 dimensional radiation material interpolation supported currently')
+         FLExit('Only 1 dimensional radiation material interpolation supported currently')
       
       end if one_dim
       

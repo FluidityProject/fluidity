@@ -42,19 +42,19 @@ subroutine test_radiation_materials_destroy
 
    ! local variables
    logical :: has_failed,has_warned
-   type(np_radmat_type) :: np_radmat_1
+   type(particle_radmat_type) :: particle_radmat_1
    character(len=10000) :: error_message    
      
    ! none of these tests use warnings
    has_warned = .false.
 
-   ! create hard coded np_radmat_input1
-   call create_np_radmat_input1(np_radmat_1)
+   ! create hard coded particle_radmat_input1
+   call create_particle_radmat_input1(particle_radmat_1)
    
    ! test the destruction of it
-   call test_destroy(np_radmat_1)
+   call test_destroy(particle_radmat_1)
    
-   call report_test("[test_radiation_materials_destroy for np_radmat_input1", &
+   call report_test("[test_radiation_materials_destroy for particle_radmat_input1", &
                     has_failed, &
                     has_warned, &
                     "failed with error message "//trim(error_message))   
@@ -63,53 +63,53 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine test_destroy(np_radmat)
+   subroutine test_destroy(particle_radmat)
       
-      !!< Test the destruction of the np_radmat passed, as well as one of each component type within it
+      !!< Test the destruction of the particle_radmat passed, as well as one of each component type within it
       
-      type(np_radmat_type), intent(inout) :: np_radmat
+      type(particle_radmat_type), intent(inout) :: particle_radmat
             
       ! local variables
       type(dataset_radmat_type) :: dataset_radmat
       type(physical_radmat_type) :: physical_radmat
       type(radmat_type) :: radmat
-      type(np_radmat_size_type) :: np_radmat_size
+      type(particle_radmat_size_type) :: particle_radmat_size
       type(delayed_lambda_spectrum_type) :: delayed_lambda_spectrum
       
       has_failed = .false.
       
       error_message = 'no error'
       
-      ! create other data types using the size arrays of the above hard coded np_radmat
+      ! create other data types using the size arrays of the above hard coded particle_radmat
       call allocate(dataset_radmat, &
-                    np_radmat%np_radmat_size, &
+                    particle_radmat%particle_radmat_size, &
                     dmat = 1)
 
       call allocate(physical_radmat, &
-                    np_radmat%np_radmat_size, &
+                    particle_radmat%particle_radmat_size, &
                     dmat = 1, &
                     pmat = 1)
 
       call allocate(radmat, &
-                    np_radmat%np_radmat_size%number_of_energy_groups, &
-                    np_radmat%np_radmat_size%number_of_scatter_moments(1), &
-                    np_radmat%np_radmat_size%number_of_delayed_groups, &
+                    particle_radmat%particle_radmat_size%number_of_energy_groups, &
+                    particle_radmat%particle_radmat_size%number_of_scatter_moments(1), &
+                    particle_radmat%particle_radmat_size%number_of_delayed_groups, &
                     allocate_all = .true.)
    
-      np_radmat_size%total_number_dataset_radmats  = np_radmat%np_radmat_size%total_number_dataset_radmats
-      np_radmat_size%total_number_physical_radmats = np_radmat%np_radmat_size%total_number_physical_radmats
-      call allocate(np_radmat_size)
+      particle_radmat_size%total_number_dataset_radmats  = particle_radmat%particle_radmat_size%total_number_dataset_radmats
+      particle_radmat_size%total_number_physical_radmats = particle_radmat%particle_radmat_size%total_number_physical_radmats
+      call allocate(particle_radmat_size)
 
       call allocate(delayed_lambda_spectrum,& 
-                   np_radmat%np_radmat_size%number_of_delayed_groups, &
-                   np_radmat%np_radmat_size%number_of_energy_groups)
+                    particle_radmat%particle_radmat_size%number_of_delayed_groups, &
+                    particle_radmat%particle_radmat_size%number_of_energy_groups)
    
-      ! set the data types values from the hard coded np_radmat components
-      dataset_radmat          = np_radmat%dataset_radmats(1)
-      physical_radmat         = np_radmat%dataset_radmats(1)%physical_radmats(1)
-      radmat                  = np_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)
-      np_radmat_size          = np_radmat%np_radmat_size
-      delayed_lambda_spectrum = np_radmat%delayed_lambda_spectrum
+      ! set the data types values from the hard coded particle_radmat components
+      dataset_radmat          = particle_radmat%dataset_radmats(1)
+      physical_radmat         = particle_radmat%dataset_radmats(1)%physical_radmats(1)
+      radmat                  = particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)
+      particle_radmat_size    = particle_radmat%particle_radmat_size
+      delayed_lambda_spectrum = particle_radmat%delayed_lambda_spectrum
    
       ! test the desutruction of each data type
       ! NOTE there is a order such as to check component destruction type first  
@@ -126,7 +126,7 @@ contains
 
       if (has_failed) return
       
-      call test_np_radmat_size_destroy(np_radmat_size)
+      call test_particle_radmat_size_destroy(particle_radmat_size)
 
       if (has_failed) return
       
@@ -134,55 +134,55 @@ contains
 
       if (has_failed) return
 
-      call test_np_radmat_destroy(np_radmat)
+      call test_particle_radmat_destroy(particle_radmat)
 
    end subroutine test_destroy
    
    ! --------------------------------------------------------------------------
    
-   subroutine test_np_radmat_destroy(np_radmat)
+   subroutine test_particle_radmat_destroy(particle_radmat)
 
-      type(np_radmat_type), intent(inout) :: np_radmat
+      type(particle_radmat_type), intent(inout) :: particle_radmat
       
-      call destroy(np_radmat)
+      call destroy(particle_radmat)
 
-      if (allocated(np_radmat%dataset_radmats)) then
+      if (allocated(particle_radmat%dataset_radmats)) then
          has_failed = .true.
-         error_message = ' failed as allocated(np_radmat%dataset_radmats) true'
+         error_message = ' failed as allocated(particle_radmat%dataset_radmats) true'
          return
       end if 
 
-      if (np_radmat%option_path /= "/uninitialised_path/") then
+      if (particle_radmat%option_path /= "/uninitialised_path/") then
          has_failed = .true.
-         error_message = 'test_np_radmat_destroy failed as np_radmat%option_path /= "/uninitialised_path/"'
+         error_message = 'test_particle_radmat_destroy failed as particle_radmat%option_path /= "/uninitialised_path/"'
          return
       end if 
 
-      if (np_radmat%created) then
+      if (particle_radmat%created) then
          has_failed = .true.
-         error_message = 'test_np_radmat_destroy failed as np_radmat%created is true'
+         error_message = 'test_particle_radmat_destroy failed as particle_radmat%created is true'
          return
       end if 
 
-      if (np_radmat%readin) then
+      if (particle_radmat%readin) then
          has_failed = .true.
-         error_message = 'test_np_radmat_destroy failed as np_radmat%readin is true'
+         error_message = 'test_particle_radmat_destroy failed as particle_radmat%readin is true'
          return
       end if 
       
-      call test_np_radmat_size_destroy(np_radmat%np_radmat_size)
+      call test_particle_radmat_size_destroy(particle_radmat%particle_radmat_size)
       if (has_failed) then
-         error_message = 'test_np_radmat_destroy failed as '//trim(error_message)
+         error_message = 'test_particle_radmat_destroy failed as '//trim(error_message)
          return
       end if
 
-      call test_delayed_lambda_spectrum_destroy(np_radmat%delayed_lambda_spectrum)
+      call test_delayed_lambda_spectrum_destroy(particle_radmat%delayed_lambda_spectrum)
       if (has_failed) then
-         error_message = 'test_np_radmat_destroy failed as '//trim(error_message)
+         error_message = 'test_particle_radmat_destroy failed as '//trim(error_message)
          return
       end if
       
-   end subroutine test_np_radmat_destroy
+   end subroutine test_particle_radmat_destroy
    
    ! --------------------------------------------------------------------------
    
@@ -296,9 +296,9 @@ contains
          return
       end if 
       
-      if (allocated(radmat%np_released_per_fission)) then
+      if (allocated(radmat%particle_released_per_fission)) then
          has_failed = .true.
-         error_message = 'test_radmat_destroy failed as allocated(radmat%np_released_per_fission) true'
+         error_message = 'test_radmat_destroy failed as allocated(radmat%particle_released_per_fission) true'
          return
       end if 
       
@@ -404,9 +404,9 @@ contains
          return
       end if 
       
-      if (radmat%np_released_per_fission_set) then
+      if (radmat%particle_released_per_fission_set) then
          has_failed = .true.
-         error_message = 'test_radmat_destroy failed as radmat%np_released_per_fission_set true'
+         error_message = 'test_radmat_destroy failed as radmat%particle_released_per_fission_set true'
          return
       end if 
       
@@ -432,67 +432,67 @@ contains
    
    ! --------------------------------------------------------------------------
    
-   subroutine test_np_radmat_size_destroy(np_radmat_size)
+   subroutine test_particle_radmat_size_destroy(particle_radmat_size)
 
-      type(np_radmat_size_type), intent(inout) :: np_radmat_size
+      type(particle_radmat_size_type), intent(inout) :: particle_radmat_size
       
-      call destroy(np_radmat_size)
+      call destroy(particle_radmat_size)
       
-      if (np_radmat_size%size_set) then
+      if (particle_radmat_size%size_set) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%size_set true'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%size_set true'
          return
       end if       
 
-      if (allocated(np_radmat_size%number_of_physical_radmats)) then
+      if (allocated(particle_radmat_size%number_of_physical_radmats)) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as allocated(np_radmat_size%number_of_physical_radmats) true'
+         error_message = 'test_particle_radmat_size_destroy failed as allocated(particle_radmat_size%number_of_physical_radmats) true'
          return
       end if 
 
-      if (allocated(np_radmat_size%number_of_radmats)) then
+      if (allocated(particle_radmat_size%number_of_radmats)) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as allocated(np_radmat_size%number_of_radmats) true'
+         error_message = 'test_particle_radmat_size_destroy failed as allocated(particle_radmat_size%number_of_radmats) true'
          return
       end if 
 
-      if (allocated(np_radmat_size%number_of_scatter_moments)) then
+      if (allocated(particle_radmat_size%number_of_scatter_moments)) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as allocated(np_radmat_size%number_of_scatter_moments) true'
+         error_message = 'test_particle_radmat_size_destroy failed as allocated(particle_radmat_size%number_of_scatter_moments) true'
          return
       end if 
 
-      if (np_radmat_size%number_of_energy_groups /= 0) then
+      if (particle_radmat_size%number_of_energy_groups /= 0) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%number_of_energy_groups /= 0'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%number_of_energy_groups /= 0'
          return
       end if 
 
-      if (np_radmat_size%number_of_delayed_groups /= 0) then
+      if (particle_radmat_size%number_of_delayed_groups /= 0) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%number_of_delayed_groups /= 0'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%number_of_delayed_groups /= 0'
          return
       end if 
 
-      if (np_radmat_size%total_number_radmats /= 0) then
+      if (particle_radmat_size%total_number_radmats /= 0) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%total_number_radmats /= 0'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%total_number_radmats /= 0'
          return
       end if 
 
-      if (np_radmat_size%total_number_physical_radmats /= 0) then
+      if (particle_radmat_size%total_number_physical_radmats /= 0) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%total_number_physical_radmats /= 0'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%total_number_physical_radmats /= 0'
          return
       end if 
 
-      if (np_radmat_size%total_number_dataset_radmats /= 0) then
+      if (particle_radmat_size%total_number_dataset_radmats /= 0) then
          has_failed = .true.
-         error_message = 'test_np_radmat_size_destroy failed as np_radmat_size%total_number_dataset_radmats /= 0'
+         error_message = 'test_particle_radmat_size_destroy failed as particle_radmat_size%total_number_dataset_radmats /= 0'
          return
       end if 
       
-   end subroutine test_np_radmat_size_destroy
+   end subroutine test_particle_radmat_size_destroy
    
    ! --------------------------------------------------------------------------
    

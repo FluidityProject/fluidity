@@ -67,15 +67,15 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine eigenvalue_power_iteration(state, &
-                                         np_radmat, &
-                                         np_radmat_ii, &
+                                         particle_radmat, &
+                                         particle_radmat_ii, &
                                          keff) 
    
       !!< Solve a radiation eigenvalue problem via a power iteration
 
       type(state_type), intent(inout) :: state
-      type(np_radmat_type), intent(in) :: np_radmat
-      type(np_radmat_ii_type), intent(in) :: np_radmat_ii
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
       real, intent(inout) :: keff
       
       ! local variables
@@ -84,7 +84,6 @@ contains
       integer :: number_of_energy_groups
       real :: keff_old
       logical :: power_iteration_converged
-      character(len=OPTION_PATH_LEN) :: np_radmat_name
       type(power_iteration_options_type) :: power_iteration_options
       type(scalar_field), pointer :: keff_field
       
@@ -96,8 +95,7 @@ contains
       ! intialise the number of all convergence passes in power iterations
       number_all_convereged_pass = 0
       
-      call get_power_iteration_options(trim(np_radmat%option_path), &
-                                       np_radmat_name, &
+      call get_power_iteration_options(particle_radmat, &
                                        number_of_energy_groups, &
                                        power_iteration_options)                                       
                   
@@ -108,22 +106,20 @@ contains
          call copy_to_old_values_eig(keff, &
                                      keff_old, &
                                      state, &
-                                     trim(np_radmat_name), &
+                                     trim(particle_radmat%name), &
                                      number_of_energy_groups)
                   
-         call scatter_iteration(np_radmat, &
-                                np_radmat_ii, &
+         call scatter_iteration(particle_radmat, &
+                                particle_radmat_ii, &
                                 state, &
-                                trim(np_radmat_name), &
                                 number_of_energy_groups, & 
                                 keff = keff)
                            
          call calculate_eigenvalue(keff, &
                                    keff_old, &
                                    state, &
-                                   np_radmat, &
-                                   np_radmat_ii, &
-                                   trim(np_radmat_name), &
+                                   particle_radmat, &
+                                   particle_radmat_ii, &
                                    number_of_energy_groups)
 
          call check_power_iteration_convergence(power_iteration_converged, &
@@ -131,7 +127,7 @@ contains
                                                 keff_old, &
                                                 number_all_convereged_pass, &
                                                 state, &
-                                                trim(np_radmat_name), &
+                                                trim(particle_radmat%name), &
                                                 number_of_energy_groups, &
                                                 power_iteration_options)
                   
@@ -142,7 +138,7 @@ contains
       end do power_iteration
       
       ! set the Keff into the constant scalar field for output
-      keff_field => extract_scalar_field(state,trim(np_radmat_name)//'Keff')    
+      keff_field => extract_scalar_field(state,trim(particle_radmat%name)//'Keff')    
        
       call set(keff_field,keff) 
        
@@ -158,29 +154,44 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine get_power_iteration_options(np_radmat_option_path, &
-                                          np_radmat_name, &
+   subroutine get_power_iteration_options(particle_radmat, &
                                           number_of_energy_groups, &
                                           power_iteration_options)
       
       !!< Get the power iteration options
       
-      character(len=*), intent(in) :: np_radmat_option_path
-      character(len=*), intent(out) :: np_radmat_name
+      type(particle_radmat_type), intent(in) :: particle_radmat
       integer, intent(out) :: number_of_energy_groups
       type(power_iteration_options_type), intent(out) :: power_iteration_options
            
       ! local variable
+      integer :: g_set
+      integer :: number_of_energy_group_set
+      integer :: number_of_energy_groups_g_set
+      character(len=OPTION_PATH_LEN) :: energy_group_set_path
       character(len=OPTION_PATH_LEN) :: power_iteration_option_path
       
-      ! get the np_radmat name
-      call get_option(trim(np_radmat_option_path)//'/name',np_radmat_name)
+      ! get the number of energy groups via summing the number within each energy group set
+
+      ! deduce the number of energy group sets
+      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_group_set')
       
-      ! get the number of energy groups
-      call get_option(trim(np_radmat_option_path)//'/method/number_of_energy_groups',number_of_energy_groups)
+      number_of_energy_groups = 0
+      
+      energy_group_set_loop: do g_set = 1,number_of_energy_group_set
+            
+         ! set the energy_group_set path
+         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+            
+         ! get the number_energy_groups within this set
+         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
+         
+         number_of_energy_groups = number_of_energy_groups + number_of_energy_groups_g_set
+         
+      end do energy_group_set_loop
                   
       ! get the maximum number of power iterations for this np 
-      power_iteration_option_path = trim(np_radmat_option_path)//'/eigenvalue_run/power_iteration'
+      power_iteration_option_path = trim(particle_radmat%option_path)//'/eigenvalue_run/power_iteration'
       call get_option(trim(power_iteration_option_path)//'/maximum',power_iteration_options%max_power_iteration)
 
       ! get the keff power iteration tolerance
@@ -198,7 +209,7 @@ contains
    subroutine copy_to_old_values_eig(keff, &
                                      keff_old, &
                                      state, &
-                                     np_radmat_name, &
+                                     particle_radmat_name, &
                                      number_of_energy_groups) 
       
       !!< Copy the latest flux and eigenvalue to the old values 
@@ -206,15 +217,15 @@ contains
       real, intent(in) :: keff
       real, intent(out) :: keff_old
       type(state_type), intent(inout) :: state
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_radmat_name
       integer, intent(in) :: number_of_energy_groups
                   
       ! set the eigenvalue old
       keff_old = keff
       
-      call copy_to_old_values_np_flux(state, &
-                                      np_radmat_name, &
-                                      number_of_energy_groups)     
+      call copy_to_old_values_particle_flux(state, &
+                                            trim(particle_radmat_name), &
+                                            number_of_energy_groups)     
             
    end subroutine copy_to_old_values_eig 
 
@@ -223,9 +234,8 @@ contains
    subroutine calculate_eigenvalue(keff, &
                                    keff_old, &
                                    state,&
-                                   np_radmat, &
-                                   np_radmat_ii, &
-                                   np_radmat_name, &
+                                   particle_radmat, &
+                                   particle_radmat_ii, &
                                    number_of_energy_groups) 
       
       !!< Calculate the latest eigenvalue as:
@@ -234,9 +244,8 @@ contains
       real, intent(out) :: keff
       real, intent(in) :: keff_old
       type(state_type), intent(in) :: state      
-      type(np_radmat_type), intent(in) :: np_radmat
-      type(np_radmat_ii_type), intent(in) :: np_radmat_ii
-      character(len=*), intent(in) :: np_radmat_name      
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
       integer, intent(in) :: number_of_energy_groups      
       
       ! local variables
@@ -249,51 +258,55 @@ contains
       real, dimension(:), allocatable :: detwei_vele
       type(vector_field), pointer :: positions 
       type(radmat_type) :: radmat_vele 
-      type(scalar_field_pointer), dimension(:), pointer :: np_flux 
-      type(scalar_field_pointer), dimension(:), pointer :: np_flux_old
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old
+      character(len=OPTION_PATH_LEN) :: positions_mesh_name
 
       ! intialise variables that are summed up
       k_top    = 0.0
       k_bottom = 0.0
       
-      ! extract the positions - assuming each group has the same topological mesh now
-      positions => extract_vector_field(state, "Coordinate", stat=status)  
-      
       ! extract the neutral particle flux fields for all energy groups
       call extract_flux_all_group(state, &
-                                  trim(np_radmat_name), & 
+                                  trim(trim(particle_radmat%name)), & 
                                   number_of_energy_groups, &
-                                  np_flux = np_flux, &
-                                  np_flux_old = np_flux_old)
+                                  particle_flux = particle_flux, &
+                                  particle_flux_old = particle_flux_old)
       
       ! integrate each energy group
       group_loop: do g = 1,number_of_energy_groups
+          
+         ! set the positions mesh name for this group - currently assume all groups have same positions
+         positions_mesh_name = 'Coordinate'
+         
+         ! extract the positions 
+         positions => extract_vector_field(state, trim(positions_mesh_name), stat=status)  
 
          ! loop the volume elements to perform the integration
-         velement_loop: do vele = 1,ele_count(np_flux(g)%ptr)
+         velement_loop: do vele = 1,ele_count(particle_flux(g)%ptr)
                                                                       
             ! get the vele production cross section for all energy groups
             call form(radmat_vele, &
-                      np_radmat_ii, &
-                      np_radmat, &
+                      particle_radmat_ii, &
+                      particle_radmat, &
                       vele, &
                       form_production = .true.)
         
             ! allocate the jacobian transform and gauss weight array for this vele
-            allocate(detwei_vele(ele_ngi(np_flux(g)%ptr,vele)))
+            allocate(detwei_vele(ele_ngi(particle_flux(g)%ptr,vele)))
          
             ! allocate the local mass matrix for this vele
-            allocate(mass_matrix_vele(ele_loc(np_flux(g)%ptr,vele),ele_loc(np_flux(g)%ptr,vele)))
+            allocate(mass_matrix_vele(ele_loc(particle_flux(g)%ptr,vele),ele_loc(particle_flux(g)%ptr,vele)))
                  
             ! form the velement jacobian transform and gauss weight
             call transform_to_physical(positions, vele, detwei = detwei_vele)
                   
             ! form the mass matrix
-            mass_matrix_vele = shape_shape(ele_shape(np_flux(g)%ptr,vele),ele_shape(np_flux(g)%ptr,vele),detwei_vele)
+            mass_matrix_vele = shape_shape(ele_shape(particle_flux(g)%ptr,vele),ele_shape(particle_flux(g)%ptr,vele),detwei_vele)
                                     
-            k_top = k_top + dot_product(ele_val(np_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(np_flux(g)%ptr,vele)))*radmat_vele%production(g)**2
+            k_top = k_top + dot_product(ele_val(particle_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(particle_flux(g)%ptr,vele)))*radmat_vele%production(g)**2
 
-            k_bottom = k_bottom + dot_product(ele_val(np_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(np_flux_old(g)%ptr,vele)))*radmat_vele%production(g)**2
+            k_bottom = k_bottom + dot_product(ele_val(particle_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(particle_flux_old(g)%ptr,vele)))*radmat_vele%production(g)**2
          
             deallocate(detwei_vele)
             deallocate(mass_matrix_vele)
@@ -308,8 +321,8 @@ contains
       keff = keff_old*k_top/k_bottom
       
       ! deallocate the np flux pointer fields
-      call deallocate_flux_all_group(np_flux = np_flux, &
-                                     np_flux_old = np_flux_old)
+      call deallocate_flux_all_group(particle_flux = particle_flux, &
+                                     particle_flux_old = particle_flux_old)
             
    end subroutine calculate_eigenvalue  
 
@@ -320,7 +333,7 @@ contains
                                                 keff_old, &
                                                 number_all_convereged_pass, &
                                                 state, &
-                                                np_radmat_name, &
+                                                particle_radmat_name, &
                                                 number_of_energy_groups, &
                                                 power_iteration_options) 
    
@@ -332,7 +345,7 @@ contains
       real, intent(in) :: keff_old
       integer, intent(inout) :: number_all_convereged_pass 
       type(state_type), intent(in) :: state
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_radmat_name
       integer, intent(in) :: number_of_energy_groups      
       type(power_iteration_options_type), intent(in) :: power_iteration_options
       
@@ -369,12 +382,12 @@ contains
       ewrite(1,*) 'change_keff,keff_converged: ',change_keff,keff_converged     
       
       ! check the flux convergence
-      call check_np_flux_convergence(state, &
-                                     trim(np_radmat_name), &
-                                     number_of_energy_groups, &
-                                     power_iteration_options%flux_tolerance, &
-                                     max_change_flux, &
-                                     flux_converged)
+      call check_particle_flux_convergence(state, &
+                                           trim(particle_radmat_name), &
+                                           number_of_energy_groups, &
+                                           power_iteration_options%flux_tolerance, &
+                                           max_change_flux, &
+                                           flux_converged)
             
       ! decide if power iteration converged
       power_iteration_converged = .true.

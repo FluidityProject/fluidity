@@ -64,19 +64,17 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine scatter_iteration(np_radmat, &
-                                np_radmat_ii, &
+   subroutine scatter_iteration(particle_radmat, &
+                                particle_radmat_ii, &
                                 state, &
-                                np_radmat_name, &
                                 number_of_energy_groups, &
                                 keff) 
       
       !!< Perform iterations around the group loop to solve scatter
       
-      type(np_radmat_type), intent(in) :: np_radmat
-      type(np_radmat_ii_type), intent(in) :: np_radmat_ii
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
       type(state_type), intent(inout) :: state
-      character(len=*), intent(in) :: np_radmat_name
       integer, intent(in) :: number_of_energy_groups
       real, intent(in), optional :: keff
       
@@ -90,11 +88,11 @@ contains
       ! set the scatter iteration option path
       scatter_path_if: if (present(keff)) then
       
-         scatter_group_iteration_option_path = trim(np_radmat%option_path)//'/eigenvalue_run/power_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/eigenvalue_run/power_iteration/scatter_group_iteration'
       
       else scatter_path_if
       
-         scatter_group_iteration_option_path = trim(np_radmat%option_path)//'/time_run/energy_group_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/time_run/energy_group_iteration/scatter_group_iteration'
       
       end if scatter_path_if
       
@@ -108,10 +106,9 @@ contains
          
          ewrite(1,*) 'Scatter iteration: ',iscatter
          
-         call energy_group_loop(np_radmat, &
-                                np_radmat_ii, &
+         call energy_group_loop(particle_radmat, &
+                                particle_radmat_ii, &
                                 state, &
-                                trim(np_radmat_name), &
                                 start_group, &
                                 number_of_energy_groups, &
                                 keff = keff)
@@ -146,6 +143,7 @@ contains
                                             scatter_group_iteration_option_path)
       
       !!< Get the scatter iteration options
+      
       type(scatter_iteration_options_type), intent(out) :: scatter_iteration_options
       character(len=*), intent(in) :: scatter_group_iteration_option_path
        
@@ -200,20 +198,18 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine energy_group_loop(np_radmat, &
-                                np_radmat_ii, &
+   subroutine energy_group_loop(particle_radmat, &
+                                particle_radmat_ii, &
                                 state, &
-                                np_radmat_name, &
                                 start_group, &
                                 number_of_energy_groups, &
                                 keff)
       
-      !!< Sweep the energy groups from the start_group down solving the within group neutral particle balance
+      !!< Sweep the energy groups from the start_group down solving the within group particle balance
       
-      type(np_radmat_type), intent(in) :: np_radmat
-      type(np_radmat_ii_type), intent(in) :: np_radmat_ii
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
       type(state_type), intent(inout) :: state
-      character(len=*), intent(in) :: np_radmat_name
       integer, intent(in) :: start_group
       integer, intent(in) :: number_of_energy_groups
       real, intent(in), optional :: keff
@@ -223,14 +219,13 @@ contains
       
       group_loop: do g = start_group,number_of_energy_groups
          
-         ! Assemble and solve the group g neutral particle balance
-         call np_assemble_solve_group(state, &
-                                      trim(np_radmat_name), &
-                                      np_radmat, &
-                                      np_radmat_ii, &
-                                      g, &
-                                      number_of_energy_groups, &
-                                      keff = keff)
+         ! Assemble and solve the group g particle balance
+         call particle_assemble_solve_group(state, &
+                                            particle_radmat, &
+                                            particle_radmat_ii, &
+                                            g, &
+                                            number_of_energy_groups, &
+                                            keff = keff)
          
       end do group_loop      
       
@@ -240,7 +235,7 @@ contains
    
    subroutine scatter_iteration_whole_domain_rebalance()  
       
-      !!< 
+      !!< Rebalance accelerate the scatter iteration over the whole domain
       
       
    end subroutine scatter_iteration_whole_domain_rebalance

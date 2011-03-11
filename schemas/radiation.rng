@@ -48,10 +48,9 @@
     <ref name="time_run"/>
   </define>
   <define name="particle_type_generic">
-    <optional>
+    <oneOrMore>
       <ref name="energy_group_set"/>
-    </optional>
-    <ref name="radiation_method"/>
+    </oneOrMore>
     <ref name="read_radiation_material_data_set"/>
     <ref name="radiation_material_mapping"/>
   </define>
@@ -109,72 +108,10 @@ sets are defined.</a:documentation>
       <attribute name="name">
         <value>ParticleFlux</value>
       </attribute>
-      <ref name="prognostic_neutral_particle_diffusion_removal_source_scalar_field"/>
+      <ref name="prognostic_particle_diffusion_removal_source_scalar_field"/>
     </element>
   </define>
-  <define name="radiation_method">
-    <element name="method">
-      <a:documentation>Multigroup diffusion </a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>MultiGroupDiffusion</value>
-      </attribute>
-      <ref name="number_of_energy_groups"/>
-      <oneOrMore>
-        <ref name="neutral_particle_flux_group_set_diffusion_field"/>
-      </oneOrMore>
-    </element>
-  </define>
-  <define name="neutral_particle_flux_group_set_diffusion_field">
-    <element name="neutral_particle_flux_group_set_field">
-      <a:documentation>The neutral particle flux density  group set field for diffusion method equation</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <data type="string"/>
-      </attribute>
-      <ref name="group_set"/>
-      <ref name="particle_type_material_mesh_choice"/>
-      <ref name="neutral_particle_flux_diffusion_field"/>
-    </element>
-  </define>
-  <define name="group_set">
-    <choice>
-      <element name="group_all">
-        <a:documentation>Apply to all groups</a:documentation>
-        <ref name="comment"/>
-      </element>
-      <element name="group_individual">
-        <a:documentation>Apply to an individual group</a:documentation>
-        <ref name="comment"/>
-        <ref name="integer"/>
-      </element>
-      <element name="group_set">
-        <a:documentation>Apply to a consecutive set of groups</a:documentation>
-        <ref name="comment"/>
-        <element name="start_group">
-          <a:documentation>The start group number of this set</a:documentation>
-          <ref name="comment"/>
-          <ref name="integer"/>
-        </element>
-        <element name="end_group">
-          <a:documentation>The end group number of this set</a:documentation>
-          <ref name="comment"/>
-          <ref name="integer"/>
-        </element>
-      </element>
-    </choice>
-  </define>
-  <define name="neutral_particle_flux_diffusion_field">
-    <element name="scalar_field">
-      <a:documentation>The neutral particle flux density scalar field for diffusion method equation for this group set</a:documentation>
-      <ref name="comment"/>
-      <attribute name="name">
-        <value>NeutralParticleFlux</value>
-      </attribute>
-      <ref name="prognostic_neutral_particle_diffusion_removal_source_scalar_field"/>
-    </element>
-  </define>
-  <define name="prognostic_neutral_particle_diffusion_removal_source_scalar_field">
+  <define name="prognostic_particle_diffusion_removal_source_scalar_field">
     <element name="prognostic">
       <a:documentation>Field Type</a:documentation>
       <ref name="comment"/>
@@ -613,7 +550,7 @@ includes the formatted file produced via a LISTTO from WIMS9</a:documentation>
                     <ref name="comment"/>
                   </element>
                   <element name="interpolation_attribute_prescribed">
-                    <a:documentation>Prescribed interpolation values</a:documentation>
+                    <a:documentation>Prescribed interpolation</a:documentation>
                     <ref name="comment"/>
                     <ref name="real"/>
                   </element>
@@ -728,7 +665,7 @@ the rest of the fluids state. This must be used with a prescribed physical mater
   </define>
   <define name="Rad_MaterialVolumeFraction">
     <element name="scalar_field">
-      <a:documentation>The neutral particle flux density material volume fraction scalar field
+      <a:documentation>The material volume fraction scalar field
 that is used for the cross section mapping and interpolation</a:documentation>
       <ref name="comment"/>
       <attribute name="name">

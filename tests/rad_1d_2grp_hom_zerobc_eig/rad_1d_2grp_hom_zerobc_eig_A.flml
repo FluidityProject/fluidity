@@ -127,14 +127,13 @@
           </total_flux>
         </flux_normalisation>
       </eigenvalue_run>
-      <method name="MultiGroupDiffusion">
+      <energy_group_set name="all">
         <number_of_energy_groups>
           <integer_value rank="0">2</integer_value>
         </number_of_energy_groups>
-        <neutral_particle_flux_group_set_field name="all">
-          <group_all/>
+        <angular_discretisation name="diffusion">
           <mesh name="ParticleMaterialMesh"/>
-          <scalar_field name="NeutralParticleFlux">
+          <scalar_field name="ParticleFlux">
             <prognostic>
               <mesh name="ParticleMesh"/>
               <spatial_discretisation>
@@ -196,8 +195,8 @@
               <consistent_interpolation/>
             </prognostic>
           </scalar_field>
-        </neutral_particle_flux_group_set_field>
-      </method>
+        </angular_discretisation>
+      </energy_group_set>
       <radiation_material_data_set_from_file file_name="rad_1d_2grp_hom_zerobc_eig.radmats">
         <number_of_scatter_moments>
           <integer_value rank="0">1</integer_value>

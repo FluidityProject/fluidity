@@ -1345,7 +1345,8 @@ contains
     
     subroutine allocate_and_insert_radiation_fields(state)
     
-      !!< Allocate and insert all the fields associated with radiation modelling for each particle type present into states(1)
+      !!< Allocate and insert all the fields associated with radiation modelling 
+      !!< for each particle type present into states(1)
       
       !! This is states(1) as all the radiation fields are inserted into this
       type(state_type), intent(inout) :: state    
@@ -1358,13 +1359,13 @@ contains
       integer :: fl_mat_phase_to_rad_mat_links 
       integer :: number_of_fluids_states
       integer :: material_phase_number
-      integer :: number_of_group_set_fields
-      integer :: start_group, end_group      
+      integer :: number_of_energy_group_set
+      integer :: start_group, end_group, global_group_count      
       logical, dimension(:), allocatable :: material_phase_number_found
       character(len=OPTION_PATH_LEN) :: field_name, field_path
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
-      character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path, method_path, method_name
-      character(len=OPTION_PATH_LEN) :: group_set_path
+      character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path
+      character(len=OPTION_PATH_LEN) :: angular_path, angular_name, energy_group_set_path
       type(scalar_field) :: aux_sfield
       type(mesh_type), pointer :: x_mesh
       
@@ -1394,69 +1395,61 @@ contains
             call deallocate(aux_sfield)
          
          end if neutron_keff
-            
-         ! set the method path
-         method_path = trim(particle_type_path)//'/method'
+                                                                                 
+         ! deduce the number of energy group sets
+         number_of_energy_group_set = option_count(trim(particle_type_path)//'/energy_group_set')
          
-         ! get the method name
-         call get_option(trim(particle_type_path)//'/method/name',method_name)
-
-         ! get the number_energy_groups 
-         call get_option(trim(method_path)//'/number_of_energy_groups',number_of_energy_groups)         
+         ! initialise the global_group_count
+         global_group_count = 0
          
-         ! create the multigroup diffusion fields
-         p_method: if (trim(method_name) == 'MultiGroupDiffusion') then
-                                                                        
-            ! deduce the number of group sets
-            number_of_group_set_fields = option_count(trim(method_path)//'/neutral_particle_flux_group_set_field')
-         
-            ! create the group_set as needed
-            group_set_loop: do g_set = 1,number_of_group_set_fields
+         ! create each energy_group_set as needed
+         energy_group_set_loop: do g_set = 1,number_of_energy_group_set
             
-               ! set the group set path
-               group_set_path = trim(method_path)//'/neutral_particle_flux_group_set_field['//int2str(g_set - 1)//']'
+            ! set the energy_group_set path
+            energy_group_set_path = trim(particle_type_path)//'/energy_group_set['//int2str(g_set - 1)//']'
             
-               ! find the group start and end bounds for this set
-               group_all: if (have_option(trim(group_set_path)//'/group_all')) then
-               
-                  start_group = 1
-                  
-                  end_group = number_of_energy_groups
-               
-               else if (have_option(trim(group_set_path)//'/group_individual')) then group_all
-               
-                  call get_option(trim(group_set_path)//'/group_individual',start_group)
-               
-                  end_group = start_group
+            ! get the number_energy_groups within this set
+            call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)         
             
-               else if (have_option(trim(group_set_path)//'/group_set')) then group_all 
-           
-                  call get_option(trim(group_set_path)//'/group_set/start_group',start_group)
-
-                  call get_option(trim(group_set_path)//'/group_set/end_group',end_group)
+            ! form the start_group and end_group numbers
+            start_group = global_group_count + 1
+            end_group = start_group + number_of_energy_groups - 1
             
-               end if group_all
-                                 
-               ! create the particle flux fields needed 
+            ! form the angular discretisation path
+            angular_path = trim(energy_group_set_path)//'/angular_discretisation'
+            
+            ! get the angular discretisation name
+            call get_option(trim(angular_path)//'/name',angular_name)
+            
+            ! create the necessary fields for the particular angular discretisation
+            angular_discr_if: if (angular_name == 'diffusion') then
+                      
+               ! create the particle flux fields needed for diffusion theory
                ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
                group_loop: do g = start_group,end_group
-            
-                  field_path = trim(group_set_path)//'/scalar_field::NeutralParticleFlux'
+                  
+                  ! increase the global group count
+                  global_group_count = global_group_count + 1
+                   
+                  field_path = trim(angular_path)//'/scalar_field::ParticleFlux'
                                     
                   ! form the field name 
-                  field_name = 'NeutralParticleFluxGroup'//int2str(g)//trim(particle_type_name)
+                  field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_type_name)
                   
                   call allocate_and_insert_scalar_field(trim(field_path), &
                                                         state, &
                                                         field_name = trim(field_name), &
-                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)            
-                              
+                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
                end do group_loop
-         
-            end do group_set_loop
-         
-         end if p_method
-                  
+            
+            else angular_discr_if
+            
+               FLAbort('Error: unknown radiation angular discretisation')
+            
+            end if angular_discr_if
+            
+         end do energy_group_set_loop
+                           
          ! now allocate and insert the time run prescribed source fields into state for this particle type
          include_prescribed_source_if: if (have_option(trim(particle_type_path)//'/time_run/include_prescribed_source')) then
          
@@ -2760,7 +2753,7 @@ contains
           if((prognostic.or.diagnostic)&
               .and.((steady_state_global.and.steady_state_field(sfield)).or.(iterations>1) .or. &
               have_option(trim(sfield%option_path) // '/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter::FPN') .or. &
-              (field_name(1:15) == 'NeutralParticle'))) then
+              (field_name(1:8) == 'Particle'))) then
 
             call allocate(aux_sfield, sfield%mesh, "Old"//trim(sfield%name))
             call zero(aux_sfield)
@@ -2781,7 +2774,7 @@ contains
 
           if((prognostic.or.diagnostic)&
               .and.(convergence_field(sfield).and.(iterations>1))&
-              .and. (field_name(1:15) /= 'NeutralParticle')) then
+              .and. (field_name(1:8) /= 'Particle')) then
 
             call allocate(aux_sfield, sfield%mesh, "Iterated"//trim(sfield%name))
             call zero(aux_sfield)

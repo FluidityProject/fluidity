@@ -19,12 +19,12 @@ neutronKeff = stat("rad_1d_2grp_hom_inf_eig.stat")["neutronKeff1"]["Value"][0]
     <variable name="FluxGroup1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_2grp_hom_inf_eig_1.vtu")
-FluxGroup1neutron = max(v.GetScalarRange("NeutralParticleFluxGroup1neutron"))
+FluxGroup1neutron = max(v.GetScalarRange("ParticleFluxGroup1neutron"))
     </variable>
     <variable name="FluxGroup2neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_2grp_hom_inf_eig_1.vtu")
-FluxGroup2neutron = max(v.GetScalarRange("NeutralParticleFluxGroup2neutron"))
+FluxGroup2neutron = max(v.GetScalarRange("ParticleFluxGroup2neutron"))
     </variable>
   </variables>
   <pass_tests>

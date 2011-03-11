@@ -47,21 +47,21 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_register_diagnostics(np_radmat_option_path) 
+   subroutine radiation_register_diagnostics(particle_option_path) 
       
-      !!< Register the radiation diagnostics for stat file for this np option path
+      !!< Register the radiation diagnostics for stat file for this particle option path
       
-      character(len=*), intent(in) :: np_radmat_option_path   
+      character(len=*), intent(in) :: particle_option_path   
       
       ! local variables
-      character(len=OPTION_PATH_LEN) :: np_radmat_name   
+      character(len=OPTION_PATH_LEN) :: particle_name   
       
-      eig_register: if (have_option(trim(np_radmat_option_path//'/eigenvalue_run'))) then
+      eig_register: if (have_option(trim(particle_option_path//'/eigenvalue_run'))) then
          
-         ! get the np name
-         call get_option(trim(np_radmat_option_path)//'/name',np_radmat_name)
+         ! get the particle name
+         call get_option(trim(particle_option_path)//'/name',particle_name)
          
-         call radiation_eigenvalue_register_diagnostics(trim(np_radmat_name))
+         call radiation_eigenvalue_register_diagnostics(trim(particle_name))
       
       else eig_register
       
@@ -72,17 +72,17 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine radiation_eigenvalue_register_diagnostics(np_radmat_name)
+   subroutine radiation_eigenvalue_register_diagnostics(particle_name)
       
       !!< Register the diagnostics variables for the stat file
-      !!< associated with the eigenvalue run for this np given by np_radmat_name 
+      !!< associated with the eigenvalue run for this particle type given by particle_name 
       
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_name
       
-      ewrite(1,*) 'Radiation eigenvalue run register diagnostics for np name ',trim(np_radmat_name)
+      ewrite(1,*) 'Radiation eigenvalue run register diagnostics for particle type ',trim(particle_name)
       
       call register_diagnostic(dim       = 1, &
-                               name      = trim(np_radmat_name)//'Keff', &
+                               name      = trim(particle_name)//'Keff', &
                                statistic = 'Value')
       
    end subroutine radiation_eigenvalue_register_diagnostics
@@ -90,26 +90,26 @@ contains
    ! --------------------------------------------------------------------------
    
    subroutine radiation_eigenvalue_set_diagnostics(state, &
-                                                   np_radmat_name)
+                                                   particle_name)
          
       !!< Set the diagnostics variables for the stat file
-      !!< associated with the eigenvalue run for this np given by np_radmat_name 
+      !!< associated with the eigenvalue run for this particle given by particle_name 
 
       type(state_type), intent(in) :: state      
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_name
       
       ! local variables
       type(scalar_field), pointer:: keff_field      
       real :: keff
 
-      ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for np name ',trim(np_radmat_name)
+      ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for particle type ',trim(particle_name)
       
       keff_field => extract_scalar_field(state, &
-                                         trim(np_radmat_name)//'Keff')
+                                         trim(particle_name)//'Keff')
       
       keff = node_val(keff_field,1)
  
-      call set_diagnostic(name      = trim(np_radmat_name)//'Keff',  &
+      call set_diagnostic(name      = trim(particle_name)//'Keff',  &
                           statistic = 'Value', &
                           value     = (/keff/))
       

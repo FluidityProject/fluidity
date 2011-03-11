@@ -40,19 +40,19 @@ module radiation_materials_read
    
    private 
 
-   public :: np_radmat_read, &
+   public :: particle_radmat_read, &
              read_in_dataset_radmat 
         
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_read(np_radmat)
+   subroutine particle_radmat_read(particle_radmat)
       
-      !!< Read and set the data into the neutral particle radmat object
-      !!< Initially checks that this object is created - if not abort
+      !!< Read and set the data into the particle radmat type
+      !!< Initially checks that this type is created - if not abort
       
-      type(np_radmat_type), intent(inout) :: np_radmat
+      type(particle_radmat_type), intent(inout) :: particle_radmat
       
       ! local variables
       integer :: dmat 
@@ -62,20 +62,20 @@ contains
       character(len=OPTION_PATH_LEN) :: dataset_file_name
       character(len=OPTION_PATH_LEN) :: dataset_file_name_to_read_delayed_lambda
       
-      ewrite(1,*) 'Read in radiation np_radmat values for',trim(np_radmat%option_path)
+      ewrite(1,*) 'Read in radiation particle_radmat values for',trim(particle_radmat%name)
       
-      created: if (.not. np_radmat%created) then 
+      created: if (.not. particle_radmat%created) then 
          
-         FLAbort('Cannot read in a np_radmat type if it is not created yet')
+         FLAbort('Cannot read in a particle_radmat type if it is not created yet')
          
       end if created
                   
-      ! see if there is a need for the velocity data for this object (ie. time run) -set the module variable
+      ! see if there is a need for the velocity data for this object (ie. time run) 
       read_velocity_data = .false.      
-      if (have_option(trim(np_radmat%option_path)//'/time_run')) read_velocity_data = .true.
+      if (have_option(trim(particle_radmat%option_path)//'/time_run')) read_velocity_data = .true.
          
       ! see if there is a need for the power data for this object 
-      check_need_power: if (have_option(trim(np_radmat%option_path)//'/eigenvalue_run/flux_normalisation/total_power')) then
+      check_need_power: if (have_option(trim(particle_radmat%option_path)//'/eigenvalue_run/flux_normalisation/total_power')) then
             
          read_power_data = .true.
             
@@ -90,18 +90,18 @@ contains
       
       ! check which data set we read the delayed lambda and spectrum from
       dataset_file_name_to_read_delayed_lambda = ''
-      have_delayed: if (have_option(trim(np_radmat%option_path)//'/delayed_neutron_precursor')) then
+      have_delayed: if (have_option(trim(particle_radmat%option_path)//'/delayed_neutron_precursor')) then
       
-         call get_option(trim(np_radmat%option_path)//'/delayed_neutron_precursor/read_delayed_lambda_spectrum_from_data_set/file_name',&
+         call get_option(trim(particle_radmat%option_path)//'/delayed_neutron_precursor/read_delayed_lambda_spectrum_from_data_set/file_name',&
                          &dataset_file_name_to_read_delayed_lambda)
       
       end if have_delayed
  
-      Data_set_loop: do dmat = 1,size(np_radmat%dataset_radmats)
+      data_set_loop: do dmat = 1,size(particle_radmat%dataset_radmats)
          
          ! read in the materials for this data set      
          read_delayed_lambda_spectrum = .false.          
-         call get_option(trim(np_radmat%dataset_radmats(dmat)%option_path)//'/file_name',dataset_file_name)
+         call get_option(trim(particle_radmat%dataset_radmats(dmat)%option_path)//'/file_name',dataset_file_name)
          
          ewrite(1,*) 'Read in dataset ',trim(dataset_file_name)
                            
@@ -109,19 +109,19 @@ contains
        
          ewrite(1,*) 'Read in delayed lambda/spectrum: ',read_delayed_lambda_spectrum
                                         
-         call read_in_dataset_radmat(np_radmat%dataset_radmats(dmat), &
-                                     np_radmat%delayed_lambda_spectrum, &
+         call read_in_dataset_radmat(particle_radmat%dataset_radmats(dmat), &
+                                     particle_radmat%delayed_lambda_spectrum, &
                                      read_delayed_lambda_spectrum, &
                                      read_velocity_data, &
                                      read_power_data )
       
-      end do Data_set_loop
+      end do data_set_loop
       
-      np_radmat%readin = .true.
+      particle_radmat%readin = .true.
       
-      ewrite(1,*) 'Finished read in radiation np_radmat values for',trim(np_radmat%option_path)
+      ewrite(1,*) 'Finished read in radiation particle_radmat values for ',trim(particle_radmat%name)
       
-   end subroutine np_radmat_read
+   end subroutine particle_radmat_read
 
    ! --------------------------------------------------------------------------
             
@@ -153,7 +153,7 @@ contains
          call get_option(trim(dataset_radmat%option_path)//'/file_name',filename)
 
          ! set the radmats file record length used for reading from the options
-         call get_option(trim(dataset_radmat%option_path)//"/format_radmats/maximum_record_length",record_len) 
+         call get_option(trim(dataset_radmat%option_path)//'/format_radmats/maximum_record_length',record_len) 
                   
          call read_format_radmats(trim(filename), &
                                   dataset_radmat, &

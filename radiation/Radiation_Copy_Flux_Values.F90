@@ -42,43 +42,43 @@ module radiation_copy_flux_values
    
    private 
 
-   public :: copy_to_old_values_np_flux
+   public :: copy_to_old_values_particle_flux
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine copy_to_old_values_np_flux(state, &
-                                         np_radmat_name, &
-                                         number_of_energy_groups) 
+   subroutine copy_to_old_values_particle_flux(state, &
+                                               particle_name, &
+                                               number_of_energy_groups) 
       
       !!< Copy the latest flux to the old values 
       
       type(state_type), intent(inout) :: state
-      character(len=*), intent(in) :: np_radmat_name
+      character(len=*), intent(in) :: particle_name
       integer, intent(in) :: number_of_energy_groups
       
       ! local variables
       integer :: g
-      type(scalar_field), pointer :: np_flux 
-      type(scalar_field), pointer :: np_flux_old
+      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: particle_flux_old
       
-      ewrite(1,*) 'Copy latest radiation flux values to old'
+      ewrite(1,*) 'Copy latest radiation particle flux values to old for type ',trim(particle_name)
                   
       ! set the old flux
       group_loop: do g = 1,number_of_energy_groups
          
          call extract_flux_group_g(state, &
-                                   trim(np_radmat_name), & 
+                                   trim(particle_name), & 
                                    g, &  
-                                   np_flux = np_flux, &
-                                   np_flux_old = np_flux_old)
+                                   particle_flux = particle_flux, &
+                                   particle_flux_old = particle_flux_old)
             
-         call set(np_flux_old, np_flux)
+         call set(particle_flux_old, particle_flux)
                   
       end do group_loop
     
-   end subroutine copy_to_old_values_np_flux 
+   end subroutine copy_to_old_values_particle_flux 
 
    ! --------------------------------------------------------------------------
 

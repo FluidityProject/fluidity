@@ -50,14 +50,14 @@ contains
       !!< Check the options solely associted with the radiation model
 
       integer :: p 
-      character(len=OPTION_PATH_LEN) :: np_radmat_option_path   
+      character(len=OPTION_PATH_LEN) :: particle_option_path   
                            
-      particle_type_loop: do p = 1,option_count("radiation/particle_type")
+      particle_type_loop: do p = 1,option_count("/radiation/particle_type")
     
          ! - 1 needed as options count from 0
-         np_radmat_option_path = "/radiation/particle_type["//int2str(p - 1)//"]" 
+         particle_option_path = "/radiation/particle_type["//int2str(p - 1)//"]" 
          
-         call radiation_check_options_particle(trim(np_radmat_option_path))
+         call radiation_check_options_particle(trim(particle_option_path))
                            
       end do particle_type_loop
                   
@@ -65,12 +65,12 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_check_options_particle(np_radmat_option_path) 
+   subroutine radiation_check_options_particle(particle_option_path) 
    
       !!< Check the options solely associted with the radiation model for this
       !!< particular particle type given by the option path
 
-      character(len=*), intent(in) :: np_radmat_option_path   
+      character(len=*), intent(in) :: particle_option_path   
       
       
       

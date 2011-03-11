@@ -39,7 +39,7 @@ module radiation_materials_interpolation
    
    private 
 
-   public :: np_radmat_ii_type, &
+   public :: particle_radmat_ii_type, &
              create, &
              destroy, &
              form

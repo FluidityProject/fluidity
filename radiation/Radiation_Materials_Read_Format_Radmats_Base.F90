@@ -955,15 +955,15 @@ contains
          end if fissnu_no_sigfiss
          
          ! read FISSNU 
-         call read_format_radmats_siga_style_xsection(radmat%np_released_per_fission, &
+         call read_format_radmats_siga_style_xsection(radmat%particle_released_per_fission, &
                                                       line_number, &
                                                       format_radmats_file_unit, &
                                                       record_len)
          ! change the set flag
-         radmat%np_released_per_fission_set = .true.
+         radmat%particle_released_per_fission_set = .true.
          
          ! times fissnu by the fission to give the production variable         
-         radmat%production = radmat%np_released_per_fission * radmat%fission 
+         radmat%production = radmat%particle_released_per_fission * radmat%fission 
 
          ! change the set flag
          radmat%production_set = .true.

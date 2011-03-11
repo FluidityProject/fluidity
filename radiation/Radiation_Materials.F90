@@ -39,7 +39,7 @@ module radiation_materials
    
    private 
 
-   public :: np_radmat_type, &
+   public :: particle_radmat_type, &
              dataset_radmat_type, &
              physical_radmat_type, &
              radmat_type, &
@@ -47,7 +47,7 @@ module radiation_materials
              allocate, &
              zero, &
              destroy, &
-             np_radmat_read, &
+             particle_radmat_read, &
              radmat_type_equals     
            
 end module radiation_materials

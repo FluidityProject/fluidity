@@ -35,8 +35,8 @@ module radiation_materials_interpolation_data_types
    
    private 
 
-   public :: np_radmat_ii_type, &
-             np_radmat_ii_size_type, &
+   public :: particle_radmat_ii_type, &
+             particle_radmat_ii_size_type, &
              region_id_vele_ii_size_type, &
              region_id_vele_ii_type, &
              dataset_vele_ii_type, &
@@ -54,7 +54,7 @@ module radiation_materials_interpolation_data_types
    end type physical_radmat_vele_ii_type
 
    
-   ! the interpolation instructions associated with a particular np dataset_radmat that is associated with an vele
+   ! the interpolation instructions associated with a particular particle dataset_radmat that is associated with an vele
    type dataset_vele_ii_type
       ! the dataset radmat number
       integer :: dataset_radmat_number 
@@ -78,25 +78,25 @@ module radiation_materials_interpolation_data_types
 
 
    ! the interpolation instructions sizes 
-   type np_radmat_ii_size_type
+   type particle_radmat_ii_size_type
       ! the interpolation instruction size for each vele associated with region id mapping
       type(region_id_vele_ii_size_type), dimension(:), allocatable :: region_id_vele_ii_size  
      ! a logical flag to say if these interpolation instruction size have been set
       logical :: size_set=.false.      
-   end type np_radmat_ii_size_type
+   end type particle_radmat_ii_size_type
 
    
-   ! the neutral particle (np) radiation material (radmat) interpolation instructions (ii) type
-   type np_radmat_ii_type
+   ! the particle radiation material (radmat) interpolation instructions (ii) type
+   type particle_radmat_ii_type
       ! the interpolation instructions for each vele associated with region id mapping
       type(region_id_vele_ii_type), dimension(:), allocatable :: region_id_vele_ii  
       ! the interpolation instructions sizes 
-      type(np_radmat_ii_size_type) :: np_radmat_ii_size 
+      type(particle_radmat_ii_size_type) :: particle_radmat_ii_size 
       ! a logical flag to say if these ii have been created
       logical :: created=.false.
       ! a logical flag to say if these ii have been formed
       logical :: formed=.false.
-   end type np_radmat_ii_type
+   end type particle_radmat_ii_type
 
    
 end module radiation_materials_interpolation_data_types

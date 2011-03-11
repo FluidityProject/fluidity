@@ -38,37 +38,37 @@ module radiation_materials_interpolation_destroy
    public :: destroy
    
    interface destroy
-      module procedure np_radmat_ii_destroy, &
+      module procedure particle_radmat_ii_destroy, &
                        region_id_vele_ii_all_destroy, &
                        region_id_vele_ii_destroy, &
                        dataset_vele_ii_destroy, &
-                       np_radmat_ii_size_destroy
+                       particle_radmat_ii_size_destroy
    end interface destroy
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_destroy(np_radmat_ii) 
+   subroutine particle_radmat_ii_destroy(particle_radmat_ii) 
    
-      !!< Destroy the np_radmat_ii type
+      !!< Destroy the particle_radmat_ii type
 
-      type(np_radmat_ii_type), intent(inout) :: np_radmat_ii
+      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
             
-      region_id_ii_deallocate: if (allocated(np_radmat_ii%region_id_vele_ii)) then
+      region_id_ii_deallocate: if (allocated(particle_radmat_ii%region_id_vele_ii)) then
          
-         call destroy(np_radmat_ii%region_id_vele_ii)
+         call destroy(particle_radmat_ii%region_id_vele_ii)
                   
       end if region_id_ii_deallocate
       
-      call destroy(np_radmat_ii%np_radmat_ii_size)
+      call destroy(particle_radmat_ii%particle_radmat_ii_size)
 
       ! set the flags      
-      np_radmat_ii%created = .false.
+      particle_radmat_ii%created = .false.
       
-      np_radmat_ii%formed = .false.
+      particle_radmat_ii%formed = .false.
       
-   end subroutine np_radmat_ii_destroy
+   end subroutine particle_radmat_ii_destroy
 
    ! --------------------------------------------------------------------------
 
@@ -127,22 +127,22 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_size_destroy(np_radmat_ii_size)
+   subroutine particle_radmat_ii_size_destroy(particle_radmat_ii_size)
       
-      !!< Destroy the np_radmat_ii_size type
+      !!< Destroy the particle_radmat_ii_size type
       
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
       
-      region_id_ii_size_deallocate: if (allocated(np_radmat_ii_size%region_id_vele_ii_size)) then
+      region_id_ii_size_deallocate: if (allocated(particle_radmat_ii_size%region_id_vele_ii_size)) then
          
-         deallocate(np_radmat_ii_size%region_id_vele_ii_size)
+         deallocate(particle_radmat_ii_size%region_id_vele_ii_size)
                
       end if region_id_ii_size_deallocate
       
       ! set the flag
-      np_radmat_ii_size%size_set = .false.
+      particle_radmat_ii_size%size_set = .false.
       
-   end subroutine np_radmat_ii_size_destroy
+   end subroutine particle_radmat_ii_size_destroy
 
    ! --------------------------------------------------------------------------
 

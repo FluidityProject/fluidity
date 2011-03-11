@@ -19,32 +19,32 @@ neutronKeff = stat("rad_1d_6grp_hom_inf_eig.stat")["neutronKeff1"]["Value"][0]
     <variable name="FluxGroup1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup1neutron = max(v.GetScalarRange("NeutralParticleFluxGroup1neutron"))
+FluxGroup1neutron = max(v.GetScalarRange("ParticleFluxGroup1neutron"))
     </variable>
     <variable name="FluxGroup2neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup2neutron = max(v.GetScalarRange("NeutralParticleFluxGroup2neutron"))
+FluxGroup2neutron = max(v.GetScalarRange("ParticleFluxGroup2neutron"))
     </variable>
     <variable name="FluxGroup3neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup3neutron = max(v.GetScalarRange("NeutralParticleFluxGroup3neutron"))
+FluxGroup3neutron = max(v.GetScalarRange("ParticleFluxGroup3neutron"))
     </variable>    
     <variable name="FluxGroup4neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup4neutron = max(v.GetScalarRange("NeutralParticleFluxGroup4neutron"))
+FluxGroup4neutron = max(v.GetScalarRange("ParticleFluxGroup4neutron"))
     </variable>    
     <variable name="FluxGroup5neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup5neutron = max(v.GetScalarRange("NeutralParticleFluxGroup5neutron"))
+FluxGroup5neutron = max(v.GetScalarRange("ParticleFluxGroup5neutron"))
     </variable>    
     <variable name="FluxGroup6neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup6neutron = max(v.GetScalarRange("NeutralParticleFluxGroup6neutron"))
+FluxGroup6neutron = max(v.GetScalarRange("ParticleFluxGroup6neutron"))
     </variable>    
   </variables>
   <pass_tests>

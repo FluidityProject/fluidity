@@ -48,125 +48,122 @@ module radiation_materials_interpolation_create
              create
    
    interface allocate
-      module procedure np_radmat_ii_allocate, &
+      module procedure particle_radmat_ii_allocate, &
                        region_id_vele_ii_allocate_all, &
                        region_id_vele_ii_allocate, &
                        dataset_vele_ii_allocate, &
-                       np_radmat_ii_size_allocate_from_options, &
-                       np_radmat_ii_size_allocate
+                       particle_radmat_ii_size_allocate_from_options, &
+                       particle_radmat_ii_size_allocate
    end interface allocate
    
    interface zero
-      module procedure np_radmat_ii_zero, &
+      module procedure particle_radmat_ii_zero, &
                        region_id_vele_ii_zero, &
-                       np_radmat_ii_size_zero, &
+                       particle_radmat_ii_size_zero, &
                        region_id_vele_ii_size_zero
    end interface zero
    
    interface set
-      module procedure set_np_radmat_ii_size, &
+      module procedure set_particle_radmat_ii_size, &
                        set_region_id_vele_ii_size
    end interface set
    
    interface create
-      module procedure np_radmat_ii_create_from_options, &
-                       np_radmat_ii_size_create_from_options
+      module procedure particle_radmat_ii_create_from_options, &
+                       particle_radmat_ii_size_create_from_options
    end interface create
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_create_from_options(np_radmat_ii, &
-                                               np_radmat, &
-                                               state) 
+   subroutine particle_radmat_ii_create_from_options(particle_radmat_ii, &
+                                                     particle_radmat, &
+                                                     state) 
    
-      !!< Create from the options the np_radmat_ii data type for a particular np determined by the np_radmat
+      !!< Create from the options the particle_radmat_ii data type for a 
+      !!< particular particle determined by the particle_radmat
       
-      type(np_radmat_ii_type), intent(inout) :: np_radmat_ii
-      type(np_radmat_type), intent(in) :: np_radmat      
+      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
+      type(particle_radmat_type), intent(in) :: particle_radmat      
       type(state_type), intent(in) :: state
       
-      ewrite(1,*) 'Create radiation np_radmat_ii from options for ', trim(np_radmat%option_path)
+      ewrite(1,*) 'Create radiation particle_radmat_ii from options for ', trim(particle_radmat%name)
       
-      call create(np_radmat_ii%np_radmat_ii_size, &
-                  np_radmat, &
+      call create(particle_radmat_ii%particle_radmat_ii_size, &
+                  particle_radmat, &
                   state)
       
-      call allocate(np_radmat_ii)
+      call allocate(particle_radmat_ii)
       
-      call zero(np_radmat_ii)
+      call zero(particle_radmat_ii)
       
-      np_radmat_ii%created = .true.
+      particle_radmat_ii%created = .true.
       
-      ewrite(1,*) 'Finished creating radiation np_radmat_ii from options for ', trim(np_radmat%option_path)
+      ewrite(1,*) 'Finished creating radiation particle_radmat_ii from options for ', trim(particle_radmat%name)
       
-   end subroutine np_radmat_ii_create_from_options
+   end subroutine particle_radmat_ii_create_from_options
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_size_create_from_options(np_radmat_ii_size, &
-                                                    np_radmat, &
-                                                    state)
+   subroutine particle_radmat_ii_size_create_from_options(particle_radmat_ii_size, &
+                                                          particle_radmat, &
+                                                          state)
       
-      !!< Create the np_radmat_ii_size from the options (including the mesh size)
+      !!< Create the particle_radmat_ii_size from the options (including the mesh size)
 
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
-      type(np_radmat_type), intent(in) :: np_radmat
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
+      type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
 
-      ewrite(1,*) 'Create radiation np_radmat_ii_size from options for ', trim(np_radmat%option_path)
+      ewrite(1,*) 'Create radiation particle_radmat_ii_size from options for ', trim(particle_radmat%name)
                  
-      call allocate(np_radmat_ii_size, &
-                    np_radmat, &
+      call allocate(particle_radmat_ii_size, &
+                    particle_radmat, &
                     state)
                       
-      call zero(np_radmat_ii_size)
+      call zero(particle_radmat_ii_size)
             
-      call set(np_radmat_ii_size, &
-               np_radmat, &
+      call set(particle_radmat_ii_size, &
+               particle_radmat, &
                state)
                                    
-      np_radmat_ii_size%size_set = .true.
+      particle_radmat_ii_size%size_set = .true.
      
-      ewrite(1,*) 'Finished creating radiation np_radmat_ii_size from options for ', trim(np_radmat%option_path)
+      ewrite(1,*) 'Finished creating radiation particle_radmat_ii_size from options for ', trim(particle_radmat%name)
       
-   end subroutine np_radmat_ii_size_create_from_options
+   end subroutine particle_radmat_ii_size_create_from_options
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_size_allocate_from_options(np_radmat_ii_size, &
-                                                      np_radmat, &
-                                                      state)
+   subroutine particle_radmat_ii_size_allocate_from_options(particle_radmat_ii_size, &
+                                                            particle_radmat, &
+                                                            state)
       
-      !!< Allocate the np_radmat_ii_size from options
+      !!< Allocate the particle_radmat_ii_size from options
 
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
-      type(np_radmat_type), intent(in) :: np_radmat
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
+      type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
 
       ! local variables
       integer :: vele_np
       logical :: region_id_size_allocate
-      type(scalar_field), pointer :: np_flux
-      character(len=OPTION_PATH_LEN) :: np_radmat_name
+      type(scalar_field), pointer :: particle_flux
       character(len=OPTION_PATH_LEN) :: region_id_path
        
-      ewrite(1,*) 'Allocate radiation np_radmat_ii_size from options'
-      
-      ! get the flux field name for g 1
-      call get_option(trim(np_radmat%option_path)//'/name',np_radmat_name)
+      ewrite(1,*) 'Allocate radiation particle_radmat_ii_size from options'
       
       ! extract the g 1 np flux field to find the number of volume elements    
       call extract_flux_group_g(state, &
-                                trim(np_radmat_name), &
+                                trim(particle_radmat%name), &
                                 g = 1, &  
-                                np_flux = np_flux)
+                                particle_flux = particle_flux)
       
       ! determine the number of volume elements of the radiation problem
-      vele_np = ele_count(np_flux)
+      vele_np = ele_count(particle_flux)
 
-      region_id_path = trim(np_radmat%option_path)//'/region_id_material_mapping'
+      region_id_path = trim(particle_radmat%option_path)//'/region_id_material_mapping'
           
       link_region_id: if (have_option(trim(region_id_path))) then
       
@@ -178,57 +175,57 @@ contains
      
       end if link_region_id
 
-      call allocate(np_radmat_ii_size, &
+      call allocate(particle_radmat_ii_size, &
                     vele_np, &
                     region_id_size_allocate)
        
-   end subroutine np_radmat_ii_size_allocate_from_options
+   end subroutine particle_radmat_ii_size_allocate_from_options
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_size_allocate(np_radmat_ii_size, &
-                                         vele_np, &
-                                         region_id_size_allocate)
+   subroutine particle_radmat_ii_size_allocate(particle_radmat_ii_size, &
+                                               vele_np, &
+                                               region_id_size_allocate)
       
-      !!< Allocate the np_radmat_ii_size
+      !!< Allocate the particle_radmat_ii_size
          
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
       integer, intent(in) :: vele_np
       logical, intent(in) :: region_id_size_allocate
       
       ! local variables
       integer :: status
       
-      ewrite(1,*) 'Allocate radiation np_radmat_ii_size'
+      ewrite(1,*) 'Allocate radiation particle_radmat_ii_size'
       
       ! allocate the component sizes as needed
       region_id_size_allocate_if: if (region_id_size_allocate) then
       
-         allocate(np_radmat_ii_size%region_id_vele_ii_size(vele_np),STAT=status)
+         allocate(particle_radmat_ii_size%region_id_vele_ii_size(vele_np),STAT=status)
               
-         if (status /= 0) FLAbort('Issue allocating np_radmat_ii_size%region_id_vele_ii_size in np_radmat_ii_size_allocate')
+         if (status /= 0) FLAbort('Issue allocating particle_radmat_ii_size%region_id_vele_ii_size in particle_radmat_ii_size_allocate')
       
       end if region_id_size_allocate_if      
    
-   end subroutine np_radmat_ii_size_allocate
+   end subroutine particle_radmat_ii_size_allocate
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_size_zero(np_radmat_ii_size)
+   subroutine particle_radmat_ii_size_zero(particle_radmat_ii_size)
       
-      !!< Zero the relevant components of the np_radmat_ii_size type
+      !!< Zero the relevant components of the particle_radmat_ii_size type
 
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
       
-      ewrite(1,*) 'Zero radiation np_radmat_ii_size'
+      ewrite(1,*) 'Zero radiation particle_radmat_ii_size'
       
-      zero_region_id_vele_ii_size: if (allocated(np_radmat_ii_size%region_id_vele_ii_size)) then
+      zero_region_id_vele_ii_size: if (allocated(particle_radmat_ii_size%region_id_vele_ii_size)) then
       
-         call zero(np_radmat_ii_size%region_id_vele_ii_size)
+         call zero(particle_radmat_ii_size%region_id_vele_ii_size)
       
       end if zero_region_id_vele_ii_size
    
-   end subroutine np_radmat_ii_size_zero
+   end subroutine particle_radmat_ii_size_zero
 
    ! --------------------------------------------------------------------------
 
@@ -255,37 +252,37 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_ii_allocate(np_radmat_ii)
+   subroutine particle_radmat_ii_allocate(particle_radmat_ii)
       
-      !!< Allocate the np_radmat_ii from the np_radmat_ii%np_radmat_ii_size component
+      !!< Allocate the particle_radmat_ii from the particle_radmat_ii%particle_radmat_ii_size component
 
-      type(np_radmat_ii_type), intent(inout) :: np_radmat_ii
+      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
       
       ! local variables
       integer :: status
       
-      ewrite(1,*) 'Allocate radiation np_radmat_ii'
+      ewrite(1,*) 'Allocate radiation particle_radmat_ii'
       
       ! if the size data is not set then abort 
-      no_size: if (.not. np_radmat_ii%np_radmat_ii_size%size_set) then
+      no_size: if (.not. particle_radmat_ii%particle_radmat_ii_size%size_set) then
       
-         FLAbort('Cannot allocate a np_radmat_ii type if the size type np_radmat_ii%np_radmat_ii_size is not already set')
+         FLAbort('Cannot allocate a particle_radmat_ii type if the size type particle_radmat_ii%particle_radmat_ii_size is not already set')
       
       end if no_size
 
       ! region id mapping allocate
-      region_id_allocate: if (allocated(np_radmat_ii%np_radmat_ii_size%region_id_vele_ii_size)) then
+      region_id_allocate: if (allocated(particle_radmat_ii%particle_radmat_ii_size%region_id_vele_ii_size)) then
                   
-         allocate(np_radmat_ii%region_id_vele_ii(size(np_radmat_ii%np_radmat_ii_size%region_id_vele_ii_size)),STAT=status)
+         allocate(particle_radmat_ii%region_id_vele_ii(size(particle_radmat_ii%particle_radmat_ii_size%region_id_vele_ii_size)),STAT=status)
          
-         if (status /= 0) FLAbort('Issue allocating memory for np_radmat_ii%region_id_vele_ii in np_radmat_ii_allocate')
+         if (status /= 0) FLAbort('Issue allocating memory for particle_radmat_ii%region_id_vele_ii in particle_radmat_ii_allocate')
 
-         call allocate(np_radmat_ii%region_id_vele_ii, &
-                       np_radmat_ii%np_radmat_ii_size%region_id_vele_ii_size)
+         call allocate(particle_radmat_ii%region_id_vele_ii, &
+                       particle_radmat_ii%particle_radmat_ii_size%region_id_vele_ii_size)
 
       end if region_id_allocate
             
-   end subroutine np_radmat_ii_allocate
+   end subroutine particle_radmat_ii_allocate
 
    ! --------------------------------------------------------------------------
 
@@ -355,21 +352,21 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine np_radmat_ii_zero(np_radmat_ii)
+   subroutine particle_radmat_ii_zero(particle_radmat_ii)
       
-      !!< Zero the np_radmat_ii data type
+      !!< Zero the particle_radmat_ii data type
    
-      type(np_radmat_ii_type), intent(inout) :: np_radmat_ii
+      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
       
-      ewrite(1,*) 'Zero radiation np_radmat_ii'
+      ewrite(1,*) 'Zero radiation particle_radmat_ii'
       
-      zero_region_id_ii: if (allocated(np_radmat_ii%region_id_vele_ii)) then
+      zero_region_id_ii: if (allocated(particle_radmat_ii%region_id_vele_ii)) then
          
-         call zero(np_radmat_ii%region_id_vele_ii)
+         call zero(particle_radmat_ii%region_id_vele_ii)
       
       end if zero_region_id_ii
    
-   end subroutine np_radmat_ii_zero
+   end subroutine particle_radmat_ii_zero
    
    ! --------------------------------------------------------------------------
    
@@ -402,41 +399,41 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine set_np_radmat_ii_size(np_radmat_ii_size, &
-                                    np_radmat, &
-                                    state)
+   subroutine set_particle_radmat_ii_size(particle_radmat_ii_size, &
+                                          particle_radmat, &
+                                          state)
       
-      !!< Set the components of the np_radmat_ii_size type
+      !!< Set the components of the particle_radmat_ii_size type
 
-      type(np_radmat_ii_size_type), intent(inout) :: np_radmat_ii_size
-      type(np_radmat_type), intent(in) :: np_radmat
+      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
+      type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
       
-      ewrite(1,*) 'Set radiation np_radmat_ii_size'
+      ewrite(1,*) 'Set radiation particle_radmat_ii_size'
       
       ! set the region id size components
-      set_region_id_size: if (allocated(np_radmat_ii_size%region_id_vele_ii_size)) then
+      set_region_id_size: if (allocated(particle_radmat_ii_size%region_id_vele_ii_size)) then
       
-         call set(np_radmat_ii_size%region_id_vele_ii_size, &
-                  np_radmat, &
+         call set(particle_radmat_ii_size%region_id_vele_ii_size, &
+                  particle_radmat, &
                   state)
       
       end if set_region_id_size
       
-      np_radmat_ii_size%size_set = .true.
+      particle_radmat_ii_size%size_set = .true.
 
-   end subroutine set_np_radmat_ii_size
+   end subroutine set_particle_radmat_ii_size
    
    ! --------------------------------------------------------------------------
 
    subroutine set_region_id_vele_ii_size(region_id_vele_ii_size, &
-                                         np_radmat, &
+                                         particle_radmat, &
                                          state)
       
       !!< Set the region id vele ii size
       
       type(region_id_vele_ii_size_type), dimension(:), allocatable, intent(inout) :: region_id_vele_ii_size
-      type(np_radmat_type), intent(in) :: np_radmat
+      type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
       
       ! local variables
@@ -450,8 +447,7 @@ contains
       character(len=OPTION_PATH_LEN) :: region_id_mapping_path 
       character(len=OPTION_PATH_LEN) :: data_set_filename 
       character(len=OPTION_PATH_LEN) :: physical_material_name 
-      character(len=OPTION_PATH_LEN) :: np_radmat_name
-      type(scalar_field), pointer :: np_flux
+      type(scalar_field), pointer :: particle_flux
       
       ! first check that region_id_vele_ii_size is allocated
       check_allocated: if (.not. allocated(region_id_vele_ii_size)) then
@@ -460,16 +456,13 @@ contains
          
       end if check_allocated
       
-      ! get the flux field name for g 1
-      call get_option(trim(np_radmat%option_path)//'/name',np_radmat_name)
-      
       ! extract the g 1 np flux field to find the volume elements region id    
       call extract_flux_group_g(state, &
-                                trim(np_radmat_name), &
+                                trim(particle_radmat%name), &
                                 g = 1, &  
-                                np_flux = np_flux)
+                                particle_flux = particle_flux)
        
-      region_id_mapping_path = trim(np_radmat%option_path)//'/region_id_material_mapping/region_to_physical_radiation_material_map'
+      region_id_mapping_path = trim(particle_radmat%option_path)//'/region_id_material_mapping/region_to_physical_radiation_material_map'
       
       ! form each volume element ii
       vele_loop: do vele = 1,size(region_id_vele_ii_size)
@@ -488,24 +481,24 @@ contains
             ! check each region id against the region id of this vele
             id_loop: do id = 1,size(region_id_mapping)
                    
-               id_match: if (ele_region_id(np_flux,vele) == region_id_mapping(id)) then
+               id_match: if (ele_region_id(particle_flux,vele) == region_id_mapping(id)) then
                       
                   ! get the data set and physical material name for this region id mapping
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/radiation_data_set_name/file_name',data_set_filename)
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/radiation_physical_material_name/name',physical_material_name)
                       
                   ! find the matching read in data set and physical material via names comparisons
-                  dmat_loop: do dmat = 1,size(np_radmat%dataset_radmats)
+                  dmat_loop: do dmat = 1,size(particle_radmat%dataset_radmats)
                      
-                     dmat_match: if (trim(np_radmat%dataset_radmats(dmat)%file_name) == trim(data_set_filename)) then
+                     dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%file_name) == trim(data_set_filename)) then
                             
-                        pmat_loop: do pmat = 1,size(np_radmat%dataset_radmats(dmat)%physical_radmats)
+                        pmat_loop: do pmat = 1,size(particle_radmat%dataset_radmats(dmat)%physical_radmats)
                                
-                           pmat_match: if (trim(np_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%name) == trim(physical_material_name)) then
+                           pmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%name) == trim(physical_material_name)) then
                                  
                               ! set the fraction size via counting the number of interpolation dimensions
                               region_id_vele_ii_size(vele)%fraction_size = &
-                              option_count(trim(np_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%option_path//'/interpolation_dimension'))
+                              option_count(trim(particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%option_path//'/interpolation_dimension'))
                                                                     
                               ! found a fraction size for this vele for region id mapping so exit loop
                               exit region_mapping_loop

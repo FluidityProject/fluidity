@@ -27,7 +27,8 @@
 
 subroutine test_radiation_materials_operations
  
-   !!< Test the procedures contained within the module radiation_materials_operations in Radiation_Materials_Operations.F90
+   !!< Test the procedures contained within the module radiation_materials_operations 
+   !!< in Radiation_Materials_Operations.F90
 
    use futils   
    use unittest_tools 
@@ -42,38 +43,38 @@ subroutine test_radiation_materials_operations
 
    ! local variables
    logical :: has_failed,has_warned
-   type(np_radmat_type) :: np_radmat_1
-   type(np_radmat_type) :: np_radmat_2
+   type(particle_radmat_type) :: particle_radmat_1
+   type(particle_radmat_type) :: particle_radmat_2
 
    ! none of these tests use warnings
    has_warned = .false.
    
-   ! create two np_radmat
-   call create_np_radmat_input1(np_radmat_1)
-   call create_np_radmat_input1(np_radmat_2)
+   ! create two particle_radmat
+   call create_particle_radmat_input1(particle_radmat_1)
+   call create_particle_radmat_input1(particle_radmat_2)
    
    ! now compare
-   call test_radmat_equals(np_radmat_1%dataset_radmats(1)%physical_radmats(1)%radmats(1), &
-                           np_radmat_2%dataset_radmats(1)%physical_radmats(1)%radmats(1))
+   call test_radmat_equals(particle_radmat_1%dataset_radmats(1)%physical_radmats(1)%radmats(1), &
+                           particle_radmat_2%dataset_radmats(1)%physical_radmats(1)%radmats(1))
 
-   call test_physical_radmat_equals(np_radmat_1%dataset_radmats(1)%physical_radmats(1), &
-                                    np_radmat_2%dataset_radmats(1)%physical_radmats(1))
+   call test_physical_radmat_equals(particle_radmat_1%dataset_radmats(1)%physical_radmats(1), &
+                                    particle_radmat_2%dataset_radmats(1)%physical_radmats(1))
 
-   call test_dataset_radmat_equals(np_radmat_1%dataset_radmats(1), &
-                                   np_radmat_2%dataset_radmats(1))
+   call test_dataset_radmat_equals(particle_radmat_1%dataset_radmats(1), &
+                                   particle_radmat_2%dataset_radmats(1))
 
-   call test_delayed_lambda_spectrum_equals(np_radmat_1%delayed_lambda_spectrum, &
-                                            np_radmat_2%delayed_lambda_spectrum)
+   call test_delayed_lambda_spectrum_equals(particle_radmat_1%delayed_lambda_spectrum, &
+                                            particle_radmat_2%delayed_lambda_spectrum)
 
-   call test_np_radmat_size_equals(np_radmat_1%np_radmat_size, &
-                                   np_radmat_2%np_radmat_size)
+   call test_particle_radmat_size_equals(particle_radmat_1%particle_radmat_size, &
+                                   particle_radmat_2%particle_radmat_size)
 
-   call test_np_radmat_equals(np_radmat_1, &
-                              np_radmat_2)
+   call test_particle_radmat_equals(particle_radmat_1, &
+                                    particle_radmat_2)
    
-   ! destroy the np_radmat 
-   call destroy(np_radmat_1)   
-   call destroy(np_radmat_2)   
+   ! destroy the particle_radmat 
+   call destroy(particle_radmat_1)   
+   call destroy(particle_radmat_2)   
 
 contains
 
@@ -175,50 +176,50 @@ contains
    
    ! --------------------------------------------------------------------------
    
-   subroutine test_np_radmat_size_equals(np_radmat_size_1, &
-                                         np_radmat_size_2)
+   subroutine test_particle_radmat_size_equals(particle_radmat_size_1, &
+                                               particle_radmat_size_2)
    
-      !!< Test the procedure that checks that two np_radmat_size are equal
+      !!< Test the procedure that checks that two particle_radmat_size are equal
       
-      type(np_radmat_size_type), intent(in) :: np_radmat_size_1
-      type(np_radmat_size_type), intent(in) :: np_radmat_size_2
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size_1
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size_2
 
       ! local variable
-      character(len=10000) :: error_message_np_radmat_size_equals
+      character(len=10000) :: error_message_particle_radmat_size_equals
             
-      has_failed = .not. radmat_type_equals(np_radmat_size_1, &
-                                            np_radmat_size_2, &
-                                            error_message_np_radmat_size_equals) 
+      has_failed = .not. radmat_type_equals(particle_radmat_size_1, &
+                                            particle_radmat_size_2, &
+                                            error_message_particle_radmat_size_equals) 
       
-      call report_test("[test_np_radmat_size_equals]", &
+      call report_test("[test_particle_radmat_size_equals]", &
                        has_failed, &
                        has_warned, &
-                       "failed as values not he same, with error message "//trim(error_message_np_radmat_size_equals))   
+                       "failed as values not he same, with error message "//trim(error_message_particle_radmat_size_equals))   
       
-   end subroutine test_np_radmat_size_equals
+   end subroutine test_particle_radmat_size_equals
    
    ! --------------------------------------------------------------------------
    
-   subroutine test_np_radmat_equals(np_radmat_1, &
-                                    np_radmat_2)
+   subroutine test_particle_radmat_equals(particle_radmat_1, &
+                                          particle_radmat_2)
    
-      !!< Test the procedure that checks that two np_radmat are equal
+      !!< Test the procedure that checks that two particle_radmat are equal
       
-      type(np_radmat_type), intent(in) :: np_radmat_1
-      type(np_radmat_type), intent(in) :: np_radmat_2
+      type(particle_radmat_type), intent(in) :: particle_radmat_1
+      type(particle_radmat_type), intent(in) :: particle_radmat_2
 
       ! local variable
-      character(len=10000) :: error_message_np_radmat_equals
+      character(len=10000) :: error_message_particle_radmat_equals
             
-      has_failed = .not. radmat_type_equals(np_radmat_1, &
-                                            np_radmat_2, &
-                                            error_message_np_radmat_equals) 
+      has_failed = .not. radmat_type_equals(particle_radmat_1, &
+                                            particle_radmat_2, &
+                                            error_message_particle_radmat_equals) 
       
-      call report_test("[test_np_radmat_equals]", &
+      call report_test("[test_particle_radmat_equals]", &
                        has_failed,has_warned, &
-                       "failed as values not he same, with error message "//trim(error_message_np_radmat_equals))   
+                       "failed as values not he same, with error message "//trim(error_message_particle_radmat_equals))   
       
-   end subroutine test_np_radmat_equals
+   end subroutine test_particle_radmat_equals
    
    ! --------------------------------------------------------------------------
 

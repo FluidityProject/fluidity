@@ -27,7 +27,8 @@
 
 subroutine test_radiation_materials_read_format_radmats
    
-   !!< Test the procedures contained within the module radiation_materials_read_format_radmats in Radiation_Materials_Read_Format_Radmats.F90
+   !!< Test the procedures contained within the module radiation_materials_read_format_radmats 
+   !!< in Radiation_Materials_Read_Format_Radmats.F90
    
    use futils
    use unittest_tools  
@@ -44,13 +45,13 @@ subroutine test_radiation_materials_read_format_radmats
    ! local variables
    logical :: has_failed,has_warned
    character(len=*), parameter :: rad_input_test_dir = 'data/'
-   type(np_radmat_type) :: np_radmat_1
+   type(particle_radmat_type) :: particle_radmat_1
       
    ! none of these tests use warnings
    has_warned = .false.
 
-   ! create an np_radmat for comparison
-   call create_np_radmat_input1(np_radmat_1)
+   ! create an particle_radmat for comparison
+   call create_particle_radmat_input1(particle_radmat_1)
    
    call test_read_format_radmats(filename                         = rad_input_test_dir//'radiation_materials_read_input1.radmats', &
                                  read_delayed_lambda_spectrum     = .true., &
@@ -58,12 +59,12 @@ subroutine test_radiation_materials_read_format_radmats
                                  read_power_data                  = .true., &
                                  problem_dimension                = 3, &
                                  record_len                       = 132, &
-                                 np_radmat_size                   = np_radmat_1%np_radmat_size, &
-                                 dataset_radmat_expected          = np_radmat_1%dataset_radmats(1), &
-                                 delayed_lambda_spectrum_expected = np_radmat_1%delayed_lambda_spectrum)
+                                 particle_radmat_size             = particle_radmat_1%particle_radmat_size, &
+                                 dataset_radmat_expected          = particle_radmat_1%dataset_radmats(1), &
+                                 delayed_lambda_spectrum_expected = particle_radmat_1%delayed_lambda_spectrum)
          
-   ! get rid of the comparison np_radmat 
-   call destroy(np_radmat_1)   
+   ! get rid of the comparison particle_radmat 
+   call destroy(particle_radmat_1)   
    
 contains
 
@@ -75,7 +76,7 @@ contains
                                        read_power_data, &
                                        problem_dimension, &
                                        record_len, &
-                                       np_radmat_size, &
+                                       particle_radmat_size, &
                                        dataset_radmat_expected, &
                                        delayed_lambda_spectrum_expected)
                              
@@ -88,7 +89,7 @@ contains
       logical, intent(in) :: read_power_data
       integer, intent(in) :: problem_dimension
       integer, intent(in) :: record_len
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       type(dataset_radmat_type), intent(in) :: dataset_radmat_expected
       type(delayed_lambda_spectrum_type), intent(in) :: delayed_lambda_spectrum_expected  
        
@@ -100,7 +101,7 @@ contains
 
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -110,8 +111,8 @@ contains
       dataset_radmat_format_radmats%physical_radmats(1)%option_path =  '/radiation/particle_type[0]/radiation_material_data_set_from_file[0]/physical_material[0]'
       
       call allocate(delayed_lambda_spectrum_format_radmats, &
-                    np_radmat_size%number_of_delayed_groups, &
-                    np_radmat_size%number_of_energy_groups)
+                    particle_radmat_size%number_of_delayed_groups, &
+                    particle_radmat_size%number_of_energy_groups)
 
       call zero(delayed_lambda_spectrum_format_radmats)
                                                 

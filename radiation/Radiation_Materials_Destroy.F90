@@ -42,8 +42,8 @@ module radiation_materials_destroy
    public :: destroy
 
    interface destroy
-      module procedure np_radmat_destroy, &
-                       np_radmat_size_destroy, &
+      module procedure particle_radmat_destroy, &
+                       particle_radmat_size_destroy, &
                        delayed_lambda_spectrum_destroy, &
                        dataset_radmat_destroy, &
                        physical_radmat_destroy, &
@@ -54,62 +54,62 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine np_radmat_destroy(np_radmat)
+   subroutine particle_radmat_destroy(particle_radmat)
       
-      !!< Destroy any allocated memory associated with this np_radmat,
+      !!< Destroy any allocated memory associated with this particle_radmat,
       !!< set the option path to uninitialised and the flags as needed
     
-      type(np_radmat_type), intent(inout) :: np_radmat
+      type(particle_radmat_type), intent(inout) :: particle_radmat
       
       ! local variables
       integer :: dmat
                
-      np_radmat%option_path="/uninitialised_path/"
+      particle_radmat%option_path="/uninitialised_path/"
                   
-      deallacate_data_set: if (allocated(np_radmat%dataset_radmats)) then
+      deallacate_data_set: if (allocated(particle_radmat%dataset_radmats)) then
 
-         Data_set_loop: do dmat = 1,size(np_radmat%dataset_radmats)
+         Data_set_loop: do dmat = 1,size(particle_radmat%dataset_radmats)
          
-            call destroy(np_radmat%dataset_radmats(dmat))
+            call destroy(particle_radmat%dataset_radmats(dmat))
          
          end do Data_set_loop 
       
-         deallocate(np_radmat%dataset_radmats)
+         deallocate(particle_radmat%dataset_radmats)
       
       end if deallacate_data_set
       
-      call destroy(np_radmat%delayed_lambda_spectrum)
+      call destroy(particle_radmat%delayed_lambda_spectrum)
       
-      call destroy(np_radmat%np_radmat_size)
+      call destroy(particle_radmat%particle_radmat_size)
       
-      np_radmat%max_number_of_scatter_moments = 0
+      particle_radmat%max_number_of_scatter_moments = 0
       
-      np_radmat%created = .false.
+      particle_radmat%created = .false.
  
-      np_radmat%readin = .false.
+      particle_radmat%readin = .false.
            
-   end subroutine np_radmat_destroy
+   end subroutine particle_radmat_destroy
    
    ! --------------------------------------------------------------------------
 
-   subroutine np_radmat_size_destroy(np_radmat_size)
+   subroutine particle_radmat_size_destroy(particle_radmat_size)
    
-      !! Destroy any allocated memory associated with this np_radmat_size and set sizes to zero
+      !! Destroy any allocated memory associated with this particle_radmat_size and set sizes to zero
       
-      type(np_radmat_size_type), intent(inout) :: np_radmat_size
+      type(particle_radmat_size_type), intent(inout) :: particle_radmat_size
       
-      if (allocated(np_radmat_size%number_of_physical_radmats)) deallocate(np_radmat_size%number_of_physical_radmats)
-      if (allocated(np_radmat_size%number_of_radmats))          deallocate(np_radmat_size%number_of_radmats)
-      if (allocated(np_radmat_size%number_of_scatter_moments))  deallocate(np_radmat_size%number_of_scatter_moments)
+      if (allocated(particle_radmat_size%number_of_physical_radmats)) deallocate(particle_radmat_size%number_of_physical_radmats)
+      if (allocated(particle_radmat_size%number_of_radmats))          deallocate(particle_radmat_size%number_of_radmats)
+      if (allocated(particle_radmat_size%number_of_scatter_moments))  deallocate(particle_radmat_size%number_of_scatter_moments)
       
-      np_radmat_size%number_of_energy_groups       = 0
-      np_radmat_size%number_of_delayed_groups      = 0
-      np_radmat_size%total_number_radmats          = 0
-      np_radmat_size%total_number_physical_radmats = 0      
-      np_radmat_size%total_number_dataset_radmats  = 0
-      np_radmat_size%size_set                      = .false.
+      particle_radmat_size%number_of_energy_groups       = 0
+      particle_radmat_size%number_of_delayed_groups      = 0
+      particle_radmat_size%total_number_radmats          = 0
+      particle_radmat_size%total_number_physical_radmats = 0      
+      particle_radmat_size%total_number_dataset_radmats  = 0
+      particle_radmat_size%size_set                      = .false.
 
-   end subroutine np_radmat_size_destroy
+   end subroutine particle_radmat_size_destroy
 
    ! --------------------------------------------------------------------------
    
@@ -191,35 +191,35 @@ contains
    
       type(radmat_type), intent(inout) :: radmat
       
-      if (allocated(radmat%total))                       deallocate(radmat%total)
-      if (allocated(radmat%absorption))                  deallocate(radmat%absorption)
-      if (allocated(radmat%scatter))                     deallocate(radmat%scatter)
-      if (allocated(radmat%removal))                     deallocate(radmat%removal)
-      if (allocated(radmat%transport))                   deallocate(radmat%transport)
-      if (allocated(radmat%diffusion))                   deallocate(radmat%diffusion)
-      if (allocated(radmat%fission))                     deallocate(radmat%fission)
-      if (allocated(radmat%production))                  deallocate(radmat%production)
-      if (allocated(radmat%power))                       deallocate(radmat%power)
-      if (allocated(radmat%energy_released_per_fission)) deallocate(radmat%energy_released_per_fission)
-      if (allocated(radmat%np_released_per_fission))     deallocate(radmat%np_released_per_fission)
-      if (allocated(radmat%prompt_spectrum))             deallocate(radmat%prompt_spectrum)
-      if (allocated(radmat%velocity))                    deallocate(radmat%velocity)
-      if (allocated(radmat%beta))                        deallocate(radmat%beta)
+      if (allocated(radmat%total))                         deallocate(radmat%total)
+      if (allocated(radmat%absorption))                    deallocate(radmat%absorption)
+      if (allocated(radmat%scatter))                       deallocate(radmat%scatter)
+      if (allocated(radmat%removal))                       deallocate(radmat%removal)
+      if (allocated(radmat%transport))                     deallocate(radmat%transport)
+      if (allocated(radmat%diffusion))                     deallocate(radmat%diffusion)
+      if (allocated(radmat%fission))                       deallocate(radmat%fission)
+      if (allocated(radmat%production))                    deallocate(radmat%production)
+      if (allocated(radmat%power))                         deallocate(radmat%power)
+      if (allocated(radmat%energy_released_per_fission))   deallocate(radmat%energy_released_per_fission)
+      if (allocated(radmat%particle_released_per_fission)) deallocate(radmat%particle_released_per_fission)
+      if (allocated(radmat%prompt_spectrum))               deallocate(radmat%prompt_spectrum)
+      if (allocated(radmat%velocity))                      deallocate(radmat%velocity)
+      if (allocated(radmat%beta))                          deallocate(radmat%beta)
             
-      radmat%total_set                       = .false.  
-      radmat%absorption_set                  = .false.  
-      radmat%scatter_set                     = .false.  
-      radmat%removal_set                     = .false.  
-      radmat%transport_set                   = .false.  
-      radmat%diffusion_set                   = .false.  
-      radmat%fission_set                     = .false.  
-      radmat%production_set                  = .false.  
-      radmat%power_set                       = .false.  
-      radmat%energy_released_per_fission_set = .false.  
-      radmat%np_released_per_fission_set     = .false.  
-      radmat%prompt_spectrum_set             = .false.  
-      radmat%velocity_set                    = .false.  
-      radmat%beta_set                        = .false.                   
+      radmat%total_set                         = .false.  
+      radmat%absorption_set                    = .false.  
+      radmat%scatter_set                       = .false.  
+      radmat%removal_set                       = .false.  
+      radmat%transport_set                     = .false.  
+      radmat%diffusion_set                     = .false.  
+      radmat%fission_set                       = .false.  
+      radmat%production_set                    = .false.  
+      radmat%power_set                         = .false.  
+      radmat%energy_released_per_fission_set   = .false.  
+      radmat%particle_released_per_fission_set = .false.  
+      radmat%prompt_spectrum_set               = .false.  
+      radmat%velocity_set                      = .false.  
+      radmat%beta_set                          = .false.                   
    
    end subroutine radmat_destroy   
    

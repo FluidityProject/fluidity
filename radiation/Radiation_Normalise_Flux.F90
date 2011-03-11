@@ -48,12 +48,13 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine normalise_particle_flux(state,np_radmat) 
+   subroutine normalise_particle_flux(state, &
+                                      particle_radmat) 
    
       !!< Normalise the particle flux
 
       type(state_type), intent(inout) :: state
-      type(np_radmat_type), intent(in) :: np_radmat
+      type(particle_radmat_type), intent(in) :: particle_radmat
       
       
       

@@ -62,10 +62,8 @@ problem_run_photon =
 particle_type_generic = 
    (
       
-      energy_group_set?,
-            
-      radiation_method,             
-                
+      energy_group_set+,
+                            
       read_radiation_material_data_set,
          
       radiation_material_mapping
@@ -135,84 +133,12 @@ particle_flux_diffusion_field =
          comment,
          attribute name { "ParticleFlux" },
                   
-         prognostic_neutral_particle_diffusion_removal_source_scalar_field
+         prognostic_particle_diffusion_removal_source_scalar_field
       }          
    )
+      
 
-
-radiation_method = 
-   (
-      ## Multigroup diffusion 
-      element method {
-            comment,
-            
-            attribute name { "MultiGroupDiffusion" },
-            
-            number_of_energy_groups,
-                        
-            neutral_particle_flux_group_set_diffusion_field+
-      }         
-   )
-
-   
-neutral_particle_flux_group_set_diffusion_field =
-   (
-      ## The neutral particle flux density  group set field for diffusion method equation
-      element neutral_particle_flux_group_set_field {
-         comment,
-         
-         attribute name { xsd:string },
-         
-         group_set,
-               
-         particle_type_material_mesh_choice, 
-         
-         neutral_particle_flux_diffusion_field
-      }          
-   )
-
-
-group_set = 
-   (
-      ## Apply to all groups
-      element group_all {
-         comment
-      }|
-      ## Apply to an individual group
-      element group_individual {
-         comment,
-         integer
-      }|
-      ## Apply to a consecutive set of groups
-      element group_set {
-         comment,
-         ## The start group number of this set
-         element start_group {
-            comment,
-            integer
-         },
-         ## The end group number of this set
-         element end_group {
-            comment,
-            integer
-         }
-      }
-   )
-
-   
-neutral_particle_flux_diffusion_field =
-   (
-      ## The neutral particle flux density scalar field for diffusion method equation for this group set
-      element scalar_field {
-         comment,
-         attribute name { "NeutralParticleFlux" },
-                  
-         prognostic_neutral_particle_diffusion_removal_source_scalar_field
-      }          
-   )
-   
-
-prognostic_neutral_particle_diffusion_removal_source_scalar_field = 
+prognostic_particle_diffusion_removal_source_scalar_field = 
    (
       ## Field Type
       element prognostic {
@@ -690,7 +616,7 @@ read_radiation_material_data_set =
                   element interpolation_attribute_none{
                      comment
                   }|
-                  ## Prescribed interpolation values
+                  ## Prescribed interpolation
                   element interpolation_attribute_prescribed{
                      comment,
                      real
@@ -789,7 +715,7 @@ region_id =
          
 Rad_MaterialVolumeFraction =
    (
-      ## The neutral particle flux density material volume fraction scalar field
+      ## The material volume fraction scalar field
       ## that is used for the cross section mapping and interpolation
       element scalar_field {
          comment,

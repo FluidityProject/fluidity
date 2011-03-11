@@ -29,7 +29,7 @@
 
 module radiation_materials_operations
    
-   !!< module containing procedures that perform operations with the np_radmat data type
+   !!< module containing procedures that perform operations with the particle_radmat data type
    
    use futils
    use unittest_tools
@@ -47,98 +47,98 @@ module radiation_materials_operations
                        physical_radmat_equals, &
                        dataset_radmat_equals, &
                        delayed_lambda_spectrum_equals, &
-                       np_radmat_size_equals, &
-                       np_radmat_equals
+                       particle_radmat_size_equals, &
+                       particle_radmat_equals
    end interface 
                   
 contains
 
    ! --------------------------------------------------------------------------
 
-   function np_radmat_equals(np_radmat_1, &
-                             np_radmat_2, &
-                             error_message_np_radmat_equals) result (equals)
+   function particle_radmat_equals(particle_radmat_1, &
+                                   particle_radmat_2, &
+                                   error_message_particle_radmat_equals) result (equals)
 
-      !!< Compare two np_radmat_type data types to see if they are equal
+      !!< Compare two particle_radmat_type data types to see if they are equal
       !!< any real components are checked to a default tolerance  
       !!< Return an error message of what failed
       
-      type(np_radmat_type), intent(in) :: np_radmat_1
-      type(np_radmat_type), intent(in) :: np_radmat_2
-      character(len=*), intent(inout) :: error_message_np_radmat_equals
+      type(particle_radmat_type), intent(in) :: particle_radmat_1
+      type(particle_radmat_type), intent(in) :: particle_radmat_2
+      character(len=*), intent(inout) :: error_message_particle_radmat_equals
       
       logical :: equals
       
       ! local variable
       integer :: dmat
-      character(len=10000) :: error_message_np_radmat_size_equals
+      character(len=10000) :: error_message_particle_radmat_size_equals
       character(len=10000) :: error_message_delayed_lambda_spectrum_equals
       character(len=10000) :: error_message_dataset_radmat_equals
             
       equals = .true.
       
-      error_message_np_radmat_size_equals = 'no error'
+      error_message_particle_radmat_size_equals = 'no error'
 
       ! check the option path
-      if (np_radmat_1%option_path /= np_radmat_2%option_path) then
+      if (particle_radmat_1%option_path /= particle_radmat_2%option_path) then
          equals = .false.
-         error_message_np_radmat_equals = 'np_radmat_1%option_path /= np_radmat_2%option_path'
+         error_message_particle_radmat_equals = 'particle_radmat_1%option_path /= particle_radmat_2%option_path'
          return
       end if 
       
       ! check the flags
-      if (np_radmat_1%created .neqv. np_radmat_2%created) then
+      if (particle_radmat_1%created .neqv. particle_radmat_2%created) then
          equals = .false.
-         error_message_np_radmat_equals = 'np_radmat_1%created .neqv. np_radmat_2%created'
+         error_message_particle_radmat_equals = 'particle_radmat_1%created .neqv. particle_radmat_2%created'
          return 
       end if 
-      if (np_radmat_1%readin .neqv. np_radmat_2%readin) then
+      if (particle_radmat_1%readin .neqv. particle_radmat_2%readin) then
          equals = .false.
-         error_message_np_radmat_equals = 'np_radmat_1%readin .neqv. np_radmat_2%readin'
+         error_message_particle_radmat_equals = 'particle_radmat_1%readin .neqv. particle_radmat_2%readin'
          return 
       end if 
       
-      created_if: if (np_radmat_1%created) then 
+      created_if: if (particle_radmat_1%created) then 
       
          ! check the sizes
-         equals = radmat_type_equals(np_radmat_1%np_radmat_size,np_radmat_2%np_radmat_size,error_message_np_radmat_size_equals)
+         equals = radmat_type_equals(particle_radmat_1%particle_radmat_size,particle_radmat_2%particle_radmat_size,error_message_particle_radmat_size_equals)
          if (.not. equals) then
-            error_message_np_radmat_equals = 'np_radmat_1%np_radmat_size /= np_radmat_2%np_radmat_size, with error message '&
-                                           &//trim(error_message_np_radmat_size_equals)
+            error_message_particle_radmat_equals = 'particle_radmat_1%particle_radmat_size /= particle_radmat_2%particle_radmat_size, with error message '&
+                                           &//trim(error_message_particle_radmat_size_equals)
             return
          end if
       
          ! check the delayed lambda and spectrum
-         equals = radmat_type_equals(np_radmat_1%delayed_lambda_spectrum,np_radmat_2%delayed_lambda_spectrum,error_message_delayed_lambda_spectrum_equals)
+         equals = radmat_type_equals(particle_radmat_1%delayed_lambda_spectrum,particle_radmat_2%delayed_lambda_spectrum,error_message_delayed_lambda_spectrum_equals)
          if (.not. equals) then 
-            error_message_np_radmat_equals = 'np_radmat_1%delayed_lambda_spectrum /= np_radmat_2%delayed_lambda_spectrum, with error message '&
+            error_message_particle_radmat_equals = 'particle_radmat_1%delayed_lambda_spectrum /= particle_radmat_2%delayed_lambda_spectrum, with error message '&
                                            &//trim(error_message_delayed_lambda_spectrum_equals)
             return
          end if
       
          ! check the allocated status of the datasets
-         if (allocated(np_radmat_1%dataset_radmats) .neqv. allocated(np_radmat_2%dataset_radmats)) then
+         if (allocated(particle_radmat_1%dataset_radmats) .neqv. allocated(particle_radmat_2%dataset_radmats)) then
             equals = .false.
-            error_message_np_radmat_equals = 'allocated(np_radmat_1%dataset_radmats) .neqv. allocated(np_radmat_2%dataset_radmats)'
+            error_message_particle_radmat_equals = 'allocated(particle_radmat_1%dataset_radmats) .neqv. allocated(particle_radmat_2%dataset_radmats)'
             return
          end if 
 
-         allocated_if: if (allocated(np_radmat_1%dataset_radmats)) then
+         allocated_if: if (allocated(particle_radmat_1%dataset_radmats)) then
       
             ! check have same size of dataset_radmats
-            if (size(np_radmat_1%dataset_radmats) /= size(np_radmat_2%dataset_radmats)) then
+            if (size(particle_radmat_1%dataset_radmats) /= size(particle_radmat_2%dataset_radmats)) then
                equals = .false.
-               error_message_np_radmat_equals = 'size(np_radmat_1%dataset_radmats) /= size(np_radmat_2%dataset_radmats)'
+               error_message_particle_radmat_equals = 'size(particle_radmat_1%dataset_radmats) /= size(particle_radmat_2%dataset_radmats)'
                return
             end if 
       
-            ! now check each dataset_radmat type associated with the np_radmat type
-            dmat_loop: do dmat = 1,size(np_radmat_1%dataset_radmats)
+            ! now check each dataset_radmat type associated with the particle_radmat type
+            dmat_loop: do dmat = 1,size(particle_radmat_1%dataset_radmats)
       
-               equals = radmat_type_equals(np_radmat_1%dataset_radmats(dmat),np_radmat_2%dataset_radmats(dmat),error_message_dataset_radmat_equals)
+               equals = radmat_type_equals(particle_radmat_1%dataset_radmats(dmat),particle_radmat_2%dataset_radmats(dmat),error_message_dataset_radmat_equals)
            
                if (.not. equals) then
-                  error_message_np_radmat_equals = 'np_radmat_1%dataset_radmats('//int2str(dmat)//') /= np_radmat_2%dataset_radmats('//int2str(dmat)//'), with error message '&
+                  error_message_particle_radmat_equals = 'particle_radmat_1%dataset_radmats('//int2str(dmat)//') /= particle_radmat_2%dataset_radmats('//int2str(dmat)//'), with error message '&
                                                  &//trim(error_message_dataset_radmat_equals)
                   return
                end if
@@ -149,21 +149,21 @@ contains
       
       end if created_if
       
-   end function np_radmat_equals
+   end function particle_radmat_equals
 
    ! --------------------------------------------------------------------------
 
-   function np_radmat_size_equals(np_radmat_size_1, &
-                                  np_radmat_size_2, &
-                                  error_message_np_radmat_size_equals) result (equals)
+   function particle_radmat_size_equals(particle_radmat_size_1, &
+                                        particle_radmat_size_2, &
+                                        error_message_particle_radmat_size_equals) result (equals)
 
-      !!< Compare two np_radmat_size_type data types to see if they are equal
+      !!< Compare two particle_radmat_size_type data types to see if they are equal
       !!< any real components are checked to a default tolerance  
       !!< Return an error message of what failed
       
-      type(np_radmat_size_type), intent(in) :: np_radmat_size_1
-      type(np_radmat_size_type), intent(in) :: np_radmat_size_2
-      character(len=*), intent(inout) :: error_message_np_radmat_size_equals
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size_1
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size_2
+      character(len=*), intent(inout) :: error_message_particle_radmat_size_equals
       
       logical :: equals
       
@@ -172,135 +172,135 @@ contains
       
       equals = .true.
 
-      error_message_np_radmat_size_equals = 'no error'
+      error_message_particle_radmat_size_equals = 'no error'
       
       ! check the set flags
-      if (np_radmat_size_1%size_set .neqv. np_radmat_size_2%size_set) then  
+      if (particle_radmat_size_1%size_set .neqv. particle_radmat_size_2%size_set) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%size_set .neqv. np_radmat_size_2%size_se'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%size_set .neqv. particle_radmat_size_2%size_se'
          return 
       end if
       
       ! check the integers
-      if (np_radmat_size_1%total_number_radmats /= np_radmat_size_2%total_number_radmats) then           
+      if (particle_radmat_size_1%total_number_radmats /= particle_radmat_size_2%total_number_radmats) then           
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%total_number_radmats /= np_radmat_size_2%total_number_radmats'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%total_number_radmats /= particle_radmat_size_2%total_number_radmats'
          return 
       end if
-      if (np_radmat_size_1%total_number_physical_radmats /= np_radmat_size_2%total_number_physical_radmats) then  
+      if (particle_radmat_size_1%total_number_physical_radmats /= particle_radmat_size_2%total_number_physical_radmats) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%total_number_physical_radmats /= np_radmat_size_2%total_number_physical_radmats'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%total_number_physical_radmats /= particle_radmat_size_2%total_number_physical_radmats'
          return 
       end if
-      if (np_radmat_size_1%total_number_dataset_radmats /= np_radmat_size_2%total_number_dataset_radmats) then   
+      if (particle_radmat_size_1%total_number_dataset_radmats /= particle_radmat_size_2%total_number_dataset_radmats) then   
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%total_number_dataset_radmats /= np_radmat_size_2%total_number_dataset_radmats'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%total_number_dataset_radmats /= particle_radmat_size_2%total_number_dataset_radmats'
          return 
       end if
-      if (np_radmat_size_1%number_of_energy_groups /= np_radmat_size_2%number_of_energy_groups) then        
+      if (particle_radmat_size_1%number_of_energy_groups /= particle_radmat_size_2%number_of_energy_groups) then        
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_energy_groups /= np_radmat_size_2%number_of_energy_groups'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_energy_groups /= particle_radmat_size_2%number_of_energy_groups'
          return 
       end if
-      if (np_radmat_size_1%number_of_delayed_groups /= np_radmat_size_2%number_of_delayed_groups) then       
+      if (particle_radmat_size_1%number_of_delayed_groups /= particle_radmat_size_2%number_of_delayed_groups) then       
          equals = .false.
-         error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_delayed_groups /= np_radmat_size_2%number_of_delayed_groups'
+         error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_delayed_groups /= particle_radmat_size_2%number_of_delayed_groups'
          return 
       end if
             
       ! check that have same allocated status 
-      if (allocated(np_radmat_size_1%number_of_physical_radmats) .neqv. allocated(np_radmat_size_2%number_of_physical_radmats)) then  
+      if (allocated(particle_radmat_size_1%number_of_physical_radmats) .neqv. allocated(particle_radmat_size_2%number_of_physical_radmats)) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'allocated(np_radmat_size_1%number_of_physical_radmats) .neqv. allocated(np_radmat_size_2%number_of_physical_radmats'
+         error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_physical_radmats) .neqv. allocated(particle_radmat_size_2%number_of_physical_radmats'
          return
       end if
-      if (allocated(np_radmat_size_1%number_of_radmats) .neqv. allocated(np_radmat_size_2%number_of_radmats)) then           
+      if (allocated(particle_radmat_size_1%number_of_radmats) .neqv. allocated(particle_radmat_size_2%number_of_radmats)) then           
          equals = .false.
-         error_message_np_radmat_size_equals = 'allocated(np_radmat_size_1%number_of_radmats) .neqv. allocated(np_radmat_size_2%number_of_radmats)'
+         error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_radmats) .neqv. allocated(particle_radmat_size_2%number_of_radmats)'
          return
       end if
-      if (allocated(np_radmat_size_1%number_of_radmats_base) .neqv. allocated(np_radmat_size_2%number_of_radmats_base)) then      
+      if (allocated(particle_radmat_size_1%number_of_radmats_base) .neqv. allocated(particle_radmat_size_2%number_of_radmats_base)) then      
          equals = .false.
-         error_message_np_radmat_size_equals = 'allocated(np_radmat_size_1%number_of_radmats_base) .neqv. allocated(np_radmat_size_2%number_of_radmats_base)'
+         error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_radmats_base) .neqv. allocated(particle_radmat_size_2%number_of_radmats_base)'
          return
       end if
-      if (allocated(np_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(np_radmat_size_2%number_of_scatter_moments)) then   
+      if (allocated(particle_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(particle_radmat_size_2%number_of_scatter_moments)) then   
          equals = .false.
-         error_message_np_radmat_size_equals = 'allocated(np_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(np_radmat_size_2%number_of_scatter_moments)'
+         error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(particle_radmat_size_2%number_of_scatter_moments)'
          return
       end if
      
       ! check the size
-      if (allocated(np_radmat_size_1%number_of_physical_radmats) .and. &
-         &(size(np_radmat_size_1%number_of_physical_radmats) /= size(np_radmat_size_2%number_of_physical_radmats))) then  
+      if (allocated(particle_radmat_size_1%number_of_physical_radmats) .and. &
+         &(size(particle_radmat_size_1%number_of_physical_radmats) /= size(particle_radmat_size_2%number_of_physical_radmats))) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'size(np_radmat_size_1%number_of_physical_radmats) /= size(np_radmat_size_2%number_of_physical_radmats)'
+         error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_physical_radmats) /= size(particle_radmat_size_2%number_of_physical_radmats)'
          return 
       end if   
 
-      if (allocated(np_radmat_size_1%number_of_radmats) .and. &
-         &(size(np_radmat_size_1%number_of_radmats) /= size(np_radmat_size_2%number_of_radmats))) then  
+      if (allocated(particle_radmat_size_1%number_of_radmats) .and. &
+         &(size(particle_radmat_size_1%number_of_radmats) /= size(particle_radmat_size_2%number_of_radmats))) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'size(np_radmat_size_1%number_of_radmats) /= size(np_radmat_size_2%number_of_radmats)'
+         error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_radmats) /= size(particle_radmat_size_2%number_of_radmats)'
          return 
       end if  
 
-      if (allocated(np_radmat_size_1%number_of_radmats_base) .and. &
-         &(size(np_radmat_size_1%number_of_radmats_base) /= size(np_radmat_size_2%number_of_radmats_base))) then  
+      if (allocated(particle_radmat_size_1%number_of_radmats_base) .and. &
+         &(size(particle_radmat_size_1%number_of_radmats_base) /= size(particle_radmat_size_2%number_of_radmats_base))) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'size(np_radmat_size_1%number_of_radmats_base) /= size(np_radmat_size_2%number_of_radmats_base)'
+         error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_radmats_base) /= size(particle_radmat_size_2%number_of_radmats_base)'
          return 
       end if   
 
-      if (allocated(np_radmat_size_1%number_of_scatter_moments)   .and. &
-         &(size(np_radmat_size_1%number_of_scatter_moments) /= size(np_radmat_size_2%number_of_scatter_moments))) then  
+      if (allocated(particle_radmat_size_1%number_of_scatter_moments)   .and. &
+         &(size(particle_radmat_size_1%number_of_scatter_moments) /= size(particle_radmat_size_2%number_of_scatter_moments))) then  
          equals = .false.
-         error_message_np_radmat_size_equals = 'size(np_radmat_size_1%number_of_scatter_moments) /= size(np_radmat_size_2%number_of_scatter_moments)'
+         error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_scatter_moments) /= size(particle_radmat_size_2%number_of_scatter_moments)'
          return 
       end if   
          
       ! check the values
-      if (allocated(np_radmat_size_1%number_of_physical_radmats) .and. np_radmat_size_1%size_set) then
-         loop1: do i = 1,size(np_radmat_size_1%number_of_physical_radmats)
-            if (np_radmat_size_1%number_of_physical_radmats(i) /= np_radmat_size_2%number_of_physical_radmats(i))  then 
+      if (allocated(particle_radmat_size_1%number_of_physical_radmats) .and. particle_radmat_size_1%size_set) then
+         loop1: do i = 1,size(particle_radmat_size_1%number_of_physical_radmats)
+            if (particle_radmat_size_1%number_of_physical_radmats(i) /= particle_radmat_size_2%number_of_physical_radmats(i))  then 
                equals = .false.
-               error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_physical_radmats('//int2str(i)//') /= np_radmat_size_2%number_of_physical_radmats('//int2str(i)//')'
+               error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_physical_radmats('//int2str(i)//') /= particle_radmat_size_2%number_of_physical_radmats('//int2str(i)//')'
                return 
             end if
          end do loop1
       end if
 
-      if (allocated(np_radmat_size_1%number_of_radmats) .and. np_radmat_size_1%size_set) then      
-         loop2: do i = 1,size(np_radmat_size_1%number_of_radmats)      
-            if (np_radmat_size_1%number_of_radmats(i) /= np_radmat_size_2%number_of_radmats(i)) then  
+      if (allocated(particle_radmat_size_1%number_of_radmats) .and. particle_radmat_size_1%size_set) then      
+         loop2: do i = 1,size(particle_radmat_size_1%number_of_radmats)      
+            if (particle_radmat_size_1%number_of_radmats(i) /= particle_radmat_size_2%number_of_radmats(i)) then  
                equals = .false.
-               error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_radmats('//int2str(i)//') /= np_radmat_size_2%number_of_radmats('//int2str(i)//')'
+               error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_radmats('//int2str(i)//') /= particle_radmat_size_2%number_of_radmats('//int2str(i)//')'
                return 
             end if
          end do loop2
       end if
 
-      if (allocated(np_radmat_size_1%number_of_radmats_base) .and. np_radmat_size_1%size_set) then      
-         loop3: do i = 1,size(np_radmat_size_1%number_of_radmats_base)
-            if (np_radmat_size_1%number_of_radmats_base(i) /= np_radmat_size_2%number_of_radmats_base(i)) then  
+      if (allocated(particle_radmat_size_1%number_of_radmats_base) .and. particle_radmat_size_1%size_set) then      
+         loop3: do i = 1,size(particle_radmat_size_1%number_of_radmats_base)
+            if (particle_radmat_size_1%number_of_radmats_base(i) /= particle_radmat_size_2%number_of_radmats_base(i)) then  
                equals = .false.
-               error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_radmats_base('//int2str(i)//') /= np_radmat_size_2%number_of_radmats_base('//int2str(i)//')'
+               error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_radmats_base('//int2str(i)//') /= particle_radmat_size_2%number_of_radmats_base('//int2str(i)//')'
                return 
             end if
          end do loop3
       end if
       
-      if (allocated(np_radmat_size_1%number_of_scatter_moments) .and. np_radmat_size_1%size_set ) then
-         loop4: do i = 1,size(np_radmat_size_1%number_of_scatter_moments)
-            if (np_radmat_size_1%number_of_scatter_moments(i) /= np_radmat_size_2%number_of_scatter_moments(i)) then  
+      if (allocated(particle_radmat_size_1%number_of_scatter_moments) .and. particle_radmat_size_1%size_set ) then
+         loop4: do i = 1,size(particle_radmat_size_1%number_of_scatter_moments)
+            if (particle_radmat_size_1%number_of_scatter_moments(i) /= particle_radmat_size_2%number_of_scatter_moments(i)) then  
                equals = .false.
-               error_message_np_radmat_size_equals = 'np_radmat_size_1%number_of_scatter_moments('//int2str(i)//') /= np_radmat_size_2%number_of_scatter_moments('//int2str(i)//')'
+               error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_scatter_moments('//int2str(i)//') /= particle_radmat_size_2%number_of_scatter_moments('//int2str(i)//')'
                return 
             end if
          end do loop4
       end if
                   
-   end function np_radmat_size_equals
+   end function particle_radmat_size_equals
 
    ! --------------------------------------------------------------------------
 
@@ -600,9 +600,9 @@ contains
          error_message_radmat_equals = 'radmat_1%energy_released_per_fission_set .neqv. radmat_2%energy_released_per_fission_set'
          return
       end if       
-      if (radmat_1% np_released_per_fission_set.neqv. radmat_2%np_released_per_fission_set) then           
+      if (radmat_1% particle_released_per_fission_set.neqv. radmat_2%particle_released_per_fission_set) then           
          equals = .false.
-         error_message_radmat_equals = 'radmat_1% np_released_per_fission_set.neqv. radmat_2%np_released_per_fission_set'
+         error_message_radmat_equals = 'radmat_1% particle_released_per_fission_set.neqv. radmat_2%particle_released_per_fission_set'
          return
       end if       
       if (radmat_1%prompt_spectrum_set .neqv. radmat_2%prompt_spectrum_set) then 
@@ -674,9 +674,9 @@ contains
          error_message_radmat_equals = 'allocated(radmat_1%energy_released_per_fission) .neqv. allocated(radmat_2%energy_released_per_fission)'
          return      
       end if       
-      if (allocated(radmat_1%np_released_per_fission) .neqv. allocated(radmat_2%np_released_per_fission)) then           
+      if (allocated(radmat_1%particle_released_per_fission) .neqv. allocated(radmat_2%particle_released_per_fission)) then           
          equals = .false.
-         error_message_radmat_equals = 'allocated(radmat_1%np_released_per_fission) .neqv. allocated(radmat_2%np_released_per_fission)'
+         error_message_radmat_equals = 'allocated(radmat_1%particle_released_per_fission) .neqv. allocated(radmat_2%particle_released_per_fission)'
          return      
       end if       
       if (allocated(radmat_1%prompt_spectrum) .neqv. allocated(radmat_2%prompt_spectrum)) then 
@@ -747,9 +747,9 @@ contains
          error_message_radmat_equals = 'size(radmat_1%energy_released_per_fission) /= size(radmat_2%energy_released_per_fission)'
          return      
       end if       
-      if (allocated(radmat_1%np_released_per_fission) .and. (size(radmat_1%np_released_per_fission) /= size(radmat_2%np_released_per_fission))) then           
+      if (allocated(radmat_1%particle_released_per_fission) .and. (size(radmat_1%particle_released_per_fission) /= size(radmat_2%particle_released_per_fission))) then           
          equals = .false.
-         error_message_radmat_equals = 'size(radmat_1%np_released_per_fission) /= size(radmat_2%np_released_per_fission)'
+         error_message_radmat_equals = 'size(radmat_1%particle_released_per_fission) /= size(radmat_2%particle_released_per_fission)'
          return      
       end if       
       if (allocated(radmat_1%prompt_spectrum) .and. (size(radmat_1%prompt_spectrum) /= size(radmat_2%prompt_spectrum))) then 
@@ -842,9 +842,9 @@ contains
          error_message_radmat_equals = 'admat_1%energy_released_per_fission /= radmat_2%energy_released_per_fission'
          return      
       end if       
-      if (allocated(radmat_1%np_released_per_fission) .and. radmat_1%np_released_per_fission_set .and. (.not. fequals(radmat_1%np_released_per_fission, radmat_2%np_released_per_fission))) then            
+      if (allocated(radmat_1%particle_released_per_fission) .and. radmat_1%particle_released_per_fission_set .and. (.not. fequals(radmat_1%particle_released_per_fission, radmat_2%particle_released_per_fission))) then            
          equals = .false.
-         error_message_radmat_equals = 'radmat_1%np_released_per_fission /= radmat_2%np_released_per_fission'
+         error_message_radmat_equals = 'radmat_1%particle_released_per_fission /= radmat_2%particle_released_per_fission'
          return      
       end if       
       if (allocated(radmat_1%prompt_spectrum) .and. radmat_1%prompt_spectrum_set .and. (.not. fequals(radmat_1%prompt_spectrum,radmat_2%prompt_spectrum))) then  

@@ -27,7 +27,8 @@
 
 subroutine test_radiation_materials_read_format_radmats_base
    
-   !!< Test the procedures contained within the module radiation_materials_read_format_radmats_base in Radiation_Materials_Read_Format_Radmats_Base.F90
+   !!< Test the procedures contained within the module radiation_materials_read_format_radmats_base 
+   !!< in Radiation_Materials_Read_Format_Radmats_Base.F90
    
    use futils
    use unittest_tools  
@@ -44,7 +45,7 @@ subroutine test_radiation_materials_read_format_radmats_base
    logical :: has_failed,has_warned
    character(len=*), parameter :: rad_input_test_dir = 'data/'
    character(len=21), dimension(:), allocatable :: keyword_list_two_moments     
-   type(np_radmat_type) :: np_radmat_1
+   type(particle_radmat_type) :: particle_radmat_1
    integer :: file_unit_1,file_unit_2,file_unit_3,file_unit_4
       
    ! none of these tests use warnings
@@ -101,38 +102,38 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                    record_len                = 132, &
                                                    keyword_list              = keyword_list_two_moments)
 
-   ! create the np_radmat's associated with the input files opened above
-   call create_np_radmat_input1(np_radmat_1)
+   ! create the particle_radmat's associated with the input files opened above
+   call create_particle_radmat_input1(particle_radmat_1)
    
-   call test_read_scatter_mom_format_radmats(file_unit      = file_unit_1, &
-                                             record_len     = 132, &
-                                             dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                             np_radmat_size = np_radmat_1%np_radmat_size, &
-                                             keyword_list   = keyword_list_two_moments) 
+   call test_read_scatter_mom_format_radmats(file_unit            = file_unit_1, &
+                                             record_len           = 132, &
+                                             dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                             particle_radmat_size = particle_radmat_1%particle_radmat_size, &
+                                             keyword_list         = keyword_list_two_moments) 
                                        
-   call test_read_absorption_and_total_format_radmats(file_unit      = file_unit_1, &
-                                                      record_len     = 132, &
-                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
-                                                      keyword_list   = keyword_list_two_moments) 
+   call test_read_absorption_and_total_format_radmats(file_unit            = file_unit_1, &
+                                                      record_len           = 132, &
+                                                      dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                                      particle_radmat_size = particle_radmat_1%particle_radmat_size, &
+                                                      keyword_list         = keyword_list_two_moments) 
    
-   call test_calculate_removal_moments_format_radmats(file_unit      = file_unit_1, &
-                                                      record_len     = 132, &
-                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
+   call test_calculate_removal_moments_format_radmats(file_unit            = file_unit_1, &
+                                                      record_len           = 132, &
+                                                      dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                                      particle_radmat_size = particle_radmat_1%particle_radmat_size, &
                                                       keyword_list   = keyword_list_two_moments) 
       
-   call test_read_or_associate_transport_and_diffusion_format_radmats(file_unit      = file_unit_1, &
-                                                                      record_len     = 132, &
-                                                                      dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                                                      np_radmat_size = np_radmat_1%np_radmat_size, &
-                                                                      keyword_list   = keyword_list_two_moments, &
-                                                                      problem_dim    = 3)
+   call test_read_or_associate_transport_and_diffusion_format_radmats(file_unit            = file_unit_1, &
+                                                                      record_len           = 132, &
+                                                                      dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                                                      particle_radmat_size = particle_radmat_1%particle_radmat_size, &
+                                                                      keyword_list         = keyword_list_two_moments, &
+                                                                      problem_dim          = 3)
 
    call test_read_fission_data_format_radmats(file_unit                 = file_unit_1, &
                                               record_len                = 132, &
-                                              dataset_radmat            = np_radmat_1%dataset_radmats(1), &
-                                              np_radmat_size            = np_radmat_1%np_radmat_size, &
+                                              dataset_radmat            = particle_radmat_1%dataset_radmats(1), &
+                                              particle_radmat_size      = particle_radmat_1%particle_radmat_size, &
                                               keyword_list              = keyword_list_two_moments, &
                                               number_non_thermal_groups = 1 ) 
          
@@ -140,39 +141,39 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                      keyword_line_number = 1044, &
                                                      keyword_find        = (/16/), &
                                                      record_len          = 132, &
-                                                     dataset_radmat      = np_radmat_1%dataset_radmats(1), &
-                                                     np_radmat_size      = np_radmat_1%np_radmat_size, &
+                                                     dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
+                                                     particle_radmat_size= particle_radmat_1%particle_radmat_size, &
                                                      keyword_list        = keyword_list_two_moments)
    
    call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
                                                      keyword_line_number = 1060, &
                                                      keyword_find        = (/17/), &
                                                      record_len          = 132, &
-                                                     dataset_radmat      = np_radmat_1%dataset_radmats(1), &
-                                                     np_radmat_size      = np_radmat_1%np_radmat_size, &
+                                                     dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
+                                                     particle_radmat_size= particle_radmat_1%particle_radmat_size, &
                                                      keyword_list        = keyword_list_two_moments)
    
    ! read the delayed data - beta, lambda and spectrum
    call test_read_delayed_data_format_radmats(file_unit               = file_unit_1, &
                                               record_len              = 132, &
-                                              dataset_radmat          = np_radmat_1%dataset_radmats(1), &
-                                              np_radmat_size          = np_radmat_1%np_radmat_size, &
-                                              delayed_lambda_spectrum = np_radmat_1%delayed_lambda_spectrum, &
+                                              dataset_radmat          = particle_radmat_1%dataset_radmats(1), &
+                                              particle_radmat_size    = particle_radmat_1%particle_radmat_size, &
+                                              delayed_lambda_spectrum = particle_radmat_1%delayed_lambda_spectrum, &
                                               keyword_list            = keyword_list_two_moments) 
    
    ! read the energy released through the power rotuine
-   call test_read_power_data_format_radmats(file_unit      = file_unit_1, &
-                                            record_len     = 132, &
-                                            dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                            np_radmat_size = np_radmat_1%np_radmat_size, &
-                                            test_power     = .false., &
-                                            keyword_list   = keyword_list_two_moments)
+   call test_read_power_data_format_radmats(file_unit            = file_unit_1, &
+                                            record_len           = 132, &
+                                            dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                            particle_radmat_size = particle_radmat_1%particle_radmat_size, &
+                                            test_power           = .false., &
+                                            keyword_list         = keyword_list_two_moments)
 
-   call test_calculate_power_format_radmats(dataset_radmat = np_radmat_1%dataset_radmats(1), &
-                                            np_radmat_size = np_radmat_1%np_radmat_size) 
+   call test_calculate_power_format_radmats(dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                            particle_radmat_size = particle_radmat_1%particle_radmat_size) 
    
-   ! get rid of the comparison np_radmat's 
-   call destroy(np_radmat_1)   
+   ! get rid of the comparison particle_radmat's 
+   call destroy(particle_radmat_1)   
 
    call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_1, &
                                                      keyword_line_number = 110, &
@@ -324,7 +325,7 @@ subroutine test_radiation_materials_read_format_radmats_base
    
    ! this will use file_unit_1
    call test_find_line_with_any_desired_keyword(record_len   = 132, &
-                                                 keyword_list = keyword_list_two_moments) 
+                                                keyword_list = keyword_list_two_moments) 
    
    call test_number_substrings_within_string(test_string       = 'A long time ago in a galaxy far, far away....', &
                                              test_substring    = 'far', &
@@ -593,7 +594,7 @@ contains
    subroutine test_read_scatter_mom_format_radmats(file_unit, &
                                                    record_len, &
                                                    dataset_radmat, &
-                                                   np_radmat_size, &
+                                                   particle_radmat_size, &
                                                    keyword_list)
       
       !!< Test the procedure that reads in the scatter data numbers
@@ -601,7 +602,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       character(len=21), dimension(:), intent(in) :: keyword_list
       
       ! local variables
@@ -618,7 +619,7 @@ contains
                               
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -701,7 +702,7 @@ contains
    subroutine test_read_absorption_and_total_format_radmats(file_unit, &
                                                             record_len, &
                                                             dataset_radmat, &
-                                                            np_radmat_size, &
+                                                            particle_radmat_size, &
                                                             keyword_list)
       
       !!< Test the procedure that reads in the absorption or total data numbers. This will also implicitly read in the scatter data.
@@ -709,7 +710,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       character(len=21), dimension(:), intent(in) :: keyword_list
       
       ! local variables
@@ -725,7 +726,7 @@ contains
                               
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -808,7 +809,7 @@ contains
    subroutine test_calculate_removal_moments_format_radmats(file_unit, &
                                                             record_len, &
                                                             dataset_radmat, &
-                                                            np_radmat_size, &
+                                                            particle_radmat_size, &
                                                             keyword_list)
       
       !!< Test the procedure that calculates the removal moments. This will also read in the total and absorption (which itself will 
@@ -817,7 +818,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       character(len=21), dimension(:), intent(in) :: keyword_list
       
       ! local variables
@@ -834,7 +835,7 @@ contains
                               
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -919,7 +920,7 @@ contains
    subroutine test_read_or_associate_transport_and_diffusion_format_radmats(file_unit, &
                                                                             record_len, &
                                                                             dataset_radmat, &
-                                                                            np_radmat_size, &
+                                                                            particle_radmat_size, &
                                                                             keyword_list, &
                                                                             problem_dim)
       
@@ -929,7 +930,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       character(len=21), dimension(:), intent(in) :: keyword_list
       integer, intent(in) :: problem_dim  
       
@@ -947,7 +948,7 @@ contains
                               
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -1035,7 +1036,7 @@ contains
    subroutine test_read_fission_data_format_radmats(file_unit, &
                                                     record_len, &
                                                     dataset_radmat, &
-                                                    np_radmat_size, &
+                                                    particle_radmat_size, &
                                                     keyword_list, &
                                                     number_non_thermal_groups)
       
@@ -1044,7 +1045,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       character(len=21), dimension(:), intent(in) :: keyword_list
       integer, intent(in) :: number_non_thermal_groups  
       
@@ -1061,7 +1062,7 @@ contains
                               
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
@@ -1120,8 +1121,8 @@ contains
 
             if (has_failed) exit pmat_loop
             
-            has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%np_released_per_fission, &
-                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%np_released_per_fission)
+            has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%particle_released_per_fission, &
+                                   dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%particle_released_per_fission)
 
             if (has_failed) exit pmat_loop
             
@@ -1157,7 +1158,7 @@ contains
                                                            keyword_find, &
                                                            record_len, &
                                                            dataset_radmat, &
-                                                           np_radmat_size, &
+                                                           particle_radmat_size, &
                                                            keyword_list)
       
       !!< Test the procedure that reads in a velocity style data numbers
@@ -1168,7 +1169,7 @@ contains
       integer, dimension(1), intent(in) :: keyword_find
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size
       character(len=21), dimension(:), intent(in) :: keyword_list
       
       ! local variables
@@ -1190,18 +1191,18 @@ contains
           
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
             
       number_of_groups_if: if (keyword_find(1) == 17) then
             
-         number_of_groups = np_radmat_size%number_of_delayed_groups
+         number_of_groups = particle_radmat_size%number_of_delayed_groups
             
       else number_of_groups_if
                
-         number_of_groups = np_radmat_size%number_of_energy_groups
+         number_of_groups = particle_radmat_size%number_of_energy_groups
             
       end if number_of_groups_if
             
@@ -1260,7 +1261,7 @@ contains
    subroutine test_read_delayed_data_format_radmats(file_unit, &
                                                     record_len, &
                                                     dataset_radmat, &
-                                                    np_radmat_size, &
+                                                    particle_radmat_size, &
                                                     delayed_lambda_spectrum, &
                                                     keyword_list)
       
@@ -1269,7 +1270,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       type(delayed_lambda_spectrum_type), intent(in) :: delayed_lambda_spectrum      
       character(len=21), dimension(:), intent(in) :: keyword_list
       
@@ -1281,14 +1282,14 @@ contains
       
       ! intiialise the read in data types
       call allocate(dataset_radmat_format_radmats, &
-                    np_radmat_size, &
+                    particle_radmat_size, &
                     dmat=1)
 
       call zero(dataset_radmat_format_radmats)
  
       call allocate(delayed_lambda_spectrum_format_radmats, &
-                    np_radmat_size%number_of_delayed_groups, &
-                    np_radmat_size%number_of_energy_groups)
+                    particle_radmat_size%number_of_delayed_groups, &
+                    particle_radmat_size%number_of_energy_groups)
 
       call zero(delayed_lambda_spectrum_format_radmats)
                         
@@ -1346,7 +1347,7 @@ contains
    subroutine test_read_power_data_format_radmats(file_unit, &
                                                   record_len, &
                                                   dataset_radmat, &
-                                                  np_radmat_size, &
+                                                  particle_radmat_size, &
                                                   test_power, &
                                                   keyword_list)
       
@@ -1357,7 +1358,7 @@ contains
       integer, intent(in) :: file_unit
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       logical, intent(in) :: test_power
       character(len=21), dimension(:), intent(in) :: keyword_list
       
@@ -1367,7 +1368,7 @@ contains
       type(dataset_radmat_type) :: dataset_radmat_format_radmats
                               
       ! intiialise the read in data type
-      call allocate(dataset_radmat_format_radmats,np_radmat_size,dmat=1)
+      call allocate(dataset_radmat_format_radmats,particle_radmat_size,dmat=1)
       call zero(dataset_radmat_format_radmats)
                         
       ! now read in the required values
@@ -1411,19 +1412,19 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine test_calculate_power_format_radmats(dataset_radmat, &
-                                                  np_radmat_size)
+                                                  particle_radmat_size)
       
       !!< Test the procedure that calculates the power data from the fission and energy released
       
       type(dataset_radmat_type), intent(inout) :: dataset_radmat
-      type(np_radmat_size_type), intent(in) :: np_radmat_size      
+      type(particle_radmat_size_type), intent(in) :: particle_radmat_size      
       
       ! local variables
       type(dataset_radmat_type) :: dataset_radmat_tmp
       integer :: pmat,rmat
       
       ! intiialise the tmp data type
-      call allocate(dataset_radmat_tmp,np_radmat_size,dmat=1)
+      call allocate(dataset_radmat_tmp,particle_radmat_size,dmat=1)
       call zero(dataset_radmat_tmp)
       
       ! set tmp
