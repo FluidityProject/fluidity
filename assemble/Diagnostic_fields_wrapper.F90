@@ -548,6 +548,32 @@ contains
        end if
        ! End of sediment diagnostics.
 
+       ! Multiphase-related diagnostic fields
+       s_field => extract_scalar_field(state(i), "PhaseVolumeFraction", stat)
+       if(stat == 0) then
+         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+         if(diagnostic .and. .not.(aliased(s_field))) then
+           if(recalculate(trim(s_field%option_path))) then
+            call calculate_diagnostic_phase_volume_fraction(state)
+           end if
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "SumVelocityDivergence", stat)
+       if(stat == 0) then
+         ! Check that we are running a multiphase simulation
+         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+            diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+            if(diagnostic .and. .not.(aliased(s_field))) then
+               if(recalculate(trim(s_field%option_path))) then
+                  call calculate_sum_velocity_divergence(state, s_field)
+               end if
+            end if
+         else
+            FLExit("The SumVelocityDivergence field is only used in multiphase simulations.")
+         end if
+       end if
+
        ! end of fields that cannot be called through the generic
        ! calculate_diagnostic_variable interface, i.e. - those that need things
        ! higher than femtools in the build
@@ -579,16 +605,6 @@ contains
        if(stat == 0) then  
          if(recalculate(trim(v_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "AbsoluteDifference", v_field)  
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "PhaseVolumeFraction", stat)
-       if(stat == 0) then
-         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
-         if(diagnostic .and. .not.(aliased(s_field))) then
-           if(recalculate(trim(s_field%option_path))) then
-            call calculate_diagnostic_phase_volume_fraction(state)
-           end if
          end if
        end if
 

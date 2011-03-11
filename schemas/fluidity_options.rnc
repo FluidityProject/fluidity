@@ -3910,8 +3910,8 @@ scalar_field_choice =
             )
          }|
 
-         ## PhaseVolumeFraction:
-         ## Required in porous_media problem type
+         ## PhaseVolumeFraction
+         ## Required in porous_media and multiphase problem types
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PhaseVolumeFraction" },
@@ -5083,7 +5083,24 @@ scalar_field_choice =
                   generic_aliased_field
                }
             )
-        }               
+         }|
+
+         ## SumVelocityDivergence
+         ##
+         ## Diagnostic field used in multiphase simulations.
+         ## Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SumVelocityDivergence" },
+            (
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt
+               }
+            )
+         }              
+
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
 #            attribute rank { "0" },

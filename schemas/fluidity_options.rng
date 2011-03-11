@@ -5046,8 +5046,8 @@ Requires a continuous mesh.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>PhaseVolumeFraction:
-Required in porous_media problem type</a:documentation>
+        <a:documentation>PhaseVolumeFraction
+Required in porous_media and multiphase problem types</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -6482,6 +6482,23 @@ will be emptied by an adapt.</a:documentation>
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>SumVelocityDivergence
+
+Diagnostic field used in multiphase simulations.
+Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SumVelocityDivergence</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="internal_algorithm"/>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+        </element>
       </element>
     </choice>
     <!--
