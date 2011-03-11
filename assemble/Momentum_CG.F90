@@ -1231,7 +1231,7 @@
             if(multiphase) then
                ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
                grad_p_u_mat =  shape_dshape(p_shape, du_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                              shape_shape_vector(p_shape, u_shape, detwei, transpose(ele_grad_at_quad(nvfrac, ele, du_t)))
+                              shape_shape_vector(p_shape, u_shape, detwei, ele_grad_at_quad(nvfrac, ele, du_t))
             else
                grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
             end if
