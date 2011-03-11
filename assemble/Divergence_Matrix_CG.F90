@@ -43,6 +43,7 @@ module divergence_matrix_cg
   use field_options, only: complete_field_path
   use upwind_stabilisation
   use equation_of_state
+  use multiphase_module
 
   implicit none
 
@@ -117,6 +118,12 @@ contains
 
       logical :: l_get_ct
 
+      !! Multiphase variables
+      logical :: multiphase
+      ! Volume fraction fields
+      type(scalar_field), pointer :: vfrac
+      type(scalar_field) :: nvfrac
+
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
       ! =============================================================
@@ -159,6 +166,21 @@ contains
          if(present(div_mass_lumped)) call zero(div_mass_lumped)
          if(present(grad_mass_lumped)) call zero(grad_mass_lumped)
 
+         ! Check if we need to multiply through by the non-linear volume fraction
+         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+            multiphase = .true.
+
+            vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+            call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+            call zero(nvfrac)
+            call get_nonlinear_volume_fraction(state, nvfrac)
+
+            ewrite_minmax(nvfrac)
+         else
+            multiphase = .false.
+            nullify(vfrac)
+         end if
+
          allocate(dfield_t(ele_loc(field, 1), ele_ngi(field, 1), field%dim), &
               dtest_t(ele_loc(test_mesh, 1), ele_ngi(test_mesh, 1), field%dim), &
               ele_mat(field%dim, ele_loc(test_mesh, 1), ele_loc(field, 1)), &
@@ -173,23 +195,33 @@ contains
 
             test_shape=>ele_shape(test_mesh, ele)
             field_shape=>ele_shape(field, ele)
-            
+
             if(integrate_by_parts) then
                ! transform the pressure derivatives into physical space
                ! (and get detwei)
                call transform_to_physical(coordinate, ele, test_shape, &
                     dshape=dtest_t, detwei=detwei)
 
-               ele_mat = -dshape_shape(dtest_t, field_shape, detwei)
+               if(multiphase) then
+                  ele_mat = -dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele))
+               else
+                  ele_mat = -dshape_shape(dtest_t, field_shape, detwei)
+               end if
             else
                ! transform the velociy derivatives into physical space
                ! (and get detwei)
                call transform_to_physical(coordinate, ele, field_shape, &
                     dshape=dfield_t, detwei=detwei)
-               
-               ele_mat = shape_dshape(test_shape, dfield_t, detwei)
+
+               if(multiphase) then
+                  ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
+                  ele_mat = shape_dshape(test_shape, dfield_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
+                            shape_shape_vector(test_shape, field_shape, detwei, transpose(ele_grad_at_quad(nvfrac, ele, dfield_t)))
+               else
+                  ele_mat = shape_dshape(test_shape, dfield_t, detwei)
+               end if
             end if
-            
+
             do dim = 1, field%dim
                call addto(ct_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
             end do
@@ -232,6 +264,10 @@ contains
         
          end do
 
+         if(multiphase) then
+            call deallocate(nvfrac)
+         end if
+
       end if
 
       if(integrate_by_parts) then
@@ -266,7 +302,11 @@ contains
               &                          detwei_f=detwei_bdy,&
               &                          normal=normal_bdy) 
 
-          ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
+          if(multiphase) then
+            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy*face_val_at_quad(nvfrac, ele), normal_bdy)
+          else
+            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
+          end if
 
           do dim = 1, field%dim
             if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
@@ -289,6 +329,8 @@ contains
         deallocate(test_nodes_bdy, field_nodes_bdy)
 
       end if
+
+      ewrite(2,*) 'Exiting assemble_divergence_matrix_cg'
 
     end subroutine assemble_divergence_matrix_cg
 
@@ -582,4 +624,3 @@ contains
     end subroutine assemble_1mat_compressible_divergence_matrix_cg
 
 end module divergence_matrix_cg
-

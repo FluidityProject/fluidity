@@ -685,7 +685,7 @@
                  inverse_masslump, x, u, nu, ug, density, p, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
-                 assemble_ct_matrix, cg_pressure, oldu)
+                 assemble_ct_matrix, cg_pressure, oldu, nvfrac)
             
          end do surface_element_loop
 
@@ -858,7 +858,7 @@
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix, cg_pressure,&
-                                                     oldu)
+                                                     oldu, nvfrac)
 
       integer, intent(in) :: sele
 
@@ -883,6 +883,9 @@
       integer, dimension(:), intent(in) :: pressure_bc_type
       
       logical, intent(in) :: assemble_ct_matrix, cg_pressure
+
+      ! Volume fraction field
+      type(scalar_field), intent(in) :: nvfrac
 
       ! local
       integer :: dim, dim2, i
@@ -956,7 +959,12 @@
          
         if (velocity_bc_type(1,sele)/=2 .and. velocity_bc_type(1,sele)/=4) then
 
-          ct_mat_bdy = shape_shape_vector(p_shape, u_shape, detwei_bdy, normal_bdy)
+          if(multiphase) then
+            ct_mat_bdy = shape_shape_vector(p_shape, u_shape, detwei_bdy*face_val_at_quad(nvfrac, sele), normal_bdy)
+          else
+            ct_mat_bdy = shape_shape_vector(p_shape, u_shape, detwei_bdy, normal_bdy)
+          end if
+
           do dim = 1, u%dim
              if(velocity_bc_type(dim, sele)==1 )then
                 call addto(ct_rhs, p_nodes_bdy, &
@@ -1129,10 +1137,6 @@
       integer :: dim
       type(element_type) :: test_function
 
-      ! In case we have to multiply detwei by various coefficients (e.g. the density values at the Gauss points), 
-      ! then place the result in here
-      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
-
       if(move_mesh) then
         ! we've assumed the following in the declarations
         ! above so we better make sure they're true!
@@ -1216,15 +1220,21 @@
       ! consistent for P>1.
 
       if(assemble_ct_matrix.and.cg_pressure) then
-         coefficient_detwei = detwei
-         if(multiphase) then
-            coefficient_detwei = coefficient_detwei*ele_val_at_quad(nvfrac, ele)
-         end if
 
          if(integrate_continuity_by_parts) then
-            grad_p_u_mat = -dshape_shape(dp_t, u_shape, detwei)
+            if(multiphase) then
+               grad_p_u_mat = -dshape_shape(dp_t, u_shape, detwei*ele_val_at_quad(nvfrac, ele))
+            else
+               grad_p_u_mat = -dshape_shape(dp_t, u_shape, detwei)
+            end if
          else
-            grad_p_u_mat = shape_dshape(p_shape, du_t, coefficient_detwei)
+            if(multiphase) then
+               ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
+               grad_p_u_mat =  shape_dshape(p_shape, du_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
+                              shape_shape_vector(p_shape, u_shape, detwei, transpose(ele_grad_at_quad(nvfrac, ele, du_t)))
+            else
+               grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
+            end if
          end if
       !else
       !  grad_p_u_mat = 0.0
@@ -1343,7 +1353,8 @@
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: mass_mat
       type(element_type), pointer :: u_shape
       
-      ! In case we have to multiply detwei by something, place the result in here
+      ! In case we have to multiply detwei by various coefficients (e.g. the density values at the Gauss points), 
+      ! then place the result in here
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
 
       u_shape => ele_shape(u, ele)
@@ -1453,6 +1464,8 @@
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
       
+      ! In case we have to multiply detwei by various coefficients (e.g. the density values at the Gauss points), 
+      ! then place the result in here
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
 
       u_shape=>ele_shape(u, ele)
