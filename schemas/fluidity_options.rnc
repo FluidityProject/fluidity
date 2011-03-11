@@ -5096,7 +5096,13 @@ scalar_field_choice =
                element diagnostic {
                   velocity_mesh_choice,
                   internal_algorithm,
-                  diagnostic_scalar_field_no_adapt
+                  element integrate_divergence_by_parts {
+                     empty
+                  }?,
+                  diagnostic_scalar_field_no_adapt,
+                  element solver {
+                     linear_solver_options_sym
+                  }
                }
             )
          }              

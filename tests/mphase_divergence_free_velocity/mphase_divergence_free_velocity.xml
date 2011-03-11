@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+
+   <name>mphase_divergence_free_velocity</name>
+   <owner userid="ctj10"/>
+   <tags>flml</tags>
+   
+   <problem_definition length="short" nprocs="1">
+      <command_line>make run</command_line>
+      <!-- 3D test case to check that \sum{ div(vfrac*u) } is approximately equal to zero. -->
+      <!-- This is based on the divergence_free_velocity test case by Simon Funke (see tests/divergence_free_velocity). -->
+   </problem_definition>
+   
+   <variables>
+      <variable name="SumVelocityDivergence" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_divergence_free_velocity.stat")
+SumVelocityDivergence = s["Fluid1"]["SumVelocityDivergence"]["l2norm"]
+      </variable>
+   </variables>
+   
+   <pass_tests>
+      <test name="\sum{div(vfrac*u)} is less than 1e-10." language="python">
+assert(max(SumVelocityDivergence) &lt; 1e-10)
+      </test>
+   </pass_tests>
+   
+</testproblem>

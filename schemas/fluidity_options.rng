@@ -6497,7 +6497,15 @@ Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }<
         <element name="diagnostic">
           <ref name="velocity_mesh_choice"/>
           <ref name="internal_algorithm"/>
+          <optional>
+            <element name="integrate_divergence_by_parts">
+              <empty/>
+            </element>
+          </optional>
           <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
         </element>
       </element>
     </choice>
