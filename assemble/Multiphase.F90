@@ -36,21 +36,11 @@
       use global_parameters, only: OPTION_PATH_LEN
       use field_priority_lists
       use field_options
-      use diagnostic_fields_matrices
-      use sparse_tools
-      use fields_manipulation
-      use sparse_matrices_fields
-      use state_matrices_module
-      use field_derivatives
-      use sparsity_patterns, only: make_sparsity
-      use divergence_matrix_cg, only: assemble_divergence_matrix_cg
-      use solvers
       implicit none
 
       private
       public :: get_phase_submaterials, get_nonlinear_volume_fraction, &
-                calculate_diagnostic_phase_volume_fraction, &
-                calculate_sum_velocity_divergence
+                calculate_diagnostic_phase_volume_fraction
 
    contains
 
@@ -64,7 +54,7 @@
          integer, intent(inout), optional :: phase_istate
 
          !! Local variables
-         integer :: i, next, stat, material_count, material_istate
+         integer :: i, next, stat, material_count
          type(vector_field), pointer :: u
          character(len=OPTION_PATH_LEN) :: phase_name, target_name
          logical, dimension(:), pointer :: is_submaterial
@@ -239,93 +229,5 @@
          ewrite(1,*) 'Exiting calculate_diagnostic_phase_volume_fraction'
 
       end subroutine calculate_diagnostic_phase_volume_fraction
-
-      subroutine calculate_sum_velocity_divergence(state, sum_velocity_divergence)
-         !!< Calculates \sum{div(vfrac*u)}, where we sum over each prognostic velocity 
-         !!< field (i.e. each phase)
-
-         type(state_type), dimension(:), intent(inout) :: state
-         type(scalar_field), pointer :: sum_velocity_divergence
-
-         ! Local variables
-         type(vector_field), pointer :: u, x
-         type(scalar_field), pointer :: vfrac
-         integer :: i, stat
-
-         type(csr_sparsity) :: divergence_sparsity
-         type(block_csr_matrix) :: ct_m
-
-         type(csr_sparsity) :: mass_sparsity
-         type(csr_matrix) :: mass
-         type(scalar_field) :: ctfield, ct_rhs, temp
-
-         ewrite(1,*) 'Entering calculate_sum_velocity_divergence'
-
-         ! Allocate memory for matrices and sparsity patterns
-         call allocate(ctfield, sum_velocity_divergence%mesh, name="CTField")
-         call zero (ctfield)
-         call allocate(temp, sum_velocity_divergence%mesh, name="Temp")
-
-         mass_sparsity=make_sparsity(sum_velocity_divergence%mesh, sum_velocity_divergence%mesh, "MassSparsity")
-         call allocate(mass, mass_sparsity, name="MassMatrix")
-         call zero(mass)
-
-         ! Sum up over the div's
-         do i = 1, size(state)
-            u => extract_vector_field(state(i), "Velocity", stat)
-
-            ! If there's no velocity then cycle
-            if(stat/=0) cycle
-            ! If this is an aliased velocity then cycle
-            if(aliased(u)) cycle
-            ! If the velocity isn't prognostic then cycle
-            if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
-            ! If velocity field is prognostic, begin calculations below
-            x => extract_vector_field(state(i), "Coordinate")
-
-            ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
-            divergence_sparsity=make_sparsity(sum_velocity_divergence%mesh, u%mesh, "DivergenceSparsity")
-            call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix" )
-            call allocate(ct_rhs, sum_velocity_divergence%mesh, name="CTRHS")
-
-            ! Reassemble C^T matrix here
-            if(i==1) then ! Construct the mass matrix (just do this once)          
-               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
-                                 option_path=sum_velocity_divergence%option_path, div_mass=mass)
-            else
-               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
-                                 option_path=sum_velocity_divergence%option_path)
-            end if
-
-            ! Construct the linear system of equations to solve for \sum{div(vfrac*u)}
-            call zero(temp)
-            call mult(temp, ct_m, u)
-            call addto(temp, ct_rhs, -1.0)
-
-            ! Now add it to the sum
-            call addto(ctfield, temp)
-
-            call deallocate(ct_m)
-            call deallocate(ct_rhs)
-            call deallocate(divergence_sparsity)
-
-         end do
-
-         ! Solve for sum_velocity_divergence ( = \sum{div(vfrac*u)} )
-         call zero(sum_velocity_divergence)
-         call petsc_solve(sum_velocity_divergence, mass, ctfield)
-
-         ! Deallocate memory
-         call deallocate(mass_sparsity)
-         call deallocate(mass)
-         call deallocate(ctfield)
-         call deallocate(temp)
-
-         ewrite(1,*) 'Exiting calculate_sum_velocity_divergence'
-            
-      end subroutine calculate_sum_velocity_divergence
 
    end module multiphase_module

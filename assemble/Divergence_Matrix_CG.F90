@@ -157,6 +157,21 @@ contains
 
       if(present(ct_rhs)) call zero(ct_rhs)
 
+      ! Check if we need to multiply through by the non-linear volume fraction
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+
+         ewrite_minmax(nvfrac)
+      else
+         multiphase = .false.
+         nullify(vfrac)
+      end if
+
       if (l_get_ct) then
 
          ! Clear memory of arrays being designed
@@ -165,21 +180,6 @@ contains
          if(present(grad_mass)) call zero(grad_mass)
          if(present(div_mass_lumped)) call zero(div_mass_lumped)
          if(present(grad_mass_lumped)) call zero(grad_mass_lumped)
-
-         ! Check if we need to multiply through by the non-linear volume fraction
-         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-            multiphase = .true.
-
-            vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
-            call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
-            call zero(nvfrac)
-            call get_nonlinear_volume_fraction(state, nvfrac)
-
-            ewrite_minmax(nvfrac)
-         else
-            multiphase = .false.
-            nullify(vfrac)
-         end if
 
          allocate(dfield_t(ele_loc(field, 1), ele_ngi(field, 1), field%dim), &
               dtest_t(ele_loc(test_mesh, 1), ele_ngi(test_mesh, 1), field%dim), &
@@ -216,7 +216,7 @@ contains
                if(multiphase) then
                   ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
                   ele_mat = shape_dshape(test_shape, dfield_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                            shape_shape_vector(test_shape, field_shape, detwei, transpose(ele_grad_at_quad(nvfrac, ele, dfield_t)))
+                            shape_shape_vector(test_shape, field_shape, detwei, ele_grad_at_quad(nvfrac, ele, dfield_t))
                else
                   ele_mat = shape_dshape(test_shape, dfield_t, detwei)
                end if
@@ -263,10 +263,6 @@ contains
             end if
         
          end do
-
-         if(multiphase) then
-            call deallocate(nvfrac)
-         end if
 
       end if
 
@@ -328,6 +324,10 @@ contains
         deallocate(detwei_bdy, normal_bdy)
         deallocate(test_nodes_bdy, field_nodes_bdy)
 
+      end if
+
+      if(multiphase) then
+         call deallocate(nvfrac)
       end if
 
       ewrite(2,*) 'Exiting assemble_divergence_matrix_cg'
