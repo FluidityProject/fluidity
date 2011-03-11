@@ -26,7 +26,7 @@ sort_nicely(filelist)
 
 
 
-x0 = 50.
+x0 = 0 
 
 
 tke0 = 1.0e-5
@@ -52,7 +52,7 @@ for file in filelist:
    tt = time[0]
    kk = u.GetScalarField('GLSTurbulentKineticEnergy')
    pos = u.GetLocations()
-   if (tt < 900):
+   if (tt < 14400):
       continue
 
    xyzkk = []

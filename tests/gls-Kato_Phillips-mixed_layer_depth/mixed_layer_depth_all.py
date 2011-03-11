@@ -23,7 +23,7 @@ def sort_nicely( l ):
 
 # compute the mixed layer depth over time
 def MLD(filelist):
-  x0 = 50.
+  x0 = 0.
   tke0 = 1.0e-5
   last_mld = 0
   
@@ -41,8 +41,7 @@ def MLD(filelist):
      tt = time[0]
      kk = u.GetScalarField('GLSTurbulentKineticEnergy')
      pos = u.GetLocations()
-     # ignore first 15 mins of simulaiton
-     if (tt < 900):
+     if (tt < 14400):
        continue
 
      xyzkk = []
