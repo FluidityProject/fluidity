@@ -99,7 +99,7 @@ contains
          keyword_list(6)  = 'SIGTRANZ'
          keyword_list(7)  = 'DIFFUSIONX'
          keyword_list(8)  = 'DIFFUSIONY' 
-         keyword_list(9)  = 'DIFFUSIONX' 
+         keyword_list(9)  = 'DIFFUSIONZ' 
          keyword_list(10) = 'SIGFISS' 
          keyword_list(11) = 'FISSNU' 
          keyword_list(12) = 'PRODUCTION' 
@@ -673,7 +673,7 @@ contains
                                                                        record_len, &
                                                                        keyword_list)
             
-      !!< Read from a format_radmats file or associate the sigtran and diffusion cross sections for this geometric dimension idim. 
+      !!< Read from a format_radmats file or form the sigtran and diffusion cross sections for this geometric dimension idim. 
       !!< This could depend on the total already being set so check that it is and if not set it. For the second and third dimension if 
       !!< neither transport or diffusion found then set to the first dimension values.
       
@@ -733,7 +733,8 @@ contains
                                               keyword_list, &
                                               line_string)
             
-      ! if not found check for diffusion, if neither set from previous dim or total. if found sigtran check if also diffusion as cannot have both
+      ! if not found check for diffusion, if neither found set from previous dim or total. 
+      ! If found sigtran check if also diffusion as cannot have both
       not_found_sigtran_if: if (first_keyword_found /= 2) then 
        
          ! read DIFFUSION if there - else set to = 1/3sigtranx or vice versa if there

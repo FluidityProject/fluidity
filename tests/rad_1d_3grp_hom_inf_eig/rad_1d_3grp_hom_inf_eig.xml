@@ -4,7 +4,7 @@
 <testproblem>
   <name>rad_1d_3grp_hom_inf_eig</name>
   <owner userid="btollit"/>
-  <tags>flml</tags>
+  <tags>flml rad</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
        fluidity rad_1d_3grp_hom_inf_eig.flml 

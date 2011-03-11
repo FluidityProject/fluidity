@@ -183,9 +183,9 @@
                 <surface_ids>
                   <integer_value shape="1" rank="1">1</integer_value>
                 </surface_ids>
-                <type name="vacuum">
+                <type name="albedo">
                   <constant>
-                    <real_value rank="0">0.5</real_value>
+                    <real_value rank="0">0.0</real_value>
                   </constant>
                 </type>
               </boundary_conditions>
@@ -193,9 +193,9 @@
                 <surface_ids>
                   <integer_value shape="1" rank="1">2</integer_value>
                 </surface_ids>
-                <type name="vacuum">
+                <type name="albedo">
                   <constant>
-                    <real_value rank="0">0.5</real_value>
+                    <real_value rank="0">0.0</real_value>
                   </constant>
                 </type>
               </boundary_conditions>

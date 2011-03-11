@@ -277,16 +277,18 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
   <define name="diffusion_bc_type">
     <choice>
       <a:documentation>Type</a:documentation>
-      <ref name="diffusion_vacuum"/>
+      <ref name="diffusion_albedo"/>
       <ref name="diffusion_dirichlet"/>
+      <ref name="diffusion_source"/>
     </choice>
   </define>
-  <define name="diffusion_vacuum">
+  <define name="diffusion_albedo">
     <element name="type">
-      <a:documentation>Vacuum, requires value of 0.5</a:documentation>
+      <a:documentation>Albedo boundary condition, requires a value from 0.0 (perfect vacuum) 
+to 1.0 (perfect reflective)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>vacuum</value>
+        <value>albedo</value>
       </attribute>
       <ref name="input_choice_real"/>
     </element>
@@ -297,6 +299,18 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>dirichlet</value>
+      </attribute>
+      <ref name="input_choice_real"/>
+    </element>
+  </define>
+  <define name="diffusion_source">
+    <element name="type">
+      <a:documentation>Isotropic particle source boundary condition, this value specifies the 
+actually current into the domain NOT the total isotropic source strength 
+located on the surface (the total source strength is twice the value input here) </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>source</value>
       </attribute>
       <ref name="input_choice_real"/>
     </element>

@@ -178,26 +178,35 @@ contains
          
       end do volume_element_loop
       
-      ! surface integrations for vacuum conditions for diffusion theory
+      ! surface integrations for albedo and source BC's for diffusion theory
       
       allocate(bc_types(surface_element_count(np_flux(g)%ptr)))
 
       call get_entire_boundary_condition(np_flux(g)%ptr, &
-                                         (/"vacuum"/), &
+                                         (/"albedo", &
+                                           "source"/), &
                                          bc_value, &
                                          bc_types)
 
       surface_element_loop: do sele = 1,surface_element_count(np_flux(g)%ptr)
          
-         vacuum_bc: if (bc_types(sele) == 1) then
+         diffusion_bc: if (bc_types(sele) == 1) then
          
-            call assemble_np_group_g_sele_vacuum(sele, &
+            call assemble_np_group_g_sele_albedo(sele, &
                                                  positions, &
                                                  matrix, & 
                                                  bc_value, &
                                                  np_flux(g)%ptr)
          
-         end if vacuum_bc
+         else if (bc_types(sele) == 2) then 
+            
+            call assemble_np_group_g_sele_source(sele, &
+                                                 positions, &
+                                                 rhs, & 
+                                                 bc_value, &
+                                                 np_flux(g)%ptr)
+                        
+         end if diffusion_bc
          
       end do surface_element_loop
 
@@ -544,15 +553,16 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine assemble_np_group_g_sele_vacuum(face, &
+   subroutine assemble_np_group_g_sele_albedo(face, &
                                               positions, &
                                               matrix, & 
                                               bc_value, &
                                               np_flux)
       
-      !!< Assemble the local surface element sele (now face) boundary condition contribution for neutral particle group g and 
-      !!< add to the local matrix. This is currently only set up to do diffusion theory vacuum which involves adding 
-      !!< a surface mass matrix * 0.5 to the global matrix (the 0.5 is set via spud options for vacuum)
+      !!< Assemble the diffusion theory albedo boundary condition that involves adding 
+      !!< a surface mass matrix * coefficient to the main matrix
+      
+      ! this is actually a robin BC for angular diffusion
       
       integer, intent(in) :: face
       type(vector_field), intent(in) :: positions
@@ -561,7 +571,6 @@ contains
       type(scalar_field), pointer :: np_flux 
       
       ! local variables
-      integer, dimension(face_loc(np_flux, face)) :: face_nodes
       real, dimension(face_ngi(np_flux, face)) :: detwei    
       real, dimension(face_loc(np_flux, face), face_loc(np_flux, face)) :: matrix_addto
       
@@ -571,18 +580,56 @@ contains
                                        face, &
                                        detwei_f = detwei)  
       
+      ! the 0.5 is a necessary part of this BC formulation, the bc_value is the albedo coeff
+      ! where a value of 1.0 is a perfect reflective and a value of 0.0 is a perfect vacuum
       matrix_addto = shape_shape(face_shape(np_flux, face), &
                                  face_shape(np_flux, face), &
-                                 detwei*ele_val_at_quad(bc_value,face))
+                                 detwei*0.5*( (1.0 - ele_val_at_quad(bc_value,face) ) / &
+                                              (1.0 + ele_val_at_quad(bc_value,face) ) ) )
       
-      face_nodes = face_global_nodes(np_flux, &
-                                     face)      
       call addto(matrix, &
-                 face_nodes, &
-                 face_nodes, &
+                 face_global_nodes(np_flux,face), &
+                 face_global_nodes(np_flux,face), &
                  matrix_addto)
                 
-   end subroutine assemble_np_group_g_sele_vacuum
+   end subroutine assemble_np_group_g_sele_albedo
+
+   ! --------------------------------------------------------------------------
+
+   subroutine assemble_np_group_g_sele_source(face, &
+                                              positions, &
+                                              rhs, & 
+                                              bc_value, &
+                                              np_flux)
+      
+      !!< Include the particle source boundary condition into the rhs
+      
+      ! this is actually a neumann BC for angular diffusion
+      
+      integer, intent(in) :: face
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), intent(inout) :: rhs
+      type(scalar_field), intent(in) :: bc_value
+      type(scalar_field), pointer :: np_flux 
+      
+      ! local variables
+      real, dimension(face_ngi(np_flux, face)) :: detwei    
+      real, dimension(ele_loc(np_flux, face)) :: rhs_addto      
+      
+      assert(face_ngi(positions, face) == face_ngi(np_flux, face))
+            
+      call transform_facet_to_physical(positions, &
+                                       face, &
+                                       detwei_f = detwei)  
+      
+      rhs_addto = shape_rhs(face_shape(np_flux, face), &
+                            detwei*ele_val_at_quad(bc_value,face) )
+      
+      call addto(rhs, &
+                 face_global_nodes(np_flux,face), &
+                 rhs_addto)
+                
+   end subroutine assemble_np_group_g_sele_source
 
    ! --------------------------------------------------------------------------
 

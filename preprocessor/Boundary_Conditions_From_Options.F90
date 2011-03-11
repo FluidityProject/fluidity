@@ -238,7 +238,7 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", &
-            "buoyancy", "vacuum")
+            "buoyancy", "albedo", "source")
 
           call allocate(surface_field, surface_mesh, name="value")
           call insert_surface_field(field, i+1, surface_field)
@@ -715,7 +715,7 @@ contains
        ! be constant or set from a generic or python function.
        select case(trim(bc_type))
 
-       case("dirichlet", "neumann", "weakdirichlet", "vacuum")
+       case("dirichlet", "neumann", "weakdirichlet", "albedo", "source")
 
           bc_type_path=trim(bc_path_i)//"/type[0]"
 

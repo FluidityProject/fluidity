@@ -338,18 +338,20 @@ diffusion_bc_type =
    (
       ## Type
       (
-         diffusion_vacuum|
-         diffusion_dirichlet
+         diffusion_albedo|
+         diffusion_dirichlet|
+         diffusion_source
       )   
    )
    
       
-diffusion_vacuum = 
+diffusion_albedo = 
    (
-      ## Vacuum, requires value of 0.5
+      ## Albedo boundary condition, requires a value from 0.0 (perfect vacuum) 
+      ## to 1.0 (perfect reflective)
       element type {
          comment,
-         attribute name { "vacuum" },
+         attribute name { "albedo" },
          input_choice_real                
       }
    )
@@ -361,6 +363,19 @@ diffusion_dirichlet =
       element type {
          comment,
          attribute name { "dirichlet" },
+         input_choice_real
+      }
+   )
+
+
+diffusion_source = 
+   (
+      ## Isotropic particle source boundary condition, this value specifies the 
+      ## actually current into the domain NOT the total isotropic source strength 
+      ## located on the surface (the total source strength is twice the value input here) 
+      element type {
+         comment,
+         attribute name { "source" },
          input_choice_real
       }
    )
