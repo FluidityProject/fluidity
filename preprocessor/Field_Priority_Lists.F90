@@ -212,7 +212,36 @@ contains
                   tmpint, default=nsol)
              priority(nsol) = -tmpint*100
           end if
-
+!!! Melt rate should be the last thing to calculate, Sb
+          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb/diagnostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "Sb"
+             temp_field_optionpath_list(nsol)='/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/diagnostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*200
+          end if
+!!! Melt rate should be the last thing to calculate, Tb
+          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Tb/diagnostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "Tb"
+             temp_field_optionpath_list(nsol)='/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Tb'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/diagnostic/priority', &
+             tmpint, default=nsol)
+             priority(nsol) = -tmpint*200
+          end if
+!!!/ocean_forcing/iceshelf_meltrate/Holland08
+          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate/diagnostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "MeltRate"
+             temp_field_optionpath_list(nsol)='/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/diagnostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*200
+          end if
        end do
 
        if(have_option('/traffic_model/scalar_field::TrafficTracerTemplate'))then
@@ -346,7 +375,16 @@ contains
             //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
           ntsol=ntsol + 1
        end if
-
+       !Melting
+       if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Tb/diagnostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb/diagnostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate/diagnostic')) then
+          ntsol=ntsol + 1
+       end if
        ! Prognostic sediment fields.
        ntsol=ntsol+option_count('/material_phase[' &
             //int2str(p)//']/sediment/sediment_class')

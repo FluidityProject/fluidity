@@ -86,6 +86,7 @@ module fluids_module
   use discrete_properties_module
   use gls
   use k_epsilon
+  use iceshelf_meltrate_surf_normal
   use halos
   use memory_diagnostics
   use free_surface_module
@@ -407,6 +408,12 @@ contains
 
     call initialise_diagnostics(filename, state)
 
+    ! Initialize ice_meltrate
+    if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
+        call melt_surf_init(state(1))
+        call melt_surf_calc(state(1))
+    end if
+    
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
     ! Dump at start
@@ -437,6 +444,9 @@ contains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_init(state(1))
     end if
+
+
+
 
     ! radiation eigenvalue run solve
     if(have_option("/radiation")) then
@@ -837,7 +847,10 @@ contains
        end if
 
        current_time=current_time+DT
-
+       ! Calculate the meltrate
+       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+          call melt_surf_calc(state(1))
+       end if
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
