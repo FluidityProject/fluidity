@@ -144,4 +144,29 @@
       </prescribed>
     </vector_field>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity>
+      <period>
+        <real_value rank="0">4.</real_value>
+      </period>
+      <maximum_number_of_nodes>
+        <integer_value rank="0">200</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.05 0.0 0.0 0.05</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.06 0.0 0.0 0.06</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
 </fluidity_options>
