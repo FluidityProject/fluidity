@@ -6310,6 +6310,117 @@ forcing =
   (
     ## Force the boundary conditions of various fields in ocean simulations
     element ocean_forcing{
+        element iceshelf_meltrate{
+           ## The type of parameterisation 
+           element Holland08{
+           ## Specific heat capacity of water [Jkg^{-1}]. Default value 3974.
+           element c0 {real},  
+           ## Specific heat capacity of ice [Jkg^{-1}] Default value 2009.
+           element cI {real},
+           ## Transfer of heat and salt through the boundary layer [Jkg^{-1}]. Default value 3.35e5
+           element L {real},
+           ## Temperature of ice [C]. Default value -25, pretty cold 
+           element TI {real},
+           ## Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C. 
+           element a {real},
+           ## Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C. 
+           element b {real},
+           ## Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. 
+           element Cd {real},
+           ## Surface ID for the ice
+           element melt_surfaceID {integer},
+           ## Distance for the far field
+           element melt_LayerLength {real},
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "MeltRate" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Tb" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Sb" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Tloc" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Sloc" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Ploc" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Vloc" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_vector_field
+                        }
+                     )
+           }?,
+           element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Location" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_vector_field
+                        }
+                     )
+           }?              
+           }?      
+        }?,
         element shelf {
            ## Multiplying factor on equilibrium pressure
            element amplitude {

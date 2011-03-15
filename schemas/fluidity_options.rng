@@ -7942,6 +7942,171 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
     <element name="ocean_forcing">
       <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
       <optional>
+        <element name="iceshelf_meltrate">
+          <optional>
+            <element name="Holland08">
+              <a:documentation>The type of parameterisation </a:documentation>
+              <element name="c0">
+                <a:documentation>Specific heat capacity of water [Jkg^{-1}]. Default value 3974.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="cI">
+                <a:documentation>Specific heat capacity of ice [Jkg^{-1}] Default value 2009.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="L">
+                <a:documentation>Transfer of heat and salt through the boundary layer [Jkg^{-1}]. Default value 3.35e5</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="TI">
+                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold </a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="a">
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C. </a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="b">
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C. </a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="Cd">
+                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. </a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="melt_surfaceID">
+                <a:documentation>Surface ID for the ice</a:documentation>
+                <ref name="integer"/>
+              </element>
+              <element name="melt_LayerLength">
+                <a:documentation>Distance for the far field</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>MeltRate</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Tb</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Sb</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Tloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Sloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Ploc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Vloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Location</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
+                  </element>
+                </element>
+              </optional>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
         <element name="shelf">
           <optional>
             <element name="amplitude">
