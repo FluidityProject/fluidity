@@ -60,6 +60,11 @@ module momentum_DG
   use smoothing_module
   use fields_manipulation
   use field_options
+  use sparsity_patterns_meshes
+  use colouring
+  use Profiler
+  use omp_lib
+
 
   implicit none
 
@@ -251,8 +256,18 @@ contains
     logical :: have_wd_abs
     real, dimension(u%dim) :: abs_wd_const
 
+    !! 
+    type(mesh_type) :: p0_mesh
+    type(csr_sparsity), pointer :: dependency_sparsity
+    type(scalar_field) :: node_colour
+    type(integer_set), dimension(:), allocatable :: clr_sets
+    integer :: clr, nnid, no_colours, len
+    logical :: compact_stencil
+    integer :: num_threads
+
     ewrite(1, *) "In construct_momentum_dg"
 
+    call profiler_tic("construct_momentum_dg")
     assert(continuity(u)<0)
 
     acceleration= .not. present_and_false(acceleration_form)
@@ -629,8 +644,67 @@ contains
       call remap_field(wettingdrying_alpha, alpha_u_field)
     end if
 
-    element_loop: do ELE=1,element_count(U)
+      call profiler_tic("element_loop")
+      
+
+#ifdef _OPENMP
+       num_threads = omp_get_max_threads()
+#endif
+
+    if(num_threads>1) then
+
+      !! working out the options for different schemes of different terms
+      call set_coriolis_parameters
+      compact_stencil = have_option(trim(u%option_path)//&
+            "/prognostic/spatial_discretisation&
+            &/discontinuous_galerkin/viscosity_scheme&
+            &/interior_penalty") .or. &
+            &have_option(trim(u%option_path)//&
+            "/prognostic/spatial_discretisation&
+            &/discontinuous_galerkin/viscosity_scheme&
+            &/compact_discontinuous_galerkin")
+
+      compact_stencil=.false.
+      !! generate the dual graph of the mesh
+      p0_mesh = piecewise_constant_mesh(x%mesh, trim(x%name)//"P0Mesh")
+
+       !! the sparse pattern of the dual graph.
+       if ((have_viscosity.or.have_dg_les) .and. (.not. compact_stencil)) then
+          dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
+       else
+          dependency_sparsity =>get_csr_sparsity_compactdgdouble(state, p0_mesh)
+       end if
        
+       dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
+
+       !! colouring dual graph according the sparsity pattern with greedy
+       !! colouring algorithm
+       !! "colours" is an array of type(integer_set)
+       call colour_sparsity(dependency_sparsity, p0_mesh, node_colour, no_colours)
+
+       if(.not. verify_colour_sparsity(dependency_sparsity, node_colour)) then
+        FLAbort("The neighbours are using same colours, wrong!!.")
+       endif 
+
+       allocate(clr_sets(no_colours))
+       clr_sets=colour_sets(dependency_sparsity, node_colour, no_colours)
+       PRINT *, "colouring passed"
+    else
+       no_colours = 1
+       allocate(clr_sets(no_colours))
+       call allocate(clr_sets)
+       do ELE=1,element_count(U)
+          call insert(clr_sets(1), ele)
+       end do
+    end if
+
+    colour_loop: do clr = 1, no_colours
+      len = key_count(clr_sets(clr))
+      !$OMP PARALLEL DO DEFAULT(SHARED) &
+      !$OMP SCHEDULE(STATIC) &
+      !$OMP PRIVATE(nnid, ele)
+      element_loop: do nnid = 1, len 
+       ele = fetch(clr_sets(clr), nnid)       
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
@@ -646,7 +720,20 @@ contains
             & alpha_u_field=alpha_u_field,&
             & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
       
-    end do element_loop
+      end do element_loop
+      !$OMP END PARALLEL DO
+
+    end do colour_loop
+
+    call deallocate(clr_sets)
+    deallocate(clr_sets)
+
+    if(num_threads > 1) then
+    call deallocate(node_colour)
+    call deallocate(p0_mesh)
+    endif
+    
+    call profiler_toc("element_loop")
 
     if (have_wd_abs) then
       ! the remapped field is not needed anymore.
@@ -687,6 +774,8 @@ contains
     call deallocate(u_nl_cg)
     
     ewrite(1, *) "Exiting construct_momentum_dg"
+
+    call profiler_toc("construct_momentum_dg")
     
   end subroutine construct_momentum_dg
 

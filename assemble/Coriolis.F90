@@ -58,7 +58,7 @@ module coriolis_module
      
   private
   
-  public :: coriolis, funome
+  public :: coriolis, funome, set_coriolis_parameters
 
   contains
 

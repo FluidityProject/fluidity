@@ -279,10 +279,8 @@ if test "x$enable_openmp" == "xyes" ; then
     LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
     AC_LANG_POP([C++])
 
-    AC_LANG_PUSH([Fortran])
-    AC_OPENMP()
-    FCFLAGS="$FCFLAGS $OPENMP_FCFLAGS"
-    AC_LANG_POP([Fortran])
+    # Assume same flag for FC
+    FCFLAGS="$FCFLAGS $OPENMP_CXXFLAGS"
 fi
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
 
