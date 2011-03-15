@@ -430,14 +430,10 @@ contains
 
       !up vector must be normal to the surface for steady geostrophic
       !states.
-      if(.false.) then
-         up_vec = get_up_vec(ele_val(X,ele))
-         do gi=1, ele_ngi(U,ele)
-            do dim1 = 1, size(up_vec)
-               up_gi(dim1,gi) = sign(up_vec(dim1),dot_product(up_vec,up_gi(:,gi)))
-            end do
-         end do
-      end if
+      do gi=1, ele_ngi(U,ele)
+         up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
+         up_gi(:,gi) = up_vec
+      end do
 
       do gi=1, ele_ngi(U,ele)
          rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
@@ -510,22 +506,25 @@ contains
       end do
 
       contains
-        !function for getting tangent to surface
+        !function for getting normal to surface
         !only works for flat elements
-        function get_up_vec(X_val) result (up_vec_out)
+        function get_up_vec(X_val, up) result (up_vec_out)
           real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
+          real, dimension(:), intent(in) :: up
           real, dimension(size(X_val,1)) :: up_vec_out
           !
           real, dimension(size(X_val,1)) :: t1,t2
-          if(size(X_val,1)==3) then
+          ! if elements are triangles:
+          if(size(X_val,2)==3) then
              t1 = X_val(:,2)-X_val(:,1)
              t2 = X_val(:,3)-X_val(:,1)
              up_vec_out(1) = t1(2)*t2(3)-t1(3)*t2(2)
              up_vec_out(2) = -(t1(1)*t2(3)-t1(3)*t2(1))
              up_vec_out(3) = t1(1)*t2(2)-t1(2)*t2(1)
+             up_vec_out = up_vec_out*dot_product(up_vec_out, up)
              up_vec_out = up_vec_out/sqrt(sum(up_vec_out**2))
           else
-             up_vec_out = 0.
+             up_vec_out = up
           end if
         end function get_up_vec
 

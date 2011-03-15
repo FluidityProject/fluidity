@@ -153,7 +153,7 @@
    if(r&gt;0.0001):
       u[0] =-0.05*sqrt(g/H)*exp((r-r0)/LR)*X[0]/r*X[1]/r
       u[1] =0.05*sqrt(g/H)*exp((r-r0)/LR)*X[0]/r*X[0]/r
-   return u</string_value>
+   return [u[0],u[1],0]</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="FreeSlip">
