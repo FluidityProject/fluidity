@@ -82,120 +82,120 @@ rm -f rad_1d_1grp_hom_vacbc_eig_K.flml
     <!-- Radiation diffusion eigenvalue problem with one material, one energy group with all vacuum BC using a 1d geometry compared to a fine mesh BEANS linear cg solution for different mesh resolutions checking against the expected rate of convergence-->
   </problem_definition>
   <variables>
-    <variable name="neutronKeff_A" language="python">
+    <variable name="ParticleKeffneutron_A" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_A = stat("rad_1d_1grp_hom_vacbc_eig_A.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_A = stat("rad_1d_1grp_hom_vacbc_eig_A.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_B" language="python">
+    <variable name="ParticleKeffneutron_B" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_B = stat("rad_1d_1grp_hom_vacbc_eig_B.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_B = stat("rad_1d_1grp_hom_vacbc_eig_B.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_C" language="python">
+    <variable name="ParticleKeffneutron_C" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_C = stat("rad_1d_1grp_hom_vacbc_eig_C.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_C = stat("rad_1d_1grp_hom_vacbc_eig_C.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_D" language="python">
+    <variable name="ParticleKeffneutron_D" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_D = stat("rad_1d_1grp_hom_vacbc_eig_D.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_D = stat("rad_1d_1grp_hom_vacbc_eig_D.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_E" language="python">
+    <variable name="ParticleKeffneutron_E" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_E = stat("rad_1d_1grp_hom_vacbc_eig_E.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_E = stat("rad_1d_1grp_hom_vacbc_eig_E.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_F" language="python">
+    <variable name="ParticleKeffneutron_F" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_F = stat("rad_1d_1grp_hom_vacbc_eig_F.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_F = stat("rad_1d_1grp_hom_vacbc_eig_F.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_G" language="python">
+    <variable name="ParticleKeffneutron_G" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_G = stat("rad_1d_1grp_hom_vacbc_eig_G.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_G = stat("rad_1d_1grp_hom_vacbc_eig_G.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_H" language="python">
+    <variable name="ParticleKeffneutron_H" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_H = stat("rad_1d_1grp_hom_vacbc_eig_H.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_H = stat("rad_1d_1grp_hom_vacbc_eig_H.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_I" language="python">
+    <variable name="ParticleKeffneutron_I" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_I = stat("rad_1d_1grp_hom_vacbc_eig_I.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_I = stat("rad_1d_1grp_hom_vacbc_eig_I.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_J" language="python">
+    <variable name="ParticleKeffneutron_J" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_J = stat("rad_1d_1grp_hom_vacbc_eig_J.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_J = stat("rad_1d_1grp_hom_vacbc_eig_J.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="neutronKeff_K" language="python">
+    <variable name="ParticleKeffneutron_K" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff_K = stat("rad_1d_1grp_hom_vacbc_eig_K.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron_K = stat("rad_1d_1grp_hom_vacbc_eig_K.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Check neutronKeff_A against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_A against equivalent cg BEANS reference" language="python">
 reference_keff = 0.852113610862
-print 'Relative error compared to reference: ',abs((neutronKeff_A - reference_keff)/reference_keff)
-assert abs((neutronKeff_A - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_A - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_A - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_B against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_B against equivalent cg BEANS reference" language="python">
 reference_keff = 0.880058482051
-print 'Relative error compared to reference: ',abs((neutronKeff_B - reference_keff)/reference_keff)
-assert abs((neutronKeff_B - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_B - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_B - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_C against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_C against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.886868598269
-print 'Relative error compared to reference: ',abs((neutronKeff_C - reference_keff)/reference_keff)
-assert abs((neutronKeff_C - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_C - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_C - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_D against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_D against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.88856143693
-print 'Relative error compared to reference: ',abs((neutronKeff_D - reference_keff)/reference_keff)
-assert abs((neutronKeff_D - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_D - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_D - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_E against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_E against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.888984056312
-print 'Relative error compared to reference: ',abs((neutronKeff_E - reference_keff)/reference_keff)
-assert abs((neutronKeff_E - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_E - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_E - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_F against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_F against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889089671645
-print 'Relative error compared to reference: ',abs((neutronKeff_F - reference_keff)/reference_keff)
-assert abs((neutronKeff_F - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_F - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_F - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_G against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_G against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889116078741
-print 'Relative error compared to reference: ',abs((neutronKeff_G - reference_keff)/reference_keff)
-assert abs((neutronKeff_G - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_G - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_G - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_H against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_H against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889122681105
-print 'Relative error compared to reference: ',abs((neutronKeff_H - reference_keff)/reference_keff)
-assert abs((neutronKeff_H - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_H - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_H - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_I against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_I against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889124322876
-print 'Relative error compared to reference: ',abs((neutronKeff_I - reference_keff)/reference_keff)
-assert abs((neutronKeff_I - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_I - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_I - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_J against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_J against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889124740121
-print 'Relative error compared to reference: ',abs((neutronKeff_J - reference_keff)/reference_keff)
-assert abs((neutronKeff_J - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_J - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_J - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_K against against equivalent cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_K against against equivalent cg BEANS reference" language="python">
 reference_keff = 0.889124845372
-print 'Relative error compared to reference: ',abs((neutronKeff_K - reference_keff)/reference_keff)
-assert abs((neutronKeff_K - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_K - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_K - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
-    <test name="Check neutronKeff_K against against very fine cg BEANS reference" language="python">
+    <test name="Check ParticleKeffneutron_K against against very fine cg BEANS reference" language="python">
 reference_keff = 0.889124884645
-print 'Relative error compared to reference: ',abs((neutronKeff_K - reference_keff)/reference_keff)
-assert abs((neutronKeff_K - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference: ',abs((ParticleKeffneutron_K - reference_keff)/reference_keff)
+assert abs((ParticleKeffneutron_K - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
 
-    <test name="Check neutronKeff_A to neutronKeff_B convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_A to ParticleKeffneutron_B convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_A
-keff_two = neutronKeff_B
+keff_one = ParticleKeffneutron_A
+keff_two = ParticleKeffneutron_B
 
 mesh_one = 2
 mesh_two = 4
@@ -215,13 +215,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 1.5e-02
     </test>
-    <test name="Check neutronKeff_C to neutronKeff_D convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_C to ParticleKeffneutron_D convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_C
-keff_two = neutronKeff_D
+keff_one = ParticleKeffneutron_C
+keff_two = ParticleKeffneutron_D
 
 mesh_one = 8
 mesh_two = 16
@@ -241,13 +241,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 8.0e-04
     </test>
-    <test name="Check neutronKeff_E to neutronKeff_F convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_E to ParticleKeffneutron_F convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_E
-keff_two = neutronKeff_F
+keff_one = ParticleKeffneutron_E
+keff_two = ParticleKeffneutron_F
 
 mesh_one = 32
 mesh_two = 64
@@ -267,13 +267,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 1.4e-04
     </test>
-    <test name="Check neutronKeff_G to neutronKeff_H convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_G to ParticleKeffneutron_H convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_G
-keff_two = neutronKeff_H
+keff_one = ParticleKeffneutron_G
+keff_two = ParticleKeffneutron_H
 
 mesh_one = 128
 mesh_two = 256
@@ -293,13 +293,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 5.0e-03
     </test>
-    <test name="Check neutronKeff_I to neutronKeff_J convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_I to ParticleKeffneutron_J convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_I
-keff_two = neutronKeff_J
+keff_one = ParticleKeffneutron_I
+keff_two = ParticleKeffneutron_J
 
 mesh_one = 512
 mesh_two = 1024
@@ -319,13 +319,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 1.8e-03
     </test>
-    <test name="Check neutronKeff_B to neutronKeff_K convergence with regard to the fine mesh cg linear solution" language="python">
+    <test name="Check ParticleKeffneutron_B to ParticleKeffneutron_K convergence with regard to the fine mesh cg linear solution" language="python">
 from math import log
 
 reference_keff = 0.889124884645
 
-keff_one = neutronKeff_B
-keff_two = neutronKeff_K
+keff_one = ParticleKeffneutron_B
+keff_two = ParticleKeffneutron_K
 
 mesh_one = 4
 mesh_two = 2048

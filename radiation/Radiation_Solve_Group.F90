@@ -51,6 +51,7 @@ module radiation_assemble_solve_group
    use radiation_materials
    use radiation_extract_flux_field
    use radiation_materials_interpolation 
+   use radiation_energy_group_set_tools
      
    implicit none
    
@@ -91,18 +92,9 @@ contains
       real, intent(in), optional :: keff
       
       ! local variables
-      integer :: vele,sele
       type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
       type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old      
-      type(csr_matrix) :: matrix
-      type(scalar_field) :: rhs
-      type(csr_sparsity), pointer :: sparsity
-      type(vector_field), pointer :: positions      
-      type(radmat_type) :: radmat_vele
       type(particle_group_g_assemble_options_type) :: particle_group_g_assemble_options
-      type(scalar_field) :: delta_particle_flux
-      integer, dimension(:), allocatable :: bc_types
-      type(scalar_field) :: bc_value
                  
       ! extract the particle flux fields for all energy groups
       call extract_flux_all_group(state, &
@@ -117,144 +109,29 @@ contains
                                         particle_radmat%option_path, &
                                         (.not. present(keff)))
       
-      ! allocate the solution field passed to the solve for a time run 
-      alloc_delta: if (.not. present(keff)) then
-         
-         call allocate(delta_particle_flux, particle_flux(g)%ptr%mesh, name = 'DeltaParticleFluxGroup'//int2str(g)//trim(particle_radmat%name))
-         
-         ! set the time run initial guess
-         call zero(delta_particle_flux)
-         
-      end if alloc_delta
-      
-      ! determine the sparsity pattern of matrix assuming first order connections 
-      sparsity => get_csr_sparsity_firstorder(state, particle_flux(g)%ptr%mesh, particle_flux(g)%ptr%mesh)
-      
-      ! allocate the matrix and rhs vector used for solving
-      call allocate(matrix, sparsity, name = 'MatrixParticleFluxGroup'//int2str(g)//trim(particle_radmat%name))
-      call allocate(rhs, particle_flux(g)%ptr%mesh, name = 'RHSParticleFluxGroup'//int2str(g)//trim(particle_radmat%name))
-      
-      call zero(matrix)
-      call zero(rhs)
-      
       ! currently assume all energy groups point to the same coordinate mesh
-      positions => extract_vector_field(state, "Coordinate")
       
       ! if the above assumption was to be broken then the there would need to be a sweep of the other groups
       ! fluxes (new and old) to see which needs supermeshing to a new field and then the pointer within the 
       ! scalar_field_pointer particle_flux (or _old) is then changed such that no code change below is needed
       
-      ! volume integrations 
-      volume_element_loop: do vele = 1, ele_count(particle_flux(g)%ptr)      
-         
-         ! get the vele cross section as needed for this group
-         call form(radmat_vele, &
-                   particle_radmat_ii, &
-                   particle_radmat, &
-                   vele, &
-                   form_diffusion       = .true. , &
-                   form_removal         = .true. , &
-                   form_scatter         = .true. , &
-                   form_production      = .true. , &
-                   form_prompt_spectrum = .true. , &
-                   form_beta            = particle_group_g_assemble_options%have_delayed)
-         
-         call assemble_particle_group_g_vele(vele, &
-                                             g, &
-                                             number_of_energy_groups, &
-                                             state, &
-                                             particle_flux, &
-                                             particle_flux_old, &
-                                             radmat_vele, &
-                                             matrix, &
-                                             rhs, &
-                                             positions, &
-                                             particle_group_g_assemble_options, &
-                                             keff = keff)
-         
-         call destroy(radmat_vele)
-         
-      end do volume_element_loop
+      ! assemble the diffusivity, absorption and already discretised rhs term scalar fields and insert into state
+      call assemble_coeff_source_group_g(particle_flux, &
+                                         particle_flux_old, &
+                                         particle_radmat, &
+                                         particle_radmat_ii, &
+                                         state, &
+                                         g, &
+                                         number_of_energy_groups, &
+                                         keff = keff)
       
-      ! surface integrations for albedo and source BC's for diffusion theory
+      call assemble_matrix_solve_group_g(particle_flux, &
+                                         particle_flux_old, &
+                                         state, &   
+                                         g, &
+                                         particle_group_g_assemble_options, &
+                                         keff = keff)
       
-      allocate(bc_types(surface_element_count(particle_flux(g)%ptr)))
-
-      call get_entire_boundary_condition(particle_flux(g)%ptr, &
-                                         (/"albedo", &
-                                           "source"/), &
-                                         bc_value, &
-                                         bc_types)
-
-      surface_element_loop: do sele = 1,surface_element_count(particle_flux(g)%ptr)
-         
-         diffusion_bc: if (bc_types(sele) == 1) then
-         
-            call assemble_particle_group_g_sele_albedo(sele, &
-                                                       positions, &
-                                                       matrix, & 
-                                                       bc_value, &
-                                                       particle_flux(g)%ptr)
-         
-         else if (bc_types(sele) == 2) then 
-            
-            call assemble_particle_group_g_sele_source(sele, &
-                                                       positions, &
-                                                       rhs, & 
-                                                       bc_value, &
-                                                       particle_flux(g)%ptr)
-                        
-         end if diffusion_bc
-         
-      end do surface_element_loop
-
-      call deallocate(bc_value)
-
-      if (allocated(bc_types)) deallocate(bc_types)
-            
-      ! apply direchlet BC
-      call apply_dirichlet_conditions(matrix, &
-                                      rhs, &
-                                      particle_flux(g)%ptr)
-            
-      ! solve the linear system 
-      ! - for eig solve use the latest solution as initial guess
-      ! - for time solve update the state solution arrays after
-      solve: if (present(keff)) then
-      
-         call petsc_solve(particle_flux(g)%ptr, &
-                          matrix, &
-                          rhs, &
-                          state, &
-                          option_path = trim(particle_flux(g)%ptr%option_path) )
-      
-      else solve
-      
-         call petsc_solve(delta_particle_flux, &
-                          matrix, &
-                          rhs, &
-                          state, &
-                          option_path = trim(particle_flux(g)%ptr%option_path) )
-         
-         call addto(particle_flux(g)%ptr, &
-                    delta_particle_flux)
-      
-      end if solve
-      
-      ! set the direchlet bc nodes to be consistent
-      call set_dirichlet_consistent(particle_flux(g)%ptr)
-      
-      ! deallocate the matrix and rhs vector used for solving
-      call deallocate(matrix)
-      call deallocate(rhs)
-      
-      ! deallocate the time run solution field passed to the solver
-      dealloc_delta: if (.not. present(keff)) then
-         
-         call deallocate(delta_particle_flux)
-         
-      end if dealloc_delta
-
       ! deallocate the particle flux pointer fields
       call deallocate_flux_all_group(particle_flux     = particle_flux, &
                                      particle_flux_old = particle_flux_old)
@@ -350,18 +227,453 @@ contains
    end subroutine get_group_g_assemble_options
 
    ! --------------------------------------------------------------------------
+   
+   subroutine assemble_coeff_source_group_g(particle_flux, &
+                                            particle_flux_old, &
+                                            particle_radmat, &
+                                            particle_radmat_ii, &
+                                            state, &
+                                            g, &
+                                            number_of_energy_groups, &
+                                            keff)
+      
+      !!< Assemble the coeff and discretised source fields for group g that will then be used 
+      !!< somewhere else to assemble the linear system
 
-   subroutine assemble_particle_group_g_vele(vele, &
+      type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
+      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old      
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii  
+      type(state_type), intent(inout) :: state    
+      integer, intent(in) :: g
+      integer, intent(in) :: number_of_energy_groups 
+      real, intent(in), optional :: keff
+      
+      ! local variables
+      integer :: stat
+      integer :: vele
+      integer :: inode
+      integer :: g_dash
+      integer :: g_set
+      real :: data_value
+      real, dimension(:), allocatable :: detwei_vele
+      real, dimension(:), allocatable :: rhs_addto      
+      type(scalar_field) :: production_coeff 
+      type(scalar_field) :: prompt_spectrum_coeff 
+      type(scalar_field) :: scatter_coeff            
+      type(scalar_field), pointer :: absorption_coeff
+      type(tensor_field), pointer :: diffusivity_coeff
+      type(scalar_field), pointer :: discretised_source
+      type(mesh_type), pointer :: material_fn_space
+      type(vector_field), pointer :: positions      
+      character(len=OPTION_PATH_LEN) :: material_fn_space_name
+      character(len=OPTION_PATH_LEN) :: energy_group_set_path
+      character(len=OPTION_PATH_LEN) :: field_name
+      
+      ! determine which group set this g belongs to
+      call which_group_set_contains_g(g, &
+                                      trim(particle_radmat%option_path), &
+                                      g_set)
+
+      ! set the energy_group_set path
+      energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+         
+      ! get the material fn space name for this group set
+      call get_option(trim(energy_group_set_path)//'/angular_discretisation/mesh/name',material_fn_space_name)
+      
+      ! extract the material fn_space of this energy group set of this particle type 
+      material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+      
+      ! get the positions field for this energy group set
+      positions => extract_vector_field(state, "Coordinate")
+
+      ! allocate the local fields as needed
+
+      field_name = trim(particle_flux(g)%ptr%name)//'Scatter'
+      call allocate(scatter_coeff, material_fn_space, trim(field_name))
+      call zero(scatter_coeff)
+
+      field_name = trim(particle_flux(g)%ptr%name)//'Production'
+      call allocate(production_coeff, material_fn_space, trim(field_name))
+      call zero(production_coeff)
+
+      field_name = trim(particle_flux(g)%ptr%name)//'PromptSpectrum'
+      call allocate(prompt_spectrum_coeff, material_fn_space, trim(field_name))
+      call zero(prompt_spectrum_coeff)
+      
+      ! extract the assemble fields as needed
+      absorption_coeff => extract_scalar_field(state, &
+                                               trim(particle_flux(g)%ptr%name) // 'Absorption', &
+                                               stat = stat)
+                                        
+      diffusivity_coeff => extract_tensor_field(state, &
+                                                trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
+                                                stat = stat)
+
+      discretised_source => extract_scalar_field(state, &
+                                                 trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
+                                                 stat = stat)
+      
+      ! zero the extracted fields
+      call zero(absorption_coeff)
+      call zero(diffusivity_coeff)
+      call zero(discretised_source)
+            
+      ! form the absorption field for this energy group (which is actually the removal cross section)            
+      call form(material_fn_space, &
+                particle_radmat_ii%energy_group_set_ii(g_set), &
+                particle_radmat, &
+                absorption_coeff, &
+                g, &
+                component = 'removal')
+            
+      ! form the diffusivity tensor field for this energy group (only fill in diagonals)            
+      node_loop_d: do inode = 1,node_count(material_fn_space)                                                                      
+            
+         ! get the inode diffusionx data for this energy group
+         call form(particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle_radmat, &
+                   inode, &
+                   g, &
+                   data_value, &
+                   component = 'diffusionx')
+               
+         ! set the interpolated value into the scalar field
+         call set(diffusivity_coeff, &
+                  1, &
+                  1, &
+                  inode, &
+                  data_value)
+
+         if (positions%dim > 1) then
+         
+            ! get the inode diffusiony data for this energy group
+            call form(particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle_radmat, &
+                      inode, &
+                      g, &
+                      data_value, &
+                      component = 'diffusiony')
+               
+            ! set the interpolated value into the scalar field
+            call set(diffusivity_coeff, &
+                     2, &
+                     2, &
+                     inode, &
+                     data_value)
+
+         end if 
+         
+         if (positions%dim > 2) then
+
+            ! get the inode diffusionz data for this energy group
+            call form(particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle_radmat, &
+                      inode, &
+                      g, &
+                      data_value, &
+                      component = 'diffusionz')
+               
+            ! set the interpolated value into the scalar field
+            call set(diffusivity_coeff, &
+                     3, &
+                     3, &
+                     inode, &
+                     data_value)
+
+         end if 
+               
+      end do node_loop_d
+            
+      ! form the discretised source - scatter and production            
+
+      call form(material_fn_space, &
+                particle_radmat_ii%energy_group_set_ii(g_set), &
+                particle_radmat, &
+                prompt_spectrum_coeff, &
+                g, &
+                component = 'prompt_spectrum')
+                  
+      group_loop: do g_dash = 1,number_of_energy_groups
+                        
+         ! form the production field for this energy group g_dash
+         
+         call form(material_fn_space, &
+                   particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle_radmat, &
+                   production_coeff, &
+                   g_dash, &
+                   component = 'production')
+         
+         not_within_group: if (g /= g_dash) then
+ 
+            ! form the scatter field for this energy group g_dash to g            
+            call form(material_fn_space, &
+                      particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle_radmat, &
+                      scatter_coeff, &
+                      g, &
+                      component = 'scatter', &
+                      g_dash = g_dash)
+                                           
+         end if not_within_group
+         
+         vele_loop: do vele = 1,ele_count(discretised_source)
+           
+            ! allocate the jacobian transform and gauss weight array for this vele
+            allocate(detwei_vele(ele_ngi(discretised_source,vele)))
+                        
+            ! form the velement jacobian transform and gauss weight
+            call transform_to_physical(positions, vele, detwei = detwei_vele)
+            
+            ! allocate the rhs_addto
+            allocate(rhs_addto(ele_loc(particle_flux(g)%ptr,vele)))
+            
+            rhs_addto = 0.0
+            
+            keff_or_time: if (present(keff)) then
+            
+               ! add the scatter - not the within group
+               not_within_group_eig: if (g /= g_dash) then
+                  
+                  rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
+                                                             ele_shape(particle_flux(g_dash)%ptr,vele), &
+                                                             detwei_vele*ele_val_at_quad(scatter_coeff,vele)), &
+                                                 ele_val(particle_flux(g_dash)%ptr,vele))
+          
+               end if not_within_group_eig
+            
+               ! add the spectrum production - this is the eigenvector
+               rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
+                                                          ele_shape(particle_flux_old(g_dash)%ptr,vele), &
+                                                          detwei_vele*ele_val_at_quad(production_coeff,vele) &
+                                                                     *ele_val_at_quad(prompt_spectrum_coeff,vele) &
+                                                                     *(1.0/keff) ), &
+                                              ele_val(particle_flux_old(g_dash)%ptr,vele))
+                                          
+            else keff_or_time
+  
+               ! add the scatter - not the within group
+               not_within_group_time: if (g /= g_dash) then
+                  
+
+               end if not_within_group_time
+
+               ! add the spectrum production 
+                  
+                           
+            end if keff_or_time
+            
+            ! add contribution to discretised source for this vele for this group g
+            call addto(discretised_source, &
+                       ele_nodes(discretised_source, vele), &
+                       rhs_addto)
+            
+            deallocate(detwei_vele)
+            deallocate(rhs_addto)
+            
+         end do vele_loop
+               
+      end do group_loop
+      
+      ! deallocate the local fields as needed
+            
+      call deallocate(scatter_coeff)
+      call deallocate(production_coeff)
+      call deallocate(prompt_spectrum_coeff)
+                        
+   end subroutine assemble_coeff_source_group_g
+   
+   ! --------------------------------------------------------------------------
+   
+   subroutine assemble_matrix_solve_group_g(particle_flux, &
+                                            particle_flux_old, &
+                                            state, &
+                                            g, &
+                                            particle_group_g_assemble_options, &
+                                            keff)
+      
+      !!< Assemble the matrix system for this group g and solve
+      
+      type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
+      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
+      type(state_type), intent(inout) :: state   
+      integer, intent(in) :: g 
+      type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
+      real, intent(in), optional :: keff
+      
+      ! local variables
+      integer :: stat
+      integer :: vele,sele
+      type(csr_matrix) :: matrix
+      type(scalar_field) :: rhs
+      type(csr_sparsity), pointer :: sparsity
+      type(scalar_field) :: delta_particle_flux
+      integer, dimension(:), allocatable :: bc_types
+      type(scalar_field) :: bc_value
+      type(tensor_field), pointer :: diffusivity
+      type(scalar_field), pointer :: absorption
+      type(scalar_field), pointer :: discretised_source
+      type(vector_field), pointer :: positions      
+            
+      ! allocate the solution field passed to the solve for a time run 
+      alloc_delta: if (.not. present(keff)) then
+         
+         call allocate(delta_particle_flux,&
+                       particle_flux(g)%ptr%mesh, &
+                       name = 'DeltaParticleFluxGroup')
+         
+         ! set the time run initial guess
+         call zero(delta_particle_flux)
+         
+      end if alloc_delta
+      
+      ! determine the sparsity pattern of matrix assuming first order connections 
+      sparsity => get_csr_sparsity_firstorder(state, particle_flux(g)%ptr%mesh, particle_flux(g)%ptr%mesh)
+      
+      ! allocate the matrix and rhs vector used for solving
+      call allocate(matrix, &
+                    sparsity, &
+                    name = 'MatrixParticleFluxGroup')
+                    
+      call allocate(rhs, &
+                    particle_flux(g)%ptr%mesh, &
+                    name = 'RHSParticleFluxGroup')
+      
+      call zero(matrix)
+      call zero(rhs)
+
+      ! get the positions field for this energy group set
+      positions => extract_vector_field(state, 'Coordinate')
+      
+      ! extract the absorption, diffusivity and discretisedsource material fields
+      absorption => extract_scalar_field(state, &
+                                         trim(particle_flux(g)%ptr%name) // 'Absorption', &
+                                         stat = stat)
+                                        
+      diffusivity => extract_tensor_field(state, &
+                                          trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
+                                          stat = stat)
+
+      discretised_source => extract_scalar_field(state, &
+                                                 trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
+                                                 stat = stat)
+  
+      ! volume integrations 
+      volume_element_loop: do vele = 1, ele_count(particle_flux(g)%ptr)      
+                  
+         call assemble_particle_group_g_vele(vele, &
                                              g, &
-                                             number_of_energy_groups, &
-                                             state, &
                                              particle_flux, &
                                              particle_flux_old, &
-                                             radmat_vele, &
                                              matrix, &
                                              rhs, &
                                              positions, &
                                              particle_group_g_assemble_options, &
+                                             absorption, &
+                                             diffusivity, &
+                                             state, &
+                                             keff = keff)
+
+      end do volume_element_loop
+      
+      ! include the already discretised_source into rhs
+      call addto(rhs, discretised_source)
+      
+      ! surface integrations for albedo and source BC's for diffusion theory
+      
+      allocate(bc_types(surface_element_count(particle_flux(g)%ptr)))
+
+      call get_entire_boundary_condition(particle_flux(g)%ptr, &
+                                         (/"albedo", &
+                                           "source"/), &
+                                         bc_value, &
+                                         bc_types)
+
+      surface_element_loop: do sele = 1,surface_element_count(particle_flux(g)%ptr)
+         
+         diffusion_bc: if (bc_types(sele) == 1) then
+         
+            call assemble_particle_group_g_sele_albedo(sele, &
+                                                       positions, &
+                                                       matrix, & 
+                                                       bc_value, &
+                                                       particle_flux(g)%ptr)
+         
+         else if (bc_types(sele) == 2) then 
+            
+            call assemble_particle_group_g_sele_source(sele, &
+                                                       positions, &
+                                                       rhs, & 
+                                                       bc_value, &
+                                                       particle_flux(g)%ptr)
+                        
+         end if diffusion_bc
+         
+      end do surface_element_loop
+
+      call deallocate(bc_value)
+
+      if (allocated(bc_types)) deallocate(bc_types)
+            
+      ! apply direchlet BC
+      call apply_dirichlet_conditions(matrix, &
+                                      rhs, &
+                                      particle_flux(g)%ptr)
+            
+      ! solve the linear system 
+      ! - for eig solve use the latest solution as initial guess
+      ! - for time solve update the state solution arrays after
+      solve: if (present(keff)) then
+      
+         call petsc_solve(particle_flux(g)%ptr, &
+                          matrix, &
+                          rhs, &
+                          state, &
+                          option_path = trim(particle_flux(g)%ptr%option_path) )
+      
+      else solve
+      
+         call petsc_solve(delta_particle_flux, &
+                          matrix, &
+                          rhs, &
+                          state, &
+                          option_path = trim(particle_flux(g)%ptr%option_path) )
+         
+         call addto(particle_flux(g)%ptr, &
+                    delta_particle_flux)
+      
+      end if solve
+      
+      ! set the direchlet bc nodes to be consistent
+      call set_dirichlet_consistent(particle_flux(g)%ptr)
+   
+      ! deallocate the matrix and rhs vector used for solving
+      call deallocate(matrix)
+      call deallocate(rhs)
+      
+      ! deallocate the time run solution field passed to the solver
+      dealloc_delta: if (.not. present(keff)) then
+         
+         call deallocate(delta_particle_flux)
+         
+      end if dealloc_delta    
+              
+   end subroutine assemble_matrix_solve_group_g
+
+   ! --------------------------------------------------------------------------
+
+   subroutine assemble_particle_group_g_vele(vele, &
+                                             g, &
+                                             particle_flux, &
+                                             particle_flux_old, &
+                                             matrix, &
+                                             rhs, &
+                                             positions, &
+                                             particle_group_g_assemble_options, &
+                                             absorption, &
+                                             diffusivity, &
+                                             state, &
                                              keff)
 
       !!< Assemble the volume element vele contribution to the global matrix and rhs for this particle type for group g
@@ -373,21 +685,20 @@ contains
       
       integer, intent(in) :: vele
       integer, intent(in) :: g
-      integer, intent(in) :: number_of_energy_groups 
-      type(state_type), intent(in) :: state    
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old       
-      type(radmat_type), intent(in) :: radmat_vele      
+      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux 
+      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: positions
       type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
+      type(scalar_field), intent(in) :: absorption
+      type(tensor_field), intent(in) :: diffusivity
+      type(state_type), intent(in) :: state    
       real, intent(in), optional :: keff
       
       ! local variables 
       integer :: status  
       integer :: s
-      integer :: g_dash   
       real :: timestep
       real :: theta
       real :: timestep_theta
@@ -413,106 +724,46 @@ contains
       ! initialise the local vele matrix and vector that are added to the global arrays
       matrix_addto = 0.0
       rhs_addto    = 0.0
-            
+           
       ! form the velement jacobian transform and gauss weight
-      call transform_to_physical(positions, vele, ele_shape(particle_flux(g)%ptr, vele), dshape = dshape, detwei = detwei)
+      call transform_to_physical(positions, &
+                                 vele, &
+                                 ele_shape(particle_flux(g)%ptr, vele), &
+                                 dshape = dshape, &
+                                 detwei = detwei)
             
-      ! form the vele diffusion tensor coeff which is diagonal and the same value for 
-      ! each gauss point as volume element wise
-      diffusivity_gi = 0.0
-      diffusivity_gi(1,1,:) = radmat_vele%diffusion(g,1)
-      if (positions%dim > 1) diffusivity_gi(2,2,:) = radmat_vele%diffusion(g,2)
-      if (positions%dim > 2) diffusivity_gi(3,3,:) = radmat_vele%diffusion(g,3)
+      ! add the diffusion term
+      diffusivity_gi = ele_val_at_quad(diffusivity, vele)
             
-      ! add the diffusion matrix   
       keff_or_time_diff: if (present(keff)) then
          
-         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, diffusivity_gi, dshape, detwei)
-         
+         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, &
+                                                            diffusivity_gi, &
+                                                            dshape, &
+                                                            detwei)
+
       else keff_or_time_diff
          
-         ! theta and dt need including ...
-         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, diffusivity_gi, dshape, detwei)
+            ! fill in ...
          
       end if keff_or_time_diff
                
-      ! add the vele removal term 
+      ! add the absortion term 
       keff_or_time_removal: if (present(keff)) then
          
          matrix_addto = matrix_addto + shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                   ele_shape(particle_flux(g)%ptr,vele),detwei)*&
-                                       radmat_vele%removal(g,1)
-         
+                                                   ele_shape(particle_flux(g)%ptr,vele), &
+                                                   detwei*ele_val_at_quad(absorption,vele))
+
       else keff_or_time_removal
          
-         ! theta and dt need including ...
-         matrix_addto = matrix_addto + shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                   ele_shape(particle_flux(g)%ptr,vele),detwei)*&
-                                       radmat_vele%removal(g,1)
+            ! fill in ...
          
       end if keff_or_time_removal 
-                                
-      ! include the isotropic sources - scatter, production, delayed and prescribed
-         
-      ! include the other group to this group g scatter source and the spectrum production source         
-      group_loop: do g_dash = 1,number_of_energy_groups
-                                 
-         keff_or_time: if (present(keff)) then
-            
-            ! add the scatter - not the within group
-            not_within_group_eig: if (g /= g_dash) then
-                  
-               rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                          ele_shape(particle_flux(g_dash)%ptr,vele),detwei), &
-                                              ele_val(particle_flux(g_dash)%ptr,vele))* &
-                                       radmat_vele%scatter(g_dash,g,1)
-          
-            end if not_within_group_eig
-            
-            ! add the spectrum production - this is the eigenvector
-            rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                       ele_shape(particle_flux_old(g_dash)%ptr,vele),detwei), &
-                                           ele_val(particle_flux_old(g_dash)%ptr,vele))* &
-                                    radmat_vele%production(g_dash)*radmat_vele%prompt_spectrum(g)/keff
-                                          
-         else keff_or_time
-  
-            ! add the scatter - not the within group
-            not_within_group_time: if (g /= g_dash) then
-                  
-               rhs_addto = rhs_addto + (theta*matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                                 ele_shape(particle_flux(g_dash)%ptr,vele),detwei), &
-                                                     ele_val(particle_flux(g_dash)%ptr,vele)) + &
-                                        (1.0-theta)*matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                                       ele_shape(particle_flux_old(g_dash)%ptr,vele),detwei), &
-                                                           ele_val(particle_flux_old(g_dash)%ptr,vele)))* &                                       
-                                       radmat_vele%scatter(g_dash,g,1)
-
-            end if not_within_group_time
-
-            ! add the spectrum production    
-            rhs_addto = rhs_addto + (theta*matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                              ele_shape(particle_flux(g_dash)%ptr,vele),detwei), &
-                                                  ele_val(particle_flux(g_dash)%ptr,vele)) + &
-                                     (1.0-theta)*matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                                    ele_shape(particle_flux_old(g_dash)%ptr,vele),detwei), &
-                                                        ele_val(particle_flux_old(g_dash)%ptr,vele)))* &                                       
-                                    radmat_vele%production(g_dash)*radmat_vele%prompt_spectrum(g)
-                           
-         end if keff_or_time
-                                 
-      end do group_loop
-      
-      ! if time run include the prescribed source and delayed source
+                                               
+      ! if time run include the prescribed source
       time_run: if (.not. present(keff)) then
-            
-         ! include the delayed source
-         add_delayed_source: if (particle_group_g_assemble_options%have_delayed) then
-            
-            ! fill in ...
-            
-         end if add_delayed_source
-      
+                  
          add_prescribed_isotropic_source: if (particle_group_g_assemble_options%include_prescribed_source) then
             
             ! loop each prescribed source and add in
@@ -527,7 +778,9 @@ contains
                                                                              trim(particle_group_g_assemble_options%prescribed_source_field_name(s)), &
                                                                              stat=status)
                    
-                   rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele),detwei*ele_val(prescribed_isotropic_source_field,vele))
+                   rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele), &
+                                                     detwei*ele_val(prescribed_isotropic_source_field, &
+                                                     vele))
                   
                end if source_this_group
                
@@ -536,7 +789,7 @@ contains
          end if add_prescribed_isotropic_source
       
       end if time_run
-       
+
       ! insert the local vele matrix and rhs into the global arrays 
       call addto(matrix, &
                  ele_nodes(particle_flux(g)%ptr, vele), &

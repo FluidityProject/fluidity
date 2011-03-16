@@ -119,8 +119,7 @@ contains
                                    keff_old, &
                                    state, &
                                    particle_radmat, &
-                                   particle_radmat_ii, &
-                                   number_of_energy_groups)
+                                   particle_radmat_ii)
 
          call check_power_iteration_convergence(power_iteration_converged, &
                                                 keff, &
@@ -130,15 +129,13 @@ contains
                                                 trim(particle_radmat%name), &
                                                 number_of_energy_groups, &
                                                 power_iteration_options)
-                  
-         ewrite(1,*) 'keff: ',keff
-         
+                           
          if (power_iteration_converged) exit power_iteration
                   
       end do power_iteration
       
       ! set the Keff into the constant scalar field for output
-      keff_field => extract_scalar_field(state,trim(particle_radmat%name)//'Keff')    
+      keff_field => extract_scalar_field(state,'ParticleKeff'//trim(particle_radmat%name))    
        
       call set(keff_field,keff) 
        
@@ -235,8 +232,7 @@ contains
                                    keff_old, &
                                    state,&
                                    particle_radmat, &
-                                   particle_radmat_ii, &
-                                   number_of_energy_groups) 
+                                   particle_radmat_ii) 
       
       !!< Calculate the latest eigenvalue as:
       !!< keff_new = keff_old*(integral_dv(production_source*production_source)/integral_dv(production_source*production_source_old))
@@ -246,84 +242,135 @@ contains
       type(state_type), intent(in) :: state      
       type(particle_radmat_type), intent(in) :: particle_radmat
       type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
-      integer, intent(in) :: number_of_energy_groups      
       
       ! local variables
       integer :: status
       integer :: g
+      integer :: g_set
+      integer :: g_global
       integer :: vele
+      integer :: number_of_energy_groups
+      integer :: number_of_energy_group_set
       real :: k_top
       real :: k_bottom
       real, dimension(:,:), allocatable :: mass_matrix_vele
       real, dimension(:), allocatable :: detwei_vele
+      real, dimension(:), allocatable :: production_val_quad_vele      
       type(vector_field), pointer :: positions 
-      type(radmat_type) :: radmat_vele 
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old
+      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: particle_flux_old
+      type(scalar_field) :: production_coeff      
+      type(mesh_type), pointer :: material_fn_space
       character(len=OPTION_PATH_LEN) :: positions_mesh_name
-
+      character(len=OPTION_PATH_LEN) :: material_fn_space_name
+      character(len=OPTION_PATH_LEN) :: energy_group_set_path
+      
+      ewrite(1,*) 'Calculate Keff'
+      
       ! intialise variables that are summed up
       k_top    = 0.0
       k_bottom = 0.0
       
-      ! extract the neutral particle flux fields for all energy groups
-      call extract_flux_all_group(state, &
-                                  trim(trim(particle_radmat%name)), & 
-                                  number_of_energy_groups, &
-                                  particle_flux = particle_flux, &
-                                  particle_flux_old = particle_flux_old)
+      ! deduce the number of energy group sets
+      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_group_set')
       
-      ! integrate each energy group
-      group_loop: do g = 1,number_of_energy_groups
-          
-         ! set the positions mesh name for this group - currently assume all groups have same positions
+      ! initialise the global group counter
+      g_global = 0
+      
+      energy_group_set_loop: do g_set = 1,number_of_energy_group_set
+
+         ! set the positions mesh name for this group set - currently assume all group sets have same positions
          positions_mesh_name = 'Coordinate'
          
          ! extract the positions 
          positions => extract_vector_field(state, trim(positions_mesh_name), stat=status)  
 
-         ! loop the volume elements to perform the integration
-         velement_loop: do vele = 1,ele_count(particle_flux(g)%ptr)
-                                                                      
-            ! get the vele production cross section for all energy groups
-            call form(radmat_vele, &
-                      particle_radmat_ii, &
+         ! set the energy_group_set path
+         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+         
+         ! get the material fn space name for this group set
+         call get_option(trim(energy_group_set_path)//'/angular_discretisation/mesh/name',material_fn_space_name)
+      
+         ! extract the material fn_space of this energy group set of this particle type 
+         material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+
+         ! get the number_energy_groups within this set
+         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)         
+         
+         ! allocate the the production field for this group set
+         call allocate(production_coeff, &
+                       material_fn_space, & 
+                       'ParticleProduction')
+                           
+         ! integrate each energy group within this group set
+         group_loop: do g = 1,number_of_energy_groups
+            
+            g_global = g_global + 1
+            
+            ! extract the group particle flux
+            call extract_flux_group_g(state, &
+                                      trim(trim(particle_radmat%name)), & 
+                                      g_global, &
+                                      particle_flux = particle_flux, &
+                                      particle_flux_old = particle_flux_old)
+            
+            call zero(production_coeff)
+            
+            ! form the production field for this energy group
+            call form(material_fn_space, &
+                      particle_radmat_ii%energy_group_set_ii(g_set), &
                       particle_radmat, &
-                      vele, &
-                      form_production = .true.)
+                      production_coeff, &
+                      g, &
+                      component = 'production')
+            
+            ! loop the volume elements to perform the integration
+            velement_loop: do vele = 1,ele_count(particle_flux)
         
-            ! allocate the jacobian transform and gauss weight array for this vele
-            allocate(detwei_vele(ele_ngi(particle_flux(g)%ptr,vele)))
+               ! allocate the jacobian transform and gauss weight array for this vele
+               allocate(detwei_vele(ele_ngi(particle_flux,vele)))
          
-            ! allocate the local mass matrix for this vele
-            allocate(mass_matrix_vele(ele_loc(particle_flux(g)%ptr,vele),ele_loc(particle_flux(g)%ptr,vele)))
+               ! allocate the local mass matrix for this vele
+               allocate(mass_matrix_vele(ele_loc(particle_flux,vele),ele_loc(particle_flux,vele)))
                  
-            ! form the velement jacobian transform and gauss weight
-            call transform_to_physical(positions, vele, detwei = detwei_vele)
+               ! form the velement jacobian transform and gauss weight
+               call transform_to_physical(positions, vele, detwei = detwei_vele)
+               
+               allocate(production_val_quad_vele(ele_ngi(production_coeff, vele)))
+               
+               production_val_quad_vele = 0.0
+               
+               ! get the production field values at the quadrature points
+               production_val_quad_vele = ele_val_at_quad(production_coeff, vele)
+               
+               ! form the square of each of these values
+               production_val_quad_vele = production_val_quad_vele**2
                   
-            ! form the mass matrix
-            mass_matrix_vele = shape_shape(ele_shape(particle_flux(g)%ptr,vele),ele_shape(particle_flux(g)%ptr,vele),detwei_vele)
+               ! form the mass matrix
+               mass_matrix_vele = shape_shape(ele_shape(particle_flux,vele),ele_shape(particle_flux,vele),detwei_vele*production_val_quad_vele)
                                     
-            k_top = k_top + dot_product(ele_val(particle_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(particle_flux(g)%ptr,vele)))*radmat_vele%production(g)**2
+               k_top = k_top + dot_product(ele_val(particle_flux,vele),matmul(mass_matrix_vele,ele_val(particle_flux,vele)))
 
-            k_bottom = k_bottom + dot_product(ele_val(particle_flux(g)%ptr,vele),matmul(mass_matrix_vele,ele_val(particle_flux_old(g)%ptr,vele)))*radmat_vele%production(g)**2
+               k_bottom = k_bottom + dot_product(ele_val(particle_flux,vele),matmul(mass_matrix_vele,ele_val(particle_flux_old,vele)))
          
-            deallocate(detwei_vele)
-            deallocate(mass_matrix_vele)
-                                 
-            call destroy(radmat_vele)
-         
-         end do velement_loop
+               deallocate(detwei_vele)
+               deallocate(mass_matrix_vele)
+               deallocate(production_val_quad_vele)
+                                          
+            end do velement_loop
 
-      end do group_loop
+         end do group_loop
+         
+         ! deallocate this group set production coeff field
+         call deallocate(production_coeff)
+      
+      end do energy_group_set_loop
       
       ! form the latest keff estimate
       keff = keff_old*k_top/k_bottom
-      
-      ! deallocate the np flux pointer fields
-      call deallocate_flux_all_group(particle_flux = particle_flux, &
-                                     particle_flux_old = particle_flux_old)
-            
+
+      ewrite(1,*) 'Keff: ',keff     
+                
    end subroutine calculate_eigenvalue  
 
    ! --------------------------------------------------------------------------

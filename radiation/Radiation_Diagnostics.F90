@@ -65,6 +65,7 @@ contains
       
       else eig_register
       
+         ! fill in ...
             
       end if eig_register
            
@@ -82,7 +83,7 @@ contains
       ewrite(1,*) 'Radiation eigenvalue run register diagnostics for particle type ',trim(particle_name)
       
       call register_diagnostic(dim       = 1, &
-                               name      = trim(particle_name)//'Keff', &
+                               name      = 'ParticleKeff'//trim(particle_name), &
                                statistic = 'Value')
       
    end subroutine radiation_eigenvalue_register_diagnostics
@@ -105,11 +106,11 @@ contains
       ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for particle type ',trim(particle_name)
       
       keff_field => extract_scalar_field(state, &
-                                         trim(particle_name)//'Keff')
+                                         'ParticleKeff'//trim(particle_name))
       
       keff = node_val(keff_field,1)
  
-      call set_diagnostic(name      = trim(particle_name)//'Keff',  &
+      call set_diagnostic(name      = 'ParticleKeff'//trim(particle_name),  &
                           statistic = 'Value', &
                           value     = (/keff/))
       

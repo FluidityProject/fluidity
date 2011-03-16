@@ -12,9 +12,9 @@
     <!-- Radiation diffusion eigenvalue problem with 1 material, 3 energy groups no upscatter with all reflective BC using a 1d geometry compared to analytic solution for the keff and flux ratio, this is ABC problem 74-->
   </problem_definition>
   <variables>
-    <variable name="neutronKeff" language="python">
+    <variable name="ParticleKeffneutron" language="python">
 from fluidity_tools import stat_parser as stat
-neutronKeff = stat("rad_1d_3grp_hom_inf_eig.stat")["neutronKeff1"]["Value"][0]
+ParticleKeffneutron = stat("rad_1d_3grp_hom_inf_eig.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
     <variable name="FluxGroup1neutron" language="python">
 import vtktools
@@ -33,10 +33,10 @@ FluxGroup3neutron = max(v.GetScalarRange("ParticleFluxGroup3neutron"))
     </variable>    
   </variables>
   <pass_tests>
-    <test name="Check neutronKeff against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check ParticleKeffneutron against analytic with tolerance 1.0e-06" language="python">
 analytic_keff = 1.6
-print 'Relative error compared to analytic: ',abs((neutronKeff - analytic_keff)/analytic_keff)
-assert abs((neutronKeff - analytic_keff)/analytic_keff) &lt; 1.0e-06
+print 'Relative error compared to analytic: ',abs((ParticleKeffneutron - analytic_keff)/analytic_keff)
+assert abs((ParticleKeffneutron - analytic_keff)/analytic_keff) &lt; 1.0e-06
     </test>
     <test name="Check Flux ratio of group 2 to group 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.480

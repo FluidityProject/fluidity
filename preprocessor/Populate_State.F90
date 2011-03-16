@@ -1367,8 +1367,11 @@ contains
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
       character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path
       character(len=OPTION_PATH_LEN) :: angular_path, angular_name, energy_group_set_path
+      character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name, discretised_source_fn_space_name
       type(scalar_field) :: aux_sfield
+      type(tensor_field) :: aux_tfield
       type(mesh_type), pointer :: x_mesh
+      type(mesh_type), pointer :: material_fn_space
       
       ewrite(1,*) 'Allocate and insert radiation fields'
             
@@ -1389,7 +1392,7 @@ contains
          neutron_keff: if (trim(particle_type_name) == 'neutron') then
          
             x_mesh => extract_mesh(states, 'CoordinateMesh')
-            call allocate(aux_sfield, x_mesh, trim(particle_type_name)//'Keff', field_type=FIELD_TYPE_CONSTANT)
+            call allocate(aux_sfield, x_mesh, 'ParticleKeff'//trim(particle_type_name), field_type=FIELD_TYPE_CONSTANT)
             aux_sfield%option_path = ''
             call zero(aux_sfield)
             call insert(state, aux_sfield, trim(aux_sfield%name))
@@ -1424,9 +1427,48 @@ contains
             
             ! create the necessary fields for the particular angular discretisation
             angular_discr_if: if (angular_name == 'diffusion') then
-                      
+
+               ! get the material fn space name for this group set
+               call get_option(trim(angular_path)//'/mesh/name',material_fn_space_name)
+   
+               ! extract the material fn_space of this energy group set of this particle type 
+               material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+               
+               ! get the discretised source fn space name for this group set
+               call get_option(trim(angular_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
+                                 
+               ! allocate and insert the diffusivity, absorption and discretised source assemble fields
+               ! - each group then has similar aliased fields to these allocated and inserted after
+               
+               ! field path is not needed
+               field_path = '' 
+               
+               ! form the parent field name 
+               parent_field_name = 'ParticleFluxGroupSet'//int2str(g_set)//trim(particle_type_name)
+               
+               ! the call the 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
+               call allocate(aux_tfield, material_fn_space, trim(parent_field_name)//'Diffusivity')
+               aux_tfield%option_path = ''
+               call zero(aux_tfield)
+               call insert(state, aux_tfield, trim(aux_tfield%name))
+               call deallocate(aux_tfield)
+
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(material_fn_space_name), &
+                                                     parent_name = trim(parent_field_name), &
+                                                     field_name = 'Absorption', &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+               
+               ! the discretised source is on the solution fn space
+               call allocate_and_insert_scalar_field(trim(field_path), &
+                                                     state, &
+                                                     parent_mesh = trim(discretised_source_fn_space_name), &
+                                                     parent_name = trim(parent_field_name), &
+                                                     field_name = 'DiscretisedSource', &
+                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                    
                ! create the particle flux fields needed for diffusion theory
-               ! - also insert a similar set of fields preappended with 'Old' that is the start of time step (or power iteration)
                group_loop: do g = start_group,end_group
                   
                   ! increase the global group count
@@ -1434,13 +1476,39 @@ contains
                    
                   field_path = trim(angular_path)//'/scalar_field::ParticleFlux'
                                     
-                  ! form the field name 
+                  ! form the field name for solution 
                   field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_type_name)
                   
+                  ! allocate and insert the solution fields
                   call allocate_and_insert_scalar_field(trim(field_path), &
                                                         state, &
                                                         field_name = trim(field_name), &
                                                         dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
+                  
+                  ! allocate and insert the diffusivity, absorption and source fields that 
+                  ! are actually aliased to corresponding group set fields
+                  
+                  aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
+                  aux_tfield%name        = trim(field_name)//'Diffusivity'
+                  aux_tfield%option_path = ""
+                  aux_tfield%aliased     = .true.
+                  
+                  call insert(state, aux_tfield, trim(aux_tfield%name))
+
+                  aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
+                  aux_sfield%name        = trim(field_name)//'Absorption'
+                  aux_sfield%option_path = ""
+                  aux_sfield%aliased     = .true.
+                  
+                  call insert(state, aux_sfield, trim(aux_sfield%name))
+
+                  aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'DiscretisedSource')
+                  aux_sfield%name        = trim(field_name)//'DiscretisedSource'
+                  aux_sfield%option_path = ""
+                  aux_sfield%aliased     = .true.
+                  
+                  call insert(state, aux_sfield, trim(aux_sfield%name))
+                                    
                end do group_loop
             
             else angular_discr_if

@@ -36,67 +36,74 @@ module radiation_materials_interpolation_data_types
    private 
 
    public :: particle_radmat_ii_type, &
-             particle_radmat_ii_size_type, &
-             region_id_vele_ii_size_type, &
-             region_id_vele_ii_type, &
-             dataset_vele_ii_type, &
-             physical_radmat_vele_ii_type
+             energy_group_set_ii_type, &
+             ii_size_type, &
+             region_id_ii_size_type, &
+             region_id_ii_type, &
+             dataset_ii_type, &
+             physical_radmat_ii_type
 
    
-   ! the interpolation instructions for a particular physical material that is associated with an vele 
-   type physical_radmat_vele_ii_type
+   ! the interpolation instructions for a particular physical material 
+   type physical_radmat_ii_type
       ! the physical radmat number 
       integer :: physical_radmat_number
       ! the ii fraction for each dimension of this physical material
       real, dimension(:), allocatable :: fraction
       ! the ii radmat base coordinate
       integer, dimension(:), allocatable :: radmat_base_coordinate
-   end type physical_radmat_vele_ii_type
+   end type physical_radmat_ii_type
 
    
-   ! the interpolation instructions associated with a particular particle dataset_radmat that is associated with an vele
-   type dataset_vele_ii_type
+   ! the interpolation instructions associated with a particular particle dataset_radmat 
+   type dataset_ii_type
       ! the dataset radmat number
       integer :: dataset_radmat_number 
-      ! the interpolation instructions for the physical material that is associated with an vele 
-      type(physical_radmat_vele_ii_type) :: physical_radmat_vele_ii
-   end type dataset_vele_ii_type
+      ! the interpolation instructions for the physical material 
+      type(physical_radmat_ii_type) :: physical_radmat_ii
+   end type dataset_ii_type
 
    
-   ! the interpolation instructions associated with region id options for a particular vele
-   type region_id_vele_ii_type
-      ! the interpolation instructions of the dataset mapped via region ids to this vele
-      type(dataset_vele_ii_type) :: dataset_vele_ii
-   end type region_id_vele_ii_type
+   ! the interpolation instructions associated with region id options
+   type region_id_ii_type
+      ! the interpolation instructions of the dataset mapped 
+      type(dataset_ii_type) :: dataset_ii
+   end type region_id_ii_type
 
    
    ! the interpolation instruction sizes associated with region id mapping
-   type region_id_vele_ii_size_type
+   type region_id_ii_size_type
       ! the fraction size for the ii (also the radmat_base_coordinate size)
       integer :: fraction_size
-   end type region_id_vele_ii_size_type
+   end type region_id_ii_size_type
 
 
    ! the interpolation instructions sizes 
-   type particle_radmat_ii_size_type
-      ! the interpolation instruction size for each vele associated with region id mapping
-      type(region_id_vele_ii_size_type), dimension(:), allocatable :: region_id_vele_ii_size  
+   type ii_size_type
+      ! the interpolation instruction size for each dof of the material mesh associated with region id mapping
+      type(region_id_ii_size_type), dimension(:), allocatable :: region_id_ii_size  
      ! a logical flag to say if these interpolation instruction size have been set
       logical :: size_set=.false.      
-   end type particle_radmat_ii_size_type
+   end type ii_size_type
 
+   
+   ! the ii for each energy group set as these have different material meshes
+   type energy_group_set_ii_type
+      ! the interpolation instructions for each dof of the material mesh associated with region id mapping
+      type(region_id_ii_type), dimension(:), allocatable :: region_id_ii  
+      ! the interpolation instructions sizes 
+      type(ii_size_type) :: ii_size    
+   end type energy_group_set_ii_type
+   
    
    ! the particle radiation material (radmat) interpolation instructions (ii) type
    type particle_radmat_ii_type
-      ! the interpolation instructions for each vele associated with region id mapping
-      type(region_id_vele_ii_type), dimension(:), allocatable :: region_id_vele_ii  
-      ! the interpolation instructions sizes 
-      type(particle_radmat_ii_size_type) :: particle_radmat_ii_size 
+      ! the ii for each energy group set as these have different material meshes
+      type(energy_group_set_ii_type), dimension(:), allocatable :: energy_group_set_ii
       ! a logical flag to say if these ii have been created
       logical :: created=.false.
       ! a logical flag to say if these ii have been formed
       logical :: formed=.false.
    end type particle_radmat_ii_type
-
    
 end module radiation_materials_interpolation_data_types

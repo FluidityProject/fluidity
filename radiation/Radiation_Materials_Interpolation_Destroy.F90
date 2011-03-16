@@ -39,10 +39,12 @@ module radiation_materials_interpolation_destroy
    
    interface destroy
       module procedure particle_radmat_ii_destroy, &
-                       region_id_vele_ii_all_destroy, &
-                       region_id_vele_ii_destroy, &
-                       dataset_vele_ii_destroy, &
-                       particle_radmat_ii_size_destroy
+                       energy_group_set_all_destroy, &
+                       energy_group_set_destroy, &
+                       region_id_ii_all_destroy, &
+                       region_id_ii_destroy, &
+                       dataset_ii_destroy, &
+                       ii_size_destroy
    end interface destroy
 
 contains
@@ -54,14 +56,12 @@ contains
       !!< Destroy the particle_radmat_ii type
 
       type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
-            
-      region_id_ii_deallocate: if (allocated(particle_radmat_ii%region_id_vele_ii)) then
-         
-         call destroy(particle_radmat_ii%region_id_vele_ii)
-                  
-      end if region_id_ii_deallocate
       
-      call destroy(particle_radmat_ii%particle_radmat_ii_size)
+      energy_group_set_ii_deallocate: if (allocated(particle_radmat_ii%energy_group_set_ii)) then
+            
+         call destroy(particle_radmat_ii%energy_group_set_ii)
+         
+      end if energy_group_set_ii_deallocate
 
       ! set the flags      
       particle_radmat_ii%created = .false.
@@ -71,78 +71,117 @@ contains
    end subroutine particle_radmat_ii_destroy
 
    ! --------------------------------------------------------------------------
-
-   subroutine region_id_vele_ii_all_destroy(region_id_vele_ii)
+   
+   subroutine energy_group_set_all_destroy(energy_group_set_ii)
       
-      !!< Destroy the region_id_vele_ii type for all vele
-       
-      type(region_id_vele_ii_type), dimension(:), allocatable, intent(inout) :: region_id_vele_ii
+      !!< Destroy all the energy_group_set_ii type
+      
+      type(energy_group_set_ii_type), dimension(:), allocatable, intent(inout) :: energy_group_set_ii
       
       ! local variables
-      integer :: vele
-         
-      vele_loop: do vele = 1,size(region_id_vele_ii) 
-                     
-         call destroy(region_id_vele_ii(vele))
-         
-      end do vele_loop
-         
-      deallocate(region_id_vele_ii)
+      integer :: g_set
       
-   end subroutine region_id_vele_ii_all_destroy
+      energy_group_set_loop: do g_set = 1,size(energy_group_set_ii)
+         
+         call destroy(energy_group_set_ii(g_set))
+         
+      end do energy_group_set_loop
+      
+      deallocate(energy_group_set_ii)
+   
+   end subroutine energy_group_set_all_destroy
 
    ! --------------------------------------------------------------------------
-
-   subroutine region_id_vele_ii_destroy(region_id_vele_ii)
-
-      !!< Destroy the region_id_vele_ii type for one vele
-
-      type(region_id_vele_ii_type), intent(inout) :: region_id_vele_ii
+   
+   subroutine energy_group_set_destroy(energy_group_set_ii)
       
-      call destroy(region_id_vele_ii%dataset_vele_ii)
+      !!< Destroy the energy_group_set_ii type
       
-   end subroutine region_id_vele_ii_destroy
-
-   ! --------------------------------------------------------------------------
-
-   subroutine dataset_vele_ii_destroy(dataset_vele_ii)
-
-      !!< Destroy the dataset_vele_ii type 
-
-      type(dataset_vele_ii_type), intent(inout) :: dataset_vele_ii
+      type(energy_group_set_ii_type), intent(inout) :: energy_group_set_ii
             
-      fraction_deallocate: if (allocated(dataset_vele_ii%physical_radmat_vele_ii%fraction)) then
+      region_id_ii_deallocate: if (allocated(energy_group_set_ii%region_id_ii)) then
+         
+         call destroy(energy_group_set_ii%region_id_ii)
+                  
+      end if region_id_ii_deallocate
+      
+      call destroy(energy_group_set_ii%ii_size)
+   
+   end subroutine energy_group_set_destroy
+
+   ! --------------------------------------------------------------------------
+
+   subroutine region_id_ii_all_destroy(region_id_ii)
+      
+      !!< Destroy all the region_id_ii type 
+       
+      type(region_id_ii_type), dimension(:), allocatable, intent(inout) :: region_id_ii
+      
+      ! local variables
+      integer :: n
+         
+      node_loop: do n = 1,size(region_id_ii) 
+                     
+         call destroy(region_id_ii(n))
+         
+      end do node_loop
+         
+      deallocate(region_id_ii)
+      
+   end subroutine region_id_ii_all_destroy
+
+   ! --------------------------------------------------------------------------
+
+   subroutine region_id_ii_destroy(region_id_ii)
+
+      !!< Destroy the region_id_ii type
+
+      type(region_id_ii_type), intent(inout) :: region_id_ii
+      
+      call destroy(region_id_ii%dataset_ii)
+      
+   end subroutine region_id_ii_destroy
+
+   ! --------------------------------------------------------------------------
+
+   subroutine dataset_ii_destroy(dataset_ii)
+
+      !!< Destroy the dataset_ii type 
+
+      type(dataset_ii_type), intent(inout) :: dataset_ii
+            
+      fraction_deallocate: if (allocated(dataset_ii%physical_radmat_ii%fraction)) then
                
-         deallocate(dataset_vele_ii%physical_radmat_vele_ii%fraction)
+         deallocate(dataset_ii%physical_radmat_ii%fraction)
             
       end if fraction_deallocate
 
-      coordinate_deallocate: if (allocated(dataset_vele_ii%physical_radmat_vele_ii%radmat_base_coordinate)) then
+      coordinate_deallocate: if (allocated(dataset_ii%physical_radmat_ii%radmat_base_coordinate)) then
                
-         deallocate(dataset_vele_ii%physical_radmat_vele_ii%radmat_base_coordinate)
+         deallocate(dataset_ii%physical_radmat_ii%radmat_base_coordinate)
             
       end if coordinate_deallocate
       
-   end subroutine dataset_vele_ii_destroy
+   end subroutine dataset_ii_destroy
 
    ! --------------------------------------------------------------------------
 
-   subroutine particle_radmat_ii_size_destroy(particle_radmat_ii_size)
+   subroutine ii_size_destroy(ii_size)
       
-      !!< Destroy the particle_radmat_ii_size type
+      !!< Destroy the ii_size type
       
-      type(particle_radmat_ii_size_type), intent(inout) :: particle_radmat_ii_size
+      type(ii_size_type), intent(inout) :: ii_size
       
-      region_id_ii_size_deallocate: if (allocated(particle_radmat_ii_size%region_id_vele_ii_size)) then
+      region_id_ii_size_deallocate: if (allocated(ii_size%region_id_ii_size)) then
          
-         deallocate(particle_radmat_ii_size%region_id_vele_ii_size)
+         deallocate(ii_size%region_id_ii_size)
                
       end if region_id_ii_size_deallocate
       
       ! set the flag
-      particle_radmat_ii_size%size_set = .false.
+      ii_size%size_set = .false.
       
-   end subroutine particle_radmat_ii_size_destroy
+   end subroutine ii_size_destroy
 
    ! --------------------------------------------------------------------------
 

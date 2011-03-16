@@ -37,13 +37,16 @@ module radiation_extract_flux_field
    use state_module  
    use fields
    
+   use radiation_energy_group_set_tools
+   
    implicit none
    
    private 
 
    public :: extract_flux_all_group, &
              deallocate_flux_all_group, &
-             extract_flux_group_g 
+             extract_flux_group_g, &
+             extract_flux_group_from_group_set 
 
 contains
 
@@ -188,6 +191,70 @@ contains
       end if extract_old
             
    end subroutine extract_flux_group_g
+
+   ! --------------------------------------------------------------------------
+
+   subroutine extract_flux_group_from_group_set(state, &
+                                                particle_option_path, & 
+                                                g, &
+                                                g_set, &
+                                                particle_flux, &
+                                                particle_flux_old) 
+   
+      !!< Extract the particle latest and old flux fields for group g
+      !!< within group set g_set from state. g is the within set number not the global number
+
+      type(state_type), intent(in) :: state
+      character(len=*), intent(in) :: particle_option_path
+      integer, intent(in) :: g
+      integer, intent(in) :: g_set
+      type(scalar_field), pointer, optional :: particle_flux 
+      type(scalar_field), pointer, optional :: particle_flux_old
+      
+      ! local variables
+      integer :: status
+      integer :: first_g_in_g_set
+      integer :: global_g
+      character(len=OPTION_PATH_LEN) :: field_name
+      character(len=OPTION_PATH_LEN) :: field_name_old      
+      character(len=OPTION_PATH_LEN) :: particle_name      
+
+      ! determine the first energy group in this group set
+      call first_g_within_group_set(g_set, &
+                                    trim(particle_option_path), &
+                                    first_g_in_g_set)
+            
+      ! determine the global group from the first group number in g_set 
+      global_g = first_g_in_g_set + g - 1
+      
+      ! determine the particle name
+      call get_option(trim(particle_option_path)//'/name',particle_name)
+      
+      extract_latest: if (present(particle_flux)) then
+            
+         ! form the field name using the particle_name and group number global_g 
+         field_name = 'ParticleFluxGroup'//int2str(global_g)//trim(particle_name)
+
+         ! extract the field
+         particle_flux => extract_scalar_field(state, &
+                                               trim(field_name), &
+                                               stat=status)
+
+      end if extract_latest
+       
+      extract_old: if (present(particle_flux_old)) then
+       
+         ! form the old field name using the particle_name and group global_g number
+         field_name_old = 'OldParticleFluxGroup'//int2str(global_g)//trim(particle_name)
+
+         ! extract the field
+         particle_flux_old => extract_scalar_field(state, &
+                                                   trim(field_name_old), &
+                                                   stat=status)
+      
+      end if extract_old
+            
+   end subroutine extract_flux_group_from_group_set
 
    ! --------------------------------------------------------------------------
 

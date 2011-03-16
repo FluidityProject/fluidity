@@ -33,7 +33,7 @@ module radiation_materials_interpolation
    use radiation_materials_interpolation_create
    use radiation_materials_interpolation_destroy
    use radiation_materials_interpolation_form_ii
-   use radiation_materials_interpolation_form_radmat_vele
+   use radiation_materials_interpolation_form_radmat
 
    implicit none
    

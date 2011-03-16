@@ -48,9 +48,10 @@ module radiation_materials_interpolation_form_ii
    
    interface form
       module procedure form_particle_radmat_ii, &
-                       form_region_id_vele_ii_all, &
-                       form_dataset_vele_ii, &
-                       form_physical_radmat_vele_ii, &
+                       form_energy_group_set_ii, &
+                       form_region_id_ii_all, &
+                       form_dataset_ii, &
+                       form_physical_radmat_ii, &
                        form_fraction_and_radmat_base_coordinate
    end interface form
    
@@ -62,15 +63,15 @@ contains
                                       particle_radmat, &
                                       state) 
    
-      !!< Form the material data interpolation/mixing instructions for each DoF of the 
-      !!< ParticleMaterialMesh which is assumed to be FV element wise
+      !!< Form the material data interpolation/mixing instructions for each DoF of the material mesh
+      !!< of each group set for this particle type
 
       type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
       type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
             
       ! local variables
-      character(len=OPTION_PATH_LEN) :: region_id_path
+      integer :: g_set
      
       ! first check that the particle_radmat_ii data type has been created
       check_created: if (.not. particle_radmat_ii%created) then
@@ -79,21 +80,15 @@ contains
          
       end if check_created
       
-      ! region id ii form
-      region_id_ii_form: if (allocated(particle_radmat_ii%region_id_vele_ii)) then
-
-         region_id_path = trim(particle_radmat%option_path)//'/region_id_material_mapping'
+      energy_group_set_loop: do g_set = 1,size(particle_radmat_ii%energy_group_set_ii)
          
-         ! zero the region_id_vele_ii components
-         call zero(particle_radmat_ii%region_id_vele_ii)
-            
-         ! form the values for region id ii
-         call form(particle_radmat, &
+         call form(particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle_radmat, &
                    state, &
-                   particle_radmat_ii%region_id_vele_ii)
-                                  
-      end if region_id_ii_form
+                   g_set)
       
+      end do energy_group_set_loop
+               
       ! set the flag for formed
       particle_radmat_ii%formed = .true.
       
@@ -101,45 +96,91 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine form_region_id_vele_ii_all(particle_radmat, &
-                                         state, &
-                                         region_id_vele_ii)
+   subroutine form_energy_group_set_ii(energy_group_set_ii, &
+                                       particle_radmat, &
+                                       state, &
+                                       g_set)
       
-      !!< Form region_id_vele_ii values for all vele
+      type(energy_group_set_ii_type), intent(inout) :: energy_group_set_ii
+      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(state_type), intent(in) :: state
+      integer, intent(in) :: g_set
+
+      ! local variables
+      character(len=OPTION_PATH_LEN) :: region_id_path
+      
+      ! region id ii form
+      region_id_ii_form: if (allocated(energy_group_set_ii%region_id_ii)) then
+
+         region_id_path = trim(particle_radmat%option_path)//'/region_id_material_mapping'
+         
+         ! zero the region_id_ii components
+         call zero(energy_group_set_ii%region_id_ii)
+            
+         ! form the values for region id ii
+         call form(particle_radmat, &
+                   state, &
+                   energy_group_set_ii%region_id_ii, &
+                   g_set)
+                                  
+      end if region_id_ii_form
+      
+   end subroutine form_energy_group_set_ii
+
+   ! --------------------------------------------------------------------------
+
+   subroutine form_region_id_ii_all(particle_radmat, &
+                                    state, &
+                                    region_id_ii, &
+                                    g_set)
+      
+      !!< Form region_id_vele_ii values for all the material mesh dof
       
       type(particle_radmat_type), intent(in) :: particle_radmat
       type(state_type), intent(in) :: state
-      type(region_id_vele_ii_type), dimension(:), allocatable, intent(inout) :: region_id_vele_ii
+      type(region_id_ii_type), dimension(:), allocatable, intent(inout) :: region_id_ii
+      integer, intent(in) :: g_set
       
       ! local variables
       logical :: found_mapping
       integer :: id
       integer :: vele
       integer :: imap
+      integer :: iloc
       integer :: region_id_mapping_shape(2)
       integer, dimension(:), allocatable :: region_id_mapping
+      integer, dimension(:), pointer :: element_nodes      
       character(len=OPTION_PATH_LEN) :: region_id_mapping_path 
       character(len=OPTION_PATH_LEN) :: data_set_filename 
       character(len=OPTION_PATH_LEN) :: physical_material_name 
+      character(len=OPTION_PATH_LEN) :: material_fn_space_name
+      type(mesh_type), pointer :: material_fn_space
       type(scalar_field), pointer :: particle_flux
       
-      ! first check that region_id_vele_ii is allocated
-      check_allocated: if (.not. allocated(region_id_vele_ii)) then
+      ! first check that region_id_ii is allocated
+      check_allocated: if (.not. allocated(region_id_ii)) then
          
-         FLAbort('Cannot form region_id_vele_ii if it is not already allocated')
+         FLAbort('Cannot form region_id_ii if it is not already allocated')
          
       end if check_allocated
-      
-      ! extract the g 1 np flux field to find the volume elements region id    
-      call extract_flux_group_g(state, &
-                                trim(particle_radmat%name), &
-                                g = 1, &  
-                                particle_flux = particle_flux)
-       
+            
+      ! extract the first group within this group set to find the volume elements region id    
+      call extract_flux_group_from_group_set(state, &
+                                             trim(particle_radmat%option_path), &
+                                             g = 1, &  
+                                             g_set = g_set, & 
+                                             particle_flux = particle_flux)
+             
       region_id_mapping_path = trim(particle_radmat%option_path)//'/region_id_material_mapping/region_to_physical_radiation_material_map'
+
+      ! get the material fn space name
+      call get_option(trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/mesh/name',material_fn_space_name)
+      
+      ! extract the material fn_space of this energy group set of this particle type 
+      material_fn_space => extract_mesh(state, trim(material_fn_space_name))
       
       ! form each volume element ii
-      vele_loop: do vele = 1,size(region_id_vele_ii)
+      vele_loop: do vele = 1,size(region_id_ii)
              
          ! check each region to physical radiation material mapping within the options             
          region_mapping_loop: do imap = 1,option_count(trim(region_id_mapping_path)) 
@@ -164,13 +205,20 @@ contains
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//&
                                  &']/radiation_physical_material_name/name',physical_material_name)
                   
-                  call form(region_id_vele_ii(vele)%dataset_vele_ii, &
-                            particle_radmat, &
-                            trim(data_set_filename), &
-                            trim(physical_material_name), &
-                            found_mapping, &
-                            vele, &
-                            state)
+                  ! form the ii for each discontinuous dof
+                  element_nodes => ele_nodes(material_fn_space, vele)
+                              
+                  local_node_loop: do iloc = 1, size(element_nodes)
+                  
+                     call form(region_id_ii(element_nodes(iloc))%dataset_ii, &
+                               particle_radmat, &
+                               trim(data_set_filename), &
+                               trim(physical_material_name), &
+                               found_mapping, &
+                               element_nodes(iloc), &
+                               state)
+                  
+                  end do local_node_loop
                   
                   ! if found a mapping for this vele exit the region mapping loop
                   if (found_mapping) exit region_mapping_loop
@@ -184,36 +232,29 @@ contains
          end do region_mapping_loop
              
          if (allocated(region_id_mapping)) deallocate(region_id_mapping)
-             
-         no_region_id_map_found: if (region_id_vele_ii(vele)%dataset_vele_ii%physical_radmat_vele_ii%physical_radmat_number == 0) then
                 
-            ewrite(-1,*) 'Error for vele',vele
-            FLAbort('Error in form_region_id_vele_ii_all as no region id mapping found for the vele')
-             
-         end if no_region_id_map_found
-   
       end do vele_loop
       
-   end subroutine form_region_id_vele_ii_all
+   end subroutine form_region_id_ii_all
 
    ! --------------------------------------------------------------------------
 
-   subroutine form_dataset_vele_ii(dataset_vele_ii, &
-                                   particle_radmat, &
-                                   data_set_filename, &
-                                   physical_material_name, &
-                                   found_mapping, &
-                                   vele, &
-                                   state)
+   subroutine form_dataset_ii(dataset_ii, &
+                              particle_radmat, &
+                              data_set_filename, &
+                              physical_material_name, &
+                              found_mapping, &
+                              inode, &
+                              state)
    
-      !!< Form the dataset_vele_ii type associated with this vele
+      !!< Form the dataset_ii type associated with this dof 
       
-      type(dataset_vele_ii_type), intent(inout) :: dataset_vele_ii
+      type(dataset_ii_type), intent(inout) :: dataset_ii
       type(particle_radmat_type), intent(in) :: particle_radmat
       character(len=*), intent(in) :: data_set_filename
       character(len=*), intent(in) :: physical_material_name
       logical, intent(out) :: found_mapping
-      integer, intent(in) :: vele
+      integer, intent(in) :: inode
       type(state_type), intent(in) :: state
       
       ! local variables
@@ -226,13 +267,13 @@ contains
          
          dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%file_name) == trim(data_set_filename)) then
 
-            dataset_vele_ii%dataset_radmat_number = dmat
+            dataset_ii%dataset_radmat_number = dmat
             
-            call form(dataset_vele_ii%physical_radmat_vele_ii, &
+            call form(dataset_ii%physical_radmat_ii, &
                       particle_radmat%dataset_radmats(dmat), &
                       physical_material_name, &
                       found_mapping, &
-                      vele, &
+                      inode, &
                       state)
             
             ! if found a mapping exit the dmat loop
@@ -242,24 +283,24 @@ contains
            
      end do dmat_loop
       
-   end subroutine form_dataset_vele_ii
+   end subroutine form_dataset_ii
 
    ! --------------------------------------------------------------------------
 
-   subroutine form_physical_radmat_vele_ii(physical_radmat_vele_ii, &
-                                           dataset_radmat, &
-                                           physical_material_name, &
-                                           found_mapping, &
-                                           vele, &
-                                           state)
+   subroutine form_physical_radmat_ii(physical_radmat_ii, &
+                                      dataset_radmat, &
+                                      physical_material_name, &
+                                      found_mapping, &
+                                      inode, &
+                                      state)
    
-      !!< Form the physical_radmat_vele_ii type associated with this vele
+      !!< Form the physical_radmat_vele_ii type associated with this dof
       
-      type(physical_radmat_vele_ii_type), intent(inout) :: physical_radmat_vele_ii
+      type(physical_radmat_ii_type), intent(inout) :: physical_radmat_ii
       type(dataset_radmat_type), intent(in) :: dataset_radmat
       character(len=*), intent(in) :: physical_material_name
       logical, intent(inout) :: found_mapping
-      integer, intent(in) :: vele
+      integer, intent(in) :: inode
       type(state_type), intent(in) :: state
 
       ! local variables
@@ -269,12 +310,12 @@ contains
        
          pmat_match: if (trim(dataset_radmat%physical_radmats(pmat)%name) == trim(physical_material_name)) then
          
-            physical_radmat_vele_ii%physical_radmat_number = pmat
+            physical_radmat_ii%physical_radmat_number = pmat
             
-            call form(physical_radmat_vele_ii%fraction, &
-                      physical_radmat_vele_ii%radmat_base_coordinate, &
+            call form(physical_radmat_ii%fraction, &
+                      physical_radmat_ii%radmat_base_coordinate, &
                       dataset_radmat%physical_radmats(pmat), &
-                      vele, &
+                      inode, &
                       state)
                     
             ! found a mapping so set flag and exit
@@ -286,22 +327,22 @@ contains
       
       end do pmat_loop
       
-   end subroutine form_physical_radmat_vele_ii
+   end subroutine form_physical_radmat_ii
 
    ! --------------------------------------------------------------------------
 
    subroutine form_fraction_and_radmat_base_coordinate(fraction, &
                                                        radmat_base_coordinate, &
                                                        physical_radmat, &
-                                                       vele, &
+                                                       inode, &
                                                        state)
    
-      !!< Form the ii fraction and radmat_base_coordinate associated with this vele
+      !!< Form the ii fraction and radmat_base_coordinate associated with this dof
       
       real, dimension(:), intent(inout) :: fraction
       integer, dimension(:), intent(inout) :: radmat_base_coordinate
       type(physical_radmat_type), intent(in) :: physical_radmat
-      integer, intent(in) :: vele
+      integer, intent(in) :: inode
       type(state_type), intent(in) :: state
 
       ! local variables
@@ -309,7 +350,6 @@ contains
       integer :: v
       integer :: f
       integer :: interpolation_values_shape(2)
-      real :: vele_val(1)
       real, dimension(:), allocatable :: interpolation_values
       real :: actual_value
       character(len=OPTION_PATH_LEN) :: interpolation_dimension_path      
@@ -343,11 +383,8 @@ contains
               sfield => extract_scalar_field(state, &
                                              trim(scalar_field_name), &
                                              stat=status)
-              
-              vele_val = ele_val(sfield, &
-                                 vele)
-              
-              actual_value = vele_val(1)
+                            
+              actual_value = node_val(sfield, inode)
               
             end if attribute_if
             
