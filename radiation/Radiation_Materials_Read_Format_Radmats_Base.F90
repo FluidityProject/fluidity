@@ -1631,9 +1631,9 @@ contains
       
       ! local variables
       logical :: exit_if_eof
-      integer :: g,gstart,gend,g_to_read,idummy
+      integer :: g,gstart,gend,g_to_read
       integer :: number_of_energy_groups,first_keyword_found
-      character(len=7) :: cdummy
+      character(len=record_len) :: cdummy,c_gstart,c_gend
       character(len=record_len) :: line_string
                
       ! find the number of groups from the size of the scatter
@@ -1659,8 +1659,14 @@ contains
          end if check_found 
          
          ! now read the GROUP line (in the string) to find gstart and gend
-         read(line_string,'(a5,i7,a6,i7,a5,i7)') cdummy,idummy,cdummy,gstart,cdummy,gend
          
+         ! read the sub strings of the string
+         read(line_string,*) cdummy,cdummy,cdummy,c_gstart,cdummy,c_gend
+         
+         ! read the integers of the substrings
+         read(c_gstart,*) gstart
+         read(c_gend,*) gend
+       
          ! calc the number of groups to read in
          g_to_read = gend - gstart + 1
          
