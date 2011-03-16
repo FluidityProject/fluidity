@@ -648,7 +648,9 @@ contains
       
 
 #ifdef _OPENMP
-       num_threads = omp_get_max_threads()
+      num_threads = omp_get_max_threads()
+#else 
+      num_threads=1
 #endif
 
     if(num_threads>1) then
