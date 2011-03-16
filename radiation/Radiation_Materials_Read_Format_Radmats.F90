@@ -111,8 +111,7 @@ contains
       end do total_material_loop
       
       ! initiliase the base module via creating the format_radmats keyword list
-      call keyword_list_initialise_format_radmats(number_of_scatter_moments, &
-                                                  keyword_list)
+      call keyword_list_initialise_format_radmats(keyword_list)
             
       ! get a free io unit for format_radmats file
       format_radmats_file_unit = free_unit()

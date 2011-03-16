@@ -69,26 +69,20 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine keyword_list_initialise_format_radmats(number_of_scatter_moments, &
-                                                     keyword_list)
+   subroutine keyword_list_initialise_format_radmats(keyword_list)
       
       !!< Form the keyword list used when searching the format_radmats file
 
-      integer, intent(in) :: number_of_scatter_moments
       character(len=*), dimension(:), allocatable, intent(inout) :: keyword_list     
-       
-      ! local variables
-      integer :: m
-      character(len=7) :: scatter_moment_number_str
       
       check_allocated: if (allocated(keyword_list)) then
       
          FLAbort("Cannot allocate already allocated keyword_list in module radiation_materials_read_format_radmats_base")
       
       else check_allocated
-      
-         allocate(keyword_list(21+number_of_scatter_moments),STAT=status)
          
+         allocate(keyword_list(22),STAT=status)
+               
          if (status /= 0) FLAbort("Issue allocating memory for keyword_list in module radiation_materials_read_format_radmats_base")
          
          keyword_list(1)  = 'MACRO'
@@ -112,16 +106,8 @@ contains
          keyword_list(19) = 'DELAYED_SPECTRUM' 
          keyword_list(20) = 'GROUP' 
          keyword_list(21) = 'DELAYED_GROUPS' 
-      
-         scatter_loop: do m = 1,number_of_scatter_moments
-  
-            ! form the scatter moment number str
-            write(scatter_moment_number_str,'(i7)') m
-      
-            keyword_list(21+m) = 'SCATTER MOMENT'//scatter_moment_number_str 
-               
-         end do scatter_loop
-      
+         keyword_list(22) = 'SCATTER'
+                     
       end if check_allocated
        
    end subroutine keyword_list_initialise_format_radmats
@@ -171,7 +157,6 @@ contains
       integer :: line_number_difference,line_number_first_fisschi         
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
       character(len=record_len) :: line_string
-      character(len=21), dimension(22) :: keyword_list_scatter_find ! for searching for SCATTER keyword
       logical :: end_of_file
            
       ! read from start of file - initialise line number 
@@ -219,7 +204,7 @@ contains
       
       line_number_first_macro = line_number
                         
-      ! find the first 'SCATTER MOMENT      1' keyword line 
+      ! find the first 'SCATTER' keyword line 
       allocate(keyword_find(1))
       keyword_find(1) = 22
       exit_if_eof = .true.
@@ -250,13 +235,9 @@ contains
                           go_to_line_number=line_number_first_macro, &
                           exit_if_eor=.true.,&
                           exit_if_eof=.true.) 
-      
-      ! set another keyword list for searching for the SCATTER to deduce number of scatter moments
-      keyword_list_scatter_find(1:21) = keyword_list(1:21)
-      
-      keyword_list_scatter_find(22) = 'SCATTER'
-      
-      ! now count number of SCATTER in first MACRO (stop if find next MACRO
+            
+      ! Deduce the number of scatter moment via now count number of lines with 
+      ! SCATTER in first MACRO (stop if find next MACRO)
       keyword_to_count = 22
       keyword_to_stop = 1
       call count_number_lines_with_keyword(format_radmats_file_unit, &
@@ -264,7 +245,7 @@ contains
                                            number_of_scatter_moments_format_radmats, &
                                            keyword_to_count, &
                                            record_len, &
-                                           keyword_list_scatter_find, &
+                                           keyword_list, &
                                            keyword_to_stop=keyword_to_stop)                                                  
                        
       ! go back to the line number of the first macro
@@ -392,10 +373,16 @@ contains
       
       ! local variables
       logical :: exit_if_eof
-      integer :: m,number_of_scatter_moments,line_number_macro,first_keyword_found,desired_keyword
+      integer :: m,m_check
+      integer :: number_of_scatter_moments
+      integer :: line_number_macro
+      integer :: first_keyword_found
+      integer :: desired_keyword
+      integer :: m_read 
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find      
       character(len=record_len) :: line_string   
-      
+      character(len=record_len) :: cdummy,c_m_read   
+
       ! find the number of scatter moments from the size of scatter
       number_of_scatter_moments = size(radmat%scatter,3)
       
@@ -409,26 +396,40 @@ contains
       keyword_find(1) = 1
 
       read_scatter_mom_loop: do m = 1,number_of_scatter_moments
-                        
-         keyword_find(2) = 21 + m
-         call find_line_with_any_desired_keyword(format_radmats_file_unit, &
-                                                 line_number, &
-                                                 first_keyword_found, &
-                                                 exit_if_eof, &
-                                                 keyword_find, &
-                                                 keyword_list, &
-                                                 line_string)          
-          
-         ! exit if not found SCATTER MOMENT as this is always needed
-         desired_keyword = 2
-         desired_if: if (first_keyword_found /= desired_keyword) then 
-            
-            call desired_keyword_not_first_found(keyword_find, &
-                                                 desired_keyword, &
-                                                 first_keyword_found, &
-                                                 keyword_list)
+                                 
+         keyword_find(2) = 22
          
-         end if desired_if
+         ! check each line sequentially that has the keyword SCATTER to if this is the moment we want
+         check_scatter_loop: do m_check = 1,number_of_scatter_moments
+         
+            call find_line_with_any_desired_keyword(format_radmats_file_unit, &
+                                                    line_number, &
+                                                    first_keyword_found, &
+                                                    exit_if_eof, &
+                                                    keyword_find, &
+                                                    keyword_list, &
+                                                    line_string)          
+          
+            ! exit if not found SCATTER as this is always needed
+            desired_keyword = 2
+            desired_if: if (first_keyword_found /= desired_keyword) then 
+            
+               call desired_keyword_not_first_found(keyword_find, &
+                                                    desired_keyword, &
+                                                    first_keyword_found, &
+                                                    keyword_list)
+         
+            end if desired_if
+            
+            ! find which moment in the file this is
+            read(line_string,*) cdummy,cdummy,c_m_read
+            
+            read(c_m_read,*) m_read
+       
+            ! exit if this is the correct moment to read
+            if (m == m_read) exit check_scatter_loop
+            
+         end do check_scatter_loop
             
          ! now read in the SCATTER MOMENT 
          call read_format_radmats_sigs_style_xsection(radmat%scatter(:,:,m), &
@@ -450,7 +451,7 @@ contains
       
       ! set tag to say scatter is now set in for this radmat
       radmat%scatter_set = .true.
-         
+     
    end subroutine read_scatter_mom_format_radmats
    
    ! --------------------------------------------------------------------------

@@ -44,7 +44,7 @@ subroutine test_radiation_materials_read_format_radmats_base
    ! local variables
    logical :: has_failed,has_warned
    character(len=*), parameter :: rad_input_test_dir = 'data/'
-   character(len=21), dimension(:), allocatable :: keyword_list_two_moments     
+   character(len=21), dimension(:), allocatable :: keyword_list     
    type(particle_radmat_type) :: particle_radmat_1
    integer :: file_unit_1,file_unit_2,file_unit_3,file_unit_4
       
@@ -64,7 +64,7 @@ subroutine test_radiation_materials_read_format_radmats_base
    call open_format_radmats_input(file_unit = file_unit_4, &
                                   file_name = rad_input_test_dir//'radiation_materials_read_input4.radmats')
    
-   call test_keyword_list_initialise_format_radmats_two_scatter_moments(keyword_list_two_moments) 
+   call test_keyword_list_initialise_format_radmats(keyword_list) 
    
    call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_1, &
                                                    total_number_of_radmats   = 10,&
@@ -73,7 +73,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                    number_non_thermal_groups = 1, &
                                                    number_of_delayed_groups  = 6, &
                                                    record_len                = 132, &
-                                                   keyword_list              = keyword_list_two_moments)
+                                                   keyword_list              = keyword_list)
    
    call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_2, &
                                                    total_number_of_radmats   = 10 ,&
@@ -82,7 +82,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                    number_non_thermal_groups = 3, &
                                                    number_of_delayed_groups  = 8, &
                                                    record_len                = 132, &
-                                                   keyword_list              = keyword_list_two_moments)
+                                                   keyword_list              = keyword_list)
    
    call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_3, &
                                                    total_number_of_radmats   = 10 ,&
@@ -91,7 +91,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                    number_non_thermal_groups = 5, &
                                                    number_of_delayed_groups  = 0, &
                                                    record_len                = 132, &
-                                                   keyword_list              = keyword_list_two_moments)
+                                                   keyword_list              = keyword_list)
    
    call test_deduce_number_of_items_format_radmats(file_unit                 = file_unit_4, &
                                                    total_number_of_radmats   = 10 ,&
@@ -100,7 +100,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                    number_non_thermal_groups = 92, &
                                                    number_of_delayed_groups  = 0, &
                                                    record_len                = 132, &
-                                                   keyword_list              = keyword_list_two_moments)
+                                                   keyword_list              = keyword_list)
 
    ! create the particle_radmat's associated with the input files opened above
    call create_particle_radmat_input1(particle_radmat_1)
@@ -109,32 +109,32 @@ subroutine test_radiation_materials_read_format_radmats_base
                                              record_len           = 132, &
                                              dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                              particle_radmat_size = particle_radmat_1%particle_radmat_size, &
-                                             keyword_list         = keyword_list_two_moments) 
+                                             keyword_list         = keyword_list) 
                                        
    call test_read_absorption_and_total_format_radmats(file_unit            = file_unit_1, &
                                                       record_len           = 132, &
                                                       dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                                       particle_radmat_size = particle_radmat_1%particle_radmat_size, &
-                                                      keyword_list         = keyword_list_two_moments) 
+                                                      keyword_list         = keyword_list) 
    
    call test_calculate_removal_moments_format_radmats(file_unit            = file_unit_1, &
                                                       record_len           = 132, &
                                                       dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                                       particle_radmat_size = particle_radmat_1%particle_radmat_size, &
-                                                      keyword_list   = keyword_list_two_moments) 
+                                                      keyword_list   = keyword_list) 
       
    call test_read_or_associate_transport_and_diffusion_format_radmats(file_unit            = file_unit_1, &
                                                                       record_len           = 132, &
                                                                       dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                                                       particle_radmat_size = particle_radmat_1%particle_radmat_size, &
-                                                                      keyword_list         = keyword_list_two_moments, &
+                                                                      keyword_list         = keyword_list, &
                                                                       problem_dim          = 3)
 
    call test_read_fission_data_format_radmats(file_unit                 = file_unit_1, &
                                               record_len                = 132, &
                                               dataset_radmat            = particle_radmat_1%dataset_radmats(1), &
                                               particle_radmat_size      = particle_radmat_1%particle_radmat_size, &
-                                              keyword_list              = keyword_list_two_moments, &
+                                              keyword_list              = keyword_list, &
                                               number_non_thermal_groups = 1 ) 
          
    call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
@@ -143,7 +143,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                      record_len          = 132, &
                                                      dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
                                                      particle_radmat_size= particle_radmat_1%particle_radmat_size, &
-                                                     keyword_list        = keyword_list_two_moments)
+                                                     keyword_list        = keyword_list)
    
    call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
                                                      keyword_line_number = 1060, &
@@ -151,7 +151,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                      record_len          = 132, &
                                                      dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
                                                      particle_radmat_size= particle_radmat_1%particle_radmat_size, &
-                                                     keyword_list        = keyword_list_two_moments)
+                                                     keyword_list        = keyword_list)
    
    ! read the delayed data - beta, lambda and spectrum
    call test_read_delayed_data_format_radmats(file_unit               = file_unit_1, &
@@ -159,7 +159,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                               dataset_radmat          = particle_radmat_1%dataset_radmats(1), &
                                               particle_radmat_size    = particle_radmat_1%particle_radmat_size, &
                                               delayed_lambda_spectrum = particle_radmat_1%delayed_lambda_spectrum, &
-                                              keyword_list            = keyword_list_two_moments) 
+                                              keyword_list            = keyword_list) 
    
    ! read the energy released through the power rotuine
    call test_read_power_data_format_radmats(file_unit            = file_unit_1, &
@@ -167,7 +167,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                             dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                             particle_radmat_size = particle_radmat_1%particle_radmat_size, &
                                             test_power           = .false., &
-                                            keyword_list         = keyword_list_two_moments)
+                                            keyword_list         = keyword_list)
 
    call test_calculate_power_format_radmats(dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
                                             particle_radmat_size = particle_radmat_1%particle_radmat_size) 
@@ -265,7 +265,7 @@ subroutine test_radiation_materials_read_format_radmats_base
 & 0.000000E-00,0.000000E-00,0.000000E-00,2.930392E-02,3.323453E-01,1.958612E-03, &
 & 0.000000E-00,0.000000E-00,0.000000E-00,2.042756E-05,3.644267E-02,3.808241E-01 &
                                                                          & /),(/6,6/)), &
-                                                      keyword_list       = keyword_list_two_moments)
+                                                      keyword_list       = keyword_list)
 
    call test_read_format_radmats_sigs_style_xsection(file_unit           = file_unit_3, &
                                                      keyword_line_number = 97, &
@@ -307,11 +307,11 @@ subroutine test_radiation_materials_read_format_radmats_base
 &  0.000000E-00, 4.603376E-16, 0.000000E-00, 0.000000E-00, 0.000000E-00,-1.606018E-07,-1.049360E-05,-1.532755E-03,-1.343326E-02, 1.696245E-02,-1.894755E-03,  &
 &  0.000000E-00, 0.000000E-00, 0.000000E-00, 0.000000E-00, 0.000000E-00,-1.281481E-08,-3.559836E-08,-4.955521E-05,-9.057373E-04,-5.232302E-03,-5.618228E-03  &
                                                                          & /),(/11,11/)), &
-                                                     keyword_list       = keyword_list_two_moments)
+                                                     keyword_list       = keyword_list)
 
    call test_count_number_lines_with_keyword(file_unit              = file_unit_1, &
                                              record_len             = 132, &
-                                             keyword_list           = keyword_list_two_moments, &
+                                             keyword_list           = keyword_list, &
                                              keyword_to_count       = 2, &
                                              keyword_to_stop        = 19, &
                                              keyword_count_expected = 10, &
@@ -319,13 +319,13 @@ subroutine test_radiation_materials_read_format_radmats_base
 
    call test_find_line_with_any_keyword(file_unit                    = file_unit_1, &
                                         record_len                   = 132, &
-                                        keyword_list                 = keyword_list_two_moments, &
+                                        keyword_list                 = keyword_list, &
                                         first_keyword_found_expected = 1, &
                                         line_number_expected         = 1) 
    
    ! this will use file_unit_1
    call test_find_line_with_any_desired_keyword(record_len   = 132, &
-                                                keyword_list = keyword_list_two_moments) 
+                                                keyword_list = keyword_list) 
    
    call test_number_substrings_within_string(test_string       = 'A long time ago in a galaxy far, far away....', &
                                              test_substring    = 'far', &
@@ -351,7 +351,7 @@ subroutine test_radiation_materials_read_format_radmats_base
    ! this will use file_unit_1
    call test_go_to_line_seq(record_len = 132) 
 
-   call test_keyword_list_cleanup(keyword_list_two_moments) 
+   call test_keyword_list_cleanup(keyword_list) 
    
    close(file_unit_1)
    close(file_unit_2)
@@ -364,21 +364,20 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine test_keyword_list_initialise_format_radmats_two_scatter_moments(keyword_list)
+   subroutine test_keyword_list_initialise_format_radmats(keyword_list)
       
-      !!< Test the procedure that initialises the keyword list assuming two scatter moments
+      !!< Test the procedure that initialises the keyword list
       
       character(len=21), dimension(:), allocatable, intent(inout) :: keyword_list     
       
       ! local variables
       integer :: k
-      character(len=21), dimension(23) :: keyword_list_check     
+      character(len=21), dimension(22) :: keyword_list_check     
                    
-      call keyword_list_initialise_format_radmats(number_of_scatter_moments = 2, &
-                                                  keyword_list = keyword_list)
+      call keyword_list_initialise_format_radmats(keyword_list = keyword_list)
       
       ! check that the size of the keyword_list is correct
-      first_check: if (size(keyword_list) /= 23) then
+      first_check: if (size(keyword_list) /= 22) then
          
         has_failed = .true.
          
@@ -388,7 +387,7 @@ contains
       
       end if first_check
 
-      call report_test("[test_keyword_list_initialise_format_radmats_two_scatter_moments]", &
+      call report_test("[test_keyword_list_initialise_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed keyword_list wrong size")   
@@ -415,8 +414,7 @@ contains
       keyword_list_check(19) = 'DELAYED_SPECTRUM' 
       keyword_list_check(20) = 'GROUP'  
       keyword_list_check(21) = 'DELAYED_GROUPS'  
-      keyword_list_check(22) = 'SCATTER MOMENT      1'
-      keyword_list_check(23) = 'SCATTER MOMENT      2'     
+      keyword_list_check(22) = 'SCATTER'
      
       keyword_loop: do k = 1,size(keyword_list_check)
       
@@ -430,14 +428,14 @@ contains
       
          end if second_check
 
-         call report_test("[test_keyword_list_initialise_format_radmats_two_scatter_moments]", &
+         call report_test("[test_keyword_list_initialise_format_radmats]", &
                          has_failed, &
                          has_warned, &
                          "failed keyword_list has incorrect element "//int2str(k))   
       
       end do keyword_loop
             
-   end subroutine test_keyword_list_initialise_format_radmats_two_scatter_moments
+   end subroutine test_keyword_list_initialise_format_radmats
    
    ! --------------------------------------------------------------------------
 
