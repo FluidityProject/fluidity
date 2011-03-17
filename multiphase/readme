@@ -1,0 +1,19 @@
+to run:
+cd tests
+cd CompModel_1d_2Phases_2Components
+make clean
+make ! this compiles external functions
+../../bin/MultiphasePrototype.bin input.dat ! input.dat lives here
+
+everything that goes to the screen goes to flog.dat
+
+in input.dat: 
+### Option for debugging: if =357, then all print statements will
+### be sent to the file flog.dat, otherwise to /dev/null
+option_debug   357
+
+change option_debug to -1 make the all output flog.dat go to /dev/null
+
+
+mirror_int_data.dat: contains all the values used. 
+CheckSparsityMatrix.dat: contains the sparcity of all the matricies. 
