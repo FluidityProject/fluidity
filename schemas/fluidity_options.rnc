@@ -3918,7 +3918,8 @@ scalar_field_choice =
             (
                element prognostic {
                   velocity_mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_scalar_field,
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -3927,7 +3928,8 @@ scalar_field_choice =
                element diagnostic {
                   velocity_mesh_choice,
                   internal_algorithm,
-                  diagnostic_scalar_field_no_adapt
+                  diagnostic_scalar_field_no_adapt,
+                  cap_option?
                }
             )
          }|

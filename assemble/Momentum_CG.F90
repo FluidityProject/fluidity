@@ -1280,7 +1280,7 @@
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
            mnu, tnu, leonard, alpha, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature)
+           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
       
       ! Get only the viscous terms
@@ -1872,7 +1872,7 @@
       
     subroutine add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
          mnu, tnu, leonard, alpha, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature)
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
@@ -1898,6 +1898,9 @@
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
     
+      ! Non-linear PhaseVolumeFraction
+      type(scalar_field), intent(in) :: nvfrac
+
       integer                                                                        :: dim, dimj, gi, iloc
       real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
@@ -2067,7 +2070,13 @@
       else
         if(isotropic_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
+
+          if(multiphase) then
+             ! There's a div(u)(N grad(vfrac)) term missing here and will deal with this soon.
+             viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei*viscosity_gi(1, 1, :)*ele_val_at_quad(nvfrac, ele))
+          else
+             viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
+          end if
 
           do dim = 2, u%dim
             viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)

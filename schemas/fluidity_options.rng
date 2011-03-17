@@ -5058,6 +5058,9 @@ Required in porous_media and multiphase problem types</a:documentation>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
             <ref name="prognostic_scalar_field"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
           </element>
           <element name="prescribed">
             <ref name="velocity_mesh_choice"/>
@@ -5067,6 +5070,9 @@ Required in porous_media and multiphase problem types</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
           </element>
         </choice>
       </element>
