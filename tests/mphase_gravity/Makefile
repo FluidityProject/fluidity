@@ -1,10 +1,10 @@
 preprocess:
-	@echo **********Creating mesh for refinement N=1/16
+	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_gravity.msh src/mphase_gravity.geo
 	../../scripts/gmsh2triangle --2d mphase_gravity.msh
 
 run:
-	@echo **********Running simulation for refinement N=1/16
+	@echo **********Running simulation
 	../../bin/fluidity -v2 -l mphase_gravity.flml
 
 input: clean preprocess
