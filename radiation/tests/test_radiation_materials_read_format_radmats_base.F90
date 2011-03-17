@@ -412,6 +412,26 @@ subroutine test_radiation_materials_read_format_radmats_base
    call test_make_character_upper_case(test_character                = 'z', &
                                        test_character_upper_case_ref = 'Z')
    
+   ! the extra appended spaces in the character array constructor are necessary to compile - not for the actual test   
+   call test_read_words_from_string(test_string    = 'A   random     sentence illustrating   a lack of imagination but   with too many spaces  3.14', &
+                                    expected_words = (/'A           ', &
+                                                       'random      ', &
+                                                       'sentence    ', &
+                                                       'illustrating', &
+                                                       'a           ', &
+                                                       'lack        ', &
+                                                       'of          ', &
+                                                       'imagination ', &
+                                                       'but         ', &
+                                                       'with        ', &
+                                                       'too         ', &
+                                                       'many        ', &
+                                                       'spaces      ', &
+                                                       '3.14        '/))
+
+   call test_string_word_count(test_string              = 'A   random     sentence illustrating   a lack of imagination but   with too many spaces  3.14', &
+                               expected_number_of_words = 14)
+   
    call test_number_substrings_within_string(test_string       = 'A long time ago in a galaxy far, far away....', &
                                              test_substring    = 'far', &
                                              number_substrings = 2) 
@@ -1995,6 +2015,97 @@ contains
                       "failed for test_character "//trim(test_character))   
       
    end subroutine test_make_character_upper_case
+
+   ! --------------------------------------------------------------------------
+
+   subroutine test_read_words_from_string(test_string, &
+                                          expected_words)
+      
+      !!< Test the procedure that reads the words from a string
+      
+      character(len=*), intent(in) :: test_string
+      character(len=*), dimension(:), intent(in) :: expected_words
+      
+      ! local variables
+      integer :: w
+      character(len=len(test_string)), dimension(:), allocatable :: words 
+            
+      ! read the words
+      call read_words_from_string(test_string, &
+                                  words)
+      
+      ! check that there is the right number of words
+      first_check: if (size(expected_words) == size(words)) then
+                       
+         has_failed = .false.
+      
+      else first_check
+      
+         has_failed = .true.
+      
+      end if first_check
+   
+      call report_test("[test_read_words_from_string]", &
+                       has_failed, &
+                       has_warned, &
+                       "failed as incorrect number of words for test_string "//trim(test_string))   
+      
+      ! check each word with the expected
+      word_loop: do w = 1,size(words)
+      
+         second_check: if (trim(expected_words(w)) == trim(words(w))) then
+                       
+            has_failed = .false.
+      
+         else second_check
+      
+            has_failed = .true.
+      
+         end if second_check
+   
+         call report_test("[test_read_words_from_string]", &
+                          has_failed, &
+                          has_warned, &
+                          "failed for test_string "//trim(test_string)//" for word number "//int2str(w))   
+      
+      end do word_loop
+         
+   end subroutine test_read_words_from_string
+
+   ! --------------------------------------------------------------------------
+
+   subroutine test_string_word_count(test_string, &
+                                     expected_number_of_words)
+      
+      !!< Test the procedure that counts the number of words within a string
+      
+      character(len=*), intent(in) :: test_string
+      integer, intent(in) ::expected_number_of_words 
+            
+      ! local variables
+      integer :: number_of_words 
+            
+      ! count the words
+      call string_word_count(test_string, &
+                             number_of_words)
+      
+      ! check that there is the right number of words
+      first_check: if (expected_number_of_words == number_of_words) then
+                       
+         has_failed = .false.
+      
+      else first_check
+      
+         has_failed = .true.
+      
+      end if first_check
+   
+      call report_test("[test_string_word_count]", &
+                      has_failed, &
+                      has_warned, &
+                      "failed as incorrect number of words for test_string "//trim(test_string))   
+               
+   end subroutine test_string_word_count
 
    ! --------------------------------------------------------------------------
 

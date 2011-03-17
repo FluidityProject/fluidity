@@ -54,8 +54,7 @@ contains
                                   record_len)
       
       !!< Read a format_radmats material data set file, which also may include the data objects DELAYED, POWER and VELOCITY
-      !!< Due to the formatting of the format_radmats file associated with the scatter data this will only work with
-      !!< number_of_energy_groups < 10,000,000. Note that we may read in either SIGTRAN or DIFFUSIONX (Y,Z) numbers within a material
+      !!< Note that we may read in either SIGTRAN or DIFFUSIONX (Y,Z) numbers within a material
       !!< but not both. We may also read in either SIGTOT or SIGABS within a material but not both. We may also read in either NU or PRODUCTION 
       !!< within a material but not both. Note that the problem dimension is taken into account so that for 1d or 2d only X and X,Y SIGTRAN or DIFFUSION
       !!< terms are searched for within the file. If no SIGTRAN or DIFFUSION is found then the total is used to form SIGTRAN and DIFFUSION.

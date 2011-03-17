@@ -58,6 +58,8 @@ module radiation_materials_read_format_radmats_base
              find_line_with_any_desired_keyword, &
              all_upper_case, &
              make_character_upper_case, &
+             read_words_from_string, &
+             string_word_count, &
              number_substrings_within_string, &
              read_next_line_seq, &
              read_previous_line_seq, &
@@ -154,7 +156,9 @@ contains
             
       ! local variables
       logical :: exit_if_eof
-      integer :: count_reals,first_keyword_found
+      integer :: line
+      integer :: number_of_words
+      integer :: first_keyword_found
       integer :: line_number,line_number_first_macro,keyword_to_count,keyword_to_stop
       integer :: line_number_difference,line_number_first_fisschi         
       integer, dimension(:), allocatable :: keyword_find ! the specific keyword integer ids to find
@@ -165,7 +169,6 @@ contains
       line_number                              = 0
       line_number_first_fisschi                = 0
       line_number_difference                   = 0
-      count_reals                              = 0
       total_number_of_radmats_format_radmats   = 0
       number_of_energy_groups_format_radmats   = 0
       number_non_thermal_groups_format_radmats = 0
@@ -273,6 +276,7 @@ contains
       
       have_fisschi: if (first_keyword_found == 1) then
          
+         ! save the FISSCHI line
          line_number_first_fisschi = line_number
          
          ! find the next keyword or end of file
@@ -293,28 +297,37 @@ contains
       
          end if check_line_number_diff_again
       
-         ! read the line before other keyword again 
-         call read_previous_line_seq(format_radmats_file_unit, &
-                                     line_string, &
-                                     line_number, &
-                                     exit_if_eor=.true.,&
-                                     exit_if_eof=.true.)
+         ! put the file back to the FISSCHI line
+         call go_to_line_seq(format_radmats_file_unit, &
+                             line_number, &
+                             go_to_line_number = line_number_first_fisschi, &
+                             exit_if_eor       = .true.,&
+                             exit_if_eof       = .true.) 
 
-         ! deduce the number of scientific real numbers on the last read line (max 8 in format_radmats format) via counting the number of 'E' substrings
-         count_reals = number_substrings_within_string(line_string,'E')
-      
-         ! if no count_reals found then this is an error
-         no_count_reals_again: if (count_reals == 0) then
+         ! now read in each line with FISSCHI data on and count the number of words (reals) 
          
-            ewrite(-1,*) "Last line of format_radmats formatted file that was attempted to be read in"
-            ewrite(-1,*) trim(line_string)                       
-            FLExit("Error reading the number of FISSCHI terms before the next keyword")
-      
-         end if no_count_reals_again
-      
-         ! now deduce the number of non thermal groups using the variables line_number_difference and count_reals
-         ! note format_radmats format will have at most 8 real numbers per line
-         number_non_thermal_groups_format_radmats = (line_number_difference - 2)*8 + count_reals
+         ! initialise the count
+         number_non_thermal_groups_format_radmats = 0
+         
+         fisschi_line_loop: do line = 1,line_number_difference - 1
+         
+            ! read the next line
+            call read_next_line_seq(format_radmats_file_unit, &
+                                    line_string, &
+                                    line_number, &
+                                    end_of_file, &
+                                    exit_if_eor=.true., &
+                                    exit_if_eof=.true.)
+            
+            ! find the number of words within the line_string
+            call string_word_count(line_string, &
+                                   number_of_words)
+                        
+            number_non_thermal_groups_format_radmats = &
+            number_non_thermal_groups_format_radmats + &
+            number_of_words
+            
+         end do fisschi_line_loop
          
       end if have_fisschi
       
@@ -1578,7 +1591,8 @@ contains
                                                       record_len, &
                                                       number_groups_to_read_in)
       
-      !!< Actually read in a absorption style cross section that is off length number_of_energy_groups from a format_radmats format file 
+      !!< Actually read in a absorption style cross section that is off 
+      !!< length number_of_energy_groups from a format_radmats format file 
       
       real, dimension(:), intent(inout) :: siga_style_xsection
       integer, intent(inout) :: line_number
@@ -1587,30 +1601,36 @@ contains
       integer, optional, intent(in) :: number_groups_to_read_in
       
       ! local variables
-      integer :: g,gstart,gend,gleft,number_of_energy_groups
+      integer :: w
+      integer :: group_count
+      integer :: g_read_in
+      integer :: number_of_energy_groups
       logical :: end_of_file
-      character(len=record_len) :: line_string     
+      character(len=record_len) :: line_string   
+      character(len=record_len), dimension(:), allocatable :: words  
        
       ! find the number of groups from the size of siga
       number_of_energy_groups = size(siga_style_xsection)
       
       ! the line number is assumed at the line with the KEYWORD SIGA (or other etc.)
       
+      ! decude the number of expected groups to read in
       diff_groups: if (present(number_groups_to_read_in)) then
       
-         gleft = number_groups_to_read_in
+         g_read_in = number_groups_to_read_in
 
       else diff_groups
       
-         gleft = number_of_energy_groups
+         g_read_in = number_of_energy_groups
       
       end if diff_groups
-                  
-      gstart   = 1
+      
+      ! initialise the group count
+      group_count = 0
+      
+      ! keep reading lines until have all necessary data or error            
       read_sigabs_loop: do
-                           
-         gend = gstart + min(gleft-1,7) 
-         
+                                    
          ! read the next line
          call read_next_line_seq(format_radmats_file_unit, &
                                  line_string, &
@@ -1619,16 +1639,28 @@ contains
                                  exit_if_eor=.true., &
                                  exit_if_eof=.true.)
          
-         ! read values from line_string
-         read(line_string,*) ( siga_style_xsection(g), g = gstart,gend )
+         ! read the words from the line_string - words are substrings seperated 
+         ! by any number of blank spaces
+         call read_words_from_string(line_string, &
+                                     words)
+         
+         ! read the real data from the words array         
+         word_loop: do w = 1,size(words) 
+            
+            group_count = group_count + 1
                         
-         gstart = gstart + 8
-               
-         gleft = gleft - 8
-               
-         if (gleft <= 0) exit read_sigabs_loop
-               
-      end do read_sigabs_loop   
+            ! read the value from the word substring, if this isnt a real
+            ! it will fail here
+            read(words(w),*) siga_style_xsection(group_count)
+
+            ! exit if read all necessary group data
+            if (group_count == g_read_in) exit read_sigabs_loop
+            
+         end do word_loop
+                                 
+      end do read_sigabs_loop  
+            
+      if (allocated(words)) deallocate(words)
       
    end subroutine read_format_radmats_siga_style_xsection
    
@@ -2000,6 +2032,80 @@ contains
       end if lower_found      
    
    end subroutine make_character_upper_case
+   
+   ! --------------------------------------------------------------------------
+   
+   subroutine read_words_from_string(string, &
+                                     words)
+   
+      !!< Read all the words from a input string. Words are any sub string  
+      !!< seperated by any number of spaces
+      
+      character(len=*), intent(in) :: string
+      character(len=*), dimension(:), allocatable, intent(inout) :: words
+      
+      ! local variables
+      integer :: w
+      integer :: number_of_words
+      
+      ! deallocate words if it is already allocated
+      if (allocated(words)) deallocate(words)
+      
+      ! find the number of words within the string
+      call string_word_count(string, &
+                             number_of_words)
+      
+      ! initialise the words
+      allocate(words(number_of_words))
+      
+      words = ''
+      
+      ! read the words from the string      
+      read(string,*) (words(w), w = 1,number_of_words)
+                  
+   end subroutine read_words_from_string 
+   
+   ! --------------------------------------------------------------------------
+   
+   subroutine string_word_count(string, &
+                                number_of_words)
+      
+      !!< Count the number of words within a string. Words are any sub string
+      !!< seperated by any number of spaces
+
+      character(len=*), intent(in) :: string
+      integer, intent(out) :: number_of_words
+      
+      ! local variables
+      integer :: c
+      logical :: found_space
+      
+      ! initialise the word count
+      number_of_words = 0
+      
+      ! if the string is empty then return
+      if (len_trim(string) == 0) return
+      
+      ! sweep each character of the string inspecting for spaces ' '
+      found_space = .true.
+      char_loop: do c = 1,len_trim(string)
+         
+         ! check if the character is a space
+         check_for_space: if (string(c:c) == ' ') then
+            
+            found_space = .true.
+                     
+         else if (found_space) then
+               
+             number_of_words = number_of_words + 1
+             
+             found_space = .false.
+                           
+         end if check_for_space
+
+      end do char_loop
+      
+   end subroutine string_word_count
    
    ! --------------------------------------------------------------------------
    
