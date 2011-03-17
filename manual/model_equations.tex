@@ -9,7 +9,7 @@ This chapter covers the fluid and associated field equations modeled by {\fluidi
 \hline
 problem & underlying equations & boundary conditions & other considerations\\
 \hline
-scalar advection & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-adv} & \ref{sect:bc_scalar_dirichlet}, \ref{sect:bc_scalar_neumann}, \ref{sect:bc_scalar_robin} & × \\
+scalar advection & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-adv} & \ref{sect:bc_scalar_dirichlet}, \ref{sect:bc_scalar_neumann} & × \\
 scalar advection-diffusion & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-diff} & × & ×\\
 momentum equation & \ref{Sect:MP-MomEqn} & \ref{sect:bc_vector_dirichlet}, \ref{sect:bc_vector_stress}, \ref{sect:bc_vector_traction}, \ref{Sect:FS} & \ref{sect:eqn_extensions} \\
 \hline
@@ -117,16 +117,6 @@ The Neumann condition is specified by assigning a value to $(\kaptens\nabla c)\c
 (\kaptens\nabla c)\cdot\bmn = q,\quad \textrm{on}\quad \partial\Omega,
 \end{equation*}
 and substituting in this surface integral to the discretised equation. Note that $q$ is often termed a flux.
-
-
-\subsubsection{Robin condition for a scalar field}\label{sect:bc_scalar_robin}
-\index{boundary conditions!Robin}
-The Robin condition is similar to the Neumann condition but instead takes the form
-\begin{equation*}
-(\kaptens\nabla c)\cdot\bmn + \alpha c = q,\quad \textrm{on}\quad \partial\Omega.
-\end{equation*}
-Physically a Robin boundary condition can be interpreted as a flux condition which is dependent
-on the value of the field value $c$.
 
 
 \section{Fluid equations}\label{Sect:MP-MomEqn}

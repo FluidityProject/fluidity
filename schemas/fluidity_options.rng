@@ -3626,70 +3626,6 @@ normals and tangenials 1/2</a:documentation>
       </element>
     </choice>
   </define>
-  <!-- and again for robin b.c.s -->
-  <define name="robin_velocity_components_choice">
-    <!--
-              element align_bc_with_surface {
-                 element normal_component {
-                    element order_zero_coefficient {
-                       input_choice_real
-                    },
-                    element order_one_coefficient {
-                       input_choice_real
-                    }
-                 }?,
-                 element tangent_component_1 {
-                    element order_zero_coefficient {
-                       input_choice_real
-                    },
-                    element order_one_coefficient {
-                       input_choice_real
-                    }
-                 }?,
-                 element tangent_component_2 {
-                    element order_zero_coefficient {
-                       input_choice_real
-                    },
-                    element order_one_coefficient {
-                       input_choice_real
-                    }
-                 }?,
-                 rotation_matrix_components
-              }|
-    -->
-    <element name="align_bc_with_cartesian">
-      <optional>
-        <element name="x_component">
-          <element name="order_zero_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="order_one_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-        </element>
-      </optional>
-      <optional>
-        <element name="y_component">
-          <element name="order_zero_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="order_one_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-        </element>
-      </optional>
-      <optional>
-        <element name="z_component">
-          <element name="order_zero_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="order_one_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-        </element>
-      </optional>
-    </element>
-  </define>
   <!-- Mainly tidal harmonic diagnostics -->
   <define name="free_surface_diagnostic_options">
     <optional>
@@ -3741,12 +3677,6 @@ want this.</a:documentation>
           <value>neumann</value>
         </attribute>
         <ref name="velocity_components_choice"/>
-      </element>
-      <element name="type">
-        <attribute name="name">
-          <value>robin</value>
-        </attribute>
-        <ref name="robin_velocity_components_choice"/>
       </element>
       <element name="type">
         <a:documentation>Add a bulk formulae boundary condition. Only makes sense
@@ -8606,17 +8536,6 @@ If not selected boundary conditions are applied strongly.</a:documentation>
               <value>neumann</value>
             </attribute>
             <ref name="input_choice_real"/>
-          </element>
-          <element name="type">
-            <attribute name="name">
-              <value>robin</value>
-            </attribute>
-            <element name="order_zero_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-            <element name="order_one_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
           </element>
         </choice>
       </element>

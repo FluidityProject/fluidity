@@ -1393,18 +1393,6 @@ A Neumann boundary condition sets the derivative to the normal ($\vec n$) of the
 \frac{\partial c}{\partial n} \left(\equiv \vec{n}\cdot\nabla c\right) = f(\bmx) \quad \textrm{on}\;  \partial\Omega.
 \end{equation*}
 
-\subsubsection{Robin}
-\index{boundary conditions!Robin}
-
-A Robin boundary conditions are a weighted combination of the Dirichlet and Neumann boundary 
-conditions:
-\begin{equation*}
-\alpha c + \beta\frac{\partial c}{\partial n} = f(\bmx) \quad \textrm{on}\;  \partial\Omega,
-\end{equation*}
-
-for two constants $\alpha$ and $\beta$. In \fluidity\ these correspond to the \option{\ldots/order\_zero\_coefficient}
-and the \option{\ldots/order\_one\_coefficient} respectively.
-
 \subsubsection{Bulk formulae}\label{Sect:bulk_formulae}
 
 These boundary conditions can be used on:
