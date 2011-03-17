@@ -47,7 +47,7 @@ VPATH = ./:./src
 
 OBJS =multi_eos.o multi_sparsity.o multi_matrix_operations.o multi_shape_fct.o cv-adv-dif.o \
 multi_dyncore_dg.o multi_solvers.o multi_compositional.o multi_IO.o Multiphase_Field_Advection.o \
-Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o
+Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -77,6 +77,7 @@ multi_solvers.o: multi_shape_fct.o multi_matrix_operations.o
 Multiphase_Field_Advection.o: multi_dyncore_dg.o multi_IO.o multi_compositional.o
 Multiphase_Mom_Press_Volf.o: multi_dyncore_dg.o multi_eos.o multi_IO.o
 Multiphase_Prototype.o: multi_IO.o multi_sparsity.o Multiphase_Mom_Press_Volf.o Multiphase_Field_Advection.o
+Multiphase_Prototype_Wrapper.o: Multiphase_Prototype.o
 
 clean:
 	@rm -f *.o *.d *.mod $(PROG_EXEC)
@@ -91,14 +92,14 @@ tests: shorttest mediumtest
 # all the short tests
 shorttest: shorttests
 
-# all the short tests
+# all the medium tests
 mediumtest: mediumtests⋅
 
 # the short tests - less than 2 min
 shorttests:
-	▷⋅@cd tests; ../tools/testharness_MultiphasePrototype.py -l short
+	@cd tests; ../tools/testharness_MultiphasePrototype.py -l short
 
-# the short tests - greater than 2 min, less than 10 min
+# the medium tests - greater than 2 min, less than 10 min
 mediumtests:
-	▷⋅@cd tests; ../tools/testharness_MultiphasePrototype.py -l medium
+	@cd tests; ../tools/testharness_MultiphasePrototype.py -l medium
 

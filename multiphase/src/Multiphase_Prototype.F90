@@ -1,4 +1,4 @@
-subroutine multiphase_prototype()
+module mp_prototype
 
   use input_var
   use multiphase_mom_press_volf
@@ -7,6 +7,10 @@ subroutine multiphase_prototype()
   use printout
 
   implicit none
+  
+contains
+
+  subroutine multiphase_prototype()
 
   integer :: problem, nphase, ncomp, totele, ndim, nlev, &
        u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
@@ -675,5 +679,7 @@ subroutine multiphase_prototype()
   close( 357 )
 
 
-end subroutine multiphase_prototype
+  end subroutine multiphase_prototype
+  
+end module mp_prototype
 

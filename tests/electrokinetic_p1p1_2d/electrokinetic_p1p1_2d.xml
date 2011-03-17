@@ -3,7 +3,7 @@
 
 <testproblem>
   <name>electrokinetic_p1p1</name>
-  <owner userid="jsaund"/>
+  <owner userid="saunde01"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l electrokinetic.flml </command_line>

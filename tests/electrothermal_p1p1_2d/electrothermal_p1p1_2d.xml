@@ -3,7 +3,7 @@
 
 <testproblem>
   <name>electrothermal_p1p1_2d</name>
-  <owner userid="jsaund"/>
+  <owner userid="saunde01"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l electrothermal.flml </command_line>

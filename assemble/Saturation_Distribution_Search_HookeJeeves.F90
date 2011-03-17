@@ -43,6 +43,7 @@ module saturation_distribution_search_hookejeeves
   use spud
   use state_module
   use write_state_module
+  use momentum_equation
 
   implicit none
 
@@ -68,7 +69,7 @@ module saturation_distribution_search_hookejeeves
     type(scalar_field), pointer :: Cv
     type(vector_field), pointer :: coordinates
 
-    integer :: sections, stat, j
+    integer :: sections, stat, j, dimen
     logical :: is_vwell, do_PS
 
     ewrite(3,*) 'In search_saturations'
@@ -93,12 +94,19 @@ module saturation_distribution_search_hookejeeves
     allocate(base_point(sections))
     allocate(widths(sections))
     
+    call get_option('/geometry/dimension', dimen)
+    
     if (is_vwell) then
        call get_option(trim(option_buffer)//'y_min',search_min)
        call get_option(trim(option_buffer)//'y_max',search_max)
     else
-       call get_option(trim(option_buffer)//'z_min',search_min)
-       call get_option(trim(option_buffer)//'z_max',search_max)
+       if (dimen==3) then
+         call get_option(trim(option_buffer)//'z_min',search_min)
+         call get_option(trim(option_buffer)//'z_max',search_max)
+       elseif (dimen==2) then
+         call get_option(trim(option_buffer)//'y_min',search_min)
+         call get_option(trim(option_buffer)//'y_max',search_max)
+       endif
     endif
     call get_option(trim(option_buffer)//'width',widths(1))
     
@@ -112,7 +120,7 @@ module saturation_distribution_search_hookejeeves
        ewrite(3,*) 'Initial base point', base_point
     else
        do j=1,sections
-          base_point(j)=(search_max-search_min)/2
+          base_point(j)=(search_max+search_min)/2
        end do
     endif
     do_PS=.false.
@@ -143,7 +151,7 @@ module saturation_distribution_search_hookejeeves
      ewrite(3,*) 'setting base point', base_point
      
      ! Set minimum_step_length for now
-     minimum_step_length = 5.0
+     minimum_step_length = 0.01
   
      if (do_PS) then
 !        call write_state(dump_no, state)
@@ -257,14 +265,12 @@ module saturation_distribution_search_hookejeeves
               base_point(i)=base_point_in(i)
            else
               ! set coordinate to new value
-              ewrite(3,*) 'here 3'
               ewrite(3,*) 'Error at', base_point(i), new_error, 'less than previous error', error
               error=new_error
               global_improved=.true.
            endif
         else
            ! set coordinate to new value
-           ewrite(3,*) 'here 4'
            ewrite(3,*) 'Error at', base_point(i), new_error, 'less than previous error', error
            error=new_error
            global_improved=.true.
@@ -338,6 +344,23 @@ module saturation_distribution_search_hookejeeves
      
      ! Set saturations to point
      saturation = extract_scalar_field(state, "PhaseVolumeFraction", stat)
+     if (stat==0) then
+       !have_saturation = .true.
+     else
+       !have_saturation = .false.
+       ! try MaterialVolumeFraction
+       saturation = extract_scalar_field(state, "MaterialVolumeFraction", stat)
+       if (stat==0) then
+          ewrite(3,*) 'Got saturation from MaterialVolumeFraction'
+       else
+         ! try Tracer for quasi-multiphase
+         saturation = extract_scalar_field(state, "Tracer",stat)
+         if (stat==0) then
+            ewrite(3,*) 'Got saturation from Tracer'
+         endif
+       end if
+     end if
+
      call allocate(temp_saturation, saturation%mesh, name="OriginalSaturation")
      ewrite(3,*) 'copied to temporary saturation field'
      call set(temp_saturation,saturation)
@@ -355,7 +378,7 @@ module saturation_distribution_search_hookejeeves
         allocate(target_potential(samples,2))
         open(unit = 910, file = trim(target_filename), action = "read")
         i=1
-        err=1.0
+        err=0.001
         do while(i<=1000)
            read(910,*,end=69) target_potential(i,1:2)
 !           ewrite(3,*) 'target_potential line',i,target_potential(i,1), target_potential(i,2)
@@ -364,8 +387,16 @@ module saturation_distribution_search_hookejeeves
                  i=i+1
               endif
            else
-              if ((target_potential(i,1).ge.y_min-err).and.(target_potential(i,1).le.y_max+err)) then
-                 i=i+1
+              if (coordinates%dim==3) then
+                 if ((target_potential(i,1).ge.y_min-err).and.(target_potential(i,1).le.y_max+err)) then
+!                    ewrite(3,*) 'ymin, ymax, target',y_min, y_max, target_potential(i,1)
+                    i=i+1
+                 endif
+              elseif (coordinates%dim==2) then
+                 if ((target_potential(i,1).ge.x_min-err).and.(target_potential(i,1).le.x_max+err)) then
+!                    ewrite(3,*) 'xmin, xmax, target',x_min, x_max, target_potential(i,1)
+                    i=i+1
+                 endif
               endif
            endif
         end do
@@ -385,18 +416,31 @@ module saturation_distribution_search_hookejeeves
                  end if
               end do
            else
-              call get_option(trim(option_buffer)//'borehole_x',bh_x)
-              call get_option(trim(option_buffer)//'borehole_z',bh_z)
-              do j=1,node_count(coordinates)
-                 if ((abs(coordinates%val(X_,j)-bh_x)<err).and.(abs(coordinates%val(Z_,j)-bh_z)<err).and.&
-                    (abs(coordinates%val(Y_,j)-target_potential(i,1))<err)) then
-                    node_list(i)=j
-                 endif
-              end do
+              if (coordinates%dim==2) then
+                 call get_option(trim(option_buffer)//'borehole_z',bh_z)
+                 do j=1,node_count(coordinates)
+                    if ((abs(coordinates%val(Y_,j)-bh_z)<err).and.&
+                       (abs(coordinates%val(X_,j)-target_potential(i,1))<err)) then
+                       node_list(i)=j
+                    endif
+                 end do
+              else
+                 call get_option(trim(option_buffer)//'borehole_x',bh_x)
+                 call get_option(trim(option_buffer)//'borehole_z',bh_z)
+                 do j=1,node_count(coordinates)
+                    if ((abs(coordinates%val(X_,j)-bh_x)<err).and.(abs(coordinates%val(Z_,j)-bh_z)<err).and.&
+                       (abs(coordinates%val(Y_,j)-target_potential(i,1))<err)) then
+                       node_list(i)=j
+                    endif
+                 end do
+              endif
            endif
         end do
      end if
-!     ewrite(3,*) 'node_list: ', node_list
+     ewrite(3,*) 'node_list: ', node_list
+     
+     ! Call solve_momentum to solve for pressure with new saturations
+!     call solve_momentum(state, .false., 2, state)
      
      ! Update coupling coefficient
      Cv => extract_scalar_field(state(state_no), 'Electrokinetic[0]', stat=stat)
@@ -413,17 +457,16 @@ module saturation_distribution_search_hookejeeves
      electrical_potential=>extract_scalar_field(state(state_no), "ElectricalPotential", stat)
      allocate(model_potential(samples))
      
-     ewrite(3,*) 'getting potentials from latest model'
+     ewrite(3,*) 'samples:', samples
      do i=1,samples
         model_potential(i)=electrical_potential%val(node_list(i))
      end do
 
      ! Compare and calculate error
-!     ewrite(3,*) 'error=',error
+     ewrite(3,*) 'error=',error
 !     ewrite(3,*) 'target_potential, model_potential',target_potential(1:samples,2), model_potential
      call curve_error(target_potential(1:samples,2), model_potential, error)
-     
-     deallocate(model_potential)
+     ewrite(3,*) 'got new error', error
      
      ! add point to used_list
      call add_to_used_list(point, widths, error, used_list)
@@ -433,7 +476,6 @@ module saturation_distribution_search_hookejeeves
      
      dump_no=max(1,dump_no)
      if (dump_no.eq.1) then
-        ewrite(3,*) 'here 5'
         smallest_error=error
         call write_state(dump_no, state)
         ewrite(3,*) 'point, widths, error: ', point, widths, error
@@ -441,9 +483,15 @@ module saturation_distribution_search_hookejeeves
         write(911,10) point, widths, error
      10 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(911)
+!         open(953, file = 'model_potential_'// int2str(dump_no-1), action="write", position="append")
+!         ewrite(3,*) 'writing model potentials, samples: ', samples
+!         do i=1,samples
+!            write(953,14) target_potential(i,1), model_potential(i)
+!         end do
+!      14 FORMAT(F10.4,3X,F10.6)
+!         close(953)
         is_improved=.true.
      elseif (error<smallest_error) then
-        ewrite(3,*) 'here 6'
         smallest_error=error
         call write_state(dump_no, state)
         ewrite(3,*) 'point, widths, error: ', point, widths, error
@@ -451,6 +499,13 @@ module saturation_distribution_search_hookejeeves
         write(913,12) point, widths, error
      12 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(913)
+        open(945, file = 'model_potential_'// int2str(dump_no-1), action="write", position="append")
+        ewrite(3,*) 'writing model potentials, samples: ', samples
+        do i=1,samples
+           write(945,13) target_potential(i,1), model_potential(i)
+        end do
+     13 FORMAT(F10.4,3X,F10.6)
+        close(945)
         is_improved=.true.
      else
         error=smallest_error
@@ -459,6 +514,7 @@ module saturation_distribution_search_hookejeeves
      
      ! Set saturation back to the initial condition ready for next time
      call set(saturation,temp_saturation)
+     deallocate(model_potential)
      call deallocate(temp_saturation)
 
   end subroutine run_model
@@ -474,6 +530,7 @@ module saturation_distribution_search_hookejeeves
     real :: along_step, borehole_x
     real :: zone_along_min, err
     real, dimension(coordinates%dim, coordinates%mesh%shape%loc) :: coords
+    real, dimension(coordinates%dim) :: coords_nodal
     integer :: ele, node, in_zone_counter
     integer :: i, n, coord_along, coord_perp
     logical :: cell_centred, in_zone, is_vwell
@@ -499,12 +556,20 @@ module saturation_distribution_search_hookejeeves
        coord_perp=2
        along_step=(z_max-z_min)/size(point)
     else
-       zone_along_min=y_min
-       coord_along=2
-       coord_perp=3
-       along_step=(y_max-y_min)/size(point)
+       if (coordinates%dim==3) then
+          zone_along_min=y_min
+          coord_along=2
+          coord_perp=3
+          along_step=(y_max-y_min)/size(point)
+       elseif (coordinates%dim==2) then
+          zone_along_min=x_min
+          coord_along=1
+          coord_perp=2
+          along_step=(x_max-x_min)/size(point)
+          ewrite(3,*) 'zone_along_min, step', zone_along_min, along_step
+       endif
     endif
-    err=0.1
+    err=0.0001
     
     do i=1,size(point)
       if (cell_centred) then
@@ -515,29 +580,56 @@ module saturation_distribution_search_hookejeeves
           coords = ele_val(coordinates, ele)
           in_zone=.false.
           in_zone_counter=0
-          if ((coords(1,1).gt.borehole_x-widths(i)/2-err).and.(coords(1,1).lt.borehole_x+widths(i)/2+err).and.&
-                (coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
-                (coords(coord_perp,1).lt.point(i)+err)) then
-            do node=2,coordinates%mesh%shape%loc
-              if ((coords(1,node).gt.borehole_x-widths(i)/2-err).and.(coords(1,node).lt.borehole_x+widths(i)/2+err).and.&
-                   (coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
-                   (coords(coord_perp,node).lt.point(i)+err)) then
-                in_zone_counter=in_zone_counter+1
-              end if
-            end do
-            ! If they're ALL in the zone
-            if (in_zone_counter==coordinates%mesh%shape%loc-1) then
-               in_zone=.true.
-            endif            
-          end if
+          if (coordinates%dim==3) then
+            if ((coords(1,1).gt.borehole_x-widths(i)/2-err).and.(coords(1,1).lt.borehole_x+widths(i)/2+err).and.&
+                  (coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
+                  (coords(coord_perp,1).lt.point(i)+err)) then
+              do node=2,coordinates%mesh%shape%loc
+                if ((coords(1,node).gt.borehole_x-widths(i)/2-err).and.(coords(1,node).lt.borehole_x+widths(i)/2+err).and.&
+                     (coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
+                     (coords(coord_perp,node).lt.point(i)+err)) then
+                  in_zone_counter=in_zone_counter+1
+                end if
+              end do
+              ! If they're ALL in the zone
+              if (in_zone_counter==coordinates%mesh%shape%loc-1) then
+                 in_zone=.true.
+              endif            
+            end if
+          elseif (coordinates%dim==2) then
+            ewrite(3,*) 'in 2d'
+            if ((coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
+                  (coords(coord_perp,1).lt.point(i)+err)) then
+              do node=2,coordinates%mesh%shape%loc
+                if ((coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
+                     (coords(coord_perp,node).lt.point(i)+err)) then
+                  in_zone_counter=in_zone_counter+1
+                end if
+              end do
+              ! If they're ALL in the zone
+              if (in_zone_counter==coordinates%mesh%shape%loc-1) then
+                 in_zone=.true.
+              endif            
+            end if
+          endif
           if (in_zone) then
-            call set(saturation, ele, 0.7)
+            call set(saturation, ele, 1.0)
+!            ewrite(3,*) 'found elements in the zone'
 !            ewrite(3,*) 'coords, sat, swc, sor: ', coords, saturation%val(ele), swc%val(ele), sor%val(ele)
           end if
         end do
-!      else
- !       do node=1,n
- !       end do
+      else
+      ! Node-centred saturation
+        do node=1,n
+          coords_nodal = node_val(coordinates, node)
+          if (coordinates%dim==2) then
+!            ewrite(3,*) 'in 2d'
+            if ((coords_nodal(coord_along).gt.zone_along_min-err).and.(coords_nodal(coord_along).lt.zone_along_min+along_step+err).and.&
+                  (coords_nodal(coord_perp).lt.point(i)+err)) then
+               call set(saturation, node, 1.0)
+            end if
+          endif
+        end do
       end if
       ! move limits to next zone:
       zone_along_min=zone_along_min+along_step
@@ -630,18 +722,22 @@ module saturation_distribution_search_hookejeeves
      allocate(ncurve2(size(curve2)))
      
      ! Get rid of solver noise
-     curve1q = float(int(curve1 * 1e8 + 0.5))/1e8
-     curve2q = float(int(curve2 * 1e8 + 0.5))/1e8
+     curve1q = float(int(curve1 * 1e7 + 0.5))/1e7
+     curve2q = float(int(curve2 * 1e7 + 0.5))/1e7
      
      ! Normalise curves to run between 0 and 1
-     mini1=minval(curve1q)
-     mini2=minval(curve2q)
-     curve1q=curve1q-mini1
-     curve2q=curve2q-mini2
+!     mini1=minval(curve1q)
+!     mini2=minval(curve2q)
+!     curve1q=curve1q-mini1
+!     curve2q=curve2q-mini2
      
+!     ewrite(3,*) 'target',curve1
+!     ewrite(3,*) 'targetq',curve1q
+!     ewrite(3,*) 'curve2',curve2
+!     ewrite(3,*) 'curve2q',curve2q
      maxi1=maxval(curve1q)
      maxi2=maxval(curve2q)
-     !ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
+!     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
      if ((maxi1>0.0).and.(maxi2>0.0)) then
         ncurve1=curve1q/maxi1
         ncurve2=curve2q/maxi2
@@ -652,10 +748,6 @@ module saturation_distribution_search_hookejeeves
         error=1000.0
      endif
 !     ewrite(3,*) 'error is ', error
-!     ewrite(3,*) 'target',curve1
-!     ewrite(3,*) 'curve2',curve2
-!     ewrite(3,*) 'targetq',curve1q
-!     ewrite(3,*) 'curve2q',curve2q
 !     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
 !     ewrite(3,*) 'targetn', ncurve1
 !     ewrite(3,*) 'ncurve2', ncurve2
@@ -706,14 +798,14 @@ module saturation_distribution_search_hookejeeves
      do i=1,size(widths)
         ! increase by step length
         widths(i)=widths(i)+width_step
-        widths(i)=max(widths(i), x_min)
-        widths(i)=min(widths(i), x_max)
+!        widths(i)=max(widths(i), x_min)
+        widths(i)=min(widths(i), x_max-x_min)
         call run_model(state, state_no, base_point, widths, step_length, new_error, local_improved)
         if (.not.local_improved) then
            !decrease by step length
            widths(i)=widths_in(i)-width_step
-           widths(i)=max(widths(i), x_min)
-           widths(i)=min(widths(i), x_max)
+           widths(i)=max(widths(i), 0.0)
+!           widths(i)=min(widths(i), x_max)
            call run_model(state, state_no, base_point, widths, step_length, new_error, local_improved)
            if (.not.local_improved) then
               ! keep original

@@ -238,7 +238,6 @@ module porous_media
     if (stat/=0) then
       FLExit("Porous media problems require a permeability field.")
     end if
-
     stat = 0
   end subroutine calculate_porous_media_absorption
 

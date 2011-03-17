@@ -5152,7 +5152,7 @@ contains
     !                    Fields you've given     
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ewrite(1,*)'The following material phases and their ', &
-      'contents are in existance'
+      'contents are in existence'
     do i = 1, size(state)
        call print_state(state(i), unit=debug_unit(1))
     end do

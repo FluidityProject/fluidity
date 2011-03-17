@@ -401,7 +401,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.001</real_value>
           </reference_density>
         </linear>
       </fluids>

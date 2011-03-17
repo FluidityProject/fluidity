@@ -102,11 +102,11 @@ module spontaneous_potentials
     if (stat==0) then
       have_sigma_fs = .true.
     else
-      ewrite(3,*) 'Computing electrical conductivity of formation.'
       call allocate(conductivity, vmesh, 'ElectricalConductivity')
-      call calculate_formation_conductivity(state, i, conductivity, stat)
       have_sigma_fs = .false.
     end if
+    ewrite(3,*) 'Computing electrical conductivity of formation.'
+    call calculate_formation_conductivity(state, i, conductivity, stat)
     ewrite_minmax(conductivity)
 
     ! ELECTROKINETIC
@@ -124,6 +124,7 @@ module spontaneous_potentials
       if (stat/=0) then
         FLExit('Did not find a Pressure field.')
       end if
+      ewrite_minmax(pressure)
 
       ! assemble electrical potential source using pressure
       do ele=1,element_count(electrical_potential)
@@ -193,9 +194,12 @@ module spontaneous_potentials
       FLExit('Did not find an ElectricalPotentialDiffusivity field')
     end if
     call zero(ep_diffusivity)
+    ewrite(3,*) 'ep_diffusivity%dim(1)',ep_diffusivity%dim(1)
     do j=1,ep_diffusivity%dim(1)
+      ewrite(3,*) 'j, cond', j, conductivity%val(j)
       call set(ep_diffusivity, j, j, conductivity, symmetric=.true.)
     end do
+    ewrite(3,*) 'here1'
 
     ! initialise sparse matrix and vectors
     sparsity => get_csr_sparsity_firstorder(state, electrical_potential%mesh, electrical_potential%mesh)
@@ -214,6 +218,7 @@ module spontaneous_potentials
     call addto(rhs, ep_source)
 
     ! solve for electrical potential
+    ewrite(3,*) 'solving for potential'
     !call petsc_solve(delta_ep, matrix, rhs, option_path = electrical_potential%option_path)
     call petsc_solve(electrical_potential, matrix, rhs, option_path = electrical_potential%option_path)
     !call addto(electrical_potential, delta_ep, dt)
@@ -327,24 +332,53 @@ module spontaneous_potentials
     type(scalar_field), intent(inout) :: sigma_fs
     integer, intent(out) :: stat
     ! declare local variables
-    logical :: have_saturation
+    logical :: have_saturation, have_porosity
     integer :: j, n
     real :: sigma_o, archie, tmp
     type(scalar_field), pointer :: saturation, porosity
     type(scalar_field) :: sigma_w
-
-    ! extract porosity field
-    porosity => extract_scalar_field(state, "Porosity", stat)
-    if (stat/=0) then
-      FLExit('Did not find a Porosity field.')
-    end if
-
+    type(scalar_field), target :: porosity_manual
+    
     ! extract phase saturation if present
+    have_saturation = .false.
     saturation => extract_scalar_field(state, "PhaseVolumeFraction", stat)
     if (stat==0) then
       have_saturation = .true.
     else
-      have_saturation = .false.
+      ! try MaterialVolumeFraction
+      saturation => extract_scalar_field(state, "MaterialVolumeFraction", stat)
+      if (stat==0) then
+         have_saturation = .true.
+         ewrite(3,*) 'Got saturation from MaterialVolumeFraction'
+      else
+         ! try Tracer for quasi-multiphase
+         saturation = extract_scalar_field(state, "Tracer",stat)
+         if (stat==0) then
+            ewrite(3,*) 'Got saturation from Tracer'
+            have_saturation = .true.
+         endif
+      endif
+    end if
+
+    ! extract porosity field
+    porosity => extract_scalar_field(state, "Porosity", stat)
+    have_porosity=.true.
+    if (stat/=0) then
+       have_porosity=.false.
+       call allocate(porosity_manual, saturation%mesh, "Porosity_manual")
+       if (porosity_manual%mesh%continuity==-1) then
+          ! mesh is discontinuous
+          n = ele_count(porosity_manual)
+       else
+          ! mesh is continuous
+          n = node_count(porosity_manual)
+       end if
+       do j=1,n
+          porosity_manual%val(j) = 0.2
+       end do
+    
+       porosity => porosity_manual
+!      FLExit('Did not find a Porosity field.')
     end if
 
     ! get electrical conductivity of oil
@@ -386,6 +420,9 @@ module spontaneous_potentials
 
     ! clean up
     call deallocate(sigma_w)
+    if (.not.have_porosity) then
+      call deallocate(porosity_manual)
+    endif
 
     stat = 0
   end subroutine calculate_formation_conductivity

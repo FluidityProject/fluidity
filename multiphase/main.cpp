@@ -10,8 +10,8 @@
 #define F77_FUNC_(name,NAME) name ## _
 
 extern "C" {
-#define multiphase_prototype_fc F77_FUNC(multiphase_prototype, MULTIPHASE_PROTOTYPE)
-  void multiphase_prototype_fc();
+#define multiphase_prototype_wrapper_fc F77_FUNC(multiphase_prototype_wrapper, MULTIPHASE_PROTOTYPE_WRAPPER)
+  void multiphase_prototype_wrapper_fc();
 #ifdef USING_GFORTRAN
   /* gfortran hack to ensure 4-byte record marker for unformatted files */
   void _gfortran_set_record_marker(int);
@@ -27,7 +27,7 @@ int main(){
 #endif
      
   // Start simulator
-  multiphase_prototype_fc();    
+  multiphase_prototype_wrapper_fc();    
 
   exit(0);
 }
