@@ -169,13 +169,13 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    LD burgers_equation"
 	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
-bin/test_coupler: fluidity_library main/test_coupler.F90
-	@cd main; $(MAKE) test_coupler.o
-	@echo "BUILD test_coupler"
-	@echo "    MKDIR bin"
+bin/multiphase_prototype: fluidity_library
+	@cd multiphase; $(MAKE)
+	@echo "BUILD multiphase prototype"
+	@echo "    MKDIR multiphase"
 	@mkdir -p bin
-	@echo "    LD test_coupler"
-	@$(EVAL) $(FC) -o bin/test_coupler main/test_coupler.o $(FCFLAGS) $(LIBS)
+	@echo "    LD multiphase_prototype"
+	@$(EVAL) $(LINKER) -o bin/multiphase_prototype multiphase/main.o $(FCFLAGS) $(LIBS)
 
 bin/simple_shallow_water: fluidity_library main/Simple_Shallow_Water.F90
 	@cd main; $(MAKE) Simple_Shallow_Water.o

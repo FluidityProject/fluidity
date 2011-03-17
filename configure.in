@@ -1484,4 +1484,5 @@ AC_OUTPUT(Makefile
           libvtkfortran/Makefile 
           qg_strat/Makefile qg_strat/unittests/Makefile
           tests/lauwerier/Makefile
-	        reduced_modelling/Makefile)
+	  reduced_modelling/Makefile
+          multiphase/Makefile)

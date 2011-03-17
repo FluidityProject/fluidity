@@ -24,24 +24,24 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
-SHELL = /bin/sh
+SHELL = @SHELL@
 
-FC      = mpif90
-FCFLAGS = -I../include -I/usr/include/vtk-5.4  -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4  -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -ffree-line-length-none -ffixed-line-length-none  -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./
+FC      = @FC@
+FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
-MPIF90  = mpif90
+MPIF90  = @MPIF90@
 
-CC      = mpicc
-CFLAGS  = -I/usr/include/vtk-5.4  -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -I../include -I/usr/local/include -g
+CC      = @CC@
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
 
-CXX     = mpicxx
-CXXFLAGS= -I/usr/include/vtk-5.4  -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/python2.6/dist-packages/numpy/core/include -I../include -I/usr/local/include
+CXX     = @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
 
-MAKE    = make
-AR  = ar
-ARFLAGS = cr
+MAKE    = @MAKE@
+AR  = @AR@
+ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/libfluidity.a
+LIB = ../lib/lib@FLUIDITY@.a
 
 VPATH = ./:./src
 
