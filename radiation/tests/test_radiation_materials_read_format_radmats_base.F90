@@ -197,7 +197,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                      number_groups_to_read_in = 4) ! this is intentially 4, less than number of groups
 
    call test_read_format_radmats_siga_style_xsection(file_unit           = file_unit_3, &
-                                                     keyword_line_number = 188, &
+                                                     keyword_line_number = 210, &
                                                      number_of_groups    = 11, &
                                                      record_len          = 132, &
                                                      values_expected     = (/2.738271E+00, &
@@ -269,7 +269,7 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                       keyword_list       = keyword_list)
 
    call test_read_format_radmats_sigs_style_xsection(file_unit           = file_unit_3, &
-                                                     keyword_line_number = 97, &
+                                                     keyword_line_number = 119, &
                                                      number_of_groups    = 11, &
                                                      record_len          = 132, &
                                                      values_expected     = reshape((/ &
