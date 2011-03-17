@@ -373,6 +373,7 @@ contains
       
       ! local variables
       logical :: exit_if_eof
+      logical :: found_correct_scatter
       integer :: m,m_check
       integer :: number_of_scatter_moments
       integer :: line_number_macro
@@ -398,6 +399,9 @@ contains
       read_scatter_mom_loop: do m = 1,number_of_scatter_moments
                                  
          keyword_find(2) = 22
+         
+         ! initialise a flag of whether or not the correct SCATTER is found
+         found_correct_scatter = .false.
          
          ! check each line sequentially that has the keyword SCATTER to if this is the moment we want
          check_scatter_loop: do m_check = 1,number_of_scatter_moments
@@ -427,9 +431,23 @@ contains
             read(c_m_read,*) m_read
        
             ! exit if this is the correct moment to read
-            if (m == m_read) exit check_scatter_loop
+            found: if (m == m_read) then
+               
+               found_correct_scatter = .true.
+               
+               exit check_scatter_loop
+            
+            end if found
             
          end do check_scatter_loop
+         
+         ! exit if not found the correct SCATTER
+         not_found: if (.not. found_correct_scatter) then
+            
+            ewrite(1,*) 'Error searching for SCATTER MOMENT block ',m
+            FLExit('Error reading radiation radmats file as SCATTER MOMENT block not found')
+         
+         end if not_found
             
          ! now read in the SCATTER MOMENT 
          call read_format_radmats_sigs_style_xsection(radmat%scatter(:,:,m), &
@@ -1632,33 +1650,68 @@ contains
       
       ! local variables
       logical :: exit_if_eof
-      integer :: g,gstart,gend,g_to_read
+      logical :: found_correct_g
+      integer :: g,gstart,gend,g_to_read,g_check,g_found
+      integer :: line_number_scatter
       integer :: number_of_energy_groups,first_keyword_found
-      character(len=record_len) :: cdummy,c_gstart,c_gend
+      character(len=record_len) :: cdummy,c_gstart,c_gend,c_g_found
       character(len=record_len) :: line_string
                
       ! find the number of groups from the size of the scatter
       number_of_energy_groups = size(scatter,1)
+      
+      ! save the liner number with the keyword SCATTER 
+      line_number_scatter = line_number
                   
       group_loop: do g = 1,number_of_energy_groups
          
-         ! find the next line with group on it - which should be the next keyword
          exit_if_eof = .true.
-         call find_line_with_any_keyword(format_radmats_file_unit, &
-                                         line_number, &
-                                         first_keyword_found, &
-                                         exit_if_eof, &
-                                         keyword_list, &
-                                         line_string) 
+         
+         ! have a flag to say whether or not the correct group number is found
+         found_correct_g = .false.
+         
+         group_check_loop: do g_check = 1,number_of_energy_groups
+         
+            ! find the next line with GROUP on it - which should be the next keyword         
+            call find_line_with_any_keyword(format_radmats_file_unit, &
+                                            line_number, &
+                                            first_keyword_found, &
+                                            exit_if_eof, &
+                                            keyword_list, &
+                                            line_string) 
                   
-         ! check that we found a GROUP, rather than anything else
-         check_found: if (first_keyword_found /= 20) then
+            ! check that we found a GROUP, rather than anything else
+            check_found: if (first_keyword_found /= 20) then
             
-            ewrite(-1,*) "Did not find GROUP keyword for group",g,"when reading scatter block"
-            FLExit("Error reading format_radmats style scatter block")
+               ewrite(-1,*) "Did not find GROUP keyword for group",g_check,"when reading scatter block"
+               FLExit("Error reading format_radmats style scatter block")
          
-         end if check_found 
+            end if check_found 
+            
+            ! now read the GROUP line to find which GROUP this is
+            read(line_string,*) cdummy,c_g_found
+            
+            read(c_g_found,*) g_found
+            
+            ! if this is the correct GROUP then exit loop
+            found: if (g == g_found) then
+               
+               found_correct_g = .true.
+               
+               exit group_check_loop 
+            
+            end if found
          
+         end do group_check_loop
+         
+         ! exit if not found the correct g number
+         not_found: if (.not. found_correct_g) then
+            
+            ewrite(1,*) 'Error searching for GROUP block ',g
+            FLExit('Error reading radiation radmats file as GROUP block not found')
+         
+         end if not_found
+            
          ! now read the GROUP line (in the string) to find gstart and gend
          
          ! read the sub strings of the string
@@ -1677,6 +1730,13 @@ contains
                                                       format_radmats_file_unit, &
                                                       record_len, &
                                                       number_groups_to_read_in=g_to_read)
+
+         ! put the file back to the start of this SCATTER block
+         call go_to_line_seq(format_radmats_file_unit, &
+                             line_number, &
+                             go_to_line_number = line_number_scatter, &
+                             exit_if_eor       = .true.,&
+                             exit_if_eof       = .true.) 
       
       end do group_loop
                   
