@@ -56,6 +56,8 @@ module radiation_materials_read_format_radmats_base
              count_number_lines_with_keyword, &
              find_line_with_any_keyword, &
              find_line_with_any_desired_keyword, &
+             all_upper_case, &
+             make_character_upper_case, &
              number_substrings_within_string, &
              read_next_line_seq, &
              read_previous_line_seq, &
@@ -1902,15 +1904,13 @@ contains
          
       ! local variables
       integer :: k
-      integer :: keyword_pos
       logical :: end_of_file
-            
-      keyword_pos = 0
-      
+      character(len=len(line_string)) :: first_word
+                  
       first_keyword_found = 0
                 
       read_line: do
-         
+       
          call read_next_line_seq(file_unit, &
                                  line_string, &
                                  line_number, &
@@ -1919,13 +1919,23 @@ contains
                                  exit_if_eof=exit_if_eof)
       
          if (end_of_file) exit read_line
+         
+         ! cycle blank lines
+         if (trim(line_string) == '') cycle read_line
+         
+         ! initialise the first_word
+         first_word = ''
+          
+         ! read the first word of the line_string
+         read(line_string,*) first_word
+         
+         ! make sure the first_word is all upper case as all the keywords are upper case
+         call all_upper_case(first_word)
                                          
-         ! search line string for presense of each desired keyword in order - result > 0 if any found
+         ! check if the first word is any of the keywords - exit when found a match
          each_keyword_loop: do k = 1,size(keyword_find)
-               
-            keyword_pos = index(trim(line_string),trim(keyword_list(keyword_find(k))))
-            
-            found_keyword: if (keyword_pos > 0) then 
+
+            found_keyword: if (trim(first_word) == trim(keyword_list(keyword_find(k)))) then 
                  
                first_keyword_found = k
                   
@@ -1939,6 +1949,58 @@ contains
             
    end subroutine find_line_with_any_desired_keyword
 
+   ! --------------------------------------------------------------------------
+   
+   subroutine all_upper_case(string)
+      
+      !!< Make the input string all upper case
+      
+      character(len=*), intent(inout) :: string
+      
+      ! local variables
+      integer :: i
+      character(len=1) :: c
+            
+      char_loop: do i = 1,len(string)   
+      
+         c = string(i:i)
+         
+         call make_character_upper_case(c)
+         
+         string(i:i) = c
+      
+      end do char_loop
+
+   end subroutine all_upper_case
+   
+   ! --------------------------------------------------------------------------
+    
+   subroutine make_character_upper_case(c)
+      
+      !!< Make the character if needed upper case using the ASCII sequence 
+      !!< function assuming decimal value 
+      
+      character(len=*), intent(inout) :: c
+      
+      ! local variables
+      integer :: i
+      
+      ! first assert that the length of c is 1
+      assert(len(c) == 1)
+      
+      ! find the integer corresponding to this character in the ASCII sequence
+      i = iachar(c)
+      
+      ! the ASCII decimal alphabet lower case characters are from 97 to 122
+      ! with the corresponding upper case being -32
+      lower_found: if ((97 <= i) .and. (i <= 122)) then
+      
+         c = achar(i - 32)
+      
+      end if lower_found      
+   
+   end subroutine make_character_upper_case
+   
    ! --------------------------------------------------------------------------
    
    function number_substrings_within_string(main_string,sub_string) 

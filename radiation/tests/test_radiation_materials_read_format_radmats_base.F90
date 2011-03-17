@@ -27,7 +27,8 @@
 
 subroutine test_radiation_materials_read_format_radmats_base
    
-   !!< Test the procedures contained within the module radiation_materials_read_format_radmats_base 
+   !!< Test the procedures contained within the module 
+   !!< radiation_materials_read_format_radmats_base 
    !!< in Radiation_Materials_Read_Format_Radmats_Base.F90
    
    use futils
@@ -326,6 +327,90 @@ subroutine test_radiation_materials_read_format_radmats_base
    ! this will use file_unit_1
    call test_find_line_with_any_desired_keyword(record_len   = 132, &
                                                 keyword_list = keyword_list) 
+   
+   call test_all_upper_case(test_string                    = 'Fluidity', &
+                            test_string_all_upper_case_ref = 'FLUIDITY')
+   
+   call test_all_upper_case(test_string                    = 'Fluidity rAdiatiOn', &
+                            test_string_all_upper_case_ref = 'FLUIDITY RADIATION')
+   
+   call test_make_character_upper_case(test_character                = 'a', &
+                                       test_character_upper_case_ref = 'A')
+   
+   call test_make_character_upper_case(test_character                = 'b', &
+                                       test_character_upper_case_ref = 'B')
+  
+   call test_make_character_upper_case(test_character                = 'c', &
+                                       test_character_upper_case_ref = 'C')
+   
+   call test_make_character_upper_case(test_character                = 'd', &
+                                       test_character_upper_case_ref = 'D')
+   
+   call test_make_character_upper_case(test_character                = 'e', &
+                                       test_character_upper_case_ref = 'E')
+   
+   call test_make_character_upper_case(test_character                = 'f', &
+                                       test_character_upper_case_ref = 'F')
+   
+   call test_make_character_upper_case(test_character                = 'g', &
+                                       test_character_upper_case_ref = 'G')
+   
+   call test_make_character_upper_case(test_character                = 'h', &
+                                       test_character_upper_case_ref = 'H')
+   
+   call test_make_character_upper_case(test_character                = 'i', &
+                                       test_character_upper_case_ref = 'I')
+   
+   call test_make_character_upper_case(test_character                = 'j', &
+                                       test_character_upper_case_ref = 'J')
+   
+   call test_make_character_upper_case(test_character                = 'k', &
+                                       test_character_upper_case_ref = 'K')
+   
+   call test_make_character_upper_case(test_character                = 'l', &
+                                       test_character_upper_case_ref = 'L')
+   
+   call test_make_character_upper_case(test_character                = 'm', &
+                                       test_character_upper_case_ref = 'M')
+   
+   call test_make_character_upper_case(test_character                = 'n', &
+                                       test_character_upper_case_ref = 'N')
+   
+   call test_make_character_upper_case(test_character                = 'o', &
+                                       test_character_upper_case_ref = 'O')
+   
+   call test_make_character_upper_case(test_character                = 'p', &
+                                       test_character_upper_case_ref = 'P')
+   
+   call test_make_character_upper_case(test_character                = 'q', &
+                                       test_character_upper_case_ref = 'Q')
+   
+   call test_make_character_upper_case(test_character                = 'r', &
+                                       test_character_upper_case_ref = 'R')
+   
+   call test_make_character_upper_case(test_character                = 's', &
+                                       test_character_upper_case_ref = 'S')
+   
+   call test_make_character_upper_case(test_character                = 't', &
+                                       test_character_upper_case_ref = 'T')
+   
+   call test_make_character_upper_case(test_character                = 'u', &
+                                       test_character_upper_case_ref = 'U')
+   
+   call test_make_character_upper_case(test_character                = 'v', &
+                                       test_character_upper_case_ref = 'V')
+   
+   call test_make_character_upper_case(test_character                = 'w', &
+                                       test_character_upper_case_ref = 'W')
+   
+   call test_make_character_upper_case(test_character                = 'x', &
+                                       test_character_upper_case_ref = 'X')
+   
+   call test_make_character_upper_case(test_character                = 'y', &
+                                       test_character_upper_case_ref = 'Y')
+   
+   call test_make_character_upper_case(test_character                = 'z', &
+                                       test_character_upper_case_ref = 'Z')
    
    call test_number_substrings_within_string(test_string       = 'A long time ago in a galaxy far, far away....', &
                                              test_substring    = 'far', &
@@ -1843,6 +1928,74 @@ contains
                                             
    end subroutine test_find_line_with_any_desired_keyword
    
+   ! --------------------------------------------------------------------------
+
+   subroutine test_all_upper_case(test_string, &
+                                  test_string_all_upper_case_ref)
+      
+      !!< Test the procedure that returns the all upper case version of a string
+      
+      character(len=*), intent(in) :: test_string
+      character(len=*), intent(in) :: test_string_all_upper_case_ref
+      
+      ! local variables
+      character(len=len(test_string)) :: test_string_all_upper_case 
+            
+      ! form the upper case
+      test_string_all_upper_case = test_string
+      call all_upper_case(test_string_all_upper_case)
+
+      first_check: if (trim(test_string_all_upper_case) == trim(test_string_all_upper_case_ref)) then
+                       
+         has_failed = .false.
+      
+      else first_check
+      
+         has_failed = .true.
+      
+      end if first_check
+   
+      call report_test("[test_all_upper_case]", &
+                      has_failed, &
+                      has_warned, &
+                      "failed for test_string "//trim(test_string))   
+      
+   end subroutine test_all_upper_case
+
+   ! --------------------------------------------------------------------------
+
+   subroutine test_make_character_upper_case(test_character, &
+                                             test_character_upper_case_ref)
+      
+      !!< Test the procedure that returns the all upper case version of a character
+      
+      character(len=1), intent(in) :: test_character
+      character(len=1), intent(in) :: test_character_upper_case_ref
+      
+      ! local variables
+      character(len=1) ::  test_character_upper_case 
+      
+      ! form the upper case
+      test_character_upper_case = test_character
+      call make_character_upper_case( test_character_upper_case)
+
+      first_check: if (trim( test_character_upper_case) == trim(test_character_upper_case_ref)) then
+                       
+         has_failed = .false.
+      
+      else first_check
+      
+         has_failed = .true.
+      
+      end if first_check
+   
+      call report_test("[make_character_upper_case]", &
+                      has_failed, &
+                      has_warned, &
+                      "failed for test_character "//trim(test_character))   
+      
+   end subroutine test_make_character_upper_case
+
    ! --------------------------------------------------------------------------
 
    subroutine test_number_substrings_within_string(test_string,  &
