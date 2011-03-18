@@ -2,11 +2,14 @@ to create the Makefile from Makefile.in (Makefile is no longer in the repository
 cd .. (to the fluidity trunk directory)
 ./configure
 
-to run:
+to compile the code, including the fluidity library on which this code now depends
+make mp (from the fluidity trunk directory)
+
+to run a test case:
 cd tests
-cd CompModel_1d_2Phases_2Components
+cd CompModel_1d_2Phases_2Components (for example)
 make clean
-make ! this compiles external functions
+make ! this compiles external functions for this test case
 ../../bin/MultiphasePrototype.bin input.dat ! input.dat lives here
 
 everything that goes to the screen goes to flog.dat
@@ -20,4 +23,4 @@ change option_debug to -1 make the all output flog.dat go to /dev/null
 
 
 mirror_int_data.dat: contains all the values used. 
-CheckSparsityMatrix.dat: contains the sparcity of all the matricies. 
+CheckSparsityMatrix.dat: contains the sparsity of all the matrices. 

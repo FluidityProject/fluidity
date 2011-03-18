@@ -65,6 +65,7 @@ Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
 default: $(OBJS) main.o
+	@echo "    MAKE multiphase_prototype"
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:

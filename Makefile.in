@@ -144,6 +144,7 @@ bin/@FLUIDITY@: main.o fluidity_library
 
 sw: bin/shallow_water
 be: bin/burgers_equation
+mp: bin/multiphase_prototype
 
 bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
