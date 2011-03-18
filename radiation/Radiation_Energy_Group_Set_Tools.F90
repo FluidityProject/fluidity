@@ -40,7 +40,8 @@ module radiation_energy_group_set_tools
    private 
 
    public :: which_group_set_contains_g, &
-             first_g_within_group_set
+             first_g_within_group_set, &
+             find_total_number_energy_groups
 
 contains
 
@@ -124,6 +125,43 @@ contains
       end do energy_group_set_loop
       
    end subroutine first_g_within_group_set
+   
+   ! --------------------------------------------------------------------------
+
+   subroutine find_total_number_energy_groups(particle_option_path, &
+                                              total_number_energy_groups)
+      
+      !!< Determine the total number of energy groups for this particle type
+      !!< via counting how many in each group set 
+      
+      character(len=*), intent(in) :: particle_option_path
+      integer, intent(out) :: total_number_energy_groups
+      
+      ! local variables
+      integer :: g_set
+      integer :: number_of_energy_group_set
+      integer :: number_of_energy_groups_g_set
+      character(len=OPTION_PATH_LEN) :: energy_group_set_path
+      
+      ! deduce the number of energy group sets
+      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_discretisation/energy_group_set')
+      
+      total_number_energy_groups = 0
+      
+      energy_group_set_loop: do g_set = 1,number_of_energy_group_set
+            
+         ! set the energy_group_set path
+         energy_group_set_path = trim(particle_option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
+            
+         ! get the number_energy_groups within this set
+         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
+         
+         total_number_energy_groups = total_number_energy_groups +  &
+                                      number_of_energy_groups_g_set
+         
+      end do energy_group_set_loop      
+
+   end subroutine find_total_number_energy_groups
    
    ! --------------------------------------------------------------------------
 

@@ -38,6 +38,7 @@ module radiation_materials_create
    use spud
 
    use radiation_materials_data_types 
+   use radiation_energy_group_set_tools
    
    implicit none
    
@@ -128,16 +129,13 @@ contains
       character(len=*), intent(in) :: particle_name
       
       ! local variables
-      integer :: dmat,pmat,i,status,g_set
-      integer :: number_of_energy_group_set
-      integer :: number_of_energy_groups_g_set
+      integer :: dmat,pmat,i,status
       integer :: interpolation_dimensions
       integer :: interpolation_values_shape(2)
       integer, dimension(:), allocatable :: number_interpolation_values
       character(len=OPTION_PATH_LEN) :: dataset_radmat_option_path
       character(len=OPTION_PATH_LEN) :: physical_radmat_option_path
       character(len=OPTION_PATH_LEN) :: interpolation_dim_path
-      character(len=OPTION_PATH_LEN) :: energy_group_set_path
 
       ewrite(1,*) 'Create radiation particle_radmat_size data type for ',trim(particle_name)      
 
@@ -198,25 +196,9 @@ contains
                        
       end do dataset_loop
 
-      ! get the number of energy groups via summing the number within each energy group set
-
-      ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_discretisation/energy_group_set')
-      
-      particle_radmat_size%number_of_energy_groups = 0
-      
-      energy_group_set_loop: do g_set = 1,number_of_energy_group_set
-            
-         ! set the energy_group_set path
-         energy_group_set_path = trim(particle_option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
-            
-         ! get the number_energy_groups within this set
-         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
-         
-         particle_radmat_size%number_of_energy_groups = particle_radmat_size%number_of_energy_groups +  &
-                                                        number_of_energy_groups_g_set
-         
-      end do energy_group_set_loop
+      ! get the number of energy groups via summing the number within each energy group set      
+      call find_total_number_energy_groups(trim(particle_option_path), &
+                                           particle_radmat_size%number_of_energy_groups)      
              
       ! get the number of delayed groups for this particle type
       delayed_if: if (have_option(trim(particle_option_path)//"/delayed_neutron_precursor")) then

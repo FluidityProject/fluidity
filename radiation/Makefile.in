@@ -105,7 +105,7 @@ Radiation_Normalise_Flux.o: Radiation_Materials.o
 Radiation_Energy_Group_Set_Tools.o: 
 Radiation_Materials.o: Radiation_Materials_Data_Types.o Radiation_Materials_Create.o Radiation_Materials_Destroy.o Radiation_Materials_Read.o Radiation_Materials_Operations.o
 Radiation_Materials_Data_Types.o: 
-Radiation_Materials_Create.o: Radiation_Materials_Data_Types.o 
+Radiation_Materials_Create.o: Radiation_Materials_Data_Types.o Radiation_Energy_Group_Set_Tools.o
 Radiation_Materials_Destroy.o: Radiation_Materials_Data_Types.o
 Radiation_Materials_Read.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats.o
 Radiation_Materials_Read_Format_Radmats.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats_Base.o 
