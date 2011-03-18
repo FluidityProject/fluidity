@@ -21,7 +21,7 @@ particle_type_neutron =
 
          attribute name { "neutron" },
                                       
-         problem_run_neutron,
+         equation_type_neutron,
 
          particle_type_generic, 
                            
@@ -38,24 +38,24 @@ particle_type_photon =
 
          attribute name { "photon" },
 
-         problem_run_photon,
+         equation_type_photon,
                                       
          particle_type_generic                           
       }
    )  
    
 
-problem_run_neutron = 
+equation_type_neutron = 
    (
-      eigenvalue_run|
+      eigenvalue_equation|
          
-      time_run
+      time_equation
    )
    
 
-problem_run_photon = 
+equation_type_photon = 
    (
-      time_run
+      time_equation
    )
 
 
@@ -64,7 +64,7 @@ particle_type_generic =
       
       energy_group_set+,
                             
-      read_radiation_material_data_set,
+      radiation_material_data_set+,
          
       radiation_material_mapping
    )
@@ -158,9 +158,7 @@ prognostic_particle_diffusion_removal_source_scalar_field =
       
          radiation_stat_options,
       
-         scalar_convergence_options,
          prognostic_detector_options,
-         scalar_steady_state_options,
          adaptivity_options_scalar_field,
          interpolation_algorithm_scalar
       }
@@ -333,20 +331,22 @@ radiation_stat_options =
    )
 
 
-eigenvalue_run = 
+eigenvalue_equation = 
    (
-      ## Eigenvalue run 
-      element eigenvalue_run {
+      ## Select the equation type to solve.
+      element equation {
          comment,
          
-         eigenvalue_run_solver,
+         attribute name { "Eigenvalue" },
+         
+         eigenvalue_equation_solver,
          
          flux_normalisation_options
       }         
    )
 
 
-eigenvalue_run_solver = 
+eigenvalue_equation_solver = 
    (
       ## Eigen Solver Algorithm
       (
@@ -361,39 +361,58 @@ eigenvalue_run_solver =
       
 flux_normalisation_options = 
    (
-      ## The neutron flux eigenvector normalisation 
+      ##  The particle flux normalisation
+      ##  to a total flux
       element flux_normalisation { 
          comment,           
-         (
-            ## normalise too a total power
-            element total_power {
-               comment,
-               real
-            }|
-            ## normalise too a total flux
-            element total_flux {
-               comment,
-                  real
-            }|
-            ## normalise too a total fission
-            element total_fission {
-               comment,
-                  real
-            }|
-            ## normalise too a total production
-            element total_production {
-               comment,
-               real
-            }            
-         ),
-         ## normalisation domain symmetry factor
-         element domain_symmetry_factor {
-            comment,
-            integer
-         }?
-      }    
+         
+         attribute name { "TotalFlux" }, 
+         
+         flux_norm_value_and_symmetry
+      }|
+      ##  The particle flux normalisation
+      ##  to a total flux
+      element flux_normalisation { 
+         comment,           
+         
+         attribute name { "TotalProduction" }, 
+         
+         flux_norm_value_and_symmetry
+      }|
+      ##  The particle flux normalisation
+      ##  to a total flux
+      element flux_normalisation { 
+         comment,           
+         
+         attribute name { "TotalFission" }, 
+         
+         flux_norm_value_and_symmetry
+      }|
+      ##  The particle flux normalisation
+      ##  to a total flux
+      element flux_normalisation { 
+         comment,           
+         
+         attribute name { "TotalPower" }, 
+         
+         flux_norm_value_and_symmetry
+      }
    )
 
+
+flux_norm_value_and_symmetry = 
+   (
+      ## Normalisation value
+      element value {
+         comment,
+         real
+      },
+      ## Normalisation domain symmetry factor
+      element domain_symmetry_factor {
+         comment,
+         integer
+      }?   
+   )
 
 power_iteration_element = 
    (
@@ -453,11 +472,13 @@ scatter_group_iteration_options =
    )
    
 
-time_run = 
+time_equation = 
    (
-      ## Perform a time dependent run. Can also be used for steady state run via one large time step.
-      element time_run { 
+      ## Select the equation type to solve.
+      element equation { 
          comment,
+         
+         attribute name { "TimeDependent" },
          
          radiation_temporal_discretisation,
          
@@ -582,60 +603,84 @@ particle_type_prescribed_source_mesh_choice =
    )
    
      
-read_radiation_material_data_set =
+radiation_material_data_set =
    (
-      ## Read radiation material data set from file 
-      ## (Include any file name extensions in the file name as well as the path if needed)
-      element radiation_material_data_set_from_file {
+      ## Define a radiation material data set 
+      element material_data_set {
          comment,
-         attribute file_name { xsd:string },
-         number_of_scatter_moments,
-         (   
-            ## A keyword based embedded radiation data type format file, of which a subset 
-            ## includes the formatted file produced via a LISTTO from WIMS9
-            element format_radmats {
-               comment,
-               ## The maximum line (or record) length of the input file
-               element maximum_record_length {
-                  comment,
-                  integer
-               }
-            }                                             
-         ),
-         ## define each physical material
-         element physical_material {
+         attribute name { xsd:string },
+         
+         ## Read the radiation material data set from a file
+         ## (Include any file name extensions in the file name as well as the path if needed)
+         element from_file {
             comment,
-            attribute name { xsd:string },
-            ## define the tabulated interpolation dimensions for this physical material
-            element interpolation_dimension {
-               comment,
-               attribute name { xsd:string },
-               ## set the interpolation attribute for this dimension
-               ( 
-                  ## No attribute so the first radmat of this dimension of this physical material will be used
-                  element interpolation_attribute_none{
-                     comment
-                  }|
-                  ## Prescribed interpolation
-                  element interpolation_attribute_prescribed{
-                     comment,
-                     real
-                  }|
-                  ## Associate this dimension with a particular scalar field
-                  element interpolation_attribute_scalar_field {
-                     comment,
-                     attribute name { xsd:string }
-                  }
-               ),                  
-               ## define the interpolation values for this dimension as a float list
-               element interpolation_values {
-                  comment,
-                  real_vector
-               }               
-            }+
-         }+
-      }+        
+            
+            attribute file_name { xsd:string },    
+                    
+            number_of_scatter_moments,
+            
+            radiation_material_data_set_format,
+            
+            radiation_physical_material+
+         }
+      }        
    )
+
+
+radiation_material_data_set_format = 
+   (   
+      ## A keyword based embedded radiation data type format file, of which a subset 
+      ## includes the formatted file produced via a LISTTO from WIMS9
+      element format_radmats {
+         comment,
+         ## The maximum line (or record) length of the input file
+         element maximum_record_length {
+            comment,
+            integer
+         }
+      }                                             
+   )
+
+
+radiation_physical_material = 
+   (
+      ## Define each physical material
+      element physical_material {
+         comment,
+         
+         attribute name { xsd:string },
+         
+         ## define the tabulated interpolation dimensions for this physical material
+         element interpolation_dimension {
+            comment,
+            
+            attribute name { xsd:string },
+            
+            ## set the interpolation attribute for this dimension
+            ( 
+               ## No attribute so the first radmat of this dimension of this physical material will be used
+               element interpolation_attribute_none{
+                  comment
+               }|
+               ## Prescribed interpolation
+               element interpolation_attribute_prescribed{
+                  comment,
+                  real
+               }|
+               ## Associate this dimension with a particular scalar field
+               element interpolation_attribute_scalar_field {
+                  comment,
+                  attribute name { xsd:string }
+               }
+            ),                  
+            ## define the interpolation values for this dimension as a float list
+            element interpolation_values {
+               comment,
+               real_vector
+            }               
+         }+
+      }   
+   )  
 
 
 number_of_scatter_moments = 
@@ -690,13 +735,13 @@ radiation_material_mapping =
        
 radiation_material = 
    (
-      ## radiation physical data set file name
-      element radiation_data_set_name {
+      ## Data set name
+      element data_set {
          comment,
-         attribute file_name { xsd:string }
+         attribute name { xsd:string }
       },
-      ## radiation physical material name
-      element radiation_physical_material_name {
+      ## Physical material name
+      element physical_material {
          comment,
          attribute name { xsd:string }
       }      
@@ -798,7 +843,7 @@ delayed_precursor =
          ## The dataset from which to read the delayed lambda and spectrum from
          element read_delayed_lambda_spectrum_from_data_set {
             comment,
-            attribute file_name { xsd:string }
+            attribute name { xsd:string }
          },      
          ## link with region id, requires the neutron object to be linked with region id also
          element link_with_region_id {

@@ -156,18 +156,18 @@ contains
       dataset_loop: do dmat = 1,particle_radmat_size%total_number_dataset_radmats 
 
          dataset_radmat_option_path = &
-         &trim(particle_option_path)//"/radiation_material_data_set_from_file["//int2str(dmat - 1)//"]"
+         &trim(particle_option_path)//"/material_data_set["//int2str(dmat - 1)//"]"
 
          ! the number of scatter moments is data set dependent   
-         call get_option(trim(dataset_radmat_option_path)//"/number_of_scatter_moments",particle_radmat_size%number_of_scatter_moments(dmat))  
+         call get_option(trim(dataset_radmat_option_path)//"/from_file/number_of_scatter_moments",particle_radmat_size%number_of_scatter_moments(dmat))  
                  
          ! deduce the number of physical radmats within this data set
-         particle_radmat_size%number_of_physical_radmats(dmat) = option_count(trim(dataset_radmat_option_path)//"/physical_material")
+         particle_radmat_size%number_of_physical_radmats(dmat) = option_count(trim(dataset_radmat_option_path)//"/from_file/physical_material")
                                    
          physical_radmat_loop: do pmat = 1,particle_radmat_size%number_of_physical_radmats(dmat)  
       
             physical_radmat_option_path = &
-            &trim(dataset_radmat_option_path)//"/physical_material["//int2str(pmat - 1)//"]"
+            &trim(dataset_radmat_option_path)//"/from_file/physical_material["//int2str(pmat - 1)//"]"
     
             ! deduce the number of physical radmats interpolation dimensions within this physical radmat
             interpolation_dimensions = option_count(trim(physical_radmat_option_path)//"/interpolation_dimension")
@@ -257,22 +257,22 @@ contains
       ewrite(1,*) 'Allocate radiation particle_radmat_size from options for ',trim(particle_option_path)
       
       ! deduce the sizes of arrays to allocate
-      particle_radmat_size%total_number_dataset_radmats  = option_count(trim(particle_option_path)//"/radiation_material_data_set_from_file")                             
+      particle_radmat_size%total_number_dataset_radmats  = option_count(trim(particle_option_path)//"/material_data_set")                             
       particle_radmat_size%total_number_radmats          = 0
       particle_radmat_size%total_number_physical_radmats = 0
 
       dataset_loop: do dmat = 1,particle_radmat_size%total_number_dataset_radmats 
 
          dataset_radmat_option_path = &
-         &trim(particle_option_path)//"/radiation_material_data_set_from_file["//int2str(dmat - 1)//"]"
+         &trim(particle_option_path)//"/material_data_set["//int2str(dmat - 1)//"]"
     
          particle_radmat_size%total_number_physical_radmats = particle_radmat_size%total_number_physical_radmats + &  
-                                                        option_count(trim(dataset_radmat_option_path)//"/physical_material")
+                                     option_count(trim(dataset_radmat_option_path)//"/from_file/physical_material")
                       
-         physical_radmat_loop: do pmat = 1,option_count(trim(dataset_radmat_option_path)//"/physical_material")
+         physical_radmat_loop: do pmat = 1,option_count(trim(dataset_radmat_option_path)//"/from_file/physical_material")
       
             physical_radmat_option_path = &
-            &trim(dataset_radmat_option_path)//"/physical_material["//int2str(pmat - 1)//"]"
+            &trim(dataset_radmat_option_path)//"/from_file/physical_material["//int2str(pmat - 1)//"]"
 
             ! deduce the number of physical radmats interpolation dimensions within this physical radmat
             interpolation_dimensions = option_count(trim(physical_radmat_option_path)//"/interpolation_dimension")
@@ -609,7 +609,7 @@ contains
          
          ! - 1 needed as options count from 0
          dataset_radmat_option_path = &
-         &trim(particle_radmat%option_path)//"/radiation_material_data_set_from_file["//int2str(dmat - 1)//"]"
+         &trim(particle_radmat%option_path)//"/material_data_set["//int2str(dmat - 1)//"]"
                  
          call set_option_path_and_name(particle_radmat%dataset_radmats(dmat), &
                                        trim(dataset_radmat_option_path))
@@ -634,13 +634,15 @@ contains
                                     
       dataset_radmat%option_path = dataset_radmat_option_path 
 
-      call get_option(trim(dataset_radmat%option_path)//'/file_name',dataset_radmat%file_name)
+      call get_option(trim(dataset_radmat%option_path)//'/from_file/file_name',dataset_radmat%file_name)
+
+      call get_option(trim(dataset_radmat%option_path)//'/name',dataset_radmat%name)
       
       physical_radmat_loop: do pmat = 1,size(dataset_radmat%physical_radmats)  
          
          ! - 1 needed as options count from 0  
          physical_radmat_option_path = &
-         &trim(dataset_radmat%option_path)//"/physical_material["//int2str(pmat - 1)//"]"
+         &trim(dataset_radmat%option_path)//"/from_file/physical_material["//int2str(pmat - 1)//"]"
                      
          call set_option_path_and_name(dataset_radmat%physical_radmats(pmat), &
                                        trim(physical_radmat_option_path))

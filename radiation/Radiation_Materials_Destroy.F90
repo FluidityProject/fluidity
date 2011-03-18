@@ -64,7 +64,9 @@ contains
       ! local variables
       integer :: dmat
                
-      particle_radmat%option_path="/uninitialised_path/"
+      particle_radmat%option_path = "/uninitialised_path/"
+
+      particle_radmat%name = "/uninitialised_name/"
                   
       deallacate_data_set: if (allocated(particle_radmat%dataset_radmats)) then
 
@@ -144,7 +146,11 @@ contains
       ! local variables
       integer :: pmat
                
-      dataset_radmat%option_path="/uninitialised_path/"
+      dataset_radmat%option_path = "/uninitialised_path/"
+
+      dataset_radmat%name = "/uninitialised_name/"
+
+      dataset_radmat%file_name = "/uninitialised_name/"
          
       deallacate_physical_mat: if (allocated(dataset_radmat%physical_radmats)) then
 
@@ -169,7 +175,9 @@ contains
       ! local variables
       integer :: rmat
             
-      physical_radmat%option_path="/uninitialised_path/"
+      physical_radmat%option_path = "/uninitialised_path/"
+
+      physical_radmat%name = "/uninitialised_name/"
 
       deallacate_rmat: if (allocated(physical_radmat%radmats)) then
          

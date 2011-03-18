@@ -55,8 +55,11 @@ contains
       
       ! local variables
       character(len=OPTION_PATH_LEN) :: particle_name   
+      character(len=OPTION_PATH_LEN) :: equation_type
+
+      call get_option(trim(particle_option_path)//'/equation/name',equation_type)  
       
-      eig_register: if (have_option(trim(particle_option_path//'/eigenvalue_run'))) then
+      eig_register: if (trim(equation_type) == 'Eigenvalue') then
          
          ! get the particle name
          call get_option(trim(particle_option_path)//'/name',particle_name)

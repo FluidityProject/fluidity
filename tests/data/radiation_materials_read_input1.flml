@@ -92,24 +92,24 @@
   </material_phase>
   <radiation>
     <particle_type name="neutron">
-      <eigenvalue_run>
+      <equation name="Eigenvalue">
         <power_iteration>
           <maximum>
             <integer_value rank="0">100</integer_value>
           </maximum>
           <flux_tolerance>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </flux_tolerance>
           <keff_tolerance>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </keff_tolerance>
         </power_iteration>
-        <flux_normalisation>
-          <total_power>
+        <flux_normalisation name="TotalPower">
+          <value>
             <real_value rank="0">1.0</real_value>
-          </total_power>
+          </value>
         </flux_normalisation>
-      </eigenvalue_run>
+      </equation>
       <energy_group_set name="all">
         <number_of_energy_groups>
           <integer_value rank="0">2</integer_value>
@@ -143,45 +143,41 @@
               </initial_condition>
               <output/>
               <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
               <detectors>
                 <include_in_detectors/>
               </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
               <consistent_interpolation/>
             </prognostic>
           </scalar_field>
         </angular_discretisation>
       </energy_group_set>
-      <radiation_material_data_set_from_file file_name="data/radiation_materials_read_input1.radmats">
-        <number_of_scatter_moments>
-          <integer_value rank="0">2</integer_value>
-        </number_of_scatter_moments>
-        <format_radmats>
-          <maximum_record_length>
-            <integer_value rank="0">132</integer_value>
-          </maximum_record_length>
-        </format_radmats>
-        <physical_material name="fuel">
-          <interpolation_dimension name="one">
-            <interpolation_attribute_prescribed>
-              <real_value rank="0">20.0</real_value>
-            </interpolation_attribute_prescribed>
-            <interpolation_values>
-              <real_value shape="10" rank="1">10.0 20.0 30.0 40.0 50.0 60.0 70.0 80.0 90.0 100.0</real_value>
-            </interpolation_values>
-          </interpolation_dimension>
-        </physical_material>
-      </radiation_material_data_set_from_file>
+      <material_data_set name="dataset1">
+        <from_file file_name="data/radiation_materials_read_input1.radmats">
+          <number_of_scatter_moments>
+            <integer_value rank="0">2</integer_value>
+          </number_of_scatter_moments>
+          <format_radmats>
+            <maximum_record_length>
+              <integer_value rank="0">132</integer_value>
+            </maximum_record_length>
+          </format_radmats>
+          <physical_material name="fuel">
+            <interpolation_dimension name="one">
+              <interpolation_attribute_prescribed>
+                <real_value rank="0">20.0</real_value>
+              </interpolation_attribute_prescribed>
+              <interpolation_values>
+                <real_value shape="10" rank="1">10.0 20.0 30.0 40.0 50.0 60.0 70.0 80.0 90.0 100.0</real_value>
+              </interpolation_values>
+            </interpolation_dimension>
+          </physical_material>
+        </from_file>
+      </material_data_set>
       <delayed_neutron_precursor>
         <number_delayed_neutron_precursor_groups>
           <integer_value rank="0">6</integer_value>
         </number_delayed_neutron_precursor_groups>
-        <read_delayed_lambda_spectrum_from_data_set file_name="data/radiation_materials_read_input1.radmats"/>
+        <read_delayed_lambda_spectrum_from_data_set name="dataset1"/>
       </delayed_neutron_precursor>
     </particle_type>
   </radiation>

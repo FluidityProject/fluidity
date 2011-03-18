@@ -174,12 +174,12 @@ contains
       ! get the time theta and time step
       time: if (time_run) then
             
-         call get_option(trim(particle_radmat_option_path)//'/time_run/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
+         call get_option(trim(particle_radmat_option_path)//'/equation/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
          
          call get_option('/timestepping/timestep',particle_group_g_assemble_options%timestep)
    
          ! prescribed source data
-         include_prescribed_source_path = trim(particle_radmat_option_path)//'/time_run/include_prescribed_source'
+         include_prescribed_source_path = trim(particle_radmat_option_path)//'/equation/include_prescribed_source'
          
          particle_group_g_assemble_options%include_prescribed_source = have_option(trim(include_prescribed_source_path))
          

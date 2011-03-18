@@ -477,7 +477,7 @@ contains
       integer, dimension(:), allocatable :: region_id_mapping
       integer, dimension(:), pointer :: element_nodes   
       character(len=OPTION_PATH_LEN) :: region_id_mapping_path 
-      character(len=OPTION_PATH_LEN) :: data_set_filename 
+      character(len=OPTION_PATH_LEN) :: data_set_name 
       character(len=OPTION_PATH_LEN) :: physical_material_name 
       character(len=OPTION_PATH_LEN) :: material_fn_space_name
       type(mesh_type), pointer :: material_fn_space
@@ -525,13 +525,13 @@ contains
                id_match: if (ele_region_id(particle_flux,vele) == region_id_mapping(id)) then
                       
                   ! get the data set and physical material name for this region id mapping
-                  call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/radiation_data_set_name/file_name',data_set_filename)
-                  call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/radiation_physical_material_name/name',physical_material_name)
+                  call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/data_set/name',data_set_name)
+                  call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/physical_material/name',physical_material_name)
                       
                   ! find the matching read in data set and physical material via names comparisons
                   dmat_loop: do dmat = 1,size(particle_radmat%dataset_radmats)
                      
-                     dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%file_name) == trim(data_set_filename)) then
+                     dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%name) == trim(data_set_name)) then
                             
                         pmat_loop: do pmat = 1,size(particle_radmat%dataset_radmats(dmat)%physical_radmats)
                                

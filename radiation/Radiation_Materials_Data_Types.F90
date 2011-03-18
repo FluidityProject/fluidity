@@ -82,7 +82,7 @@ module radiation_materials_data_types
       logical :: particle_released_per_fission_set = .false.      
       logical :: prompt_spectrum_set               = .false.
       logical :: velocity_set                      = .false.
-      logical:: beta_set                           = .false.            
+      logical :: beta_set                          = .false.            
    end type radmat_type
 
    
@@ -101,6 +101,8 @@ module radiation_materials_data_types
    type dataset_radmat_type                              
       !! the dataset_radmat_type FILE name
       character(len=OPTION_PATH_LEN) :: file_name="/uninitialised_file_name/"
+      !! the dataset_radmat_type name
+      character(len=OPTION_PATH_LEN) :: name="/uninitialised_name/"
       !! path to options in the options tree
       character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
       !! the physical radmats within this dataset

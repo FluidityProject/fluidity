@@ -119,7 +119,7 @@ contains
       
       no_format_radmats_file: if (.not. format_radmats_file_exists) then
          
-         ewrite(-1,*) "Input error: format_radmats file ",trim(format_radmats_filename)
+         ewrite(-1,*) "Input error: format_radmats file not found ",trim(format_radmats_filename)
          FLExit("was not found")
          
       end if no_format_radmats_file

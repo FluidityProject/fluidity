@@ -70,7 +70,7 @@ contains
                 state)      
       
       ! solve the problem via a particular algorithm
-      eig_solver: if (have_option(trim(particle_radmat%option_path)//'/eigenvalue_run/power_iteration')) then
+      eig_solver: if (have_option(trim(particle_radmat%option_path)//'/equation/power_iteration')) then
       
          call eigenvalue_power_iteration(state, &
                                          particle_radmat, &

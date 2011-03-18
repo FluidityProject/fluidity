@@ -152,12 +152,15 @@ contains
 
       ! local variable
       integer :: p 
+      character(len=OPTION_PATH_LEN) :: equation_type
       
       particle_type_loop: do p = 1,size(particle_radmats)
       
+         call get_option(trim(particle_radmats(p)%option_path)//'/equation/name',equation_type)  
+      
          which_solve: if (invoke_eigenvalue_solve) then
             
-            solve_eig: if (have_option(trim(particle_radmats(p)%option_path)//'/eigenvalue_run')) then
+            solve_eig: if (trim(equation_type) == 'Eigenvalue') then
                
                ewrite(1,*) 'Solve radiation model eigenvalue for particle type ',trim(particle_radmats(p)%name)
                
@@ -169,7 +172,7 @@ contains
             
          else which_solve
 
-            solve_time: if (have_option(trim(particle_radmats(p)%option_path)//'/time_run')) then
+            solve_time: if (trim(equation_type) == 'TimeDependent') then
                
                ewrite(1,*) 'Solve radiation model time for particle type ',trim(particle_radmats(p)%name)
                

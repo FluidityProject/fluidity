@@ -78,8 +78,8 @@ subroutine test_radiation_materials_create
    particle_radmat_option_path_expected = '/radiation/particle_type[0]'
    allocate(dataset_radmats_option_path_expected(total_number_dataset_radmats_expected))
    allocate(physical_radmats_option_path_expected(total_number_physical_radmats_expected))
-   dataset_radmats_option_path_expected  = (/'/radiation/particle_type[0]/radiation_material_data_set_from_file[0]'/)
-   physical_radmats_option_path_expected = (/'/radiation/particle_type[0]/radiation_material_data_set_from_file[0]/physical_material[0]'/)
+   dataset_radmats_option_path_expected  = (/'/radiation/particle_type[0]/material_data_set[0]'/)
+   physical_radmats_option_path_expected = (/'/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'/)
    call test_particle_radmat_create_from_options()
    call report_test("[test_particle_radmat_create_from_options for filename "//trim(filename)//"]", &
                     has_failed, &

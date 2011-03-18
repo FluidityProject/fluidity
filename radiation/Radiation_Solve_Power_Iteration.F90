@@ -188,7 +188,7 @@ contains
       end do energy_group_set_loop
                   
       ! get the maximum number of power iterations for this np 
-      power_iteration_option_path = trim(particle_radmat%option_path)//'/eigenvalue_run/power_iteration'
+      power_iteration_option_path = trim(particle_radmat%option_path)//'/equation/power_iteration'
       call get_option(trim(power_iteration_option_path)//'/maximum',power_iteration_options%max_power_iteration)
 
       ! get the keff power iteration tolerance

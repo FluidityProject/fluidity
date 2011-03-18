@@ -151,7 +151,7 @@ contains
       integer, dimension(:), allocatable :: region_id_mapping
       integer, dimension(:), pointer :: element_nodes      
       character(len=OPTION_PATH_LEN) :: region_id_mapping_path 
-      character(len=OPTION_PATH_LEN) :: data_set_filename 
+      character(len=OPTION_PATH_LEN) :: data_set_name 
       character(len=OPTION_PATH_LEN) :: physical_material_name 
       character(len=OPTION_PATH_LEN) :: material_fn_space_name
       type(mesh_type), pointer :: material_fn_space
@@ -200,10 +200,10 @@ contains
                       
                   ! get the data set and physical material name for this region id mapping
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//&
-                                 &']/radiation_data_set_name/file_name',data_set_filename)
+                                 &']/data_set/name',data_set_name)
 
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//&
-                                 &']/radiation_physical_material_name/name',physical_material_name)
+                                 &']/physical_material/name',physical_material_name)
                   
                   ! form the ii for each discontinuous dof
                   element_nodes => ele_nodes(material_fn_space, vele)
@@ -212,7 +212,7 @@ contains
                   
                      call form(region_id_ii(element_nodes(iloc))%dataset_ii, &
                                particle_radmat, &
-                               trim(data_set_filename), &
+                               trim(data_set_name), &
                                trim(physical_material_name), &
                                found_mapping, &
                                element_nodes(iloc), &
@@ -241,7 +241,7 @@ contains
 
    subroutine form_dataset_ii(dataset_ii, &
                               particle_radmat, &
-                              data_set_filename, &
+                              data_set_name, &
                               physical_material_name, &
                               found_mapping, &
                               inode, &
@@ -251,7 +251,7 @@ contains
       
       type(dataset_ii_type), intent(inout) :: dataset_ii
       type(particle_radmat_type), intent(in) :: particle_radmat
-      character(len=*), intent(in) :: data_set_filename
+      character(len=*), intent(in) :: data_set_name
       character(len=*), intent(in) :: physical_material_name
       logical, intent(out) :: found_mapping
       integer, intent(in) :: inode
@@ -265,7 +265,7 @@ contains
       ! find the matching read in data set and physical material via names comparisons
       dmat_loop: do dmat = 1,size(particle_radmat%dataset_radmats)
          
-         dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%file_name) == trim(data_set_filename)) then
+         dmat_match: if (trim(particle_radmat%dataset_radmats(dmat)%name) == trim(data_set_name)) then
 
             dataset_ii%dataset_radmat_number = dmat
             

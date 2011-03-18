@@ -88,11 +88,11 @@ contains
       ! set the scatter iteration option path
       scatter_path_if: if (present(keff)) then
       
-         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/eigenvalue_run/power_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/equation/power_iteration/scatter_group_iteration'
       
       else scatter_path_if
       
-         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/time_run/energy_group_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/equation/energy_group_iteration/scatter_group_iteration'
       
       end if scatter_path_if
       

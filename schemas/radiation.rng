@@ -20,7 +20,7 @@
       <attribute name="name">
         <value>neutron</value>
       </attribute>
-      <ref name="problem_run_neutron"/>
+      <ref name="equation_type_neutron"/>
       <ref name="particle_type_generic"/>
       <optional>
         <ref name="delayed_precursor"/>
@@ -34,24 +34,26 @@
       <attribute name="name">
         <value>photon</value>
       </attribute>
-      <ref name="problem_run_photon"/>
+      <ref name="equation_type_photon"/>
       <ref name="particle_type_generic"/>
     </element>
   </define>
-  <define name="problem_run_neutron">
+  <define name="equation_type_neutron">
     <choice>
-      <ref name="eigenvalue_run"/>
-      <ref name="time_run"/>
+      <ref name="eigenvalue_equation"/>
+      <ref name="time_equation"/>
     </choice>
   </define>
-  <define name="problem_run_photon">
-    <ref name="time_run"/>
+  <define name="equation_type_photon">
+    <ref name="time_equation"/>
   </define>
   <define name="particle_type_generic">
     <oneOrMore>
       <ref name="energy_group_set"/>
     </oneOrMore>
-    <ref name="read_radiation_material_data_set"/>
+    <oneOrMore>
+      <ref name="radiation_material_data_set"/>
+    </oneOrMore>
     <ref name="radiation_material_mapping"/>
   </define>
   <define name="energy_group_set">
@@ -126,9 +128,7 @@ sets are defined.</a:documentation>
       </zeroOrMore>
       <ref name="radiation_output_options"/>
       <ref name="radiation_stat_options"/>
-      <ref name="scalar_convergence_options"/>
       <ref name="prognostic_detector_options"/>
-      <ref name="scalar_steady_state_options"/>
       <ref name="adaptivity_options_scalar_field"/>
       <ref name="interpolation_algorithm_scalar"/>
     </element>
@@ -276,15 +276,18 @@ located on the surface (the total source strength is twice the value input here)
       </optional>
     </element>
   </define>
-  <define name="eigenvalue_run">
-    <element name="eigenvalue_run">
-      <a:documentation>Eigenvalue run </a:documentation>
+  <define name="eigenvalue_equation">
+    <element name="equation">
+      <a:documentation>Select the equation type to solve.</a:documentation>
       <ref name="comment"/>
-      <ref name="eigenvalue_run_solver"/>
+      <attribute name="name">
+        <value>Eigenvalue</value>
+      </attribute>
+      <ref name="eigenvalue_equation_solver"/>
       <ref name="flux_normalisation_options"/>
     </element>
   </define>
-  <define name="eigenvalue_run_solver">
+  <define name="eigenvalue_equation_solver">
     <group>
       <a:documentation>Eigen Solver Algorithm</a:documentation>
       <element name="power_iteration">
@@ -295,39 +298,58 @@ located on the surface (the total source strength is twice the value input here)
     </group>
   </define>
   <define name="flux_normalisation_options">
-    <element name="flux_normalisation">
-      <a:documentation>The neutron flux eigenvector normalisation </a:documentation>
+    <choice>
+      <element name="flux_normalisation">
+        <a:documentation> The particle flux normalisation
+ to a total flux</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>TotalFlux</value>
+        </attribute>
+        <ref name="flux_norm_value_and_symmetry"/>
+      </element>
+      <element name="flux_normalisation">
+        <a:documentation> The particle flux normalisation
+ to a total flux</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>TotalProduction</value>
+        </attribute>
+        <ref name="flux_norm_value_and_symmetry"/>
+      </element>
+      <element name="flux_normalisation">
+        <a:documentation> The particle flux normalisation
+ to a total flux</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>TotalFission</value>
+        </attribute>
+        <ref name="flux_norm_value_and_symmetry"/>
+      </element>
+      <element name="flux_normalisation">
+        <a:documentation> The particle flux normalisation
+ to a total flux</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>TotalPower</value>
+        </attribute>
+        <ref name="flux_norm_value_and_symmetry"/>
+      </element>
+    </choice>
+  </define>
+  <define name="flux_norm_value_and_symmetry">
+    <element name="value">
+      <a:documentation>Normalisation value</a:documentation>
       <ref name="comment"/>
-      <choice>
-        <element name="total_power">
-          <a:documentation>normalise too a total power</a:documentation>
-          <ref name="comment"/>
-          <ref name="real"/>
-        </element>
-        <element name="total_flux">
-          <a:documentation>normalise too a total flux</a:documentation>
-          <ref name="comment"/>
-          <ref name="real"/>
-        </element>
-        <element name="total_fission">
-          <a:documentation>normalise too a total fission</a:documentation>
-          <ref name="comment"/>
-          <ref name="real"/>
-        </element>
-        <element name="total_production">
-          <a:documentation>normalise too a total production</a:documentation>
-          <ref name="comment"/>
-          <ref name="real"/>
-        </element>
-      </choice>
-      <optional>
-        <element name="domain_symmetry_factor">
-          <a:documentation>normalisation domain symmetry factor</a:documentation>
-          <ref name="comment"/>
-          <ref name="integer"/>
-        </element>
-      </optional>
+      <ref name="real"/>
     </element>
+    <optional>
+      <element name="domain_symmetry_factor">
+        <a:documentation>Normalisation domain symmetry factor</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+    </optional>
   </define>
   <define name="power_iteration_element">
     <element name="maximum">
@@ -391,10 +413,13 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
       </optional>
     </element>
   </define>
-  <define name="time_run">
-    <element name="time_run">
-      <a:documentation>Perform a time dependent run. Can also be used for steady state run via one large time step.</a:documentation>
+  <define name="time_equation">
+    <element name="equation">
+      <a:documentation>Select the equation type to solve.</a:documentation>
       <ref name="comment"/>
+      <attribute name="name">
+        <value>TimeDependent</value>
+      </attribute>
       <ref name="radiation_temporal_discretisation"/>
       <ref name="energy_group_iteration_options"/>
       <optional>
@@ -509,70 +534,81 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
       </element>
     </choice>
   </define>
-  <define name="read_radiation_material_data_set">
-    <oneOrMore>
-      <element name="radiation_material_data_set_from_file">
-        <a:documentation>Read radiation material data set from file 
+  <define name="radiation_material_data_set">
+    <element name="material_data_set">
+      <a:documentation>Define a radiation material data set </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <element name="from_file">
+        <a:documentation>Read the radiation material data set from a file
 (Include any file name extensions in the file name as well as the path if needed)</a:documentation>
         <ref name="comment"/>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
         <ref name="number_of_scatter_moments"/>
-        <element name="format_radmats">
-          <a:documentation>A keyword based embedded radiation data type format file, of which a subset 
-includes the formatted file produced via a LISTTO from WIMS9</a:documentation>
-          <ref name="comment"/>
-          <element name="maximum_record_length">
-            <a:documentation>The maximum line (or record) length of the input file</a:documentation>
-            <ref name="comment"/>
-            <ref name="integer"/>
-          </element>
-        </element>
+        <ref name="radiation_material_data_set_format"/>
         <oneOrMore>
-          <element name="physical_material">
-            <a:documentation>define each physical material</a:documentation>
-            <ref name="comment"/>
-            <attribute name="name">
-              <data type="string"/>
-            </attribute>
-            <oneOrMore>
-              <element name="interpolation_dimension">
-                <a:documentation>define the tabulated interpolation dimensions for this physical material</a:documentation>
-                <ref name="comment"/>
-                <attribute name="name">
-                  <data type="string"/>
-                </attribute>
-                <choice>
-                  <a:documentation>set the interpolation attribute for this dimension</a:documentation>
-                  <element name="interpolation_attribute_none">
-                    <a:documentation>No attribute so the first radmat of this dimension of this physical material will be used</a:documentation>
-                    <ref name="comment"/>
-                  </element>
-                  <element name="interpolation_attribute_prescribed">
-                    <a:documentation>Prescribed interpolation</a:documentation>
-                    <ref name="comment"/>
-                    <ref name="real"/>
-                  </element>
-                  <element name="interpolation_attribute_scalar_field">
-                    <a:documentation>Associate this dimension with a particular scalar field</a:documentation>
-                    <ref name="comment"/>
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
-                </choice>
-                <element name="interpolation_values">
-                  <a:documentation>define the interpolation values for this dimension as a float list</a:documentation>
-                  <ref name="comment"/>
-                  <ref name="real_vector"/>
-                </element>
-              </element>
-            </oneOrMore>
-          </element>
+          <ref name="radiation_physical_material"/>
         </oneOrMore>
       </element>
-    </oneOrMore>
+    </element>
+  </define>
+  <define name="radiation_material_data_set_format">
+    <element name="format_radmats">
+      <a:documentation>A keyword based embedded radiation data type format file, of which a subset 
+includes the formatted file produced via a LISTTO from WIMS9</a:documentation>
+      <ref name="comment"/>
+      <element name="maximum_record_length">
+        <a:documentation>The maximum line (or record) length of the input file</a:documentation>
+        <ref name="comment"/>
+        <ref name="integer"/>
+      </element>
+    </element>
+  </define>
+  <define name="radiation_physical_material">
+    <element name="physical_material">
+      <a:documentation>Define each physical material</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <oneOrMore>
+        <element name="interpolation_dimension">
+          <a:documentation>define the tabulated interpolation dimensions for this physical material</a:documentation>
+          <ref name="comment"/>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <choice>
+            <a:documentation>set the interpolation attribute for this dimension</a:documentation>
+            <element name="interpolation_attribute_none">
+              <a:documentation>No attribute so the first radmat of this dimension of this physical material will be used</a:documentation>
+              <ref name="comment"/>
+            </element>
+            <element name="interpolation_attribute_prescribed">
+              <a:documentation>Prescribed interpolation</a:documentation>
+              <ref name="comment"/>
+              <ref name="real"/>
+            </element>
+            <element name="interpolation_attribute_scalar_field">
+              <a:documentation>Associate this dimension with a particular scalar field</a:documentation>
+              <ref name="comment"/>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </choice>
+          <element name="interpolation_values">
+            <a:documentation>define the interpolation values for this dimension as a float list</a:documentation>
+            <ref name="comment"/>
+            <ref name="real_vector"/>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
   </define>
   <define name="number_of_scatter_moments">
     <element name="number_of_scatter_moments">
@@ -641,15 +677,15 @@ the rest of the fluids state. This must be used with a prescribed physical mater
     </optional>
   </define>
   <define name="radiation_material">
-    <element name="radiation_data_set_name">
-      <a:documentation>radiation physical data set file name</a:documentation>
+    <element name="data_set">
+      <a:documentation>Data set name</a:documentation>
       <ref name="comment"/>
-      <attribute name="file_name">
+      <attribute name="name">
         <data type="string"/>
       </attribute>
     </element>
-    <element name="radiation_physical_material_name">
-      <a:documentation>radiation physical material name</a:documentation>
+    <element name="physical_material">
+      <a:documentation>Physical material name</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <data type="string"/>
@@ -741,7 +777,7 @@ that is used for the cross section interpolation</a:documentation>
       <element name="read_delayed_lambda_spectrum_from_data_set">
         <a:documentation>The dataset from which to read the delayed lambda and spectrum from</a:documentation>
         <ref name="comment"/>
-        <attribute name="file_name">
+        <attribute name="name">
           <data type="string"/>
         </attribute>
       </element>
