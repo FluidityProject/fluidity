@@ -161,8 +161,8 @@ w_dg_vel_int_opt      0
 lump_eqns             F
 
 # For compositional - work out theta-hat for flux
-get_theta_flux        T
-use_theta_flux        F
+volfra_get_theta_flux        T
+volfra_use_theta_flux        F
 
 # Domain length
 domain_length         1.

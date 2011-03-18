@@ -1,5 +1,33 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    amcgsoftware@imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
 module mp_prototype
 
+  use copy_outof_into_state
   use input_var
   use multiphase_mom_press_volf
   use multiphase_field_advection
@@ -99,10 +127,16 @@ contains
 
   open( unit_input, file = 'input.dat', status = 'unknown' )
   open( unit_debug, file = 'mirror_int_data.dat', status = 'unknown' )
-  !open( 357, file = 'flog.dat', status = 'unknown')
-  open( 357, file = '/dev/null', status = 'unknown')
+  open( 357, file = 'flog.dat', status = 'unknown')
+  !open( 357, file = '/dev/null', status = 'unknown')
 
   write(357,*) 'In multiphase_prototype'
+  
+!!!!!!!!
+!!!!!   Major insert required here to pull everything required out of state
+!!!!!    - for this we need to list everything that's read in and not derived
+!!!!!    - although some derived stuff might be available through state as well
+!!!!!!!!
 
   call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
        u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
@@ -674,6 +708,11 @@ contains
           mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
 
   end Select
+  
+!!!!!!!!
+!!!!!!  Major insert required here to put everything back into state
+!!!!!!  This should reflect what went on above
+!!!!!!!!
 
   write(357,*) 'Leaving multiphase_prototype'
   close( 357 )

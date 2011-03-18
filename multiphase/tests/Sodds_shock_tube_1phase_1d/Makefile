@@ -32,4 +32,4 @@ clean:
 	rm -f input_eos_coef_BL1_func       
 	rm -f gmon.out
 	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparcityMatrix.dat fvalues mirror_int_data.dat fort.*
+	rm -f time_count tempfile CheckSparsityMatrix.dat fvalues mirror_int_data.dat fort.*

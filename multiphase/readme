@@ -7,10 +7,10 @@ make mp (from the fluidity trunk directory)
 
 to run a test case:
 cd tests
-cd CompModel_1d_2Phases_2Components (for example)
+cd BL_test_10element_1d (for example)
 make clean
 make ! this compiles external functions for this test case
-../../bin/MultiphasePrototype.bin input.dat ! input.dat lives here
+../../../bin/multiphase_prototype BL_test_10elements_1d.flml 
 
 everything that goes to the screen goes to flog.dat
 

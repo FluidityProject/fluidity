@@ -47,7 +47,8 @@ VPATH = ./:./src
 
 OBJS =multi_eos.o multi_sparsity.o multi_matrix_operations.o multi_shape_fct.o cv-adv-dif.o \
 multi_dyncore_dg.o multi_solvers.o multi_compositional.o multi_IO.o Multiphase_Field_Advection.o \
-Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.o
+Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.o \
+Copy_Outof_Into_State.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -65,7 +66,6 @@ Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
 default: $(OBJS) main.o
-	@echo "    MAKE multiphase_prototype"
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
@@ -77,7 +77,7 @@ multi_dyncore_dg.o: multi_matrix_operations.o multi_shape_fct.o multi_solvers.o 
 multi_solvers.o: multi_shape_fct.o multi_matrix_operations.o
 Multiphase_Field_Advection.o: multi_dyncore_dg.o multi_IO.o multi_compositional.o
 Multiphase_Mom_Press_Volf.o: multi_dyncore_dg.o multi_eos.o multi_IO.o
-Multiphase_Prototype.o: multi_IO.o multi_sparsity.o Multiphase_Mom_Press_Volf.o Multiphase_Field_Advection.o
+Multiphase_Prototype.o: multi_IO.o multi_sparsity.o Multiphase_Mom_Press_Volf.o Multiphase_Field_Advection.o Copy_Outof_Into_State.o
 Multiphase_Prototype_Wrapper.o: Multiphase_Prototype.o
 
 clean:

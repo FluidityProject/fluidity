@@ -1,3 +1,29 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    amcgsoftware@imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
 
 module multiphase_1D_engine
 
@@ -414,13 +440,13 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
+       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
        NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
-       NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
+       NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
        CV_ELE_TYPE, &
        NU, NV, NW, NUOLD, NVOLD, NWOLD, &
        V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
@@ -579,8 +605,8 @@ implicit none
          U, V, W, UOLD, VOLD, WOLD,  &
          CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
-         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+         NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES,  & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -854,8 +880,8 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -988,8 +1014,8 @@ implicit none
          U, V, W, UOLD, VOLD, WOLD,  &
          CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
-         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+         NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -1099,8 +1125,8 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -1254,8 +1280,8 @@ implicit none
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
          WIC_U_BC, WIC_P_BC,  &
          U_RHS, &
-         C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT, &
@@ -1475,8 +1501,8 @@ implicit none
        SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
        WIC_U_BC, WIC_P_BC,  &
        U_RHS, &
-       C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+       C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        XU_NLOC, XU_NDGLN, &
        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT,  &

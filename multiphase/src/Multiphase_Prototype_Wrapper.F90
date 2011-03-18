@@ -25,100 +25,69 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-!#include "fdebug.h"
+#include "fdebug.h"
 
-subroutine multiphase_prototype_wrapper()
+subroutine multiphase_prototype_wrapper(filename, filename_len)
 
-!  use FLDebug
+  use FLDebug
+  use state_module
+  use populate_state_module
+  use diagnostic_variables
+  use diagnostic_fields_wrapper
+  use global_parameters, only: option_path_len
+  use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+    & check_diagnostic_dependencies
+  use spud
   use mp_prototype
   implicit none
 
-!#ifdef HAVE_PETSC
-!#include "finclude/petsc.h"
-!#endif
-!
-!! Interface blocks for the initialisation routines we need to call
-!  interface
-!    subroutine set_global_debug_level(n)
-!      integer, intent(in) :: n
-!    end subroutine set_global_debug_level
-!
-!    subroutine mpi_init(ierr)
-!      integer, intent(out) :: ierr
-!    end subroutine mpi_init
-!
-!    subroutine mpi_finalize(ierr)
-!      integer, intent(out) :: ierr
-!    end subroutine mpi_finalize
-!
-!    subroutine python_init
-!    end subroutine python_init
-!
-!    subroutine petscinitialize(s, i)
-!      character(len=*), intent(in) :: s
-!      integer, intent(out) :: i
-!    end subroutine petscinitialize
-!  end interface
-!
-!  type(state_type), dimension(:), pointer :: state
-!
-!#ifdef HAVE_MPI
-!  call mpi_init(ierr)
-!  assert(ierr == MPI_SUCCESS)
-!#endif
-!
-!#ifdef HAVE_PETSC
-!  call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-!#endif
-!
-!  call python_init
-!  call read_command_line
-!  call mangle_options_tree_forward
-!
-!  adjoint = have_option("/adjoint")
-!#ifndef HAVE_ADJOINT
-!  if (adjoint) then
-!     FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
-!  endif
-!#else
-!  if (.not. adjoint) then
-!    ! disable the adjointer
-!    ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
-!    call adj_chkierr(ierr)
-!  end if
-!#endif
-!
-!  call populate_state(state)
-!
-!  call insert_time_in_state(state)
-!
-!  call allocate_and_insert_additional_fields(state(1))
-!
-!  ! Check the diagnostic field dependencies for circular dependencies
-!  call check_diagnostic_dependencies(state)
-!
-!  call get_option('/simulation_name',simulation_name)
-!  call initialise_diagnostics(trim(simulation_name),state)
-!
-!  call get_parameters
-!
-!  call calculate_diagnostic_variables(state)
-!  call calculate_diagnostic_variables_new(state)
-!
-!  ! Always output the initial conditions.
-!  call output_state(state)
-!
+  integer, intent(in) :: filename_len
+
+  character(len = filename_len), intent(in) :: filename
+
+#ifdef HAVE_PETSC
+#include "finclude/petsc.h"
+#endif
+
+! Interface blocks for the initialisation routines we need to call
+  interface
+    subroutine set_global_debug_level(n)
+      integer, intent(in) :: n
+    end subroutine set_global_debug_level
+
+    subroutine python_init
+    end subroutine python_init
+
+    subroutine petscinitialize(s, i)
+      character(len=*), intent(in) :: s
+      integer, intent(out) :: i
+    end subroutine petscinitialize
+  end interface
+
+  type(state_type), dimension(:), pointer :: state
+  
+  character(len = option_path_len) :: simulation_name
+  integer :: ierr
+
+#ifdef HAVE_PETSC
+  call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+#endif
+
+  call python_init
+
+  call populate_state(state)
+
+  ! Check the diagnostic field dependencies for circular dependencies
+  call check_diagnostic_dependencies(state)
+
+  call get_option('/simulation_name',simulation_name)
+  call initialise_diagnostics(trim(simulation_name),state)
+
+  call calculate_diagnostic_variables(state)
+  call calculate_diagnostic_variables_new(state)
+
   ! Call the multiphase_prototype code  
   call multiphase_prototype()
-!
-!#ifdef HAVE_ADJOINT
-!  ierr = adj_destroy_adjointer(adjointer)
-!  call adj_chkierr(ierr)
-!#endif
-!
-!#ifdef HAVE_MPI
-!  call mpi_finalize(ierr)
-!  assert(ierr == MPI_SUCCESS)
-!#endif
 
 end subroutine multiphase_prototype_wrapper

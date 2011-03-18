@@ -171,6 +171,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
 bin/multiphase_prototype: fluidity_library
+	@echo "    MAKE multiphase_prototype"
 	@cd multiphase; $(MAKE)
 	@echo "BUILD multiphase prototype"
 	@echo "    MKDIR multiphase"

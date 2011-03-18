@@ -8,7 +8,7 @@
 ###
 ### Option for debugging: if =357, then all print statements will
 ### be sent to the file flog.dat, otherwise to /dev/null
-option_debug   1
+option_debug   357 
 
 # Problem type: options -2, -1, 0, and 1
 problem               1
@@ -161,8 +161,8 @@ w_dg_vel_int_opt      0
 lump_eqns             F
 
 # For compositional - work out theta-hat for flux
-get_theta_flux        T
-use_theta_flux        F
+volfra_get_theta_flux        T
+volfra_use_theta_flux        F
 
 # Domain length
 domain_length         1.

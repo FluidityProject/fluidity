@@ -28,4 +28,4 @@ clean:
 	rm -f $(SIM)Comp
 	rm -f gmon.out
 	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparcityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
+	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
