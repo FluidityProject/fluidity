@@ -1,3 +1,7 @@
+to create the Makefile from Makefile.in (Makefile is no longer in the repository)
+cd .. (to the fluidity trunk directory)
+./configure
+
 to run:
 cd tests
 cd CompModel_1d_2Phases_2Components
