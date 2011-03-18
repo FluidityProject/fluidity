@@ -171,14 +171,14 @@ contains
       ! get the number of energy groups via summing the number within each energy group set
 
       ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_group_set')
+      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set')
       
       number_of_energy_groups = 0
       
       energy_group_set_loop: do g_set = 1,number_of_energy_group_set
             
          ! set the energy_group_set path
-         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
             
          ! get the number_energy_groups within this set
          call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
@@ -272,7 +272,7 @@ contains
       k_bottom = 0.0
       
       ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_group_set')
+      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set')
       
       ! initialise the global group counter
       g_global = 0
@@ -286,10 +286,10 @@ contains
          positions => extract_vector_field(state, trim(positions_mesh_name), stat=status)  
 
          ! set the energy_group_set path
-         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+         energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
          
          ! get the material fn space name for this group set
-         call get_option(trim(energy_group_set_path)//'/angular_discretisation/mesh/name',material_fn_space_name)
+         call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/mesh/name',material_fn_space_name)
       
          ! extract the material fn_space of this energy group set of this particle type 
          material_fn_space => extract_mesh(state, trim(material_fn_space_name))

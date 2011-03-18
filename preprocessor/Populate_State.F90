@@ -1363,10 +1363,10 @@ contains
       integer :: number_of_energy_group_set
       integer :: start_group, end_group, global_group_count      
       logical, dimension(:), allocatable :: material_phase_number_found
-      character(len=OPTION_PATH_LEN) :: field_name, field_path
+      character(len=OPTION_PATH_LEN) :: field_name, field_path, equation_type_name, energy_discretisation_path
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
       character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path
-      character(len=OPTION_PATH_LEN) :: angular_path, angular_name, energy_group_set_path
+      character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path, energy_group_set_path
       character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name, discretised_source_fn_space_name
       type(scalar_field) :: aux_sfield
       type(tensor_field) :: aux_tfield
@@ -1390,18 +1390,28 @@ contains
          
          ! Insert the Keff as a constant scalar field for output for neutron type
          neutron_keff: if (trim(particle_type_name) == 'neutron') then
-         
-            x_mesh => extract_mesh(states, 'CoordinateMesh')
-            call allocate(aux_sfield, x_mesh, 'ParticleKeff'//trim(particle_type_name), field_type=FIELD_TYPE_CONSTANT)
-            aux_sfield%option_path = ''
-            call zero(aux_sfield)
-            call insert(state, aux_sfield, trim(aux_sfield%name))
-            call deallocate(aux_sfield)
-         
+
+            ! get the equation_type_name
+            call get_option(trim(particle_type_path)//'/equation/name',equation_type_name)
+            
+            eigenvalue_equation: if (trim(equation_type_name) == 'Eigenvalue') then
+            
+               x_mesh => extract_mesh(states, 'CoordinateMesh')
+               call allocate(aux_sfield, x_mesh, 'ParticleKeff'//trim(particle_type_name), field_type=FIELD_TYPE_CONSTANT)
+               aux_sfield%option_path = ''
+               call zero(aux_sfield)
+               call insert(state, aux_sfield, trim(aux_sfield%name))
+               call deallocate(aux_sfield)
+            
+            end if eigenvalue_equation
+            
          end if neutron_keff
+         
+         ! assume only energy discretisation over WholeMesh
+         energy_discretisation_path = trim(particle_type_path)//'/energy_discretisation'
                                                                                  
          ! deduce the number of energy group sets
-         number_of_energy_group_set = option_count(trim(particle_type_path)//'/energy_group_set')
+         number_of_energy_group_set = option_count(trim(energy_discretisation_path)//'/energy_group_set')
          
          ! initialise the global_group_count
          global_group_count = 0
@@ -1410,7 +1420,7 @@ contains
          energy_group_set_loop: do g_set = 1,number_of_energy_group_set
             
             ! set the energy_group_set path
-            energy_group_set_path = trim(particle_type_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+            energy_group_set_path = trim(energy_discretisation_path)//'/energy_group_set['//int2str(g_set - 1)//']'
             
             ! get the number_energy_groups within this set
             call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)         
@@ -1419,23 +1429,26 @@ contains
             start_group = global_group_count + 1
             end_group = start_group + number_of_energy_groups - 1
             
-            ! form the angular discretisation path
+            ! assume the angular discretisation is over the WholeMesh
             angular_path = trim(energy_group_set_path)//'/angular_discretisation'
             
-            ! get the angular discretisation name
-            call get_option(trim(angular_path)//'/name',angular_name)
+            ! get the angular discretisation method
+            call get_option(trim(angular_path)//'/method/name',angular_method)
+
+            ! form the angular discretisation method path
+            angular_method_path = trim(angular_path)//'/method'
             
             ! create the necessary fields for the particular angular discretisation
-            angular_discr_if: if (angular_name == 'diffusion') then
+            angular_discr_if: if (trim(angular_method) == 'Diffusion') then
 
                ! get the material fn space name for this group set
-               call get_option(trim(angular_path)//'/mesh/name',material_fn_space_name)
+               call get_option(trim(angular_method_path)//'/mesh/name',material_fn_space_name)
    
                ! extract the material fn_space of this energy group set of this particle type 
                material_fn_space => extract_mesh(state, trim(material_fn_space_name))
                
                ! get the discretised source fn space name for this group set
-               call get_option(trim(angular_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
+               call get_option(trim(angular_method_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
                                  
                ! allocate and insert the diffusivity, absorption and discretised source assemble fields
                ! - each group then has similar aliased fields to these allocated and inserted after
@@ -1474,7 +1487,7 @@ contains
                   ! increase the global group count
                   global_group_count = global_group_count + 1
                    
-                  field_path = trim(angular_path)//'/scalar_field::ParticleFlux'
+                  field_path = trim(angular_method_path)//'/scalar_field::ParticleFlux'
                                     
                   ! form the field name for solution 
                   field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_type_name)
@@ -1518,25 +1531,7 @@ contains
             end if angular_discr_if
             
          end do energy_group_set_loop
-                           
-         ! now allocate and insert the time run prescribed source fields into state for this particle type
-         include_prescribed_source_if: if (have_option(trim(particle_type_path)//'/time_run/include_prescribed_source')) then
-         
-            prescribed_source_loop: do s = 1,option_count(trim(particle_type_path)//'/time_run/include_prescribed_source/source_scalar_field')
-               
-               field_path = trim(particle_type_path)//'/time_run/include_prescribed_source/source_scalar_field['//int2str(s - 1)//']'
-            
-               field_name = 'NeutralParticlePrescribedSource'//int2str(s)//trim(particle_type_name)
-            
-               call allocate_and_insert_scalar_field(trim(field_path), &
-                                                     state, &
-                                                     field_name = trim(field_name), &
-                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
-            
-            end do prescribed_source_loop
-         
-         end if include_prescribed_source_if
-        
+                                   
          ! if linked with multimaterial then insert the relevant fields 
          ! ie. RadMaterialVolumeFraction, RadMaterialTemperature 
          multimaterial_link: if (have_option(trim(particle_type_path)//'/link_with_multimaterial')) then

@@ -48,13 +48,46 @@
     <ref name="time_equation"/>
   </define>
   <define name="particle_type_generic">
-    <oneOrMore>
-      <ref name="energy_group_set"/>
-    </oneOrMore>
+    <ref name="energy_discretisation"/>
     <oneOrMore>
       <ref name="radiation_material_data_set"/>
     </oneOrMore>
     <ref name="radiation_material_mapping"/>
+  </define>
+  <define name="energy_discretisation">
+    <element name="energy_discretisation">
+      <a:documentation>The energy discretisation for the whole mesh</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="energy_continuity"/>
+      <ref name="energy_order"/>
+      <oneOrMore>
+        <ref name="energy_group_set"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="energy_continuity">
+    <element name="continuity">
+      <a:documentation>The energy discretisation continuity</a:documentation>
+      <ref name="comment"/>
+      <element name="string_value">
+        <value>discontinuous</value>
+      </element>
+    </element>
+  </define>
+  <define name="energy_order">
+    <element name="degree">
+      <a:documentation>The energy discretisation degree</a:documentation>
+      <ref name="comment"/>
+      <element name="integer_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <value>0</value>
+      </element>
+    </element>
   </define>
   <define name="energy_group_set">
     <element name="energy_group_set">
@@ -80,10 +113,21 @@ sets are defined.</a:documentation>
   </define>
   <define name="angular_discretisation">
     <element name="angular_discretisation">
-      <a:documentation>The angular discetisation assoicated with this energy group set</a:documentation>
+      <a:documentation>The angular discetisation for the whole mesh 
+assoicated with this energy group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>diffusion</value>
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="angular_discretisation_method"/>
+    </element>
+  </define>
+  <define name="angular_discretisation_method">
+    <element name="method">
+      <a:documentation>The angular discretisation method </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>Diffusion</value>
       </attribute>
       <ref name="particle_type_material_mesh_choice"/>
       <ref name="particle_flux_diffusion_field"/>
@@ -118,7 +162,11 @@ sets are defined.</a:documentation>
       <a:documentation>Field Type</a:documentation>
       <ref name="comment"/>
       <ref name="particle_type_mesh_choice"/>
+      <ref name="radiation_spatial_diffusion_equation"/>
       <ref name="radiation_diffusion_spatial_discretisation"/>
+      <optional>
+        <ref name="radiation_temporal_discretisation"/>
+      </optional>
       <ref name="radiation_diffusion_inner_solver_options"/>
       <oneOrMore>
         <ref name="radiation_initial_conditions"/>
@@ -126,6 +174,9 @@ sets are defined.</a:documentation>
       <zeroOrMore>
         <ref name="radiation_diffusion_boundary_conditions"/>
       </zeroOrMore>
+      <optional>
+        <ref name="radiation_diffusion_prescribed_source"/>
+      </optional>
       <ref name="radiation_output_options"/>
       <ref name="radiation_stat_options"/>
       <ref name="prognostic_detector_options"/>
@@ -147,6 +198,15 @@ sets are defined.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="radiation_spatial_diffusion_equation">
+    <element name="equation">
+      <a:documentation>The equation to solve for this scalar field</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>Diffusion</value>
+      </attribute>
+    </element>
+  </define>
   <define name="radiation_diffusion_spatial_discretisation">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
@@ -154,6 +214,18 @@ sets are defined.</a:documentation>
       <element name="continuous_galerkin">
         <a:documentation>Continuous galerkin formulation</a:documentation>
         <ref name="comment"/>
+      </element>
+    </element>
+  </define>
+  <define name="radiation_temporal_discretisation">
+    <element name="temporal_discretisation">
+      <a:documentation> The temporal discretisation options 
+ NOT RELEVANT FOR EQUATION(EIGENVALUE)</a:documentation>
+      <ref name="comment"/>
+      <element name="theta">
+        <a:documentation>the theta value</a:documentation>
+        <ref name="comment"/>
+        <ref name="real"/>
       </element>
     </element>
   </define>
@@ -275,6 +347,29 @@ located on the surface (the total source strength is twice the value input here)
         </element>
       </optional>
     </element>
+  </define>
+  <define name="radiation_diffusion_prescribed_source">
+    <element name="scalar_field">
+      <a:documentation> Prescribed isotropic source term
+ NOT RELEVANT FOR EQUATION(EIGENVALUE)</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>Source</value>
+      </attribute>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <element name="prescribed">
+        <ref name="comment"/>
+        <ref name="radiation_diffusion_prescribed_source_scalar_field"/>
+      </element>
+    </element>
+  </define>
+  <define name="radiation_diffusion_prescribed_source_scalar_field">
+    <ref name="prescribed_values_scalar_field"/>
+    <ref name="radiation_output_options"/>
+    <ref name="radiation_stat_options"/>
+    <ref name="prescribed_detector_options"/>
   </define>
   <define name="eigenvalue_equation">
     <element name="equation">
@@ -420,22 +515,7 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
       <attribute name="name">
         <value>TimeDependent</value>
       </attribute>
-      <ref name="radiation_temporal_discretisation"/>
       <ref name="energy_group_iteration_options"/>
-      <optional>
-        <ref name="prescribed_source"/>
-      </optional>
-    </element>
-  </define>
-  <define name="radiation_temporal_discretisation">
-    <element name="temporal_discretisation">
-      <a:documentation>The temporal discretisation options </a:documentation>
-      <ref name="comment"/>
-      <element name="theta">
-        <a:documentation>the theta value</a:documentation>
-        <ref name="comment"/>
-        <ref name="real"/>
-      </element>
     </element>
   </define>
   <define name="energy_group_iteration_options">
@@ -482,57 +562,6 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
         </element>
       </choice>
     </element>
-  </define>
-  <define name="prescribed_source">
-    <element name="include_prescribed_source">
-      <a:documentation>Include prescribed source</a:documentation>
-      <ref name="comment"/>
-      <oneOrMore>
-        <element name="source_scalar_field">
-          <a:documentation>Prescribed source term for a particular energy group</a:documentation>
-          <ref name="comment"/>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <choice>
-            <element name="energy_group">
-              <a:documentation>The energy group this source is associated with </a:documentation>
-              <ref name="comment"/>
-              <ref name="integer"/>
-            </element>
-            <element name="all_group">
-              <a:documentation>All energy groups associated with this source</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </choice>
-          <element name="prescribed">
-            <ref name="comment"/>
-            <ref name="prescribed_source_scalar_field"/>
-          </element>
-        </element>
-      </oneOrMore>
-    </element>
-  </define>
-  <define name="prescribed_source_scalar_field">
-    <ref name="particle_type_prescribed_source_mesh_choice"/>
-    <ref name="prescribed_values_scalar_field"/>
-    <ref name="radiation_output_options"/>
-    <ref name="radiation_stat_options"/>
-    <ref name="prescribed_detector_options"/>
-  </define>
-  <define name="particle_type_prescribed_source_mesh_choice">
-    <choice>
-      <element name="mesh">
-        <attribute name="name">
-          <value>ParticlePrescribedSourceMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-      </element>
-    </choice>
   </define>
   <define name="radiation_material_data_set">
     <element name="material_data_set">

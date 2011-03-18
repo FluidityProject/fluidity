@@ -62,13 +62,56 @@ equation_type_photon =
 particle_type_generic = 
    (
       
-      energy_group_set+,
+      energy_discretisation,
                             
       radiation_material_data_set+,
          
       radiation_material_mapping
    )
 
+
+energy_discretisation = 
+   (
+      ## The energy discretisation for the whole mesh
+      element energy_discretisation {
+         comment, 
+         
+         attribute name { "WholeMesh" },
+         
+         energy_continuity,
+         
+         energy_order,
+         
+         energy_group_set+         
+      }         
+   )
+
+
+energy_continuity = 
+   (
+      ## The energy discretisation continuity
+      element continuity {
+         comment,
+         
+         element string_value {
+            "discontinuous"
+         }           
+      }
+   )
+
+
+energy_order = 
+   (
+      ## The energy discretisation degree
+      element degree {
+         comment, 
+         
+         element integer_value {
+            attribute rank { "0" },
+            ("0")
+         }
+      }
+   )
 
 energy_group_set = 
    (
@@ -101,19 +144,33 @@ number_of_energy_groups =
 
 angular_discretisation = 
    (
-      ## The angular discetisation assoicated with this energy group set
+      ## The angular discetisation for the whole mesh 
+      ## assoicated with this energy group set
       element angular_discretisation {
          comment, 
          
-         attribute name { "diffusion" },
-
-         particle_type_material_mesh_choice, 
+         attribute name { "WholeMesh" },
          
-         particle_flux_diffusion_field         
+         angular_discretisation_method
       }
    )
 
 
+angular_discretisation_method = 
+   (
+      ## The angular discretisation method 
+      element method {
+         comment, 
+         
+         attribute name { "Diffusion" },
+
+         particle_type_material_mesh_choice, 
+         
+         particle_flux_diffusion_field         
+      }      
+   )
+   
+   
 particle_type_material_mesh_choice = 
    (
       element mesh {
@@ -145,14 +202,20 @@ prognostic_particle_diffusion_removal_source_scalar_field =
          comment,
 
          particle_type_mesh_choice,
+         
+         radiation_spatial_diffusion_equation,
                            
          radiation_diffusion_spatial_discretisation,
-      
+
+         radiation_temporal_discretisation?,
+               
          radiation_diffusion_inner_solver_options,
       
          radiation_initial_conditions+,
       
          radiation_diffusion_boundary_conditions*,
+         
+         radiation_diffusion_prescribed_source?,
            
          radiation_output_options,
       
@@ -163,7 +226,7 @@ prognostic_particle_diffusion_removal_source_scalar_field =
          interpolation_algorithm_scalar
       }
    )
-
+   
 
 particle_type_mesh_choice = 
    (
@@ -176,6 +239,17 @@ particle_type_mesh_choice =
    
    )
 
+
+radiation_spatial_diffusion_equation = 
+   (
+      ## The equation to solve for this scalar field
+      element equation {
+         comment, 
+         
+         attribute name { "Diffusion" }
+      }
+   )
+   
    
 radiation_diffusion_spatial_discretisation = 
    (
@@ -188,6 +262,21 @@ radiation_diffusion_spatial_discretisation =
                comment
             }           
          )
+      }   
+   )
+
+
+radiation_temporal_discretisation = 
+   (
+      ##  The temporal discretisation options 
+      ##  NOT RELEVANT FOR EQUATION(EIGENVALUE)
+      element temporal_discretisation {
+         comment,
+         ## the theta value
+         element theta {
+            comment,
+            real
+         }
       }   
    )
    
@@ -328,6 +417,40 @@ radiation_stat_options =
             comment
          }?
       }
+   )
+
+
+radiation_diffusion_prescribed_source =
+   (     
+      ##  Prescribed isotropic source term
+      ##  NOT RELEVANT FOR EQUATION(EIGENVALUE)
+      element scalar_field {
+         comment,
+         
+         attribute name { "Source" },
+         
+         attribute rank { "0" },
+         
+         (
+            element prescribed {
+               comment,
+               
+               radiation_diffusion_prescribed_source_scalar_field
+            }
+         )
+      }
+   )
+   
+
+radiation_diffusion_prescribed_source_scalar_field = 
+   (      
+      prescribed_values_scalar_field,
+      
+      radiation_output_options,
+      
+      radiation_stat_options,
+      
+      prescribed_detector_options   
    )
 
 
@@ -480,26 +603,8 @@ time_equation =
          
          attribute name { "TimeDependent" },
          
-         radiation_temporal_discretisation,
-         
-         energy_group_iteration_options,
-         
-         prescribed_source?
+         energy_group_iteration_options
       }      
-   )
-
-
-radiation_temporal_discretisation = 
-   (
-      ## The temporal discretisation options 
-      element temporal_discretisation {
-         comment,
-         ## the theta value
-         element theta {
-            comment,
-            real
-         }
-      }   
    )
    
    
@@ -545,61 +650,6 @@ whole_domain_energy_group_rebalance_options =
             }
          )                  
       }                 
-   )
-
-
-prescribed_source = 
-   (
-      ## Include prescribed source
-      element include_prescribed_source {
-         comment,
-         ## Prescribed source term for a particular energy group
-         element source_scalar_field {
-            comment,
-            attribute name { xsd:string },
-            (
-               ## The energy group this source is associated with 
-               element energy_group {
-                  comment,
-                  integer
-               }|
-               ## All energy groups associated with this source
-               element all_group { 
-                  comment
-               }
-            ),
-            element prescribed {
-               comment,
-               prescribed_source_scalar_field
-            }
-         }+
-      }
-   )
-   
-
-prescribed_source_scalar_field = 
-   (
-      particle_type_prescribed_source_mesh_choice,
-      
-      prescribed_values_scalar_field,
-      
-      radiation_output_options,
-      
-      radiation_stat_options,
-      
-      prescribed_detector_options   
-   )
-
-
-particle_type_prescribed_source_mesh_choice = 
-   (
-      element mesh {
-         attribute name { "ParticlePrescribedSourceMesh" }
-      }|
-      element mesh {
-         attribute name { string }
-      }
-   
    )
    
      

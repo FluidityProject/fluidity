@@ -65,9 +65,6 @@ module radiation_assemble_solve_group
       real :: timestep
       logical :: have_delayed
       logical :: include_prescribed_source
-      integer :: number_prescribed_source
-      integer, dimension(:), allocatable :: prescribed_source_energy_group
-      character(len=OPTION_PATH_LEN), dimension(:), allocatable :: prescribed_source_field_name
    end type particle_group_g_assemble_options_type
 
 contains
@@ -135,11 +132,7 @@ contains
       ! deallocate the particle flux pointer fields
       call deallocate_flux_all_group(particle_flux     = particle_flux, &
                                      particle_flux_old = particle_flux_old)
-      
-      ! deallocate the prescribed source options data
-      if (allocated(particle_group_g_assemble_options%prescribed_source_energy_group)) deallocate(particle_group_g_assemble_options%prescribed_source_energy_group)
-      if (allocated(particle_group_g_assemble_options%prescribed_source_field_name))   deallocate(particle_group_g_assemble_options%prescribed_source_field_name)
-      
+            
    end subroutine particle_assemble_solve_group
 
    ! --------------------------------------------------------------------------
@@ -155,10 +148,6 @@ contains
       character(len=*) :: particle_flux_option_path
       character(len=*) :: particle_radmat_option_path
       logical :: time_run
-      
-      ! local variables
-      integer :: s
-      character(len=OPTION_PATH_LEN) :: include_prescribed_source_path
             
       ! get the spatial discretisation
       spatial: if (have_option(trim(particle_flux_option_path)//'/prognostic/spatial_discretisation/continuous_galerkin')) then
@@ -174,44 +163,13 @@ contains
       ! get the time theta and time step
       time: if (time_run) then
             
-         call get_option(trim(particle_radmat_option_path)//'/equation/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
+         call get_option(trim(particle_flux_option_path)//'/prognostic/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
          
          call get_option('/timestepping/timestep',particle_group_g_assemble_options%timestep)
-   
-         ! prescribed source data
-         include_prescribed_source_path = trim(particle_radmat_option_path)//'/equation/include_prescribed_source'
          
-         particle_group_g_assemble_options%include_prescribed_source = have_option(trim(include_prescribed_source_path))
-         
-         get_prescribed_source_options: if (particle_group_g_assemble_options%include_prescribed_source) then 
-         
-            particle_group_g_assemble_options%number_prescribed_source =  &
-            option_count(trim(include_prescribed_source_path)//'/source_scalar_field')
-         
-            allocate(particle_group_g_assemble_options%prescribed_source_energy_group(particle_group_g_assemble_options%number_prescribed_source))
-         
-            allocate(particle_group_g_assemble_options%prescribed_source_field_name(particle_group_g_assemble_options%number_prescribed_source))
-         
-            prescribed_source_loop: do s = 1,particle_group_g_assemble_options%number_prescribed_source
-            
-               call get_option(trim(include_prescribed_source_path)//'/source_scalar_field['//int2str(s - 1)//']/name', &
-                               particle_group_g_assemble_options%prescribed_source_field_name(s)) 
-            
-               all_group: if (have_option(trim(include_prescribed_source_path)//'/source_scalar_field['//int2str(s - 1)//']/all_group')) then
-               
-                  particle_group_g_assemble_options%prescribed_source_energy_group(s) = 0
-            
-               else all_group
-            
-                  call get_option(trim(include_prescribed_source_path)//'/source_scalar_field['//int2str(s - 1)//']/energy_group', &
-                                  particle_group_g_assemble_options%prescribed_source_energy_group(s))           
-            
-               end if all_group
-            
-            end do prescribed_source_loop
-         
-         end if get_prescribed_source_options
-              
+         particle_group_g_assemble_options%include_prescribed_source = &
+         have_option(trim(particle_flux_option_path)//'/prognostic/scalar_field::Source')
+                       
       end if time
       
       delayed: if (have_option(trim(particle_radmat_option_path)//'/delayed_neutron_precursor')) then
@@ -276,10 +234,10 @@ contains
                                       g_set)
 
       ! set the energy_group_set path
-      energy_group_set_path = trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set - 1)//']'
+      energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
          
       ! get the material fn space name for this group set
-      call get_option(trim(energy_group_set_path)//'/angular_discretisation/mesh/name',material_fn_space_name)
+      call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))
@@ -698,7 +656,6 @@ contains
       
       ! local variables 
       integer :: status  
-      integer :: s
       real :: timestep
       real :: theta
       real :: timestep_theta
@@ -765,28 +722,23 @@ contains
       time_run: if (.not. present(keff)) then
                   
          add_prescribed_isotropic_source: if (particle_group_g_assemble_options%include_prescribed_source) then
-            
-            ! loop each prescribed source and add in
-            prescribed_isotropic_source_loop: do s = 1,particle_group_g_assemble_options%number_prescribed_source
-               
-               ! include the source into this group g if needed
-               source_this_group: if ((particle_group_g_assemble_options%prescribed_source_energy_group(s) == g) .or. &
-                                      (particle_group_g_assemble_options%prescribed_source_energy_group(s) == 0)) then
                    
-                   ! extract the prescribed isotropic source field
-                   prescribed_isotropic_source_field => extract_scalar_field(state, &
-                                                                             trim(particle_group_g_assemble_options%prescribed_source_field_name(s)), &
-                                                                             stat=status)
+             ! extract the prescribed isotropic source field
+             prescribed_isotropic_source_field => extract_scalar_field(state, &
+                                                                       trim(particle_flux(g)%ptr%name)//'Source', &
+                                                                       stat=status)
                    
-                   rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele), &
-                                                     detwei*ele_val(prescribed_isotropic_source_field, &
-                                                     vele))
-                  
-               end if source_this_group
-               
-            end do prescribed_isotropic_source_loop
-            
+             rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele), &
+                                               detwei*ele_val(prescribed_isotropic_source_field, &
+                                               vele))
+                                             
          end if add_prescribed_isotropic_source
+         
+         add_delayed: if (particle_group_g_assemble_options%have_delayed) then
+         
+            ! fill in ...
+            
+         end if add_delayed
       
       end if time_run
 

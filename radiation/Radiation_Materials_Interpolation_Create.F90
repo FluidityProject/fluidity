@@ -95,7 +95,7 @@ contains
       ewrite(1,*) 'Create radiation particle_radmat_ii from options for ', trim(particle_radmat%name)
                                                                                  
       ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_group_set')
+      number_of_energy_group_set = option_count(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set')
             
       allocate(particle_radmat_ii%energy_group_set_ii(number_of_energy_group_set))
       
@@ -178,7 +178,7 @@ contains
       ewrite(1,*) 'Allocate radiation particle_radmat_ii_size from options for ', trim(particle_radmat%name),' for g_set ',g_set
       
       ! get the material fn space name
-      call get_option(trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/mesh/name',material_fn_space_name)
+      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))
@@ -498,7 +498,7 @@ contains
                                              particle_flux = particle_flux)
              
       ! get the material fn space name
-      call get_option(trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/mesh/name',material_fn_space_name)
+      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))

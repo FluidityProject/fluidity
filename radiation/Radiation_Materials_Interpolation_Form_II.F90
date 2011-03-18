@@ -174,7 +174,7 @@ contains
       region_id_mapping_path = trim(particle_radmat%option_path)//'/region_id_material_mapping/region_to_physical_radiation_material_map'
 
       ! get the material fn space name
-      call get_option(trim(particle_radmat%option_path)//'/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/mesh/name',material_fn_space_name)
+      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))

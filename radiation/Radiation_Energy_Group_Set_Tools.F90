@@ -63,13 +63,13 @@ contains
       character(len=OPTION_PATH_LEN) :: energy_group_set_path
 
       ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_group_set')
+      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_discretisation/energy_group_set')
       
       end_g = 1
       energy_group_set_loop: do g_set_index = 1,number_of_energy_group_set
             
          ! set the energy_group_set path
-         energy_group_set_path = trim(particle_option_path)//'/energy_group_set['//int2str(g_set_index - 1)//']'
+         energy_group_set_path = trim(particle_option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set_index - 1)//']'
                                              
          ! get the number_energy_groups within this set
          call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
@@ -106,7 +106,7 @@ contains
       character(len=OPTION_PATH_LEN) :: energy_group_set_path
 
       ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_group_set')
+      number_of_energy_group_set = option_count(trim(particle_option_path)//'/energy_discretisation/energy_group_set')
       
       first_g_in_g_set = 1
       energy_group_set_loop: do g_set_index = 1,number_of_energy_group_set
@@ -114,7 +114,7 @@ contains
          if (g_set_index == g_set) exit energy_group_set_loop
             
          ! set the energy_group_set path
-         energy_group_set_path = trim(particle_option_path)//'/energy_group_set['//int2str(g_set_index - 1)//']'
+         energy_group_set_path = trim(particle_option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set_index - 1)//']'
                                              
          ! get the number_energy_groups within this set
          call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
