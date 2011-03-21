@@ -46,6 +46,20 @@ module radiation_particle
    public :: particle_type, &
              create, &
              destroy
+     
+    
+    ! the keff (eigenvalue) type
+    type keff_type
+       ! the latest keff
+       real :: keff_new
+       ! the previous keff
+       real :: keff_old
+       ! the previous coupled keff
+       real :: keff_old_coupled
+       ! the previous control iteration keff
+       real :: keff_old_control
+    end type keff_type
+
    
    ! the particle data type
    type particle_type    
@@ -57,9 +71,15 @@ module radiation_particle
       type(particle_radmat_type) :: particle_radmat
       !! the data sets interpolation instructions (ii) associated with the particle type
       type(particle_radmat_ii_type) :: particle_radmat_ii
+      !! the data associated with the particle keff (eigenvalue)
+      type(keff_type) :: keff
       !! a flag to say that this type has been created
       logical :: created = .false.   
    end type particle_type      
+   
+   interface set
+      module procedure set_all_keff
+   end interface set
 
    interface destroy
       module procedure particles_destroy, &
@@ -97,7 +117,8 @@ contains
          
          ! set the particle name
          call get_option(trim(particles(p)%option_path)//'/name',particles(p)%name)
-
+         
+         ! create each particle type
          call create(state, &
                      particles(p))
                            
@@ -131,11 +152,32 @@ contains
       call create(particle%particle_radmat_ii, &
                   particle%particle_radmat, &
                   state)
+      
+      ! set the keff components to 1.0
+      call set(particle%keff, &
+               value = 1.0)
                   
       ewrite(1,*) 'Finished creating particle type ',trim(particle%name)
       
    end subroutine particle_create_from_options
 
+   ! --------------------------------------------------------------------------
+   
+   subroutine set_all_keff(keff, &
+                           value)
+      
+      !!< Set all the keff components to value
+      
+      type(keff_type), intent(out) :: keff
+      real, intent(in) :: value
+      
+      keff%keff_new         = value
+      keff%keff_old         = value
+      keff%keff_old_coupled = value
+      keff%keff_old_control = value
+   
+   end subroutine set_all_keff
+   
    ! --------------------------------------------------------------------------
 
    subroutine particles_destroy(particles) 

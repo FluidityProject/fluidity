@@ -34,7 +34,7 @@ module radiation_solve_module
    use spud
    use state_module  
    
-   use radiation_materials
+   use radiation_particle
    use radiation_materials_interpolation
    use radiation_solve_power_iteration
    use radiation_normalise_flux
@@ -52,30 +52,23 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine radiation_solve_eigenvalue(state, &
-                                         particle_radmat_ii, &
-                                         particle_radmat) 
+                                         particle) 
       
       !!< Solve the radiation eigenvalue problem for this particle type
       
       type(state_type), intent(inout) :: state
-      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
-      type(particle_radmat_type), intent(in) :: particle_radmat
-
-      ! local variables
-      real :: keff
+      type(particle_type), intent(inout) :: particle
             
       ! form the material data interpolation/mixing instructions
-      call form(particle_radmat_ii, &
-                particle_radmat, &
+      call form(particle%particle_radmat_ii, &
+                particle%particle_radmat, &
                 state)      
       
       ! solve the problem via a particular algorithm
-      eig_solver: if (have_option(trim(particle_radmat%option_path)//'/equation/power_iteration')) then
+      eig_solver: if (have_option(trim(particle%option_path)//'/equation/power_iteration')) then
       
          call eigenvalue_power_iteration(state, &
-                                         particle_radmat, &
-                                         particle_radmat_ii, &
-                                         keff)
+                                         particle)
              
       else eig_solver
       
@@ -85,11 +78,11 @@ contains
             
       ! normalise the particle flux solution
       call normalise_particle_flux(state, &
-                                   particle_radmat)
+                                   particle%particle_radmat)
                         
       ! output diagnostics
       call radiation_eigenvalue_set_diagnostics(state, &
-                                                particle_radmat%name)
+                                                particle%name)
             
       ! output the solution
             
@@ -98,14 +91,12 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine radiation_solve_time(state, &
-                                   particle_radmat_ii, &
-                                   particle_radmat) 
+                                   particle) 
       
       !!< Solve the radiation timestep problem for for this particle type 
       
       type(state_type), intent(inout) :: state
-      type(particle_radmat_ii_type), intent(inout) :: particle_radmat_ii
-      type(particle_radmat_type), intent(in) :: particle_radmat
+      type(particle_type), intent(inout) :: particle
       
             
       

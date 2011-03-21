@@ -42,8 +42,7 @@ module radiation_solve_scatter_iteration
    use spud
    use state_module  
 
-   use radiation_materials
-   use radiation_materials_interpolation
+   use radiation_particle
    use radiation_assemble_solve_group
 
    implicit none
@@ -64,19 +63,17 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine scatter_iteration(particle_radmat, &
-                                particle_radmat_ii, &
+   subroutine scatter_iteration(particle, &
                                 state, &
                                 number_of_energy_groups, &
-                                keff) 
+                                invoke_eigenvalue_scatter_solve) 
       
       !!< Perform iterations around the group loop to solve scatter
       
-      type(particle_radmat_type), intent(in) :: particle_radmat
-      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
+      type(particle_type), intent(in) :: particle
       type(state_type), intent(inout) :: state
       integer, intent(in) :: number_of_energy_groups
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_scatter_solve
       
       ! local variables
       integer :: iscatter
@@ -86,13 +83,15 @@ contains
       character(len=OPTION_PATH_LEN) :: scatter_group_iteration_option_path
        
       ! set the scatter iteration option path
-      scatter_path_if: if (present(keff)) then
+      scatter_path_if: if (invoke_eigenvalue_scatter_solve) then
       
-         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/equation/power_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = &
+         trim(particle%option_path)//'/equation/power_iteration/scatter_group_iteration'
       
       else scatter_path_if
       
-         scatter_group_iteration_option_path = trim(particle_radmat%option_path)//'/equation/energy_group_iteration/scatter_group_iteration'
+         scatter_group_iteration_option_path = &
+         trim(particle%option_path)//'/equation/energy_group_iteration/scatter_group_iteration'
       
       end if scatter_path_if
       
@@ -106,12 +105,11 @@ contains
          
          ewrite(1,*) 'Scatter iteration: ',iscatter
          
-         call energy_group_loop(particle_radmat, &
-                                particle_radmat_ii, &
+         call energy_group_loop(particle, &
                                 state, &
                                 start_group, &
                                 number_of_energy_groups, &
-                                keff = keff)
+                                invoke_eigenvalue_group_solve = invoke_eigenvalue_scatter_solve)
          
          ! rebalance accelerate the scatter iteration if options chosen
          rebalance: if (trim(scatter_iteration_options%whole_domain_rebalance_scatter) /= 'none') then
@@ -198,21 +196,19 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine energy_group_loop(particle_radmat, &
-                                particle_radmat_ii, &
+   subroutine energy_group_loop(particle, &
                                 state, &
                                 start_group, &
                                 number_of_energy_groups, &
-                                keff)
+                                invoke_eigenvalue_group_solve)
       
       !!< Sweep the energy groups from the start_group down solving the within group particle balance
       
-      type(particle_radmat_type), intent(in) :: particle_radmat
-      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii
+      type(particle_type), intent(in) :: particle
       type(state_type), intent(inout) :: state
       integer, intent(in) :: start_group
       integer, intent(in) :: number_of_energy_groups
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       integer :: g
@@ -221,11 +217,10 @@ contains
          
          ! Assemble and solve the group g particle balance
          call particle_assemble_solve_group(state, &
-                                            particle_radmat, &
-                                            particle_radmat_ii, &
+                                            particle, &
                                             g, &
                                             number_of_energy_groups, &
-                                            keff = keff)
+                                            invoke_eigenvalue_group_solve)
          
       end do group_loop      
       

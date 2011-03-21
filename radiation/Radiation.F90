@@ -128,8 +128,7 @@ contains
                ewrite(1,*) 'Solve radiation model eigenvalue for particle type ',trim(particles(p)%name)
                
                call radiation_solve_eigenvalue(state, &
-                                               particles(p)%particle_radmat_ii, &
-                                               particles(p)%particle_radmat)
+                                               particles(p))
             
             end if solve_eig
             
@@ -140,8 +139,7 @@ contains
                ewrite(1,*) 'Solve radiation model time for particle type ',trim(particles(p)%name)
                
                call radiation_solve_time(state, &
-                                         particles(p)%particle_radmat_ii, &
-                                         particles(p)%particle_radmat)
+                                         particles(p))
 
             end if solve_time
       

@@ -48,9 +48,9 @@ module radiation_assemble_solve_group
    use petsc_solve_state_module   
    use sparsity_patterns_meshes 
     
-   use radiation_materials
+   use radiation_particle
+   use radiation_materials_interpolation
    use radiation_extract_flux_field
-   use radiation_materials_interpolation 
    use radiation_energy_group_set_tools
      
    implicit none
@@ -72,21 +72,18 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine particle_assemble_solve_group(state, &
-                                            particle_radmat, &
-                                            particle_radmat_ii, &
+                                            particle, &
                                             g, &
                                             number_of_energy_groups, &
-                                            keff) 
+                                            invoke_eigenvalue_group_solve) 
    
       !!< Assemble and solve the group g particle matrix problem
-      !!< If keff variable is present then this is an eigenvalue solve, else this is a time run solve
 
       type(state_type), intent(inout) :: state
-      type(particle_radmat_type), intent(in) :: particle_radmat
-      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii      
+      type(particle_type), intent(in) :: particle
       integer, intent(in) :: g
       integer, intent(in) :: number_of_energy_groups 
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
@@ -95,7 +92,7 @@ contains
                  
       ! extract the particle flux fields for all energy groups
       call extract_flux_all_group(state, &
-                                  trim(particle_radmat%name), & 
+                                  trim(particle%name), & 
                                   number_of_energy_groups, &
                                   particle_flux     = particle_flux, &
                                   particle_flux_old = particle_flux_old)
@@ -103,8 +100,8 @@ contains
       ! get the solver options for group g
       call get_group_g_assemble_options(particle_group_g_assemble_options, &
                                         particle_flux(g)%ptr%option_path, &
-                                        particle_radmat%option_path, &
-                                        (.not. present(keff)))
+                                        particle%option_path, &
+                                        invoke_eigenvalue_group_solve)
       
       ! currently assume all energy groups point to the same coordinate mesh
       
@@ -115,19 +112,18 @@ contains
       ! assemble the diffusivity, absorption and already discretised rhs term scalar fields and insert into state
       call assemble_coeff_source_group_g(particle_flux, &
                                          particle_flux_old, &
-                                         particle_radmat, &
-                                         particle_radmat_ii, &
+                                         particle, &
                                          state, &
                                          g, &
                                          number_of_energy_groups, &
-                                         keff = keff)
+                                         invoke_eigenvalue_group_solve)
       
       call assemble_matrix_solve_group_g(particle_flux, &
                                          particle_flux_old, &
                                          state, &   
                                          g, &
                                          particle_group_g_assemble_options, &
-                                         keff = keff)
+                                         invoke_eigenvalue_group_solve)
       
       ! deallocate the particle flux pointer fields
       call deallocate_flux_all_group(particle_flux     = particle_flux, &
@@ -139,15 +135,15 @@ contains
 
    subroutine get_group_g_assemble_options(particle_group_g_assemble_options, &
                                            particle_flux_option_path, &
-                                           particle_radmat_option_path, &
-                                           time_run)
+                                           particle_option_path, &
+                                           invoke_eigenvalue_group_solve)
       
       !!< Get the options associated with the assembly of the particle group g
       
       type(particle_group_g_assemble_options_type), intent(out) :: particle_group_g_assemble_options 
-      character(len=*) :: particle_flux_option_path
-      character(len=*) :: particle_radmat_option_path
-      logical :: time_run
+      character(len=*), intent(in) :: particle_flux_option_path
+      character(len=*), intent(in) :: particle_option_path
+      logical, intent(in) :: invoke_eigenvalue_group_solve
             
       ! get the spatial discretisation
       spatial: if (have_option(trim(particle_flux_option_path)//'/prognostic/spatial_discretisation/continuous_galerkin')) then
@@ -161,7 +157,7 @@ contains
       end if spatial
       
       ! get the time theta and time step
-      time: if (time_run) then
+      time: if (.not. invoke_eigenvalue_group_solve) then
             
          call get_option(trim(particle_flux_option_path)//'/prognostic/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
          
@@ -172,7 +168,7 @@ contains
                        
       end if time
       
-      delayed: if (have_option(trim(particle_radmat_option_path)//'/delayed_neutron_precursor')) then
+      delayed: if (have_option(trim(particle_option_path)//'/delayed_neutron_precursor')) then
       
          particle_group_g_assemble_options%have_delayed = .true.
       
@@ -188,24 +184,22 @@ contains
    
    subroutine assemble_coeff_source_group_g(particle_flux, &
                                             particle_flux_old, &
-                                            particle_radmat, &
-                                            particle_radmat_ii, &
+                                            particle, &
                                             state, &
                                             g, &
                                             number_of_energy_groups, &
-                                            keff)
+                                            invoke_eigenvalue_group_solve)
       
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
       !!< somewhere else to assemble the linear system
 
       type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
       type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old      
-      type(particle_radmat_type), intent(in) :: particle_radmat
-      type(particle_radmat_ii_type), intent(in) :: particle_radmat_ii  
+      type(particle_type), intent(in) :: particle
       type(state_type), intent(inout) :: state    
       integer, intent(in) :: g
       integer, intent(in) :: number_of_energy_groups 
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       integer :: stat
@@ -230,11 +224,11 @@ contains
       
       ! determine which group set this g belongs to
       call which_group_set_contains_g(g, &
-                                      trim(particle_radmat%option_path), &
+                                      trim(particle%option_path), &
                                       g_set)
 
       ! set the energy_group_set path
-      energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
+      energy_group_set_path = trim(particle%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
          
       ! get the material fn space name for this group set
       call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
@@ -277,20 +271,20 @@ contains
       call zero(diffusivity_coeff)
       call zero(discretised_source)
             
-      ! form the absorption field for this energy group (which is actually the removal cross section)            
+      ! form the absorption coeff field for this energy group (which is actually the removal cross section)            
       call form(material_fn_space, &
-                particle_radmat_ii%energy_group_set_ii(g_set), &
-                particle_radmat, &
+                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                particle%particle_radmat, &
                 absorption_coeff, &
                 g, &
                 component = 'removal')
             
-      ! form the diffusivity tensor field for this energy group (only fill in diagonals)            
+      ! form the diffusivity tensor coeff field for this energy group (only fill in diagonals)            
       node_loop_d: do inode = 1,node_count(material_fn_space)                                                                      
             
          ! get the inode diffusionx data for this energy group
-         call form(particle_radmat_ii%energy_group_set_ii(g_set), &
-                   particle_radmat, &
+         call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle%particle_radmat, &
                    inode, &
                    g, &
                    data_value, &
@@ -306,8 +300,8 @@ contains
          if (positions%dim > 1) then
          
             ! get the inode diffusiony data for this energy group
-            call form(particle_radmat_ii%energy_group_set_ii(g_set), &
-                      particle_radmat, &
+            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle%particle_radmat, &
                       inode, &
                       g, &
                       data_value, &
@@ -325,8 +319,8 @@ contains
          if (positions%dim > 2) then
 
             ! get the inode diffusionz data for this energy group
-            call form(particle_radmat_ii%energy_group_set_ii(g_set), &
-                      particle_radmat, &
+            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle%particle_radmat, &
                       inode, &
                       g, &
                       data_value, &
@@ -344,10 +338,11 @@ contains
       end do node_loop_d
             
       ! form the discretised source - scatter and production            
-
+      
+      ! form the prompt spectrum coeff field for this energy group
       call form(material_fn_space, &
-                particle_radmat_ii%energy_group_set_ii(g_set), &
-                particle_radmat, &
+                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                particle%particle_radmat, &
                 prompt_spectrum_coeff, &
                 g, &
                 component = 'prompt_spectrum')
@@ -356,9 +351,10 @@ contains
                         
          ! form the production field for this energy group g_dash
          
+         ! form the production coeff field for this energy group
          call form(material_fn_space, &
-                   particle_radmat_ii%energy_group_set_ii(g_set), &
-                   particle_radmat, &
+                   particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle%particle_radmat, &
                    production_coeff, &
                    g_dash, &
                    component = 'production')
@@ -367,8 +363,8 @@ contains
  
             ! form the scatter field for this energy group g_dash to g            
             call form(material_fn_space, &
-                      particle_radmat_ii%energy_group_set_ii(g_set), &
-                      particle_radmat, &
+                      particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                      particle%particle_radmat, &
                       scatter_coeff, &
                       g, &
                       component = 'scatter', &
@@ -389,7 +385,7 @@ contains
             
             rhs_addto = 0.0
             
-            keff_or_time: if (present(keff)) then
+            keff_or_time: if (invoke_eigenvalue_group_solve) then
             
                ! add the scatter - not the within group
                not_within_group_eig: if (g /= g_dash) then
@@ -406,7 +402,7 @@ contains
                                                           ele_shape(particle_flux_old(g_dash)%ptr,vele), &
                                                           detwei_vele*ele_val_at_quad(production_coeff,vele) &
                                                                      *ele_val_at_quad(prompt_spectrum_coeff,vele) &
-                                                                     *(1.0/keff) ), &
+                                                                     *(1.0/particle%keff%keff_new) ), &
                                               ele_val(particle_flux_old(g_dash)%ptr,vele))
                                           
             else keff_or_time
@@ -449,7 +445,7 @@ contains
                                             state, &
                                             g, &
                                             particle_group_g_assemble_options, &
-                                            keff)
+                                            invoke_eigenvalue_group_solve)
       
       !!< Assemble the matrix system for this group g and solve
       !!< This is only set up for even parity spherical harmonic P1 (ie diffusion) 
@@ -461,7 +457,7 @@ contains
       type(state_type), intent(inout) :: state   
       integer, intent(in) :: g 
       type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       integer :: stat
@@ -521,7 +517,7 @@ contains
                                              absorption, &
                                              diffusivity, &
                                              state, &
-                                             keff = keff)
+                                             invoke_eigenvalue_group_solve)
 
       end do volume_element_loop
       
@@ -598,12 +594,13 @@ contains
                                              absorption, &
                                              diffusivity, &
                                              state, &
-                                             keff)
+                                             invoke_eigenvalue_group_solve)
 
-      !!< Assemble the volume element vele contribution to the global matrix and rhs for this particle type for group g
-      !!< The optional argument keff is used to determine whether this is a eigenvalue or time dependent assemble
+      !!< Assemble the volume element vele contribution to the global 
+      !!< matrix and rhs for this particle type for group g
       
-      ! the particle_flux (and old) fields have the same positions mesh here (so they may actually be the supermesh'ed flux)
+      ! the particle_flux (and old) fields have the same positions 
+      ! mesh here (so they may actually be the supermesh'ed flux)
       
       ! the assemble for time run is still under development and is currently known to be incorrect 
       
@@ -618,7 +615,7 @@ contains
       type(scalar_field), intent(in) :: absorption
       type(tensor_field), intent(in) :: diffusivity
       type(state_type), intent(in) :: state    
-      real, intent(in), optional :: keff
+      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables 
       integer :: status  
@@ -633,7 +630,7 @@ contains
       type(scalar_field), pointer :: prescribed_isotropic_source_field 
       
       ! form the timestep*theta use for time run and shorter variable names
-      form_timestep_theta: if (.not. present(keff)) then
+      form_timestep_theta: if (.not. invoke_eigenvalue_group_solve) then
          
          timestep_theta = particle_group_g_assemble_options%timestep* &
                           particle_group_g_assemble_options%theta
@@ -658,7 +655,7 @@ contains
       ! add the diffusion term
       diffusivity_gi = ele_val_at_quad(diffusivity, vele)
             
-      keff_or_time_diff: if (present(keff)) then
+      keff_or_time_diff: if (invoke_eigenvalue_group_solve) then
          
          matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, &
                                                             diffusivity_gi, &
@@ -672,7 +669,7 @@ contains
       end if keff_or_time_diff
                
       ! add the absortion term 
-      keff_or_time_removal: if (present(keff)) then
+      keff_or_time_removal: if (invoke_eigenvalue_group_solve) then
          
          matrix_addto = matrix_addto + shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
                                                    ele_shape(particle_flux(g)%ptr,vele), &
@@ -685,7 +682,7 @@ contains
       end if keff_or_time_removal 
                                                
       ! if time run include the prescribed source
-      time_run: if (.not. present(keff)) then
+      time_run: if (.not. invoke_eigenvalue_group_solve) then
                   
          add_prescribed_isotropic_source: if (particle_group_g_assemble_options%include_prescribed_source) then
                    
