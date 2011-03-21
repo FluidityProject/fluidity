@@ -3836,14 +3836,16 @@ contains
     real, dimension(:), intent(out) :: vector_out
 
     !local variables
-    integer :: i
+    integer :: i, j
 
     assert(size(vector_in)==size(mat,2))
     assert(size(vector_out)==size(mat,1))
 
-    vector_out = 0.0
     do i = 1, size(vector_out)
-       vector_out(i) = sum( vector_in(row_m(mat,i)) * row_val_ptr(mat,i) )
+      vector_out(i) = 0.0
+      do j=mat%sparsity%findrm(i), mat%sparsity%findrm(i+1)-1
+         vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
+      end do
     end do
    
   end subroutine csr_mult
@@ -3858,14 +3860,15 @@ contains
     real, dimension(:), intent(inout) :: vector_out
 
     !local variables
-    integer :: i
+    integer :: i, j
 
     assert(size(vector_in)==size(mat,2))
     assert(size(vector_out)==size(mat,1))
 
     do i = 1, size(vector_out)
-       vector_out(i) = vector_out(i) + &
-            &sum( vector_in(row_m(mat,i)) * row_val_ptr(mat,i) )
+      do j=mat%sparsity%findrm(i), mat%sparsity%findrm(i+1)-1
+         vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
+      end do
     end do
    
   end subroutine csr_mult_addto
@@ -3900,7 +3903,7 @@ contains
     real, dimension(:), intent(out) :: vector_out
 
     !local variables
-    integer :: i
+    integer :: i, j, k
 
     ewrite(2,*) 'size(vector_in) = ', size(vector_in)
     ewrite(2,*) 'size(mat,1) = ', size(mat,1)
@@ -3911,10 +3914,12 @@ contains
 
     vector_out=0
     do i = 1, size(vector_in)
-       vector_out(row_m(mat,i)) = vector_out(row_m(mat,i)) &
-            + vector_in(i) * row_val_ptr(mat,i)
+      do j=mat%sparsity%findrm(i), mat%sparsity%findrm(i+1)-1
+         k = mat%sparsity%colm(j)
+         vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
+      end do
     end do
-
+    
   end subroutine csr_mult_T  
 
   subroutine dcsr_mult_T(m,v,mv)
