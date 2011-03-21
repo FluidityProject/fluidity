@@ -533,7 +533,7 @@ contains
       ! search for MACRO as well so as to not search to far each time
       keyword_find(1) = 1
       
-      ! find siga if there
+      ! find sigabs if there
       keyword_find(2) = 2
 
       call find_line_with_any_desired_keyword(format_radmats_file_unit, &
@@ -544,7 +544,7 @@ contains
                                               keyword_list, &
                                               line_string)  
 
-      ! if not found siga then search for SIGTOT, if neither (or both) then exit
+      ! if not found SIGABS then search for SIGTOT, if neither (or both) then exit
       not_found_siga: if (first_keyword_found /= 2) then 
                
          ! search for SIGTOT
@@ -565,11 +565,11 @@ contains
                                                  keyword_list, &
                                                  line_string)    
                
-         ! exit if neither SIGABS or SIGTOT found else read in sigtot and calc siga
+         ! exit if neither SIGABS or SIGTOT found else read in sigtot and calc sigabs
          not_found_sigtot_or_siga: if (first_keyword_found /= 2) then
                
             ewrite(-1,*) "Error reading format_radmats file"
-            FLExit("Neither the SIGA or SIGTOT cross sections found")
+            FLExit("Neither the SIGABS or SIGTOT cross sections found")
                
          else not_found_sigtot_or_siga
                
@@ -579,7 +579,7 @@ contains
                                                          format_radmats_file_unit, &
                                                          record_len)
                   
-            ! calc the siga from the sigtot and sigs moment 1
+            ! calc the sigabs from the sigtot and sigs moment 1
             siga_group_loop: do g = 1,number_of_energy_groups 
                   
                radmat%absorption(g) = radmat%total(g) - sum(radmat%scatter(g,:,1))
@@ -617,11 +617,11 @@ contains
          sigtot_and_siga: if (first_keyword_found == 2) then
                
             ewrite(-1,*) "Error reading format_radmats file"
-            FLExit("Both the SIGA and SIGTOT cross sections found")
+            FLExit("Both the SIGABS and SIGTOT cross sections found")
                               
          else sigtot_and_siga
                
-            ! calc the sigtot from siga and sigs moment 1
+            ! calc the sigtot from sigabs and sigs moment 1
             sigtot_group_loop: do g = 1,number_of_energy_groups 
                   
                radmat%total(g) = radmat%absorption(g) + sum(radmat%scatter(g,:,1))
@@ -1609,10 +1609,10 @@ contains
       character(len=record_len) :: line_string   
       character(len=record_len), dimension(:), allocatable :: words  
        
-      ! find the number of groups from the size of siga
+      ! find the number of groups from the size of sigabs
       number_of_energy_groups = size(siga_style_xsection)
       
-      ! the line number is assumed at the line with the KEYWORD SIGA (or other etc.)
+      ! the line number is assumed at the line with the KEYWORD SIGABS (or other etc.)
       
       ! decude the number of expected groups to read in
       diff_groups: if (present(number_groups_to_read_in)) then
