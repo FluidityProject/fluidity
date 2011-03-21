@@ -1,0 +1,194 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    amcgsoftware@imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied arranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
+#include "fdebug.h"
+
+module radiation_particle
+   
+   !!< Radiation particle type module
+   
+   use futils
+   use global_parameters, only : OPTION_PATH_LEN
+   use spud
+   use state_module   
+   
+   use radiation_materials
+   use radiation_materials_interpolation
+   
+   implicit none
+   
+   private 
+
+   public :: particle_type, &
+             create, &
+             destroy
+   
+   ! the particle data type
+   type particle_type    
+      !! the particle_type name
+      character(len=OPTION_PATH_LEN) :: name='/uninitialised_name/'
+      !! path to options in the options tree
+      character(len=OPTION_PATH_LEN) :: option_path='/uninitialised_path/'
+      !! the collection of radiation data sets associated with the particle type
+      type(particle_radmat_type) :: particle_radmat
+      !! the data sets interpolation instructions (ii) associated with the particle type
+      type(particle_radmat_ii_type) :: particle_radmat_ii
+      !! a flag to say that this type has been created
+      logical :: created = .false.   
+   end type particle_type      
+
+   interface destroy
+      module procedure particles_destroy, &
+                       particle_destroy
+   end interface destroy
+
+   interface create
+      module procedure particles_create_from_options, &
+                       particle_create_from_options
+   end interface create
+         
+contains
+
+   ! --------------------------------------------------------------------------
+
+   subroutine particles_create_from_options(state, &
+                                            particles) 
+      
+      !!< Create each particle type.
+      
+      type(state_type), intent(in) :: state
+      type(particle_type), dimension(:), allocatable, intent(inout) :: particles
+            
+      ! local variable
+      integer :: p 
+      
+      ewrite(1,*) 'Create each particle type'
+                     
+      allocate(particles(option_count('/radiation/particle_type')))
+            
+      particle_type_loop: do p = 1,option_count('/radiation/particle_type')
+             
+         ! set the particle option path
+         particles(p)%option_path = '/radiation/particle_type['//int2str(p - 1)//']'
+         
+         ! set the particle name
+         call get_option(trim(particles(p)%option_path)//'/name',particles(p)%name)
+
+         call create(state, &
+                     particles(p))
+                           
+      end do particle_type_loop
+            
+      ewrite(1,*) 'Finished creating each particle'
+      
+   end subroutine particles_create_from_options
+
+   ! --------------------------------------------------------------------------
+
+   subroutine particle_create_from_options(state, &
+                                           particle) 
+      
+      !!< Create a particle type.
+      
+      type(state_type), intent(in) :: state
+      type(particle_type), intent(inout) :: particle
+                  
+      ewrite(1,*) 'Create particle type ',trim(particle%name)
+      
+      ! create the radmats component   
+      call create(particle%particle_radmat, &
+                  trim(particle%option_path), &
+                  trim(particle%name))
+      
+      ! read the radmats component   
+      call particle_radmat_read(particle%particle_radmat)
+      
+      ! create the radmats_ii component   
+      call create(particle%particle_radmat_ii, &
+                  particle%particle_radmat, &
+                  state)
+                  
+      ewrite(1,*) 'Finished creating particle type ',trim(particle%name)
+      
+   end subroutine particle_create_from_options
+
+   ! --------------------------------------------------------------------------
+
+   subroutine particles_destroy(particles) 
+   
+      !!< Destroy the particles data type (deallocate, zero, unitialise) 
+
+      type(particle_type), dimension(:), allocatable, intent(inout) :: particles
+      
+      ! local variable
+      integer :: p 
+      
+      ewrite(1,*) 'Destroy each particle type'
+      
+      particle_type_loop: do p = 1,size(particles)
+      
+         call destroy(particles(p))
+               
+      end do particle_type_loop 
+      
+      if (allocated(particles)) deallocate(particles)
+
+      ewrite(1,*) 'Finished destroying each particle type'
+          
+   end subroutine particles_destroy
+
+   ! --------------------------------------------------------------------------
+
+   subroutine particle_destroy(particle) 
+   
+      !!< Destroy a particle data type (deallocate, zero, unitialise) 
+
+      type(particle_type), intent(inout) :: particle
+            
+      ewrite(1,*) 'Destroy particle type ',trim(particle%name)
+      
+      ! destroy the radmats component      
+      call destroy(particle%particle_radmat)
+      
+      ! destroy the radmats_ii component   
+      call destroy(particle%particle_radmat_ii)
+      
+      ! unitialise the option path and name
+      particle%name = '/uninitialised_name/'
+      
+      particle%option_path = 'uninitialised_path'
+      
+      ! set the created flag
+      particle%created = .false.
+
+      ewrite(1,*) 'Finished destroying particle type'
+                      
+   end subroutine particle_destroy
+
+   ! --------------------------------------------------------------------------
+
+end module radiation_particle

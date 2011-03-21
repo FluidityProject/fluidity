@@ -173,11 +173,8 @@ contains
 
     INTEGER :: adapt_count
 
-    ! the particle type associated radiation materials 
-    type(particle_radmat_type), dimension(:), allocatable :: particle_radmats
-   
-    ! the particle type associated radiation material (radmat) interpolation instructions (ii)
-    type (particle_radmat_ii_type), dimension(:), allocatable :: particle_radmats_ii
+    ! the particle type for the radiation model 
+    type(particle_type), dimension(:), allocatable :: particles
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -402,8 +399,7 @@ contains
     ! Initialise radiation specific data types and register radiation diagnostics
     if(have_option("/radiation")) then
         call radiation_initialise(state(1), &
-                                  particle_radmats, &
-                                  particle_radmats_ii)
+                                  particles)
     end if
 
     call initialise_diagnostics(filename, state)
@@ -451,8 +447,7 @@ contains
     ! radiation eigenvalue run solve
     if(have_option("/radiation")) then
        call radiation_solve(state(1), &
-                            particle_radmats, &
-                            particle_radmats_ii, &
+                            particles, &
                             invoke_eigenvalue_solve=.true.)
       
       ! write the radiation eigenvalue diagnostics
@@ -858,8 +853,7 @@ contains
        ! radiation time run solve - which may be coupled to fluids via diagnostic fields
        if( have_option("/radiation") ) then
           call radiation_solve(state(1), &
-                               particle_radmats, &
-                               particle_radmats_ii, &
+                               particles, &
                                invoke_eigenvalue_solve=.false.)
        end if
           
@@ -965,8 +959,7 @@ contains
 
     ! radiation cleanup
     if( have_option("/radiation") ) then
-       call radiation_cleanup(particle_radmats, &
-                              particle_radmats_ii)
+       call radiation_cleanup(particles)
     end if
 
     ! closing .stat, .convergence and .detector files
