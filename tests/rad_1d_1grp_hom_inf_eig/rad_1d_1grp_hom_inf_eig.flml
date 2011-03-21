@@ -139,62 +139,70 @@
             <integer_value rank="0">1</integer_value>
           </number_of_energy_groups>
           <angular_discretisation name="WholeMesh">
-            <method name="Diffusion">
-              <mesh name="ParticleMaterialMesh"/>
-              <scalar_field name="ParticleFlux">
-                <prognostic>
-                  <mesh name="ParticleMesh"/>
-                  <equation name="Diffusion"/>
-                  <spatial_discretisation>
-                    <continuous_galerkin/>
-                  </spatial_discretisation>
-                  <solver>
-                    <iterative_method name="cg"/>
-                    <preconditioner name="sor"/>
-                    <relative_error>
-                      <real_value rank="0">1.0e-08</real_value>
-                    </relative_error>
-                    <max_iterations>
-                      <integer_value rank="0">100</integer_value>
-                    </max_iterations>
-                    <never_ignore_solver_failures/>
-                    <diagnostics>
-                      <monitors/>
-                    </diagnostics>
-                  </solver>
-                  <initial_condition name="WholeMesh">
-                    <constant>
-                      <real_value rank="0">1.0</real_value>
-                    </constant>
-                  </initial_condition>
-                  <boundary_conditions name="left">
-                    <surface_ids>
-                      <integer_value shape="1" rank="1">1</integer_value>
-                    </surface_ids>
-                    <type name="albedo">
-                      <constant>
-                        <real_value rank="0">1.0</real_value>
-                      </constant>
-                    </type>
-                  </boundary_conditions>
-                  <boundary_conditions name="right">
-                    <surface_ids>
-                      <integer_value shape="1" rank="1">2</integer_value>
-                    </surface_ids>
-                    <type name="albedo">
-                      <constant>
-                        <real_value rank="0">1.0</real_value>
-                      </constant>
-                    </type>
-                  </boundary_conditions>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <consistent_interpolation/>
-                </prognostic>
-              </scalar_field>
+            <method name="SphericalHarmonic">
+              <parity name="Even">
+                <exclude_odd_parity_time_source/>
+                <angular_moment_set name="AllMoments">
+                  <number_of_angular_moments>
+                    <integer_value rank="0">1</integer_value>
+                  </number_of_angular_moments>
+                  <mesh name="ParticleMaterialMesh"/>
+                  <scalar_field name="ParticleFlux">
+                    <prognostic>
+                      <mesh name="ParticleMesh"/>
+                      <equation name="Diffusion"/>
+                      <spatial_discretisation>
+                        <continuous_galerkin/>
+                      </spatial_discretisation>
+                      <solver>
+                        <iterative_method name="cg"/>
+                        <preconditioner name="sor"/>
+                        <relative_error>
+                          <real_value rank="0">1.0e-08</real_value>
+                        </relative_error>
+                        <max_iterations>
+                          <integer_value rank="0">100</integer_value>
+                        </max_iterations>
+                        <never_ignore_solver_failures/>
+                        <diagnostics>
+                          <monitors/>
+                        </diagnostics>
+                      </solver>
+                      <initial_condition name="WholeMesh">
+                        <constant>
+                          <real_value rank="0">1.0</real_value>
+                        </constant>
+                      </initial_condition>
+                      <boundary_conditions name="left">
+                        <surface_ids>
+                          <integer_value shape="1" rank="1">1</integer_value>
+                        </surface_ids>
+                        <type name="albedo">
+                          <constant>
+                            <real_value rank="0">1.0</real_value>
+                          </constant>
+                        </type>
+                      </boundary_conditions>
+                      <boundary_conditions name="right">
+                        <surface_ids>
+                          <integer_value shape="1" rank="1">2</integer_value>
+                        </surface_ids>
+                        <type name="albedo">
+                          <constant>
+                            <real_value rank="0">1.0</real_value>
+                          </constant>
+                        </type>
+                      </boundary_conditions>
+                      <output/>
+                      <stat/>
+                      <detectors>
+                        <include_in_detectors/>
+                      </detectors>
+                      <consistent_interpolation/>
+                    </prognostic>
+                  </scalar_field>
+                </angular_moment_set>
+              </parity>
             </method>
           </angular_discretisation>
         </energy_group_set>

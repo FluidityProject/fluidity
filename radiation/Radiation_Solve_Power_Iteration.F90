@@ -289,7 +289,7 @@ contains
          energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
          
          ! get the material fn space name for this group set
-         call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/mesh/name',material_fn_space_name)
+         call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
          ! extract the material fn_space of this energy group set of this particle type 
          material_fn_space => extract_mesh(state, trim(material_fn_space_name))

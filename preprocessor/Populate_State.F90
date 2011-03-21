@@ -1353,7 +1353,7 @@ contains
       type(state_type), intent(inout) :: state    
       
       ! local variables
-      integer :: g,d,p,l,s,g_set ! loop index for energy groups, delayed group, particle type, fl<-->rad material links, state, group set
+      integer :: g,d,p,l,s,g_set,m,m_set
       integer :: number_of_particle_types
       integer :: number_of_energy_groups 
       integer :: number_of_delayed_groups 
@@ -1361,12 +1361,18 @@ contains
       integer :: number_of_fluids_states
       integer :: material_phase_number
       integer :: number_of_energy_group_set
-      integer :: start_group, end_group, global_group_count      
+      integer :: start_group, end_group
+      integer :: global_group_count  
+      integer :: number_of_angular_moment_set, global_moment_count
+      integer :: number_of_angular_moments, start_moment, end_moment, number_of_odd_parity_moments  
       logical, dimension(:), allocatable :: material_phase_number_found
-      character(len=OPTION_PATH_LEN) :: field_name, field_path, equation_type_name, energy_discretisation_path
+      character(len=OPTION_PATH_LEN) :: field_name, field_path, equation_type_name
+      character(len=OPTION_PATH_LEN) :: energy_discretisation_path, energy_group_set_path
       character(len=OPTION_PATH_LEN) :: material_phase_name, material_phase_name_link
       character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path
-      character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path, energy_group_set_path
+      character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path
+      character(len=OPTION_PATH_LEN) :: angular_parity, angular_parity_path, angular_moment_set_path 
+      character(len=OPTION_PATH_LEN) :: angular_odd_parity_path     
       character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name, discretised_source_fn_space_name
       type(scalar_field) :: aux_sfield
       type(tensor_field) :: aux_tfield
@@ -1439,91 +1445,169 @@ contains
             angular_method_path = trim(angular_path)//'/method'
             
             ! create the necessary fields for the particular angular discretisation
-            angular_discr_if: if (trim(angular_method) == 'Diffusion') then
+            angular_discr_if: if (trim(angular_method) == 'SphericalHarmonic') then
 
-               ! get the material fn space name for this group set
-               call get_option(trim(angular_method_path)//'/mesh/name',material_fn_space_name)
-   
-               ! extract the material fn_space of this energy group set of this particle type 
-               material_fn_space => extract_mesh(state, trim(material_fn_space_name))
-               
-               ! get the discretised source fn space name for this group set
-               call get_option(trim(angular_method_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
-                                 
-               ! allocate and insert the diffusivity, absorption and discretised source assemble fields
-               ! - each group then has similar aliased fields to these allocated and inserted after
-               
-               ! field path is not needed
-               field_path = '' 
-               
-               ! form the parent field name 
-               parent_field_name = 'ParticleFluxGroupSet'//int2str(g_set)//trim(particle_type_name)
-               
-               ! the call the 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
-               call allocate(aux_tfield, material_fn_space, trim(parent_field_name)//'Diffusivity')
-               aux_tfield%option_path = ''
-               call zero(aux_tfield)
-               call insert(state, aux_tfield, trim(aux_tfield%name))
-               call deallocate(aux_tfield)
-
-               call allocate_and_insert_scalar_field(trim(field_path), &
-                                                     state, &
-                                                     parent_mesh = trim(material_fn_space_name), &
-                                                     parent_name = trim(parent_field_name), &
-                                                     field_name = 'Absorption', &
-                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
-               
-               ! the discretised source is on the solution fn space
-               call allocate_and_insert_scalar_field(trim(field_path), &
-                                                     state, &
-                                                     parent_mesh = trim(discretised_source_fn_space_name), &
-                                                     parent_name = trim(parent_field_name), &
-                                                     field_name = 'DiscretisedSource', &
-                                                     dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
-                    
-               ! create the particle flux fields needed for diffusion theory
-               group_loop: do g = start_group,end_group
-                  
-                  ! increase the global group count
-                  global_group_count = global_group_count + 1
-                   
-                  field_path = trim(angular_method_path)//'/scalar_field::ParticleFlux'
-                                    
-                  ! form the field name for solution 
-                  field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_type_name)
-                  
-                  ! allocate and insert the solution fields
-                  call allocate_and_insert_scalar_field(trim(field_path), &
-                                                        state, &
-                                                        field_name = trim(field_name), &
-                                                        dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
-                  
-                  ! allocate and insert the diffusivity, absorption and source fields that 
-                  ! are actually aliased to corresponding group set fields
-                  
-                  aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
-                  aux_tfield%name        = trim(field_name)//'Diffusivity'
-                  aux_tfield%option_path = ""
-                  aux_tfield%aliased     = .true.
-                  
-                  call insert(state, aux_tfield, trim(aux_tfield%name))
-
-                  aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
-                  aux_sfield%name        = trim(field_name)//'Absorption'
-                  aux_sfield%option_path = ""
-                  aux_sfield%aliased     = .true.
-                  
-                  call insert(state, aux_sfield, trim(aux_sfield%name))
-
-                  aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'DiscretisedSource')
-                  aux_sfield%name        = trim(field_name)//'DiscretisedSource'
-                  aux_sfield%option_path = ""
-                  aux_sfield%aliased     = .true.
-                  
-                  call insert(state, aux_sfield, trim(aux_sfield%name))
-                                    
-               end do group_loop
+               ! form the angular parity path
+               angular_parity_path = trim(angular_method_path)//'/parity'
             
+               ! get the angular parity
+               call get_option(trim(angular_parity_path)//'/name',angular_parity)
+           
+               ! create the angular discretisation fields necessary for the chosen parity
+               angular_parity_if: if (trim(angular_parity) == 'Even') then
+                                                                                                
+                  ! deduce the number of angular moment sets
+                  number_of_angular_moment_set = option_count(trim(angular_parity_path)//'/angular_moment_set')
+        
+                  ! initialise the global_moment_count
+                  global_moment_count = 0
+                  
+                  ! create each angular moment set as needed
+                  angular_moment_set_loop: do m_set = 1,number_of_angular_moment_set
+                  
+                     ! form the angular moment set path
+                     angular_moment_set_path = trim(angular_parity_path)//'/angular_moment_set['//int2str(m_set - 1)//']'
+            
+                     ! get the number_of_angular_moments within this set
+                     call get_option(trim(angular_moment_set_path)//'/number_of_angular_moments',number_of_angular_moments)         
+            
+                     ! form the start_group and end_group numbers
+                     start_moment = global_moment_count + 1
+                     end_moment = start_moment + number_of_angular_moments - 1
+                  
+                     ! get the material fn space name for this moment set for this group set
+                     call get_option(trim(angular_moment_set_path)//'/mesh/name',material_fn_space_name)
+   
+                     ! extract the material fn_space of this energy group set of this particle type 
+                     material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+               
+                     ! get the discretised source fn space name for this group set
+                     call get_option(trim(angular_moment_set_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
+                                 
+                     ! allocate and insert the diffusivity, absorption and discretised source assemble fields
+                     ! - each group then has similar aliased fields to these allocated and inserted after
+               
+                     ! field path is not needed
+                     field_path = '' 
+               
+                     ! form the parent field name 
+                     parent_field_name = 'ParticleFluxGroupSet'//int2str(g_set)//'MomentSet'//int2str(m_set)//trim(particle_type_name)
+               
+                     ! the call the 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
+                     call allocate(aux_tfield, material_fn_space, trim(parent_field_name)//'Diffusivity')
+                     aux_tfield%option_path = ''
+                     call zero(aux_tfield)
+                     call insert(state, aux_tfield, trim(aux_tfield%name))
+                     call deallocate(aux_tfield)
+
+                     call allocate_and_insert_scalar_field(trim(field_path), &
+                                                           state, &
+                                                           parent_mesh = trim(material_fn_space_name), &
+                                                           parent_name = trim(parent_field_name), &
+                                                           field_name = 'Absorption', &
+                                                           dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+               
+                     ! the discretised source is on the solution fn space
+                     call allocate_and_insert_scalar_field(trim(field_path), &
+                                                           state, &
+                                                           parent_mesh = trim(discretised_source_fn_space_name), &
+                                                           parent_name = trim(parent_field_name), &
+                                                           field_name = 'DiscretisedSource', &
+                                                           dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+                          
+                     ! create the particle flux fields needed for each moment for each group of these sets g_set, m_set
+                     group_loop: do g = start_group,end_group
+                  
+                        ! increase the global group count
+                        global_group_count = global_group_count + 1
+                                                
+                        moment_loop: do m = start_moment,end_moment
+                        
+                           ! increase the moment count
+                           if (g == start_group) global_moment_count = global_moment_count + 1
+                                                   
+                           field_path = trim(angular_moment_set_path)//'/scalar_field::ParticleFlux'
+                                    
+                           ! form the field name for solution 
+                           field_name = 'ParticleFluxGroup'//int2str(g)//'Moment'//int2str(m)//trim(particle_type_name)
+                  
+                           ! allocate and insert the solution fields
+                           call allocate_and_insert_scalar_field(trim(field_path), &
+                                                                 state, &
+                                                                 field_name = trim(field_name), &
+                                                                 dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
+                  
+                           ! allocate and insert the diffusivity, absorption and source fields that 
+                           ! are actually aliased to corresponding group set moment set fields
+                  
+                           aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
+                           aux_tfield%name        = trim(field_name)//'Diffusivity'
+                           aux_tfield%option_path = ""
+                           aux_tfield%aliased     = .true.
+                  
+                           call insert(state, aux_tfield, trim(aux_tfield%name))
+
+                           aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
+                           aux_sfield%name        = trim(field_name)//'Absorption'
+                           aux_sfield%option_path = ""
+                           aux_sfield%aliased     = .true.
+                  
+                           call insert(state, aux_sfield, trim(aux_sfield%name))
+
+                           aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'DiscretisedSource')
+                           aux_sfield%name        = trim(field_name)//'DiscretisedSource'
+                           aux_sfield%option_path = ""
+                           aux_sfield%aliased     = .true.
+                  
+                           call insert(state, aux_sfield, trim(aux_sfield%name))
+                        
+                        end do moment_loop
+                                       
+                     end do group_loop
+                  
+                  end do angular_moment_set_loop
+                  
+                  ! form the odd parity field path
+                  angular_odd_parity_path = trim(angular_parity_path)//'/scalar_field::ParticleFluxOddParity'
+                  
+                  insert_odd_parity: if (have_option(trim(angular_odd_parity_path))) then
+                  
+                    ! the global_moment_count represents the even parity moments for this angular discretisation
+                     ! if the odd parity is to be diagnositcally calculated the number of odd parity moments 
+                     ! for this group set is first calculated then the fields inserted
+                  
+                     ! assume Pn order 1 (ie diffusion theory)  
+                     call get_option('/geometry/dimension',number_of_odd_parity_moments)
+                     
+                     ! create each odd parity moment field for each energy group of this group set
+                     
+                     odd_parity_group_loop: do g = start_group,end_group
+                                       
+                        odd_moment_loop: do m = 1,number_of_odd_parity_moments
+                     
+                           field_path = trim(angular_odd_parity_path)//'/scalar_field::ParticleFluxOddParity'
+                                    
+                           ! form the field name for solution 
+                           field_name = 'ParticleFluxOddParityGroup'//int2str(g)//'Moment'//int2str(m)//trim(particle_type_name)
+                  
+                           ! allocate and insert the solution fields
+                           call allocate_and_insert_scalar_field(trim(field_path), &
+                                                                 state, &
+                                                                 field_name = trim(field_name), &
+                                                                 dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
+                     
+                        end do odd_moment_loop
+                      
+                     end do odd_parity_group_loop
+                           
+                  end if insert_odd_parity
+                  
+               else angular_parity_if
+
+                  FLAbort('Error: unknown radiation angular parity chosen')
+                              
+               end if angular_parity_if
+               
             else angular_discr_if
             
                FLAbort('Error: unknown radiation angular discretisation')

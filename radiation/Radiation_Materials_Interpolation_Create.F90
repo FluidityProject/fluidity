@@ -178,7 +178,7 @@ contains
       ewrite(1,*) 'Allocate radiation particle_radmat_ii_size from options for ', trim(particle_radmat%name),' for g_set ',g_set
       
       ! get the material fn space name
-      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/mesh/name',material_fn_space_name)
+      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))
@@ -498,7 +498,7 @@ contains
                                              particle_flux = particle_flux)
              
       ! get the material fn space name
-      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/mesh/name',material_fn_space_name)
+      call get_option(trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set-1)//']/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))
@@ -521,9 +521,9 @@ contains
                 
             ! check each region id against the region id of this vele
             id_loop: do id = 1,size(region_id_mapping)
-                   
+        
                id_match: if (ele_region_id(particle_flux,vele) == region_id_mapping(id)) then
-                      
+                 
                   ! get the data set and physical material name for this region id mapping
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/data_set/name',data_set_name)
                   call get_option(trim(region_id_mapping_path)//'['//int2str(imap-1)//']/physical_material/name',physical_material_name)

@@ -72,7 +72,7 @@ particle_type_generic =
 
 energy_discretisation = 
    (
-      ## The energy discretisation for the whole mesh
+      ## The energy discretisation for the whole spatial mesh
       element energy_discretisation {
          comment, 
          
@@ -80,7 +80,7 @@ energy_discretisation =
          
          energy_continuity,
          
-         energy_order,
+         energy_degree,
          
          energy_group_set+         
       }         
@@ -100,7 +100,7 @@ energy_continuity =
    )
 
 
-energy_order = 
+energy_degree = 
    (
       ## The energy discretisation degree
       element degree {
@@ -137,6 +137,7 @@ number_of_energy_groups =
       ## The number of energy groups
       element number_of_energy_groups {
          comment, 
+         
          integer
       }     
    )
@@ -144,30 +145,140 @@ number_of_energy_groups =
 
 angular_discretisation = 
    (
-      ## The angular discetisation for the whole mesh 
+      ## The angular discetisation for the whole spatial mesh 
       ## assoicated with this energy group set
       element angular_discretisation {
          comment, 
          
          attribute name { "WholeMesh" },
-         
+                  
          angular_discretisation_method
+      }
+   )
+   
+
+angular_discretisation_method = 
+   (
+      ## The spherical harmonic angular discretisation method 
+      element method {
+         comment, 
+         
+         attribute name { "SphericalHarmonic" },
+         
+         angular_parity  
+      }      
+   )
+
+
+angular_parity = 
+   (
+      ## Solve for the even parity flux
+      ## of this angular discretisation 
+      element parity {
+         comment, 
+         
+         attribute name { "Even" },
+         
+         even_parity_source_options,
+         
+         calculate_odd_parity?,
+         
+         angular_moment_set_even_parity  
       }
    )
 
 
-angular_discretisation_method = 
+even_parity_source_options = 
    (
-      ## The angular discretisation method 
-      element method {
+      ##  Exclude the odd parity time source
+      ##  NOT RELEVANT FOR EQUATION(EIGENVALUE)
+      element exclude_odd_parity_time_source {
+         comment
+      }
+   )
+
+
+calculate_odd_parity = 
+   (
+      ## The odd parity particle flux scalar field calculated 
+      ## diagnostically from the even parity solution 
+      element scalar_field {
+         comment,
+         attribute name { "ParticleFluxOddParity" },
+                  
+         odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt
+      }          
+   )
+
+
+odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt = 
+   ( 
+      element diagnostic {
+         comment,
+         
+         internal_algorithm,
+
+         odd_parity_mesh_choice,
+         
+         radiation_output_options,
+      
+         radiation_stat_options,
+      
+         diagnostic_detector_options                  
+      }            
+   )
+
+
+odd_parity_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "OddParityParticleMesh" }
+      }|
+      element mesh {
+         attribute name { "ParticleMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   
+   )
+
+
+angular_moment_set_even_parity = 
+   (
+      ## Define a consecutive angular moment set, where each 
+      ## moment within the set shares the same options. Global
+      ## moment numbering starts from moment 1 of the first set
+      ## then increases in the order that the moment sets are defined.
+      ## The moment sets defined are only for the prognostically 
+      ## calculated parity flux moments (e.g. for even parity only
+      ## define the necessary even parity moments)
+      element angular_moment_set {
          comment, 
          
-         attribute name { "Diffusion" },
+         attribute name { "AllMoments" },
+         
+         number_of_angular_moments,
 
          particle_type_material_mesh_choice, 
          
-         particle_flux_diffusion_field         
-      }      
+         particle_flux_diffusion_field
+           
+      }
+   )
+
+
+number_of_angular_moments = 
+   (
+      ## The number of angular moments
+      element number_of_angular_moments {
+         comment, 
+         
+         element integer_value {
+            attribute rank { "0" },
+            ("1")
+         }
+      }     
    )
    
    
@@ -185,7 +296,8 @@ particle_type_material_mesh_choice =
    
 particle_flux_diffusion_field =
    (
-      ## The particle flux scalar field for diffusion method equation for this group set
+      ## The particle flux scalar field for the angular discretised
+      ## even parity formulation for this group set
       element scalar_field {
          comment,
          attribute name { "ParticleFlux" },
@@ -293,7 +405,8 @@ radiation_diffusion_inner_solver_options =
    
 radiation_initial_conditions = 
    (
-      ## Initial condition for WholeMesh for this group set
+      ## Initial condition for WholeSpatialMesh associated with this
+      ## angular moment set (itself associated with a energy group set)
       element initial_condition {
          comment,
          attribute name { "WholeMesh" },
@@ -324,7 +437,8 @@ radiation_initial_conditions =
    
 radiation_diffusion_boundary_conditions = 
    (
-      ## The problem boundary conditions for this group set
+      ## The problem boundary conditions associated with this
+      ## angular moment set (itself associated with a energy group set)
       element boundary_conditions {
          comment,
          
@@ -953,7 +1067,7 @@ delayed_neutron_precursor_prognostic_or_diagnostic =
                   
          (
             prognostic_delayed_neutron_advection_decay_source_scalar_field|
-            radiation_internal_algorithm_diagnostic_scalar_field_no_adapt
+            delayed_internal_algorithm_diagnostic_scalar_field_no_adapt
          )         
       }
    )
@@ -967,12 +1081,12 @@ delayed_neutron_precursor_diagnostic =
          
          attribute name { "DelayedNeutronPrecursor" },
          
-         radiation_internal_algorithm_diagnostic_scalar_field_no_adapt
+         delayed_internal_algorithm_diagnostic_scalar_field_no_adapt
       }
    )
 
 
-radiation_internal_algorithm_diagnostic_scalar_field_no_adapt = 
+delayed_internal_algorithm_diagnostic_scalar_field_no_adapt = 
    ( 
       element diagnostic {
          comment,

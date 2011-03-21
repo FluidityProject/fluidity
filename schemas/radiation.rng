@@ -56,13 +56,13 @@
   </define>
   <define name="energy_discretisation">
     <element name="energy_discretisation">
-      <a:documentation>The energy discretisation for the whole mesh</a:documentation>
+      <a:documentation>The energy discretisation for the whole spatial mesh</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>WholeMesh</value>
       </attribute>
       <ref name="energy_continuity"/>
-      <ref name="energy_order"/>
+      <ref name="energy_degree"/>
       <oneOrMore>
         <ref name="energy_group_set"/>
       </oneOrMore>
@@ -77,7 +77,7 @@
       </element>
     </element>
   </define>
-  <define name="energy_order">
+  <define name="energy_degree">
     <element name="degree">
       <a:documentation>The energy discretisation degree</a:documentation>
       <ref name="comment"/>
@@ -113,7 +113,7 @@ sets are defined.</a:documentation>
   </define>
   <define name="angular_discretisation">
     <element name="angular_discretisation">
-      <a:documentation>The angular discetisation for the whole mesh 
+      <a:documentation>The angular discetisation for the whole spatial mesh 
 assoicated with this energy group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
@@ -124,13 +124,104 @@ assoicated with this energy group set</a:documentation>
   </define>
   <define name="angular_discretisation_method">
     <element name="method">
-      <a:documentation>The angular discretisation method </a:documentation>
+      <a:documentation>The spherical harmonic angular discretisation method </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>Diffusion</value>
+        <value>SphericalHarmonic</value>
       </attribute>
+      <ref name="angular_parity"/>
+    </element>
+  </define>
+  <define name="angular_parity">
+    <element name="parity">
+      <a:documentation>Sovle for the even parity flux
+of this angular discretisation </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>Even</value>
+      </attribute>
+      <ref name="even_parity_source_options"/>
+      <optional>
+        <ref name="calculate_odd_parity"/>
+      </optional>
+      <ref name="angular_moment_set_even_parity"/>
+    </element>
+  </define>
+  <define name="even_parity_source_options">
+    <element name="exclude_odd_parity_time_source">
+      <a:documentation> Exclude the odd parity time source
+ NOT RELEVANT FOR EQUATION(EIGENVALUE)</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="calculate_odd_parity">
+    <element name="scalar_field">
+      <a:documentation>The odd parity particle flux scalar field calculated 
+diagnostically from the even parity solution </a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>ParticleFluxOddParity</value>
+      </attribute>
+      <ref name="odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+    </element>
+  </define>
+  <define name="odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt">
+    <element name="diagnostic">
+      <ref name="comment"/>
+      <ref name="internal_algorithm"/>
+      <ref name="odd_parity_mesh_choice"/>
+      <ref name="radiation_output_options"/>
+      <ref name="radiation_stat_options"/>
+      <ref name="diagnostic_detector_options"/>
+    </element>
+  </define>
+  <define name="odd_parity_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>OddParityParticleMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ParticleMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="angular_moment_set_even_parity">
+    <element name="angular_moment_set">
+      <a:documentation>Define a consecutive angular moment set, where each 
+moment within the set shares the same options. Global
+moment numbering starts from moment 1 of the first set
+then increases in the order that the moment sets are defined.
+The moment sets defined are only for the prognostically 
+calculated parity flux moments (e.g. for even parity only
+define the necessary even parity moments)</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>AllMoments</value>
+      </attribute>
+      <ref name="number_of_angular_moments"/>
       <ref name="particle_type_material_mesh_choice"/>
       <ref name="particle_flux_diffusion_field"/>
+    </element>
+  </define>
+  <define name="number_of_angular_moments">
+    <element name="number_of_angular_moments">
+      <a:documentation>The number of angular moments</a:documentation>
+      <ref name="comment"/>
+      <element name="integer_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <value>1</value>
+      </element>
     </element>
   </define>
   <define name="particle_type_material_mesh_choice">
@@ -149,7 +240,8 @@ assoicated with this energy group set</a:documentation>
   </define>
   <define name="particle_flux_diffusion_field">
     <element name="scalar_field">
-      <a:documentation>The particle flux scalar field for diffusion method equation for this group set</a:documentation>
+      <a:documentation>The particle flux scalar field for the angular discretised
+even parity formulation for this group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>ParticleFlux</value>
@@ -238,7 +330,8 @@ assoicated with this energy group set</a:documentation>
   </define>
   <define name="radiation_initial_conditions">
     <element name="initial_condition">
-      <a:documentation>Initial condition for WholeMesh for this group set</a:documentation>
+      <a:documentation>Initial condition for WholeSpatialMesh associated with this
+angular moment set (itself associated with a energy group set)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>WholeMesh</value>
@@ -267,7 +360,8 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
   </define>
   <define name="radiation_diffusion_boundary_conditions">
     <element name="boundary_conditions">
-      <a:documentation>The problem boundary conditions for this group set</a:documentation>
+      <a:documentation>The problem boundary conditions associated with this
+angular moment set (itself associated with a energy group set)</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <data type="string"/>
@@ -864,7 +958,7 @@ that is used for the cross section interpolation</a:documentation>
       </attribute>
       <choice>
         <ref name="prognostic_delayed_neutron_advection_decay_source_scalar_field"/>
-        <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+        <ref name="delayed_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
       </choice>
     </element>
   </define>
@@ -875,10 +969,10 @@ that is used for the cross section interpolation</a:documentation>
       <attribute name="name">
         <value>DelayedNeutronPrecursor</value>
       </attribute>
-      <ref name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+      <ref name="delayed_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
     </element>
   </define>
-  <define name="radiation_internal_algorithm_diagnostic_scalar_field_no_adapt">
+  <define name="delayed_internal_algorithm_diagnostic_scalar_field_no_adapt">
     <element name="diagnostic">
       <ref name="comment"/>
       <ref name="internal_algorithm"/>

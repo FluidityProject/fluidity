@@ -237,7 +237,7 @@ contains
       energy_group_set_path = trim(particle_radmat%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
          
       ! get the material fn space name for this group set
-      call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/mesh/name',material_fn_space_name)
+      call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
       material_fn_space => extract_mesh(state, trim(material_fn_space_name))
@@ -452,6 +452,9 @@ contains
                                             keff)
       
       !!< Assemble the matrix system for this group g and solve
+      !!< This is only set up for even parity spherical harmonic P1 (ie diffusion) 
+      
+      ! The time assemble is not fully implemented yet so will not work
       
       type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
       type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
@@ -466,25 +469,12 @@ contains
       type(csr_matrix) :: matrix
       type(scalar_field) :: rhs
       type(csr_sparsity), pointer :: sparsity
-      type(scalar_field) :: delta_particle_flux
       integer, dimension(:), allocatable :: bc_types
       type(scalar_field) :: bc_value
       type(tensor_field), pointer :: diffusivity
       type(scalar_field), pointer :: absorption
       type(scalar_field), pointer :: discretised_source
       type(vector_field), pointer :: positions      
-            
-      ! allocate the solution field passed to the solve for a time run 
-      alloc_delta: if (.not. present(keff)) then
-         
-         call allocate(delta_particle_flux,&
-                       particle_flux(g)%ptr%mesh, &
-                       name = 'DeltaParticleFluxGroup')
-         
-         ! set the time run initial guess
-         call zero(delta_particle_flux)
-         
-      end if alloc_delta
       
       ! determine the sparsity pattern of matrix assuming first order connections 
       sparsity => get_csr_sparsity_firstorder(state, particle_flux(g)%ptr%mesh, particle_flux(g)%ptr%mesh)
@@ -492,11 +482,11 @@ contains
       ! allocate the matrix and rhs vector used for solving
       call allocate(matrix, &
                     sparsity, &
-                    name = 'MatrixParticleFluxGroup')
+                    name = 'MatrixParticleFlux')
                     
       call allocate(rhs, &
                     particle_flux(g)%ptr%mesh, &
-                    name = 'RHSParticleFluxGroup')
+                    name = 'RHSParticleFlux')
       
       call zero(matrix)
       call zero(rhs)
@@ -579,29 +569,12 @@ contains
                                       rhs, &
                                       particle_flux(g)%ptr)
             
-      ! solve the linear system 
-      ! - for eig solve use the latest solution as initial guess
-      ! - for time solve update the state solution arrays after
-      solve: if (present(keff)) then
-      
-         call petsc_solve(particle_flux(g)%ptr, &
-                          matrix, &
-                          rhs, &
-                          state, &
-                          option_path = trim(particle_flux(g)%ptr%option_path) )
-      
-      else solve
-      
-         call petsc_solve(delta_particle_flux, &
-                          matrix, &
-                          rhs, &
-                          state, &
-                          option_path = trim(particle_flux(g)%ptr%option_path) )
-         
-         call addto(particle_flux(g)%ptr, &
-                    delta_particle_flux)
-      
-      end if solve
+      ! solve the linear system       
+      call petsc_solve(particle_flux(g)%ptr, &
+                       matrix, &
+                       rhs, &
+                       state, &
+                       option_path = trim(particle_flux(g)%ptr%option_path) )
       
       ! set the direchlet bc nodes to be consistent
       call set_dirichlet_consistent(particle_flux(g)%ptr)
@@ -609,13 +582,6 @@ contains
       ! deallocate the matrix and rhs vector used for solving
       call deallocate(matrix)
       call deallocate(rhs)
-      
-      ! deallocate the time run solution field passed to the solver
-      dealloc_delta: if (.not. present(keff)) then
-         
-         call deallocate(delta_particle_flux)
-         
-      end if dealloc_delta    
               
    end subroutine assemble_matrix_solve_group_g
 

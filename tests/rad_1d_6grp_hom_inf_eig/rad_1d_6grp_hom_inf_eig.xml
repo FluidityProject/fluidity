@@ -16,35 +16,35 @@
 from fluidity_tools import stat_parser as stat
 ParticleKeffneutron = stat("rad_1d_6grp_hom_inf_eig.stat")["ParticleKeffneutron1"]["Value"][0]
     </variable>
-    <variable name="FluxGroup1neutron" language="python">
+    <variable name="FluxGroup1Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup1neutron = max(v.GetScalarRange("ParticleFluxGroup1neutron"))
+FluxGroup1Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup1Moment1neutron"))
     </variable>
-    <variable name="FluxGroup2neutron" language="python">
+    <variable name="FluxGroup2Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup2neutron = max(v.GetScalarRange("ParticleFluxGroup2neutron"))
+FluxGroup2Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup2Moment1neutron"))
     </variable>
-    <variable name="FluxGroup3neutron" language="python">
+    <variable name="FluxGroup3Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup3neutron = max(v.GetScalarRange("ParticleFluxGroup3neutron"))
+FluxGroup3Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup3Moment1neutron"))
     </variable>    
-    <variable name="FluxGroup4neutron" language="python">
+    <variable name="FluxGroup4Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup4neutron = max(v.GetScalarRange("ParticleFluxGroup4neutron"))
+FluxGroup4Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup4Moment1neutron"))
     </variable>    
-    <variable name="FluxGroup5neutron" language="python">
+    <variable name="FluxGroup5Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup5neutron = max(v.GetScalarRange("ParticleFluxGroup5neutron"))
+FluxGroup5Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup5Moment1neutron"))
     </variable>    
-    <variable name="FluxGroup6neutron" language="python">
+    <variable name="FluxGroup6Moment1neutron" language="python">
 import vtktools
 v = vtktools.vtu("rad_1d_6grp_hom_inf_eig_1.vtu")
-FluxGroup6neutron = max(v.GetScalarRange("ParticleFluxGroup6neutron"))
+FluxGroup6Moment1neutron = max(v.GetScalarRange("ParticleFluxGroup6Moment1neutron"))
     </variable>    
   </variables>
   <pass_tests>
@@ -53,39 +53,39 @@ analytic_keff = 1.6
 print 'Relative error compared to analytic: ',abs((ParticleKeffneutron - analytic_keff)/analytic_keff)
 assert abs((ParticleKeffneutron - analytic_keff)/analytic_keff) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 5 to group 6 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 5 moment 1 to group 6 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.48
-flux_ratio = FluxGroup5neutron / FluxGroup6neutron 
+flux_ratio = FluxGroup5Moment1neutron / FluxGroup6Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 2 to group 1 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 2 moment 1 to group 1 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.48
-flux_ratio = FluxGroup2neutron / FluxGroup1neutron 
+flux_ratio = FluxGroup2Moment1neutron / FluxGroup1Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 4 to group 5 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 4 moment 1 to group 5 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.3125
-flux_ratio = FluxGroup4neutron / FluxGroup5neutron 
+flux_ratio = FluxGroup4Moment1neutron / FluxGroup5Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 3 to group 2 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 3 moment 1 to group 2 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.3125
-flux_ratio = FluxGroup3neutron / FluxGroup2neutron 
+flux_ratio = FluxGroup3Moment1neutron / FluxGroup2Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 4 to group 6 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 4 moment 1 to group 6 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.15
-flux_ratio = FluxGroup4neutron / FluxGroup6neutron 
+flux_ratio = FluxGroup4Moment1neutron / FluxGroup6Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>
-    <test name="Check Flux ratio of group 3 to group 1 against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check Flux ratio of group 3 moment 1 to group 1 moment 1 against analytic with tolerance 1.0e-06" language="python">
 analytic_flux_ratio = 0.15
-flux_ratio = FluxGroup3neutron / FluxGroup1neutron 
+flux_ratio = FluxGroup3Moment1neutron / FluxGroup1Moment1neutron 
 print 'Relative error compared to analytic: ',abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio)
 assert abs((flux_ratio - analytic_flux_ratio)/analytic_flux_ratio) &lt; 1.0e-06
     </test>

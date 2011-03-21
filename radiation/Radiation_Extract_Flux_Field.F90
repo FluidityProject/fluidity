@@ -31,6 +31,8 @@ module radiation_extract_flux_field
 
    !!< This module contains procedures associated with extracting the particle flux fields from state
    
+   !!< It is currently hard wired for only one angular moment per group (ie diffusion theory) :(
+   
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
@@ -168,25 +170,29 @@ contains
 
       extract_latest: if (present(particle_flux)) then
             
-         ! form the field name using the particle_name and group number g 
-         field_name = 'ParticleFluxGroup'//int2str(g)//trim(particle_name)
+         ! form the field name using the particle_name and group number g for moment 1
+         field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle_name)
 
          ! extract the field
          particle_flux => extract_scalar_field(state, &
                                          trim(field_name), &
                                          stat=status)
-
+         
+         if (status /= 0) FLAbort('Failed to extract particle flux field from state')
+         
       end if extract_latest
        
       extract_old: if (present(particle_flux_old)) then
        
-         ! form the old field name using the particle_name and group g number
-         field_name_old = 'OldParticleFluxGroup'//int2str(g)//trim(particle_name)
+         ! form the old field name using the particle_name and group g number for moment 1
+         field_name_old = 'OldParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle_name)
 
          ! extract the field
          particle_flux_old => extract_scalar_field(state, &
                                              trim(field_name_old), &
                                              stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract old particle flux field from state')      
       
       end if extract_old
             
@@ -223,34 +229,38 @@ contains
       call first_g_within_group_set(g_set, &
                                     trim(particle_option_path), &
                                     first_g_in_g_set)
-            
+       
       ! determine the global group from the first group number in g_set 
       global_g = first_g_in_g_set + g - 1
-      
+   
       ! determine the particle name
       call get_option(trim(particle_option_path)//'/name',particle_name)
       
       extract_latest: if (present(particle_flux)) then
             
-         ! form the field name using the particle_name and group number global_g 
-         field_name = 'ParticleFluxGroup'//int2str(global_g)//trim(particle_name)
+         ! form the field name using the particle_name and group number global_g for moment 1
+         field_name = 'ParticleFluxGroup'//int2str(global_g)//'Moment1'//trim(particle_name)
 
          ! extract the field
          particle_flux => extract_scalar_field(state, &
                                                trim(field_name), &
                                                stat=status)
 
+         if (status /= 0) FLAbort('Failed to extract particle flux field from state')      
+
       end if extract_latest
        
       extract_old: if (present(particle_flux_old)) then
        
-         ! form the old field name using the particle_name and group global_g number
-         field_name_old = 'OldParticleFluxGroup'//int2str(global_g)//trim(particle_name)
+         ! form the old field name using the particle_name and group global_g number for moment 1
+         field_name_old = 'OldParticleFluxGroup'//int2str(global_g)//'Moment1'//trim(particle_name)
 
          ! extract the field
          particle_flux_old => extract_scalar_field(state, &
                                                    trim(field_name_old), &
                                                    stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract old particle flux field from state')      
       
       end if extract_old
             
