@@ -109,12 +109,6 @@ module supermesh_construction
     integer :: dim, loc
     integer :: nonods, totele
     integer :: i
-!    type(element_type), pointer :: A_shape
-
-!    real, dimension(:), allocatable :: nodes_tmp
-!    real, dimension(positions_A%dim, positions_A%dim) :: simplex_metric
-!    logical :: simplicial
-!    real, dimension(positions_A%dim, 1) :: node_tmp
 
     dim = positions_A%dim
 #ifdef DDEBUG
@@ -126,21 +120,9 @@ module supermesh_construction
     end select
 #endif
 
-!    A_shape => ele_shape(positions_A, ele_A)
-!    simplicial = (A_shape%numbering%family == FAMILY_SIMPLEX)
-    
     loc = ele_loc(positions_A, ele_A)
 
-!    if (simplicial) then
-!      ! If we are simplicial, then let's do the intersections in ideal space
-!      ! where the edges of the A element are all unity.
-!      ! Hopefully this should help some floating point issues we've been seeing.
-!      simplex_metric = simplex_tensor(positions_A, ele_A, power=0.5)
-!      call cintersector_set_input(apply_transform(ele_val(positions_A, ele_A), simplex_metric), &
-!                               &  apply_transform(ele_val(positions_B, ele_B), simplex_metric), dim, loc)
-!    else
-      call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
-!    end if
+    call cintersector_set_input(ele_val(positions_A, ele_A), posB, dim, loc)
     call cintersector_drive
     call cintersector_query(nonods, totele)
     call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
@@ -152,17 +134,9 @@ module supermesh_construction
 #endif
       call cintersector_get_output(nonods, totele, dim, loc, nodes_tmp, intersection_mesh%ndglno)
 
-!      if (simplicial) then
-!        call invert(simplex_metric)
-!        do i=1,nonods
-!          node_tmp(:, 1) = nodes_tmp((i-1)*dim+1:i*dim)
-!          call set(intersection, i, reshape(apply_transform(node_tmp, simplex_metric), (/dim/)))
-!        end do
-!      else
-         do i = 1, dim
-           intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
-         end do
-!      end if
+      do i = 1, dim
+        intersection%val(i,:) = nodes_tmp((i - 1) * nonods + 1:i * nonods)
+      end do
     end if
 
     call deallocate(intersection_mesh)
