@@ -7,21 +7,21 @@
   <tags>flml radiation</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity -v3 rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_A.flml 
+../../bin/fluidity rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_A.flml 
 
 cp rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_A.flml rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_B.flml 
 sed -i 's/_A/_B/' rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_B.flml
 
-../../bin/fluidity -v3 rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_B.flml 
+../../bin/fluidity rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_B.flml 
 
 rm -f rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p1_B.flml
 
-../../bin/fluidity -v3 rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_A.flml 
+../../bin/fluidity rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_A.flml 
 
 cp rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_A.flml rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_B.flml 
 sed -i 's/_A/_B/' rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_B.flml
 
-../../bin/fluidity -v3 rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_B.flml 
+../../bin/fluidity rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_B.flml 
 
 rm -f rad_cube_2grp_hom_zerobc_anisodiff_tet_eig_p2_B.flml
     </command_line>
