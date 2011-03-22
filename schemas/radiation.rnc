@@ -645,6 +645,7 @@ flux_norm_value_and_symmetry =
          real
       },
       ## Normalisation domain symmetry factor
+      ## where for example 4 implies quarter geometry represented
       element domain_symmetry_factor {
          comment,
          integer
@@ -658,13 +659,13 @@ power_iteration_element =
          comment,
          integer
       },
-      ## The power iteration tolerance for the flux
-      element flux_tolerance {
+      ## The power iteration absolute tolerance for the flux
+      element flux_tolerance_absolute {
          comment,
          real
       },
-      ## The power iteration tolerance for the eigenvalue called keff
-      element keff_tolerance {
+      ## The power iteration relative tolerance for the eigenvalue called keff
+      element keff_tolerance_relative {
          comment,
          real
       },
@@ -688,8 +689,8 @@ scatter_group_iteration_options =
             comment,
             integer
          },
-         ## The scatter group iteration tolerance for the flux
-         element flux_tolerance {
+         ## The scatter group iteration absolute tolerance for the flux
+         element flux_tolerance_absolute {
             comment,
             real
          },                  
@@ -732,8 +733,8 @@ energy_group_iteration_options =
             comment,
             integer
          },
-         ## The energy group iteration tolerance 
-         element tolerance {
+         ## The energy group iteration absolute flux tolerance 
+         element flux_tolerance_absolute {
             comment,
             real
          },
@@ -750,20 +751,20 @@ energy_group_iteration_options =
 
 whole_domain_energy_group_rebalance_options = 
    (
-      ## Whole domain rebalance acceleration of group iteration   
+      ## Whole domain rebalance acceleration of 
+      ## all energy groups together    
       element whole_domain_group_rebalance {
          comment,
-         (
-            ## One rebalance factor for ALL groups 
-            element all_group {
-               comment
-            }|
-            ## One rebalance factor for EACH group
-            element within_group {
-               comment
-            }
-         )                  
-      }                 
+         
+         attribute name { "AllEnergyGroup" }
+      }|
+      ## Whole domain rebalance acceleration of 
+      ## each energy group individually
+      element whole_domain_group_rebalance {
+         comment,
+         
+         attribute name { "EachEnergyGroup" }
+      }                       
    )
    
      

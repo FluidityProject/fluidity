@@ -54,7 +54,7 @@ module radiation_solve_scatter_iteration
    type scatter_iteration_options_type
       integer :: max_scatter_iteration
       integer :: highest_upscatter_group
-      real :: tol_scatter_iteration
+      real :: flux_tolerance_absolute
       logical :: terminate_if_not_converged_scatter
       character(len=OPTION_PATH_LEN) :: whole_domain_rebalance_scatter   
    end type scatter_iteration_options_type
@@ -144,53 +144,25 @@ contains
       
       type(scatter_iteration_options_type), intent(out) :: scatter_iteration_options
       character(len=*), intent(in) :: scatter_group_iteration_option_path
-       
-      ! get the max scatter iteration and highest upscatter group and tolerance
-      have_scatter_option: if (have_option(trim(scatter_group_iteration_option_path))) then
-         
-         call get_option(trim(scatter_group_iteration_option_path)//'/maximum',scatter_iteration_options%max_scatter_iteration)
+                
+      call get_option(trim(scatter_group_iteration_option_path)//'/maximum', &
+                      scatter_iteration_options%max_scatter_iteration, &
+                      default = 1)
 
-         call get_option(trim(scatter_group_iteration_option_path)//'/flux_tolerance',scatter_iteration_options%tol_scatter_iteration)
+      call get_option(trim(scatter_group_iteration_option_path)//'/flux_tolerance_absolute', &
+                      scatter_iteration_options%flux_tolerance_absolute, &
+                      default = 1.0)
          
-         scatter_iteration_options%terminate_if_not_converged_scatter = have_option(trim(scatter_group_iteration_option_path)//'/terminate_if_not_converged')
-
-         have_highest: if (have_option(trim(scatter_group_iteration_option_path)//'/highest_upscatter_group')) then
+      scatter_iteration_options%terminate_if_not_converged_scatter = &
+      have_option(trim(scatter_group_iteration_option_path)//'/terminate_if_not_converged')
          
-            call get_option(trim(scatter_group_iteration_option_path)//'/highest_upscatter_group',scatter_iteration_options%highest_upscatter_group)
-         
-         else have_highest
-         
-            scatter_iteration_options%highest_upscatter_group = 1
-            
-         end if have_highest
-
-         have_rebalance: if (have_option(trim(scatter_group_iteration_option_path)//'/whole_domain_group_rebalance/all_group')) then
-         
-            scatter_iteration_options%whole_domain_rebalance_scatter = 'all_group'
-         
-         else if (have_option(trim(scatter_group_iteration_option_path)//'/whole_domain_group_rebalance/within_group')) then
-         
-            scatter_iteration_options%whole_domain_rebalance_scatter = 'within_group'
-         
-         else have_rebalance
-         
-            scatter_iteration_options%whole_domain_rebalance_scatter = 'none'
-            
-         end if have_rebalance
-         
-      else have_scatter_option
-         
-         scatter_iteration_options%max_scatter_iteration = 1 
-         
-         scatter_iteration_options%tol_scatter_iteration = 1.0
-
-         scatter_iteration_options%terminate_if_not_converged_scatter = .false.
-         
-         scatter_iteration_options%highest_upscatter_group = 1
-         
-         scatter_iteration_options%whole_domain_rebalance_scatter = 'none'
-               
-      end if have_scatter_option   
+      call get_option(trim(scatter_group_iteration_option_path)//'/highest_upscatter_group', &
+                      scatter_iteration_options%highest_upscatter_group, &
+                      default = 1)
+                      
+      call get_option(trim(scatter_group_iteration_option_path)//'/whole_domain_group_rebalance/name', &
+                      scatter_iteration_options%whole_domain_rebalance_scatter, &
+                      default = 'none')
        
    end subroutine get_scatter_iteration_options 
 

@@ -134,7 +134,7 @@ assoicated with this energy group set</a:documentation>
   </define>
   <define name="angular_parity">
     <element name="parity">
-      <a:documentation>Sovle for the even parity flux
+      <a:documentation>Solve for the even parity flux
 of this angular discretisation </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
@@ -534,7 +534,8 @@ located on the surface (the total source strength is twice the value input here)
     </element>
     <optional>
       <element name="domain_symmetry_factor">
-        <a:documentation>Normalisation domain symmetry factor</a:documentation>
+        <a:documentation>Normalisation domain symmetry factor
+where for example 4 implies quarter geometry represented</a:documentation>
         <ref name="comment"/>
         <ref name="integer"/>
       </element>
@@ -546,13 +547,13 @@ located on the surface (the total source strength is twice the value input here)
       <ref name="comment"/>
       <ref name="integer"/>
     </element>
-    <element name="flux_tolerance">
-      <a:documentation>The power iteration tolerance for the flux</a:documentation>
+    <element name="flux_tolerance_absolute">
+      <a:documentation>The power iteration absolute tolerance for the flux</a:documentation>
       <ref name="comment"/>
       <ref name="real"/>
     </element>
-    <element name="keff_tolerance">
-      <a:documentation>The power iteration tolerance for the eigenvalue called keff</a:documentation>
+    <element name="keff_tolerance_relative">
+      <a:documentation>The power iteration relative tolerance for the eigenvalue called keff</a:documentation>
       <ref name="comment"/>
       <ref name="real"/>
     </element>
@@ -577,8 +578,8 @@ iterations is reached and the tolerance criteria (both flux and keff) are not me
         <ref name="comment"/>
         <ref name="integer"/>
       </element>
-      <element name="flux_tolerance">
-        <a:documentation>The scatter group iteration tolerance for the flux</a:documentation>
+      <element name="flux_tolerance_absolute">
+        <a:documentation>The scatter group iteration absolute tolerance for the flux</a:documentation>
         <ref name="comment"/>
         <ref name="real"/>
       </element>
@@ -621,8 +622,8 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
         <ref name="comment"/>
         <ref name="integer"/>
       </element>
-      <element name="tolerance">
-        <a:documentation>The energy group iteration tolerance </a:documentation>
+      <element name="flux_tolerance_absolute">
+        <a:documentation>The energy group iteration absolute flux tolerance </a:documentation>
         <ref name="comment"/>
         <ref name="real"/>
       </element>
@@ -642,20 +643,24 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
     </element>
   </define>
   <define name="whole_domain_energy_group_rebalance_options">
-    <element name="whole_domain_group_rebalance">
-      <a:documentation>Whole domain rebalance acceleration of group iteration   </a:documentation>
-      <ref name="comment"/>
-      <choice>
-        <element name="all_group">
-          <a:documentation>One rebalance factor for ALL groups </a:documentation>
-          <ref name="comment"/>
-        </element>
-        <element name="within_group">
-          <a:documentation>One rebalance factor for EACH group</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </choice>
-    </element>
+    <choice>
+      <element name="whole_domain_group_rebalance">
+        <a:documentation>Whole domain rebalance acceleration of 
+all energy groups together    </a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>AllEnergyGroup</value>
+        </attribute>
+      </element>
+      <element name="whole_domain_group_rebalance">
+        <a:documentation>Whole domain rebalance acceleration of 
+each energy group individually</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>EachEnergyGroup</value>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="radiation_material_data_set">
     <element name="material_data_set">

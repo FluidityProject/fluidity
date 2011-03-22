@@ -58,8 +58,8 @@ module radiation_solve_power_iteration
    
    type power_iteration_options_type
       integer :: max_power_iteration
-      real :: keff_tolerance
-      real :: flux_tolerance
+      real :: keff_tolerance_relative
+      real :: flux_tolerance_absolute
       logical :: terminate_if_not_converged_power            
    end type power_iteration_options_type
    
@@ -178,11 +178,11 @@ contains
       power_iteration_option_path = trim(particle%option_path)//'/equation/power_iteration'
       call get_option(trim(power_iteration_option_path)//'/maximum',power_iteration_options%max_power_iteration)
 
-      ! get the keff power iteration tolerance
-      call get_option(trim(power_iteration_option_path)//'/keff_tolerance',power_iteration_options%keff_tolerance)
+      ! get the keff power iteration relative tolerance
+      call get_option(trim(power_iteration_option_path)//'/keff_tolerance_relative',power_iteration_options%keff_tolerance_relative)
 
-      ! get the flux power iteration tolerance
-      call get_option(trim(power_iteration_option_path)//'/flux_tolerance',power_iteration_options%flux_tolerance)
+      ! get the flux power iteration absolute tolerance
+      call get_option(trim(power_iteration_option_path)//'/flux_tolerance_absolute',power_iteration_options%flux_tolerance_absolute)
 
       power_iteration_options%terminate_if_not_converged_power = have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')         
             
@@ -374,18 +374,20 @@ contains
       type(power_iteration_options_type), intent(in) :: power_iteration_options
       
       ! local variable
-      real :: change_keff
-      real :: max_change_flux
+      real :: rel_difference_keff
+      real :: abs_difference_keff
       logical :: keff_converged
       logical :: flux_converged
             
       power_iteration_converged = .true.
       
-      ! find the keff change
+      ! find the keff absolute difference
+      abs_difference_keff = abs(particle%keff%keff_new - particle%keff%keff_old)
+      
+      ! find the keff relative difference
       find_change_keff: if (particle%keff%keff_old > 0.0) then
          
-         change_keff = abs(particle%keff%keff_new - particle%keff%keff_old)/ &
-                       abs(particle%keff%keff_old)
+         rel_difference_keff = abs_difference_keff / abs(particle%keff%keff_old)
          
       else find_change_keff
          
@@ -393,9 +395,8 @@ contains
                   
       end if find_change_keff
       
-      ! check the keff convergence
-      check_keff: if (abs(particle%keff%keff_new - particle%keff%keff_old) <  &
-                      abs(particle%keff%keff_old*power_iteration_options%keff_tolerance)) then
+      ! check the keff convergence via relative change
+      check_keff: if (rel_difference_keff < power_iteration_options%keff_tolerance_relative) then
          
          keff_converged = .true.
       
@@ -405,14 +406,14 @@ contains
       
       end if check_keff 
       
-      ewrite(1,*) 'change_keff,keff_converged: ',change_keff,keff_converged     
+      ewrite(1,*) 'rel_difference_keff,abs_difference_keff,keff_converged: ', &
+                   rel_difference_keff,abs_difference_keff,keff_converged     
       
       ! check the flux convergence
       call check_particle_flux_convergence(state, &
                                            trim(particle%name), &
                                            number_of_energy_groups, &
-                                           power_iteration_options%flux_tolerance, &
-                                           max_change_flux, &
+                                           power_iteration_options%flux_tolerance_absolute, &
                                            flux_converged)
             
       ! decide if power iteration converged

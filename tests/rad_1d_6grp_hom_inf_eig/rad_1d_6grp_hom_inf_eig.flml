@@ -114,19 +114,19 @@
           <maximum>
             <integer_value rank="0">100</integer_value>
           </maximum>
-          <flux_tolerance>
+          <flux_tolerance_absolute>
             <real_value rank="0">1.0e-6</real_value>
-          </flux_tolerance>
-          <keff_tolerance>
+          </flux_tolerance_absolute>
+          <keff_tolerance_relative>
             <real_value rank="0">1.0e-6</real_value>
-          </keff_tolerance>
+          </keff_tolerance_relative>
           <scatter_group_iteration>
             <maximum>
               <integer_value rank="0">3</integer_value>
             </maximum>
-            <flux_tolerance>
+            <flux_tolerance_absolute>
               <real_value rank="0">1.0e-06</real_value>
-            </flux_tolerance>
+            </flux_tolerance_absolute>
             <highest_upscatter_group>
               <integer_value rank="0">4</integer_value>
             </highest_upscatter_group>
