@@ -159,7 +159,6 @@ module hadapt_extrude_radially
           call get_option(trim(option_path)//'/from_mesh/extrude/regions['//&
                                       int2str(r)//']/sizing_function/sigma_layers/standard', &
                                       number_sigma_layers, stat=stat)
-          print *, number_sigma_layers, stat
         end if
         if (stat/=0) then
           FLAbort("Unknown way of specifying sizing function in mesh extrusion")
