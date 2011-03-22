@@ -4,10 +4,10 @@
 <testproblem>
   <name>rad_1d_6grp_hom_inf_eig</name>
   <owner userid="btollit"/>
-  <tags>flml rad</tags>
+  <tags>flml radiation</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-       fluidity rad_1d_6grp_hom_inf_eig.flml 
+       ../../bin/fluidity rad_1d_6grp_hom_inf_eig.flml 
     </command_line>
     <!-- Radiation diffusion eigenvalue problem with 1 material, 6 energy groups with upscatter with all reflective BC using a 1d geometry compared to analytic solution for the keff and flux ratio, this is ABC problem 75-->
   </problem_definition>

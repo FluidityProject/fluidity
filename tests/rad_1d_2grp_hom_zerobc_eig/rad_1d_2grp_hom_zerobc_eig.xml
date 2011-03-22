@@ -4,29 +4,29 @@
 <testproblem>
   <name>rad_1d_2grp_hom_zerobc_eig</name>
   <owner userid="btollit"/>
-  <tags>flml rad</tags>
+  <tags>flml radiation</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-fluidity rad_1d_2grp_hom_zerobc_eig_A.flml 
+../../bin/fluidity rad_1d_2grp_hom_zerobc_eig_A.flml 
 
 cp rad_1d_2grp_hom_zerobc_eig_A.flml rad_1d_2grp_hom_zerobc_eig_B.flml
 sed -i 's/_A/_B/' rad_1d_2grp_hom_zerobc_eig_B.flml
 
-fluidity rad_1d_2grp_hom_zerobc_eig_B.flml 
+../../bin/fluidity rad_1d_2grp_hom_zerobc_eig_B.flml 
 
 rm -f rad_1d_2grp_hom_zerobc_eig_B.flml
 
 cp rad_1d_2grp_hom_zerobc_eig_A.flml rad_1d_2grp_hom_zerobc_eig_C.flml
 sed -i 's/_A/_C/' rad_1d_2grp_hom_zerobc_eig_C.flml
 
-fluidity rad_1d_2grp_hom_zerobc_eig_C.flml 
+../../bin/fluidity rad_1d_2grp_hom_zerobc_eig_C.flml 
 
 rm -f rad_1d_2grp_hom_zerobc_eig_C.flml
 
 cp rad_1d_2grp_hom_zerobc_eig_A.flml rad_1d_2grp_hom_zerobc_eig_D.flml
 sed -i 's/_A/_D/' rad_1d_2grp_hom_zerobc_eig_D.flml
 
-fluidity rad_1d_2grp_hom_zerobc_eig_D.flml 
+../../bin/fluidity rad_1d_2grp_hom_zerobc_eig_D.flml 
 
 rm -f rad_1d_2grp_hom_zerobc_eig_D.flml       
     </command_line>

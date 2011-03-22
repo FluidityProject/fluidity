@@ -26,7 +26,6 @@ clean:
 	rm -f $(SIM)*.err-0 
 	rm -f $(SIM)*.msh
 	rm -f $(SIM)*.halo
-	rm -rf $(SIM)_*
 	rm -f fluidity.err*
 	rm -f fluidity.log*
 	rm -f matrixdump*

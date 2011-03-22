@@ -4,29 +4,29 @@
 <testproblem>
   <name>rad_1d_1grp_hom_vacbc_eig</name>
   <owner userid="btollit"/>
-  <tags>flml rad</tags>
+  <tags>flml radiation</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-fluidity rad_1d_1grp_hom_vacbc_eig_A.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_A.flml 
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_B.flml
 sed -i 's/_A/_B/' rad_1d_1grp_hom_vacbc_eig_B.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_B.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_B.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_B.flml
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_C.flml
 sed -i 's/_A/_C/' rad_1d_1grp_hom_vacbc_eig_C.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_C.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_C.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_C.flml
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_D.flml
 sed -i 's/_A/_D/' rad_1d_1grp_hom_vacbc_eig_D.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_D.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_D.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_D.flml       
 
@@ -40,42 +40,42 @@ rm -f rad_1d_1grp_hom_vacbc_eig_E.flml
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_F.flml
 sed -i 's/_A/_F/' rad_1d_1grp_hom_vacbc_eig_F.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_F.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_F.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_F.flml       
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_G.flml
 sed -i 's/_A/_G/' rad_1d_1grp_hom_vacbc_eig_G.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_G.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_G.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_G.flml       
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_H.flml
 sed -i 's/_A/_H/' rad_1d_1grp_hom_vacbc_eig_H.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_H.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_H.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_H.flml       
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_I.flml
 sed -i 's/_A/_I/' rad_1d_1grp_hom_vacbc_eig_I.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_I.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_I.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_I.flml       
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_J.flml
 sed -i 's/_A/_J/' rad_1d_1grp_hom_vacbc_eig_J.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_J.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_J.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_J.flml       
 
 cp rad_1d_1grp_hom_vacbc_eig_A.flml rad_1d_1grp_hom_vacbc_eig_K.flml
 sed -i 's/_A/_K/' rad_1d_1grp_hom_vacbc_eig_K.flml
 
-fluidity rad_1d_1grp_hom_vacbc_eig_K.flml 
+../../bin/fluidity rad_1d_1grp_hom_vacbc_eig_K.flml 
 
 rm -f rad_1d_1grp_hom_vacbc_eig_K.flml       
     </command_line>

@@ -41,6 +41,7 @@ module radiation_solve_power_iteration
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use state_module  
+   use parallel_tools
 
    use radiation_particle
    use radiation_materials_interpolation
@@ -334,6 +335,10 @@ contains
                deallocate(production_val_quad_vele)
                                           
             end do velement_loop
+            
+            ! sum the value of the processes
+            call allsum(k_top)
+            call allsum(k_bottom)
 
          end do group_loop
          
