@@ -5,7 +5,7 @@
   <name>rad_square_2grp_hom_zerobc_struct_quad_parallel_eig</name>
   <owner userid="btollit"/>
   <tags>flml radiation parallel</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 mpiexec -n 2 ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml 
 

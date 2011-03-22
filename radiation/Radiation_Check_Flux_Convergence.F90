@@ -34,6 +34,7 @@ module radiation_check_flux_convergence
    use spud
    use state_module  
    use fields
+   use parallel_tools
 
    use radiation_extract_flux_field
 
@@ -105,12 +106,17 @@ contains
                
                flux_converged = .false.
                   
-               ! exit the entire flux loop over groups and nodes if found a failed flux convereged
-               exit group_loop
+               exit node_loop
                                     
             end if check_flux
                
           end do node_loop
+          
+          ! determine if all processes are converged
+          call alland(flux_converged)
+          
+          ! if not converged at any found node exit - no need to check all off them
+          if (.not. flux_converged) exit group_loop
                   
       end do group_loop
       
