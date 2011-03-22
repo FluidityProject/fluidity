@@ -5,8 +5,8 @@ SIM = rad_cube_2grp_hom_zerobc_anisodiff_tet_eig
 MESH = box_tet
 
 input: clean
-	gmsh -3 $(MESH)_A.geo -o $(MESH)_A.msh
-	gmsh -3 $(MESH)_B.geo -o $(MESH)_B.msh
+	cp mesh/$(MESH)_A.msh  . 
+	cp mesh/$(MESH)_B.msh  . 
 
 clean:
 	rm -f $(MESH)*.ele
