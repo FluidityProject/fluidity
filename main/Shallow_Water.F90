@@ -55,9 +55,9 @@
     use iso_c_binding
     use mangle_options_tree
 #ifdef HAVE_ADJOINT
+    use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
     use libadjoint
-    use libadjoint_data_callbacks
     use adjoint_functional_evaluation
     use adjoint_python
     use adjoint_global_variables
@@ -1482,11 +1482,11 @@
                 sfield_soln%option_path = trim(path)
 
                 select case(lhs%klass)
-                  case(IDENTITY_MATRIX)
+                  case(ADJ_IDENTITY_MATRIX)
                     call set(sfield_soln, sfield_rhs)
                   case(ADJ_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(sfield_soln, csr_mat, sfield_rhs)
                     else
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
@@ -1509,18 +1509,18 @@
                 vfield_soln%option_path = trim(path)
 
                 select case(lhs%klass)
-                  case(IDENTITY_MATRIX)
+                  case(ADJ_IDENTITY_MATRIX)
                     call set(vfield_soln, vfield_rhs)
                   case(ADJ_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(vfield_soln, csr_mat, vfield_rhs)
                     else
                       call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, block_csr_mat)
-                    if (iand(lhs%flags, MATRIX_INVERTED) == MATRIX_INVERTED) then
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(vfield_soln, block_csr_mat, vfield_rhs)
                     else
                       call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
@@ -1540,7 +1540,7 @@
 
             ! Destroy lhs and rhs
             call femtools_vec_destroy_proc(rhs)
-            if (lhs%klass /= IDENTITY_MATRIX) then
+            if (lhs%klass /= ADJ_IDENTITY_MATRIX) then
               call femtools_mat_destroy_proc(lhs)
             endif
           end do
