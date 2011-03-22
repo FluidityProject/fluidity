@@ -53,6 +53,9 @@ module hadapt_extrude_radially
     logical :: have_min_depth=.false.
     real :: min_depth
 
+    logical :: sigma_layers
+    integer :: number_sigma_layers
+
     integer :: n_regions, r, rs
     integer, dimension(2) :: shape_option
     integer, dimension(:), allocatable :: region_ids
@@ -150,6 +153,14 @@ module hadapt_extrude_radially
                                       int2str(r)//']/sizing_function/list', &
                                       sizing_vector, stat=stat)
         end if
+        if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
+                                      int2str(r)//"]/sizing_function/sigma_layers")) then
+          sigma_layers=.true.
+          call get_option(trim(option_path)//'/from_mesh/extrude/regions['//&
+                                      int2str(r)//']/sizing_function/sigma_layers/standard', &
+                                      number_sigma_layers, stat=stat)
+          print *, number_sigma_layers, stat
+        end if
         if (stat/=0) then
           FLAbort("Unknown way of specifying sizing function in mesh extrusion")
         end if       
@@ -227,6 +238,9 @@ module hadapt_extrude_radially
                                       int2str(r)//"]/sizing_function/list")) then
             call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
               min_bottom_layer_frac, sizing_vector=sizing_vector)
+          else if (sigma_layers) then
+            call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+              min_bottom_layer_frac, number_sigma_layers=number_sigma_layers)
           else
             call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
               min_bottom_layer_frac, sizing_function=sizing_function)
@@ -285,7 +299,8 @@ module hadapt_extrude_radially
         
   end subroutine extrude_radially
 
-  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, min_bottom_layer_frac, sizing, sizing_function, sizing_vector)
+  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, min_bottom_layer_frac, sizing, &
+                             sizing_function, sizing_vector, number_sigma_layers)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: r_mesh
     real, intent(in):: depth
@@ -293,7 +308,8 @@ module hadapt_extrude_radially
     real, dimension(:), intent(in):: xyz
     real, optional, intent(in):: sizing
     character(len=*), optional, intent(in):: sizing_function
-    real, dimension(:), optional, intent(in) :: sizing_vector 
+    real, dimension(:), optional, intent(in) :: sizing_vector
+    integer, optional, intent(in) :: number_sigma_layers
 
     ! this is a safety gap:
     integer, parameter:: MAX_VERTICAL_NODES=1e6
@@ -336,6 +352,10 @@ module hadapt_extrude_radially
       is_constant=.false.
       constant_value=-1.0
       list_size=size(sizing_vector)
+    else if (present(number_sigma_layers)) then
+      is_constant=.true.
+      constant_value=depth/float(number_sigma_layers)
+      py_func = " "
     else
       FLAbort("Need to supply either sizing, sizing_function")
     end if

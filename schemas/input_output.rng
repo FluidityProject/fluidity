@@ -120,6 +120,15 @@ of a sphere.</a:documentation>
         <a:documentation>Manually enter the spacing between each layer</a:documentation>
         <ref name="real_vector"/>
       </element>
+      <element name="sigma_layers">
+        <element name="standard">
+          <a:documentation>Standard Sigma layers: Layers are set such that
+there is a constant number of layers throughout
+the domain. Please input the number of layers you
+wish below.</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </element>
     </choice>
   </define>
   <define name="input_choice_real_contents">
