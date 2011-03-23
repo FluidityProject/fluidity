@@ -137,6 +137,7 @@
 
     call python_init()
     call read_command_line()
+    call initialise_walltime()
 
     call mangle_options_tree_forward
     
