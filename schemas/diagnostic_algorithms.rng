@@ -1197,7 +1197,12 @@ and 'tensor_fields';
           <a:documentation>Enable to specify dependencies manually. Any field specified here
 will be calculated before this python diagnostic field.
 
-Fields should be a comma delimited list.</a:documentation>
+Fields should be a comma delimited list.
+If fields from other material_phases are required, use the :: operator.
+For example, if the other material_phase's name is Water, and the
+field name is Velocity, then use:
+
+Water::Velocity</a:documentation>
           <ref name="anystring"/>
         </element>
       </optional>
@@ -1224,7 +1229,12 @@ and 'tensor_fields';
           <a:documentation>Enable to specify dependencies manually. Any field specified here
 will be calculated before this python diagnostic field.
 
-Fields should be a comma delimited list.</a:documentation>
+Fields should be a comma delimited list.
+If fields from other material_phases are required, use the :: operator.
+For example, if the other material_phase's name is Water, and the
+field name is Velocity, then use:
+
+Water::Velocity</a:documentation>
           <ref name="anystring"/>
         </element>
       </optional>
@@ -1248,7 +1258,15 @@ and 'tensor_fields';
       <ref name="python_code"/>
       <optional>
         <element name="depends">
-          <a:documentation>Enable to specify dependencies manually</a:documentation>
+          <a:documentation>Enable to specify dependencies manually. Any field specified here
+will be calculated before this python diagnostic field.
+
+Fields should be a comma delimited list.
+If fields from other material_phases are required, use the :: operator.
+For example, if the other material_phase's name is Water, and the
+field name is Velocity, then use:
+
+Water::Velocity</a:documentation>
           <ref name="anystring"/>
         </element>
       </optional>

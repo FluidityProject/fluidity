@@ -889,6 +889,11 @@ scalar_python_diagnostic_algorithm =
          ## will be calculated before this python diagnostic field.
          ##
          ## Fields should be a comma delimited list.
+         ## If fields from other material_phases are required, use the :: operator.
+         ## For example, if the other material_phase's name is Water, and the
+         ## field name is Velocity, then use:
+         ##
+         ## Water::Velocity
          element depends {
             anystring
          }?
@@ -908,6 +913,11 @@ vector_python_diagnostic_algorithm =
          ## will be calculated before this python diagnostic field.
          ##
          ## Fields should be a comma delimited list.
+         ## If fields from other material_phases are required, use the :: operator.
+         ## For example, if the other material_phase's name is Water, and the
+         ## field name is Velocity, then use:
+         ##
+         ## Water::Velocity
          element depends {
             anystring
          }?
@@ -923,7 +933,15 @@ tensor_python_diagnostic_algorithm =
          attribute name { "tensor_python_diagnostic" },
          attribute material_phase_support { "single"|"multiple" },
          python_code,
-         ## Enable to specify dependencies manually
+         ## Enable to specify dependencies manually. Any field specified here
+         ## will be calculated before this python diagnostic field.
+         ##
+         ## Fields should be a comma delimited list.
+         ## If fields from other material_phases are required, use the :: operator.
+         ## For example, if the other material_phase's name is Water, and the
+         ## field name is Velocity, then use:
+         ##
+         ## Water::Velocity
          element depends {
             anystring
          }?
