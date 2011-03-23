@@ -39,5 +39,5 @@ clean:
 	rm -f input_eos_coef_BL1_func       
 	rm -f input_usource_BL1_func
 	rm -f gmon.out
-	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
+	rm -f *.d.* *.node *.bound *.ele *.face 
+	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.* *.stat 
