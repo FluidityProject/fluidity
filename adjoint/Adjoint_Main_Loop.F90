@@ -27,8 +27,8 @@
 #include "fdebug.h"
 
 module adjoint_main_loop
-#include "libadjoint/adj_fortran.h"
 #ifdef HAVE_ADJOINT
+#include "libadjoint/adj_fortran.h"
     use libadjoint
     use libadjoint_data_callbacks
 #endif
