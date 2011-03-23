@@ -100,10 +100,14 @@ module adjoint_functional_evaluation
     ! Fetch the python code the user has helpfully supplied.
     has_deriv = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")
     has_func  = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm")
-    if (.not. has_deriv) then
-      FLAbort("We really should have /adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")
+    if (.not. has_deriv .and. .not. has_func) then
+      FLAbort("You need to supply either code for the functional, or its derivative!")
     endif
-    call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm", code_deriv)
+
+    if (has_deriv) then
+      call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm", code_deriv)
+    end if
+
     if (has_func) then
       call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm", code_func)
     endif
@@ -218,7 +222,12 @@ module adjoint_functional_evaluation
       J = python_fetch_real("J")
       call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
     end if
-    call python_run_string(trim(code_deriv))
+
+    if (has_deriv) then
+      call python_run_string(trim(code_deriv))
+    else
+      FLAbort("AD approach not quite implemented yet")
+    end if
 
     if (max_timestep >= 0) then
       call deallocate(states)
