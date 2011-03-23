@@ -14,7 +14,7 @@
   <variables>
     <variable name="ParticleKeffneutron" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron = stat("rad_1d_6grp_hom_inf_eig.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron = stat("rad_1d_6grp_hom_inf_eig.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="FluxGroup1Moment1neutron" language="python">
 import vtktools

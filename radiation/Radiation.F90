@@ -37,8 +37,6 @@ module radiation
    use state_module   
    
    use radiation_particle
-   use radiation_check_options_module
-   use radiation_diagnostics
    use radiation_solve_module
    
    implicit none
@@ -57,29 +55,17 @@ contains
    subroutine radiation_initialise(state, &
                                    particles) 
       
-      !!< Initialise the radiation model via performing the radiation
-      !!< specific options check, creating each particle 
+      !!< Initialise the radiation model via creating each particle
       
       type(state_type), intent(in) :: state
       type(particle_type), dimension(:), allocatable, intent(inout) :: particles
-      
-      ! local variables
-      integer :: p
             
       ewrite(1,*) 'Initialise radiation model'
-                           
-      call radiation_check_options()
       
+      ! create all particles                           
       call create(state, &
                   particles)
-      
-      ! register the radiation diagnostics for stat file
-      particle_type_loop: do p = 1,size(particles)
-             
-         call radiation_register_diagnostics(trim(particles(p)%option_path))
-      
-      end do particle_type_loop
-            
+                  
       ewrite(1,*) 'Finished initialise radiation model'
       
    end subroutine radiation_initialise
@@ -94,7 +80,7 @@ contains
       
       ewrite(1,*) 'Cleanup radiation model'
       
-      ! destroy each particle type
+      ! destroy all particles
       call destroy(particles)
 
       ewrite(1,*) 'Finished cleanup radiation model'

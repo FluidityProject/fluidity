@@ -40,39 +40,51 @@ module radiation_diagnostics
    
    private 
 
-   public :: radiation_register_diagnostics, &
+   public :: radiation_diagnostics_register_diagnostic, &
              radiation_eigenvalue_set_diagnostics
         
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_register_diagnostics(particle_option_path) 
+   subroutine radiation_diagnostics_register_diagnostic  
       
-      !!< Register the radiation diagnostics for stat file for this particle option path
-      
-      character(len=*), intent(in) :: particle_option_path   
+      !!< Register the radiation diagnostics for stat file 
+      !!< for all particle types
       
       ! local variables
+      integer :: p
+      character(len=OPTION_PATH_LEN) :: particle_option_path         
       character(len=OPTION_PATH_LEN) :: particle_name   
       character(len=OPTION_PATH_LEN) :: equation_type
 
-      call get_option(trim(particle_option_path)//'/equation/name',equation_type)  
+      have_radiation: if (have_option('/radiation')) then
       
-      eig_register: if (trim(equation_type) == 'Eigenvalue') then
+         particle_loop: do p = 1,option_count('/radiation/particle_type')
          
-         ! get the particle name
-         call get_option(trim(particle_option_path)//'/name',particle_name)
+            ! set the particle path
+            particle_option_path = '/radiation/particle_type['//int2str(p-1)//']'
          
-         call radiation_eigenvalue_register_diagnostics(trim(particle_name))
+            call get_option(trim(particle_option_path)//'/equation/name',equation_type)  
       
-      else eig_register
+            eig_register: if (trim(equation_type) == 'Eigenvalue') then
+         
+               ! get the particle name
+               call get_option(trim(particle_option_path)//'/name',particle_name)
+         
+               call radiation_eigenvalue_register_diagnostics(trim(particle_name))
       
-         ! fill in ...
+            else eig_register
+      
+               ! fill in ...
             
-      end if eig_register
+            end if eig_register
+      
+         end do particle_loop
+
+      end if have_radiation
            
-   end subroutine radiation_register_diagnostics
+   end subroutine radiation_diagnostics_register_diagnostic
 
    ! --------------------------------------------------------------------------
    

@@ -39,29 +39,33 @@ module radiation_check_options_module
    
    private 
 
-   public :: radiation_check_options
+   public :: radiation_check_options_module_check_options
 
 contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_check_options() 
+   subroutine radiation_check_options_module_check_options 
    
       !!< Check the options solely associted with the radiation model
 
       integer :: p 
       character(len=OPTION_PATH_LEN) :: particle_option_path   
+      
+      have_radiation: if (have_option('/radiation')) then
                            
-      particle_type_loop: do p = 1,option_count("/radiation/particle_type")
+         particle_type_loop: do p = 1,option_count('/radiation/particle_type')
     
-         ! - 1 needed as options count from 0
-         particle_option_path = "/radiation/particle_type["//int2str(p - 1)//"]" 
+            ! - 1 needed as options count from 0
+            particle_option_path = '/radiation/particle_type['//int2str(p - 1)//']' 
          
-         call radiation_check_options_particle(trim(particle_option_path))
+            call radiation_check_options_particle(trim(particle_option_path))
                            
-      end do particle_type_loop
-                  
-   end subroutine radiation_check_options
+         end do particle_type_loop
+      
+      end if have_radiation
+                     
+   end subroutine radiation_check_options_module_check_options
 
    ! --------------------------------------------------------------------------
 

@@ -84,47 +84,47 @@ rm -f rad_1d_1grp_hom_vacbc_eig_K.flml
   <variables>
     <variable name="ParticleKeffneutron_A" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_A = stat("rad_1d_1grp_hom_vacbc_eig_A.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_A = stat("rad_1d_1grp_hom_vacbc_eig_A.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_B" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_B = stat("rad_1d_1grp_hom_vacbc_eig_B.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_B = stat("rad_1d_1grp_hom_vacbc_eig_B.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_C" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_C = stat("rad_1d_1grp_hom_vacbc_eig_C.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_C = stat("rad_1d_1grp_hom_vacbc_eig_C.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_D" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_D = stat("rad_1d_1grp_hom_vacbc_eig_D.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_D = stat("rad_1d_1grp_hom_vacbc_eig_D.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_E" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_E = stat("rad_1d_1grp_hom_vacbc_eig_E.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_E = stat("rad_1d_1grp_hom_vacbc_eig_E.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_F" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_F = stat("rad_1d_1grp_hom_vacbc_eig_F.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_F = stat("rad_1d_1grp_hom_vacbc_eig_F.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_G" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_G = stat("rad_1d_1grp_hom_vacbc_eig_G.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_G = stat("rad_1d_1grp_hom_vacbc_eig_G.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_H" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_H = stat("rad_1d_1grp_hom_vacbc_eig_H.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_H = stat("rad_1d_1grp_hom_vacbc_eig_H.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_I" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_I = stat("rad_1d_1grp_hom_vacbc_eig_I.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_I = stat("rad_1d_1grp_hom_vacbc_eig_I.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_J" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_J = stat("rad_1d_1grp_hom_vacbc_eig_J.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_J = stat("rad_1d_1grp_hom_vacbc_eig_J.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_K" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_K = stat("rad_1d_1grp_hom_vacbc_eig_K.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_K = stat("rad_1d_1grp_hom_vacbc_eig_K.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>

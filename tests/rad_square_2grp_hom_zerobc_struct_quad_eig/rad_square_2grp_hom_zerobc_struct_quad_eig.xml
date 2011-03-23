@@ -35,19 +35,19 @@ rm -f rad_square_2grp_hom_zerobc_struct_quad_eig_q1_D.flml
   <variables>
     <variable name="ParticleKeffneutron_A" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_A = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_A.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_A = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_A.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_B" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_B = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_B.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_B = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_B.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_C" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_C = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_C.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_C = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_C.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
     <variable name="ParticleKeffneutron_D" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_D = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_D.stat")["ParticleKeffneutron1"]["Value"][0]
+ParticleKeffneutron_D = stat("rad_square_2grp_hom_zerobc_struct_quad_eig_q1_D.stat")["ParticleKeffneutron"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
