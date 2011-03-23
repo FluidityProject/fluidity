@@ -53,7 +53,7 @@ module hadapt_extrude_radially
     logical :: have_min_depth=.false.
     real :: min_depth
 
-    logical :: sigma_layers
+    logical :: sigma_layers=.false.
     integer :: number_sigma_layers
 
     integer :: n_regions, r, rs

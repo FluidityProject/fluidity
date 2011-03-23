@@ -248,6 +248,7 @@ module hadapt_extrude
     end if
     
     list_sizing=.false.
+    sigma_layers=.false.
     call get_option(trim(option_path)//&
                     '/from_mesh/extrude/regions['//int2str(region_index)//&
                     ']/sizing_function/constant', &
