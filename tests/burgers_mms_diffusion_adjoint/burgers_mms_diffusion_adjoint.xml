@@ -64,6 +64,58 @@ de_ratio = d_error / e_error
 de_ratio_inf = d_error_inf / e_error_inf
 de_error = [log(de_ratio, 2)]
     </variable>
+    <variable name="ab_func_error" language="python">
+truth = -0.0993644944
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_func = stat("mms_diffusion_adjoint_A_adjoint_dummy.stat")["dummy"]["value"][0]
+b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][0]
+
+a_error = abs(truth - a_func)
+b_error = abs(truth - b_func)
+
+ab_func_error = log(a_error/b_error, 2)
+    </variable>
+    <variable name="bc_func_error" language="python">
+truth = -0.0993644944
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][0]
+c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][0]
+
+b_error = abs(truth - b_func)
+c_error = abs(truth - c_func)
+
+bc_func_error = log(b_error/c_error, 2)
+    </variable>
+    <variable name="cd_func_error" language="python">
+truth = -0.0993644944
+from fluidity_tools import stat_parser as stat
+from math import log
+
+c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][0]
+d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][0]
+
+c_error = abs(truth - c_func)
+d_error = abs(truth - d_func)
+
+cd_func_error = log(c_error/d_error, 2)
+    </variable>
+    <variable name="de_func_error" language="python">
+truth = -0.0993644944
+from fluidity_tools import stat_parser as stat
+from math import log
+
+d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][0]
+e_func = stat("mms_diffusion_adjoint_E_adjoint_dummy.stat")["dummy"]["value"][0]
+
+d_error = abs(truth - d_func)
+e_error = abs(truth - e_func)
+
+de_func_error = log(d_error/e_error, 2)
+    </variable>
   </variables>
   <pass_tests>
     <test name="ab_convergence_stat: L2 order in [1.8,2.2]" language="python">
@@ -77,6 +129,18 @@ assert(abs(cd_error[0]-2.0) &lt; 0.2)
     </test>
     <test name="de_convergence_stat: L2 order in [1.8,2.2]" language="python">
 assert(abs(de_error[0]-2.0) &lt; 0.2)
+    </test>
+    <test name="ab_func_error: order in [1.8,2.2]" language="python">
+assert(abs(ab_func_error-2.0) &lt; 0.2)
+    </test>
+    <test name="bc_func_error: order in [1.8,2.2]" language="python">
+assert(abs(bc_func_error-2.0) &lt; 0.2)
+    </test>
+    <test name="cd_func_error: order in [1.8,2.2]" language="python">
+assert(abs(cd_func_error-2.0) &lt; 0.2)
+    </test>
+    <test name="de_func_error: order in [1.8,2.2]" language="python">
+assert(abs(de_func_error-2.0) &lt; 0.2)
     </test>
   </pass_tests>
   <warn_tests>

@@ -1,4 +1,4 @@
-input: clean
+input: clean copy_tests
 
 copy_tests:
 	cp mms_A.bml mms_B.bml; sed -i 's/_A/_B/' mms_B.bml

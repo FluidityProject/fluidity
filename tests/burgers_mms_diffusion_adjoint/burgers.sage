@@ -12,3 +12,11 @@ print s
 endpoints = (-10.0, 10.0)
 bcs = [lmbda(x=y).n() for y in endpoints]
 print bcs
+
+print "j * u: ", j * u
+true_J = integrate(j * u, x, -10.0, 10.0)
+print true_J
+# Alas, a bug in sage stops it from being able to
+# print out float(true_J). However,
+# a numerical value can be extracted
+# with wolfram alpha.
