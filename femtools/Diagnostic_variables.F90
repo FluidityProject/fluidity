@@ -463,7 +463,7 @@ contains
     integer :: no_mixing_bins
     real, dimension(:), pointer :: mixing_bin_bounds
     real :: current_time
-    character(len = 254) :: buffer, material_phase_name
+    character(len = 254) :: buffer, material_phase_name, prefix
     character(len = FIELD_NAME_LEN) :: surface_integral_name, mixing_stats_name
     character(len = OPTION_PATH_LEN) :: func
     type(scalar_field) :: vfield_comp
@@ -763,11 +763,16 @@ contains
       do while (associated(iterator)) 
         do i = 1, iterator%dim
           column = column + 1
+          if (iterator%dim==1) then
+            prefix=""
+          else
+            prefix=int2str(i)
+          end if
           if (iterator%have_material_phase) then
-             buffer = field_tag(name=trim(iterator%name)//int2str(i), column=column, &
+             buffer = field_tag(name=trim(iterator%name)//trim(prefix), column=column, &
                  & statistic=iterator%statistic, material_phase_name=iterator%material_phase)
           else
-             buffer = field_tag(name=trim(iterator%name)//int2str(i), column=column, &
+             buffer = field_tag(name=trim(iterator%name)//trim(prefix), column=column, &
                  & statistic=iterator%statistic)
           end if
           write(default_stat%diag_unit, '(a)') trim(buffer)
@@ -780,6 +785,7 @@ contains
     end if
 
     call initialise_detectors(filename, state)
+    call initialise_walltime
 
     ewrite(1, *) "Exiting initialise_diagnostics"
 
