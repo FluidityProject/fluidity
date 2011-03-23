@@ -7,26 +7,28 @@
   <tags>flml radiation parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-mpiexec -n 2 ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml 
+export NPROC=2
+
+mpiexec -n $NPROC ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml 
 
 cp rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.flml
 sed -i 's/_A/_B/' rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.flml
 
-mpiexec -n 2 ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.flml 
+mpiexec -n $NPROC ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.flml 
 
 rm -f rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.flml
 
 cp rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.flml
 sed -i 's/_A/_C/' rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.flml
 
-mpiexec -n 2 ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.flml 
+mpiexec -n $NPROC ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.flml 
 
 rm -f rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.flml
 
 cp rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.flml rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml
 sed -i 's/_A/_D/' rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml
 
-mpiexec -n 2 ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml 
+mpiexec -n $NPROC ../../bin/fluidity rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml 
 
 rm -f rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml
     </command_line>

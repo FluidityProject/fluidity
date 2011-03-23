@@ -4,9 +4,11 @@ SIM = rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig
 
 MESH = box_struct_hex
 
+MESH_DIM = 3
+
 input: clean
-	gmsh -3 $(MESH)_A.geo -o $(MESH)_A.msh
-	gmsh -3 $(MESH)_B.geo -o $(MESH)_B.msh
+	gmsh -$(MESH_DIM) $(MESH)_A.geo -o $(MESH)_A.msh
+	gmsh -$(MESH_DIM) $(MESH)_B.geo -o $(MESH)_B.msh
 
 clean:
 	rm -f $(MESH)*.ele

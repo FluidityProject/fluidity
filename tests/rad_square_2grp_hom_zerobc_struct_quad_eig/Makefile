@@ -4,11 +4,13 @@ SIM = rad_square_2grp_hom_zerobc_struct_quad_eig
 
 MESH = square_struct_quad
 
+MESH_DIM = 2
+
 input: clean
-	gmsh -2 $(MESH)_A.geo -o $(MESH)_A.msh
-	gmsh -2 $(MESH)_B.geo -o $(MESH)_B.msh
-	gmsh -2 $(MESH)_C.geo -o $(MESH)_C.msh
-	gmsh -2 $(MESH)_D.geo -o $(MESH)_D.msh
+	gmsh -$(MESH_DIM) $(MESH)_A.geo -o $(MESH)_A.msh
+	gmsh -$(MESH_DIM) $(MESH)_B.geo -o $(MESH)_B.msh
+	gmsh -$(MESH_DIM) $(MESH)_C.geo -o $(MESH)_C.msh
+	gmsh -$(MESH_DIM) $(MESH)_D.geo -o $(MESH)_D.msh
 
 clean:
 	rm -f $(SIM)*.vtu 

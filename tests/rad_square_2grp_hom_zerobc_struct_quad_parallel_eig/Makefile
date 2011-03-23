@@ -4,15 +4,19 @@ SIM = rad_square_2grp_hom_zerobc_struct_quad_parallel_eig
 
 MESH = square_struct_quad
 
+MESH_DIM = 2
+
+NPROC = 2
+
 input: clean
-	gmsh -bin -2 $(MESH)_A.geo -o $(MESH)_A.msh
-	gmsh -bin -2 $(MESH)_B.geo -o $(MESH)_B.msh
-	gmsh -bin -2 $(MESH)_C.geo -o $(MESH)_C.msh
-	gmsh -bin -2 $(MESH)_D.geo -o $(MESH)_D.msh
-	../../bin/fldecomp -n 2 -m gmsh $(MESH)_A
-	../../bin/fldecomp -n 2 -m gmsh $(MESH)_B
-	../../bin/fldecomp -n 2 -m gmsh $(MESH)_C
-	../../bin/fldecomp -n 2 -m gmsh $(MESH)_D
+	gmsh -bin -$(MESH_DIM) $(MESH)_A.geo -o $(MESH)_A.msh
+	gmsh -bin -$(MESH_DIM) $(MESH)_B.geo -o $(MESH)_B.msh
+	gmsh -bin -$(MESH_DIM) $(MESH)_C.geo -o $(MESH)_C.msh
+	gmsh -bin -$(MESH_DIM) $(MESH)_D.geo -o $(MESH)_D.msh
+	../../bin/fldecomp -n $(NPROC) -m gmsh $(MESH)_A
+	../../bin/fldecomp -n $(NPROC) -m gmsh $(MESH)_B
+	../../bin/fldecomp -n $(NPROC) -m gmsh $(MESH)_C
+	../../bin/fldecomp -n $(NPROC) -m gmsh $(MESH)_D
 
 clean:
 	rm -f $(MESH)*.ele
