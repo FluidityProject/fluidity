@@ -7,37 +7,118 @@ adjoint_options =
    ## output in the .stat file.
    element adjoint {
       ## A functional to be computed.
+      ## If the functional_value is supplied by the user, then the functional gets
+      ## evaluated and printed in the .stat files.
+      ## 
+      ## If the functional_derivative is supplied by the user, then that is always used.
+      ## for the right-hand side of the adjoint computation.
+      ## If no functional_derivative is supplied, then automatic differentiation is applied
+      ## to compute it from the functional_value.
+      ## 
+      ## In short, you must supply at least one of functional_value or functional_derivative,
+      ## and you may supply both.
       element functional {
          attribute name { xsd:string },
+         ## The value of the functional to be computed.
+         element functional_value {
+            ## Python code for the functional. This code is given the following variables:
+            ##  n, the current timestep number
+            ##  time, the start of the timestep
+            ##  dt, the current size of the timestep
+            ##  states, which represents the states through time, and may be accessed like
+            ##   states[0]["MaterialPhase"].vector_fields["Coordinate"], or
+            ##   states[n]["MyOtherMaterialPhase"].scalar_fields["Pressure"], etc.
+            ##  states will only contain those fields that have been specified in the functional_dependencies element.
+            ## 
+            ##  This code must compute a real number J, which is the value of the functional associated with this particular
+            ##  timestep.
+            ##  
+            ##  Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
+            ##  solution TracerField and a given field TracerObservations:
+            ##  <span font_desc="monospace 10" foreground="blue">
+            ##  import numpy
+            ##  observ = states[n]["Fluid"].scalar_fields["TracerObservations"]
+            ##  soln   = states[n]["Fluid"].scalar_fields["TracerField"]
+            ##  coord  = states[n]["Fluid"].vector_fields["Coordinate"]
+            ##  J = 0.0
+            ##   
+            ##  for ele in range(coord.ele_count):
+            ##    t = Transform(coord, ele) # transform to physical
+            ##    shape = soln.ele_shape(ele)
+            ##    mass = t.shape_shape(shape, shape) # the local mass matrix for this element
+            ##    ele_error = observ.ele_val(ele) - soln.ele_val(ele)
+            ##    J = J + 0.5 * numpy.dot(ele_error, numpy.dot(mass, ele_error))
+            ##  </span>
+            ## 
+            ##  This applies for a steady-state simulation; for a time-dependent simulation
+            ##  one should either evaluate the fields at a particular time, or integrate
+            ##  through time.
+            element algorithm {
+               attribute name { "functional_value" },
+               python_code
+            }
+         }?,
          ## The derivative of the functional at each time level.
          element functional_derivative {
-            ## Python code for the functional derivative
+            ## Python code for the functional derivative. This code is given the following variables:
+            ##  n, the current timestep number
+            ##  time, the start of the timestep
+            ##  dt, the current size of the timestep
+            ##  states, which represents the states through time, and may be accessed like
+            ##   states[0]["MaterialPhase"].vector_fields["Coordinate"], or
+            ##   states[n]["MyOtherMaterialPhase"].scalar_fields["Pressure"], etc.
+            ##  states will only contain those fields that have been specified in the functional_dependencies element.
+            ##  derivative, which is a scalar/vector/tensor field associated with the derivative to be computed.
+            ## 
+            ##  This code must set the entries of derivative.val. The code should check which variable we are differentiating
+            ##  with respect to by inspecting derivative.name.
+            ##  
+            ##  Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
+            ##  solution TracerField and a given field TracerObservations at each timestep:
+            ##  <span font_desc="monospace 10" foreground="blue">
+            ##  import numpy
+            ##  observ = states[n]["Fluid"].scalar_fields["TracerObservations"]
+            ##  soln   = states[n]["Fluid"].scalar_fields["TracerField"]
+            ##  coord  = states[n]["Fluid"].vector_fields["Coordinate"]
+            ##  derivative.val[:] = 0.0
+            ##   
+            ##  if derivative.name == "TracerField": # the functional only depends on this
+            ##    for ele in range(coord.ele_count):
+            ##      t = Transform(coord, ele) # transform to physical
+            ##      shape = soln.ele_shape(ele)
+            ##      mass = t.shape_shape(shape, shape) # the local mass matrix for this element
+            ##      ele_error = observ.ele_val(ele) - soln.ele_val(ele)
+            ##      derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, ele_error))
+            ##  </span>
+            ## 
+            ##  This applies for a steady-state simulation; for a time-dependent simulation
+            ##  one should either evaluate the fields at a particular time, or integrate
+            ##  through time.
             element algorithm {
                attribute name { "functional_derivative" },
                python_code
             }
-         },
+         }?,
          ## The dependencies of the functional at each time level.
          element functional_dependencies {
             ##  Python code for the functional dependencies.
-            ##  Example (for a spacetime integral of the norm of velocity):
+            ##  This code defines a function that informs the model what variables at which time levels
+            ##  will be necessary for the functional computation at this point.
             ##
+            ##  Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
+            ##  solution TracerField and a given field TracerObservations at each timestep:
+            ##  <span font_desc="monospace 10" foreground="blue">
             ##  def dependencies(times, timestep):
-            ##    return {"Fluid::Velocity": (timestep, timestep+1)}
+            ##    return {"Fluid::TracerObservations": [timestep],
+            ##                 "Fluid::TracerField": [timestep],
+            ##                 "Fluid::Coordinate": [timestep]}
+            ##  </span>
             ##
             element algorithm {
                attribute name { "functional_dependencies" },
                python_code
             }
-         },
-         ## The value of the functional to be computed.
-         element functional_value {
-            ## Python code for the functional
-            element algorithm {
-               attribute name { "functional_value" },
-               python_code
-            }
-         }?
+         }
       }+
    }
 
