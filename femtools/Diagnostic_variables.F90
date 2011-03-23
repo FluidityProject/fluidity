@@ -531,12 +531,6 @@ contains
       buffer=field_tag(name="ElapsedWallTime", column=column, statistic="value")
       write(default_stat%diag_unit, '(a)') trim(buffer)
 
-      if (have_option("/adjoint/functional")) then
-        column=column+1
-        buffer=field_tag(name="AdjointFunctional", column=column, statistic="value")
-        write(default_stat%diag_unit, '(a)') trim(buffer)
-      end if
-
       do i = 1, size(default_stat%mesh_list)
         ! Headers for output statistics for each mesh
         mesh => extract_mesh(state(1), default_stat%mesh_list(i))
@@ -876,7 +870,7 @@ contains
         diagnostic_item%have_material_phase = .false.
       end if
       allocate(diagnostic_item%value(dim))
-      diagnostic_item%value = 0.0
+      diagnostic_item%value = INFINITY
       nullify(diagnostic_item%next)
 
      ! Check if the diagnostic has not been registered yet
