@@ -785,7 +785,6 @@ contains
     end if
 
     call initialise_detectors(filename, state)
-    call initialise_walltime
 
     ewrite(1, *) "Exiting initialise_diagnostics"
 

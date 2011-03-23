@@ -101,6 +101,7 @@ module adjoint_main_loop
 
       do functional=0,no_functionals-1
         default_stat = functional_stats(functional + 1)
+        call initialise_walltime
         call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
         call initialise_diagnostics(trim(simulation_base_name) // '_' // trim(functional_name), state)
         functional_stats(functional + 1) = default_stat

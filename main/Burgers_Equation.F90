@@ -125,6 +125,7 @@
     ! Register the operator callbacks
     call register_burgers_operator_callbacks(adjointer)
 #endif  
+    call initialise_walltime
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
