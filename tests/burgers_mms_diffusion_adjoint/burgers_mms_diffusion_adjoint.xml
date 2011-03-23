@@ -12,11 +12,11 @@
 from fluidity_tools import stat_parser as stat
 from math import log
 
-a_error = stat("mms_diffusion_adjoint_A_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-b_error = stat("mms_diffusion_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+a_error = stat("mms_diffusion_adjoint_A_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
+b_error = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
 
-a_error_inf = stat("mms_diffusion_adjoint_A_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
-b_error_inf = stat("mms_diffusion_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
+a_error_inf = stat("mms_diffusion_adjoint_A_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
+b_error_inf = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -26,11 +26,11 @@ ab_error = [log(ab_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-b_error = stat("mms_diffusion_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-c_error = stat("mms_diffusion_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+b_error = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
+c_error = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
 
-b_error_inf = stat("mms_diffusion_adjoint_B_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
-c_error_inf = stat("mms_diffusion_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
+b_error_inf = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
+c_error_inf = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
 
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
@@ -40,11 +40,11 @@ bc_error = [log(bc_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-c_error = stat("mms_diffusion_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-d_error = stat("mms_diffusion_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+c_error = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
+d_error = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
 
-c_error_inf = stat("mms_diffusion_adjoint_C_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
-d_error_inf = stat("mms_diffusion_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
+c_error_inf = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
+d_error_inf = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
 
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
@@ -54,11 +54,11 @@ cd_error = [log(cd_ratio, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-d_error = stat("mms_diffusion_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
-e_error = stat("mms_diffusion_adjoint_E_adjoint.stat")["Fluid"]["AdjointError"]["l2norm"][-1]
+d_error = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
+e_error = stat("mms_diffusion_adjoint_E_adjoint_dummy.stat")["Fluid"]["AdjointError"]["l2norm"][-2]
 
-d_error_inf = stat("mms_diffusion_adjoint_D_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
-e_error_inf = stat("mms_diffusion_adjoint_E_adjoint.stat")["Fluid"]["AdjointError"]["max"][-1]
+d_error_inf = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
+e_error_inf = stat("mms_diffusion_adjoint_E_adjoint_dummy.stat")["Fluid"]["AdjointError"]["max"][-2]
 
 de_ratio = d_error / e_error
 de_ratio_inf = d_error_inf / e_error_inf
