@@ -27,10 +27,11 @@
 #include "fdebug.h"
 
 module adjoint_main_loop
-#ifdef HAVE_ADJOINT
 #include "libadjoint/adj_fortran.h"
+#ifdef HAVE_ADJOINT
     use libadjoint
     use libadjoint_data_callbacks
+#endif
     use state_module
     use diagnostic_variables
     use fields
@@ -52,10 +53,14 @@ module adjoint_main_loop
     implicit none
 
     private
-    public :: compute_adjoint, adjoint_main_loop_register_diagnostic
+    public :: adjoint_main_loop_register_diagnostic
+#ifdef HAVE_ADJOINT
+    public :: compute_adjoint
+#endif
 
     contains
 
+#ifdef HAVE_ADJOINT
     subroutine compute_adjoint(state, dump_no)
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
@@ -262,6 +267,7 @@ module adjoint_main_loop
         call adj_chkierr(ierr)
       end subroutine adjoint_cleanup
     end subroutine compute_adjoint
+#endif
 
     subroutine adjoint_main_loop_register_diagnostic
       integer :: functional, no_functionals
@@ -278,6 +284,5 @@ module adjoint_main_loop
       end do
 
        end subroutine adjoint_main_loop_register_diagnostic
-#endif
 
 end module adjoint_main_loop
