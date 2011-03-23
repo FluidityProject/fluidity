@@ -137,7 +137,6 @@
 
     call python_init()
     call read_command_line()
-    call initialise_walltime()
 
     call mangle_options_tree_forward
     
@@ -825,7 +824,13 @@
 
       storage = adj_storage_memory_incref(u_vec);
       ierr = adj_record_variable(adjointer, u_var, storage);
-      call adj_chkierr(ierr);
+      ! We don't call adj_chkierr because we might already have recorded it, and that's OK
+      if (ierr /= ADJ_ERR_OK) then
+        ! We pre-emptively incref'd in preparation for giving libadjoint a copy,
+        ! but libadjoint already has a copy.
+        ! So we decref again
+        call femtools_vec_destroy_proc(u_vec)
+      end if
 #endif
     end subroutine adjoint_record_velocity
   end program burgers_equation
