@@ -1240,7 +1240,7 @@ contains
              
              if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
                 new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos))
+                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos))
                 
                 if (new_ele_owner == getprocno()) then
                    

@@ -1503,15 +1503,10 @@ module zoltan_integration
     call insert(states, zoltan_global_new_positions%mesh, name = zoltan_global_new_positions%mesh%name)
     call insert(states, zoltan_global_new_positions, name = zoltan_global_new_positions%name)
 
-    if(present(mesh_name)) then
-       zoltan_global_tmp_mesh = extract_mesh(states(1), trim(mesh_name))
-    else
-       zoltan_global_tmp_mesh = get_external_mesh(states)
-    end if
-    call incref(zoltan_global_tmp_mesh)
-    
-    zoltan_global_tmp_mesh_nhalos = halo_count(zoltan_global_tmp_mesh)
-    assert(zoltan_global_tmp_mesh_nhalos == 2)
+    ! Check the number of halos in our new mesh
+    ! Used in a few places within the Zoltan callback and detector routines
+    zoltan_global_new_positions_mesh_nhalos = halo_count(zoltan_global_new_positions%mesh)
+    assert(zoltan_global_new_positions_mesh_nhalos == 2)
     
     ! Allocate a new metric field on the new positions mesh and zero it
     if (present(metric).or.present(full_metric)) then
@@ -1683,7 +1678,7 @@ module zoltan_integration
 
                    new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
 
-                   if(ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos)) == getprocno()) then
+                   if(ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos)) == getprocno()) then
 
                       ewrite(3,*) "Unpacking ", recv_buff(j,zoltan_global_ndims+2), "(ID) detector from process ", i
 
@@ -1823,8 +1818,6 @@ module zoltan_integration
 
     deallocate(zoltan_global_ndets_in_ele)
     
-    call deallocate(zoltan_global_tmp_mesh)
-
     ! update the detector%element for each detector in the default_stat%detector_list
     call update_detector_list_element(default_stat%detector_list)
 

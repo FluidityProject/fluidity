@@ -6,7 +6,7 @@ module zoltan_detectors
 #ifdef HAVE_ZOLTAN
 
   use zoltan, only: zoltan_int
-  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_uen_to_old_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh_nhalos
+  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_uen_to_old_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions, zoltan_global_new_positions_mesh_nhalos
   use data_structures, only: has_key, fetch
   use halos_derivation, only: ele_owner
 
@@ -105,7 +105,7 @@ module zoltan_detectors
        
        if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
           new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-          new_ele_owner = ele_owner(new_local_element_number, zoltan_global_tmp_mesh, zoltan_global_tmp_mesh%halos(zoltan_global_tmp_mesh_nhalos))
+          new_ele_owner = ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos))
        else
           new_ele_owner = -1
        end if

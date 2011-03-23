@@ -67,6 +67,7 @@ module zoltan_global_variables
 
   ! Needed for zoltan_cb_unpack_nodes
   type(vector_field), save :: zoltan_global_new_positions
+  integer, save :: zoltan_global_new_positions_mesh_nhalos
   type(mesh_type), save :: zoltan_global_zz_mesh
   type(integer_hash_table), save :: zoltan_global_nodes_we_are_sending ! in old local numbers
   type(integer_set), save :: zoltan_global_nodes_we_are_keeping ! in old local numbers
@@ -88,8 +89,7 @@ module zoltan_global_variables
   type(integer_hash_table), save :: zoltan_global_uen_to_new_local_numbering
   type(integer_hash_table), save :: zoltan_global_uen_to_old_local_numbering
   type(integer_hash_table), save :: zoltan_global_old_local_numbering_to_uen
-  type(mesh_type), save :: zoltan_global_tmp_mesh
-  integer, save :: zoltan_global_tmp_mesh_nhalos
+
 
   ! Needed for zoltan_cb_pack_field_sizes
   type(state_type), save, dimension(:), allocatable :: zoltan_global_source_states, zoltan_global_target_states
