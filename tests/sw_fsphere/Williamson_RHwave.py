@@ -1,5 +1,5 @@
 from math import pi, cos, sin
-from spheretools import cart2polar
+from fluidity.spheretools import cart2polar
 
 a=6.37122e6
 K=7.848e-6
