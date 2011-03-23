@@ -37,6 +37,7 @@ module adjoint_functional_evaluation
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use spud
   use state_module
+  use diagnostic_variables, only: set_diagnostic
   use embed_python
   use python_state
   use libadjoint_data_callbacks
@@ -60,7 +61,8 @@ module adjoint_functional_evaluation
     adj_scalar_f, intent(in), value :: end_time
     type(adj_vector), intent(out) :: output
 
-    character(len=PYTHON_FUNC_LEN) :: code
+    character(len=PYTHON_FUNC_LEN) :: code_deriv, code_func
+    logical :: has_deriv, has_func
     integer :: i
     integer :: s_idx
     character(len=ADJ_NAME_LEN) :: functional_name_f, variable_name_f
@@ -79,6 +81,7 @@ module adjoint_functional_evaluation
     character(len=ADJ_DICT_LEN) :: path
 
     integer :: dim
+    real :: J
 
     call python_reset
 
@@ -95,10 +98,15 @@ module adjoint_functional_evaluation
     ! to figure that out
 
     ! Fetch the python code the user has helpfully supplied.
-    if (.not. have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")) then
+    has_deriv = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")
+    has_func  = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm")
+    if (.not. has_deriv) then
       FLAbort("We really should have /adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")
     endif
-    call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm", code)
+    call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm", code_deriv)
+    if (has_func) then
+      call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm", code_func)
+    endif
 
     ! Convert from the list of adj_values/adj_vectors to actual states
     if (ndepends > 0) then
@@ -205,7 +213,12 @@ module adjoint_functional_evaluation
     call python_run_string("timestep = " // trim(buffer))
 
     ! OK! We're ready for the user's code:
-    call python_run_string(trim(code))
+    if (has_func) then
+      call python_run_string(trim(code_func))
+      J = python_fetch_real("J")
+      call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
+    end if
+    call python_run_string(trim(code_deriv))
 
     if (max_timestep >= 0) then
       call deallocate(states)
