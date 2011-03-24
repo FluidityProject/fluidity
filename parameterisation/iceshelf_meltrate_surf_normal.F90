@@ -56,20 +56,11 @@ implicit none
  
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions 
+  type(integer_set), save         :: sf_nodes !Nodes at the surface
   
-  
-  public :: melt_surf_init, melt_surf_calc
+  public :: melt_surf_init, melt_allocate_surface, melt_surf_calc
 
-!  public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
 
-  ! Outline:
-  !  - Init in populate_state.
-  !  - call keps_tke (which calculates production and sets source/absorption/diffusivity for solve).
-  !  - call keps_eps (which sets source/absorption/diffusivity for solve).
-  !  - After keps_eps solve, keps_eddyvisc recalculates the eddy viscosity and adds it to the viscosity field.
-  !  - Wall functions are added to selected boundaries in keps_bcs and wall_functions.
-  !  - keps_adapt_options repopulates the fields after an adapt.
-  !  - When done, clean-up.
 
 contains
 
@@ -84,17 +75,10 @@ contains
     integer                             :: i
     integer                             :: surf_id
    
-
- 
-
-    
-    !    ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
     melt_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
 
-    ! Allocate the temporary, module-level variables
-    call melt_allocate_fields(state)
-    ewrite(1,*) "In melt_init, done melting allocate"
-    !    call melt_countBC(state)
+ 
+!    ewrite(1,*) "--------Begin melt_init-------------"
 
     ! Get the 6 model constants
     call get_option(trim(melt_path)//'/c0', c0, default = 3974.0)
@@ -109,42 +93,195 @@ contains
     gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
     gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
 
-    call melt_allocate_surface(state,melt_path) !Return the surface, which we calculate the meltrate
- 
-    ewrite(1,*) "---------End melt_surf_init---------------------------------"
+!    ewrite(1,*) "---------End melt_surf_init---------------------------------"
 
  end subroutine melt_surf_init
+
+subroutine melt_allocate_surface(state)
+
+    type(state_type), intent(inout)     :: state
+    type(vector_field), pointer         :: positions   
+    type(mesh_type), pointer            :: mesh
+    type(mesh_type)                     :: surface_mesh
+    type(integer_set)                   :: surface_elements
+    integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
+    integer, dimension(:), allocatable  :: surface_element_list
+    integer    :: ele, face,i,j,k
+!! The local coordinates of the coordinate in the owning element
+!!    real, dimension(:), allocatable    :: local_coord, local_coord_surf
+    real, dimension(:), allocatable     :: coord
+! for transform_facet_to_physical
+    real, dimension(:,:), allocatable   :: normal
+    real, dimension(:), allocatable     :: av_normal !Average of normal
+!!    integer, dimension(:), pointer      :: ele_faces,face_neighs
+    type(element_type), pointer     :: x_shape_f
+    real                                :: al,be,ga
+    real, dimension(:), allocatable     :: xyz !New location of surface_mesh, dist_meltrate away from the boundary
+!integer, save         :: melt_surfaceID
+    character(len=OPTION_PATH_LEN)      :: path
+    type(integer_set)                   :: surface_ids
+    integer, dimension(:),allocatable   :: surf_id
+
+! For the vector averaging schem, taking the area of the surface element etc 
+    real, dimension(:,:), allocatable   :: table
+    integer, dimension(:,:), allocatable :: node_occupants
+    integer                             :: st,en,node,dim_vec
+    real                                :: area_sum
+    integer, dimension(2) :: shape_option
+
+!    ewrite(1,*) "-------Begin melt_allocate_surface---------"
+    path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    ! Get the surface_id of the ice-ocean interface
+    shape_option=option_shape(trim(path)//"/melt_surfaceID")
+    allocate(surf_id(1:shape_option(1)))
+    call get_option(trim(path)//'/melt_surfaceID',surf_id)
+    
+    call allocate(surface_ids)
+    call insert(surface_ids,surf_id)
+    deallocate(surf_id)
+!    ewrite(1,*) "aft_surface_ids: ", set2vector(surface_ids)
+
+    mesh => extract_mesh(state,"VelocityMesh")
+! Input, mesh, surface_id
+! Output surface_mesh,surface_element_list
+    call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
+
+    positions => extract_vector_field(state,"Coordinate")
+!SINK THE surface_mesh!!
+!   call get_option("/geometry/dimension/", dimension)
+    call allocate(surface_positions,positions%dim,surface_mesh,"MySurfacePosition")
+    call allocate(funky_positions,surface_positions%dim, surface_positions%mesh,"MyFunkyPosition")
+    call allocate(sf_nodes)
+
+! Remap the positions vector to the surface mesh, surface_positions
+    call remap_field_to_surface(positions, surface_positions, surface_element_list)  
+   
+! Loop over # of surface elements
+!nf = size(surface_element_list)
+!2 comes because there are 2 nodes per a surface_element (assumption!)
+! this number could be three for 3D problem, room for change
+! dim_vec is the dimension of the positions, either 2 or 3.
+! node_occupants(1,1:dim_vec*nf) = nodes that occupies the surface elements
+! node_occupants(2,:) = surface elements
+! table(1,:) = area of the face
+! table(2,:) = normal_x
+! table(3,:) = normal_y
+! table(4,:) = normal_z
+    dim_vec = positions%dim
+    allocate(coord(dim_vec))
+    allocate(node_occupants(2,dim_vec*size(surface_element_list)))
+    allocate(table(dim_vec+1,dim_vec*size(surface_element_list)))
+    allocate(av_normal(dim_vec))
+    allocate(xyz(dim_vec))
+    
+    do i=1,size(surface_element_list)        
+        st = 1+dim_vec*(i-1)
+        en = dim_vec+dim_vec*(i-1)
+        face = surface_element_list(i)
+        node_occupants(2,st:en) = face
+        node_occupants(1,st:en) = face_global_nodes(positions, face)
+        ! Calculate the area of the surface element
+        ! For 2D, the area is the length
+        if (dim_vec .eq. 2) then
+            table(1,st:en) = calc_area2(positions,node_occupants(1,st:en))
+        endif
+        ! For 3D, the area become the area of the triangle (assumption here).
+        ! Subroutine calc_area3 uses Heron's formula.
+        if (dim_vec .eq. 3) then
+            table(1,st:en) = calc_area3(positions,node_occupants(1,st:en))
+        endif
+        ! Compute the normal vector at the surface element.
+        x_shape_f=>face_shape(positions,face)
+        allocate(normal(dim_vec,x_shape_f%ngi)) !(dim x x_shape_f%ngi)
+        call transform_facet_to_physical(positions, face, normal=normal)
+        av_normal = sum(normal,2) 
+        !"normal" should be the same; since the normal vector on the quadrature point does not change.
+        av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) ! normalize the vector
+        deallocate(normal)
+        !Since av_normal is outward to the boundary, we will put -sign. We want the vector into the boundary
+        av_normal = -av_normal
+        ! Store av_normal, the normal vector averaged over quadrature points, in table        
+        do j=1,dim_vec
+            table(j+1,st:en)=av_normal(j)
+        enddo
+    enddo
+
+!! Now loop over surface_nodes   
+!        ewrite(1,*) "table(1,1:3): ", table(1,1:3)
+!        ewrite(1,*) "table(2,1:3),normal_x: ", table(2,1:3)
+!        ewrite(1,*) "table(3,1:3),normal_y: ", table(3,1:3)
+!        ewrite(1,*) "table(4,1:3),normal_z: ", table(4,1:3)
+!!In this loop, we will average adjacent normal vectors, using the area of the surface elements.
+    do i=1,size(node_occupants(1,:))
+        node = node_occupants(1,i)
+        av_normal(:) = 0.0
+        area_sum = 0.0
+        ! This loop average the normal vector based on the areas of surface elements, which share the "node".
+        do j=1,size(node_occupants(1,:))
+            if (node_occupants(1,j) .eq. node) then !Pick the surface elements that sheare the "node"
+                do k=1,dim_vec
+                    !table(1,j) = area of the surface element
+                    av_normal(k) = av_normal(k) + table(k+1,j)*table(1,j)               
+                enddo 
+                !The total areas of the surface elements that occupies the "node"               
+                area_sum = area_sum + table(1,j)  
+            endif             
+        enddo
+        av_normal = av_normal / area_sum
+        ! normalize 
+        av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) 
+        dist_meltrate = abs(dist_meltrate)
+        ! Shift the location of the surface nodes
+        coord = node_val(positions,node) !The coordinate of the surface node.
+        ! dist_meltrate = ||xyz - coord|| xyz and coord are vectors
+        xyz = av_normal*dist_meltrate + coord
+         
+        call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.
+        call set(surface_positions,node,coord) !Original coordinate of the surface
+        call insert(sf_nodes,node) ! Save the corresponding node number.
+!        ewrite(1,*) "Allocated, Funk coord: ", node_val(funky_positions,node)
+!        ewrite(1,*) "Allocated, Original coord: ", coord
+!        ewrite(1,*) "Allocated, surface_positions: ", node_val(surface_positions,node)
+    enddo
+    
+    deallocate(coord)
+    deallocate(table)
+    deallocate(node_occupants)    
+    deallocate(av_normal)
+    deallocate(xyz)
+    call deallocate(surface_ids)
+!        ewrite(1,*) "-------End melt_allocate_surface---------"
+
+end subroutine melt_allocate_surface
+
+
 
 ! Calculate the melt rate
  subroutine melt_surf_calc(state)
 
     type(state_type), intent(inout)     :: state
-    type(scalar_field), pointer         :: Tb, Sb,MeltRate
+    type(scalar_field), pointer         :: Tb, Sb,MeltRate,Heat_flux,Salt_flux
     type(scalar_field), pointer         :: scalarfield
     type(vector_field), pointer         :: velocity,positions  
     !Debugging purpose pointer
     type(scalar_field), pointer         :: T_loc,S_loc,P_loc
-    type(vector_field), pointer         :: V_loc,Location 
+    type(vector_field), pointer         :: V_loc,Location,Location_org 
     real, dimension(:), allocatable     :: vel
     integer                             :: i,j,k
     ! Some internal variables  
-    real                             :: speed, T,S,P,Aa,Bb,Cc,topo,loc_Tb,loc_Sb,loc_meltrate,dist_top
+    real                                :: speed, T,S,P,Aa,Bb,Cc,topo
+    real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
     ! Aa*Sb^2+Bv*Sb+Cc
     real :: arg = -1.0
     !Sink mesh part
-    integer                             :: ele,face,node,stat
-    !! The local coordinates of the coordinate in the owning element
-    ! for transform_facet_to_physical
-    real, dimension(:,:), allocatable   :: normal,av_normal
-    real, dimension(:), allocatable     :: local_coord,coord,xyz
-    integer, dimension(:), pointer      :: ele_faces
+    integer                             :: ele,face,node,stat,the_node
+    real, dimension(:), allocatable     :: local_coord,coord
     type(element_type), pointer         :: x_shape_f
-    real                                :: al,be,ga
-    integer, dimension(:), allocatable  :: node_lists !Store the list of elements size(dim+1)
+    integer, dimension(:), allocatable  :: surface_node_list,node_lists 
     type(scalar_field)                  :: re_temperature,re_salinity,re_pressure
     type(vector_field)                  :: re_velocity
-    type(scalar_field), pointer         :: sc_nodes
-    ewrite(1,*) "In melt_surf_calc, Hello world!"
+    
+!    ewrite(1,*) "-------Begin melt_surf_calc------------"
 
     MeltRate => extract_scalar_field(state,"MeltRate")
     Tb => extract_scalar_field(state,"Tb")
@@ -152,12 +289,17 @@ contains
     call set(MeltRate,setnan(arg))
     call set(Tb,setnan(arg))
     call set(Sb,setnan(arg))
+    Heat_flux => extract_scalar_field(state,"Heat_flux")
+    Salt_flux => extract_scalar_field(state,"Salt_flux")
+    call set(Heat_flux,setnan(arg))
+    call set(Salt_flux,setnan(arg))
 ! Debugging
     T_loc => extract_scalar_field(state,"Tloc")
     S_loc => extract_scalar_field(state,"Sloc")
     P_loc => extract_scalar_field(state,"Ploc")
     V_loc => extract_vector_field(state,"Vloc")
     Location => extract_vector_field(state,"Location")
+    Location_org => extract_vector_field(state,"Location_org")
     call set(T_loc,setnan(arg))
     call set(S_loc,setnan(arg))
     call set(P_loc,setnan(arg))
@@ -165,11 +307,11 @@ contains
     vel = setnan(arg)
     call set(V_loc,vel)
     call set(Location,vel)
-    
+    call set(Location_org,vel)
 
     positions => extract_vector_field(state,"Coordinate")
+    ! Remap temperature, salinity, pressure, and velocity onto positions mesh
     scalarfield => extract_scalar_field(state,"Temperature")
-    ! Remapping business
     call allocate(re_temperature,positions%mesh,name="ReTemperature")
     call remap_field(scalarfield,re_temperature,stat)
     ! Salinity
@@ -186,93 +328,108 @@ contains
     call allocate(re_velocity,velocity%dim,positions%mesh,name="ReVelocity")
     call remap_field(velocity, re_velocity, stat)
 
-    ewrite(1,*) "Start the shady stuff node_count(funky_positions): ", node_count(funky_positions)
     allocate(local_coord(positions%dim+1))
     allocate(coord(positions%dim))
-
-   
-    do i=1,node_count(funky_positions)
-
-    !!! Interpolating
-    ewrite(1,*) "Funk coord: ", node_val(funky_positions,i)
-        coord = node_val(funky_positions,i)
-        ewrite(1,*) "Funk coord, coord: ", coord
+    ! Surface node list
+    allocate(surface_node_list(key_count(sf_nodes)))
+    ! Make it to vector from integer_set.
+    ! sf_nodes is calculated in "melt_allocate_surface"
+    surface_node_list=set2vector(sf_nodes)
+    !! Loope over the surface nodes to calculate melt rate etc.
+    do i=1,size(surface_node_list)
+        the_node = surface_node_list(i)
+        !!! Interpolating   
+        coord = node_val(funky_positions,the_node)
         call picker_inquire(positions, coord, ele, local_coord)
-        ewrite(1,*) "Funk coord, picked, ele,local_coord: ", ele,local_coord
-        ewrite(1,*) "Funk coord,ele_and_faces_loc(positions, ele): ", ele_and_faces_loc(positions, ele)
-        allocate(node_lists(ele_and_faces_loc(positions, ele))) !Number of nodes per element
-        node_lists =  ele_nodes(positions,ele)
-        
+        !! If sum(local_coord) is not equal to 1,      
+        !! we know that this coord (funky position) does not exist in the domain.
+        !!This allocation can be outside of the loop as long as all the elements have the same shape.
+        !!FLExit("GLS modelling is only supported for problem type oceans.")
+        if (sum(local_coord) .ne. 1.0) then
+            !! ewrite(1,*) "Funk coord: ", node_val(funky_positions,the_node)
+            !! node_val(surface_positions,the_node) = node_val(positions,the_node)
+            !! ewrite(1,*) "Original coord: ", node_val(surface_positions,the_node)       
+            FLExit("Your funky_positions is out of the domain. Change melt_LayerLength.")
+        endif
+        !Number of nodes per element       
+        allocate(node_lists(ele_and_faces_loc(positions, ele))) 
+        node_lists =  ele_nodes(positions,ele) !Lists of nodes that occupies the element.
+        ! This method of finding values at funky_positions works for P1, which are T,S, and velocity.
         coord = 0.0
         T = 0.0
         S = 0.0
-        P = 0.0
         speed = 0.0
         vel = 0.0
-        ewrite(1,*) "Funk coord, node_lists: ", node_lists
-        ewrite(1,*) "Funk coord, local_coord: ", local_coord  
 
         do j=1,size(node_lists)
             node = node_lists(j)
             coord = coord + node_val(positions,node)*local_coord(j)
             T = T + node_val(re_temperature,node)*local_coord(j)
             S = S + node_val(re_salinity,node)*local_coord(j)
-            P = P + node_val(re_pressure,node)*local_coord(j)
-            speed = speed + sqrt(sum(node_val(re_velocity,node)*node_val(re_velocity,node)))*local_coord(j)**2
             vel = vel + node_val(re_velocity,node)*local_coord(j)
         enddo
-        speed = sqrt(sum(vel**2))
-        ewrite(1,*) "Funk, speed: ", speed
-        ewrite(1,*) "Funk, vel: ", vel
-        ewrite(1,*) "Funk node_val(funky_positions,i): ", node_val(funky_positions,i)
         deallocate(node_lists)
+        ! Luckly P needs to be at the surface for the three equations
+        P = node_val(re_pressure,the_node)
+        speed = sqrt(sum(vel**2))
+        
         topo = -7.53e-8*P ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
 
         !! Define Aa,Bb,Cc
+        !! Aa*Sb**2 + Bb*Sb + Cc = 0.0
         Aa = -gammaS*speed*cI*a + a*c0*gammaT*speed
+        
         Bb = -gammaS*speed*L + gammaS*speed*S*cI*a
         Bb = Bb - gammaS*speed*cI*(b+topo) + gammaS*speed*cI*TI
         Bb = Bb - c0*gammaT*speed*T + c0*gammaT*speed*(b+topo)
 
         Cc = gammaS*speed*S*L +gammaS*speed*S*cI*(b+topo) + gammaS*speed*S*(-cI*TI)
-        !! This could be a linear if Aa=0
+        !! This could be a linear equation if Aa=0
         if (Aa .eq. 0.0) then
             loc_Sb = -Cc/Bb
         else
-        !! Calculate for 2nd order polynomial and have if statement to pick >0
-        loc_Sb = (-Bb + sqrt(Bb**2 - 4.0*Aa*Cc))/(2.0*Aa)
-        if (loc_Sb .lt. 0.0) then
-            loc_Sb = (-Bb - sqrt(Bb**2 - 4.0*Aa*Cc))/(2.0*Aa)
+            !! Calculate for the 2nd order polynomial.
+            !! We have two solutions. 
+            loc_Sb = (-Bb + sqrt(Bb**2 - 4.0*Aa*Cc))/(2.0*Aa)
+            !! loc_Sb has to be larger than 0; since the salinity in the ocean is positive definite.
+            if (loc_Sb .lt. 0.0) then
+                loc_Sb = (-Bb - sqrt(Bb**2 - 4.0*Aa*Cc))/(2.0*Aa)
             endif
         endif
 
         loc_Tb = a*loc_Sb + b + topo
         loc_meltrate = gammaS*speed*(S-loc_Sb)/loc_Sb
+        loc_heatflux = c0*gammaT*speed*(T-loc_Tb) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
+        loc_saltflux = gammaS*speed*(S-loc_Sb)
+        !! Some debugging
+        !!ewrite(1,*) "melt_rate: ",loc_meltrate
+        !!ewrite(1,*) "tLHS: ", c0*gammaT*speed*(T-loc_Tb)
+        !!ewrite(1,*) "tRHS: ", loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
+        !!ewrite(1,*) "sLHS: ", gammaS*speed*(S-loc_Sb)
+        !!ewrite(1,*) "sRHS: ", loc_meltrate*loc_Sb
+        !!ewrite(1,*) "bLHS: ", loc_Tb
+        !!ewrite(1,*) "bRHS: ", a*loc_Sb + b + topo
 
-
-        ewrite(1,*) "melt_rate: ",loc_meltrate
-        ewrite(1,*) "tLHS: ", c0*gammaT*speed*(T-loc_Tb)
-        ewrite(1,*) "tRHS: ", loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
-        ewrite(1,*) "sLHS: ", gammaS*speed*(S-loc_Sb)
-        ewrite(1,*) "sRHS: ", loc_meltrate*loc_Sb
-        ewrite(1,*) "bLHS: ", loc_Tb
-        ewrite(1,*) "bRHS: ", a*loc_Sb + b + topo
-
-        call set(MeltRate, i, loc_meltrate)
-        call set(Tb, i, loc_Tb)
-        call set(Sb, i, loc_Sb)
-        call set(T_loc,i,T)
-        call set(S_loc,i,S)
-        call set(P_loc,i,P)
-        call set(V_loc,i,vel)
-        call set(Location,i,node_val(funky_positions,i))
-
+        !! These are needed to implement BCs.
+        call set(MeltRate, the_node, loc_meltrate)
+        call set(Tb, the_node, loc_Tb)
+        call set(Sb, the_node, loc_Sb)
+        call set(Heat_flux, the_node,loc_heatflux)
+        call set(Salt_flux, the_node,loc_saltflux)
+        !! More or less for debugging purposes.
+        call set(T_loc,the_node,T)
+        call set(S_loc,the_node,S)
+        call set(P_loc,the_node,P)
+        call set(V_loc,the_node,vel)
+        call set(Location,the_node,node_val(funky_positions,the_node))
+        call set(Location_org,the_node,node_val(positions,the_node))
+        
     enddo
 
       
     deallocate(local_coord)
     deallocate(coord)
-    ewrite(1,*) "melt_surf_calc_NORMAL, ------END------"
+!    ewrite(1,*) "-----END melt_surf_calc-------"
 end subroutine melt_surf_calc
 
 
@@ -282,19 +439,6 @@ end subroutine melt_surf_calc
 !!------------------------------------------------------------------!
 !!                       Private subroutines                        !
 !!------------------------------------------------------------------!
-subroutine melt_allocate_fields(state)
-
-    type(state_type), intent(inout) :: state
-    type(vector_field), pointer     :: vectorField
-    type(scalar_field), pointer     :: scalarField
-    
-    integer :: i
-    ewrite(1,*) "In melt_allocate_fields"
-
-    vectorField => extract_vector_field(state, "Velocity")
-    nnodes = node_count(vectorField)
-    
-end subroutine melt_allocate_fields
 
 subroutine melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
     
@@ -308,12 +452,9 @@ subroutine melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_el
     type(integer_set)                                 :: surface_elements
     integer :: i
     ! create a set of surface elements that have surface id in 'surface_ids'
-    ewrite(1,*) "melt_surf_mesh, surface_ids:", surface_ids
 
     call allocate(surface_elements)
     do i=1, surface_element_count(mesh)
-        ewrite(1,*) "In melt_surf_init_sub, i: ", i
-        ewrite(1,*) "In melt_surf_init_sub, surface_element_id(mesh, i): ", surface_element_id(mesh, i)
         if (has_value(surface_ids, surface_element_id(mesh, i))) then
              call insert(surface_elements, i)
              
@@ -322,176 +463,45 @@ subroutine melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_el
     
     allocate(surface_element_list(key_count(surface_elements)))
     surface_element_list=set2vector(surface_elements)
-    ewrite(1,*) "In melt_surf_init_sub, set2vector done"
     call create_surface_mesh(surface_mesh, surface_nodes, mesh, surface_element_list, name=trim(mesh%name)//"ToshisMesh")
     
 
-     ewrite(1,*) "In melt_surf_init_NORMAL, ------END------"
 end subroutine melt_surf_mesh
 
-subroutine melt_allocate_surface(state,path)
-
-    type(state_type), intent(inout)     :: state
-    type(vector_field), pointer         :: positions
-    type(vector_field)                  :: surf_positions, surf_p
-
-
-    type(scalar_field)                  :: sc_out
-    type(scalar_field), pointer         :: sc_nodes
-    type(mesh_type), pointer            :: mesh
-    type(mesh_type)                     :: surface_mesh
-    type(integer_set)                   :: surface_elements
-    integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
-    integer, dimension(:), allocatable  :: surface_element_list
-    integer    :: ele, face,i,j,k
-!! The local coordinates of the coordinate in the owning element
-    real, dimension(:), allocatable    :: local_coord, local_coord_surf
-    real, dimension(:), allocatable     :: coord
-! for transform_facet_to_physical
-    real, dimension(:,:), allocatable   :: normal
-    real, dimension(:), allocatable     :: av_normal !Average of normal
-    integer, dimension(:), pointer      :: ele_faces,face_neighs
-    type(element_type), pointer     :: x_shape_f
-    real                                :: al,be,ga
-    real, dimension(:), allocatable     :: xyz !New location of surface_mesh, dist_meltrate away from the boundary
-!integer, save         :: melt_surfaceID
-    character(len=OPTION_PATH_LEN)      :: path
-    type(integer_set)                   :: surface_ids
-    integer                             :: surf_id
-    real, dimension(:,:), allocatable   :: quad_val
-
-!allocate(surface_ids)
-    ewrite(1,*) "path: ", path
-    call get_option(trim(path)//'/melt_surfaceID',surf_id)
-    ewrite(1,*) "surf_id: ", surf_id
-    ewrite(1,*) "surface_ids: ", surface_ids
-    call allocate(surface_ids)
-    call insert(surface_ids,surf_id)
-    ewrite(1,*) "aft_surface_ids: ", surface_ids
-    ewrite(1,*) "surf_id: ", surf_id
-
-
-    mesh => extract_mesh(state,"VelocityMesh")
-! Input, mesh, surface_id
-! Output surface_mesh,surface_element_list
-    call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
-
-    positions => extract_vector_field(state,"Coordinate")
-!SINK THE surface_mesh!!
-!   call get_option("/geometry/dimension/", dimension)
-    call allocate(surf_positions,positions%dim,surface_mesh,"MySurfacePosition")
-    call allocate(funky_positions,surf_positions%dim, surf_positions%mesh,"MyFunkyPosition")
-! Remap the positions vector to the surface mesh, surface_positions
-    call remap_field_to_surface(positions, surf_positions, surface_element_list)  
-!! something new here
-call allocate(surf_p,positions%dim-1,surface_mesh,"surf_p")
-call remap_field_to_surface(positions, surf_p, surface_element_list)  
-!  call remap_field_to_surface(positions, funky_positions, surface_element_list)
-    ewrite(1,*) "melt_allocate_surface, mesh_dim(positions%mesh): ",mesh_dim(positions%mesh)
-    ewrite(1,*) "melt_allocate_surface, mesh_dim(surf_positions%mesh): ",mesh_dim(surf_positions%mesh)
-    ewrite(1,*) "melt_allocate_surface, mesh_dim(funky_positions%mesh): ",mesh_dim(funky_positions%mesh)
-
-   
-    allocate(coord(positions%dim))
-   
-    ewrite(1,*) "melt_allocate_surface, surface_element_list: ", surface_element_list
-    ewrite(1,*) "melt_allocate_surface, count(surface_element_list: ", size(surface_element_list)
-    ewrite(1,*) "melt_allocate_surface, node_count(surf_positions): ", node_count(surf_positions)
-    ewrite(1,*) "melt_allocate_surface, node_count(surface_nodes): ", size(surface_nodes)
-!! Need to loop over i=1,node_count(surf_positions)
-    allocate(av_normal(positions%dim))
-    allocate(xyz(funky_positions%dim))
-   
-    call allocate(sc_out,surf_positions%mesh,name="scout")
-    call insert(state,sc_out,name="SurfaceNodes")
-    sc_nodes => extract_scalar_field(state,"SurfaceNodes")
-    ewrite(1,*) "face_count(surf_p): ", face_count(surf_p)
-    ewrite(1,*) "surface_element_count(mesh): ", surface_element_count(mesh)
-    ewrite(1,*) "surface_element_count(positions): ", surface_element_count(positions)
-    ewrite(1,*) "surface_element_list: ", surface_element_list
-    k=1
-
-    do i=1,size(surface_element_list)
-        face = surface_element_list(i)
-        ewrite(1,*) "--------------------------------------------- ", i
- 
-!!!!!!!!!!!!!!!!!!!!!!! Capability to calculate the normal of the neibors
-!                face_neighs =>face_neigh_vector(positions, i)
-        ewrite(1,*) "my face: ", face
-        ewrite(1,*) "face that occupies the node: ", face_global_nodes(positions, face)
-        ewrite(1,*) "face_neigns: ", face_neigh_vector(positions, face)
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        x_shape_f=>face_shape(positions,face)
-        allocate(normal(positions%dim,x_shape_f%ngi)) !(dim x x_shape_f%ngi)
-        call transform_facet_to_physical(positions, face, normal=normal)
-        ewrite(1,*) "normal: ", normal
-        av_normal = sum(normal,2) !May need some clever averaging
-        av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) 
-        ewrite(1,*) "av_normal: ", av_normal
-        deallocate(normal)
-!Since av_normal is outward to the boundary, we will put -sign. We want the vector into the boundary
-        av_normal = -av_normal
-!This is a distance away from the boundary where you calculate meltrate 
-        dist_meltrate = abs(dist_meltrate)
-        ewrite(1,*) "face_ngi(positions,face)", face_ngi(positions,face) 
-        allocate(quad_val(positions%dim, face_ngi(positions, face)))
-        ewrite(1,*) "quad allocated"
-        quad_val = face_val_at_quad_vector(positions, face)
-        ewrite(1,*) "quad_val", quad_val
-                
-        do j=1,2 !Little sketch 2 comes from the fact that there are 2 nodes per face
-
-!                coord(1) = quad_val(1,j) !neighboring points
-!                coord(2) = quad_val(2,j)
-                coord(1) = quad_val(1,1+(j-1)*3) !neighboring points
-                coord(2) = quad_val(2,1+(j-1)*3)
-
-                ewrite(1,*) "melt_allocate_surface, coord(1): ", coord(1)
-                ewrite(1,*) "melt_allocate_surface, coord(2): ", coord(2)
-!For 2D
-                if (positions%dim .eq. 2) then
-                        al = av_normal(1)
-                        be = av_normal(2)
-                        xyz(1) = al*dist_meltrate + coord(1)
-                        xyz(2) = be*dist_meltrate + coord(2)
-                endif
-
-                call set(funky_positions,k,xyz)
-                k=k+1
-        enddo
-
-        ewrite(1,*) "hello548 size(surf_positions): ", size(surf_positions%val)
-        ewrite(1,*) "hello548 size(surface_element_list): ", size(surface_element_list)
-        deallocate(quad_val)
-
-
-    enddo
-
-        ewrite(1,*) "k: ", k
-    ewrite(1,*) "node_count(funky_positions): ", node_count(funky_positions)
-    ewrite(1,*) "node_count(positions): ", node_count(positions)
-    ewrite(1,*) "size(surface_element_list): ", size(surface_element_list)
-!ewrite(1,*) "melt_allocate_surface, node_count(funky_positions): ", node_count(funky_positions)
-
-! Knowing the funcky_positions we can allocate some output
-!
-!        call insert(state,sc_out,name="MeltRate")
-!call insert(state,sc_out,name="Tb")
-!call insert(state,sc_out,name="Sb")
-    call deallocate(surface_ids)
-        
-
-end subroutine melt_allocate_surface
 
 real function setnan(arg)
      real :: arg
         setnan = sqrt(arg)
 end function
 
+real function calc_area2(positions,nodes)
+     type(vector_field), pointer        :: positions
+     integer, dimension(2)              :: nodes
+     real, dimension(2)                 :: coord1,coord2
+!     real                               :: area
+     coord1 = node_val(positions,nodes(1))
+     coord2 = node_val(positions,nodes(2))
+    
+     calc_area2 = (sum((coord2 - coord1)**2))**0.5
+     
+end function
 
+real function calc_area3(positions,nodes)
+     type(vector_field), pointer        :: positions
+     integer, dimension(3)              :: nodes
+     real, dimension(3)                 :: coord1,coord2,coord3
+     real                               :: a,b,c,s
+!     real                               :: area
+     coord1 = node_val(positions,nodes(1))
+     coord2 = node_val(positions,nodes(2))
+     coord3 = node_val(positions,nodes(3))
+! Use Heron's formula to calculate the area of triangle
+     a = (sum((coord2 - coord1)**2))**0.5
+     b = (sum((coord3 - coord1)**2))**0.5
+     c = (sum((coord2 - coord3)**2))**0.5
+     s = 0.5*(a+b+c)     
+     calc_area3 = (s*(s-a)*(s-b)*(s-c))**0.5
 
+end function
 
 end module iceshelf_meltrate_surf_normal

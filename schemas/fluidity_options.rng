@@ -7911,16 +7911,19 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. </a:documentation>
                 <ref name="real"/>
               </element>
-              <element name="melt_surfaceID">
-                <a:documentation>Surface ID for the ice</a:documentation>
-                <ref name="integer"/>
-              </element>
+              <optional>
+                <element name="melt_surfaceID">
+                  <a:documentation>Surface ID for the ice</a:documentation>
+                  <ref name="integer_vector"/>
+                </element>
+              </optional>
               <element name="melt_LayerLength">
                 <a:documentation>Distance for the far field</a:documentation>
                 <ref name="real"/>
               </element>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Meltrate, calculated from the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7936,6 +7939,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Temperature of the ice-ocean interface, calculated from the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7951,6 +7955,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Salinity of the ice-ocean interface, calculated from the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7966,6 +7971,40 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Heat flux at the ice-ocean interface.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Heat_flux</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Salt flux at the ice-ocean interface.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Salt_flux</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice. 
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7981,6 +8020,8 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Salinity of the far field, which is "melt_LayerLength" away from the ice.
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7996,6 +8037,8 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
+                  <a:documentation>Pressure used in the three equations. 
+We need to use the pressure at the ice-ocean interface.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -8011,6 +8054,8 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="vector_field">
+                  <a:documentation>Velocity of the far field, which is "melt_LayerLength" away from the ice.
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -8026,11 +8071,30 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="vector_field">
+                  <a:documentation>Location of your far field, which is "melt_LayerLength" away from the ice.
+Location should be perpendicular to the ice-ocean boundary.
+melt_LayerLength = ||Location - Location_org||</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
                   <attribute name="name">
                     <value>Location</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <a:documentation>Location of your ice-ocean boundary.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Location_org</value>
                   </attribute>
                   <element name="diagnostic">
                     <ref name="internal_algorithm"/>

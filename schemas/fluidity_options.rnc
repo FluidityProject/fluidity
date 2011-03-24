@@ -6267,9 +6267,10 @@ forcing =
            ## Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. 
            element Cd {real},
            ## Surface ID for the ice
-           element melt_surfaceID {integer},
+           element melt_surfaceID {integer_vector}?,
            ## Distance for the far field
            element melt_LayerLength {real},
+           ## Meltrate, calculated from the three equations.
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "MeltRate" },
@@ -6281,6 +6282,7 @@ forcing =
                         }
                      )
            }?,
+           ## Temperature of the ice-ocean interface, calculated from the three equations.
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "Tb" },
@@ -6292,6 +6294,7 @@ forcing =
                         }
                      )
            }?,
+           ## Salinity of the ice-ocean interface, calculated from the three equations.
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "Sb" },
@@ -6303,6 +6306,32 @@ forcing =
                         }
                      )
            }?,
+           ## Heat flux at the ice-ocean interface.
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Heat_flux" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           ## Salt flux at the ice-ocean interface.
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Salt_flux" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           ## Temperature of the far field, which is "melt_LayerLength" away from the ice. 
+           ## This variable feeds into the three equations. 
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "Tloc" },
@@ -6314,6 +6343,8 @@ forcing =
                         }
                      )
            }?,
+           ## Salinity of the far field, which is "melt_LayerLength" away from the ice.
+           ## This variable feeds into the three equations. 
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "Sloc" },
@@ -6325,6 +6356,8 @@ forcing =
                         }
                      )
            }?,
+           ## Pressure used in the three equations. 
+           ## We need to use the pressure at the ice-ocean interface.
            element scalar_field {
                      attribute rank { "0" },
                      attribute name { "Ploc" },
@@ -6336,6 +6369,8 @@ forcing =
                         }
                      )
            }?,
+           ## Velocity of the far field, which is "melt_LayerLength" away from the ice.
+           ## This variable feeds into the three equations. 
            element vector_field {
                      attribute rank { "0" },
                      attribute name { "Vloc" },
@@ -6347,6 +6382,9 @@ forcing =
                         }
                      )
            }?,
+           ## Location of your far field, which is "melt_LayerLength" away from the ice.
+           ## Location should be perpendicular to the ice-ocean boundary.
+           ## melt_LayerLength = ||Location - Location_org||
            element vector_field {
                      attribute rank { "0" },
                      attribute name { "Location" },
@@ -6357,7 +6395,19 @@ forcing =
                         diagnostic_vector_field
                         }
                      )
-           }?              
+           }?,    
+           ## Location of your ice-ocean boundary.
+           element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Location_org" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_vector_field
+                        }
+                     )
+           }?                     
            }?      
         }?,
         element shelf {

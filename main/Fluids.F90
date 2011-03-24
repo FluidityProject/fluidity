@@ -404,9 +404,10 @@ contains
 
     call initialise_diagnostics(filename, state)
 
-    ! Initialize ice_meltrate
+    ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
         call melt_surf_init(state(1))
+        call melt_allocate_surface(state(1))
         call melt_surf_calc(state(1))
     end if
     
