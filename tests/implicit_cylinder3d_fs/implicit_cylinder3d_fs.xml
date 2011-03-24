@@ -3,7 +3,7 @@
   <name>implicit_cylinder3d_fs</name>
   <owner userid="avire"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l implicit_cylinder3d_fs.flml</command_line>
   </problem_definition>
   <variables>
