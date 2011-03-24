@@ -196,38 +196,9 @@ field.val[-1] = 0.0</string_value>
   </material_phase>
   <adjoint>
     <functional name="dummy">
-      <functional_derivative>
-        <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">from math import sin, pi, cos, exp, sqrt
-import numpy
-
-derivative.val[:] = 0.0
-coord = states[0]["Fluid"].vector_fields["Coordinate"]
-  
-f = numpy.zeros(derivative.node_count)
-for i in range(derivative.node_count):
-  x = coord.node_val(i)[0]
-  f[i] = 0.01125*pi**2*sin(3.0/20*(x + 10)*pi)
-
-# And we need to multiply that by the mass matrix
-for ele in range(derivative.element_count):
-  t = Transform(ele, coord)
-  shape = derivative.ele_shape(ele)
-  mass = t.shape_shape(shape, shape)
-  nodes = derivative.ele_nodes(ele)
-  derivative.addto(nodes, numpy.dot(mass, f[nodes]))</string_value>
-        </algorithm>
-      </functional_derivative>
-      <functional_dependencies>
-        <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
-  return {"Fluid::Coordinate": [0],
-          "Fluid::Velocity": [timestep]}</string_value>
-        </algorithm>
-      </functional_dependencies>
       <functional_value>
         <algorithm name="functional_value">
-          <string_value type="python" lines="20">from math import sin, pi, cos, exp, sqrt
+          <string_value lines="20" type="python">from math import sin, pi, cos, exp, sqrt
 import numpy
 
 coord = states[0]["Fluid"].vector_fields["Coordinate"]
@@ -245,10 +216,16 @@ for ele in range(derivative.element_count):
   mass = t.shape_shape(shape, shape)
   nodes = u.ele_nodes(ele)
   mu = numpy.dot(mass, u.ele_val(ele))
-  J = J + numpy.dot(f[nodes], mu)
-</string_value>
+  J = J + numpy.dot(f[nodes], mu)</string_value>
         </algorithm>
       </functional_value>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value lines="20" type="python">def dependencies(times, timestep):
+  return {"Fluid::Coordinate": [0],
+          "Fluid::Velocity": [timestep]}</string_value>
+        </algorithm>
+      </functional_dependencies>
     </functional>
   </adjoint>
 </burgers_equation>
