@@ -123,7 +123,7 @@
             </domain_symmetry_factor>
           </flux_normalisation>
         </equation>
-        <energy_discretisation name="WholeMesh">
+        <energy_discretisation name="WholeSpatialMesh">
           <continuity>
             <string_value>discontinuous</string_value>
           </continuity>
@@ -134,7 +134,7 @@
             <number_of_energy_groups>
               <integer_value rank="0">2</integer_value>
             </number_of_energy_groups>
-            <angular_discretisation name="WholeMesh">
+            <angular_discretisation name="WholeSpatialMesh">
               <method name="SphericalHarmonic">
                 <parity name="Even">
                   <exclude_odd_parity_time_source/>

@@ -76,7 +76,7 @@ energy_discretisation =
       element energy_discretisation {
          comment, 
          
-         attribute name { "WholeMesh" },
+         attribute name { "WholeSpatialMesh" },
          
          energy_continuity,
          
@@ -150,7 +150,7 @@ angular_discretisation =
       element angular_discretisation {
          comment, 
          
-         attribute name { "WholeMesh" },
+         attribute name { "WholeSpatialMesh" },
                   
          angular_discretisation_method
       }

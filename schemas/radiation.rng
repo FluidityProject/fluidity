@@ -59,7 +59,7 @@
       <a:documentation>The energy discretisation for the whole spatial mesh</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>WholeMesh</value>
+        <value>WholeSpatialMesh</value>
       </attribute>
       <ref name="energy_continuity"/>
       <ref name="energy_degree"/>
@@ -117,7 +117,7 @@ sets are defined.</a:documentation>
 assoicated with this energy group set</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>WholeMesh</value>
+        <value>WholeSpatialMesh</value>
       </attribute>
       <ref name="angular_discretisation_method"/>
     </element>
