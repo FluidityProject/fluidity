@@ -33,31 +33,31 @@ rm -f rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.flml
     <!-- Radiation diffusion eigenvalue problem run in parallel with one material, two energy group with zero BC with 1/4 geom of square with strutured quad mesh compared to BEANS solution for the keff as well as checking the mesh convergence of the keff-->
   </problem_definition>
   <variables>
-    <variable name="ParticleKeffneutron_A" language="python">
+    <variable name="ParticleKeffNeutron_A" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_A = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_A = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_A.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
-    <variable name="ParticleKeffneutron_B" language="python">
+    <variable name="ParticleKeffNeutron_B" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_B = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_B = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_B.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
-    <variable name="ParticleKeffneutron_C" language="python">
+    <variable name="ParticleKeffNeutron_C" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_C = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_C = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_C.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
-    <variable name="ParticleKeffneutron_D" language="python">
+    <variable name="ParticleKeffNeutron_D" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_D = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_D = stat("rad_square_2grp_hom_zerobc_struct_quad_parallel_eig_q1_D.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Check ParticleKeffneutron_A to ParticleKeffneutron_B convergence with regard to the fine mesh BEANS solution" language="python">
+    <test name="Check ParticleKeffNeutron_A to ParticleKeffNeutron_B convergence with regard to the fine mesh BEANS solution" language="python">
 from math import log
 
 reference_keff = 1.00000100601
 
-keff_one = ParticleKeffneutron_A
-keff_two = ParticleKeffneutron_B
+keff_one = ParticleKeffNeutron_A
+keff_two = ParticleKeffNeutron_B
 
 mesh_one = 5
 mesh_two = 10
@@ -77,13 +77,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 2.0e-03
     </test>
-    <test name="Check ParticleKeffneutron_B to ParticleKeffneutron_C convergence with regard to the fine mesh BEANS solution" language="python">
+    <test name="Check ParticleKeffNeutron_B to ParticleKeffNeutron_C convergence with regard to the fine mesh BEANS solution" language="python">
 from math import log
 
 reference_keff = 1.00000100601
 
-keff_one = ParticleKeffneutron_B
-keff_two = ParticleKeffneutron_C
+keff_one = ParticleKeffNeutron_B
+keff_two = ParticleKeffNeutron_C
 
 mesh_one = 10
 mesh_two = 50
@@ -103,13 +103,13 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 4.2e-02
     </test>
-    <test name="Check ParticleKeffneutron_C to ParticleKeffneutron_D convergence with regard to the fine mesh BEANS solution" language="python">
+    <test name="Check ParticleKeffNeutron_C to ParticleKeffNeutron_D convergence with regard to the fine mesh BEANS solution" language="python">
 from math import log
 
 reference_keff = 1.00000100601
 
-keff_one = ParticleKeffneutron_C
-keff_two = ParticleKeffneutron_D
+keff_one = ParticleKeffNeutron_C
+keff_two = ParticleKeffNeutron_D
 
 mesh_one = 50
 mesh_two = 100
@@ -129,15 +129,15 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 2.4e-01
     </test>
-    <test name="Check ParticleKeffneutron_D against BEANS fine reference with tolerance 1.0e-05" language="python">
+    <test name="Check ParticleKeffNeutron_D against BEANS fine reference with tolerance 1.0e-05" language="python">
 reference_keff = 1.00000100601
-print 'Relative error compared to reference ',abs((ParticleKeffneutron_D - reference_keff)/reference_keff)
-assert abs((ParticleKeffneutron_D - reference_keff)/reference_keff) &lt; 1.0e-05
+print 'Relative error compared to reference ',abs((ParticleKeffNeutron_D - reference_keff)/reference_keff)
+assert abs((ParticleKeffNeutron_D - reference_keff)/reference_keff) &lt; 1.0e-05
     </test>
-    <test name="Check ParticleKeffneutron_D against BEANS same mesh reference with tolerance 1.0e-08" language="python">
+    <test name="Check ParticleKeffNeutron_D against BEANS same mesh reference with tolerance 1.0e-08" language="python">
 reference_keff = 0.999998868262
-print 'Relative error compared to reference ',abs((ParticleKeffneutron_D - reference_keff)/reference_keff)
-assert abs((ParticleKeffneutron_D - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference ',abs((ParticleKeffNeutron_D - reference_keff)/reference_keff)
+assert abs((ParticleKeffNeutron_D - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
   </pass_tests>
   <warn_tests>

@@ -1394,8 +1394,8 @@ contains
          ! get the particle type name
          call get_option(trim(particle_type_path)//'/name',particle_type_name)
          
-         ! Insert the Keff as a constant scalar field for output for neutron type
-         neutron_keff: if (trim(particle_type_name) == 'neutron') then
+         ! Insert the Keff as a constant scalar field for output for Neutron type
+         neutron_keff: if (trim(particle_type_name) == 'Neutron') then
 
             ! get the equation_type_name
             call get_option(trim(particle_type_path)//'/equation/name',equation_type_name)

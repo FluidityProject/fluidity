@@ -100,7 +100,7 @@
     </vector_field>
   </material_phase>
   <radiation>
-    <particle_type name="neutron">
+    <particle_type name="Neutron">
       <equation name="Eigenvalue">
         <power_iteration>
           <maximum>

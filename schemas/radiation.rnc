@@ -19,7 +19,7 @@ particle_type_neutron =
       element particle_type {
          comment,
 
-         attribute name { "neutron" },
+         attribute name { "Neutron" },
                                       
          equation_type_neutron,
 
@@ -36,7 +36,7 @@ particle_type_photon =
       element particle_type {
          comment,
 
-         attribute name { "photon" },
+         attribute name { "Photon" },
 
          equation_type_photon,
                                       

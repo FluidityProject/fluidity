@@ -19,23 +19,23 @@ rm -f rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig_q1_B.flml
     <!-- Radiation diffusion eigenvalue problem with one material, anisotropic diffusion coeff two energy group with all zero BC with 1/8 geom of cube with structured hex mesh compared to Nodal method (PANTHER) solution and BEANS for the keff-->
   </problem_definition>
   <variables>
-    <variable name="ParticleKeffneutron_A" language="python">
+    <variable name="ParticleKeffNeutron_A" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_A = stat("rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig_q1_A.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_A = stat("rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig_q1_A.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
-    <variable name="ParticleKeffneutron_B" language="python">
+    <variable name="ParticleKeffNeutron_B" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron_B = stat("rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig_q1_B.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron_B = stat("rad_cube_2grp_hom_zerobc_anisodiff_struct_hex_eig_q1_B.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Check ParticleKeffneutron_A to ParticleKeffneutron_B convergence with regard to the fine mesh BEANS solution" language="python">
+    <test name="Check ParticleKeffNeutron_A to ParticleKeffNeutron_B convergence with regard to the fine mesh BEANS solution" language="python">
 from math import log
 
 reference_keff = 0.867898542753
 
-keff_one = ParticleKeffneutron_A
-keff_two = ParticleKeffneutron_B
+keff_one = ParticleKeffNeutron_A
+keff_two = ParticleKeffNeutron_B
 
 mesh_one = 10
 mesh_two = 20
@@ -55,20 +55,20 @@ print 'Relative error of convergence_ratio to expected 2nd order:',relative_erro
 
 assert relative_error &lt; 2.4e-03
     </test>
-    <test name="Check ParticleKeffneutron_B against Nodal method reference with tolerance 2.0e-4" language="python">
+    <test name="Check ParticleKeffNeutron_B against Nodal method reference with tolerance 2.0e-4" language="python">
 reference_keff = 0.8679026
-print 'Relative error compared to reference ',abs((ParticleKeffneutron_B - reference_keff)/reference_keff)
-assert abs((ParticleKeffneutron_B - reference_keff)/reference_keff) &lt; 2.0e-4
+print 'Relative error compared to reference ',abs((ParticleKeffNeutron_B - reference_keff)/reference_keff)
+assert abs((ParticleKeffNeutron_B - reference_keff)/reference_keff) &lt; 2.0e-4
     </test>
-    <test name="Check ParticleKeffneutron_B against BEANS fine mesh reference with tolerance 2.0e-04" language="python">
+    <test name="Check ParticleKeffNeutron_B against BEANS fine mesh reference with tolerance 2.0e-04" language="python">
 reference_keff = 0.867898542753
-print 'Relative error compared to reference ',abs((ParticleKeffneutron_B - reference_keff)/reference_keff)
-assert abs((ParticleKeffneutron_B - reference_keff)/reference_keff) &lt; 2.0e-04
+print 'Relative error compared to reference ',abs((ParticleKeffNeutron_B - reference_keff)/reference_keff)
+assert abs((ParticleKeffNeutron_B - reference_keff)/reference_keff) &lt; 2.0e-04
     </test>
-    <test name="Check ParticleKeffneutron_B against BEANS same mesh reference with tolerance 1.0e-06" language="python">
+    <test name="Check ParticleKeffNeutron_B against BEANS same mesh reference with tolerance 1.0e-06" language="python">
 reference_keff = 0.867746918288
-print 'Relative error compared to reference ',abs((ParticleKeffneutron_B - reference_keff)/reference_keff)
-assert abs((ParticleKeffneutron_B - reference_keff)/reference_keff) &lt; 1.0e-06
+print 'Relative error compared to reference ',abs((ParticleKeffNeutron_B - reference_keff)/reference_keff)
+assert abs((ParticleKeffNeutron_B - reference_keff)/reference_keff) &lt; 1.0e-06
     </test>
   </pass_tests>
   <warn_tests>

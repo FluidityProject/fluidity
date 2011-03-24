@@ -18,7 +18,7 @@
       <a:documentation>Particle type neutron</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>neutron</value>
+        <value>Neutron</value>
       </attribute>
       <ref name="equation_type_neutron"/>
       <ref name="particle_type_generic"/>
@@ -32,7 +32,7 @@
       <a:documentation>Particle type photon</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>photon</value>
+        <value>Photon</value>
       </attribute>
       <ref name="equation_type_photon"/>
       <ref name="particle_type_generic"/>

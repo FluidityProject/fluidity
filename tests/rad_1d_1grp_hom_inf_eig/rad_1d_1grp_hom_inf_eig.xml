@@ -12,16 +12,16 @@
     <!-- Radiation diffusion eigenvalue problem with one material, one energy group with all reflective BC using a 1d geometry compared to analytic solution for the keff-->
   </problem_definition>
   <variables>
-    <variable name="ParticleKeffneutron" language="python">
+    <variable name="ParticleKeffNeutron" language="python">
 from fluidity_tools import stat_parser as stat
-ParticleKeffneutron = stat("rad_1d_1grp_hom_inf_eig.stat")["ParticleKeffneutron"]["Value"][0]
+ParticleKeffNeutron = stat("rad_1d_1grp_hom_inf_eig.stat")["ParticleKeffNeutron"]["Value"][0]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Check ParticleKeffneutron against analytic with tolerance 1.0e-06" language="python">
+    <test name="Check ParticleKeffNeutron against analytic with tolerance 1.0e-06" language="python">
 analytic_keff = 2.290323
-print 'Relative error compared to analytic: ',abs((ParticleKeffneutron - analytic_keff)/analytic_keff)
-assert abs((ParticleKeffneutron - analytic_keff)/analytic_keff) &lt; 1.0e-06
+print 'Relative error compared to analytic: ',abs((ParticleKeffNeutron - analytic_keff)/analytic_keff)
+assert abs((ParticleKeffNeutron - analytic_keff)/analytic_keff) &lt; 1.0e-06
     </test>
   </pass_tests>
   <warn_tests>
