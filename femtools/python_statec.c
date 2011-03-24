@@ -88,8 +88,9 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #ifdef HAVE_PYTHON
   // Run a python command from Fortran
   char *c = fix_string(s,*slen);
-  char t[8+*slen];
-  sprintf(t,"%s\n",c);
+  int tlen=8+*slen;
+  char t[tlen];
+  snprintf(t, tlen, "%s\n",c);
   *stat = PyRun_SimpleString(t);
   if(*stat != 0){
     PyErr_Print();
@@ -139,12 +140,13 @@ void python_add_statec_(char *name,int *len){
 #ifdef HAVE_PYTHON
   // Add a new state object to the Python environment
   char *n = fix_string(name,*len);
-  char t[20+*len+*len];
+  int tlen=23+2*(*len);
+  char t[tlen];
   // 'state' in Python will always be the last state added while the 'states' dictionary 
   // includes all added states
-  sprintf(t,"states[\"%s\"] = State(\"%s\")",n,n);
+  snprintf(t, tlen, "states[\"%s\"] = State(\"%s\")",n,n);
   PyRun_SimpleString(t);
-  sprintf(t,"state = states[\"%s\"]",n);
+  snprintf(t, tlen, "state = states[\"%s\"]",n);
   PyRun_SimpleString(t);
 
   free(n); 
@@ -178,12 +180,13 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  char t[150+*slen+*mesh_name_len];
-  sprintf(t,"field = ScalarField(n,s,ft,op); states['%s'].scalar_fields['%s'] = field",n,namec);
+  int tlen=150+*slen+*mesh_name_len;
+  char t[tlen];
+  snprintf(t, tlen, "field = ScalarField(n,s,ft,op); states['%s'].scalar_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
-  sprintf(t,"field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -229,12 +232,13 @@ void python_add_vector_(int *num_dim, int *s,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  char t[150+*slen+*mesh_name_len];
-  sprintf(t,"field = VectorField(n,vector,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
+  int tlen=150+*slen+*mesh_name_len;
+  char t[tlen];
+  snprintf(t, tlen, "field = VectorField(n,vector,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
-  sprintf(t,"field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -284,12 +288,13 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  char t[150+*slen+*mesh_name_len];
-  sprintf(t,"field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  int tlen=150+*slen+*mesh_name_len;
+  char t[tlen];
+  snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);  
 
   // Set the mesh for this field
-  sprintf(t,"field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -334,11 +339,12 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state_name,*state_name_len);
-  char t[150+*state_name_len];
+  int tlen=150 + *state_name_len;
+  char t[tlen];
 
-  sprintf(t,"states[\"%s\"].meshes[\"%s\"] = Mesh(mesh_array,%d,%d,%d,n,op,region_ids)",n,namec,*elements,*nodes,*continuity);
+  snprintf(t, tlen, "states[\"%s\"].meshes[\"%s\"] = Mesh(mesh_array,%d,%d,%d,n,op,region_ids)",n,namec,*elements,*nodes,*continuity);
   PyRun_SimpleString(t);
-  sprintf(t,"m = states[\"%s\"].meshes[\"%s\"]",n,namec);
+  snprintf(t, tlen, "m = states[\"%s\"].meshes[\"%s\"]",n,namec);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -361,6 +367,7 @@ void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
   // Fix the Fortran strings for C and Python
   char *meshc = fix_string(mesh_name,*mesh_name_len);
   char *statec = fix_string(state_name,*state_name_len);
+  int tlen=80+*mesh_name_len+*state_name_len;
   char t[80+*mesh_name_len+*state_name_len];
 
   // Set n
@@ -370,7 +377,7 @@ void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
 
   // Add the element to the interpreter and make the element variable available
   // so the other attributes in Fortran can be passed in
-  sprintf(t,"element = Element(%d,%d,%d,%d,n_array,dn_array,%d,%d,%d,%d); states['%s'].meshes['%s'].shape = element",
+  snprintf(t, tlen, "element = Element(%d,%d,%d,%d,n_array,dn_array,%d,%d,%d,%d); states['%s'].meshes['%s'].shape = element",
     *dim,*loc,*ngi,*degree,
     *size_spoly_x,*size_spoly_y,*size_dspoly_x,*size_dspoly_y,
     statec, meshc
@@ -394,10 +401,10 @@ void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi,
 
   char c[150];
   if(*is_surfacequadr == 1)
-    sprintf(c,"element.set_surface_quadrature(Quadrature(weight,locations,%d,%d,%d,%d))",
+    snprintf(c, 150, "element.set_surface_quadrature(Quadrature(weight,locations,%d,%d,%d,%d))",
       *dim,*degree,*loc,*ngi);
   else if(*is_surfacequadr == 0)
-    sprintf(c,"element.set_quadrature(Quadrature(weight,locations,%d,%d,%d,%d))",
+    snprintf(c, 150, "element.set_quadrature(Quadrature(weight,locations,%d,%d,%d,%d))",
       *dim,*degree,*loc,*ngi);
   PyRun_SimpleString(c);
 
@@ -415,9 +422,9 @@ void python_add_polynomial_(double *coefs,int *size,int *degree, int *x,int *y, 
   // Set the polynomial to the element
   char c[120];
   if(*spoly == 1)
-    sprintf(c, "element.set_polynomial_s(Polynomial(coefs,%d),%d,%d)",*degree,*x,*y);
+    snprintf(c, 120, "element.set_polynomial_s(Polynomial(coefs,%d),%d,%d)",*degree,*x,*y);
   else if(*spoly == 0)
-    sprintf(c, "element.set_polynomial_ds(Polynomial(coefs,%d),%d,%d)",*degree,*x,*y);
+    snprintf(c, 120, "element.set_polynomial_ds(Polynomial(coefs,%d),%d,%d)",*degree,*x,*y);
   PyRun_SimpleString(c);
   PyRun_SimpleString("del coefs");
 //   Py_DECREF(arr); 
@@ -459,7 +466,7 @@ void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name)
   PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
-  sprintf(c,"%s = numpy.transpose(%s,(1,0))",name,name);
+  snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
   PyRun_SimpleString(c);
   Py_DECREF(a);
 #endif
@@ -476,7 +483,7 @@ void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez,
   PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
-  sprintf(c,"%s = numpy.transpose(%s,(2,1,0))",name,name);
+  snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);
   PyRun_SimpleString(c);
   Py_DECREF(a);
 #endif
@@ -506,7 +513,7 @@ void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
   PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
-  sprintf(c,"%s = numpy.transpose(%s,(1,0))",name,name);
+  snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
   PyRun_SimpleString(c);
   Py_DECREF(a);
 #endif
@@ -523,7 +530,7 @@ void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, c
   PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
-  sprintf(c,"%s = numpy.transpose(%s,(2,1,0))",name,name);
+  snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);
   PyRun_SimpleString(c);
   Py_DECREF(a);
 #endif
