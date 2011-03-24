@@ -50,10 +50,10 @@ module hadapt_extrude_radially
     real, dimension(:,:), allocatable :: tmp_pos_vector
     real, dimension(:), allocatable :: depth_vector
 
-    logical :: have_min_depth=.false.
+    logical :: have_min_depth
     real :: min_depth
 
-    logical :: sigma_layers=.false.
+    logical :: sigma_layers
     integer :: number_sigma_layers
 
     integer :: n_regions, r, rs
@@ -125,6 +125,7 @@ module hadapt_extrude_radially
         end if
       end if
       
+      have_min_depth=.false.
       if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
                                          ']/bottom_depth/from_map/min_depth')) then
         have_min_depth=.true.
@@ -132,6 +133,7 @@ module hadapt_extrude_radially
                                            ']/bottom_depth/from_map/min_depth',min_depth)
       end if
       
+      sigma_layers=.false.
       call get_option(trim(option_path)//&
                       '/from_mesh/extrude/regions['//int2str(r)//&
                       ']/sizing_function/constant', &
