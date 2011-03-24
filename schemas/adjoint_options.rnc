@@ -27,7 +27,7 @@ adjoint_options =
             ##  dt, the current size of the timestep
             ##  states, which represents the states through time, and may be accessed like
             ##   states[0]["MaterialPhase"].vector_fields["Coordinate"], or
-            ##   states[n]["MyOtherMaterialPhase"].scalar_fields["Pressure"], etc.
+            ##   states[n-1]["MyOtherMaterialPhase"].scalar_fields["Pressure"], etc.
             ##  states will only contain those fields that have been specified in the functional_dependencies element.
             ## 
             ##  This code must compute a real number J, which is the value of the functional associated with this particular
@@ -53,6 +53,12 @@ adjoint_options =
             ##  This applies for a steady-state simulation; for a time-dependent simulation
             ##  one should either evaluate the fields at a particular time, or integrate
             ##  through time.
+            ##  <span weight="bold">
+            ##  If you intend to use automatic differentiation, and want to use
+            ##  primitives such as sin, cos, exp, etc., you must use those
+            ##  found in the uncertainties.unumpy package, not those
+            ##  found in the numpy or math packages.
+            ##  </span>
             element algorithm {
                attribute name { "functional_value" },
                python_code
