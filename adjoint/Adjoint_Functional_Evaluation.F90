@@ -61,7 +61,7 @@ module adjoint_functional_evaluation
     adj_scalar_f, intent(in), value :: end_time
     type(adj_vector), intent(out) :: output
 
-    character(len=PYTHON_FUNC_LEN) :: code_deriv, code_func
+    character(len=PYTHON_FUNC_LEN) :: code_deriv, code_func, check_uncertainties
     logical :: has_deriv, has_func
     integer :: i
     integer :: s_idx
@@ -147,7 +147,7 @@ module adjoint_functional_evaluation
     path = adjoint_field_path(path)
     s_idx = scan(trim(variable_name_f), ":")
     material_phase_name = variable_name_f(1:s_idx - 1)
-    field_name = "Adjoint" // variable_name_f(s_idx + 2:len_trim(variable_name_f))
+    field_name = variable_name_f(s_idx + 2:len_trim(variable_name_f))
 
     ! Now we need to find out if we're differentiating with respect to a scalar, vector, or tensor field.
     is_scalar = .false.
@@ -216,17 +216,38 @@ module adjoint_functional_evaluation
     call python_run_string("n = " // trim(buffer))
     call python_run_string("timestep = " // trim(buffer))
 
-    ! OK! We're ready for the user's code:
-    if (has_func) then
-      call python_run_string(trim(code_func))
-      J = python_fetch_real("J")
-      call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
-    end if
 
+    ! OK! We're ready for the user's code:
     if (has_deriv) then
       call python_run_string(trim(code_deriv))
-    else
-      FLAbort("AD approach not quite implemented yet")
+    end if
+
+    if (has_func) then
+      if (has_deriv) then ! If we also have the derivative, there's no need to sweat about applying AD
+        call python_run_string(trim(code_func))
+        J = python_fetch_real("J")
+        call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
+      else
+        check_uncertainties = "try: " // achar(10) // &
+                            & "  import uncertainties" // achar(10) // &
+                            & "except ImportError: " // achar(10) // &
+                            & "  print 'In order to use automatic differentiation, you must install the python-uncertainties package.'" // achar(10) // &
+                            & "  import sys; sys.exit(1)"
+        call python_run_string(check_uncertainties)
+        call python_run_string("import numpy")
+        call python_run_string("import uncertainties")
+        call python_run_string("from uncertainties import unumpy")
+        ! Backup u.val
+        call python_run_string("tmp_uval = states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
+        ! Replace u.val with AD-ified object
+        call python_run_string("states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
+        call python_run_string(trim(code_func))
+        call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] = J.derivatives[states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
+        call python_run_string("J = J.nominal_value")
+
+        J = python_fetch_real("J")
+        call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
+      end if
     end if
 
     if (max_timestep >= 0) then
@@ -234,6 +255,7 @@ module adjoint_functional_evaluation
       deallocate(states)
     endif
 
+    call python_reset
     call deallocate(derivative_state)
 
   end subroutine libadjoint_functional_derivative
