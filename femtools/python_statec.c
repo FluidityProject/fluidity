@@ -367,8 +367,8 @@ void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
   // Fix the Fortran strings for C and Python
   char *meshc = fix_string(mesh_name,*mesh_name_len);
   char *statec = fix_string(state_name,*state_name_len);
-  int tlen=80+*mesh_name_len+*state_name_len;
-  char t[80+*mesh_name_len+*state_name_len];
+  int tlen=400+*mesh_name_len+*state_name_len;
+  char t[tlen];
 
   // Set n
   python_add_array_double_2d(n,nx,ny,"n_array");
