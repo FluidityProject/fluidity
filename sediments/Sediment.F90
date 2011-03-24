@@ -121,8 +121,6 @@ subroutine set_sediment_reentrainment(state)
 
     ewrite(1,*) "In set_sediment_bc"
 
-    bedShearStress => extract_vector_field(state, "BedShearStress")
-
     call get_option("/timestepping/timestep", dt)
 
     call get_option("/material_phase[0]/sediment/scalar_field::SedimentTemplate/porosity", porosity, default=0.3)
@@ -146,6 +144,7 @@ subroutine set_sediment_reentrainment(state)
         bedload => extract_scalar_field(state,"SedimentFlux"//trim(class_name))
 
         if (.not. alloced) then
+            bedShearStress => extract_vector_field(state, "BedShearStress")
             call get_boundary_condition(SedConc, sediment_boundary_condition_ids(i), &
                         surface_mesh=bottom_mesh,surface_element_list=surface_element_list)         
             !call create_surface_mesh(bottom_mesh, surface_nodes, bedShearStress%mesh, surface_element_list, 'ErosionBed')

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sediment_deposition</name>
+  <owner userid="jhill1"/>
+  <tags>flml sediment</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity sediment_deposition.flml</command_line>
+    <!-- Check that the sediment deposition rate is correct -->
+</problem_definition>
+  <variables>   
+    <variable name="sediment_flux_1_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_1_end = s["Fluid"]["SedimentFlux1mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_2_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_2_end = s["Fluid"]["SedimentFlux2mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_3_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_3_end = s["Fluid"]["SedimentFlux3mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_4_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_4_end = s["Fluid"]["SedimentFlux4mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_5_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_5_end = s["Fluid"]["SedimentFlux5mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_6_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_6_end = s["Fluid"]["SedimentFlux6mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_7_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_7_end = s["Fluid"]["SedimentFlux7mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_8_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_8_end = s["Fluid"]["SedimentFlux8mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_9_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_9_end = s["Fluid"]["SedimentFlux9mm"]["max"][-1]
+    </variable>
+    <variable name="sediment_flux_10_end" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Sediment_Deposition.stat")
+sediment_flux_10_end = s["Fluid"]["SedimentFlux10mm"]["max"][-1]
+    </variable>
+
+  </variables>
+  <pass_tests>
+      <!-- In a 10 second run, with 1% sediment concentration, 1mm settling velocity should give us 
+           0.0001m of sediment; 2mm will be 0.0002mm, etc
+           One small complication is that the diagnostic algorithm is called at time zero, add another timestep
+             Settling Vel            |    Final deposition
+                 1mm                 |    0.00011m
+                 2mm                 |    0.00022m                 
+                 3mm                 |    0.00033m
+                 4mm                 |    0.00044m                 
+                 5mm                 |    0.00055m
+                 6mm                 |    0.00066m                 
+                 7mm                 |    0.00077m
+                 8mm                 |    0.00088m
+                 9mm                 |    0.00099m
+                 10mm                |    0.0011m
+           -->
+    <test name="1mm sediment is deposited" language="python">
+assert(0.000109 &lt; sediment_flux_1_end &lt; 0.000111)
+    </test>
+    <test name="2mm sediment is deposited" language="python">
+assert(0.000219 &lt; sediment_flux_2_end &lt; 0.000221)
+    </test>
+    <test name="3mm sediment is deposited" language="python">
+assert(0.000329 &lt; sediment_flux_3_end &lt; 0.000331)
+    </test>
+    <test name="4mm sediment is deposited" language="python">
+assert(0.000439 &lt; sediment_flux_4_end &lt; 0.000441)
+    </test>
+    <test name="5mm sediment is deposited" language="python">
+assert(0.000549 &lt; sediment_flux_5_end &lt; 0.000551)
+    </test>
+    <test name="6mm sediment is deposited" language="python">
+assert(0.000659 &lt; sediment_flux_6_end &lt; 0.000661)
+    </test>
+    <test name="7mm sediment is deposited" language="python">
+assert(0.000769 &lt; sediment_flux_7_end &lt; 0.000771)
+    </test>
+    <test name="8mm sediment is deposited" language="python">
+assert(0.000879 &lt; sediment_flux_8_end &lt; 0.000881)
+    </test>
+    <test name="9mm sediment is deposited" language="python">
+assert(0.000989 &lt; sediment_flux_9_end &lt; 0.000991)
+    </test>
+    <test name="10mm sediment is deposited" language="python">
+assert(0.00109 &lt; sediment_flux_10_end &lt; 0.00111)
+    </test>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

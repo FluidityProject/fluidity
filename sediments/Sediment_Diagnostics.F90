@@ -126,12 +126,12 @@ contains
        ! erosion flux out of the SurfaceFlux and store in erosion
        call allocate(erosion(i), surface_mesh, "ErosionAmount")
        id = get_sediment_bc_id(i)
+       call zero(erosion(i))
        if (id .eq. -1) then
            ! there isn't one...move along
            cycle
        end if
        allocate(values(erosion(i)%mesh%shape%loc))
-       call zero(erosion(i))
        fluxUp => extract_surface_field(sediment_field(i)%ptr, id, "value")
        call get_boundary_condition(sediment_field(i)%ptr, id,surface_element_list=surface_element_list)
        do ele=1,ele_count(fluxUp)
