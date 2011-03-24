@@ -75,11 +75,11 @@ subroutine test_radiation_materials_create
    number_of_radmats_expected           = (/10/)
    number_of_radmats_base_expected      = (/1,11/)
    number_of_scatter_moments_expected   = (/2/)
-   particle_radmat_option_path_expected = '/radiation/particle_type[0]'
+   particle_radmat_option_path_expected = '/embedded_models/radiation/particle_type[0]'
    allocate(dataset_radmats_option_path_expected(total_number_dataset_radmats_expected))
    allocate(physical_radmats_option_path_expected(total_number_physical_radmats_expected))
-   dataset_radmats_option_path_expected  = (/'/radiation/particle_type[0]/material_data_set[0]'/)
-   physical_radmats_option_path_expected = (/'/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'/)
+   dataset_radmats_option_path_expected  = (/'/embedded_models/radiation/particle_type[0]/material_data_set[0]'/)
+   physical_radmats_option_path_expected = (/'/embedded_models/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'/)
    call test_particle_radmat_create_from_options()
    call report_test("[test_particle_radmat_create_from_options for filename "//trim(filename)//"]", &
                     has_failed, &
@@ -110,7 +110,7 @@ contains
 
       ! create the data type from the options
       call create(particle_radmat_create, &
-                  particle_option_path = "/radiation/particle_type[0]", &
+                  particle_option_path = "/embedded_models/radiation/particle_type[0]", &
                   particle_name = "neutron")
       
       error_message = 'no error'

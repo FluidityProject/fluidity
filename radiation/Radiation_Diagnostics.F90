@@ -58,12 +58,12 @@ contains
       character(len=OPTION_PATH_LEN) :: particle_name   
       character(len=OPTION_PATH_LEN) :: equation_type
 
-      have_radiation: if (have_option('/radiation')) then
+      have_radiation: if (have_option('/embedded_models/radiation')) then
       
-         particle_loop: do p = 1,option_count('/radiation/particle_type')
+         particle_loop: do p = 1,option_count('/embedded_models/radiation/particle_type')
          
             ! set the particle path
-            particle_option_path = '/radiation/particle_type['//int2str(p-1)//']'
+            particle_option_path = '/embedded_models/radiation/particle_type['//int2str(p-1)//']'
          
             call get_option(trim(particle_option_path)//'/equation/name',equation_type)  
       

@@ -107,8 +107,8 @@ contains
       call zero(dataset_radmat_format_radmats)
       
       ! set the option paths 
-      dataset_radmat_format_radmats%option_path = '/radiation/particle_type[0]/material_data_set[0]'
-      dataset_radmat_format_radmats%physical_radmats(1)%option_path =  '/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'
+      dataset_radmat_format_radmats%option_path = '/embedded_models/radiation/particle_type[0]/material_data_set[0]'
+      dataset_radmat_format_radmats%physical_radmats(1)%option_path =  '/embedded_models/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'
       
       call allocate(delayed_lambda_spectrum_format_radmats, &
                     particle_radmat_size%number_of_delayed_groups, &

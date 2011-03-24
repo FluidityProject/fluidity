@@ -12,6 +12,7 @@ include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
+include "embedded_models.rnc"
 include "radiation.rnc"
 
 start =
@@ -1900,7 +1901,6 @@ start =
          biology?,
          forcing?,
          reduced_model?,
-         radiation?,
          ## Porous Media
          element porous_media {
             ## Specify scalar field Porosity
@@ -2046,7 +2046,8 @@ start =
                       }
                  }
               )
-         }?
+         }?,
+         embedded_models?
       }
    )      
 

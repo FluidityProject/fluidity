@@ -397,7 +397,7 @@ contains
     end if
 
     ! Initialise radiation specific data types and register radiation diagnostics
-    if(have_option("/radiation")) then
+    if(have_option("/embedded_models/radiation")) then
         call radiation_initialise(state(1), &
                                   particles)
     end if
@@ -445,7 +445,7 @@ contains
 
 
     ! radiation eigenvalue run solve
-    if(have_option("/radiation")) then
+    if(have_option("/embedded_models/radiation")) then
        call radiation_solve(state(1), &
                             particles, &
                             invoke_eigenvalue_solve=.true.)
@@ -851,7 +851,7 @@ contains
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
        ! radiation time run solve - which may be coupled to fluids via diagnostic fields
-       if( have_option("/radiation") ) then
+       if( have_option("/embedded_models/radiation") ) then
           call radiation_solve(state(1), &
                                particles, &
                                invoke_eigenvalue_solve=.false.)
@@ -958,7 +958,7 @@ contains
     end if
 
     ! radiation cleanup
-    if( have_option("/radiation") ) then
+    if( have_option("/embedded_models/radiation") ) then
        call radiation_cleanup(particles)
     end if
 

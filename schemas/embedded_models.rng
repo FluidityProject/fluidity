@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- The embedded models -->
+  <define name="embedded_models">
+    <element name="embedded_models">
+      <a:documentation>Fluidity embedded models</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <ref name="radiation"/>
+      </optional>
+    </element>
+  </define>
+</grammar>

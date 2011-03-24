@@ -52,12 +52,12 @@ contains
       integer :: p 
       character(len=OPTION_PATH_LEN) :: particle_option_path   
       
-      have_radiation: if (have_option('/radiation')) then
+      have_radiation: if (have_option('/embedded_models/radiation')) then
                            
-         particle_type_loop: do p = 1,option_count('/radiation/particle_type')
+         particle_type_loop: do p = 1,option_count('/embedded_models/radiation/particle_type')
     
             ! - 1 needed as options count from 0
-            particle_option_path = '/radiation/particle_type['//int2str(p - 1)//']' 
+            particle_option_path = '/embedded_models/radiation/particle_type['//int2str(p - 1)//']' 
          
             call radiation_check_options_particle(trim(particle_option_path))
                            

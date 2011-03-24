@@ -13,6 +13,7 @@
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
+  <include href="embedded_models.rng"/>
   <include href="radiation.rng"/>
   <start>
     <element name="fluidity_options">
@@ -2605,9 +2606,6 @@ it will use a constant emissions factor</a:documentation>
         <ref name="reduced_model"/>
       </optional>
       <optional>
-        <ref name="radiation"/>
-      </optional>
-      <optional>
         <element name="porous_media">
           <a:documentation>Porous Media</a:documentation>
           <element name="scalar_field">
@@ -2826,6 +2824,9 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
             </element>
           </choice>
         </element>
+      </optional>
+      <optional>
+        <ref name="embedded_models"/>
       </optional>
     </element>
   </start>

@@ -71,9 +71,9 @@ contains
       call zero(particle_radmat)
       
       ! set the option paths
-      particle_radmat%option_path = '/radiation/particle_type[0]'
-      particle_radmat%dataset_radmats(1)%option_path = '/radiation/particle_type[0]/material_data_set[0]'
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%option_path =  '/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'
+      particle_radmat%option_path = '/embedded_models/radiation/particle_type[0]'
+      particle_radmat%dataset_radmats(1)%option_path = '/embedded_models/radiation/particle_type[0]/material_data_set[0]'
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%option_path =  '/embedded_models/radiation/particle_type[0]/material_data_set[0]/from_file/physical_material[0]'
 
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%velocity = (/0.0,0.0/) 
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%velocity = (/0.0,0.0/) 

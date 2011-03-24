@@ -83,7 +83,7 @@ contains
 
       ! intiialise the read in data type from the options
       call create(particle_radmat_readin, &
-                  particle_option_path = "/radiation/particle_type[0]", &
+                  particle_option_path = "/embedded_models/radiation/particle_type[0]", &
                   particle_name = "neutron")
                                                       
       call particle_radmat_read(particle_radmat_readin)         
@@ -123,7 +123,7 @@ contains
 
       ! intiialise the read in data type from the options
       call create(particle_radmat_readin, &
-                  particle_option_path = "/radiation/particle_type[0]", &
+                  particle_option_path = "/embedded_models/radiation/particle_type[0]", &
                   particle_name = "neutron")
                                                       
       call read_in_dataset_radmat(particle_radmat_readin%dataset_radmats(1), &

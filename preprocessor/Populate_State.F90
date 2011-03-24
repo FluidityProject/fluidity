@@ -1152,7 +1152,7 @@ contains
     end if
     
     ! insert radiation fields into states(1)
-    if (have_option('/radiation')) then
+    if (have_option('/embedded_models/radiation')) then
        call allocate_and_insert_radiation_fields(states(1))
     end if
 
@@ -1382,14 +1382,14 @@ contains
       ewrite(1,*) 'Allocate and insert radiation fields'
             
       ! deduce the number of particle types present
-      number_of_particle_types = option_count('/radiation/particle_type')
+      number_of_particle_types = option_count('/embedded_models/radiation/particle_type')
       
       ewrite(1,*) 'Number of particle types',number_of_particle_types
       
       particle_type_loop: do p = 1, number_of_particle_types
          
          !  the particle type options path, - 1 needed as options count from 0
-         particle_type_path = '/radiation/particle_type['//int2str(p - 1)//']' 
+         particle_type_path = '/embedded_models/radiation/particle_type['//int2str(p - 1)//']' 
 
          ! get the particle type name
          call get_option(trim(particle_type_path)//'/name',particle_type_name)

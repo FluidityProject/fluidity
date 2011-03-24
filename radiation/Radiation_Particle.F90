@@ -108,12 +108,12 @@ contains
       
       ewrite(1,*) 'Create each particle type'
                      
-      allocate(particles(option_count('/radiation/particle_type')))
+      allocate(particles(option_count('/embedded_models/radiation/particle_type')))
             
-      particle_type_loop: do p = 1,option_count('/radiation/particle_type')
+      particle_type_loop: do p = 1,option_count('/embedded_models/radiation/particle_type')
              
          ! set the particle option path
-         particles(p)%option_path = '/radiation/particle_type['//int2str(p - 1)//']'
+         particles(p)%option_path = '/embedded_models/radiation/particle_type['//int2str(p - 1)//']'
          
          ! set the particle name
          call get_option(trim(particles(p)%option_path)//'/name',particles(p)%name)
