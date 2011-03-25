@@ -214,17 +214,17 @@ contains
          error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_physical_radmats) .neqv. allocated(particle_radmat_size_2%number_of_physical_radmats'
          return
       end if
-      if (allocated(particle_radmat_size_1%number_of_radmats) .neqv. allocated(particle_radmat_size_2%number_of_radmats)) then           
+      if (allocated(particle_radmat_size_1%number_of_radmats) .neqv. allocated(particle_radmat_size_2%number_of_radmats)) then
          equals = .false.
          error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_radmats) .neqv. allocated(particle_radmat_size_2%number_of_radmats)'
          return
       end if
-      if (allocated(particle_radmat_size_1%number_of_radmats_base) .neqv. allocated(particle_radmat_size_2%number_of_radmats_base)) then      
+      if (allocated(particle_radmat_size_1%number_of_radmats_base) .neqv. allocated(particle_radmat_size_2%number_of_radmats_base)) then
          equals = .false.
          error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_radmats_base) .neqv. allocated(particle_radmat_size_2%number_of_radmats_base)'
          return
       end if
-      if (allocated(particle_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(particle_radmat_size_2%number_of_scatter_moments)) then   
+      if (allocated(particle_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(particle_radmat_size_2%number_of_scatter_moments)) then
          equals = .false.
          error_message_particle_radmat_size_equals = 'allocated(particle_radmat_size_1%number_of_scatter_moments)  .neqv. allocated(particle_radmat_size_2%number_of_scatter_moments)'
          return
@@ -232,7 +232,7 @@ contains
      
       ! check the size
       if (allocated(particle_radmat_size_1%number_of_physical_radmats) .and. &
-         &(size(particle_radmat_size_1%number_of_physical_radmats) /= size(particle_radmat_size_2%number_of_physical_radmats))) then  
+         &(size(particle_radmat_size_1%number_of_physical_radmats) /= size(particle_radmat_size_2%number_of_physical_radmats))) then
          equals = .false.
          error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_physical_radmats) /= size(particle_radmat_size_2%number_of_physical_radmats)'
          return 
@@ -253,7 +253,7 @@ contains
       end if   
 
       if (allocated(particle_radmat_size_1%number_of_scatter_moments)   .and. &
-         &(size(particle_radmat_size_1%number_of_scatter_moments) /= size(particle_radmat_size_2%number_of_scatter_moments))) then  
+         &(size(particle_radmat_size_1%number_of_scatter_moments) /= size(particle_radmat_size_2%number_of_scatter_moments))) then
          equals = .false.
          error_message_particle_radmat_size_equals = 'size(particle_radmat_size_1%number_of_scatter_moments) /= size(particle_radmat_size_2%number_of_scatter_moments)'
          return 
@@ -262,7 +262,7 @@ contains
       ! check the values
       if (allocated(particle_radmat_size_1%number_of_physical_radmats) .and. particle_radmat_size_1%size_set) then
          loop1: do i = 1,size(particle_radmat_size_1%number_of_physical_radmats)
-            if (particle_radmat_size_1%number_of_physical_radmats(i) /= particle_radmat_size_2%number_of_physical_radmats(i))  then 
+            if (particle_radmat_size_1%number_of_physical_radmats(i) /= particle_radmat_size_2%number_of_physical_radmats(i))  then
                equals = .false.
                error_message_particle_radmat_size_equals = 'particle_radmat_size_1%number_of_physical_radmats('//int2str(i)//') /= particle_radmat_size_2%number_of_physical_radmats('//int2str(i)//')'
                return 
@@ -348,9 +348,9 @@ contains
       
       ! check the size
       if (allocated(delayed_lambda_spectrum_1%lambda) .and. &
-         &(size(delayed_lambda_spectrum_1%lambda) /= size(delayed_lambda_spectrum_2%lambda))) then  
+         &(size(delayed_lambda_spectrum_1%lambda) /= size(delayed_lambda_spectrum_2%lambda))) then
          equals = .false.  
-         error_message_delayed_lambda_spectrum_equals = 'size(delayed_lambda_spectrum_1%lambda) /= size(delayed_lambda_spectrum_2%lambda)'       
+         error_message_delayed_lambda_spectrum_equals = 'size(delayed_lambda_spectrum_1%lambda) /= size(delayed_lambda_spectrum_2%lambda)'
          return
       end if       
          
@@ -674,7 +674,7 @@ contains
          error_message_radmat_equals = 'allocated(radmat_1%energy_released_per_fission) .neqv. allocated(radmat_2%energy_released_per_fission)'
          return      
       end if       
-      if (allocated(radmat_1%particle_released_per_fission) .neqv. allocated(radmat_2%particle_released_per_fission)) then           
+      if (allocated(radmat_1%particle_released_per_fission) .neqv. allocated(radmat_2%particle_released_per_fission)) then
          equals = .false.
          error_message_radmat_equals = 'allocated(radmat_1%particle_released_per_fission) .neqv. allocated(radmat_2%particle_released_per_fission)'
          return      
@@ -787,7 +787,7 @@ contains
          return            
       end if       
       end do mom_loop          
-      if (allocated(radmat_1%removal) .and. radmat_1%removal_set .and. (.not. fequals(radmat_1%removal, radmat_2%removal))) then          
+      if (allocated(radmat_1%removal) .and. radmat_1%removal_set .and. (.not. fequals(radmat_1%removal, radmat_2%removal))) then
          equals = .false.
          error_message_radmat_equals = 'radmat_1%removal /= radmat_2%removal'
          return
@@ -822,17 +822,17 @@ contains
          error_message_radmat_equals = 'radmat_1%diffusion(:,3) /= radmat_2%diffusion(:,3)'
          return
       end if       
-      if (allocated(radmat_1%fission) .and. radmat_1%fission_set .and. (.not. fequals(radmat_1%fission, radmat_2%fission))) then          
+      if (allocated(radmat_1%fission) .and. radmat_1%fission_set .and. (.not. fequals(radmat_1%fission, radmat_2%fission))) then
          equals = .false.
          error_message_radmat_equals = 'radmat_1%fission /= radmat_2%fission'
          return
       end if        
-      if (allocated(radmat_1%production) .and. radmat_1%production_set .and. (.not. fequals(radmat_1%production, radmat_2%production))) then       
+      if (allocated(radmat_1%production) .and. radmat_1%production_set .and. (.not. fequals(radmat_1%production, radmat_2%production))) then
          equals = .false.
          error_message_radmat_equals = 'radmat_1%production /= radmat_2%production'
          return
       end if       
-      if (allocated(radmat_1%power) .and. radmat_1%power_set .and. (.not. fequals(radmat_1%power, radmat_2%power))) then            
+      if (allocated(radmat_1%power) .and. radmat_1%power_set .and. (.not. fequals(radmat_1%power, radmat_2%power))) then
          equals = .false.
          error_message_radmat_equals = 'radmat_1%power /= radmat_2%power'
          return      
@@ -852,7 +852,7 @@ contains
          error_message_radmat_equals = 'radmat_1%prompt_spectrum /= radmat_2%prompt_spectrum'
          return
       end if       
-      if (allocated(radmat_1%velocity) .and. radmat_1%velocity_set .and. (.not. fequals(radmat_1%velocity, radmat_2%velocity))) then         
+      if (allocated(radmat_1%velocity) .and. radmat_1%velocity_set .and. (.not. fequals(radmat_1%velocity, radmat_2%velocity))) then
          equals = .false.
          error_message_radmat_equals = 'radmat_1%velocity /= radmat_2%velocity'
          return
