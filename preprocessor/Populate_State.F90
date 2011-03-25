@@ -1469,7 +1469,7 @@ contains
                      angular_moment_set_path = trim(angular_parity_path)//'/angular_moment_set['//int2str(m_set - 1)//']'
             
                      ! get the number_of_angular_moments within this set
-                     call get_option(trim(angular_moment_set_path)//'/number_of_angular_moments',number_of_angular_moments)         
+                     call get_option(trim(angular_moment_set_path)//'/number_of_angular_moments',number_of_angular_moments)
             
                      ! form the start_group and end_group numbers
                      start_moment = global_moment_count + 1
@@ -1624,8 +1624,8 @@ contains
             number_of_fluids_states = option_count('/material_phase')
             
             ! find the number of option links between fluids material_phases and physical radiation materials for this particle_type
-            fl_mat_phase_to_rad_mat_links = option_count(trim(particle_type_path)//'/link_with_multimaterial&
-                                                         &/fluids_material_phase_to_physical_radiation_material_map')
+            fl_mat_phase_to_rad_mat_links = option_count(trim(particle_type_path)//&
+                   &'/link_with_multimaterial/fluids_material_phase_to_physical_radiation_material_map')
             
             ! exit code if user error of not assigning enough material mappings
             if (number_of_fluids_states /= fl_mat_phase_to_rad_mat_links) then
@@ -4066,9 +4066,8 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
        end if
     end do
     
-    diagnosticvolumefraction_count = option_count('/material_phase/&
-                &scalar_field::MaterialVolumeFraction/&
-                &diagnostic')
+    diagnosticvolumefraction_count = option_count(&
+                &'/material_phase/scalar_field::MaterialVolumeFraction/diagnostic')
     if(diagnosticvolumefraction_count>1) then
       ewrite(-1,*) diagnosticvolumefraction_count, 'diagnostic MaterialVolumeFractions.'
       FLExit("Only 1 diagnostic MaterialVolumeFraction is allowed")
@@ -4191,8 +4190,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
                   &/full_schur_complement")) then
 
                 call get_option("/material_phase["//int2str(i)//&
-                     "]/scalar_field::Pressure/prognostic&
-                     &/scheme/use_projection_method&
+                     &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method&
                      &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
 
                 select case(schur_preconditioner)
@@ -4243,7 +4241,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
   subroutine check_foams_options
     ! Check options for liquid drainage in foam simulations.
 
-    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, drainage_lambda_path, compressible_eos_path, foam_velocity_path     
+    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, drainage_lambda_path, compressible_eos_path, foam_velocity_path
     logical :: exclude_mass, equation_drainage, compressible_projection, prescribed_lambda, foam_eos, foam_velocity, Drainage_K1, Drainage_K2, source, absorption
 
     ! Check that the local length of Plateau borders per unit volume (lambda) is provided.
@@ -4367,9 +4365,8 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
        end if
     end do
     
-    diagnostic_vfrac_count = option_count('/material_phase/&
-                &scalar_field::PhaseVolumeFraction/&
-                &diagnostic')
+    diagnostic_vfrac_count = option_count(&
+                &'/material_phase/scalar_field::PhaseVolumeFraction/diagnostic')
     if(diagnostic_vfrac_count > 1) then
       ewrite(-1,*) diagnostic_vfrac_count, 'diagnostic PhaseVolumeFractions.'
       FLExit("Only 1 diagnostic PhaseVolumeFraction is allowed")
