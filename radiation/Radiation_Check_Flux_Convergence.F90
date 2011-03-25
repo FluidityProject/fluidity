@@ -99,7 +99,7 @@ contains
                                                       
       end if check_flux
       
-      ewrite(1,*) 'max_abs_difference_flux,flux_converged: ',max_abs_difference_flux,flux_converged  
+      ewrite(1,*) 'max_abs_difference_flux,flux_converged: ',max_abs_difference_flux,flux_converged
       
    end subroutine check_particle_flux_convergence  
 
