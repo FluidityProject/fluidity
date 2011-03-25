@@ -86,16 +86,26 @@ contains
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%velocity = (/0.0,0.0/) 
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%velocity = (/0.0,0.0/)    
 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
-      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%beta = (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(3)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(4)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(5)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(6)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(7)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(8)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(9)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
+      particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(10)%beta = &
+                    & (/2.211e-4,1.4673e-3,1.3132e-3,2.6465e-3,7.705e-4,2.814e-4/) 
 
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(1)%energy_released_per_fission = (/1.0,2.0/) 
       particle_radmat%dataset_radmats(1)%physical_radmats(1)%radmats(2)%energy_released_per_fission = (/10.0,20.0/) 
@@ -226,7 +236,7 @@ contains
             
             rmat_loop: do rmat = 1,size(particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%radmats)
                
-               group_loop: do igrp = 1,size(particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%radmats(rmat)%total)              
+               group_loop: do igrp = 1,size(particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%radmats(rmat)%total)
                   
                   particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%radmats(rmat)%total(igrp) = &
                   particle_radmat%dataset_radmats(dmat)%physical_radmats(pmat)%radmats(rmat)%absorption(igrp) + &
