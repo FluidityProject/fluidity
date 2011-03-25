@@ -64,7 +64,7 @@ contains
   subroutine colour_sparsity(sparsity, mesh, node_colour, no_colours)
     type(csr_sparsity), intent(in) :: sparsity    
     type(mesh_type), intent(inout) :: mesh
-    type(scalar_field), intent(out) :: node_colour                                                                                                                                                           
+    type(scalar_field), intent(out) :: node_colour
     integer, intent(out) :: no_colours
 
     integer, dimension(:), pointer:: cols
