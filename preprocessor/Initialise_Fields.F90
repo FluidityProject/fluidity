@@ -158,9 +158,9 @@ contains
                 ! repeat, this to make sure it ends up in any error log
                 ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
                 ! give useful error message (make sure to blame the user)
-                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
-                   trim(field%mesh%name), &
-                  " specified under ", trim(field%mesh%option_path)
+                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh " // &
+                   &trim(field%mesh%name) // &
+                   &" specified under " // trim(field%mesh%option_path)
                 ! treat this as a user error!
                 call print_mesh_incompatibility(-1, vtk_position, field_position)
                 FLExit("Mesh from file and in state are not compatible")
@@ -308,9 +308,9 @@ contains
                 ! repeat, this to make sure it ends up in any error log
                 ewrite(-1,*) "Initialising field " // trim(field%name) // " from file " // trim(filename)
                 ! give useful error message (make sure to blame the user)
-                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh ", &
-                   trim(field%mesh%name), &
-                  " specified under ", trim(field%mesh%option_path)
+                ewrite(-1,*) "Error: The mesh in the vtu file is not the same as mesh " // &
+                   &trim(field%mesh%name) // &
+                   &" specified under " // trim(field%mesh%option_path)
                 ! treat this as a user error!
                 call print_mesh_incompatibility(-1, vtk_position, field_position)
                 FLExit("Mesh from file and in state are not compatible")
