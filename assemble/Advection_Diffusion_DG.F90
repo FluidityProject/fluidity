@@ -336,9 +336,9 @@ contains
          &discontinuous_galerkin/diffusion_scheme&
          &/masslumped_rt0")) then
        diffusion_scheme=MASSLUMPED_RT0
-       if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/masslumped_rt0/arbogast")) then
+       if (have_option(trim(T%option_path)//&
+         &"/prognostic/spatial_discretisation/discontinuous_galerkin/diffusion_scheme/masslumped_rt0/arbogast"&
+         &)) then
          rt0_masslumping_scheme=RT0_MASSLUMPING_ARBOGAST
        else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/diffusion_scheme&
