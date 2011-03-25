@@ -239,7 +239,7 @@ contains
       ewrite(1,*) 'Allocate radiation particle_radmat_size from options for ',trim(particle_option_path)
       
       ! deduce the sizes of arrays to allocate
-      particle_radmat_size%total_number_dataset_radmats  = option_count(trim(particle_option_path)//"/material_data_set")                             
+      particle_radmat_size%total_number_dataset_radmats  = option_count(trim(particle_option_path)//"/material_data_set")
       particle_radmat_size%total_number_radmats          = 0
       particle_radmat_size%total_number_physical_radmats = 0
 
@@ -560,8 +560,8 @@ contains
          if (status /= 0) FLAbort("Issue allocating memory for radmat%velocity")
       end if velocity
 
-      beta: if (allocate_all .or. allocate_beta) then                                                                                                    
-         allocate(radmat%beta(number_of_delayed_groups),STAT=status)         
+      beta: if (allocate_all .or. allocate_beta) then
+         allocate(radmat%beta(number_of_delayed_groups),STAT=status)
          if (status /= 0) FLAbort("Issue allocating memory for radmat%beta")
       end if beta
                                              
