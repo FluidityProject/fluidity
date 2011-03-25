@@ -148,6 +148,7 @@ contains
 
           do j=1, size(surface_node_list)
              node=surface_node_list(j)
+             if (node > mynodes) cycle
              local_rotation(:,1)=node_val(normal, j)
              local_rotation(:,2)=node_val(tangent1, j)
              if (u%dim>2) then
@@ -167,12 +168,13 @@ contains
 
   end subroutine create_rotation_matrix
     
-  subroutine rotate_momentum_equation(big_m, rhs, u, state)
+  subroutine rotate_momentum_equation(big_m, rhs, u, state, dg)
 
     type(petsc_csr_matrix), intent(inout):: big_m
     type(vector_field), intent(inout):: rhs
     type(vector_field), intent(inout):: u
     type(state_type), intent(inout):: state
+    logical, intent(in) :: dg
 
     type(petsc_csr_matrix), pointer:: rotation_m
     type(petsc_csr_matrix):: rotated_big_m
@@ -203,7 +205,15 @@ contains
     ! puts the result in rhs as well 
     result=rhs 
     call mult_T(result, rotation_m, rhs)
+    if (dg) then
+      ! We have just poluted the halo rows of the rhs. This is incorrect
+      ! in the dg case due to the non-local assembly system employed.
+      call zero_non_owned(rhs)
+    end if
     ! rotate u:
+    if (dg) then
+      call zero_non_owned(u)
+    end if
     result=u ! same story
     call mult_T(result, rotation_m, u)
 

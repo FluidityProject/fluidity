@@ -586,7 +586,7 @@
                call profiler_tic(u, "assembly")
                if (have_rotated_bcs(u)) then
                   ! Rotates big_m, rhs and the velocity field at strong, surface_aligned dirichlet bcs
-                  call rotate_momentum_equation(big_m(istate), mom_rhs(istate), u, state(istate))
+                  call rotate_momentum_equation(big_m(istate), mom_rhs(istate), u, state(istate), dg(istate))
                   if (get_ct_m) then
                      call rotate_ct_m(ct_m(istate)%ptr, u)
                   end if
@@ -595,7 +595,7 @@
                   ! On the sphere inverse_masslump can currently only be assembled
                   ! in the rotated frame. Thus we need to rotate anything that will
                   ! interact with this.
-                  call rotate_momentum_to_sphere(big_m(istate), mom_rhs(istate), u, state(istate))
+                  call rotate_momentum_to_sphere(big_m(istate), mom_rhs(istate), u, state(istate), dg(istate))
                   if (get_ct_m) then
                      call rotate_ct_m_sphere(state(istate), ct_m(istate)%ptr, u)
                   end if
@@ -632,9 +632,15 @@
                         FLAbort("Unknown pressure discretisation for compressible projection.")
                      end if
                      if (have_rotated_bcs(u)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(old_u)
+                        end if
                         call rotate_ct_m(ctp_m(istate)%ptr, u)
                      end if
                      if (sphere_absorption(istate)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(old_u)
+                        end if
                         call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                      end if
                   else
@@ -870,9 +876,15 @@
                         call deallocate(old_u)
                         deallocate(old_u)
                      else if (have_rotated_bcs(u)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(old_u)
+                        end if
                         call rotate_velocity_back(old_u, state(istate))
                      end if
                      if (sphere_absorption(istate)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(old_u)
+                        end if
                         call rotate_velocity_back_sphere(old_u, state(istate))
                      end if
                   end if
@@ -1465,9 +1477,15 @@
             ! compute theta*u+(1-theta)*old_u
             call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
             if (have_rotated_bcs(u)) then
+               if (dg(istate)) then
+                  call zero_non_owned(old_u)
+               end if
                call rotate_velocity(old_u, state(istate))
             end if
             if (sphere_absorption(istate)) then
+               if (dg(istate)) then
+                  call zero_non_owned(old_u)
+               end if
                call rotate_velocity_sphere(old_u, state(istate))
             end if
             call set(delta_u, u, old_u, theta_pg)
@@ -1674,9 +1692,15 @@
 
          call profiler_tic(u, "assembly")
          if (have_rotated_bcs(u)) then
+            if (dg(istate)) then
+               call zero_non_owned(u)
+            end if
             call rotate_velocity_back(u, state(istate))
          end if
          if (sphere_absorption(istate)) then
+            if (dg(istate)) then
+               call zero_non_owned(u)
+            end if
             call rotate_velocity_back_sphere(u, state(istate))
          end if
          if (subcycle(istate)) then

@@ -338,7 +338,6 @@ contains
 
     type(vector_field) :: sphere_normal, sphere_tangent1, sphere_tangent2
     integer, dimension(:), pointer:: rowcol
-    integer, dimension(:), allocatable:: node2rotated_node
     real, dimension(u%dim, u%dim):: local_rotation
     real, dimension(u%dim):: ct_xyz, ct_rot
     real, dimension(:), pointer:: rowval
@@ -354,11 +353,13 @@ contains
 
     assert( all(blocks(ct_m) == (/ 1, u%dim /)) )
 
-    allocate( node2rotated_node(1:node_count(u)) )
-
     position => extract_vector_field(state, "Coordinate")
     call allocate(u_position, u%dim, u%mesh, name="VelocityCoordinate")
     call remap_field(position, u_position)
+
+    if (associated(u%mesh%halos)) then
+      call halo_update(u_position)
+    end if
 
     assert(u%dim==3)
 
@@ -384,10 +385,16 @@ contains
 
     end do
 
+    if (associated(u%mesh%halos)) then
+      call halo_update(sphere_normal)
+      call halo_update(sphere_tangent1)
+      call halo_update(sphere_tangent2)
+    end if
+
     do i=1, size(ct_m, 1)
       rowcol => row_m_ptr(ct_m, i)
       do j=1, size(rowcol)
-        rotated_node=rowcol(j) 
+        rotated_node=rowcol(j)
         ! construct local rotation matrix
         local_rotation(1,:)=node_val(sphere_tangent1, rotated_node)
         local_rotation(2,:)=node_val(sphere_tangent2, rotated_node)
@@ -408,7 +415,6 @@ contains
       end do
     end do
 
-    deallocate(node2rotated_node)
     call deallocate(u_position)
     call deallocate(sphere_normal)
     call deallocate(sphere_tangent1)
@@ -416,22 +422,28 @@ contains
 
   end subroutine rotate_ct_m_sphere
 
-  subroutine rotate_momentum_to_sphere(big_m, rhs, u, state)
+  subroutine rotate_momentum_to_sphere(big_m, rhs, u, state, dg)
 
     type(petsc_csr_matrix), intent(inout):: big_m
     type(vector_field), intent(inout):: rhs
     type(vector_field), intent(inout):: u
     type(state_type), intent(inout):: state
+    logical, intent(in) :: dg
 
     type(petsc_csr_matrix), pointer:: rotation_sphere
     type(petsc_csr_matrix):: rotated_big_m
     type(vector_field):: result
+    integer :: stat
 
     ewrite(1,*) "Inside rotate_momentum_to_sphere"
 
-    allocate(rotation_sphere)
-    call create_rotation_matrix_sphere(rotation_sphere, u, state)
-    call insert(state, rotation_sphere, "RotationMatrixSphere")
+    rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
+
+    if (stat/=0) then
+      allocate(rotation_sphere)
+      call create_rotation_matrix_sphere(rotation_sphere, u, state)
+      call insert(state, rotation_sphere, "RotationMatrixSphere")
+    end if
 
     ! rotate big_m:
     call ptap(rotated_big_m, big_m, rotation_sphere)
@@ -442,7 +454,15 @@ contains
     ! puts the result in rhs as well 
     result=rhs 
     call mult_T(result, rotation_sphere, rhs)
+    if (dg) then
+      ! We have just poluted the halo rows of the rhs. This is incorrect
+      ! in the dg case due to the non-local assembly system employed.
+      call zero_non_owned(rhs)
+    end if
     ! rotate u:
+    if (dg) then
+      call zero_non_owned(u)
+    end if
     result=u ! same story
     call mult_T(result, rotation_sphere, u)
 
@@ -450,8 +470,10 @@ contains
     call deallocate(big_m)
     big_m=rotated_big_m
 
-    call deallocate(rotation_sphere)
-    deallocate(rotation_sphere)
+    if (stat/=0) then
+      call deallocate(rotation_sphere)
+      deallocate(rotation_sphere)
+    end if
 
   end subroutine rotate_momentum_to_sphere
 
@@ -467,7 +489,7 @@ contains
     real :: rad, phi, theta
     real, dimension(u%dim, u%dim):: local_rotation
     integer, dimension(:), allocatable:: dnnz, onnz
-    integer:: j, node, nodes, mynodes
+    integer:: node, nodes, mynodes
     logical:: parallel
 
     type(vector_field), pointer :: position
@@ -490,11 +512,7 @@ contains
     ! default is just a 1.0 on the diagonal (no rotation)
     dnnz=1
 
-    do j=1, node_count(u)
-      node=j
-      if (parallel) then
-        if (node>mynodes) cycle
-      endif
+    do node=1, mynodes
       if (any(dnnz(node:node+(u%dim-1)*mynodes:mynodes)>1)) then
         FLExit("Two rotated specifications for the same node.")
       end if
@@ -504,10 +522,6 @@ contains
     call allocate(rotation_sphere, nodes, nodes, &
          dnnz, onnz, (/ u%dim, u%dim /), "RotationMatrixSphere", halo=halo)
 
-!     call allocate(rotation_sphere, nodes, nodes, &
-!          dnnz, onnz, (/ u%dim, u%dim /), "RotationMatrixSphere")
-
-
     position => extract_vector_field(state, "Coordinate")
     call allocate(u_position, u%dim, u%mesh, name="VelocityCoordinate")
     call remap_field(position, u_position)
@@ -516,7 +530,7 @@ contains
     call allocate(sphere_tangent1, u%dim, u%mesh, name="sphere_tangent1")
     call allocate(sphere_tangent2, u%dim, u%mesh, name="sphere_tangent2")
 
-    do node=1, node_count(u)
+    do node=1, mynodes
 
       x=node_val(u_position, node)
 
@@ -534,11 +548,10 @@ contains
 
     end do
 
-    do j=1, node_count(u)
-      node=j
-      local_rotation(:,1)=node_val(sphere_tangent1, j)
-      local_rotation(:,2)=node_val(sphere_tangent2, j)
-      local_rotation(:,3)=node_val(sphere_normal, j)
+    do node=1, mynodes
+      local_rotation(:,1)=node_val(sphere_tangent1, node)
+      local_rotation(:,2)=node_val(sphere_tangent2, node)
+      local_rotation(:,3)=node_val(sphere_normal, node)
 
       call addto(rotation_sphere, node, node, local_rotation)
     end do
@@ -560,17 +573,23 @@ contains
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
+    integer :: stat
     
-    allocate(rotation_sphere)
-    u => extract_vector_field(state, "Velocity")
-    call create_rotation_matrix_sphere(rotation_sphere, u, state)
-    call insert(state, rotation_sphere, "RotationMatrixSphere")
+    rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
+    if (stat/=0) then
+      allocate(rotation_sphere)
+      u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, u, state)
+      call insert(state, rotation_sphere, "RotationMatrixSphere")
+    end if
     
     result=vfield ! see note in rotate_momentum_equation
     call mult_T(result, rotation_sphere, vfield)
 
-    call deallocate(rotation_sphere)
-    deallocate(rotation_sphere)
+    if (stat/=0) then
+      call deallocate(rotation_sphere)
+      deallocate(rotation_sphere)
+    end if
 
   end subroutine rotate_velocity_sphere
   
@@ -582,17 +601,23 @@ contains
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
+    integer :: stat
     
-    allocate(rotation_sphere)
-    u => extract_vector_field(state, "Velocity")
-    call create_rotation_matrix_sphere(rotation_sphere, u, state)
-    call insert(state, rotation_sphere, "RotationMatrixSphere")
+    rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
+    if (stat/=0) then
+      allocate(rotation_sphere)
+      u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, u, state)
+      call insert(state, rotation_sphere, "RotationMatrixSphere")
+    end if
     
     result=vfield ! see note in rotate_momentum_equation
     call mult(result, rotation_sphere, vfield)
 
-    call deallocate(rotation_sphere)
-    deallocate(rotation_sphere)
+    if (stat/=0) then
+      call deallocate(rotation_sphere)
+      deallocate(rotation_sphere)
+    end if
 
   end subroutine rotate_velocity_back_sphere
 
