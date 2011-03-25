@@ -1,11 +1,11 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o mphase_gravity.msh src/mphase_gravity.geo
-	../../scripts/gmsh2triangle --2d mphase_gravity.msh
+	gmsh -2 -o mphase_sedimentation.msh src/mphase_sedimentation.geo
+	../../scripts/gmsh2triangle --2d mphase_sedimentation.msh
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_gravity.flml
+	../../bin/fluidity -v2 -l mphase_sedimentation.flml
 
 input: clean preprocess
 
@@ -14,5 +14,5 @@ clean:
 	rm -f *.d.* *.vtu
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly
-	rm -f matrixdump* *log* *err*
+	rm -f matrixdump* *.log* *.err*
 

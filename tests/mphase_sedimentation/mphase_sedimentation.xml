@@ -3,11 +3,11 @@
 
 <testproblem>
    
-  <name>mphase_gravity</name>
+  <name>mphase_sedimentation</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>make run</command_line>
     <!-- 2D multi-phase test case to check that the volume fraction fields are behaving properly. -->
    
@@ -20,31 +20,31 @@
   <variables>
     <variable name="f1_vfrac_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_gravity.stat")
+s = stat_parser("mphase_sedimentation.stat")
 f1_vfrac_max = s["Fluid1"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
     
     <variable name="f1_vfrac_min" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_gravity.stat")
+s = stat_parser("mphase_sedimentation.stat")
 f1_vfrac_min = s["Fluid1"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
     
     <variable name="f2_vfrac_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_gravity.stat")
+s = stat_parser("mphase_sedimentation.stat")
 f2_vfrac_max = s["Fluid2"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
     
     <variable name="f2_vfrac_min" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_gravity.stat")
+s = stat_parser("mphase_sedimentation.stat")
 f2_vfrac_min = s["Fluid2"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
     
     <variable name="divergence" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_gravity.stat")
+s = stat_parser("mphase_sedimentation.stat")
 divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
     </variable>
     
