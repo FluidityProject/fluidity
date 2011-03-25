@@ -646,12 +646,13 @@
                   ewrite_minmax(ct_rhs(istate)%val)
 
                   ! Decide whether or not to form KMK stabilisation matrix:
-                  apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 .and. p_mesh%shape%numbering%family == FAMILY_SIMPLEX &
-                        & .and. continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX&
+                  apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 &
+                        & .and. p_mesh%shape%numbering%family == FAMILY_SIMPLEX &
+                        & .and. continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 &
+                        & .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX &
                         & .and. .not. have_option(trim(p%option_path) // &
-                        & "/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term") .and. &
-                        & .not. cv_pressure .and.&
-                        & .not. reduced_model)
+                        & "/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term") &
+                        & .and. .not. cv_pressure .and. .not. reduced_model)
                   assemble_kmk = apply_kmk .and. &
                            ((.not. has_csr_matrix(state(istate), "PressureStabilisationMatrix")) .or. &
                            have_option(trim(p%option_path)// &
@@ -807,7 +808,7 @@
             if(poisson_p) then   
                call solve_poisson_pressure(state, prognostic_p_istate, x, u, p, old_p, p_theta, theta_pg, &
                                            ct_m, ctp_m, mom_rhs, ct_rhs, inner_m, inverse_mass, &
-                                           inverse_masslump, cmc_m, full_projection_preconditioner, schur_auxiliary_matrix)              
+                                           inverse_masslump, cmc_m, full_projection_preconditioner, schur_auxiliary_matrix)
             end if ! end of Poisson pressure solution
 
 
