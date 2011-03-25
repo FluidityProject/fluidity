@@ -170,6 +170,14 @@ contains
             
                value = value + physical_radmat%radmats(1)%production(g)
 
+            else if (trim(component) == 'fission') then
+            
+               value = value + physical_radmat%radmats(1)%fission(g)
+
+            else if (trim(component) == 'power') then
+            
+               value = value + physical_radmat%radmats(1)%power(g)
+
             else if (trim(component) == 'removal') then
             
                value = value + physical_radmat%radmats(1)%removal(g,1)
@@ -205,6 +213,22 @@ contains
                        physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1))%production(g) + &
                        physical_radmat_ii%fraction(1)* &
                        physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1) + 1)%production(g)
+
+            else if (trim(component) == 'fission') then
+                              
+               value = value + &
+                       (1.0 - physical_radmat_ii%fraction(1))* &
+                       physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1))%fission(g) + &
+                       physical_radmat_ii%fraction(1)* &
+                       physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1) + 1)%fission(g)
+
+            else if (trim(component) == 'power') then
+                              
+               value = value + &
+                       (1.0 - physical_radmat_ii%fraction(1))* &
+                       physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1))%power(g) + &
+                       physical_radmat_ii%fraction(1)* &
+                       physical_radmat%radmats(physical_radmat_ii%radmat_base_coordinate(1) + 1)%power(g)
 
             else if (trim(component) == 'removal') then
                               

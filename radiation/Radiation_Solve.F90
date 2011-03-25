@@ -78,7 +78,7 @@ contains
             
       ! normalise the particle flux solution
       call normalise_particle_flux(state, &
-                                   particle%particle_radmat)
+                                   particle)
                         
       ! output diagnostics
       call radiation_eigenvalue_set_diagnostics(state, &

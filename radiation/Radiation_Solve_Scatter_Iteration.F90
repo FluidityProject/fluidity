@@ -30,12 +30,6 @@
 module radiation_solve_scatter_iteration
 
    !!< This module contains procedures associated with scatter iteration solver for radiation problems
-
-   ! keep in this order, please:
-   use quadrature
-   use elements
-   use sparse_tools
-   use fields
    
    use futils
    use global_parameters, only : OPTION_PATH_LEN

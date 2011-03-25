@@ -30,18 +30,14 @@
 module radiation_solve_power_iteration
 
    !!< This module contains procedures associated with power iteration solver for radiation eigenvalue problems
-
-   ! keep in this order, please:
-   use quadrature
-   use elements
-   use sparse_tools
-   use fields
    
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use state_module  
-   use parallel_tools
+   use fields
+   
+   use diagnostic_integrate_fields
 
    use radiation_particle
    use radiation_materials_interpolation
@@ -225,19 +221,18 @@ contains
       integer :: g
       integer :: g_set
       integer :: g_global
-      integer :: vele
       integer :: number_of_energy_groups
       integer :: number_of_energy_group_set
       real :: k_top
       real :: k_bottom
-      real, dimension(:,:), allocatable :: mass_matrix_vele
-      real, dimension(:), allocatable :: detwei_vele
-      real, dimension(:), allocatable :: production_val_quad_vele      
+      real :: k_top_group
+      real :: k_bottom_group
       type(vector_field), pointer :: positions 
       type(scalar_field), pointer :: particle_flux 
       type(scalar_field), pointer :: particle_flux_old
-      type(scalar_field) :: production_coeff      
+      type(scalar_field), target :: production_coeff      
       type(mesh_type), pointer :: material_fn_space
+      type(scalar_field_pointer), dimension(:), pointer :: scalar_fields 
       character(len=OPTION_PATH_LEN) :: positions_mesh_name
       character(len=OPTION_PATH_LEN) :: material_fn_space_name
       character(len=OPTION_PATH_LEN) :: energy_group_set_path
@@ -253,6 +248,14 @@ contains
       
       ! initialise the global group counter
       g_global = 0
+
+      ! allocate the fields to integrate for k_top and k_bottom
+      allocate(scalar_fields(4))
+
+      allocate(scalar_fields(1)%ptr)
+      allocate(scalar_fields(2)%ptr)
+      allocate(scalar_fields(3)%ptr)
+      allocate(scalar_fields(4)%ptr)
       
       energy_group_set_loop: do g_set = 1,number_of_energy_group_set
 
@@ -301,51 +304,38 @@ contains
                       g, &
                       component = 'production')
             
-            ! loop the volume elements to perform the integration
-            velement_loop: do vele = 1,ele_count(particle_flux)
-        
-               ! allocate the jacobian transform and gauss weight array for this vele
-               allocate(detwei_vele(ele_ngi(particle_flux,vele)))
-         
-               ! allocate the local mass matrix for this vele
-               allocate(mass_matrix_vele(ele_loc(particle_flux,vele),ele_loc(particle_flux,vele)))
-                 
-               ! form the velement jacobian transform and gauss weight
-               call transform_to_physical(positions, vele, detwei = detwei_vele)
-               
-               allocate(production_val_quad_vele(ele_ngi(production_coeff, vele)))
-               
-               production_val_quad_vele = 0.0
-               
-               ! get the production field values at the quadrature points
-               production_val_quad_vele = ele_val_at_quad(production_coeff, vele)
-               
-               ! form the square of each of these values
-               production_val_quad_vele = production_val_quad_vele**2
-                  
-               ! form the mass matrix
-               mass_matrix_vele = shape_shape(ele_shape(particle_flux,vele),ele_shape(particle_flux,vele),detwei_vele*production_val_quad_vele)
-                                    
-               k_top = k_top + dot_product(ele_val(particle_flux,vele),matmul(mass_matrix_vele,ele_val(particle_flux,vele)))
+            ! set the fields to integrate for k_top
+            scalar_fields(1)%ptr => production_coeff
+            scalar_fields(2)%ptr => particle_flux
+            scalar_fields(3)%ptr => production_coeff
+            scalar_fields(4)%ptr => particle_flux
 
-               k_bottom = k_bottom + dot_product(ele_val(particle_flux,vele),matmul(mass_matrix_vele,ele_val(particle_flux_old,vele)))
-         
-               deallocate(detwei_vele)
-               deallocate(mass_matrix_vele)
-               deallocate(production_val_quad_vele)
-                                          
-            end do velement_loop
+            call integrate(scalar_fields, &
+                           positions, &
+                           k_top_group)
             
-            ! sum the value of the processes
-            call allsum(k_top)
-            call allsum(k_bottom)
+            ! set the fields to integrate for k_bottom
+            k_top = k_top + k_top_group
 
+            scalar_fields(1)%ptr => production_coeff
+            scalar_fields(2)%ptr => particle_flux
+            scalar_fields(3)%ptr => production_coeff
+            scalar_fields(4)%ptr => particle_flux_old
+
+            call integrate(scalar_fields, &
+                           positions, &
+                           k_bottom_group)
+
+            k_bottom = k_bottom + k_bottom_group
+            
          end do group_loop
          
          ! deallocate this group set production coeff field
          call deallocate(production_coeff)
       
       end do energy_group_set_loop
+
+      if (associated(scalar_fields)) deallocate(scalar_fields)
       
       ! form the latest keff estimate
       particle%keff%keff_new = particle%keff%keff_old*k_top/k_bottom

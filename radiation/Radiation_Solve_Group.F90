@@ -32,9 +32,6 @@ module radiation_assemble_solve_group
    !!< This module contains procedures associated with solving the 
    !!< group g particle matrix problem
 
-   ! keep in this order, please:
-   use quadrature
-   use elements
    use sparse_tools
    use fields
 
@@ -692,8 +689,7 @@ contains
                                                                        stat=status)
                    
              rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele), &
-                                               detwei*ele_val(prescribed_isotropic_source_field, &
-                                               vele))
+                                               detwei*ele_val_at_quad(prescribed_isotropic_source_field,vele))
                                              
          end if add_prescribed_isotropic_source
          
