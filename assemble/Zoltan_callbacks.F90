@@ -700,8 +700,8 @@ contains
           call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
 
           if(zoltan_global_preserve_columns) then
-             zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
-                  zoltan_global_universal_columns(old_local_number))
+             zoltan_global_new_positions%mesh%columns(new_local_number) = &
+                  & fetch(zoltan_global_universal_to_new_local_numbering_m1d, zoltan_global_universal_columns(old_local_number))
           end if
 
           ! Record the nelist information
