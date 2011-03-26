@@ -201,8 +201,6 @@ contains
 
     call python_run_string("field = state.tensor_fields['"//trim(t_field%name)//"']")
     write(buffer,*) current_time
-    ewrite(0,*) "DEBUG: current_time =", current_time
-    ewrite(0,*) "DEBUG: buffer =", trim(buffer)
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
