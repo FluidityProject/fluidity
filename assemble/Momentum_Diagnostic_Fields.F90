@@ -49,16 +49,12 @@ module momentum_diagnostic_fields
 
 contains
 
-  subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+  subroutine calculate_momentum_diagnostics(state, istate)
     !< A subroutine to group together all the diagnostic calculations that
     !< must happen before a momentum solve.
   
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: istate
-    ! An array of submaterials of the current phase in state(istate).
-    type(state_type), dimension(:), intent(inout) :: submaterials
-    ! The index of the current phase (i.e. state(istate)) in the submaterials array
-    integer :: submaterials_istate
     
     ! Local variables  
     type(scalar_field), pointer :: bulk_density, buoyancy_density
@@ -71,64 +67,61 @@ contains
     ewrite(1,*) 'Entering calculate_momentum_diagnostics'
     
     ! This needs to be done first or none of the following multimaterial algorithms will work...
-    call calculate_diagnostic_material_volume_fraction(submaterials)
-    call calculate_diagnostic_phase_volume_fraction(state)
-
+    call calculate_diagnostic_material_volume_fraction(state)
+    
     ! Calculate the density according to the eos... do the buoyancy density and the density
     ! at the same time to save computations
     ! don't calculate buoyancy if no gravity
     gravity = have_option("/physical_parameters/gravity")
-    bulk_density => extract_scalar_field(submaterials(submaterials_istate), 'Density', stat)
+    bulk_density => extract_scalar_field(state(istate), 'Density', stat)
     diagnostic = .false.
     if (stat==0) diagnostic = have_option(trim(bulk_density%option_path)//'/diagnostic')
     if(diagnostic.and.gravity) then
-      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate),'VelocityBuoyancyDensity')
-      call calculate_densities(submaterials,&
+      buoyancy_density => extract_scalar_field(state(istate),'VelocityBuoyancyDensity')
+      call calculate_densities(state,&
                                 buoyancy_density=buoyancy_density, &
                                 bulk_density=bulk_density, &
                                 momentum_diagnostic=.true.)
     else if(diagnostic) then
-      call calculate_densities(submaterials,&
+      call calculate_densities(state,&
                                 bulk_density=bulk_density, &
                                 momentum_diagnostic=.true.)
     else if(gravity) then
-      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate),'VelocityBuoyancyDensity')
-      call calculate_densities(submaterials,&
+      buoyancy_density => extract_scalar_field(state(istate),'VelocityBuoyancyDensity')
+      call calculate_densities(state,&
                                 buoyancy_density=buoyancy_density, &
                                 momentum_diagnostic=.true.)
     end if
     
-    vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
-    if(stat == 0) then
-      if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
-      end if
-    end if
-
-    vfield => extract_vector_field(submaterials(submaterials_istate), "VelocitySource", stat = stat)
+    vfield => extract_vector_field(state(istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         call calculate_diagnostic_variable(state, istate, vfield)
       end if
     end if
 
-    tfield => extract_tensor_field(submaterials(submaterials_istate),'Viscosity',stat)
+    vfield => extract_vector_field(state(istate), "VelocitySource", stat = stat)
+    if(stat == 0) then
+      if(have_option(trim(vfield%option_path) // "/diagnostic")) then
+        call calculate_diagnostic_variable(state, istate, vfield)
+      end if
+    end if
+
+    tfield => extract_tensor_field(state(istate),'Viscosity',stat)
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
-        call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
+        call calculate_diagnostic_variable(state, istate, tfield)
       end if
     end if
 
-    tfield => extract_tensor_field(submaterials(submaterials_istate), 'VelocitySurfaceTension', stat)
+    tfield => extract_tensor_field(state(istate), 'VelocitySurfaceTension', stat)
     if(stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
-        call calculate_surfacetension(submaterials, tfield)
+        call calculate_surfacetension(state, tfield)
       end if
     end if
-
-    ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
     
   end subroutine calculate_momentum_diagnostics
 
