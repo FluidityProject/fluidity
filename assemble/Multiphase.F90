@@ -69,7 +69,7 @@
 
          material_count = 1 ! We will include state(istate) as one of the materials
 
-         call get_option(trim(state(istate)%option_path)//"/name", phase_name)
+         phase_name = trim(state(istate)%name)
 
          do i = 1, size(state)
         

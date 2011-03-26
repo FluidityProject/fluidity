@@ -243,7 +243,7 @@
          ! An array of submaterials of the current phase in state(istate).
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
-         integer :: phase_istate 
+         integer :: submaterials_istate 
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -306,16 +306,13 @@
 
                ! Calculate equations of state, etc.
                call profiler_tic("momentum_diagnostics")
-               if(multiphase) then
-                  ! If multiphase, this sets up an array of the submaterials of a phase.
-                  ! NB: This includes the current state itself.
-                  call get_phase_submaterials(state, istate, submaterials, phase_istate)
-                  call calculate_momentum_diagnostics(submaterials, phase_istate)
-                  call calculate_diagnostic_phase_volume_fraction(state) ! This should really be in calculate_momentum_diagnostics
-                  deallocate(submaterials)
-               else
-                  call calculate_momentum_diagnostics(state, istate)
-               end if
+
+               ! This sets up an array of the submaterials of a phase.
+               ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
+               call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
+               call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+               deallocate(submaterials)
+
                call profiler_toc("momentum_diagnostics")
 
                ! Print out some statistics for the velocity
