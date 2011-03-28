@@ -78,7 +78,7 @@ contains
     melt_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
 
  
-!    ewrite(1,*) "--------Begin melt_init-------------"
+    ewrite(1,*) "--------Begin melt_init-------------"
 
     ! Get the 6 model constants
     call get_option(trim(melt_path)//'/c0', c0, default = 3974.0)
@@ -93,7 +93,7 @@ contains
     gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
     gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
 
-!    ewrite(1,*) "---------End melt_surf_init---------------------------------"
+    ewrite(1,*) "---------End melt_surf_init---------------------------------"
 
  end subroutine melt_surf_init
 
@@ -127,18 +127,18 @@ subroutine melt_allocate_surface(state)
     integer, dimension(:,:), allocatable :: node_occupants
     integer                             :: st,en,node,dim_vec
     real                                :: area_sum
+    integer, dimension(:), allocatable  :: sf_nodes_ar
     integer, dimension(2) :: shape_option
 
-!    ewrite(1,*) "-------Begin melt_allocate_surface---------"
+    ewrite(1,*) "-------Begin melt_allocate_surface---------"
     path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     ! Get the surface_id of the ice-ocean interface
     shape_option=option_shape(trim(path)//"/melt_surfaceID")
     allocate(surf_id(1:shape_option(1)))
     call get_option(trim(path)//'/melt_surfaceID',surf_id)
-    
     call allocate(surface_ids)
     call insert(surface_ids,surf_id)
-    deallocate(surf_id)
+!    deallocate(surf_id)
 !    ewrite(1,*) "aft_surface_ids: ", set2vector(surface_ids)
 
     mesh => extract_mesh(state,"VelocityMesh")
@@ -149,9 +149,9 @@ subroutine melt_allocate_surface(state)
     positions => extract_vector_field(state,"Coordinate")
 !SINK THE surface_mesh!!
 !   call get_option("/geometry/dimension/", dimension)
-    call allocate(surface_positions,positions%dim,surface_mesh,"MySurfacePosition")
+    call allocate(surface_positions,positions%dim,mesh,"MySurfacePosition")
     call allocate(funky_positions,surface_positions%dim, surface_positions%mesh,"MyFunkyPosition")
-    call allocate(sf_nodes)
+    
 
 ! Remap the positions vector to the surface mesh, surface_positions
     call remap_field_to_surface(positions, surface_positions, surface_element_list)  
@@ -173,7 +173,7 @@ subroutine melt_allocate_surface(state)
     allocate(table(dim_vec+1,dim_vec*size(surface_element_list)))
     allocate(av_normal(dim_vec))
     allocate(xyz(dim_vec))
-    
+
     do i=1,size(surface_element_list)        
         st = 1+dim_vec*(i-1)
         en = dim_vec+dim_vec*(i-1)
@@ -185,10 +185,11 @@ subroutine melt_allocate_surface(state)
         if (dim_vec .eq. 2) then
             table(1,st:en) = calc_area2(positions,node_occupants(1,st:en))
         endif
+        
         ! For 3D, the area become the area of the triangle (assumption here).
         ! Subroutine calc_area3 uses Heron's formula.
         if (dim_vec .eq. 3) then
-            table(1,st:en) = calc_area3(positions,node_occupants(1,st:en))
+            table(1,st:en) = calc_area3(positions,node_occupants(1,st:en)) 
         endif
         ! Compute the normal vector at the surface element.
         x_shape_f=>face_shape(positions,face)
@@ -205,20 +206,23 @@ subroutine melt_allocate_surface(state)
             table(j+1,st:en)=av_normal(j)
         enddo
     enddo
-
 !! Now loop over surface_nodes   
 !        ewrite(1,*) "table(1,1:3): ", table(1,1:3)
 !        ewrite(1,*) "table(2,1:3),normal_x: ", table(2,1:3)
 !        ewrite(1,*) "table(3,1:3),normal_y: ", table(3,1:3)
 !        ewrite(1,*) "table(4,1:3),normal_z: ", table(4,1:3)
 !!In this loop, we will average adjacent normal vectors, using the area of the surface elements.
+    
+    allocate(sf_nodes_ar(size(node_occupants(1,:))))
     do i=1,size(node_occupants(1,:))
         node = node_occupants(1,i)
         av_normal(:) = 0.0
         area_sum = 0.0
-        ! This loop average the normal vector based on the areas of surface elements, which share the "node".
+        ! This loop average the normal vector based on the areas of surface elements
+        !, which share the "node". Using hash table may speed up this process
         do j=1,size(node_occupants(1,:))
-            if (node_occupants(1,j) .eq. node) then !Pick the surface elements that sheare the "node"
+            !Pick the surface elements that sheare the "node"
+            if (node_occupants(1,j) .eq. node) then 
                 do k=1,dim_vec
                     !table(1,j) = area of the surface element
                     av_normal(k) = av_normal(k) + table(k+1,j)*table(1,j)               
@@ -227,30 +231,39 @@ subroutine melt_allocate_surface(state)
                 area_sum = area_sum + table(1,j)  
             endif             
         enddo
+    
         av_normal = av_normal / area_sum
         ! normalize 
         av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) 
+        
         dist_meltrate = abs(dist_meltrate)
-        ! Shift the location of the surface nodes
-        coord = node_val(positions,node) !The coordinate of the surface node.
+        ! Shift the location of the surface nodes.
+        !The coordinate of the surface node.
+        
+        coord = node_val(positions,node) 
+        
         ! dist_meltrate = ||xyz - coord|| xyz and coord are vectors
         xyz = av_normal*dist_meltrate + coord
-         
+        
         call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.
+       
         call set(surface_positions,node,coord) !Original coordinate of the surface
-        call insert(sf_nodes,node) ! Save the corresponding node number.
-!        ewrite(1,*) "Allocated, Funk coord: ", node_val(funky_positions,node)
-!        ewrite(1,*) "Allocated, Original coord: ", coord
-!        ewrite(1,*) "Allocated, surface_positions: ", node_val(surface_positions,node)
+
+        ! Save the corresponding node number.
+        sf_nodes_ar(i) = node
+         
+        node = 0
     enddo
-    
+     
+    call allocate(sf_nodes)
+    call insert(sf_nodes,sf_nodes_ar)
+
     deallocate(coord)
     deallocate(table)
     deallocate(node_occupants)    
     deallocate(av_normal)
     deallocate(xyz)
     call deallocate(surface_ids)
-!        ewrite(1,*) "-------End melt_allocate_surface---------"
 
 end subroutine melt_allocate_surface
 
@@ -281,7 +294,7 @@ end subroutine melt_allocate_surface
     type(scalar_field)                  :: re_temperature,re_salinity,re_pressure
     type(vector_field)                  :: re_velocity
     
-!    ewrite(1,*) "-------Begin melt_surf_calc------------"
+    ewrite(1,*) "-------Begin melt_surf_calc------------"
 
     MeltRate => extract_scalar_field(state,"MeltRate")
     Tb => extract_scalar_field(state,"Tb")
@@ -293,6 +306,7 @@ end subroutine melt_allocate_surface
     Salt_flux => extract_scalar_field(state,"Salt_flux")
     call set(Heat_flux,setnan(arg))
     call set(Salt_flux,setnan(arg))
+    
 ! Debugging
     T_loc => extract_scalar_field(state,"Tloc")
     S_loc => extract_scalar_field(state,"Sloc")
@@ -308,33 +322,40 @@ end subroutine melt_allocate_surface
     call set(V_loc,vel)
     call set(Location,vel)
     call set(Location_org,vel)
-
+    
     positions => extract_vector_field(state,"Coordinate")
+    
     ! Remap temperature, salinity, pressure, and velocity onto positions mesh
     scalarfield => extract_scalar_field(state,"Temperature")
+    
     call allocate(re_temperature,positions%mesh,name="ReTemperature")
+    
     call remap_field(scalarfield,re_temperature,stat)
+    
     ! Salinity
     scalarfield=> extract_scalar_field(state,"Salinity")
     call allocate(re_salinity,positions%mesh, name="ReSalinity")
     call remap_field(scalarfield,re_salinity,stat)
+ 
     ! Pressure
     scalarfield => extract_scalar_field(state,"Pressure")
     call allocate(re_pressure,positions%mesh, name="RePressure")
     call remap_field(scalarfield,re_pressure,stat)
-
+   
     ! Velocity    
     velocity => extract_vector_field(state,"Velocity")
     call allocate(re_velocity,velocity%dim,positions%mesh,name="ReVelocity")
     call remap_field(velocity, re_velocity, stat)
-
+ 
     allocate(local_coord(positions%dim+1))
     allocate(coord(positions%dim))
+   
     ! Surface node list
     allocate(surface_node_list(key_count(sf_nodes)))
     ! Make it to vector from integer_set.
     ! sf_nodes is calculated in "melt_allocate_surface"
     surface_node_list=set2vector(sf_nodes)
+
     !! Loope over the surface nodes to calculate melt rate etc.
     do i=1,size(surface_node_list)
         the_node = surface_node_list(i)
@@ -423,13 +444,13 @@ end subroutine melt_allocate_surface
         call set(V_loc,the_node,vel)
         call set(Location,the_node,node_val(funky_positions,the_node))
         call set(Location_org,the_node,node_val(positions,the_node))
-        
+      
     enddo
 
       
     deallocate(local_coord)
     deallocate(coord)
-!    ewrite(1,*) "-----END melt_surf_calc-------"
+    ewrite(1,*) "-----END melt_surf_calc-------"
 end subroutine melt_surf_calc
 
 
