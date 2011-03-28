@@ -39,12 +39,13 @@ module radiation_solve_power_iteration
    
    use diagnostic_integrate_fields
 
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_solve_scatter_iteration
    use radiation_extract_flux_field
    use radiation_copy_flux_values
    use radiation_check_flux_convergence
+   use radiation_energy_group_set_tools
    
    implicit none
    
@@ -63,18 +64,15 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine eigenvalue_power_iteration(state, &
-                                         particle) 
+   subroutine eigenvalue_power_iteration(particle) 
    
       !!< Solve a radiation eigenvalue problem via a power iteration
 
-      type(state_type), intent(inout) :: state
       type(particle_type), intent(inout) :: particle
       
       ! local variables
       integer :: ipower
       integer :: number_all_convereged_pass
-      integer :: number_of_energy_groups
       logical :: power_iteration_converged
       type(power_iteration_options_type) :: power_iteration_options
       type(scalar_field), pointer :: keff_field
@@ -87,30 +85,22 @@ contains
       number_all_convereged_pass = 0
       
       call get_power_iteration_options(particle, &
-                                       number_of_energy_groups, &
                                        power_iteration_options)                                       
                   
       power_iteration: do ipower = 1,power_iteration_options%max_power_iteration
          
          ewrite(1,*) 'Power iteration: ',ipower
          
-         call copy_to_old_values_eig(state, &
-                                     particle, &
-                                     number_of_energy_groups)
+         call copy_to_old_values_eig(particle)
                   
          call scatter_iteration(particle, &
-                                state, &
-                                number_of_energy_groups, & 
                                 invoke_eigenvalue_scatter_solve = .true.)
                            
-         call calculate_eigenvalue(state, &
-                                   particle)
+         call calculate_eigenvalue(particle)
 
          call check_power_iteration_convergence(power_iteration_converged, &
                                                 number_all_convereged_pass, &
-                                                state, &
                                                 particle, &
-                                                number_of_energy_groups, &
                                                 power_iteration_options)
                            
          if (power_iteration_converged) exit power_iteration
@@ -118,9 +108,11 @@ contains
       end do power_iteration
       
       ! set the Keff into the constant scalar field for output
-      keff_field => extract_scalar_field(state,'ParticleKeff'//trim(particle%name))    
+      keff_field => extract_scalar_field(particle%state, &
+                                         'ParticleKeff'//trim(particle%name))    
        
-      call set(keff_field,particle%keff%keff_new) 
+      call set(keff_field, &
+               particle%keff%keff_new) 
        
       need_to_terminate: if ((ipower == power_iteration_options%max_power_iteration) .and.  &
                              power_iteration_options%terminate_if_not_converged_power .and. &
@@ -135,85 +127,57 @@ contains
    ! --------------------------------------------------------------------------
    
    subroutine get_power_iteration_options(particle, &
-                                          number_of_energy_groups, &
                                           power_iteration_options)
       
       !!< Get the power iteration options
       
       type(particle_type), intent(in) :: particle
-      integer, intent(out) :: number_of_energy_groups
       type(power_iteration_options_type), intent(out) :: power_iteration_options
            
       ! local variable
-      integer :: g_set
-      integer :: number_of_energy_group_set
-      integer :: number_of_energy_groups_g_set
-      character(len=OPTION_PATH_LEN) :: energy_group_set_path
       character(len=OPTION_PATH_LEN) :: power_iteration_option_path
-      
-      ! get the number of energy groups via summing the number within each energy group set
-
-      ! deduce the number of energy group sets
-      number_of_energy_group_set = option_count(trim(particle%option_path)//'/energy_discretisation/energy_group_set')
-      
-      number_of_energy_groups = 0
-      
-      energy_group_set_loop: do g_set = 1,number_of_energy_group_set
-            
-         ! set the energy_group_set path
-         energy_group_set_path = trim(particle%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
-            
-         ! get the number_energy_groups within this set
-         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups_g_set)         
-         
-         number_of_energy_groups = number_of_energy_groups + number_of_energy_groups_g_set
-         
-      end do energy_group_set_loop
-                  
+                        
       ! get the maximum number of power iterations for this np 
       power_iteration_option_path = trim(particle%option_path)//'/equation/power_iteration'
-      call get_option(trim(power_iteration_option_path)//'/maximum',power_iteration_options%max_power_iteration)
+      
+      call get_option(trim(power_iteration_option_path)//'/maximum', &
+                      power_iteration_options%max_power_iteration)
 
       ! get the keff power iteration relative tolerance
-      call get_option(trim(power_iteration_option_path)//'/keff_tolerance_relative',power_iteration_options%keff_tolerance_relative)
+      call get_option(trim(power_iteration_option_path)//'/keff_tolerance_relative', &
+                      power_iteration_options%keff_tolerance_relative)
 
       ! get the flux power iteration absolute tolerance
-      call get_option(trim(power_iteration_option_path)//'/flux_tolerance_absolute',power_iteration_options%flux_tolerance_absolute)
+      call get_option(trim(power_iteration_option_path)//'/flux_tolerance_absolute', &
+                      power_iteration_options%flux_tolerance_absolute)
 
-      power_iteration_options%terminate_if_not_converged_power = have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')         
+      power_iteration_options%terminate_if_not_converged_power = &
+      have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')         
             
    end subroutine get_power_iteration_options
 
    ! --------------------------------------------------------------------------
 
-   subroutine copy_to_old_values_eig(state, &
-                                     particle, &
-                                     number_of_energy_groups) 
+   subroutine copy_to_old_values_eig(particle) 
       
       !!< Copy the latest flux and eigenvalue to the old values 
       
-      type(state_type), intent(inout) :: state
       type(particle_type), intent(inout) :: particle      
-      integer, intent(in) :: number_of_energy_groups
                   
       ! set the eigenvalue old
       particle%keff%keff_old = particle%keff%keff_new
       
-      call copy_to_old_values_particle_flux(state, &
-                                            trim(particle%name), &
-                                            number_of_energy_groups)     
+      call copy_to_old_values_particle_flux(particle)     
             
    end subroutine copy_to_old_values_eig 
 
    ! --------------------------------------------------------------------------
 
-   subroutine calculate_eigenvalue(state,&
-                                   particle) 
+   subroutine calculate_eigenvalue(particle) 
       
       !!< Calculate the latest eigenvalue as:
       !!< keff_new = keff_old*(integral_dv(production_source*production_source)/integral_dv(production_source*production_source_old))
       
-      type(state_type), intent(in) :: state      
       type(particle_type), intent(inout) :: particle
       
       ! local variables
@@ -263,7 +227,9 @@ contains
          positions_mesh_name = 'Coordinate'
          
          ! extract the positions 
-         positions => extract_vector_field(state, trim(positions_mesh_name), stat=status)  
+         positions => extract_vector_field(particle%state, &
+                                           trim(positions_mesh_name), &
+                                           stat=status)  
 
          ! set the energy_group_set path
          energy_group_set_path = trim(particle%option_path)//'/energy_discretisation/energy_group_set['//int2str(g_set - 1)//']'
@@ -272,7 +238,8 @@ contains
          call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
          ! extract the material fn_space of this energy group set of this particle type 
-         material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+         material_fn_space => extract_mesh(particle%state, &
+                                           trim(material_fn_space_name))
 
          ! get the number_energy_groups within this set
          call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)         
@@ -288,8 +255,7 @@ contains
             g_global = g_global + 1
             
             ! extract the group particle flux
-            call extract_flux_group_g(state, &
-                                      trim(trim(particle%name)), & 
+            call extract_flux_group_g(particle, &
                                       g_global, &
                                       particle_flux = particle_flux, &
                                       particle_flux_old = particle_flux_old)
@@ -314,9 +280,9 @@ contains
                            positions, &
                            k_top_group)
             
-            ! set the fields to integrate for k_bottom
             k_top = k_top + k_top_group
 
+            ! set the fields to integrate for k_bottom
             scalar_fields(1)%ptr => production_coeff
             scalar_fields(2)%ptr => particle_flux
             scalar_fields(3)%ptr => production_coeff
@@ -348,9 +314,7 @@ contains
 
    subroutine check_power_iteration_convergence(power_iteration_converged, &
                                                 number_all_convereged_pass, &
-                                                state, &
                                                 particle, &
-                                                number_of_energy_groups, &
                                                 power_iteration_options) 
    
       !!< Check the convergence of the power iterations via the keff and flux
@@ -358,9 +322,7 @@ contains
       
       logical, intent(out) :: power_iteration_converged
       integer, intent(inout) :: number_all_convereged_pass 
-      type(state_type), intent(in) :: state
       type(particle_type), intent(in) :: particle
-      integer, intent(in) :: number_of_energy_groups      
       type(power_iteration_options_type), intent(in) :: power_iteration_options
       
       ! local variable
@@ -400,9 +362,7 @@ contains
                    rel_difference_keff,abs_difference_keff,keff_converged     
       
       ! check the flux convergence
-      call check_particle_flux_convergence(state, &
-                                           trim(particle%name), &
-                                           number_of_energy_groups, &
+      call check_particle_flux_convergence(particle, &
                                            power_iteration_options%flux_tolerance_absolute, &
                                            flux_converged)
             

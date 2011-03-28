@@ -39,6 +39,7 @@ module radiation_extract_flux_field
    use state_module  
    use fields
    
+   use radiation_particle_data_type
    use radiation_energy_group_set_tools
    
    implicit none
@@ -54,22 +55,23 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine extract_flux_all_group(state, &
-                                     particle_name, &
-                                     number_of_energy_groups, &
+   subroutine extract_flux_all_group(particle, &
                                      particle_flux, &
                                      particle_flux_old)
 
       !!< Extract the pointer array to the particle flux fields for a particular type
 
-      type(state_type), intent(in) :: state      
-      character(len=*), intent(in) :: particle_name   
-      integer, intent(in) :: number_of_energy_groups         
+      type(particle_type), intent(in) :: particle
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
       
       ! local variables
       integer :: g
+      integer :: number_of_energy_groups
+      
+      ! find the number of energy groups
+      call find_total_number_energy_groups(trim(particle%option_path), &
+                                           number_of_energy_groups)
       
       check_present: if (present(particle_flux)) then
       
@@ -113,8 +115,7 @@ contains
       
       group_loop_extract: do g = 1,number_of_energy_groups
          
-         call extract_flux_group_g(state, &
-                                   trim(particle_name), & 
+         call extract_flux_group_g(particle, &
                                    g, &
                                    particle_flux = particle_flux(g)%ptr, &
                                    particle_flux_old = particle_flux_old(g)%ptr)
@@ -149,16 +150,14 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine extract_flux_group_g(state, &
-                                   particle_name, & 
+   subroutine extract_flux_group_g(particle, & 
                                    g, &
                                    particle_flux, &
                                    particle_flux_old) 
    
-      !!< Extract the particle latest and old flux fields for group g from state
+      !!< Extract the particle latest and old flux fields for group g from particle%state
 
-      type(state_type), intent(in) :: state
-      character(len=*), intent(in) :: particle_name
+      type(particle_type), intent(in) :: particle
       integer, intent(in) :: g
       type(scalar_field), pointer, optional :: particle_flux 
       type(scalar_field), pointer, optional :: particle_flux_old
@@ -171,28 +170,28 @@ contains
       extract_latest: if (present(particle_flux)) then
             
          ! form the field name using the particle_name and group number g for moment 1
-         field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle_name)
+         field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
 
          ! extract the field
-         particle_flux => extract_scalar_field(state, &
-                                         trim(field_name), &
-                                         stat=status)
+         particle_flux => extract_scalar_field(particle%state, &
+                                               trim(field_name), &
+                                               stat=status)
          
-         if (status /= 0) FLAbort('Failed to extract particle flux field from state')
+         if (status /= 0) FLAbort('Failed to extract particle flux field from particle%state')
          
       end if extract_latest
        
       extract_old: if (present(particle_flux_old)) then
        
          ! form the old field name using the particle_name and group g number for moment 1
-         field_name_old = 'OldParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle_name)
+         field_name_old = 'OldParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
 
          ! extract the field
-         particle_flux_old => extract_scalar_field(state, &
-                                             trim(field_name_old), &
-                                             stat=status)
+         particle_flux_old => extract_scalar_field(particle%state, &
+                                                   trim(field_name_old), &
+                                                   stat=status)
 
-         if (status /= 0) FLAbort('Failed to extract old particle flux field from state')      
+         if (status /= 0) FLAbort('Failed to extract old particle flux field from particle%state')      
       
       end if extract_old
             

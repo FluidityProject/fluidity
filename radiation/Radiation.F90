@@ -52,18 +52,18 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_initialise(state, &
+   subroutine radiation_initialise(states_all, &
                                    particles) 
       
       !!< Initialise the radiation model via creating each particle
       
-      type(state_type), intent(in) :: state
+      type(state_type), dimension(:), intent(in) :: states_all
       type(particle_type), dimension(:), allocatable, intent(inout) :: particles
             
       ewrite(1,*) 'Initialise radiation model'
       
       ! create all particles                           
-      call create(state, &
+      call create(states_all, &
                   particles)
                   
       ewrite(1,*) 'Finished initialise radiation model'
@@ -89,13 +89,11 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_solve(state, &
-                              particles, &
+   subroutine radiation_solve(particles, &
                               invoke_eigenvalue_solve) 
                               
       !!< Invoke the relevant radiation solver for each particle type
       
-      type(state_type), intent(inout) :: state
       type(particle_type), dimension(:), allocatable, intent(inout) :: particles
       logical, intent(in) :: invoke_eigenvalue_solve
 
@@ -113,8 +111,7 @@ contains
                
                ewrite(1,*) 'Solve radiation model eigenvalue for particle type ',trim(particles(p)%name)
                
-               call radiation_solve_eigenvalue(state, &
-                                               particles(p))
+               call radiation_solve_eigenvalue(particles(p))
             
             end if solve_eig
             
@@ -124,8 +121,7 @@ contains
                
                ewrite(1,*) 'Solve radiation model time for particle type ',trim(particles(p)%name)
                
-               call radiation_solve_time(state, &
-                                         particles(p))
+               call radiation_solve_time(particles(p))
 
             end if solve_time
       

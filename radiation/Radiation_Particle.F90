@@ -36,6 +36,7 @@ module radiation_particle
    use spud
    use state_module   
    
+   use radiation_particle_data_type
    use radiation_materials
    use radiation_materials_interpolation
    
@@ -44,39 +45,10 @@ module radiation_particle
    private 
 
    public :: particle_type, &
+             keff_type, &
              create, &
              destroy
-     
-    
-    ! the keff (eigenvalue) type
-    type keff_type
-       ! the latest keff
-       real :: keff_new
-       ! the previous keff
-       real :: keff_old
-       ! the previous coupled keff
-       real :: keff_old_coupled
-       ! the previous control iteration keff
-       real :: keff_old_control
-    end type keff_type
-
-   
-   ! the particle data type
-   type particle_type    
-      !! the particle_type name
-      character(len=OPTION_PATH_LEN) :: name='/uninitialised_name/'
-      !! path to options in the options tree
-      character(len=OPTION_PATH_LEN) :: option_path='/uninitialised_path/'
-      !! the collection of radiation data sets associated with the particle type
-      type(particle_radmat_type) :: particle_radmat
-      !! the data sets interpolation instructions (ii) associated with the particle type
-      type(particle_radmat_ii_type) :: particle_radmat_ii
-      !! the data associated with the particle keff (eigenvalue)
-      type(keff_type) :: keff
-      !! a flag to say that this type has been created
-      logical :: created = .false.   
-   end type particle_type      
-   
+        
    interface set
       module procedure set_all_keff
    end interface set
@@ -95,12 +67,12 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine particles_create_from_options(state, &
+   subroutine particles_create_from_options(states_all, &
                                             particles) 
       
       !!< Create each particle type.
       
-      type(state_type), intent(in) :: state
+      type(state_type), dimension(:), intent(in) :: states_all
       type(particle_type), dimension(:), allocatable, intent(inout) :: particles
             
       ! local variable
@@ -119,7 +91,7 @@ contains
          call get_option(trim(particles(p)%option_path)//'/name',particles(p)%name)
          
          ! create each particle type
-         call create(state, &
+         call create(states_all, &
                      particles(p))
                            
       end do particle_type_loop
@@ -130,15 +102,30 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine particle_create_from_options(state, &
+   subroutine particle_create_from_options(states_all, &
                                            particle) 
       
       !!< Create a particle type.
       
-      type(state_type), intent(in) :: state
+      type(state_type), dimension(:), intent(in), target :: states_all
       type(particle_type), intent(inout) :: particle
                   
       ewrite(1,*) 'Create particle type ',trim(particle%name)
+      
+      ! set the state pointer for this particle
+      ! currently this is set to states_all(1) until particles actually
+      ! have their own state
+      check_associated: if (associated(particle%state)) then
+      
+         nullify(particle%state)
+      
+      else check_associated
+
+         allocate(particle%state)
+      
+      end if check_associated
+            
+      particle%state => states_all(1)
       
       ! create the radmats component   
       call create(particle%particle_radmat, &
@@ -151,7 +138,7 @@ contains
       ! create the radmats_ii component   
       call create(particle%particle_radmat_ii, &
                   particle%particle_radmat, &
-                  state)
+                  particle%state)
       
       ! set the keff components to 1.0
       call set(particle%keff, &
@@ -223,6 +210,13 @@ contains
       particle%name = '/uninitialised_name/'
       
       particle%option_path = 'uninitialised_path'
+      
+      ! nullify the state pointer
+      check_associated: if (associated(particle%state)) then
+      
+         nullify(particle%state)
+      
+      end if check_associated      
       
       ! set the created flag
       particle%created = .false.

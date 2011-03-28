@@ -45,7 +45,7 @@ module radiation_assemble_solve_group
    use petsc_solve_state_module   
    use sparsity_patterns_meshes 
     
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_extract_flux_field
    use radiation_energy_group_set_tools
@@ -68,18 +68,14 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine particle_assemble_solve_group(state, &
-                                            particle, &
+   subroutine particle_assemble_solve_group(particle, &
                                             g, &
-                                            number_of_energy_groups, &
                                             invoke_eigenvalue_group_solve) 
    
       !!< Assemble and solve the group g particle matrix problem
 
-      type(state_type), intent(inout) :: state
-      type(particle_type), intent(in) :: particle
+      type(particle_type), intent(inout) :: particle
       integer, intent(in) :: g
-      integer, intent(in) :: number_of_energy_groups 
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
@@ -88,9 +84,7 @@ contains
       type(particle_group_g_assemble_options_type) :: particle_group_g_assemble_options
                  
       ! extract the particle flux fields for all energy groups
-      call extract_flux_all_group(state, &
-                                  trim(particle%name), & 
-                                  number_of_energy_groups, &
+      call extract_flux_all_group(particle, & 
                                   particle_flux     = particle_flux, &
                                   particle_flux_old = particle_flux_old)
       
@@ -110,14 +104,12 @@ contains
       call assemble_coeff_source_group_g(particle_flux, &
                                          particle_flux_old, &
                                          particle, &
-                                         state, &
                                          g, &
-                                         number_of_energy_groups, &
                                          invoke_eigenvalue_group_solve)
       
       call assemble_matrix_solve_group_g(particle_flux, &
                                          particle_flux_old, &
-                                         state, &   
+                                         particle, &   
                                          g, &
                                          particle_group_g_assemble_options, &
                                          invoke_eigenvalue_group_solve)
@@ -182,9 +174,7 @@ contains
    subroutine assemble_coeff_source_group_g(particle_flux, &
                                             particle_flux_old, &
                                             particle, &
-                                            state, &
                                             g, &
-                                            number_of_energy_groups, &
                                             invoke_eigenvalue_group_solve)
       
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
@@ -192,10 +182,8 @@ contains
 
       type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
       type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old      
-      type(particle_type), intent(in) :: particle
-      type(state_type), intent(inout) :: state    
+      type(particle_type), intent(inout) :: particle
       integer, intent(in) :: g
-      integer, intent(in) :: number_of_energy_groups 
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
@@ -203,7 +191,7 @@ contains
       integer :: vele
       integer :: inode
       integer :: g_dash
-      integer :: g_set
+      integer :: g_set      
       real :: data_value
       real, dimension(:), allocatable :: detwei_vele
       real, dimension(:), allocatable :: rhs_addto      
@@ -231,10 +219,12 @@ contains
       call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
       ! extract the material fn_space of this energy group set of this particle type 
-      material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+      material_fn_space => extract_mesh(particle%state, &
+                                        trim(material_fn_space_name))
       
       ! get the positions field for this energy group set
-      positions => extract_vector_field(state, "Coordinate")
+      positions => extract_vector_field(particle%state, &
+                                        'Coordinate')
 
       ! allocate the local fields as needed
 
@@ -251,15 +241,15 @@ contains
       call zero(prompt_spectrum_coeff)
       
       ! extract the assemble fields as needed
-      absorption_coeff => extract_scalar_field(state, &
+      absorption_coeff => extract_scalar_field(particle%state, &
                                                trim(particle_flux(g)%ptr%name) // 'Absorption', &
                                                stat = stat)
                                         
-      diffusivity_coeff => extract_tensor_field(state, &
+      diffusivity_coeff => extract_tensor_field(particle%state, &
                                                 trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
                                                 stat = stat)
 
-      discretised_source => extract_scalar_field(state, &
+      discretised_source => extract_scalar_field(particle%state, &
                                                  trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
                                                  stat = stat)
       
@@ -344,10 +334,8 @@ contains
                 g, &
                 component = 'prompt_spectrum')
                   
-      group_loop: do g_dash = 1,number_of_energy_groups
-                        
-         ! form the production field for this energy group g_dash
-         
+      group_loop: do g_dash = 1,size(particle_flux)
+
          ! form the production coeff field for this energy group
          call form(material_fn_space, &
                    particle%particle_radmat_ii%energy_group_set_ii(g_set), &
@@ -378,7 +366,7 @@ contains
             call transform_to_physical(positions, vele, detwei = detwei_vele)
             
             ! allocate the rhs_addto
-            allocate(rhs_addto(ele_loc(particle_flux(g)%ptr,vele)))
+            allocate(rhs_addto(ele_loc(discretised_source,vele)))
             
             rhs_addto = 0.0
             
@@ -407,12 +395,14 @@ contains
                ! add the scatter - not the within group
                not_within_group_time: if (g /= g_dash) then
                   
-
+                  ! fill in ...
+                  
                end if not_within_group_time
 
                ! add the spectrum production 
-                  
-                           
+
+               ! fill in ...
+
             end if keff_or_time
             
             ! add contribution to discretised source for this vele for this group g
@@ -439,7 +429,7 @@ contains
    
    subroutine assemble_matrix_solve_group_g(particle_flux, &
                                             particle_flux_old, &
-                                            state, &
+                                            particle, &
                                             g, &
                                             particle_group_g_assemble_options, &
                                             invoke_eigenvalue_group_solve)
@@ -451,7 +441,7 @@ contains
       
       type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
       type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
-      type(state_type), intent(inout) :: state   
+      type(particle_type), intent(inout) :: particle   
       integer, intent(in) :: g 
       type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
       logical, intent(in) :: invoke_eigenvalue_group_solve
@@ -470,7 +460,9 @@ contains
       type(vector_field), pointer :: positions      
       
       ! determine the sparsity pattern of matrix assuming first order connections 
-      sparsity => get_csr_sparsity_firstorder(state, particle_flux(g)%ptr%mesh, particle_flux(g)%ptr%mesh)
+      sparsity => get_csr_sparsity_firstorder(particle%state, &
+                                              particle_flux(g)%ptr%mesh, &
+                                              particle_flux(g)%ptr%mesh)
       
       ! allocate the matrix and rhs vector used for solving
       call allocate(matrix, &
@@ -485,18 +477,19 @@ contains
       call zero(rhs)
 
       ! get the positions field for this energy group set
-      positions => extract_vector_field(state, 'Coordinate')
+      positions => extract_vector_field(particle%state, &
+                                        'Coordinate')
       
       ! extract the absorption, diffusivity and discretisedsource material fields
-      absorption => extract_scalar_field(state, &
+      absorption => extract_scalar_field(particle%state, &
                                          trim(particle_flux(g)%ptr%name) // 'Absorption', &
                                          stat = stat)
                                         
-      diffusivity => extract_tensor_field(state, &
+      diffusivity => extract_tensor_field(particle%state, &
                                           trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
                                           stat = stat)
 
-      discretised_source => extract_scalar_field(state, &
+      discretised_source => extract_scalar_field(particle%state, &
                                                  trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
                                                  stat = stat)
   
@@ -513,7 +506,7 @@ contains
                                              particle_group_g_assemble_options, &
                                              absorption, &
                                              diffusivity, &
-                                             state, &
+                                             particle%state, &
                                              invoke_eigenvalue_group_solve)
 
       end do volume_element_loop
@@ -566,7 +559,7 @@ contains
       call petsc_solve(particle_flux(g)%ptr, &
                        matrix, &
                        rhs, &
-                       state, &
+                       particle%state, &
                        option_path = trim(particle_flux(g)%ptr%option_path) )
       
       ! set the direchlet bc nodes to be consistent
@@ -621,7 +614,6 @@ contains
       real :: timestep_theta
       real, dimension(ele_ngi(particle_flux(g)%ptr, vele)) :: detwei
       real, dimension(ele_loc(particle_flux(g)%ptr, vele), ele_ngi(particle_flux(g)%ptr, vele), mesh_dim(particle_flux(g)%ptr)) :: dshape
-      real, dimension(positions%dim, positions%dim, ele_ngi(particle_flux(g)%ptr, vele)) :: diffusivity_gi                 
       real, dimension(ele_loc(particle_flux(g)%ptr, vele), ele_loc(particle_flux(g)%ptr, vele)) :: matrix_addto
       real, dimension(ele_loc(particle_flux(g)%ptr, vele)) :: rhs_addto      
       type(scalar_field), pointer :: prescribed_isotropic_source_field 
@@ -649,13 +641,11 @@ contains
                                  dshape = dshape, &
                                  detwei = detwei)
             
-      ! add the diffusion term
-      diffusivity_gi = ele_val_at_quad(diffusivity, vele)
-            
+      ! add the diffusion term            
       keff_or_time_diff: if (invoke_eigenvalue_group_solve) then
          
          matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, &
-                                                            diffusivity_gi, &
+                                                            ele_val_at_quad(diffusivity, vele), &
                                                             dshape, &
                                                             detwei)
 

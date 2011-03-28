@@ -34,12 +34,12 @@ module radiation_reaction_rate
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
-   use state_module  
+   use state_module
    use fields
    
    use diagnostic_integrate_fields
    
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_extract_flux_field
 
@@ -54,7 +54,6 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine calculate_reaction_rate(reaction_rate_name, &
-                                      state, &
                                       particle, &
                                       reaction_rate, &
                                       domain_symmetry_factor, &
@@ -65,7 +64,6 @@ contains
       !!< else the whole domain is included
       
       character(len=*),                  intent(in)  :: reaction_rate_name
-      type(state_type),                  intent(in)  :: state
       type(particle_type),               intent(in)  :: particle
       real,                              intent(out) :: reaction_rate
       integer,                           intent(in), optional  :: domain_symmetry_factor
@@ -112,7 +110,7 @@ contains
          positions_mesh_name = 'Coordinate'
          
          ! extract the positions 
-         positions => extract_vector_field(state, trim(positions_mesh_name), stat=status)  
+         positions => extract_vector_field(particle%state, trim(positions_mesh_name), stat=status)  
          
          if (status /= 0) FLAbort('Could not extract positions mesh for radiation flux normalisation')
          
@@ -122,8 +120,8 @@ contains
          ! get the material fn space name for this group set
          call get_option(trim(energy_group_set_path)//'/angular_discretisation/method/parity/angular_moment_set[0]/mesh/name',material_fn_space_name)
       
-         ! extract the material fn_space of this energy group set of this particle type 
-         material_fn_space => extract_mesh(state, trim(material_fn_space_name))
+         ! extract the material fn_space of this energy group set of this moment set of this particle type 
+         material_fn_space => extract_mesh(particle%state, trim(material_fn_space_name))
 
          ! get the number_energy_groups within this set
          call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)
@@ -139,8 +137,7 @@ contains
             g_global = g_global + 1
             
             ! extract the group particle flux
-            call extract_flux_group_g(state, &
-                                      trim(trim(particle%name)), & 
+            call extract_flux_group_g(particle, &
                                       g_global, &
                                       particle_flux = particle_flux)
             
@@ -174,7 +171,6 @@ contains
                            positions, &
                            reaction_rate_group, &
                            region_ids = region_ids)
-
 
             reaction_rate = reaction_rate + reaction_rate_group
           

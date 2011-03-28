@@ -32,9 +32,8 @@ module radiation_solve_module
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
-   use state_module  
    
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_solve_power_iteration
    use radiation_normalise_flux
@@ -51,24 +50,21 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_solve_eigenvalue(state, &
-                                         particle) 
+   subroutine radiation_solve_eigenvalue(particle) 
       
       !!< Solve the radiation eigenvalue problem for this particle type
       
-      type(state_type), intent(inout) :: state
       type(particle_type), intent(inout) :: particle
             
       ! form the material data interpolation/mixing instructions
       call form(particle%particle_radmat_ii, &
                 particle%particle_radmat, &
-                state)      
+                particle%state)      
       
       ! solve the problem via a particular algorithm
       eig_solver: if (have_option(trim(particle%option_path)//'/equation/power_iteration')) then
       
-         call eigenvalue_power_iteration(state, &
-                                         particle)
+         call eigenvalue_power_iteration(particle)
              
       else eig_solver
       
@@ -77,12 +73,10 @@ contains
       end if eig_solver
             
       ! normalise the particle flux solution
-      call normalise_particle_flux(state, &
-                                   particle)
+      call normalise_particle_flux(particle)
                         
       ! output diagnostics
-      call radiation_eigenvalue_set_diagnostics(state, &
-                                                particle%name)
+      call radiation_eigenvalue_set_diagnostics(particle)
             
       ! output the solution
             
@@ -90,16 +84,13 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine radiation_solve_time(state, &
-                                   particle) 
+   subroutine radiation_solve_time(particle) 
       
       !!< Solve the radiation timestep problem for for this particle type 
       
-      type(state_type), intent(inout) :: state
       type(particle_type), intent(inout) :: particle
       
-            
-      
+      ! fill in ...      
       
    end subroutine radiation_solve_time
 

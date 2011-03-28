@@ -32,9 +32,11 @@ module radiation_diagnostics
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
-   use state_module  
+   use state_module
    use Fields
    use diagnostic_variables   
+
+   use radiation_particle_data_type
    
    implicit none
    
@@ -105,27 +107,25 @@ contains
    
    ! --------------------------------------------------------------------------
    
-   subroutine radiation_eigenvalue_set_diagnostics(state, &
-                                                   particle_name)
+   subroutine radiation_eigenvalue_set_diagnostics(particle)
          
       !!< Set the diagnostics variables for the stat file
-      !!< associated with the eigenvalue run for this particle given by particle_name 
+      !!< associated with the eigenvalue run for this particle
 
-      type(state_type), intent(in) :: state      
-      character(len=*), intent(in) :: particle_name
+      type(particle_type), intent(in) :: particle
       
       ! local variables
       type(scalar_field), pointer:: keff_field      
       real :: keff
 
-      ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for particle type ',trim(particle_name)
+      ewrite(1,*) 'Radiation eigenvalue set registered diagnostics for particle type ',trim(particle%name)
       
-      keff_field => extract_scalar_field(state, &
-                                         'ParticleKeff'//trim(particle_name))
+      keff_field => extract_scalar_field(particle%state, &
+                                         'ParticleKeff'//trim(particle%name))
       
       keff = node_val(keff_field,1)
  
-      call set_diagnostic(name      = 'ParticleKeff'//trim(particle_name),  &
+      call set_diagnostic(name      = 'ParticleKeff'//trim(particle%name),  &
                           statistic = 'Value', &
                           value     = (/keff/))
       

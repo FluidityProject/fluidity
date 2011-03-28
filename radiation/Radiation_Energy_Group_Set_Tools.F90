@@ -52,6 +52,7 @@ contains
                                          g_set) 
    
       !!< Determine which group set this g belongs to
+
       integer, intent(in) :: g
       character(len=*), intent(in) :: particle_option_path
       integer, intent(out) :: g_set
@@ -96,6 +97,7 @@ contains
                                        first_g_in_g_set)
       
       !!< Determine the first energy group in this group set
+
       integer, intent(in) :: g_set
       character(len=*), intent(in) :: particle_option_path
       integer, intent(out) :: first_g_in_g_set

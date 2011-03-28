@@ -34,10 +34,9 @@ module radiation_normalise_flux
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
-   use state_module  
    use fields
    
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_extract_flux_field
    use radiation_reaction_rate
    use radiation_energy_group_set_tools
@@ -61,12 +60,10 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine normalise_particle_flux(state, &
-                                      particle) 
+   subroutine normalise_particle_flux(particle) 
    
       !!< Normalise the particle flux
 
-      type(state_type), intent(inout) :: state
       type(particle_type), intent(in) :: particle
       
       ! local variables
@@ -109,7 +106,6 @@ contains
       
       ! find the necessary total reaction rate
       call calculate_reaction_rate(trim(reaction_rate_name), &
-                                   state, &
                                    particle, &
                                    total_reaction_rate, &
                                    domain_symmetry_factor = norm_options%domain_symmetry_factor)
@@ -125,8 +121,7 @@ contains
       group_norm_loop: do g = 1,number_of_energy_groups     
 
          ! extract the group particle flux
-         call extract_flux_group_g(state, &
-                                   trim(trim(particle%name)), & 
+         call extract_flux_group_g(particle, &
                                    g, &
                                    particle_flux = particle_flux)
          

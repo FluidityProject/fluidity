@@ -36,8 +36,9 @@ module radiation_solve_scatter_iteration
    use spud
    use state_module  
 
-   use radiation_particle
+   use radiation_particle_data_type
    use radiation_assemble_solve_group
+   use radiation_energy_group_set_tools
 
    implicit none
    
@@ -58,20 +59,19 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine scatter_iteration(particle, &
-                                state, &
-                                number_of_energy_groups, &
                                 invoke_eigenvalue_scatter_solve) 
       
       !!< Perform iterations around the group loop to solve scatter
       
-      type(particle_type), intent(in) :: particle
-      type(state_type), intent(inout) :: state
-      integer, intent(in) :: number_of_energy_groups
+      type(particle_type), intent(inout) :: particle
       logical, intent(in) :: invoke_eigenvalue_scatter_solve
       
       ! local variables
       integer :: iscatter
       integer :: start_group
+      integer :: end_group
+      integer :: group_increment
+      integer :: number_of_energy_groups
       logical :: scatter_iteration_converged
       type(scatter_iteration_options_type) :: scatter_iteration_options
       character(len=OPTION_PATH_LEN) :: scatter_group_iteration_option_path
@@ -91,18 +91,24 @@ contains
       
       call get_scatter_iteration_options(scatter_iteration_options, &
                                          trim(scatter_group_iteration_option_path))
+      
+      ! find the number of energy groups
+      call find_total_number_energy_groups(trim(particle%option_path), &
+                                           number_of_energy_groups)
            
-      ! first iteration sweep down groups from 1
-      start_group = 1
+      ! first iteration sweep down groups from 1 through all groups with increments of 1
+      start_group     = 1
+      end_group       = number_of_energy_groups
+      group_increment = 1
       
       scatter_iteration_loop: do iscatter = 1,scatter_iteration_options%max_scatter_iteration
          
          ewrite(1,*) 'Scatter iteration: ',iscatter
          
          call energy_group_loop(particle, &
-                                state, &
                                 start_group, &
-                                number_of_energy_groups, &
+                                end_group, &
+                                group_increment, &
                                 invoke_eigenvalue_group_solve = invoke_eigenvalue_scatter_solve)
          
          ! rebalance accelerate the scatter iteration if options chosen
@@ -163,29 +169,29 @@ contains
    ! --------------------------------------------------------------------------
    
    subroutine energy_group_loop(particle, &
-                                state, &
                                 start_group, &
-                                number_of_energy_groups, &
+                                end_group, &
+                                group_increment, &
                                 invoke_eigenvalue_group_solve)
       
-      !!< Sweep the energy groups from the start_group down solving the within group particle balance
+      !!< Sweep the energy groups from the start_group to the end_group
+      !!< in steps of group_increment (which could be negative)
+      !!<  solving the within group particle balance
       
-      type(particle_type), intent(in) :: particle
-      type(state_type), intent(inout) :: state
+      type(particle_type), intent(inout) :: particle
       integer, intent(in) :: start_group
-      integer, intent(in) :: number_of_energy_groups
+      integer, intent(in) :: end_group
+      integer, intent(in) :: group_increment
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       integer :: g
       
-      group_loop: do g = start_group,number_of_energy_groups
+      group_loop: do g = start_group,end_group,group_increment
          
          ! Assemble and solve the group g particle balance
-         call particle_assemble_solve_group(state, &
-                                            particle, &
+         call particle_assemble_solve_group(particle, &
                                             g, &
-                                            number_of_energy_groups, &
                                             invoke_eigenvalue_group_solve)
          
       end do group_loop      
