@@ -1475,13 +1475,13 @@ contains
                      start_moment = global_moment_count + 1
                      end_moment = start_moment + number_of_angular_moments - 1
                   
-                     ! get the material fn space name for this moment set for this group set
+                     ! get the material fn space name for this moment set for this group set of this particle type
                      call get_option(trim(angular_moment_set_path)//'/mesh/name',material_fn_space_name)
    
-                     ! extract the material fn_space of this energy group set of this particle type 
+                     ! extract the material fn_space for this moment set for this group set of this particle type
                      material_fn_space => extract_mesh(state, trim(material_fn_space_name))
                
-                     ! get the discretised source fn space name for this group set
+                     ! get the discretised source fn space name for this group set (which is on the solution fn space)
                      call get_option(trim(angular_moment_set_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
                                  
                      ! allocate and insert the diffusivity, absorption and discretised source assemble fields
@@ -1493,7 +1493,7 @@ contains
                      ! form the parent field name 
                      parent_field_name = 'ParticleFluxGroupSet'//int2str(g_set)//'MomentSet'//int2str(m_set)//trim(particle_type_name)
                
-                     ! the call the 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
+                     ! the call to 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
                      call allocate(aux_tfield, material_fn_space, trim(parent_field_name)//'Diffusivity')
                      aux_tfield%option_path = ''
                      call zero(aux_tfield)
@@ -1572,11 +1572,11 @@ contains
                   
                   insert_odd_parity: if (have_option(trim(angular_odd_parity_path))) then
                   
-                    ! the global_moment_count represents the even parity moments for this angular discretisation
+                     ! the global_moment_count represents the even parity moments for this angular discretisation
                      ! if the odd parity is to be diagnositcally calculated the number of odd parity moments 
                      ! for this group set is first calculated then the fields inserted
                   
-                     ! assume Pn order 1 (ie diffusion theory)  
+                     ! assume Pn order 1 (ie diffusion theory) such that number of odd moments is == geometry dimension 
                      call get_option('/geometry/dimension',number_of_odd_parity_moments)
                      
                      ! create each odd parity moment field for each energy group of this group set
