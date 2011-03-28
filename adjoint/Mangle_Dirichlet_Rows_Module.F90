@@ -32,6 +32,7 @@ module mangle_dirichlet_rows_module
   use field_options
   use boundary_conditions_from_options
   use boundary_conditions
+  implicit none
 
   interface mangle_dirichlet_rows
     module procedure mangle_dirichlet_rows_csr_scalar
