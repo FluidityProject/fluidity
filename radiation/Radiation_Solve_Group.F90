@@ -55,14 +55,15 @@ module radiation_assemble_solve_group
    private 
 
    public :: particle_assemble_solve_group
-   
-   type particle_group_g_assemble_options_type
-      character(len=OPTION_PATH_LEN) :: spatial_discretisation
-      real :: theta
-      real :: timestep
-      logical :: have_delayed
-      logical :: include_prescribed_source
-   end type particle_group_g_assemble_options_type
+
+  ! Source?
+  logical :: have_source
+  ! Absorption?
+  logical :: have_absorption
+  ! Diffusivity?
+  logical :: have_diffusivity
+  ! Discretised source?
+  logical :: have_discretised_source
 
 contains
 
@@ -79,109 +80,31 @@ contains
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old      
-      type(particle_group_g_assemble_options_type) :: particle_group_g_assemble_options
-                 
-      ! extract the particle flux fields for all energy groups
-      call extract_flux_all_group(particle, & 
-                                  particle_flux     = particle_flux, &
-                                  particle_flux_old = particle_flux_old)
-      
-      ! get the solver options for group g
-      call get_group_g_assemble_options(particle_group_g_assemble_options, &
-                                        particle_flux(g)%ptr%option_path, &
-                                        particle%option_path, &
-                                        invoke_eigenvalue_group_solve)
-      
-      ! currently assume all energy groups point to the same coordinate mesh
-      
-      ! if the above assumption was to be broken then the there would need to be a sweep of the other groups
-      ! fluxes (new and old) to see which needs supermeshing to a new field and then the pointer within the 
-      ! scalar_field_pointer particle_flux (or _old) is then changed such that no code change below is needed
-      
-      ! assemble the diffusivity, absorption and already discretised rhs term scalar fields and insert into state
-      call assemble_coeff_source_group_g(particle_flux, &
-                                         particle_flux_old, &
-                                         particle, &
+      character(len=OPTION_PATH_LEN) :: field_name
+            
+      ! assemble the diffusivity, absorption and already discretised rhs term 
+      ! scalar fields and insert into particle%state
+      call assemble_coeff_source_group_g(particle, &
                                          g, &
                                          invoke_eigenvalue_group_solve)
       
-      call assemble_matrix_solve_group_g(particle_flux, &
-                                         particle_flux_old, &
-                                         particle, &   
-                                         g, &
-                                         particle_group_g_assemble_options, &
-                                         invoke_eigenvalue_group_solve)
-      
-      ! deallocate the particle flux pointer fields
-      call deallocate_flux_all_group(particle_flux     = particle_flux, &
-                                     particle_flux_old = particle_flux_old)
+      ! form the field name to solve for
+      field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
+            
+      call assemble_matrix_solve_group_g(field_name, &
+                                         particle%state)
             
    end subroutine particle_assemble_solve_group
 
    ! --------------------------------------------------------------------------
-
-   subroutine get_group_g_assemble_options(particle_group_g_assemble_options, &
-                                           particle_flux_option_path, &
-                                           particle_option_path, &
-                                           invoke_eigenvalue_group_solve)
-      
-      !!< Get the options associated with the assembly of the particle group g
-      
-      type(particle_group_g_assemble_options_type), intent(out) :: particle_group_g_assemble_options 
-      character(len=*), intent(in) :: particle_flux_option_path
-      character(len=*), intent(in) :: particle_option_path
-      logical, intent(in) :: invoke_eigenvalue_group_solve
-            
-      ! get the spatial discretisation
-      spatial: if (have_option(trim(particle_flux_option_path)//'/prognostic/spatial_discretisation/continuous_galerkin')) then
-      
-         particle_group_g_assemble_options%spatial_discretisation = 'continuous_galerkin'
-               
-      else spatial
-      
-         FLAbort('Unknown spatial discretisation for radiation field')
-      
-      end if spatial
-      
-      ! get the time theta and time step
-      time: if (.not. invoke_eigenvalue_group_solve) then
-            
-         call get_option(trim(particle_flux_option_path)//'/prognostic/temporal_discretisation/theta',particle_group_g_assemble_options%theta)
-         
-         call get_option('/timestepping/timestep',particle_group_g_assemble_options%timestep)
-         
-         particle_group_g_assemble_options%include_prescribed_source = &
-         have_option(trim(particle_flux_option_path)//'/prognostic/scalar_field::Source')
-                       
-      end if time
-      
-      delayed: if (have_option(trim(particle_option_path)//'/delayed_neutron_precursor')) then
-      
-         particle_group_g_assemble_options%have_delayed = .true.
-      
-      else delayed
-      
-         particle_group_g_assemble_options%have_delayed = .false.
-      
-      end if delayed
-                  
-   end subroutine get_group_g_assemble_options
-
-   ! --------------------------------------------------------------------------
    
-   subroutine assemble_coeff_source_group_g(particle_flux, &
-                                            particle_flux_old, &
-                                            particle, &
+   subroutine assemble_coeff_source_group_g(particle, &
                                             g, &
                                             invoke_eigenvalue_group_solve)
       
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
       !!< somewhere else to assemble the linear system
 
-      type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
-      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old      
       type(particle_type), intent(inout) :: particle
       integer, intent(in) :: g
       logical, intent(in) :: invoke_eigenvalue_group_solve
@@ -203,9 +126,22 @@ contains
       type(scalar_field), pointer :: discretised_source
       type(mesh_type), pointer :: material_fn_space
       type(vector_field), pointer :: positions      
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old      
       character(len=OPTION_PATH_LEN) :: material_fn_space_name
       character(len=OPTION_PATH_LEN) :: energy_group_set_path
       character(len=OPTION_PATH_LEN) :: field_name
+                 
+      ! extract the particle flux fields for all energy groups
+      call extract_flux_all_group(particle, & 
+                                  particle_flux     = particle_flux, &
+                                  particle_flux_old = particle_flux_old)
+
+      ! currently assume all energy groups point to the same coordinate mesh
+      
+      ! if the above assumption was to be broken then the there would need to be a sweep of the other groups
+      ! fluxes (new and old) to see which needs supermeshing to a new field and then the pointer within the 
+      ! scalar_field_pointer particle_flux (or _old) is then changed such that no code change below is needed
       
       ! determine which group set this g belongs to
       call which_group_set_contains_g(g, &
@@ -422,29 +358,23 @@ contains
       call deallocate(scatter_coeff)
       call deallocate(production_coeff)
       call deallocate(prompt_spectrum_coeff)
+      
+      ! deallocate the particle flux pointer fields
+      call deallocate_flux_all_group(particle_flux     = particle_flux, &
+                                     particle_flux_old = particle_flux_old)
                         
    end subroutine assemble_coeff_source_group_g
    
    ! --------------------------------------------------------------------------
    
-   subroutine assemble_matrix_solve_group_g(particle_flux, &
-                                            particle_flux_old, &
-                                            particle, &
-                                            g, &
-                                            particle_group_g_assemble_options, &
-                                            invoke_eigenvalue_group_solve)
+   subroutine assemble_matrix_solve_group_g(field_name, &
+                                            state)
       
       !!< Assemble the matrix system for this group g and solve
       !!< This is only set up for even parity spherical harmonic P1 (ie diffusion) 
-      
-      ! The time assemble is not fully implemented yet so will not work
-      
-      type(scalar_field_pointer), dimension(:), intent(inout) :: particle_flux 
-      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
-      type(particle_type), intent(inout) :: particle   
-      integer, intent(in) :: g 
-      type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
-      logical, intent(in) :: invoke_eigenvalue_group_solve
+            
+      character(len=*), intent(in) :: field_name
+      type(state_type), intent(inout) :: state
       
       ! local variables
       integer :: stat
@@ -456,75 +386,89 @@ contains
       type(scalar_field) :: bc_value
       type(tensor_field), pointer :: diffusivity
       type(scalar_field), pointer :: absorption
+      type(scalar_field), pointer :: source      
       type(scalar_field), pointer :: discretised_source
       type(vector_field), pointer :: positions      
+      type(scalar_field), pointer :: t 
+        
+      t => extract_scalar_field(state, field_name)
+      
+      if(t%mesh%continuity /= 0) then
+         FLExit('Radiation model requires a continuous solution mesh')
+      end if
       
       ! determine the sparsity pattern of matrix assuming first order connections 
-      sparsity => get_csr_sparsity_firstorder(particle%state, &
-                                              particle_flux(g)%ptr%mesh, &
-                                              particle_flux(g)%ptr%mesh)
+      sparsity => get_csr_sparsity_firstorder(state, &
+                                              t%mesh, &
+                                              t%mesh)
       
       ! allocate the matrix and rhs vector used for solving
       call allocate(matrix, &
-                    sparsity, &
-                    name = 'MatrixParticleFlux')
+                    sparsity)
                     
       call allocate(rhs, &
-                    particle_flux(g)%ptr%mesh, &
-                    name = 'RHSParticleFlux')
+                    t%mesh)
       
       call zero(matrix)
       call zero(rhs)
 
       ! get the positions field for this energy group set
-      positions => extract_vector_field(particle%state, &
+      positions => extract_vector_field(state, &
                                         'Coordinate')
       
-      ! extract the absorption, diffusivity and discretisedsource material fields
-      absorption => extract_scalar_field(particle%state, &
-                                         trim(particle_flux(g)%ptr%name) // 'Absorption', &
+      ! extract the absorption, diffusivity, source and discretised source fields
+      absorption => extract_scalar_field(state, &
+                                         trim(t%name) // 'Absorption', &
                                          stat = stat)
+
+      have_absorption = stat == 0         
                                         
-      diffusivity => extract_tensor_field(particle%state, &
-                                          trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
+      diffusivity => extract_tensor_field(state, &
+                                          trim(t%name) // 'Diffusivity', &
                                           stat = stat)
 
-      discretised_source => extract_scalar_field(particle%state, &
-                                                 trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
+      have_diffusivity = stat == 0         
+
+      source => extract_scalar_field(state, &
+                                     trim(t%name)//'Source', &
+                                     stat=stat)
+             
+      have_source = stat == 0         
+
+      discretised_source => extract_scalar_field(state, &
+                                                 trim(t%name) // 'DiscretisedSource', &
                                                  stat = stat)
+
+      have_discretised_source = stat == 0         
   
       ! volume integrations 
-      volume_element_loop: do vele = 1, ele_count(particle_flux(g)%ptr)      
+      volume_element_loop: do vele = 1, ele_count(t)      
                   
          call assemble_particle_group_g_vele(vele, &
-                                             g, &
-                                             particle_flux, &
-                                             particle_flux_old, &
+                                             t, &
                                              matrix, &
                                              rhs, &
                                              positions, &
-                                             particle_group_g_assemble_options, &
+                                             source, &
                                              absorption, &
-                                             diffusivity, &
-                                             particle%state, &
-                                             invoke_eigenvalue_group_solve)
+                                             diffusivity)
 
       end do volume_element_loop
       
       ! include the already discretised_source into rhs
-      call addto(rhs, discretised_source)
+      if (have_discretised_source) call addto(rhs, discretised_source)
       
       ! surface integrations for albedo and source BC's for diffusion theory
       
-      allocate(bc_types(surface_element_count(particle_flux(g)%ptr)))
+      allocate(bc_types(surface_element_count(t)))
 
-      call get_entire_boundary_condition(particle_flux(g)%ptr, &
+      call get_entire_boundary_condition(t, &
                                          (/"albedo", &
                                            "source"/), &
                                          bc_value, &
                                          bc_types)
 
-      surface_element_loop: do sele = 1,surface_element_count(particle_flux(g)%ptr)
+      surface_element_loop: do sele = 1,surface_element_count(t)
          
          diffusion_bc: if (bc_types(sele) == 1) then
          
@@ -532,7 +476,7 @@ contains
                                                        positions, &
                                                        matrix, & 
                                                        bc_value, &
-                                                       particle_flux(g)%ptr)
+                                                       t)
          
          else if (bc_types(sele) == 2) then 
             
@@ -540,7 +484,7 @@ contains
                                                        positions, &
                                                        rhs, & 
                                                        bc_value, &
-                                                       particle_flux(g)%ptr)
+                                                       t)
                         
          end if diffusion_bc
          
@@ -553,17 +497,17 @@ contains
       ! apply direchlet BC
       call apply_dirichlet_conditions(matrix, &
                                       rhs, &
-                                      particle_flux(g)%ptr)
+                                      t)
             
       ! solve the linear system       
-      call petsc_solve(particle_flux(g)%ptr, &
+      call petsc_solve(t, &
                        matrix, &
                        rhs, &
-                       particle%state, &
-                       option_path = trim(particle_flux(g)%ptr%option_path) )
+                       state, &
+                       option_path = trim(t%option_path) )
       
       ! set the direchlet bc nodes to be consistent
-      call set_dirichlet_consistent(particle_flux(g)%ptr)
+      call set_dirichlet_consistent(t)
    
       ! deallocate the matrix and rhs vector used for solving
       call deallocate(matrix)
@@ -574,61 +518,31 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine assemble_particle_group_g_vele(vele, &
-                                             g, &
-                                             particle_flux, &
-                                             particle_flux_old, &
+                                             t, &
                                              matrix, &
                                              rhs, &
                                              positions, &
-                                             particle_group_g_assemble_options, &
+                                             source, &
                                              absorption, &
-                                             diffusivity, &
-                                             state, &
-                                             invoke_eigenvalue_group_solve)
+                                             diffusivity)
 
       !!< Assemble the volume element vele contribution to the global 
       !!< matrix and rhs for this particle type for group g
-      
-      ! the particle_flux (and old) fields have the same positions 
-      ! mesh here (so they may actually be the supermesh'ed flux)
-      
-      ! the assemble for time run is still under development and is currently known to be incorrect 
-      
+            
       integer, intent(in) :: vele
-      integer, intent(in) :: g
-      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux 
-      type(scalar_field_pointer), dimension(:), intent(in) :: particle_flux_old       
+      type(scalar_field), intent(in) :: t 
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: positions
-      type(particle_group_g_assemble_options_type), intent(in) :: particle_group_g_assemble_options
+      type(scalar_field), intent(in) :: source      
       type(scalar_field), intent(in) :: absorption
       type(tensor_field), intent(in) :: diffusivity
-      type(state_type), intent(in) :: state    
-      logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables 
-      integer :: status  
-      real :: timestep
-      real :: theta
-      real :: timestep_theta
-      real, dimension(ele_ngi(particle_flux(g)%ptr, vele)) :: detwei
-      real, dimension(ele_loc(particle_flux(g)%ptr, vele), ele_ngi(particle_flux(g)%ptr, vele), mesh_dim(particle_flux(g)%ptr)) :: dshape
-      real, dimension(ele_loc(particle_flux(g)%ptr, vele), ele_loc(particle_flux(g)%ptr, vele)) :: matrix_addto
-      real, dimension(ele_loc(particle_flux(g)%ptr, vele)) :: rhs_addto      
-      type(scalar_field), pointer :: prescribed_isotropic_source_field 
-      
-      ! form the timestep*theta use for time run and shorter variable names
-      form_timestep_theta: if (.not. invoke_eigenvalue_group_solve) then
-         
-         timestep_theta = particle_group_g_assemble_options%timestep* &
-                          particle_group_g_assemble_options%theta
-         
-         timestep = particle_group_g_assemble_options%timestep
-         
-         theta = particle_group_g_assemble_options%theta
-         
-      end if form_timestep_theta
+      real, dimension(ele_ngi(t, vele)) :: detwei
+      real, dimension(ele_loc(t, vele), ele_ngi(t, vele), mesh_dim(t)) :: dshape
+      real, dimension(ele_loc(t, vele), ele_loc(t, vele)) :: matrix_addto
+      real, dimension(ele_loc(t, vele)) :: rhs_addto      
       
       ! initialise the local vele matrix and vector that are added to the global arrays
       matrix_addto = 0.0
@@ -637,68 +551,45 @@ contains
       ! form the velement jacobian transform and gauss weight
       call transform_to_physical(positions, &
                                  vele, &
-                                 ele_shape(particle_flux(g)%ptr, vele), &
+                                 ele_shape(t, vele), &
                                  dshape = dshape, &
                                  detwei = detwei)
             
       ! add the diffusion term            
-      keff_or_time_diff: if (invoke_eigenvalue_group_solve) then
+      have_diffusivity_if: if (have_diffusivity) then
          
          matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, &
                                                             ele_val_at_quad(diffusivity, vele), &
                                                             dshape, &
                                                             detwei)
 
-      else keff_or_time_diff
-         
-            ! fill in ...
-         
-      end if keff_or_time_diff
+      end if have_diffusivity_if
                
       ! add the absortion term 
-      keff_or_time_removal: if (invoke_eigenvalue_group_solve) then
+      have_absorption_if: if (have_absorption) then
          
-         matrix_addto = matrix_addto + shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                   ele_shape(particle_flux(g)%ptr,vele), &
+         matrix_addto = matrix_addto + shape_shape(ele_shape(t,vele), &
+                                                   ele_shape(t,vele), &
                                                    detwei*ele_val_at_quad(absorption,vele))
+         
+      end if have_absorption_if 
 
-      else keff_or_time_removal
+      ! add the source term 
+      have_source_if: if (have_source) then
          
-            ! fill in ...
+             rhs_addto = rhs_addto + shape_rhs(ele_shape(t,vele), &
+                                               detwei*ele_val_at_quad(source,vele))
          
-      end if keff_or_time_removal 
-                                               
-      ! if time run include the prescribed source
-      time_run: if (.not. invoke_eigenvalue_group_solve) then
-                  
-         add_prescribed_isotropic_source: if (particle_group_g_assemble_options%include_prescribed_source) then
-                   
-             ! extract the prescribed isotropic source field
-             prescribed_isotropic_source_field => extract_scalar_field(state, &
-                                                                       trim(particle_flux(g)%ptr%name)//'Source', &
-                                                                       stat=status)
-                   
-             rhs_addto = rhs_addto + shape_rhs(ele_shape(particle_flux(g)%ptr,vele), &
-                                               detwei*ele_val_at_quad(prescribed_isotropic_source_field,vele))
-                                             
-         end if add_prescribed_isotropic_source
-         
-         add_delayed: if (particle_group_g_assemble_options%have_delayed) then
-         
-            ! fill in ...
-            
-         end if add_delayed
-      
-      end if time_run
+      end if have_source_if 
 
       ! insert the local vele matrix and rhs into the global arrays 
       call addto(matrix, &
-                 ele_nodes(particle_flux(g)%ptr, vele), &
-                 ele_nodes(particle_flux(g)%ptr, vele), &
+                 ele_nodes(t, vele), &
+                 ele_nodes(t, vele), &
                  matrix_addto)
 
       call addto(rhs, &
-                 ele_nodes(particle_flux(g)%ptr, vele), &
+                 ele_nodes(t, vele), &
                  rhs_addto)
               
    end subroutine assemble_particle_group_g_vele
@@ -709,7 +600,7 @@ contains
                                                     positions, &
                                                     matrix, & 
                                                     bc_value, &
-                                                    particle_flux)
+                                                    t)
       
       !!< Assemble the diffusion theory albedo boundary condition that involves adding 
       !!< a surface mass matrix * coefficient to the main matrix
@@ -720,13 +611,13 @@ contains
       type(vector_field), intent(in) :: positions
       type(csr_matrix), intent(inout) :: matrix
       type(scalar_field), intent(in) :: bc_value
-      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: t 
       
       ! local variables
-      real, dimension(face_ngi(particle_flux, face)) :: detwei    
-      real, dimension(face_loc(particle_flux, face), face_loc(particle_flux, face)) :: matrix_addto
+      real, dimension(face_ngi(t, face)) :: detwei    
+      real, dimension(face_loc(t, face), face_loc(t, face)) :: matrix_addto
       
-      assert(face_ngi(positions, face) == face_ngi(particle_flux, face))
+      assert(face_ngi(positions, face) == face_ngi(t, face))
             
       call transform_facet_to_physical(positions, &
                                        face, &
@@ -734,14 +625,14 @@ contains
       
       ! the 0.5 is a necessary part of this BC formulation, the bc_value is the albedo coeff
       ! where a value of 1.0 is a perfect reflective and a value of 0.0 is a perfect vacuum
-      matrix_addto = shape_shape(face_shape(particle_flux, face), &
-                                 face_shape(particle_flux, face), &
+      matrix_addto = shape_shape(face_shape(t, face), &
+                                 face_shape(t, face), &
                                  detwei*0.5*( (1.0 - ele_val_at_quad(bc_value,face) ) / &
                                               (1.0 + ele_val_at_quad(bc_value,face) ) ) )
       
       call addto(matrix, &
-                 face_global_nodes(particle_flux,face), &
-                 face_global_nodes(particle_flux,face), &
+                 face_global_nodes(t,face), &
+                 face_global_nodes(t,face), &
                  matrix_addto)
                 
    end subroutine assemble_particle_group_g_sele_albedo
@@ -752,7 +643,7 @@ contains
                                                     positions, &
                                                     rhs, & 
                                                     bc_value, &
-                                                    particle_flux)
+                                                    t)
       
       !!< Include the particle source boundary condition into the rhs
       
@@ -762,23 +653,23 @@ contains
       type(vector_field), intent(in) :: positions
       type(scalar_field), intent(inout) :: rhs
       type(scalar_field), intent(in) :: bc_value
-      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: t 
       
       ! local variables
-      real, dimension(face_ngi(particle_flux, face)) :: detwei    
-      real, dimension(ele_loc(particle_flux, face)) :: rhs_addto      
+      real, dimension(face_ngi(t, face)) :: detwei    
+      real, dimension(ele_loc(t, face)) :: rhs_addto      
       
-      assert(face_ngi(positions, face) == face_ngi(particle_flux, face))
+      assert(face_ngi(positions, face) == face_ngi(t, face))
             
       call transform_facet_to_physical(positions, &
                                        face, &
                                        detwei_f = detwei)  
       
-      rhs_addto = shape_rhs(face_shape(particle_flux, face), &
+      rhs_addto = shape_rhs(face_shape(t, face), &
                             detwei*ele_val_at_quad(bc_value,face) )
       
       call addto(rhs, &
-                 face_global_nodes(particle_flux,face), &
+                 face_global_nodes(t,face), &
                  rhs_addto)
                 
    end subroutine assemble_particle_group_g_sele_source
