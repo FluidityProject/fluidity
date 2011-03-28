@@ -166,8 +166,8 @@ contains
     ewrite(2, *) "inside implicit_solids"
 
     ! SolidConcentration will be called /alpha in the comments from now on
-    ! Furthermore, the superscript will denote on which mesh the corresponding 
-    ! variable will live, and the subscript will distinguish between the phase, 
+    ! Furthermore, the superscript will denote on which mesh the corresponding
+    ! variable will live, and the subscript will distinguish between the phase,
     ! i.e. u_f^s will be the fluid velocity on the solid mesh.
     ! solid actually is /alpha_s^f:
     solid => extract_scalar_field(state, "SolidConcentration")
@@ -180,7 +180,7 @@ contains
        call get_option("/implicit_solids/source_intensity", &
             source_intensity, default=0.)
        call get_option("/material_phase::"//trim(state%name)// &
-            "/equation_of_state/fluids/linear/reference_density", rho_f)
+            "/equation_of_state/fluids/linear/reference_density", rho_f, default = 1.0)
 
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
@@ -218,7 +218,7 @@ contains
 
           ! Computing /alpha_s^f:
           do i = 1, number_of_solids
-             ewrite(2, *) "  calculating volume fraction for solid", i 
+             ewrite(2, *) "  calculating volume fraction for solid", i
              call calculate_volume_fraction(state, i)
           end do
 
@@ -340,7 +340,7 @@ contains
        ! current time step volume fraction
        call set(solid, solid_local)
 
-       ! Set absorption term /sigma 
+       ! Set absorption term /sigma
        call set_absorption_coefficient(state)
        ! set source
        call set_source(state)
