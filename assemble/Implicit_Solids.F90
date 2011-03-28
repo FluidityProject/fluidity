@@ -125,7 +125,7 @@ module implicit_solids
 
   type(tensor_field), save :: metric, edge_lengths
 
-  real, save :: beta, radius, source_intensity
+  real, save :: beta, radius, source_intensity, rho_f
   real, save :: solid_peclet_number, fluid_peclet_number
 
   real, dimension(:), allocatable, save :: pressure_gradient
@@ -168,7 +168,8 @@ contains
     ! SolidConcentration will be called /alpha in the comments from now on
     ! Furthermore, the superscript will denote on which mesh the corresponding 
     ! variable will live, and the subscript will distinguish between the phase, 
-    ! i.e. u^s_f will be the fluid velocity on the solid mesh.
+    ! i.e. u_f^s will be the fluid velocity on the solid mesh.
+    ! solid actually is /alpha_s^f:
     solid => extract_scalar_field(state, "SolidConcentration")
 
     if (.not. init) then
@@ -178,6 +179,8 @@ contains
        call get_option("/implicit_solids/beta", beta, default=1.)
        call get_option("/implicit_solids/source_intensity", &
             source_intensity, default=0.)
+       call get_option("/material_phase::"//trim(state%name)// &
+            "/equation_of_state/fluids/linear/reference_density", rho_f)
 
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
@@ -192,7 +195,7 @@ contains
        else
           FLAbort("implicit_solids: Don't know what to do...")
        end if
-       ! Make sure /alpha is computed at first timestep:
+       ! Make sure /alpha_s^f is computed at first timestep:
        do_calculate_volume_fraction = .true.
        ! At this stage, everything is initialised:
        init=.true.
@@ -200,20 +203,20 @@ contains
 
     ! 1-WAY COUPLING
     if (one_way_coupling) then
-       ! Computation of /alpha^f_s and the SolidPhase
+       ! Computation of /alpha_s^f and the SolidPhase
        ! at the first timestep and after each adapt:
        if (do_calculate_volume_fraction) then
           call allocate(solid_local, solid%mesh, "SolidConcentration")
           call zero(solid_local)
 
           ! The SolidPhase represents the surface of the immersed body
-          ! on the fluids mesh:
+          ! on the fluids mesh (0 < /alpha_s^f < 1):
           call allocate(interface_local, solid%mesh, "SolidPhase")
           call zero(interface_local)
 
           allocate(node_to_particle(node_count(solid)))
 
-          ! Computing /alpha^f_s:
+          ! Computing /alpha_s^f:
           do i = 1, number_of_solids
              ewrite(2, *) "  calculating volume fraction for solid", i 
              call calculate_volume_fraction(state, i)
@@ -247,10 +250,10 @@ contains
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
+       ! Set absorption term /sigma
+       call set_absorption_coefficient(state)
        ! Set source term (only if temperature, pressure gradient or 2-way coupling)
        call set_source(state)
-       ! Set absorption term /sigma 
-       call set_absorption_coefficient(state)
 
        if (have_fixed_temperature_source) &
             call calculate_temperature_diffusivity(state)
@@ -337,9 +340,10 @@ contains
        ! current time step volume fraction
        call set(solid, solid_local)
 
-       ! set source and absorption
-       call set_source(state)
+       ! Set absorption term /sigma 
        call set_absorption_coefficient(state)
+       ! set source
+       call set_source(state)
 
        ! Check if the mesh is adapted at end of this timestep
        do_calculate_volume_fraction = .false.
@@ -970,7 +974,6 @@ contains
 
     type(state_type), intent(in) :: state
 
-    real, save :: rho_f
     character(len=FIELD_NAME_LEN), save :: external_mesh_name
     integer, save :: use_bulk
     logical, save :: init=.false.
@@ -981,8 +984,6 @@ contains
     if (.not. init) then
        call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
             external_mesh_name)
-       call get_option("/material_phase::"//trim(state%name)// &
-            "/equation_of_state/fluids/linear/reference_density", rho_f)
 
        if (use_bulk_velocity) then
           use_bulk = 1
@@ -1053,7 +1054,7 @@ contains
     !integer :: stat
 
     ! this subroutine interpolates forces and velocities
-    ! between fluidity and femdem meshes
+    ! between fluid and solid mesh
     ! if operation == "in"  : interpolate from femdem to fluidity
     ! if operation == "out" : interpolate from fluidity to femdem
 
