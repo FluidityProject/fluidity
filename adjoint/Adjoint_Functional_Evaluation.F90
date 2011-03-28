@@ -271,6 +271,9 @@ module adjoint_functional_evaluation
           call python_run_string("timestep = " // trim(buffer))
 
           call python_run_string(trim(code_func))
+          ! The += below comes from the fact that the reduction operator for each timestep component is addition
+          ! So we shall assert that no one has added anything funny:
+          assert(have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/reduction/sum"))
           call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
         end do
       end if
