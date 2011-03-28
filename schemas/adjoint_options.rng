@@ -70,6 +70,16 @@ and you may supply both.</a:documentation>
                 </attribute>
                 <ref name="python_code"/>
               </element>
+              <element name="reduction">
+                <a:documentation>The functional does not exist at any particular point in time; however, the code above is called at every timestep.
+This is to allow for temporal localisation. Suppose you wished to compute an integral in time: this allows you to perform
+the integral over each element of your time domain separately, and then they must be combined to compute the full value of
+the functional. In this example, the relevant reduction would be a sum.</a:documentation>
+                <element name="sum">
+                  <a:documentation>Sum all of the functional components associated with each timestep to compute the functional</a:documentation>
+                  <empty/>
+                </element>
+              </element>
             </element>
           </optional>
           <optional>

@@ -218,6 +218,9 @@ for ele in range(derivative.element_count):
   mu = numpy.dot(mass, u.ele_val(ele))
   J = J + numpy.dot(f[nodes], mu)</string_value>
         </algorithm>
+        <reduction>
+          <sum/>
+        </reduction>
       </functional_value>
       <functional_dependencies>
         <algorithm name="functional_dependencies">

@@ -280,9 +280,32 @@ elif time == 1.0:
   </material_phase>
   <adjoint>
     <functional name="dummy">
+      <functional_value>
+        <algorithm name="functional_value">
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer
+J = 0.0
+if time == 1.0:
+  import numpy
+  coord  = states[n]["Fluid"].vector_fields["Coordinate"]
+  u      = states[n]["Fluid"].scalar_fields["Velocity"]
+  target = states[n]["Fluid"].scalar_fields["TargetVelocity"]
+  
+  for ele in range(u.element_count):
+    t = Transform(ele, coord)
+    shape = u.ele_shape(ele)
+    m = t.shape_shape(shape, shape)
+    v = u.ele_val(ele) - target.ele_val(ele)
+    J += numpy.sum(numpy.outer(v, v) * m)
+    
+  J = 0.5 * J&lt;/string_value&gt;</string_value>
+        </algorithm>
+        <reduction>
+          <sum/>
+        </reduction>
+      </functional_value>
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer
 import numpy
 
 coord = states[n]["Fluid"].vector_fields["Coordinate"]
@@ -304,29 +327,9 @@ if time == 1.0:
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer</string_value>
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer</string_value>
         </algorithm>
       </functional_dependencies>
-      <functional_value>
-        <algorithm name="functional_value">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
-J = 0.0
-if time == 1.0:
-  import numpy
-  coord  = states[n]["Fluid"].vector_fields["Coordinate"]
-  u      = states[n]["Fluid"].scalar_fields["Velocity"]
-  target = states[n]["Fluid"].scalar_fields["TargetVelocity"]
-  
-  for ele in range(u.element_count):
-    t = Transform(ele, coord)
-    shape = u.ele_shape(ele)
-    m = t.shape_shape(shape, shape)
-    v = u.ele_val(ele) - target.ele_val(ele)
-    J += numpy.sum(numpy.outer(v, v) * m)
-    
-  J = 0.5 * J&lt;/string_value&gt;</string_value>
-        </algorithm>
-      </functional_value>
     </functional>
   </adjoint>
 </burgers_equation>
