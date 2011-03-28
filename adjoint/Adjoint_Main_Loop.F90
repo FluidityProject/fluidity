@@ -138,6 +138,7 @@ module adjoint_main_loop
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
           default_stat = functional_stats(functional + 1)
+          functional_computed = .false.
 
           do equation=end_timestep,start_timestep,-1
             ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)

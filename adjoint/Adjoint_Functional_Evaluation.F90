@@ -42,9 +42,10 @@ module adjoint_functional_evaluation
   use python_state
   use libadjoint_data_callbacks
   use field_options
-  use adjoint_global_variables, only: adj_var_lookup
+  use adjoint_global_variables
   use mangle_options_tree, only: adjoint_field_path
   use adjoint_python, only: adj_variables_from_python
+  implicit none
 
   private
   public :: libadjoint_functional_derivative, adj_record_anything_necessary
@@ -82,6 +83,8 @@ module adjoint_functional_evaluation
 
     integer :: dim
     real :: J
+    integer :: ndepending_timesteps
+    real :: tmp_start_time, tmp_end_time
 
     call python_reset
 
@@ -223,11 +226,14 @@ module adjoint_functional_evaluation
     end if
 
     if (has_func) then
-      if (has_deriv) then ! If we also have the derivative, there's no need to sweat about applying AD
+      if (.not. functional_computed) then
         call python_run_string(trim(code_func))
         J = python_fetch_real("J")
         call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
-      else
+        functional_computed = .true.
+      end if
+
+      if (.not. has_deriv) then
         check_uncertainties = "try: " // achar(10) // &
                             & "  import uncertainties" // achar(10) // &
                             & "except ImportError: " // achar(10) // &
@@ -237,16 +243,36 @@ module adjoint_functional_evaluation
         call python_run_string("import numpy")
         call python_run_string("import uncertainties")
         call python_run_string("from uncertainties import unumpy")
+
+
         ! Backup u.val
         call python_run_string("tmp_uval = states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
         ! Replace u.val with AD-ified object
         call python_run_string("states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
-        call python_run_string(trim(code_func))
-        call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] = J.derivatives[states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
-        call python_run_string("J = J.nominal_value")
+        ! Loop over each timestep that this variable might be used in
 
-        J = python_fetch_real("J")
-        call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
+        ierr = adj_variable_get_ndepending_timesteps(adjointer, var, trim(functional_name_f), ndepending_timesteps)
+        call adj_chkierr(ierr)
+        do i=0,ndepending_timesteps-1
+          ierr = adj_variable_get_depending_timestep(adjointer, var, trim(functional_name_f), i, timestep)
+          call adj_chkierr(ierr)
+
+          ierr = adj_timestep_get_times(adjointer, timestep, tmp_start_time, tmp_end_time)
+          call adj_chkierr(ierr)
+
+          write(buffer,*) tmp_end_time
+          call python_run_string("time = " // trim(buffer))
+
+          write(buffer, *) tmp_start_time - tmp_end_time
+          call python_run_string("dt = " // trim(buffer))
+
+          write(buffer, *) timestep
+          call python_run_string("n = " // trim(buffer))
+          call python_run_string("timestep = " // trim(buffer))
+
+          call python_run_string(trim(code_func))
+          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
+        end do
       end if
     end if
 
@@ -366,6 +392,11 @@ module adjoint_functional_evaluation
             sfield => extract_scalar_field(states(state), trim(field_name))
             record = field_to_adj_vector(sfield)
             ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
+            if (ierr == ADJ_ERR_INVALID_INPUTS) then
+              call femtools_vec_destroy_proc(record)
+            else
+              call adj_chkierr(ierr)
+            end if
             cycle
           end if
 
@@ -373,6 +404,11 @@ module adjoint_functional_evaluation
             vfield => extract_vector_field(states(state), trim(field_name))
             record = field_to_adj_vector(vfield)
             ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
+            if (ierr == ADJ_ERR_INVALID_INPUTS) then
+              call femtools_vec_destroy_proc(record)
+            else
+              call adj_chkierr(ierr)
+            end if
             cycle
           end if
 
@@ -380,6 +416,11 @@ module adjoint_functional_evaluation
             tfield => extract_tensor_field(states(state), trim(field_name))
             record = field_to_adj_vector(tfield)
             ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
+            if (ierr == ADJ_ERR_INVALID_INPUTS) then
+              call femtools_vec_destroy_proc(record)
+            else
+              call adj_chkierr(ierr)
+            end if
             cycle
           end if
 
