@@ -399,7 +399,10 @@ module zoltan_integration
 
     integer(zoltan_int) :: ierr
     character (len = FIELD_NAME_LEN) :: method, graph_checking_level
-    
+
+    real :: load_imbalance_tolerance
+    character (len = 10) :: string_load_imbalance_tolerance
+
     if (debug_level()>1) then
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
     else         
@@ -407,8 +410,21 @@ module zoltan_integration
     end if
 
     if (iteration /= max_adapt_iteration) then
-        ! ignore large load imbalances when on intermediate adapt iterations
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance")) then
+          call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance)
+          ! check the value is reasonable
+          if (load_imbalance_tolerance < 1.0) then
+             FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
+          end if
+          
+          ! convert our real to a string for passing to Zoltan
+          write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+
+          ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+       else
+        ! default is to ignore large load imbalances when on intermediate adapt iterations
         ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.5"); assert(ierr == ZOLTAN_OK)
+     end if
     else 
         ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
     end if

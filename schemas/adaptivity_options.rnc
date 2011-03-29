@@ -950,6 +950,18 @@ hr_adaptivity =
             element element_quality_cutoff {
                 real
             }?,
+            ## Load imbalance tolerance.
+            ## The amount of load imbalance the partitioning algorithm should deem acceptable.
+            ## The imbalance is computed as the maximum load divided by the average load.
+            ## A value for load_imbalance_tol of 1.2 indicates that 20% imbalance is okay.
+            ## A high value for this parameter (~1.5) could see Zoltan produce poorer partitions
+            ## but be able to move the partition boundaries easier to allow adaption. For some 
+            ## problems where the partitioner creates empty partitions lowering this (~1.075) will
+            ## force Zoltan to create more evenly balanced partitions (no empty ones) but may
+            ## require more adapt iterations to produce a fully adapted final mesh.
+            element load_imbalance_tolerance {
+                real
+            }?,
             ## Zoltan Debugging
             ## 
             ## Turn on more verbose output for use when debugging Zoltan.
