@@ -44,7 +44,8 @@ module radiation_assemble_solve_group
    use state_module  
    use petsc_solve_state_module   
    use sparsity_patterns_meshes 
-    
+   use advection_diffusion_cg 
+      
    use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_extract_flux_field
@@ -81,6 +82,7 @@ contains
       
       ! local variables
       character(len=OPTION_PATH_LEN) :: field_name
+      real :: dummy_dt
             
       ! assemble the diffusivity, absorption and already discretised rhs term 
       ! scalar fields and insert into particle%state
@@ -90,9 +92,21 @@ contains
       
       ! form the field name to solve for
       field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
+      
+      if (have_option('/embedded_models/radiation/use_fluids_advection_diffusion')) then
+         
+         dummy_dt = 1.0
+         
+         call solve_field_equation_cg(trim(field_name), &
+                                      particle%state, &
+                                      dummy_dt)
+         
+      else 
             
-      call assemble_matrix_solve_group_g(field_name, &
-                                         particle%state)
+         call assemble_matrix_solve_group_g(trim(field_name), &
+                                            particle%state)
+      
+      end if 
             
    end subroutine particle_assemble_solve_group
 
@@ -103,7 +117,9 @@ contains
                                             invoke_eigenvalue_group_solve)
       
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
-      !!< somewhere else to assemble the linear system
+      !!< somewhere else to assemble the linear system. For a time run the velocity coeff
+      !!< are times through the equation into the other material property fields
+      !!< as the assemble and solve procedure has no density term.
 
       type(particle_type), intent(inout) :: particle
       integer, intent(in) :: g
@@ -120,7 +136,8 @@ contains
       real, dimension(:), allocatable :: rhs_addto      
       type(scalar_field) :: production_coeff 
       type(scalar_field) :: prompt_spectrum_coeff 
-      type(scalar_field) :: scatter_coeff            
+      type(scalar_field) :: scatter_coeff 
+      type(scalar_field) :: velocity_coeff                 
       type(scalar_field), pointer :: absorption_coeff
       type(tensor_field), pointer :: diffusivity_coeff
       type(scalar_field), pointer :: discretised_source
@@ -175,6 +192,14 @@ contains
       field_name = trim(particle_flux(g)%ptr%name)//'PromptSpectrum'
       call allocate(prompt_spectrum_coeff, material_fn_space, trim(field_name))
       call zero(prompt_spectrum_coeff)
+
+      alloc_velocity: if (.not. invoke_eigenvalue_group_solve) then
+         
+         field_name = trim(particle_flux(g)%ptr%name)//'Velocity'
+         call allocate(velocity_coeff, material_fn_space, trim(field_name))
+         call zero(velocity_coeff)
+      
+      end if alloc_velocity
       
       ! extract the assemble fields as needed
       absorption_coeff => extract_scalar_field(particle%state, &
@@ -193,6 +218,18 @@ contains
       call zero(absorption_coeff)
       call zero(diffusivity_coeff)
       call zero(discretised_source)
+
+      ! form the velocity coeff field for this energy group if time run
+      form_velocity: if (.not. invoke_eigenvalue_group_solve) then
+                 
+         call form(material_fn_space, &
+                   particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                   particle%particle_radmat, &
+                   velocity_coeff, &
+                   g, &
+                   component = 'velocity')
+      
+      end if form_velocity
             
       ! form the absorption coeff field for this energy group (which is actually the removal cross section)            
       call form(material_fn_space, &
@@ -201,6 +238,14 @@ contains
                 absorption_coeff, &
                 g, &
                 component = 'removal')
+      
+      ! if a time run scale the absorption coeff by the velocity coeff
+      scale_abs: if (.not. invoke_eigenvalue_group_solve) then
+      
+         call scale(absorption_coeff, &
+                    velocity_coeff)
+         
+      end if scale_abs 
             
       ! form the diffusivity tensor coeff field for this energy group (only fill in diagonals)            
       node_loop_d: do inode = 1,node_count(material_fn_space)                                                                      
@@ -259,6 +304,14 @@ contains
          end if 
                
       end do node_loop_d
+
+      ! if a time run scale the diffusivity coeff by the velocity coeff
+      scale_diff: if (.not. invoke_eigenvalue_group_solve) then
+      
+         call scale(diffusivity_coeff, &
+                    velocity_coeff)
+         
+      end if scale_diff 
             
       ! form the discretised source - scatter and production            
       
@@ -269,6 +322,14 @@ contains
                 prompt_spectrum_coeff, &
                 g, &
                 component = 'prompt_spectrum')
+
+      ! if a time run scale the prompt spectrum coeff by the velocity coeff
+      scale_prompt: if (.not. invoke_eigenvalue_group_solve) then
+      
+         call scale(prompt_spectrum_coeff, &
+                    velocity_coeff)
+         
+      end if scale_prompt 
                   
       group_loop: do g_dash = 1,size(particle_flux)
 
@@ -290,6 +351,14 @@ contains
                       g, &
                       component = 'scatter', &
                       g_dash = g_dash)
+
+            ! if a time run scale the scatter coeff by the velocity coeff
+            scale_scatter: if (.not. invoke_eigenvalue_group_solve) then
+      
+               call scale(scatter_coeff, &
+                          velocity_coeff)
+         
+            end if scale_scatter 
                                            
          end if not_within_group
          
@@ -358,6 +427,12 @@ contains
       call deallocate(scatter_coeff)
       call deallocate(production_coeff)
       call deallocate(prompt_spectrum_coeff)
+      
+      dealloc_velocity: if (.not. invoke_eigenvalue_group_solve) then
+         
+         call deallocate(velocity_coeff)
+      
+      end if dealloc_velocity
       
       ! deallocate the particle flux pointer fields
       call deallocate_flux_all_group(particle_flux     = particle_flux, &

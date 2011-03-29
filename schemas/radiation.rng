@@ -11,6 +11,13 @@
       <optional>
         <ref name="particle_type_photon"/>
       </optional>
+      <optional>
+        <element name="use_fluids_advection_diffusion">
+          <a:documentation>Use the fluids assemble solve procedure
+ONLY FOR DEVELOPMENT PURPOSES</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="particle_type_neutron">
@@ -571,7 +578,8 @@ iterations is reached and the tolerance criteria (both flux and keff) are not me
   </define>
   <define name="scatter_group_iteration_options">
     <element name="scatter_group_iteration">
-      <a:documentation>The scatter group iteration options (if not present then only one iteration)</a:documentation>
+      <a:documentation>The scatter group iteration options 
+(if not present then only one iteration of all energy groups from high to low)</a:documentation>
       <ref name="comment"/>
       <element name="maximum">
         <a:documentation>The maximum number of scatter group iterations</a:documentation>

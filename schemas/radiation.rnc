@@ -8,7 +8,13 @@ radiation =
                   
          particle_type_neutron?, 
          
-         particle_type_photon?    
+         particle_type_photon?,  
+         
+         ## Use the fluids assemble solve procedure
+         ## ONLY FOR DEVELOPMENT PURPOSES
+         element use_fluids_advection_diffusion {
+            empty
+         }?
       }
    )         
 
