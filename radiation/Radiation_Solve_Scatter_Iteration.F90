@@ -51,7 +51,8 @@ module radiation_solve_scatter_iteration
       integer :: highest_upscatter_group
       real :: flux_tolerance_absolute
       logical :: terminate_if_not_converged_scatter
-      character(len=OPTION_PATH_LEN) :: whole_domain_rebalance_scatter   
+      character(len=OPTION_PATH_LEN) :: whole_domain_rebalance_scatter
+      character(len=OPTION_PATH_LEN) :: energy_solve_direction         
    end type scatter_iteration_options_type
    
 contains
@@ -59,14 +60,21 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine scatter_iteration(particle, &
-                                invoke_eigenvalue_scatter_solve) 
+                                count_group_solves, &
+                                invoke_eigenvalue_scatter_solve)
       
       !!< Perform iterations around the group loop to solve scatter
+      !!< which could involve a dual sweep in both directions being
+      !!< high energy to low and low energy to high. A special case 
+      !!< of one energy group exists where this is not applicable.
       
       type(particle_type), intent(inout) :: particle
+      integer, intent(inout) :: count_group_solves
       logical, intent(in) :: invoke_eigenvalue_scatter_solve
       
       ! local variables
+      integer :: sweeps
+      integer :: isweep
       integer :: iscatter
       integer :: start_group
       integer :: end_group
@@ -100,17 +108,61 @@ contains
       start_group     = 1
       end_group       = number_of_energy_groups
       group_increment = 1
+      sweeps          = 1
+      
+      ! if there is only one energy group there is only a need for one scatter iteration
+      one_group: if (number_of_energy_groups == 1) then
+         
+         scatter_iteration_options%max_scatter_iteration = 1
+      
+      end if one_group
       
       scatter_iteration_loop: do iscatter = 1,scatter_iteration_options%max_scatter_iteration
          
          ewrite(1,*) 'Scatter iteration: ',iscatter
          
-         call energy_group_loop(particle, &
-                                start_group, &
-                                end_group, &
-                                group_increment, &
-                                invoke_eigenvalue_group_solve = invoke_eigenvalue_scatter_solve)
+         choose_groups: if (iscatter > 1) then
          
+            call choose_group_first_sweep_bounds(iscatter, &
+                                                 number_of_energy_groups, &
+                                                 scatter_iteration_options%highest_upscatter_group, &
+                                                 sweeps, &
+                                                 group_increment, &
+                                                 start_group, &
+                                                 end_group, &
+                                                 trim(scatter_iteration_options%energy_solve_direction))
+         
+         end if choose_groups
+         
+         group_sweeps_loop: do isweep = 1,sweeps
+            
+            to_many_sweeps: if (isweep > 2) then
+               
+               FLAbort('Greater than 2 energy direction sweeps')
+               
+            end if to_many_sweeps
+            
+            second_sweep: if (isweep == 2) then
+            
+               call choose_group_second_sweep_bounds(number_of_energy_groups, &
+                                                     scatter_iteration_options%highest_upscatter_group, &
+                                                     group_increment, &
+                                                     start_group, &
+                                                     end_group, &
+                                                     trim(scatter_iteration_options%energy_solve_direction))
+            
+            end if second_sweep
+            
+            ! loop the necessary energy groups
+            call energy_group_loop(particle, &
+                                   start_group, &
+                                   end_group, &
+                                   group_increment, &
+                                   count_group_solves, &
+                                   invoke_eigenvalue_scatter_solve)
+         
+         end do group_sweeps_loop
+                  
          ! rebalance accelerate the scatter iteration if options chosen
          rebalance: if (trim(scatter_iteration_options%whole_domain_rebalance_scatter) /= 'none') then
          
@@ -120,10 +172,9 @@ contains
          
          call check_scatter_iteration_convergence(scatter_iteration_converged)
          
-         ! further iterations sweep down groups from highest_upscatter_group (which could be 1 again)
-         start_group = scatter_iteration_options%highest_upscatter_group
+         if (scatter_iteration_converged) exit scatter_iteration_loop
          
-      end do  scatter_iteration_loop
+      end do scatter_iteration_loop
 
       need_to_terminate: if ((iscatter == scatter_iteration_options%max_scatter_iteration) .and. &
                               scatter_iteration_options%terminate_if_not_converged_scatter .and. &
@@ -152,6 +203,10 @@ contains
       call get_option(trim(scatter_group_iteration_option_path)//'/flux_tolerance_absolute', &
                       scatter_iteration_options%flux_tolerance_absolute, &
                       default = 1.0)
+                      
+      call get_option(trim(scatter_group_iteration_option_path)//'/energy_solve_direction/name', &
+                      scatter_iteration_options%energy_solve_direction, &
+                      default = 'HighToLow')
          
       scatter_iteration_options%terminate_if_not_converged_scatter = &
       have_option(trim(scatter_group_iteration_option_path)//'/terminate_if_not_converged')
@@ -168,33 +223,164 @@ contains
 
    ! --------------------------------------------------------------------------
    
+   subroutine choose_group_first_sweep_bounds(iscatter, &
+                                              number_of_energy_groups, &
+                                              highest_upscatter_group, &
+                                              sweeps, &
+                                              group_increment, &
+                                              start_group, &
+                                              end_group, &
+                                              energy_solve_direction)
+      
+      !!< Choose the group first sweep bounds options for this scatter iteration iscatter
+      
+      integer, intent(in) :: iscatter
+      integer, intent(in) :: number_of_energy_groups
+      integer, intent(in) :: highest_upscatter_group
+      integer, intent(out) :: sweeps
+      integer, intent(out) :: group_increment
+      integer, intent(out) :: start_group
+      integer, intent(out) :: end_group
+      character(len=*), intent(in) :: energy_solve_direction
+            
+      group_direction: if (trim(energy_solve_direction) == 'HighToLow') then
+               
+         sweeps = 1
+               
+         start_group = highest_upscatter_group
+         
+         end_group = number_of_energy_groups
+         
+         group_increment = +1      
+      
+      else if (trim(energy_solve_direction) == 'LowToHigh') then group_direction
+               
+         sweeps = 1
+               
+         if (iscatter == 2) then
+               
+            start_group = number_of_energy_groups - 1
+               
+         else 
+                  
+            start_group = number_of_energy_groups
+                  
+         end if
+               
+         end_group = highest_upscatter_group
+               
+         group_increment = -1
+              
+      else if(trim(energy_solve_direction) == 'HighToLowToHigh') then group_direction
+               
+         sweeps = 2
+                              
+         if (iscatter == 2) then
+               
+            start_group = highest_upscatter_group
+               
+         else 
+               
+            start_group = highest_upscatter_group + 1
+               
+         end if 
+               
+         end_group = number_of_energy_groups
+               
+         group_increment = +1
+               
+      else if(trim(energy_solve_direction) == 'LowToHighToLow') then group_direction
+               
+         sweeps = 2
+               
+         start_group = number_of_energy_groups - 1
+               
+         end_group = highest_upscatter_group
+               
+         group_increment = -1               
+            
+      else group_direction
+               
+         FLAbort('Unknown radiation energy dof solve direction')
+               
+      end if group_direction
+      
+   end subroutine choose_group_first_sweep_bounds 
+   
+   ! --------------------------------------------------------------------------
+   
+   subroutine choose_group_second_sweep_bounds(number_of_energy_groups, &
+                                               highest_upscatter_group, &
+                                               group_increment, &
+                                               start_group, &
+                                               end_group, &
+                                               energy_solve_direction)
+      
+      !!< Choose the group second sweep bounds options for this scatter iteration iscatter
+      
+      integer, intent(in) :: number_of_energy_groups
+      integer, intent(in) :: highest_upscatter_group
+      integer, intent(out) :: group_increment
+      integer, intent(out) :: start_group
+      integer, intent(out) :: end_group
+      character(len=*), intent(in) :: energy_solve_direction
+               
+      dual_group_direction: if (trim(energy_solve_direction) == 'HighToLowToHigh') then
+               
+         start_group = number_of_energy_groups - 1
+               
+         end_group = highest_upscatter_group
+               
+         group_increment = -1
+               
+      else dual_group_direction
+               
+         start_group = highest_upscatter_group + 1
+               
+         end_group = number_of_energy_groups
+               
+         group_increment = +1
+            
+      end if dual_group_direction               
+      
+   end subroutine choose_group_second_sweep_bounds 
+   
+   ! --------------------------------------------------------------------------
+   
    subroutine energy_group_loop(particle, &
                                 start_group, &
                                 end_group, &
                                 group_increment, &
+                                count_group_solves, &
                                 invoke_eigenvalue_group_solve)
       
       !!< Sweep the energy groups from the start_group to the end_group
       !!< in steps of group_increment (which could be negative)
-      !!<  solving the within group particle balance
+      !!< solving the within group particle balance
       
       type(particle_type), intent(inout) :: particle
       integer, intent(in) :: start_group
       integer, intent(in) :: end_group
       integer, intent(in) :: group_increment
+      integer, intent(inout) :: count_group_solves
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
       integer :: g
       
+      ! first sweep of energy dof from start to end
       group_loop: do g = start_group,end_group,group_increment
+         
+         ewrite(1,*) 'Assemble and solve energy group ',g
+         
+         count_group_solves = count_group_solves + 1
          
          ! Assemble and solve the group g particle balance
          call particle_assemble_solve_group(particle, &
                                             g, &
                                             invoke_eigenvalue_group_solve)
          
-      end do group_loop      
+      end do group_loop
       
    end subroutine energy_group_loop
 
@@ -215,7 +401,7 @@ contains
       
       logical, intent(out) :: scatter_iteration_converged
       
-      scatter_iteration_converged = .true.
+      scatter_iteration_converged = .false.
                   
    end subroutine check_scatter_iteration_convergence
 

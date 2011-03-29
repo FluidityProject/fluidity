@@ -583,6 +583,7 @@ iterations is reached and the tolerance criteria (both flux and keff) are not me
         <ref name="comment"/>
         <ref name="real"/>
       </element>
+      <ref name="scatter_energy_solve_direction_options"/>
       <optional>
         <element name="highest_upscatter_group">
           <a:documentation>The highest upscatter group, if enabled scatter iterations after the
@@ -602,6 +603,42 @@ iterations is reached and the tolerance criterion is not met.</a:documentation>
         <ref name="whole_domain_energy_group_rebalance_options"/>
       </optional>
     </element>
+  </define>
+  <define name="scatter_energy_solve_direction_options">
+    <choice>
+      <element name="energy_solve_direction">
+        <a:documentation>Within each scatter iteration after the first 
+sweep from high to low energy </a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>HighToLow</value>
+        </attribute>
+      </element>
+      <element name="energy_solve_direction">
+        <a:documentation>Within each scatter iteration after the first 
+sweep from low to high energy </a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>LowToHigh</value>
+        </attribute>
+      </element>
+      <element name="energy_solve_direction">
+        <a:documentation>Within each scatter iteration after the first 
+sweep from high to low then back to high energy</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>HighToLowToHigh</value>
+        </attribute>
+      </element>
+      <element name="energy_solve_direction">
+        <a:documentation>Within each scatter iteration after the first 
+sweep from low to high then back to low energy </a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>LowToHighToLow</value>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="time_equation">
     <element name="equation">

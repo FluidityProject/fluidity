@@ -73,6 +73,8 @@ contains
       ! local variables
       integer :: ipower
       integer :: number_all_convereged_pass
+      integer :: count_group_solves
+      integer :: total_count_group_solves
       logical :: power_iteration_converged
       type(power_iteration_options_type) :: power_iteration_options
       type(scalar_field), pointer :: keff_field
@@ -84,6 +86,9 @@ contains
       ! intialise the number of all convergence passes in power iterations
       number_all_convereged_pass = 0
       
+      ! initialise the total number of groups solves performed counter
+      total_count_group_solves = 0
+      
       call get_power_iteration_options(particle, &
                                        power_iteration_options)                                       
                   
@@ -91,9 +96,13 @@ contains
          
          ewrite(1,*) 'Power iteration: ',ipower
          
+         ! initialise the number of group solves performed for this power iteration counter
+         count_group_solves = 0
+         
          call copy_to_old_values_eig(particle)
                   
          call scatter_iteration(particle, &
+                                count_group_solves, &
                                 invoke_eigenvalue_scatter_solve = .true.)
                            
          call calculate_eigenvalue(particle)
@@ -102,10 +111,16 @@ contains
                                                 number_all_convereged_pass, &
                                                 particle, &
                                                 power_iteration_options)
+         
+         ewrite(1,*) 'Number of group solves for this power iteration: ',count_group_solves
+         
+         total_count_group_solves = total_count_group_solves + count_group_solves
                            
          if (power_iteration_converged) exit power_iteration
                   
       end do power_iteration
+      
+      ewrite(1,*) 'Total number of group solves for power iteration method: ',total_count_group_solves
       
       ! set the Keff into the constant scalar field for output
       keff_field => extract_scalar_field(particle%state, &

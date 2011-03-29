@@ -74,8 +74,6 @@ contains
       integer :: vele_id
       real, dimension(:), allocatable :: detwei_vele
       real, dimension(:), allocatable :: product_ele_val_at_quad
-
-      ewrite(1,*) 'Integrate the product of a set of scalar fields over spatial domain'
       
       ! assert that each scalar field has the same number of elements and the same dim as positions
       field_assert_vele_loop: do s = 1,size(scalar_fields)

@@ -652,6 +652,7 @@ flux_norm_value_and_symmetry =
       }?   
    )
 
+
 power_iteration_element = 
    (
       ## The maximum number of power iterations
@@ -681,7 +682,8 @@ power_iteration_element =
 
 scatter_group_iteration_options = 
    (
-      ## The scatter group iteration options (if not present then only one iteration)
+      ## The scatter group iteration options 
+      ## (if not present then only one iteration of all energy groups from high to low)
       element scatter_group_iteration {
          comment,
          ## The maximum number of scatter group iterations
@@ -694,6 +696,7 @@ scatter_group_iteration_options =
             comment,
             real
          },                  
+         scatter_energy_solve_direction_options,
          ## The highest upscatter group, if enabled scatter iterations after the
          ## first will start sweeping down from this group
          element highest_upscatter_group {
@@ -708,7 +711,40 @@ scatter_group_iteration_options =
          whole_domain_energy_group_rebalance_options?
       }        
    )
-   
+
+
+scatter_energy_solve_direction_options = 
+   (
+      ## Within each scatter iteration after the first 
+      ## sweep from high to low energy 
+      element energy_solve_direction {
+         comment,
+         
+         attribute name { "HighToLow" }
+      }|
+      ## Within each scatter iteration after the first 
+      ## sweep from low to high energy 
+      element energy_solve_direction {
+         comment,
+         
+         attribute name { "LowToHigh" }
+      }|
+      ## Within each scatter iteration after the first 
+      ## sweep from high to low then back to high energy
+      element energy_solve_direction {
+         comment,
+         
+         attribute name { "HighToLowToHigh" }
+      }|
+      ## Within each scatter iteration after the first 
+      ## sweep from low to high then back to low energy 
+      element energy_solve_direction {
+         comment,
+         
+         attribute name { "LowToHighToLow" }
+      }       
+   )  
+ 
 
 time_equation = 
    (
