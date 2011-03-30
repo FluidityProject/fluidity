@@ -1097,7 +1097,11 @@ contains
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
           ! extract 2nd surface field if needed
           if (present(boundary_second_value)) then
-             surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+             if (size(field%bc%boundary_condition(i)%surface_fields) == 2) then 
+                surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+             else
+                FLAbort('Boundary condition surface_fields not the correct size for assigning second boundary value')
+             end if 
           else 
              nullify(surface_field_second_value)
           end if 
