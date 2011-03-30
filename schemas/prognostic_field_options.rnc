@@ -1,45 +1,5 @@
-prognostic_scalar_field =
-   (
-      scalar_equation_choice,
-      spatial_discretisation_options,
-      temporal_discretisation_options,
-      (
-         ## Solver
-         element solver {
-            linear_solver_options_asym
-         }|
-         ## Assume this field is being solved explicitly and skip the solver.
-         ##
-         ## ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
-         ##
-         ## Assumes lhs matrix only has diagonal lumped mass (times
-         ## density if appropriate for equation)
-         ## and divides the rhs by this.
-         element explicit {
-            empty
-         }
-      ),
-      (
-         ## Initial condition for WholeMesh
-         ##
-         ## Only specify one condition if not using mesh regions.
-         ## Otherwise select other initial_condition option, specify region_ids
-         ## and distinct names.  Then add extra intial conditions for other regions.
-         element initial_condition {
-            attribute name { "WholeMesh" },
-            input_choice_initial_condition_real
-         }|
-         ## Multiple initial_conditions are allowed if specifying
-         ## different values in different
-         ## regions of the mesh (defined by region_ids).  In this case
-         ## each initial_condition
-         ## requires a distinct name for the options dictionary.
-         element initial_condition {
-            attribute name { string },
-            region_ids?,
-            input_choice_initial_condition_real
-         }
-      )+,
+scalar_boundary_conditions =
+  (
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
@@ -118,7 +78,52 @@ prognostic_scalar_field =
                }
             }
          )
-      }*,
+      }
+)
+
+prognostic_scalar_field =
+   (
+      scalar_equation_choice,
+      spatial_discretisation_options,
+      temporal_discretisation_options,
+      (
+         ## Solver
+         element solver {
+            linear_solver_options_asym
+         }|
+         ## Assume this field is being solved explicitly and skip the solver.
+         ##
+         ## ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
+         ##
+         ## Assumes lhs matrix only has diagonal lumped mass (times
+         ## density if appropriate for equation)
+         ## and divides the rhs by this.
+         element explicit {
+            empty
+         }
+      ),
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids?,
+            input_choice_initial_condition_real
+         }
+      )+,
+      scalar_boundary_conditions*,
       ## Choice of subgridscale model to apply to this field. 
       ## Note that the selected parameterisation must be switched 
       ## on for this material phase.

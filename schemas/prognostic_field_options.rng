@@ -1,5 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="scalar_boundary_conditions">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id:</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <choice>
+        <a:documentation>Type</a:documentation>
+        <element name="type">
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <optional>
+            <element name="apply_weakly">
+              <a:documentation>Apply the dirichlet bc weakly.  Available
+automatically with discontinuous_galerkin and
+control_volume
+spatial_discretisations.
+If not selected boundary conditions are applied strongly.</a:documentation>
+              <optional>
+                <element name="boundary_overwrites_initial_condition">
+                  <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="type">
+          <attribute name="name">
+            <value>neumann</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="type">
+          <attribute name="name">
+            <value>robin</value>
+          </attribute>
+          <element name="order_zero_coefficient">
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="order_one_coefficient">
+            <ref name="input_choice_real"/>
+          </element>
+        </element>
+        <element name="type">
+          <a:documentation>Prevent the field from fluxing out of the boundary.
+Only applicable to control volume spatial discretisations.</a:documentation>
+          <attribute name="name">
+            <value>zero_flux</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="type">
+          <a:documentation>Add a bulk formulae flux to the scale field. Should
+really be added to Temperature, Salinity, or PhotosyntheticRadation
+fields, or nothing will happen. Do not add another Neumann boundary
+onto the same surface, or you will get an error.</a:documentation>
+          <attribute name="name">
+            <value>bulk_formulae</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="type">
+          <a:documentation>Sediment reentrainment boundary. Any sediment in the correct
+sediment class will be rentrained back into the flow
+depending on the bed shear stress and the parameters of the 
+sediment grain</a:documentation>
+          <attribute name="name">
+            <value>sediment_reentrainment</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="type">
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
+turbulence model. Can be used on TurbulentKineticEnergy (k)
+and/or TurbulentDissipation (epsilon) fields.
+e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
+          <attribute name="name">
+            <value>k_epsilon</value>
+          </attribute>
+          <element name="wall_functions">
+            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
+            <element name="string_value">
+              <choice>
+                <value>low_Re</value>
+                <value>high_Re</value>
+              </choice>
+            </element>
+          </element>
+        </element>
+      </choice>
+    </element>
+  </define>
   <define name="prognostic_scalar_field">
     <ref name="scalar_equation_choice"/>
     <ref name="spatial_discretisation_options"/>
@@ -50,108 +154,7 @@ requires a distinct name for the options dictionary.</a:documentation>
       </choice>
     </oneOrMore>
     <zeroOrMore>
-      <element name="boundary_conditions">
-        <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
-        <choice>
-          <a:documentation>Type</a:documentation>
-          <element name="type">
-            <attribute name="name">
-              <value>dirichlet</value>
-            </attribute>
-            <optional>
-              <element name="apply_weakly">
-                <a:documentation>Apply the dirichlet bc weakly.  Available
-automatically with discontinuous_galerkin and
-control_volume
-spatial_discretisations.
-If not selected boundary conditions are applied strongly.</a:documentation>
-                <optional>
-                  <element name="boundary_overwrites_initial_condition">
-                    <a:documentation>If the initial condition and boundary conditions
-differ, setting this option will cause the initial
-condition on the boundary to be overwritten with
-the boundary condition. Since you are applying the
-boundary condition weakly, you probably do *not*
-want this.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="type">
-            <attribute name="name">
-              <value>neumann</value>
-            </attribute>
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="type">
-            <attribute name="name">
-              <value>robin</value>
-            </attribute>
-            <element name="order_zero_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-            <element name="order_one_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-          </element>
-          <element name="type">
-            <a:documentation>Prevent the field from fluxing out of the boundary.
-Only applicable to control volume spatial discretisations.</a:documentation>
-            <attribute name="name">
-              <value>zero_flux</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="type">
-            <a:documentation>Add a bulk formulae flux to the scale field. Should
-really be added to Temperature, Salinity, or PhotosyntheticRadation
-fields, or nothing will happen. Do not add another Neumann boundary
-onto the same surface, or you will get an error.</a:documentation>
-            <attribute name="name">
-              <value>bulk_formulae</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="type">
-            <a:documentation>Sediment reentrainment boundary. Any sediment in the correct
-sediment class will be rentrained back into the flow
-depending on the bed shear stress and the parameters of the 
-sediment grain</a:documentation>
-            <attribute name="name">
-              <value>sediment_reentrainment</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="type">
-            <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
-turbulence model. Can be used on TurbulentKineticEnergy (k)
-and/or TurbulentDissipation (epsilon) fields.
-e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
-            <attribute name="name">
-              <value>k_epsilon</value>
-            </attribute>
-            <element name="wall_functions">
-              <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-              <element name="string_value">
-                <choice>
-                  <value>low_Re</value>
-                  <value>high_Re</value>
-                </choice>
-              </element>
-            </element>
-          </element>
-        </choice>
-      </element>
+      <ref name="scalar_boundary_conditions"/>
     </zeroOrMore>
     <optional>
       <choice>

@@ -351,6 +351,12 @@
           </steady_state>
           <consistent_interpolation/>
         </prognostic>
+        <density>
+          <real_value rank="0">2650</real_value>
+        </density>
+        <diameter>
+          <real_value rank="0">10</real_value>
+        </diameter>
         <porosity>
           <real_value rank="0">0.5</real_value>
         </porosity>
