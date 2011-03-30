@@ -75,6 +75,8 @@ contains
       integer :: number_all_convereged_pass
       integer :: count_group_solves
       integer :: total_count_group_solves
+      integer :: petsc_iterations_taken_scatter_iter_all
+      integer :: petsc_iterations_taken_power_iter_all      
       logical :: power_iteration_converged
       type(power_iteration_options_type) :: power_iteration_options
       type(scalar_field), pointer :: keff_field
@@ -91,6 +93,8 @@ contains
       
       call get_power_iteration_options(particle, &
                                        power_iteration_options)                                       
+      
+      petsc_iterations_taken_power_iter_all = 0
                   
       power_iteration: do ipower = 1,power_iteration_options%max_power_iteration
          
@@ -103,6 +107,7 @@ contains
                   
          call scatter_iteration(particle, &
                                 count_group_solves, &
+                                petsc_iterations_taken_scatter_iter_all, &
                                 invoke_eigenvalue_scatter_solve = .true.)
                            
          call calculate_eigenvalue(particle)
@@ -114,13 +119,24 @@ contains
          
          ewrite(1,*) 'Number of group solves for this power iteration: ',count_group_solves
          
+         ewrite(1,*) 'Total number of petsc iterations taken for this power iteration only: ', &
+                     petsc_iterations_taken_scatter_iter_all
+         
          total_count_group_solves = total_count_group_solves + count_group_solves
+         
+         petsc_iterations_taken_power_iter_all = &
+         petsc_iterations_taken_power_iter_all + &
+         petsc_iterations_taken_scatter_iter_all
                            
          if (power_iteration_converged) exit power_iteration
                   
       end do power_iteration
       
-      ewrite(1,*) 'Total number of group solves for power iteration method: ',total_count_group_solves
+      ewrite(1,*) 'Total number of group solves for power iteration method: ', &
+                  total_count_group_solves
+      
+      ewrite(1,*) 'Total number of petsc iterations taken for power iteration method: ', &
+                  petsc_iterations_taken_power_iter_all
       
       ! set the Keff into the constant scalar field for output
       keff_field => extract_scalar_field(particle%state, &

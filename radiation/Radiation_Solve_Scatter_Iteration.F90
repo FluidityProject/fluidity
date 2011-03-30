@@ -61,6 +61,7 @@ contains
 
    subroutine scatter_iteration(particle, &
                                 count_group_solves, &
+                                petsc_iterations_taken_scatter_iter_all, &
                                 invoke_eigenvalue_scatter_solve)
       
       !!< Perform iterations around the group loop to solve scatter
@@ -71,6 +72,7 @@ contains
       type(particle_type), intent(inout) :: particle
       integer, intent(inout) :: count_group_solves
       logical, intent(in) :: invoke_eigenvalue_scatter_solve
+      integer, intent(out) :: petsc_iterations_taken_scatter_iter_all
       
       ! local variables
       integer :: sweeps
@@ -80,6 +82,7 @@ contains
       integer :: end_group
       integer :: group_increment
       integer :: number_of_energy_groups
+      integer :: petsc_iterations_taken_scatter_iter
       logical :: scatter_iteration_converged
       type(scatter_iteration_options_type) :: scatter_iteration_options
       character(len=OPTION_PATH_LEN) :: scatter_group_iteration_option_path
@@ -117,9 +120,13 @@ contains
       
       end if one_group
       
+      petsc_iterations_taken_scatter_iter_all = 0
+      
       scatter_iteration_loop: do iscatter = 1,scatter_iteration_options%max_scatter_iteration
          
          ewrite(1,*) 'Scatter iteration: ',iscatter
+         
+         petsc_iterations_taken_scatter_iter = 0
          
          choose_groups: if (iscatter > 1) then
          
@@ -159,7 +166,8 @@ contains
                                    end_group, &
                                    group_increment, &
                                    count_group_solves, &
-                                   invoke_eigenvalue_scatter_solve)
+                                   invoke_eigenvalue_scatter_solve, &
+                                   petsc_iterations_taken_scatter_iter)
          
          end do group_sweeps_loop
                   
@@ -171,6 +179,10 @@ contains
          end if rebalance
          
          call check_scatter_iteration_convergence(scatter_iteration_converged)
+         
+         petsc_iterations_taken_scatter_iter_all = &
+         petsc_iterations_taken_scatter_iter_all + &
+         petsc_iterations_taken_scatter_iter
          
          if (scatter_iteration_converged) exit scatter_iteration_loop
          
@@ -352,7 +364,8 @@ contains
                                 end_group, &
                                 group_increment, &
                                 count_group_solves, &
-                                invoke_eigenvalue_group_solve)
+                                invoke_eigenvalue_group_solve, &
+                                petsc_iterations_taken_scatter_iter)
       
       !!< Sweep the energy groups from the start_group to the end_group
       !!< in steps of group_increment (which could be negative)
@@ -364,9 +377,11 @@ contains
       integer, intent(in) :: group_increment
       integer, intent(inout) :: count_group_solves
       logical, intent(in) :: invoke_eigenvalue_group_solve
+      integer, intent(inout) :: petsc_iterations_taken_scatter_iter
       
       ! local variables
       integer :: g
+      integer :: petsc_iterations_taken_group_g
       
       ! first sweep of energy dof from start to end
       group_loop: do g = start_group,end_group,group_increment
@@ -378,7 +393,12 @@ contains
          ! Assemble and solve the group g particle balance
          call particle_assemble_solve_group(particle, &
                                             g, &
-                                            invoke_eigenvalue_group_solve)
+                                            invoke_eigenvalue_group_solve, &
+                                            petsc_iterations_taken_group_g)
+         
+         petsc_iterations_taken_scatter_iter = &
+         petsc_iterations_taken_scatter_iter + &
+         petsc_iterations_taken_group_g
          
       end do group_loop
       

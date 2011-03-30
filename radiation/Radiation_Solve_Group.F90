@@ -72,13 +72,15 @@ contains
 
    subroutine particle_assemble_solve_group(particle, &
                                             g, &
-                                            invoke_eigenvalue_group_solve) 
+                                            invoke_eigenvalue_group_solve, &
+                                            petsc_iterations_taken_group_g) 
    
       !!< Assemble and solve the group g particle matrix problem
 
       type(particle_type), intent(inout) :: particle
       integer, intent(in) :: g
       logical, intent(in) :: invoke_eigenvalue_group_solve
+      integer, intent(out) :: petsc_iterations_taken_group_g
       
       ! local variables
       character(len=OPTION_PATH_LEN) :: field_name
@@ -104,7 +106,8 @@ contains
       else 
             
          call assemble_matrix_solve_group_g(trim(field_name), &
-                                            particle%state)
+                                            particle%state, &
+                                            petsc_iterations_taken_group_g)
       
       end if 
             
@@ -443,13 +446,15 @@ contains
    ! --------------------------------------------------------------------------
    
    subroutine assemble_matrix_solve_group_g(field_name, &
-                                            state)
+                                            state, &
+                                            petsc_iterations_taken_group_g)
       
       !!< Assemble the matrix system for this group g and solve
       !!< This is only set up for even parity spherical harmonic P1 (ie diffusion) 
             
       character(len=*), intent(in) :: field_name
       type(state_type), intent(inout) :: state
+      integer, intent(out) :: petsc_iterations_taken_group_g
       
       ! local variables
       integer :: stat
@@ -581,7 +586,8 @@ contains
                        matrix, &
                        rhs, &
                        state, &
-                       option_path = trim(t%option_path) )
+                       option_path = trim(t%option_path), &
+                       iterations_taken = petsc_iterations_taken_group_g)
       
       ! set the direchlet bc nodes to be consistent
       call set_dirichlet_consistent(t)

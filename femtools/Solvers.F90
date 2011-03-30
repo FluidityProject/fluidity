@@ -127,7 +127,7 @@ contains
 
 subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   preconditioner_matrix, prolongators, surface_node_list, &
-  internal_smoothing_option)
+  internal_smoothing_option, iterations_taken)
   !!< Solve a linear system the nice way.
   type(scalar_field), intent(inout) :: x
   type(scalar_field), intent(in) :: rhs
@@ -142,7 +142,9 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   integer, dimension(:), optional, intent(in) :: surface_node_list
   !! internal smoothing option
   integer, intent(in), optional :: internal_smoothing_option
-
+  !! the number of petsc iterations taken
+  integer, intent(out), optional :: iterations_taken
+  
   KSP ksp
   Mat A
   Vec y, b
@@ -187,6 +189,10 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
         solver_option_path, lstartfromzero, literations, &
         sfield=x, x0=x%val)
+  
+  ! set the optional variable passed out of this procedure 
+  ! for the number of petsc iterations taken
+  if (present(iterations_taken)) iterations_taken = literations
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, petsc_numbering, x, rhs)

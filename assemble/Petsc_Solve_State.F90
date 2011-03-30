@@ -60,7 +60,7 @@ public petsc_solve, petsc_solve_needs_state, &
 contains
 
   subroutine petsc_solve_scalar_state(x, matrix, rhs, state, &
-    option_path)
+    option_path, iterations_taken)
     !!< Solve a linear system the nice way.
     !!< This version uses state to pull geometric information from
     !!< if required for the specified options.
@@ -70,6 +70,8 @@ contains
     type(state_type), intent(in):: state
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
+    !! the number of petsc iterations taken
+    integer, intent(out), optional :: iterations_taken
     
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
@@ -85,14 +87,16 @@ contains
         
         call petsc_solve(x, matrix, rhs, &
            prolongators=prolongators, &
-           surface_node_list=surface_nodes, option_path=option_path)
+           surface_node_list=surface_nodes, option_path=option_path, &
+           iterations_taken = iterations_taken)
            
         deallocate(surface_nodes)
         
       else
       
         call petsc_solve(x, matrix, rhs, &
-           prolongators=prolongators, option_path=option_path)
+           prolongators=prolongators, option_path=option_path, &
+           iterations_taken = iterations_taken)
         
       end if
       
@@ -103,7 +107,8 @@ contains
     
     else
     
-      call petsc_solve(x, matrix, rhs, option_path=option_path)
+      call petsc_solve(x, matrix, rhs, option_path=option_path, &
+                       iterations_taken = iterations_taken)
       
     end if
     
