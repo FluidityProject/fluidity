@@ -151,7 +151,7 @@
                     <scalar_field name="ParticleFlux">
                       <prognostic>
                         <mesh name="ParticleMesh"/>
-                        <equation name="Diffusion"/>
+                        <equation name="AdvectionDiffusion"/>
                         <spatial_discretisation>
                           <continuous_galerkin/>
                         </spatial_discretisation>
@@ -174,26 +174,6 @@
                             <real_value rank="0">1.0</real_value>
                           </constant>
                         </initial_condition>
-                        <boundary_conditions name="left">
-                          <surface_ids>
-                            <integer_value shape="1" rank="1">1</integer_value>
-                          </surface_ids>
-                          <type name="albedo">
-                            <constant>
-                              <real_value rank="0">1.0</real_value>
-                            </constant>
-                          </type>
-                        </boundary_conditions>
-                        <boundary_conditions name="right">
-                          <surface_ids>
-                            <integer_value shape="1" rank="1">2</integer_value>
-                          </surface_ids>
-                          <type name="albedo">
-                            <constant>
-                              <real_value rank="0">1.0</real_value>
-                            </constant>
-                          </type>
-                        </boundary_conditions>
                         <output/>
                         <stat/>
                         <detectors>

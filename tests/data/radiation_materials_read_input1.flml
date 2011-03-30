@@ -134,7 +134,7 @@
                     <scalar_field name="ParticleFlux">
                       <prognostic>
                         <mesh name="ParticleMesh"/>
-                        <equation name="Diffusion"/>
+                        <equation name="AdvectionDiffusion"/>
                         <spatial_discretisation>
                           <continuous_galerkin/>
                         </spatial_discretisation>

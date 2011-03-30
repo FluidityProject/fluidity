@@ -151,13 +151,13 @@
                     <scalar_field name="ParticleFlux">
                       <prognostic>
                         <mesh name="ParticleMesh"/>
-                        <equation name="Diffusion"/>
+                        <equation name="AdvectionDiffusion"/>
                         <spatial_discretisation>
                           <continuous_galerkin/>
                         </spatial_discretisation>
                         <solver>
                           <iterative_method name="cg"/>
-                            <preconditioner name="sor"/>
+                          <preconditioner name="sor"/>
                           <relative_error>
                             <real_value rank="0">1.0e-10</real_value>
                           </relative_error>
@@ -181,20 +181,34 @@
                           <surface_ids>
                             <integer_value shape="1" rank="1">1</integer_value>
                           </surface_ids>
-                          <type name="albedo">
-                            <constant>
-                              <real_value rank="0">0.0</real_value>
-                            </constant>
+                          <type name="robin">
+                            <order_zero_coefficient>
+                              <constant>
+                                <real_value rank="0">0.0</real_value>
+                              </constant>
+                            </order_zero_coefficient>
+                            <order_one_coefficient>
+                              <constant>
+                                <real_value rank="0">0.5</real_value>
+                              </constant>
+                            </order_one_coefficient>
                           </type>
                         </boundary_conditions>
                         <boundary_conditions name="right">
                           <surface_ids>
                             <integer_value shape="1" rank="1">2</integer_value>
                           </surface_ids>
-                          <type name="albedo">
-                            <constant>
-                              <real_value rank="0">0.0</real_value>
-                            </constant>
+                          <type name="robin">
+                            <order_zero_coefficient>
+                              <constant>
+                                <real_value rank="0">0.0</real_value>
+                              </constant>
+                            </order_zero_coefficient>
+                            <order_one_coefficient>
+                              <constant>
+                                <real_value rank="0">0.5</real_value>
+                              </constant>
+                            </order_one_coefficient>
                           </type>
                         </boundary_conditions>
                         <output/>
@@ -213,23 +227,23 @@
         </energy_discretisation>
         <material_data_set name="dataset1">
           <from_file file_name="rad_1d_1grp_hom_vacbc_eig.radmats">
-             <number_of_scatter_moments>
-               <integer_value rank="0">1</integer_value>
-             </number_of_scatter_moments>
-             <format_radmats>
-               <maximum_record_length>
-                 <integer_value rank="0">132</integer_value>
-               </maximum_record_length>
-             </format_radmats>
-             <physical_material name="fuel">
-               <interpolation_dimension name="first">
-                 <interpolation_attribute_none/>
-                 <interpolation_values>
-                   <real_value shape="1" rank="1">1.0</real_value>
-                 </interpolation_values>
-               </interpolation_dimension>
-             </physical_material>
-           </from_file>
+            <number_of_scatter_moments>
+              <integer_value rank="0">1</integer_value>
+            </number_of_scatter_moments>
+            <format_radmats>
+              <maximum_record_length>
+                <integer_value rank="0">132</integer_value>
+              </maximum_record_length>
+            </format_radmats>
+            <physical_material name="fuel">
+              <interpolation_dimension name="first">
+                <interpolation_attribute_none/>
+                <interpolation_values>
+                  <real_value shape="1" rank="1">1.0</real_value>
+                </interpolation_values>
+              </interpolation_dimension>
+            </physical_material>
+          </from_file>
         </material_data_set>
         <region_id_material_mapping>
           <region_to_physical_radiation_material_map name="whole">

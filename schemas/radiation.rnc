@@ -364,7 +364,7 @@ radiation_spatial_diffusion_equation =
       element equation {
          comment, 
          
-         attribute name { "Diffusion" }
+         attribute name { "AdvectionDiffusion" }
       }
    )
    
@@ -462,6 +462,7 @@ surface_ids =
       ## The surface id associated with this boundary condition
       element surface_ids {
          comment,
+         
          integer_vector
       }   
    )
@@ -471,44 +472,60 @@ diffusion_bc_type =
    (
       ## Type
       (
-         diffusion_albedo|
+         diffusion_robin|
          diffusion_dirichlet|
-         diffusion_source
+         diffusion_neumann
       )   
    )
    
       
-diffusion_albedo = 
+diffusion_robin = 
    (
-      ## Albedo boundary condition, requires a value from 0.0 (perfect vacuum) 
-      ## to 1.0 (perfect reflective)
+      ## Robin boundary condition. This can be used for vacuum and more general albedo. 
+      ## For a vacuum BC set the order_zero_coefficient to 0.0 and the order_one_coefficient
+      ## to 0.5. For a albedo BC set the order_zero_coefficient to 0.0 and the order_one_coefficient 
+      ## to 0.5*((1.0-alpha)/(1.0+alpha)) where alpha is defined in [0.0,1.0] with alpha equal 1.0
+      ## being a perfect reflective and alpha equal 0.0 a perfect vacuum.
       element type {
          comment,
-         attribute name { "albedo" },
-         input_choice_real                
+         
+         attribute name { "robin" },
+               
+         element order_zero_coefficient {
+            input_choice_real
+         },
+         
+         element order_one_coefficient {
+            input_choice_real
+         }
       }
    )
 
 
 diffusion_dirichlet = 
    (
-      ## Dirichlet 
+      ## Dirichlet boundary condition. This is typically used for an approximation to a 
+      ## vacuum BC via a zero dirichlet for special benchmarks. Not recommended for anything else. 
       element type {
          comment,
+         
          attribute name { "dirichlet" },
+         
          input_choice_real
       }
    )
 
 
-diffusion_source = 
+diffusion_neumann = 
    (
-      ## Isotropic particle source boundary condition, this value specifies the 
-      ## actually current into the domain NOT the total isotropic source strength 
-      ## located on the surface (the total source strength is twice the value input here) 
+      ## Neumann boundary condition. This is a isotropic particle source boundary condition. 
+      ## This value specifies the actually current into the domain NOT the total isotropic 
+      ## source strength located on the surface (the total source strength is twice the value input here) 
       element type {
          comment,
-         attribute name { "source" },
+         
+         attribute name { "neumann" },
+         
          input_choice_real
       }
    )

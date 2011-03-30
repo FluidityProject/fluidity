@@ -106,9 +106,7 @@ module field_options
                                 FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS = 3, &
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
                                 FIELD_EQUATION_HEATTRANSFER              = 5, &
-                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6, &
-                                FIELD_EQUATION_ADVECTION                 = 7, &
-                                FIELD_EQUATION_DIFFUSION                 = 8
+                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6
 
 contains
 
@@ -946,10 +944,6 @@ contains
       equation_type_index = FIELD_EQUATION_INTERNALENERGY
     case ( "ElectricalPotential" )
       equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
-    case ( "Diffusion" )
-      equation_type_index = FIELD_EQUATION_DIFFUSION
-    case ( "Advection" )
-      equation_type_index = FIELD_EQUATION_ADVECTION
     case default
       equation_type_index = FIELD_EQUATION_UNKNOWN
     end select

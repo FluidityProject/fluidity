@@ -458,7 +458,7 @@ contains
       type(scalar_field) :: rhs
       type(csr_sparsity), pointer :: sparsity
       integer, dimension(:), allocatable :: bc_types
-      type(scalar_field) :: bc_value
+      type(scalar_field) :: bc_value1,bc_value2
       type(tensor_field), pointer :: diffusivity
       type(scalar_field), pointer :: absorption
       type(scalar_field), pointer :: source      
@@ -538,10 +538,11 @@ contains
       allocate(bc_types(surface_element_count(t)))
 
       call get_entire_boundary_condition(t, &
-                                         (/"albedo", &
-                                           "source"/), &
-                                         bc_value, &
-                                         bc_types)
+                                         (/"robin  ", &
+                                           "neumann"/), &
+                                         bc_value1, &
+                                         bc_types, &
+                                         boundary_second_value = bc_value2)
 
       surface_element_loop: do sele = 1,surface_element_count(t)
          
@@ -550,7 +551,7 @@ contains
             call assemble_particle_group_g_sele_albedo(sele, &
                                                        positions, &
                                                        matrix, & 
-                                                       bc_value, &
+                                                       bc_value2, &
                                                        t)
          
          else if (bc_types(sele) == 2) then 
@@ -558,14 +559,15 @@ contains
             call assemble_particle_group_g_sele_source(sele, &
                                                        positions, &
                                                        rhs, & 
-                                                       bc_value, &
+                                                       bc_value1, &
                                                        t)
                         
          end if diffusion_bc
          
       end do surface_element_loop
 
-      call deallocate(bc_value)
+      call deallocate(bc_value1)
+      call deallocate(bc_value2)
 
       if (allocated(bc_types)) deallocate(bc_types)
             
@@ -698,12 +700,9 @@ contains
                                        face, &
                                        detwei_f = detwei)  
       
-      ! the 0.5 is a necessary part of this BC formulation, the bc_value is the albedo coeff
-      ! where a value of 1.0 is a perfect reflective and a value of 0.0 is a perfect vacuum
       matrix_addto = shape_shape(face_shape(t, face), &
                                  face_shape(t, face), &
-                                 detwei*0.5*( (1.0 - ele_val_at_quad(bc_value,face) ) / &
-                                              (1.0 + ele_val_at_quad(bc_value,face) ) ) )
+                                 detwei*ele_val_at_quad(bc_value,face))
       
       call addto(matrix, &
                  face_global_nodes(t,face), &

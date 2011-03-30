@@ -1029,7 +1029,7 @@ contains
   end subroutine get_periodic_boundary_condition
     
   subroutine get_entire_scalar_boundary_condition(field, &
-     types, boundary_value, bc_type_list, bc_number_list)
+     types, boundary_value, bc_type_list, bc_number_list, boundary_second_value)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1054,8 +1054,13 @@ contains
     !! which can be used to extract further information
     !! BC can be set for each component separately, so ndim x surface_element_count()
     integer, dimension(:), intent(out), optional:: bc_number_list
+    !! A second field over the entire surface containing another associated 
+    !! boundary values for the robin type BC.
+    !! This field should be deallocated after use.
+    type(scalar_field), intent(out), optional :: boundary_second_value    
     
     type(scalar_field), pointer:: surface_field
+    type(scalar_field), pointer:: surface_field_second_value
     type(mesh_type), pointer:: surface_mesh, volume_mesh
     character(len=FIELD_NAME_LEN) bctype
     character(len=1024) name
@@ -1072,6 +1077,11 @@ contains
     call zero(boundary_value)
     bc_type_list=0
     
+    if (present(boundary_second_value)) then
+       call allocate(boundary_second_value, surface_mesh, name=trim(field%name)//"EntireBCSecondValue")
+       call zero(boundary_second_value)    
+    end if 
+    
     do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
           surface_element_list=surface_element_list,name=name)
@@ -1085,8 +1095,15 @@ contains
        if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
+          ! extract 2nd surface field if needed
+          if (present(boundary_second_value)) then
+             surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+          else 
+             nullify(surface_field_second_value)
+          end if 
        else
           nullify(surface_field)
+          nullify(surface_field_second_value)
        end if       
        
        do k=1, size(surface_element_list)
@@ -1110,6 +1127,11 @@ contains
           if (associated(surface_field)) then
              call set(boundary_value, ele_nodes(surface_mesh, sele), &
                 ele_val(surface_field, k))
+          end if
+
+          if (associated(surface_field_second_value)) then
+             call set(boundary_second_value, ele_nodes(surface_mesh, sele), &
+                ele_val(surface_field_second_value, k))
           end if
           
        end do

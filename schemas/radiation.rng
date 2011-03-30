@@ -302,7 +302,7 @@ even parity formulation for this group set</a:documentation>
       <a:documentation>The equation to solve for this scalar field</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>Diffusion</value>
+        <value>AdvectionDiffusion</value>
       </attribute>
     </element>
   </define>
@@ -387,25 +387,29 @@ angular moment set (itself associated with a energy group set)</a:documentation>
   <define name="diffusion_bc_type">
     <choice>
       <a:documentation>Type</a:documentation>
-      <ref name="diffusion_albedo"/>
+      <ref name="diffusion_robin"/>
       <ref name="diffusion_dirichlet"/>
-      <ref name="diffusion_source"/>
+      <ref name="diffusion_neumann"/>
     </choice>
   </define>
-  <define name="diffusion_albedo">
+  <define name="diffusion_robin">
     <element name="type">
-      <a:documentation>Albedo boundary condition, requires a value from 0.0 (perfect vacuum) 
-to 1.0 (perfect reflective)</a:documentation>
+      <a:documentation>Robin boundary condition. This can be used for vacuum and more general albedo. </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>albedo</value>
+        <value>robin</value>
       </attribute>
-      <ref name="input_choice_real"/>
+      <element name="order_zero_coefficient">
+        <ref name="input_choice_real"/>
+      </element>
+      <element name="order_one_coefficient">
+        <ref name="input_choice_real"/>
+      </element>
     </element>
   </define>
   <define name="diffusion_dirichlet">
     <element name="type">
-      <a:documentation>Dirichlet </a:documentation>
+      <a:documentation>Dirichlet boundary condition </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>dirichlet</value>
@@ -413,14 +417,14 @@ to 1.0 (perfect reflective)</a:documentation>
       <ref name="input_choice_real"/>
     </element>
   </define>
-  <define name="diffusion_source">
+  <define name="diffusion_neumann">
     <element name="type">
-      <a:documentation>Isotropic particle source boundary condition, this value specifies the 
-actually current into the domain NOT the total isotropic source strength 
-located on the surface (the total source strength is twice the value input here) </a:documentation>
+      <a:documentation>Neumann boundary condition. This is a isotropic particle source boundary condition. 
+This value specifies the actually current into the domain NOT the total isotropic 
+source strength located on the surface (the total source strength is twice the value input here) </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>source</value>
+        <value>neumann</value>
       </attribute>
       <ref name="input_choice_real"/>
     </element>
