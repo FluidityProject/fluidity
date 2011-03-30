@@ -443,9 +443,9 @@
                endif
 
                if (have_free_surface .or. use_compressible_projection) then
-                  ! With free surface, pressures are at integer time levels
-                  ! and we apply a theta weighting to the pressure gradient term
-                  ! Also, obtain theta weiting to be used in divergence term
+                  ! With free surface or compressible-projection pressures are at integer
+                  ! time levels and we apply a theta-weighting to the pressure gradient term
+                  ! Also, obtain theta-weighting to be used in divergence term
                   call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
                         theta_pg, default=1.0)
                   use_theta_pg = (theta_pg/=1.0)
