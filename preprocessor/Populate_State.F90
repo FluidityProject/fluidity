@@ -1354,7 +1354,7 @@ contains
       character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path
       character(len=OPTION_PATH_LEN) :: angular_parity, angular_parity_path, angular_moment_set_path 
       character(len=OPTION_PATH_LEN) :: angular_odd_parity_path     
-      character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name, discretised_source_fn_space_name
+      character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name
       type(scalar_field) :: aux_sfield
       type(tensor_field) :: aux_tfield
       type(mesh_type), pointer :: x_mesh
@@ -1461,11 +1461,8 @@ contains
    
                      ! extract the material fn_space for this moment set for this group set of this particle type
                      material_fn_space => extract_mesh(state, trim(material_fn_space_name))
-               
-                     ! get the discretised source fn space name for this group set (which is on the solution fn space)
-                     call get_option(trim(angular_moment_set_path)//'/scalar_field::ParticleFlux/prognostic/mesh/name',discretised_source_fn_space_name)
                                  
-                     ! allocate and insert the diffusivity, absorption and discretised source assemble fields
+                     ! allocate and insert the diffusivity and absorption assemble fields
                      ! - each group then has similar aliased fields to these allocated and inserted after
                
                      ! field path is not needed
@@ -1487,15 +1484,7 @@ contains
                                                            parent_name = trim(parent_field_name), &
                                                            field_name = 'Absorption', &
                                                            dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
-               
-                     ! the discretised source is on the solution fn space
-                     call allocate_and_insert_scalar_field(trim(field_path), &
-                                                           state, &
-                                                           parent_mesh = trim(discretised_source_fn_space_name), &
-                                                           parent_name = trim(parent_field_name), &
-                                                           field_name = 'DiscretisedSource', &
-                                                           dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
-                          
+
                      ! create the particle flux fields needed for each moment for each group of these sets g_set, m_set
                      group_loop: do g = start_group,end_group
                   
@@ -1535,13 +1524,6 @@ contains
                   
                            call insert(state, aux_sfield, trim(aux_sfield%name))
 
-                           aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'DiscretisedSource')
-                           aux_sfield%name        = trim(field_name)//'DiscretisedSource'
-                           aux_sfield%option_path = ""
-                           aux_sfield%aliased     = .true.
-                  
-                           call insert(state, aux_sfield, trim(aux_sfield%name))
-                        
                         end do moment_loop
                                        
                      end do group_loop

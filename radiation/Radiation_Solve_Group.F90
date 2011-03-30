@@ -63,8 +63,6 @@ module radiation_assemble_solve_group
   logical :: have_absorption
   ! Diffusivity?
   logical :: have_diffusivity
-  ! Discretised source?
-  logical :: have_discretised_source
 
 contains
 
@@ -84,11 +82,14 @@ contains
       
       ! local variables
       character(len=OPTION_PATH_LEN) :: field_name
-      real :: dummy_dt
+      real :: dt
+      type(scalar_field) :: extra_discretised_source
             
-      ! assemble the diffusivity, absorption and already discretised rhs term 
+      ! assemble the diffusivity and absorption 
       ! scalar fields and insert into particle%state
+      ! Also form the extra production/scatter/delayed discretised source
       call assemble_coeff_source_group_g(particle, &
+                                         extra_discretised_source, &
                                          g, &
                                          invoke_eigenvalue_group_solve)
       
@@ -97,25 +98,32 @@ contains
       
       if (have_option('/embedded_models/radiation/use_fluids_advection_diffusion')) then
          
-         dummy_dt = 1.0
+         call get_option('/timestepping/timestep',dt)
          
          call solve_field_equation_cg(trim(field_name), &
                                       particle%state, &
-                                      dummy_dt)
+                                      dt, &
+                                      extra_discretised_source = extra_discretised_source, &
+                                      iterations_taken = petsc_iterations_taken_group_g)
          
       else 
             
          call assemble_matrix_solve_group_g(trim(field_name), &
                                             particle%state, &
-                                            petsc_iterations_taken_group_g)
+                                            extra_discretised_source = extra_discretised_source, &
+                                            iterations_taken = petsc_iterations_taken_group_g)
       
       end if 
+      
+      ! deallocate the extra_discretised_source
+      call deallocate(extra_discretised_source)
             
    end subroutine particle_assemble_solve_group
 
    ! --------------------------------------------------------------------------
    
    subroutine assemble_coeff_source_group_g(particle, &
+                                            extra_discretised_source, &
                                             g, &
                                             invoke_eigenvalue_group_solve)
       
@@ -125,6 +133,7 @@ contains
       !!< as the assemble and solve procedure has no density term.
 
       type(particle_type), intent(inout) :: particle
+      type(scalar_field), intent(out) :: extra_discretised_source
       integer, intent(in) :: g
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
@@ -143,7 +152,6 @@ contains
       type(scalar_field) :: velocity_coeff                 
       type(scalar_field), pointer :: absorption_coeff
       type(tensor_field), pointer :: diffusivity_coeff
-      type(scalar_field), pointer :: discretised_source
       type(mesh_type), pointer :: material_fn_space
       type(vector_field), pointer :: positions      
       type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
@@ -181,7 +189,12 @@ contains
       ! get the positions field for this energy group set
       positions => extract_vector_field(particle%state, &
                                         'Coordinate')
-
+      
+      ! allocate the input discretised_source using the mesh of the group to solve for
+      field_name = trim(particle_flux(g)%ptr%name)//'DiscretisedSource'
+      call allocate(extra_discretised_source, particle_flux(g)%ptr%mesh, trim(field_name))
+      call zero(extra_discretised_source)
+      
       ! allocate the local fields as needed
 
       field_name = trim(particle_flux(g)%ptr%name)//'Scatter'
@@ -213,14 +226,9 @@ contains
                                                 trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
                                                 stat = stat)
 
-      discretised_source => extract_scalar_field(particle%state, &
-                                                 trim(particle_flux(g)%ptr%name) // 'DiscretisedSource', &
-                                                 stat = stat)
-      
       ! zero the extracted fields
       call zero(absorption_coeff)
       call zero(diffusivity_coeff)
-      call zero(discretised_source)
 
       ! form the velocity coeff field for this energy group if time run
       form_velocity: if (.not. invoke_eigenvalue_group_solve) then
@@ -365,16 +373,16 @@ contains
                                            
          end if not_within_group
          
-         vele_loop: do vele = 1,ele_count(discretised_source)
+         vele_loop: do vele = 1,ele_count(extra_discretised_source)
            
             ! allocate the jacobian transform and gauss weight array for this vele
-            allocate(detwei_vele(ele_ngi(discretised_source,vele)))
+            allocate(detwei_vele(ele_ngi(extra_discretised_source,vele)))
                         
             ! form the velement jacobian transform and gauss weight
             call transform_to_physical(positions, vele, detwei = detwei_vele)
             
             ! allocate the rhs_addto
-            allocate(rhs_addto(ele_loc(discretised_source,vele)))
+            allocate(rhs_addto(ele_loc(extra_discretised_source,vele)))
             
             rhs_addto = 0.0
             
@@ -414,8 +422,8 @@ contains
             end if keff_or_time
             
             ! add contribution to discretised source for this vele for this group g
-            call addto(discretised_source, &
-                       ele_nodes(discretised_source, vele), &
+            call addto(extra_discretised_source, &
+                       ele_nodes(extra_discretised_source, vele), &
                        rhs_addto)
             
             deallocate(detwei_vele)
@@ -447,14 +455,16 @@ contains
    
    subroutine assemble_matrix_solve_group_g(field_name, &
                                             state, &
-                                            petsc_iterations_taken_group_g)
+                                            extra_discretised_source, &
+                                            iterations_taken)
       
-      !!< Assemble the matrix system for this group g and solve
-      !!< This is only set up for even parity spherical harmonic P1 (ie diffusion) 
+      !!< Assemble the diffusion absorption source (extra_discretised_source) matrix system 
+      !!< for a scalar field using CG and solve
             
       character(len=*), intent(in) :: field_name
       type(state_type), intent(inout) :: state
-      integer, intent(out) :: petsc_iterations_taken_group_g
+      type(scalar_field), intent(in), optional :: extra_discretised_source
+      integer, intent(out), optional :: iterations_taken
       
       ! local variables
       integer :: stat
@@ -467,7 +477,6 @@ contains
       type(tensor_field), pointer :: diffusivity
       type(scalar_field), pointer :: absorption
       type(scalar_field), pointer :: source      
-      type(scalar_field), pointer :: discretised_source
       type(vector_field), pointer :: positions      
       type(scalar_field), pointer :: t 
         
@@ -501,25 +510,19 @@ contains
                                          trim(t%name) // 'Absorption', &
                                          stat = stat)
 
-      have_absorption = stat == 0         
+      have_absorption = stat == 0
                                         
       diffusivity => extract_tensor_field(state, &
                                           trim(t%name) // 'Diffusivity', &
                                           stat = stat)
 
-      have_diffusivity = stat == 0         
+      have_diffusivity = stat == 0
 
       source => extract_scalar_field(state, &
                                      trim(t%name)//'Source', &
                                      stat=stat)
              
-      have_source = stat == 0         
-
-      discretised_source => extract_scalar_field(state, &
-                                                 trim(t%name) // 'DiscretisedSource', &
-                                                 stat = stat)
-
-      have_discretised_source = stat == 0         
+      have_source = stat == 0
   
       ! volume integrations 
       volume_element_loop: do vele = 1, ele_count(t)      
@@ -536,7 +539,14 @@ contains
       end do volume_element_loop
       
       ! include the already discretised_source into rhs
-      if (have_discretised_source) call addto(rhs, discretised_source)
+      add_extra_source: if (present(extra_discretised_source)) then 
+         
+         ! assert that the rhs and extra source have the same mesh
+         assert(trim(rhs%mesh%name) == trim(extra_discretised_source%mesh%name))
+         
+         call addto(rhs, extra_discretised_source)
+      
+      end if add_extra_source
       
       ! surface integrations for albedo and source BC's for diffusion theory
       
@@ -587,7 +597,7 @@ contains
                        rhs, &
                        state, &
                        option_path = trim(t%option_path), &
-                       iterations_taken = petsc_iterations_taken_group_g)
+                       iterations_taken = iterations_taken)
       
       ! set the direchlet bc nodes to be consistent
       call set_dirichlet_consistent(t)
