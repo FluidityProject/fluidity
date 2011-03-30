@@ -18,7 +18,7 @@ program main
   do u_nods = 1, ndim
 
      if( u_nods <= u_nonods )then
-        field( u_nods ) = 981. * ( 1.05 - .71 ) * 0.02 ! -981. * 1.05 ! -981. * ( 1.05 - .71 )
+        field( u_nods ) = -981. * ( 1.05 - .71 ) * 0.02 ! -981. * 1.05 ! -981. * ( 1.05 - .71 )
      elseif( u_nods > u_nonods ) then
         field( u_nods ) = 0.
      end if

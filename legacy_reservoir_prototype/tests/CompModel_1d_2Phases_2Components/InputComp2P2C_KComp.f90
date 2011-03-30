@@ -15,9 +15,11 @@ program main
      do idim2 = 1, ndim2
         do idim3 = 1, ndim3
            if( idim1 == 1 )then ! CO2
-              if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 1. / 4.5
+          !    if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 1. / 4.5
+              if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 4.5
            elseif( idim1 == 2 )then ! Brine
-              if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 1. / 0.2     
+      !        if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 1. / 0.2 
+              if( idim2 /= idim3 ) field( idim1, idim2, idim3 ) = 0.2     
            end if
         end do
      end do

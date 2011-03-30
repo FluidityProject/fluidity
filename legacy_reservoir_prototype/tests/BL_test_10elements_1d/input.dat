@@ -1,5 +1,5 @@
 ###
-### BL test: gravity in the flow direction
+### BL test: no gravity 
 ### First part - before first *** exit *** statement
 ### is for scalar variables that will set up the right 
 ### size of the arrays
@@ -8,7 +8,7 @@
 ###
 ### Option for debugging: if =357, then all print statements will
 ### be sent to the file flog.dat, otherwise to /dev/null
-option_debug   357 
+option_debug   1 
 
 # Problem type: options -2, -1, 0, and 1
 problem               1
@@ -20,7 +20,7 @@ nphase                2
 ncomp                 0
 
 # total number of elements
-totele               10
+totele               20
 
 # Dimensionality
 ndim                  1
@@ -83,7 +83,10 @@ cv_sele_type          1
 u_sele_type           1
 
 # Total number of time dumps
-ntime               1000.
+ntime               160
+
+# Frequency in which files will be output into *.d.* files
+ntime_dump           20
  
 # Total number of non-linear iterations
 nits                  3
@@ -106,7 +109,7 @@ nits_flux_lim_comp     3
 ndpset                0
 
 # Time-step size
-dt                    1.0e-4
+dt                    0.3125e-2
 
 # Reference pressure (not in use)
 patmos                0.
@@ -165,7 +168,7 @@ volfra_get_theta_flux        T
 volfra_use_theta_flux        F
 
 # Domain length
-domain_length         1.
+domain_length         4.
 
 # Capillary pressure option (for now we just have option = 1)
 capil_pres_opt        0
@@ -296,7 +299,7 @@ scalar_error                      1.e-10
 scalar_relax                      1.
 scalar_relax_diag                 0.
 scalar_relax_row                  1.
-scalar_relax_number_iterations    200
+scalar_relax_number_iterations    400
 
 # For Global:
 global_error                      1.e-10
@@ -419,7 +422,12 @@ v_source   0.
 
 # perm ( totele, ndim, ndim )
 perm      -998   input_perm_BL1_func
- 
+
+# Mobility
+Mobility   10.
+
+# Viscosity ( cv_nonods * nphase )
+Viscosity   1. 
 ###
 ### Diffusion terms
 ###

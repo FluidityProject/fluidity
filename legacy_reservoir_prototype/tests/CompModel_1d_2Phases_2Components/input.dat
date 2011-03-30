@@ -9,7 +9,7 @@
 ###
 ### Option for debugging: if =357, then all print statements will
 ### be sent to the file flog.dat, otherwise to /dev/null
-option_debug   357
+option_debug          1
 
 # Problem type: options -2, -1, 0, and 1
 problem               1
@@ -84,11 +84,14 @@ cv_sele_type          1
 u_sele_type           1
 
 # Total number of time dumps
-ntime               10
-#ntime               1000
+#ntime               10
+ntime               400
+
+# Frequency in which files are output into the disk
+ntime_dump          100
 
 # Total number of non-linear iterations
-nits                  1
+nits                  3
 
 # Total number of non-linear iterations - internal loop
 nits_internal         1
@@ -108,7 +111,7 @@ nits_flux_lim_comp     3
 ndpset                0
 
 # Time-step size
-dt                    1.0e-4
+dt                    1.0e-3
 
 # Reference pressure (not in use)
 patmos                0.
@@ -169,7 +172,7 @@ volfra_get_theta_flux        T
 volfra_use_theta_flux        F
 
 # Domain length
-domain_length         1.
+domain_length         4.
 
 # Capillary pressure option (for now we just have option = 1)
 capil_pres_opt        0
@@ -207,6 +210,10 @@ exit    10
 # If value == -997 then a pre-defined function for 4x4 MATRIX (thus not necessary 
 #                   to assign dimension to the array as it will be taken automatically from 
 #                   Multiphase_Prototype.F90)
+# If value == -990 then a pre-defined function for ARRAYS (thus not necessary 
+#                   to assign dimension to the array as it will be taken automatically from 
+#                   Multiphase_Prototype.F90) - temporarily hardcoded to the following 
+#                   fields: COMP and SUF_COMP_BC
 #############################################################################################
  
 ###
@@ -244,8 +251,8 @@ suf_cpd_bc    0.
 ### This BC option needs to be generalised later, for now nphase is hard-coded.
 suf_t_bc   -1000 InputComp2P2C_suf_t_bc
  
-# suf_comp_bc( stotel * cv_snloc * nphase )
-suf_comp_bc   -1000  InputComp2P2C_suf_vol_bc
+# suf_comp_bc( stotel * cv_snloc * nphase * ncomp )
+suf_comp_bc   -990  InputComp2P2C_suf_comp_bc
  
 # suf_p_bc ( stotel * p_snloc * nphase )
 suf_p_bc       0.
@@ -443,6 +450,11 @@ v_source   0.
 # perm ( totele, ndim, ndim )
 perm      -998   InputComp2P2C_permability
  
+# Mobility
+Mobility      10.
+
+# Viscosity
+Viscosity      1.
  
 ###
 ### Diffusion terms
@@ -487,9 +499,7 @@ capil_pres_coef     0
 den    1.
 
 # comp( cv_pha_nonods * ncomp )
-#comp   -1000   InputComp2P2C_Comp
-# Temporarily, COMP will be defined inside the main subrt just after
-# the call for the read_all subrt.
+comp    -990 InputComp2P2C_Comp2
  
 # volfra_pore ( totele )
 volfra_pore   .5
@@ -506,11 +516,19 @@ cp_option   0
 # cp_coefs( nphase, ncp_coefs )
 cp_coefs   1.
 
+# Option to use a sigmoid function in the K-Value Constant as function
+# of the saturation. If false, the non-zero values stored in K_Comp 
+# variable will be inverted, i.e.,  K_Comp = 1. / K_Comp 
+KComp_Sigmoid   F
+
 # K_Comp( ncomp, nphase, nphase )
 K_Comp      -998  InputComp2P2C_KComp
 
+# Ensure the sum of the components is equal to one
+Comp_Sum2One    T
+
 # alpha_beta: parameter for the K partition relation between phases
-alpha_beta  1.e-4
+alpha_beta  1.e-0
 
 # ncomp_diff_coef: number of coefficients (comp_diff_coef) of the diffusion tensor
 comp_diff_coef      1.
