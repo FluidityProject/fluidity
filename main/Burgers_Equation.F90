@@ -714,15 +714,8 @@
       ! And we also may as well set the functional dependencies now
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
-        call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, 0, vars, extras=adj_meshes)
-        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=0, functional=trim(functional_name), dependencies=vars)
-        call adj_chkierr(ierr)
-        deallocate(vars)
-
-        ! We also need to check if these variables will be used
-        call adj_record_anything_necessary(adjointer, timestep=0, functional=trim(functional_name), states=states)
+        call adj_record_anything_necessary(adjointer, python_timestep=1, timestep_to_record=0, functional=trim(functional_name), states=states)
       end do
       call adjoint_record_velocity(timestep=0, iteration=1, states=states)
 #endif
@@ -790,18 +783,18 @@
 
       ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
-      ierr = adj_timestep_set_times(adjointer, timestep=timestep, start=start_time, end=start_time+dt)
+      ierr = adj_timestep_set_times(adjointer, timestep=timestep-1, start=start_time, end=start_time+dt)
       nfunctionals = option_count("/adjoint/functional")
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
         call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars, extras=adj_meshes)
-        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep, functional=trim(functional_name), &
+        ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
         deallocate(vars)
         ! We also need to check if these variables will be used
-        call adj_record_anything_necessary(adjointer, timestep=timestep, functional=trim(functional_name), states=states)
+        call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
 
 #endif

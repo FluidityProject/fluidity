@@ -137,6 +137,9 @@ module adjoint_functional_evaluation
       call convert_adj_vectors_to_states(dependencies, values, states)
       call python_add_states_time(states)
     else
+      ierr = adj_variable_get_name(var, variable_name_f)
+      ewrite(-1,*) "Variable: ", trim(variable_name_f)
+      ewrite(-1,*) "Timestep: ", timestep
       ewrite(-1,*) "At a minimum, the functional depends on the meshes that the output is to be allocated on."
       ewrite(-1,*) "Register them as auxiliary dependencies."
       FLAbort("You really need at least one dependency.")
@@ -266,7 +269,7 @@ module adjoint_functional_evaluation
           write(buffer, *) tmp_start_time - tmp_end_time
           call python_run_string("dt = " // trim(buffer))
 
-          write(buffer, *) timestep
+          write(buffer, *) timestep + 1 ! + 1 because libadjoint numbers timesteps from 0, while we number from 1
           call python_run_string("n = " // trim(buffer))
           call python_run_string("timestep = " // trim(buffer))
 
@@ -342,14 +345,16 @@ module adjoint_functional_evaluation
           call insert(states(matpas, :), mesh, trim(name))
         end do
       case default
+        write(0,*) "trim(name): ", trim(name)
+        write(0,*) "values(j)%klass: ", values(j)%klass
         FLAbort("Unknown adj_vector%klass")
       end select
     end do
   end subroutine convert_adj_vectors_to_states
 
-  subroutine adj_record_anything_necessary(adjointer, timestep, functional, states)
+  subroutine adj_record_anything_necessary(adjointer, python_timestep, timestep_to_record, functional, states)
     type(adj_adjointer), intent(inout) :: adjointer
-    integer, intent(in) :: timestep
+    integer, intent(in) :: python_timestep, timestep_to_record
     character(len=*), intent(in) :: functional
     type(state_type), dimension(:), intent(in) :: states
 
@@ -373,11 +378,11 @@ module adjoint_functional_evaluation
     call get_option("/timestepping/finish_time", finish_time)
 
     call get_option("/adjoint/functional::" // trim(functional) // "/functional_dependencies/algorithm", buf)
-    call adj_variables_from_python(buf, current_time, finish_time, timestep, vars)
+    call adj_variables_from_python(buf, current_time, finish_time, python_timestep, vars)
 
     do j=1,size(vars)
       ierr = adj_variable_get_timestep(vars(j), var_timestep)
-      if (var_timestep /= timestep) cycle
+      if (var_timestep /= timestep_to_record) cycle
       ierr = adj_variable_get_name(vars(j), variable_name)
       s_idx = scan(trim(variable_name), ":")
       material_phase_name = variable_name(1:s_idx - 1)

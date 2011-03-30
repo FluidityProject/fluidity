@@ -90,7 +90,6 @@ module adjoint_main_loop
       character(len=ADJ_DICT_LEN) :: path
 
       call get_option("/timestepping/timestep", dt)
-      call get_option("/timestepping/finish_time", finish_time)
       call get_option("/simulation_name", simulation_base_name)
 
       ! Switch the html output on if you are interested what the adjointer has registered
@@ -244,6 +243,7 @@ module adjoint_main_loop
         ! Now forget
         ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
         call adj_chkierr(ierr)
+        current_time = start_time
       end do
 
       call get_option("/timestepping/finish_time", finish_time)
