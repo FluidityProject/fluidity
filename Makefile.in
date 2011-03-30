@@ -365,6 +365,8 @@ endif
 	@echo "    CLEAN adjoint"
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
+	@cd legacy_reservoir_prototype; $(MAKE) clean
+	@echo "    CLEAN legacy_reservoir_prototype"
 	@cd main; $(MAKE) clean
 	@echo "    CLEAN qg_strat"
 	@cd qg_strat; $(MAKE) clean
