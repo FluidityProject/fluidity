@@ -92,6 +92,8 @@
 
       ! Do we want to use the compressible projection method?
       logical :: use_compressible_projection
+      ! Does problem feature a free surface?
+      logical :: have_free_surface
       ! Are we doing a full Schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
@@ -105,6 +107,9 @@
 
       ! Do we want to apply a theta weighting to the pressure gradient term?
       logical :: use_theta_pg
+
+      ! Is a theta-weighting term present in the velocity-divergence?
+      logical :: use_theta_divergence
 
       ! Are we using a discontinuous Galerkin discretisation?
       logical, dimension(:), allocatable :: dg
@@ -203,13 +208,15 @@
          ! Velocity and space
          type(vector_field), pointer :: u, x
 
-         ! with free surface pressures are at integer time levels
-         ! and we apply a theta weighting to the pressure gradient term
-         ! also the continuity equation is considered at time n+theta
-         ! instead of at the end of the timestep
+         ! with free-surface or compressible pressure projection pressures 
+         ! are at integer time levels and we apply a theta weighting to the
+         ! pressure gradient term
          real :: theta_pg
-         ! in this case p_theta=theta*p+(1-theta)*old_p
+         ! in this case p_theta=theta_pg*p+(1-theta_pg)*old_p
          type(scalar_field), pointer :: old_p, p_theta
+         ! With free-surface or compressible-projection the velocity divergence is
+         ! calculated at time n+theta_divergence instead of at the end of the timestep
+         real :: theta_divergence
          type(vector_field), pointer :: old_u
          ! all of this only applies if use_theta_pg .eqv. .true.
          ! without a free surface, or with a free surface and theta==1
@@ -431,17 +438,30 @@
                   end select
                end if
 
-               if (has_boundary_condition(u, "free_surface").or.use_compressible_projection) then
+               if (has_boundary_condition(u, "free_surface")) then
+                  have_free_surface = .true.
+               endif
+
+               if (have_free_surface .or. use_compressible_projection) then
                   ! With free surface, pressures are at integer time levels
                   ! and we apply a theta weighting to the pressure gradient term
+                  ! Also, obtain theta weiting to be used in divergence term
                   call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
                         theta_pg, default=1.0)
                   use_theta_pg = (theta_pg/=1.0)
-                  ewrite(2,*) "Continuity equation and pressure gradient are evaluated at n+theta_pg"
+                  call get_option( trim(u%option_path)//&
+                        '/prognostic/temporal_discretisation/theta_divergence', &
+                        theta_divergence, default=theta_pg)
+                  use_theta_divergence = (theta_divergence/=1.0)
+                  ewrite(2,*) "Pressure gradient is evaluated at n+theta_pg"
                   ewrite(2,*) "theta_pg: ", theta_pg
+                  ewrite(2,*) "Velocity divergence is evaluated at n+theta_divergence"
+                  ewrite(2,*) "theta_divergence: ", theta_divergence
                else
                   ! Pressures are, as usual, staggered in time with the velocities
                   use_theta_pg=.false.
+                  use_theta_divergence=.false.
+                  theta_divergence=1.0
                end if
 
                if (use_theta_pg) then
@@ -694,7 +714,8 @@
                         if (has_boundary_condition(u, "free_surface")) then
                            ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
                            call add_free_surface_to_cmc_projection(state(istate), &
-                                             schur_auxiliary_matrix, dt, theta_pg, get_cmc=.true., rhs=ct_rhs(istate))
+                                             schur_auxiliary_matrix, dt, theta_pg, &
+                                             theta_divergence, get_cmc=.true., rhs=ct_rhs(istate))
                         end if
                      end if
                   end if
@@ -731,7 +752,8 @@
 
                   if (has_boundary_condition(u, "free_surface")) then
                      call add_free_surface_to_cmc_projection(state(istate), &
-                              cmc_m, dt, theta_pg, get_cmc=get_cmc_m(istate), rhs=ct_rhs(istate))
+                              cmc_m, dt, theta_pg, theta_divergence, &
+                              get_cmc=get_cmc_m(istate), rhs=ct_rhs(istate))
                   end if
                   
                   if(get_diag_schur) then
@@ -745,7 +767,7 @@
                      if (has_boundary_condition(u, "free_surface")) then
                         ewrite(2,*) "Adding free surface to diagonal schur complement preconditioner matrix"
                         call add_free_surface_to_cmc_projection(state(istate), &
-                              cmc_m, dt, theta_pg, get_cmc=.true.)
+                              cmc_m, dt, theta_pg, theta_divergence, get_cmc=.true.)
                      end if
                   end if
 
@@ -864,7 +886,7 @@
 
                   if(prognostic_p) then
                      call assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                              ct_rhs, projec_rhs, p_theta, theta_pg)
+                                              ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
                   end if
 
                   ! Deallocate the old velocity field
@@ -904,7 +926,8 @@
                   cmc_m => cmc_global ! Use the sum over all individual phase CMC matrices
                end if
 
-               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, &
+               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
+                                    p_theta, theta_pg, theta_divergence, cmc_m, &
                                     ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
@@ -1226,7 +1249,8 @@
       end subroutine get_pressure_options
 
 
-      subroutine solve_poisson_pressure(state, prognostic_p_istate, x, u, p, old_p, p_theta, theta_pg, ct_m, ctp_m, &
+      subroutine solve_poisson_pressure(state, prognostic_p_istate, x, u, p, old_p, &
+                                       p_theta, theta_pg, ct_m, ctp_m, &
                                        mom_rhs, ct_rhs, inner_m, inverse_mass, inverse_masslump, &
                                        cmc_m, full_projection_preconditioner, schur_auxiliary_matrix)
          !!< Solves a Poisson pressure equation for the pressure guess p^{*}
@@ -1425,7 +1449,7 @@
 
 
       subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                     ct_rhs, projec_rhs, p_theta, theta_pg)
+                                     ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
          !!< Assembles the RHS for the projection solve step and, if required, the 'global' CMC matrix for multi-phase simulations.
          !!< Note that in the case of multi-phase simulations, projec_rhs contains the sum of ct_m*u over each prognostic velocity field,
          !!< and cmc_global contains the sum of the individual phase CMC matrices.
@@ -1446,6 +1470,7 @@
          type(scalar_field), intent(inout) :: projec_rhs
 
          real, intent(in) :: theta_pg
+         real, intent(in) :: theta_divergence
 
          ! Local variables
          type(scalar_field) :: kmk_rhs, temp_projec_rhs, compress_projec_rhs
@@ -1466,12 +1491,12 @@
          call allocate(temp_projec_rhs, p%mesh, "TempProjectionRHS")
          call zero(temp_projec_rhs)
 
-         if (.not. use_theta_pg) then
-            ! Continuity is evaluated at the end of the time step
+         if (.not. use_theta_divergence) then
+            ! Velocity divergence is evaluated at the end of the time step
             call mult(temp_projec_rhs, ctp_m(istate)%ptr, u)
          else
-            ! Evaluate continuity at n+theta
-            ! compute theta*u+(1-theta)*old_u
+            ! Evaluate continuity at n+theta_divergence
+            ! compute theta_divergence*u+(1-theta_divergence)*old_u
             call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
             if (have_rotated_bcs(u)) then
                if (dg(istate)) then
@@ -1485,7 +1510,7 @@
                end if
                call rotate_velocity_sphere(old_u, state(istate))
             end if
-            call set(delta_u, u, old_u, theta_pg)
+            call set(delta_u, u, old_u, theta_divergence)
             call mult(temp_projec_rhs, ctp_m(istate)%ptr, delta_u)
             call deallocate(delta_u)
          end if
@@ -1512,11 +1537,11 @@
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
-               call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
-                                                      get_cmc_m(istate))
+               call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
+                                                      theta_pg, theta_divergence, get_cmc_m(istate))
             else if(cg_pressure) then
-               call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
-                                                      get_cmc_m(istate))
+               call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, &
+                                                      theta_pg, theta_divergence, get_cmc_m(istate))
             else
                ! Developer error... out of sync options input and code
                FLAbort("Unknown pressure discretisation for compressible projection.")
@@ -1552,7 +1577,8 @@
       end subroutine assemble_projection
 
 
-      subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, p_theta, theta_pg, cmc_m, &
+      subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
+                                 p_theta, theta_pg, theta_divergence, cmc_m, &
                                  ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                  schur_auxiliary_matrix, stiff_nodes_list)
          !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
@@ -1566,6 +1592,7 @@
          integer, intent(in) :: prognostic_p_istate
 
          real, intent(inout) :: theta_pg
+         real, intent(inout) :: theta_divergence
 
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
@@ -1591,11 +1618,11 @@
 
 
          ! Apply strong Dirichlet conditions
-         ! we're solving for "delta_p"=theta_pg**2*dp*dt, where dp=p_final-p_current
+         ! we're solving for "delta_p"=theta_pg*theta_divergence*dp*dt, where dp=p_final-p_current
          ! apply_dirichlet_condition however assumes we're solving for
          ! "acceleration" dp/dt, by providing dt=1/(dt*theta_pg**2) we get what we want
          call apply_dirichlet_conditions(cmc_m, projec_rhs, p, &
-         dt=1.0/(dt*theta_pg**2))
+                                         dt=1.0/(dt*theta_pg*theta_divergence))
 
          call impose_reference_pressure_node(cmc_m, projec_rhs, trim(p%option_path))
 
@@ -1636,10 +1663,10 @@
          end if
 
          call profiler_tic(p, "assembly")
-         if (use_theta_pg) then
-            ! We've solved theta_pg**2*dt*dp, in the velocity correction
+         if (use_theta_divergence) then
+            ! We've solved theta_pg*theta_divergence*dt*dp, in the velocity correction
             ! however we need theta_pg*dt*dp
-            call scale(delta_p, 1.0/theta_pg)
+            call scale(delta_p, 1.0/theta_divergence)
          end if
 
          ! Add the change in pressure to the pressure

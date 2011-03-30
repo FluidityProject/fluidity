@@ -57,7 +57,7 @@ module compressible_projection
 
 contains
 
-  subroutine assemble_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, cmcget)
+  subroutine assemble_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
 
     ! inputs:
     ! bucket full of fields
@@ -66,12 +66,14 @@ contains
     type(csr_matrix), intent(inout) :: cmc
     type(scalar_field), intent(inout) :: rhs
 
-    real, intent(in) :: dt, theta_pg
+    real, intent(in) :: dt
+    real, intent(in) :: theta_pg, theta_divergence
     logical, intent(in) :: cmcget
 
     if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
     
-      call assemble_1mat_compressible_projection_cv(state(1), cmc, rhs, dt, theta_pg, cmcget)
+      call assemble_1mat_compressible_projection_cv(state(1), cmc, rhs, dt, &
+                                                    theta_pg, theta_divergence, cmcget)
       
     else
     
@@ -82,7 +84,8 @@ contains
 
   end subroutine assemble_compressible_projection_cv
 
-  subroutine assemble_1mat_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, cmcget)
+  subroutine assemble_1mat_compressible_projection_cv(state, cmc, rhs, dt, &
+                                                      theta_pg, theta_divergence, cmcget)
 
     ! inputs:
     ! bucket full of fields
@@ -91,7 +94,8 @@ contains
     type(csr_matrix), intent(inout) :: cmc
     type(scalar_field), intent(inout) :: rhs
 
-    real, intent(in) :: dt, theta_pg
+    real, intent(in) :: dt
+    real, intent(in) :: theta_pg, theta_divergence
     logical, intent(in) :: cmcget
 
     ! local:
@@ -168,7 +172,7 @@ contains
       call set(lhsfield, p_lumpedmass)
       call scale(lhsfield, drhodp)
       call scale(lhsfield, invnorm)
-      call addto_diag(cmc, lhsfield, scale=1./(dt*dt*theta_pg*theta_pg))
+      call addto_diag(cmc, lhsfield, scale=1./(dt*dt*theta_divergence*theta_pg))
       
 !     rhs = invnorm*p_lumpedmass* &
 !      ( (1./dt)*(olddensity - density + drhodp*(eospressure - (pressure + atmospheric_pressure)))
@@ -207,7 +211,7 @@ contains
         call deallocate(absrhs)
         
         call scale(lhsfield, absorption)
-        call addto_diag(cmc, lhsfield, scale=(theta/(dt*theta_pg*theta_pg)))
+        call addto_diag(cmc, lhsfield, scale=(theta/(dt*theta_divergence*theta_pg)))
       end if
       
       call scale(rhs, p_lumpedmass)
@@ -377,7 +381,7 @@ contains
 
   end subroutine assemble_mmat_compressible_projection_cv
   
-  subroutine assemble_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, cmcget)
+  subroutine assemble_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
 
     ! inputs:
     ! bucket full of fields
@@ -386,12 +390,14 @@ contains
     type(csr_matrix), intent(inout) :: cmc
     type(scalar_field), intent(inout) :: rhs
 
-    real, intent(in) :: dt, theta_pg
+    real, intent(in) :: dt
+    real, intent(in) :: theta_pg, theta_divergence
     logical, intent(in) :: cmcget
 
     if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
     
-      call assemble_1mat_compressible_projection_cg(state(1), cmc, rhs, dt, theta_pg, cmcget)
+      call assemble_1mat_compressible_projection_cg(state(1), cmc, rhs, dt, &
+                                                    theta_pg, theta_divergence, cmcget)
       
     else
       
@@ -402,7 +408,8 @@ contains
 
   end subroutine assemble_compressible_projection_cg
 
-  subroutine assemble_1mat_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, cmcget)
+  subroutine assemble_1mat_compressible_projection_cg(state, cmc, rhs, dt, &
+                                                      theta_pg, theta_divergence, cmcget)
 
     ! inputs:
     ! bucket full of fields
@@ -411,7 +418,8 @@ contains
     type(csr_matrix), intent(inout) :: cmc
     type(scalar_field), intent(inout) :: rhs
 
-    real, intent(in) :: dt, theta_pg
+    real, intent(in) :: dt
+    real, intent(in) :: theta_pg, theta_divergence
     logical, intent(in) :: cmcget
 
     ! local
@@ -558,12 +566,13 @@ contains
         ! Important note: with SUPG the test function derivatives have not been
         ! modified.
   
-        ele_mat = (1./(dt*dt*theta_pg*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
+        ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
         !       /
         ! rhs = |test_shape* &
         !       /
         !      ((1./dt)*(drhodp*(eospressure - (pressure + atmospheric_pressure)) + olddensity - density)
-        ! +(absorption)*(drhodp*theta*(eospressure - (pressure + atmospheric_pressure)) - theta*density - (1-theta)*olddensity)
+        ! +(absorption)*(drhodp*theta*(eospressure - (pressure + atmospheric_pressure)) 
+        !                - theta*density - (1-theta)*olddensity)
         ! +source)dV
         ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
                                                        +(olddensity_at_quad - density_at_quad)))
@@ -575,7 +584,8 @@ contains
         if(have_absorption) then
           abs_at_quad = ele_val_at_quad(absorption, ele)
           ele_mat = ele_mat + &
-                    (theta/(dt*theta_pg*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad*abs_at_quad)
+                    (theta/(dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, &
+                                                                       detwei*drhodp_at_quad*abs_at_quad)
           ele_rhs = ele_rhs + &
                     shape_rhs(test_shape, detwei*abs_at_quad*(theta*(drhodp_at_quad*(eosp_at_quad - p_at_quad)-density_at_quad) &
                                                              -(1-theta)*olddensity_at_quad))

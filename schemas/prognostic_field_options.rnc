@@ -850,6 +850,18 @@ prognostic_velocity_field =
          element relaxation {
             real
          },
+         ## Implicit/explicit control of velocity-divergence temporal
+         ##  discretisation, theta_divergence
+         ##  =0.  -- explicit
+         ##  =0.5 -- Crank-Nicolson
+         ##  =1.  -- implicit
+         ##  Specification of this parameter will only affect
+         ##  solution procedure when a free-surface is present or 
+         ##  compressible projection is used. If left unspecified
+         ##  the code defaults to theta_divergence = theta.
+         element theta_divergence {
+            real
+         }?,
          element discontinuous_galerkin {
             (
                ## Use timestep subcycling to solve this equation.

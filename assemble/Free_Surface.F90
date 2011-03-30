@@ -78,7 +78,9 @@ contains
          
   end subroutine insert_original_distance_to_bottom
   
-  subroutine add_free_surface_to_cmc_projection(state, cmc, dt, theta, get_cmc, rhs)
+  subroutine add_free_surface_to_cmc_projection(state, cmc, dt, &
+                                                theta_pressure_gradient, theta_divergence, &
+                                                get_cmc, rhs)
   !!< Adds a boundary integral to the continuity equation
   !!< that weakly enforces the kinematic boundary condition.
   !!<
@@ -90,18 +92,24 @@ contains
   !!< With this approach all pressures are considered at the integer time 
   !!< levels, i.e. we apply a theta weighting for the pressure gradient term
   !!< in the momentum equation:
-  !!<   M (u^n+1-u^n) - dt C p^{n+theta} + ... = 0
+  !!<   M (u^n+1-u^n) - dt C p^{n+theta_pressure_gradient} + ... = 0
   !!< We're solving the continuity equation:
-  !!<   C^T u^{n+theta}+ M_fs p^{n+1}-p^n = 0
+  !!<   C^T u^{n+theta_divergence}+ M_fs p^{n+1}-p^n = 0
   !!< which leads to a projection equation of:
-  !!<   theta^2 C^T M^-1 C dt dp + alpha M_fs dp = 
-  !!<    -theta C^T u* - (1-theta) C^T u^n -alpha M_fs (p*-p^n)
-  !!< where M_fs is the free surface integral of M_i M_j
-  !!< and alpha=1/(g dt)
+  !!<   ( C^T M^-1 C dt dp + coef M_fs ) phi = 
+  !!<     theta_divergence C^T u* + (1-theta_divergence) C^T u^n - 
+  !!<     alpha M_fs (p*-p^n)
+  !!< where M_fs is the free surface integral of M_i M_j, 
+  !!< alpha=1/(g dt), coef=alpha/(theta_divergence theta_pressure_gradient dt)
+  !!< and phi=dp theta_divergence theta_pressure_gradient dt. Note however,
+  !!< that dp in the routine stands for phi, see correct_pressure in 
+  !!< Momentum_Equation.F90
   
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(inout) :: cmc
-    real, intent(in) :: dt, theta
+    real, intent(in) :: dt
+    real, intent(in) :: theta_pressure_gradient
+    real, intent(in) :: theta_divergence
     !! only add in to the matrix if get_cmc==.true.
     logical, intent(in):: get_cmc
     type(scalar_field), optional, intent(inout) :: rhs
@@ -178,7 +186,7 @@ contains
       end if
       
       alpha=1.0/g/rho0/dt
-      coef = alpha/(theta**2*dt)
+      coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
       addto_cmc = .false. ! assume we don't need to add to cmc
       ! but it will be set to true if we have adaptive timestepping turned
       ! on and that results in a different coefficient
@@ -262,8 +270,9 @@ contains
 
       if (addto_cmc) then
         ! we consider the projection equation to solve for 
-        ! phi=theta^2 dt dp, so that the f.s. integral
-        ! alpha M_fs dp=alpha M_fs phi/(theta^2 dt)
+        ! phi=theta_pressure_gradient theta_divergence dt dp, so that the f.s. integral
+        ! alpha M_fs dp=alpha M_fs phi/(theta_pressure_gradient theta_divergence g dt**2)
+        !              =coef M_fs phi
         call addto(cmc, &
           face_global_nodes(p, sele), face_global_nodes(p,sele), &
           (coef-coef_old)*mass_ele)
