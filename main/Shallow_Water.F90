@@ -251,6 +251,9 @@
     ! Clean up registered diagnostics
     call destroy_registered_diagnostics 
 
+    ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
+    ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT) 
+
     if (.not. adjoint) then
       call deallocate(matrices)
       call print_references(0)
@@ -1057,38 +1060,19 @@
       type(adj_block) :: I, L, gC, E, P
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: local_u0, manifold_u0, cartesian_u0, eta0
+      type(adj_variable) :: local_u0, cartesian_u0, eta0
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
 
       if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("ManifoldVelocityIdentity", block=I, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u0)
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_equation(variable=manifold_u0, blocks=(/I/), targets=(/manifold_u0/), equation=equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_register_equation(adjointer, equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_destroy_equation(equation)
-        ierr = adj_destroy_block(I)
-
         ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-        ierr = adj_create_block("CartesianEmbedding", block=E, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-        ierr = adj_block_set_coefficient(E, coefficient=-1.0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_equation(variable=cartesian_u0, blocks=(/E, I/), targets=(/manifold_u0, cartesian_u0/), equation=equation)
+        ierr = adj_create_equation(variable=cartesian_u0, blocks=(/I/), targets=(/cartesian_u0/), equation=equation)
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -1096,7 +1080,6 @@
 
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(I)
-        ierr = adj_destroy_block(E)
 
         ierr = adj_create_block("LocalVelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
@@ -1163,28 +1146,6 @@
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(P)
         ierr = adj_destroy_block(I)
-
-        ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u0)
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_block("CartesianEmbedding", block=E, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-        ierr = adj_block_set_coefficient(E, coefficient=-1.0)
-        call adj_chkierr(ierr)
-        ierr = adj_block_set_hermitian(E, hermitian=ADJ_TRUE)
-
-        ierr = adj_create_block("ManifoldVelocityIdentity", block=I, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_equation(variable=manifold_u0, blocks=(/E, I/), targets=(/cartesian_u0, manifold_u0/), equation=equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_register_equation(adjointer, equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_destroy_equation(equation)
-        ierr = adj_destroy_block(E)
-        ierr = adj_destroy_block(I)
       endif
 #endif
     end subroutine adjoint_register_initial_u_condition
@@ -1194,10 +1155,10 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, E, P, MI, CI
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, E, P, CI
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, manifold_u, cartesian_u
+      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
       real :: start_time
 
       integer :: j, nfunctionals
@@ -1212,8 +1173,6 @@
       ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::ManifoldVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=manifold_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
       call adj_chkierr(ierr)
@@ -1279,12 +1238,10 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(E, coefficient=-1.0)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("ManifoldVelocityIdentity", context=c_loc(matrices), block=MI)
-      call adj_chkierr(ierr)
       ierr = adj_create_block("CartesianVelocityIdentity", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
 
-      ! Ahah! Now we can register our lovely equations. They are pretty, aren't they?
+      ! Ahah! Now we can register our lovely equations. 
       ierr = adj_create_equation(delta_eta, blocks=(/CTMC, CTML, W/), &
                                           & targets=(/previous_eta, previous_u, delta_eta/), equation=equation)
       call adj_chkierr(ierr)
@@ -1325,14 +1282,6 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(manifold_u, blocks=(/E, MI/), &
-                                    & targets=(/cartesian_u, manifold_u/), equation=equation)
-      call adj_chkierr(ierr)
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
-
       ! And now we gots to destroy some blocks
       ierr = adj_destroy_block(Iu)
       call adj_chkierr(ierr)
@@ -1357,8 +1306,6 @@
       ierr = adj_destroy_block(E)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(P)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(MI)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(CI)
       call adj_chkierr(ierr)
