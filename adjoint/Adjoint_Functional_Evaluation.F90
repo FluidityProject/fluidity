@@ -221,6 +221,7 @@ module adjoint_functional_evaluation
     write(buffer, *) timestep
     call python_run_string("n = " // trim(buffer))
     call python_run_string("timestep = " // trim(buffer))
+    call python_run_string("original_timestep = " // trim(buffer))
 
 
     ! OK! We're ready for the user's code:
@@ -249,9 +250,9 @@ module adjoint_functional_evaluation
 
 
         ! Backup u.val
-        call python_run_string("tmp_uval = states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
+        call python_run_string("tmp_uval = states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
         ! Replace u.val with AD-ified object
-        call python_run_string("states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
+        call python_run_string("states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
         ! Loop over each timestep that this variable might be used in
 
         ierr = adj_variable_get_ndepending_timesteps(adjointer, var, trim(functional_name_f), ndepending_timesteps)
@@ -277,7 +278,7 @@ module adjoint_functional_evaluation
           ! The += below comes from the fact that the reduction operator for each timestep component is addition
           ! So we shall assert that no one has added anything funny:
           assert(have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/reduction/sum"))
-          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[n]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
+          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
         end do
       end if
     end if
