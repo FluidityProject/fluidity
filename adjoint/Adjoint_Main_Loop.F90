@@ -87,7 +87,6 @@ module adjoint_main_loop
       type(vector_field) :: vfield_soln, vfield_rhs
       type(csr_matrix) :: csr_mat
       type(block_csr_matrix) :: block_csr_mat
-      integer :: dim
       character(len=ADJ_DICT_LEN) :: path
 
       call get_option("/timestepping/timestep", dt)
@@ -95,8 +94,8 @@ module adjoint_main_loop
       call get_option("/simulation_name", simulation_base_name)
 
       ! Switch the html output on if you are interested what the adjointer has registered
-      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_forward.html", ADJ_FORWARD)
-      ierr = adj_adjointer_to_html(adjointer, "burgers_adjointer_adjoint.html", ADJ_ADJOINT)
+      ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
+      ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
       call adj_chkierr(ierr)
 
       no_functionals = option_count("/adjoint/functional")
@@ -150,7 +149,7 @@ module adjoint_main_loop
             call adj_chkierr(ierr)
             path = adjoint_field_path(path)
 
-            ! variable_name should be something like Fluid::LocalVelocity 
+            ! variable_name should be something like Fluid::Velocity 
             select case(rhs%klass)
               case(ADJ_SCALAR_FIELD)
                 call field_from_adj_vector(rhs, sfield_rhs)
@@ -182,7 +181,7 @@ module adjoint_main_loop
                 call deallocate(sfield_soln)
               case(ADJ_VECTOR_FIELD)
                 call field_from_adj_vector(rhs, vfield_rhs)
-                call allocate(vfield_soln, dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
+                call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
                 call zero(vfield_soln)
                 vfield_soln%option_path = trim(path)
 
