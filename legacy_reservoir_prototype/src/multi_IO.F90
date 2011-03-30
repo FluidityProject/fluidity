@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,8 +25,12 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
+
 
 module printout
+
+  use fldebug
 
   implicit none
 
@@ -40,7 +45,7 @@ contains
     ! local variables
     integer :: ierror
 
-    write(357,*) 'In open_output_file'
+    ewrite(3,*) 'In open_output_file'
 
     open(output_channel,file=trim(output_name),status='replace',form=trim(file_format),action='write',iostat=ierror) 
 
@@ -49,7 +54,7 @@ contains
        stop 446       
     end if ! if (ierror .ne. 0) then      
 
-    write(357,*) 'Leaving open_output_file'
+    ewrite(3,*) 'Leaving open_output_file'
 
   end subroutine open_output_file
 
@@ -62,7 +67,7 @@ contains
     integer, intent(in) :: integer_variable,len_string_variable
     character(len=len_string_variable), intent(inout) :: string_variable
 
-    write(357,*) 'In write_integer_to_string'
+    ewrite(3,*) 'In write_integer_to_string'
 
     if (integer_variable .lt. 10) then
 
@@ -167,7 +172,7 @@ contains
 
     end if ! if (integer_variable .lt. 10) then
 
-    write(357,*) 'Leaving write_integer_to_string'
+    ewrite(3,*) 'Leaving write_integer_to_string'
 
   end subroutine write_integer_to_string
 
@@ -187,7 +192,7 @@ contains
     ! Local variables
     integer :: ele, cv_iloc
 
-    write(357,*) 'In output_fem_sol_of_cv'
+    ewrite(3,*) 'In output_fem_sol_of_cv'
 
     do ele = 1, totele
        do cv_iloc = 1, cv_nloc
@@ -196,7 +201,7 @@ contains
        end do
     end do
 
-    write(357,*) 'Leaving output_fem_sol_of_cv'
+    ewrite(3,*) 'Leaving output_fem_sol_of_cv'
 
   end subroutine output_fem_sol_of_cv
 
@@ -213,7 +218,7 @@ contains
     character( len = 50 ) :: file_name_in, file_name_out, dump
     integer :: iaux, k, k1, k2, k3
 
-    write(357,*) 'In generate_name_dump'
+    ewrite(3,*) 'In generate_name_dump'
 
     iaux = 9997
     file_name_in = 'test_'
@@ -242,7 +247,7 @@ contains
 222 format( a, i0 )
     !222 format( a, a3, i0 )
 
-    write(357,*) 'Leaving generate_name_dump'
+    ewrite(3,*) 'Leaving generate_name_dump'
 
   end subroutine generate_name_dump
 
@@ -263,7 +268,7 @@ contains
     integer :: cv_iloc, ele, xi_nod, xi_nod_plus, xi_nod_minus, field_nod
     real :: x_coord
 
-    write(357,*) 'In printing_field_array'
+    ewrite(3,*) 'In printing_field_array'
 
     Loop_Elements: do ele = 1, totele
 
@@ -302,7 +307,7 @@ contains
 
     end do Loop_Elements
 
-    write(357,*) 'Leaving printing_field_array'
+    ewrite(3,*) 'Leaving printing_field_array'
 
   end subroutine printing_field_array
 
@@ -327,7 +332,7 @@ contains
          xi_nod_minus, field_nod
     real :: x_coord
 
-    write(357,*) 'In printing_veloc_field'
+    ewrite(3,*) 'In printing_veloc_field'
 
     Loop_Elements: do ele = 1, totele
 
@@ -366,7 +371,7 @@ contains
 
     end do Loop_Elements
 
-    write(357,*) 'Leaving printing_veloc_field'
+    ewrite(3,*) 'Leaving printing_veloc_field'
 
   end subroutine printing_veloc_field
 
@@ -385,7 +390,7 @@ contains
     integer :: cv_iloc, ele, cv_nod
     real :: visc1, visc2, s_gc, s_or, fw, kr1, kr2, sat
 
-    write(357,*) 'In printing_fw_field'
+    ewrite(3,*) 'In printing_fw_field'
 
     Loop_ELE: DO ELE = 1, TOTELE
 
@@ -415,7 +420,7 @@ contains
 
     END DO Loop_ELE
 
-    write(357,*) 'Leaving printing_fw_field'
+    ewrite(3,*) 'Leaving printing_fw_field'
 
   end subroutine printing_fw_field
 
@@ -470,7 +475,7 @@ contains
     ! Local variables
     integer, dimension( : ), allocatable :: dummy
 
-    write(357,*) 'In check_sparsity'
+    ewrite(3,*) 'In check_sparsity'
 
     open( 15, file = 'CheckSparsityMatrix.dat', status = 'unknown' )
     write( 15, * )'########## FINMCY, MIDMCY, COLMCY ##################'
@@ -511,7 +516,7 @@ contains
 
     close( 15 )
 
-    write(357,*) 'Leaving check_sparsity'
+    ewrite(3,*) 'Leaving check_sparsity'
 
     return
 
@@ -591,7 +596,7 @@ contains
     ! Local variables
     integer :: i, j, k
 
-    write(357,*) 'In mirror_data'
+    ewrite(3,*) 'In mirror_data'
 
     write( unit_debug, 201 ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
          problem, nphase, ncomp, totele, ndim, nlev
@@ -764,7 +769,7 @@ contains
 203 format( a, 1x, 4g10.4 )
 204 format( a, 1x, 5g10.4 )
 
-    write(357,*) 'Leaving mirror_data'
+    ewrite(3,*) 'Leaving mirror_data'
 
     return
   end subroutine mirror_data
@@ -849,6 +854,8 @@ end module printout
 
 module input_var
 
+  use fldebug
+
 contains
 
 
@@ -866,7 +873,7 @@ contains
     integer :: k
     real :: dummy_real
 
-    !write(357,*) 'In get_entry'
+    !ewrite(3,*) 'In get_entry'
 
     ior = 1
     ifile = ' '
@@ -875,7 +882,6 @@ contains
     value_bool = .true.
 
     read( unit, * ) name
-    write( 357, * ) name
     if( ( name( 1 : 1 ) == '#' ) .or. ( name( 1 : 1 ) == ' ' ) ) then
        ior = 0
     else
@@ -884,8 +890,9 @@ contains
           ior = -1000
           return
        elseif(( name( 1 : 9 ) == 'lump_eqns' ) .or. &
-           ( name( 1 : 21 ) == 'volfra_use_theta_flux' ) .or. ( name( 1 : 21 ) == 'volfra_get_theta_flux' ) .or. &
-           ( name( 1 : 19 ) == 'comp_use_theta_flux' ) .or. ( name( 1 : 19 ) == 'comp_get_theta_flux' )) then
+            ( name( 1 : 21 ) == 'volfra_use_theta_flux' ) .or. ( name( 1 : 21 ) == 'volfra_get_theta_flux' ) .or. &
+            ( name( 1 : 19 ) == 'comp_use_theta_flux' ) .or. ( name( 1 : 19 ) == 'comp_get_theta_flux' ) .or. ( name( 1 : 13 ) == 'KComp_Sigmoid' ) .or. &
+            (name( 1 : 12 ) == 'Comp_Sum2One' )) then
           backspace( unit )
           read( unit, * ) name, value_bool
           k = index( name, ' ' ) - 1
@@ -894,7 +901,6 @@ contains
        else
           backspace( unit )
           read( unit, * ) name, value_real
-
           if( value_real < -1000. ) then
              backspace( unit )
              read( unit, * ) name, dummy_real, fcn_name
@@ -903,7 +909,7 @@ contains
              fcn_name = trim( fcn_name )
              ior = 13
           elseif( abs( value_real + 1000. ) < 1.e-6 ) then ! so value is -1000
- ! Real or integer array
+             ! Real or integer array
              backspace( unit )
              read( unit, * ) name, dummy_real, fcn_name
              k = index( name, ' ' ) - 1
@@ -911,7 +917,7 @@ contains
              fcn_name = trim( fcn_name )
              ior = 15
           elseif( abs( value_real + 999. ) < 1.e-6 ) then ! so value is -999
-! 2 x 2 matrix
+             ! 2 x 2 matrix
              backspace( unit )
              read( unit, * ) name, dummy_real, fcn_name
              k = index( name, ' ' ) - 1
@@ -919,7 +925,7 @@ contains
              fcn_name = trim( fcn_name )
              ior = 16
           elseif( abs( value_real + 998. ) < 1.e-6 ) then ! so value is -998
-! 3 x 3 matrix
+             ! 3 x 3 matrix
              backspace( unit )
              read( unit, * ) name, dummy_real, fcn_name
              k = index( name, ' ' ) - 1
@@ -927,13 +933,21 @@ contains
              fcn_name = trim( fcn_name )
              ior = 17
           elseif( abs( value_real + 997  ) < 1.e-6 ) then ! so value is -997
-! 4 x 4 matrix
+             ! 4 x 4 matrix
              backspace( unit )
              read( unit, * ) name, dummy_real, fcn_name
              k = index( name, ' ' ) - 1
              ifile( 1 : k ) = name( 1 : k )
              fcn_name = trim( fcn_name )
              ior = 18
+          elseif( abs( value_real + 990  ) < 1.e-6 ) then ! so value is -990
+             ! Just a generic function with 4 argments returning a real array
+             backspace( unit )
+             read( unit, * ) name, dummy_real, fcn_name
+             k = index( name, ' ' ) - 1
+             ifile( 1 : k ) = name( 1 : k )
+             fcn_name = trim( fcn_name )
+             ior = 20
           else
              k = index( name, ' ' ) - 1
              ifile( 1 : k ) = name( 1 : k )
@@ -1157,12 +1171,44 @@ contains
   end subroutine Array_Matrix4_Set
 
 
+  subroutine Generic4args( unit, ior, ndim1, ndim2, ndim3, ndim4, len_name, fcn_name, field ) 
+
+    implicit none
+    integer, intent( in ) :: unit, ior, ndim1, ndim2, ndim3, ndim4, len_name
+    character( len = len_name ), intent( in ) :: fcn_name
+    real, dimension( ndim1 * ndim2 * ndim3 * ndim4 ), intent ( inout ) :: field
+    ! Local variables
+    integer :: i, k
+
+    if( ior == 20 ) then
+
+       open( unit + 1, file = 'filedim', status = 'unknown' )
+       write( unit + 1, * ) ndim1, ndim2, ndim3, ndim4
+       close( unit + 1 )
+
+    end if
+
+    k = index( fcn_name, ' ' ) - 1
+    call system( 'rm -f fvalues' )
+    call system( './' // fcn_name( 1 : k ) // ' > fvalues ' )
+    open( unit + 1, file = 'fvalues', status = 'unknown' )
+
+    do i = 1, ndim1 * ndim2 * ndim3 * ndim4
+       read( unit + 1, * ) field( i )
+    end do
+
+    close( unit + 1 )
+
+    return
+  end subroutine Generic4args
+
+
   subroutine read_scalar( unit, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
        u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
        cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
        ncoef, nuabs_coefs, &
        u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-       cv_sele_type, u_sele_type, ntime, nits, nits_internal, noit_dim, &
+       cv_sele_type, u_sele_type, ntime, ntime_dump, nits, nits_internal, noit_dim, &
        nits_flux_lim_volfra, nits_flux_lim_comp, &
        ndpset, &
        dt, patmos, p_ini, t_ini, &
@@ -1181,7 +1227,7 @@ contains
          cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-         cv_sele_type, u_sele_type, ntime, nits, nits_internal, noit_dim, &
+         cv_sele_type, u_sele_type, ntime, ntime_dump, nits, nits_internal, noit_dim, &
          nits_flux_lim_volfra, nits_flux_lim_comp, &
          ndpset
     real, intent( inout ) :: dt, patmos, p_ini, t_ini, &
@@ -1189,7 +1235,7 @@ contains
     integer, intent( inout ) :: t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
          u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt
     logical, intent( inout ) :: lump_eqns, &
-       volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux
+         volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux
     integer, intent( inout ) :: capil_pres_opt, ncapil_pres_coef, &
          comp_diffusion_opt, ncomp_diff_coef
     real, intent( inout ) :: domain_length
@@ -1202,6 +1248,7 @@ contains
 
     ior = 0
     ncomp = 0
+    ntime_dump = 1
 
     do while ( .not. ( ior == -1000 ))
        call get_entry( unit, len_name, ior, ifile, fcn_name, value_real, value_bool )
@@ -1212,7 +1259,7 @@ contains
           Select Case ( ifile( 1 : k ))
 
           Case( 'option_debug' );
-            option_debug = real( value_real )
+             option_debug = real( value_real )
 
           Case( 'problem' );
              problem = real( value_real )
@@ -1288,6 +1335,9 @@ contains
 
           Case( 'ntime' );
              ntime = int( value_real )
+
+          Case( 'ntime_dump' );
+             ntime_dump = int( value_real )
 
           Case( 'nits' );
              nits = int( value_real )
@@ -1386,7 +1436,7 @@ contains
              u_theta = value_real
 
           Case DEFAULT
-             write( 357, * ) 'Option not found in read_scalar subrt.', ifile( 1 : k ) 
+             ewrite(3,*) 'Option not found in read_scalar subrt.', ifile( 1 : k ) 
              STOP 1877
 
           end Select
@@ -1422,14 +1472,14 @@ contains
        mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, mass_matrix_relax_number_iterations, &
        in_ele_upwind, dg_ele_upwind, & 
        x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
-       uabs_option, uabs_coefs, u_abs_stab, &
+       uabs_option, uabs_coefs, u_abs_stab, Mobility, &
        u_absorb, t_absorb, v_absorb, comp_absorb, &
        u_source, t_source, v_source, comp_source, udiffusion, tdiffusion, &
        ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
        ncapil_pres_coef, capil_pres_coef, & 
        u, v, w, &
-       den, satura, comp, volfra, t, cv_one, p, cv_p, volfra_pore, perm, &
-       K_Comp, alpha_beta, &
+       den, satura, comp, volfra, t, cv_one, p, cv_p, volfra_pore, Viscosity, perm, &
+       KComp_Sigmoid, K_Comp, Comp_Sum2One, alpha_beta, &
        eos_option, cp_option, eos_coefs, cp_coefs )
 
     implicit none
@@ -1466,9 +1516,11 @@ contains
     real, dimension( u_nonods * nphase ), intent( inout ) ::  nu, nv, nw, ug, vg, wg
     integer, dimension( nphase ), intent( inout ) :: uabs_option
     real, dimension( nphase, nuabs_coefs ), intent( inout ) :: uabs_coefs
-    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab, u_absorb
+    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
+    real, intent( inout ) :: Mobility
+    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: t_absorb, v_absorb
-    real, dimension( cv_nonods * nphase, nphase, nphase ), intent( inout ) :: comp_absorb
+    real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: comp_absorb
     real, dimension( u_nonods * nphase ), intent( inout ) :: u_source
     real, dimension( cv_nonods * nphase ), intent( inout ) :: t_source, v_source, comp_source
     real, dimension( mat_nonods, ndim, ndim, nphase ), intent( inout ) :: udiffusion, tdiffusion
@@ -1486,8 +1538,10 @@ contains
     real, dimension( cv_nonods * nphase ), intent( inout ) :: volfra, t, cv_one
     real, dimension( cv_nonods ), intent( inout ) :: p, cv_p
     real, dimension( totele ), intent( inout ) :: volfra_pore
+    real, dimension( cv_nonods * nphase ), intent( inout ) :: Viscosity
     real, dimension( totele , ndim, ndim ), intent( inout ) :: perm
     real, dimension( ncomp, nphase, nphase ), intent( inout ) :: K_Comp
+    logical, intent( inout ) :: KComp_Sigmoid, Comp_Sum2One
     real, intent( inout ) :: alpha_beta
     integer, dimension( nphase ), intent( inout ) :: eos_option, cp_option
     real, dimension( nphase, ncoef ), intent( inout ) :: eos_coefs
@@ -1501,7 +1555,10 @@ contains
     real :: value_real
     logical :: value_bool
 
-    write(357,*) 'In read_all'
+    ewrite(3,*) 'In read_all'
+    KComp_Sigmoid = .false. ! Default
+    Comp_Sum2One = .false. ! Default
+    Mobility = 10.
 
     ior = 0
     do while ( .not. ( ior == -1000 ))
@@ -1512,7 +1569,11 @@ contains
        Conditional_IOR: if ( ior > 0 ) then
           k = index( ifile, ' ') - 1
           Select Case ( ifile( 1 : k ))
-
+             ! Logical
+          Case( 'KComp_Sigmoid' );
+             KComp_Sigmoid = value_bool
+          Case( 'Comp_Sum2One' );
+             Comp_Sum2One = value_bool
              ! Scalar:
           Case( 'alpha_beta' );
              if( ior == 13 ) then
@@ -1687,6 +1748,13 @@ contains
                 call Scalar_Real_Val( unit, len_name, fcn_name, mass_matrix_relax_row )
              else
                 mass_matrix_relax_row = value_real
+             endif
+
+          Case( 'Mobility' );
+             if( ior == 13 ) then
+                call Scalar_Real_Val( unit, len_name, fcn_name, Mobility )
+             else
+                Mobility = value_real
              endif
 
           Case( 'volfra_relax_number_iterations' );
@@ -1878,6 +1946,8 @@ contains
           Case( 'suf_comp_bc' );
              if(( ior == 13 ) .or. ( ior == 15 )) then
                 call Array_Real_Set( unit, ior, stotel * cv_snloc * nphase * ncomp, len_name, fcn_name, suf_comp_bc )
+             elseif( ior == 20 ) then
+                call Generic4args( unit, ior, stotel, cv_snloc, nphase, ncomp, len_name, fcn_name, suf_comp_bc )
              else
                 suf_comp_bc = value_real
              endif
@@ -2123,6 +2193,8 @@ contains
           Case( 'comp' );
              if(( ior == 13 ) .or. ( ior == 15 )) then
                 call Array_Real_Set( unit, ior, cv_nonods * nphase * ncomp, len_name, fcn_name, comp )
+             elseif( ior == 20 ) then
+                call Generic4args( unit, ior, cv_nonods, nphase, ncomp, 1, len_name, fcn_name, comp )
              else
                 comp = value_real
              endif
@@ -2146,6 +2218,13 @@ contains
                 call Array_Real_Set( unit, ior, cv_nonods * nphase , len_name, fcn_name, cv_one )
              else
                 cv_one = value_real
+             endif
+
+          Case( 'Viscosity' );
+             if(( ior == 13 ) .or. ( ior == 15 )) then
+                call Array_Real_Set( unit, ior, cv_nonods * nphase , len_name, fcn_name, Viscosity )
+             else
+                Viscosity = value_real
              endif
 
           Case( 'p' );
@@ -2281,7 +2360,7 @@ contains
 
     end do
 
-    write(357,*) 'Leaving read_all'
+    ewrite(3,*) 'Leaving read_all'
 
     return
   end subroutine read_all
@@ -2308,7 +2387,7 @@ contains
     ! Local variables
     character( len = 150) :: title
 
-    write(357,*) 'In readin_bc'
+    ewrite(3,*) 'In readin_bc'
 
     read( unit_input, * ) title( 1 : 150 )
     read( unit_input, * ) title( 1 : 150 )
@@ -2342,7 +2421,7 @@ contains
     call input_real( unit_input, stotel * cv_snloc * nphase, suf_t_bc_rob1 )
     call input_real( unit_input, stotel * cv_snloc * nphase, suf_t_bc_rob2 )
 
-    write(357,*) 'Leaving readin_bc'
+    ewrite(3,*) 'Leaving readin_bc'
 
     return
   end subroutine readin_bc
@@ -2357,7 +2436,7 @@ contains
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
     real, dimension( u_nonods * nphase ), intent( inout ) ::  nu, nv, nw, ug, vg, wg
 
-    write(357,*) 'In reading_initial_position_velocities'
+    ewrite(3,*) 'In reading_initial_position_velocities'
 
     call input_real( unit_input, x_nonods, x )
     call input_real( unit_input, x_nonods, y )
@@ -2375,7 +2454,7 @@ contains
     call input_real( unit_input, u_nonods * nphase, vg )
     call input_real( unit_input, u_nonods * nphase, wg )
 
-    write(357,*) 'Leaving reading_initial_position_velocities'
+    ewrite(3,*) 'Leaving reading_initial_position_velocities'
 
     return
   end subroutine reading_initial_position_velocities
@@ -2645,7 +2724,7 @@ contains
     integer :: ele, iloc, cv_iloc
     character( len = 100 ) :: name
 
-    write(357,*) 'In allocating_global_nodes'
+    ewrite(3,*) 'In allocating_global_nodes'
 
     Conditional_NDIM: if( ndim == 1 ) then ! This needs to be updated for 2-3D
 
@@ -2666,7 +2745,7 @@ contains
           u_sndgln( 2 ) = u_nonods
        end if
        name = '####u_sndgln####'
-       call mirror_array_int( 357, name,  stotel * u_snloc, u_sndgln )
+       !call mirror_array_int( 357, name,  stotel * u_snloc, u_sndgln )
 
        u_nod = 0
        xu_nod = 0 
@@ -2733,7 +2812,7 @@ contains
 
     end if Conditional_NDIM
 
-    write(357,*) 'Leaving allocating_global_nodes'
+    ewrite(3,*) 'Leaving allocating_global_nodes'
 
 
     return
@@ -2757,7 +2836,7 @@ contains
     integer :: iloc, ele, x_nod, cv_nod
     real :: dx
 
-    write(357,*) 'In initialise_scalar_fields'
+    ewrite(3,*) 'In initialise_scalar_fields'
 
     Conditional_NDIM: if ( ndim == 1 ) then ! This may change for 2-3D
 
@@ -2778,7 +2857,7 @@ contains
                 if( x( x_nod ) < dx ) t( cv_nod ) = 0.5
 
              case DEFAULT
-                write(357,*) 'It is necessary to set up -1 < problem < 1'
+                ewrite(3,*) 'It is necessary to set up -1 < problem < 1'
                 stop 1789
 
              end Select
@@ -2789,7 +2868,7 @@ contains
 
     end if Conditional_NDIM
 
-    write(357,*) 'Leaving initialise_scalar_fields'
+    ewrite(3,*) 'Leaving initialise_scalar_fields'
 
     return
   end subroutine initialise_scalar_fields

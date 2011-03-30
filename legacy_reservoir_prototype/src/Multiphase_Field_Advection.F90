@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,11 +25,14 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
+
 
 module multiphase_field_advection
 
   use multiphase_1D_engine
   use printout
+  use fldebug
 
   implicit none
 
@@ -46,7 +50,7 @@ contains
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-       ntime, nits, &
+       ntime, ntime_dump, nits, &
        nits_flux_lim_volfra, nits_flux_lim_comp, &
        dt,  &
                                 ! Discretisation parameters
@@ -85,8 +89,8 @@ contains
     integer, intent( in ) :: problem, nphase, ncomp, totele, ndim, u_nloc, xu_nloc, cv_nloc, x_nloc, &
          mat_nloc, cv_snloc, u_snloc, stotel
     real, intent( in ) :: domain_length
-    integer, intent( in ) :: u_ele_type, p_ele_type, cv_ele_type, cv_sele_type, u_sele_type, ntime, nits, &
-         nits_flux_lim_volfra, nits_flux_lim_comp
+    integer, intent( in ) :: u_ele_type, p_ele_type, cv_ele_type, cv_sele_type, u_sele_type, &
+         ntime, ntime_dump, nits, nits_flux_lim_volfra, nits_flux_lim_comp
     real, intent( in ) :: dt
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
@@ -143,7 +147,7 @@ contains
     integer :: its, itime, ele, iloc, x_nod, cv_nod
     character( len = 100 ) :: field
     integer :: unit_T
-    real, dimension( : ), allocatable :: T_FEMT
+    real, dimension( : ), allocatable :: T_FEMT, MEAN_PORE_CV
 
     REAL, DIMENSION( :, :, :, : ), allocatable :: THETA_FLUX, ONE_M_THETA_FLUX
     INTEGER :: IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA
@@ -155,10 +159,11 @@ contains
     ALLOCATE( THETA_FLUX( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ))
     ALLOCATE( ONE_M_THETA_FLUX( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ))
     ALLOCATE( T_FEMT(  cv_nonods * nphase ))
+    ALLOCATE( MEAN_PORE_CV(  cv_nonods ))
 
 
 
-    write(357,*) 'In solve_multiphase_field_advection'
+    ewrite(3,*) 'In solve_multiphase_field_advection'
 
     Loop_Time: do itime = 1, ntime
 
@@ -196,7 +201,8 @@ contains
                T, T, T, &
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP )
+               T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
+               MEAN_PORE_CV )
 
 
 
@@ -229,7 +235,7 @@ contains
        xacc = xacc - ( domain_length / real( totele ) ) / real( cv_nloc - 1 )
     end do
 
-    write(357,*) 'Leaving solve_multiphase_field_advection'
+    ewrite(3,*) 'Leaving solve_multiphase_field_advection'
 
   end subroutine solve_multiphase_field_advection
 

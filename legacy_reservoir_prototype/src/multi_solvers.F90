@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,6 +25,8 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
+
 
 !!!=========================================!!!
 !!!           SOLVERS SUBROUTINES           !!!
@@ -32,6 +35,8 @@
 
 
 module solvers_module
+
+  use fldebug
 
 contains
 
@@ -59,7 +64,7 @@ contains
     INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
     REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
 
-    write(357,*) 'In Solver'
+    ewrite(3,*) 'In Solver'
 
     Loop_Non_Linear_Iter: DO ITS = 1, N_LIN_ITS
 
@@ -94,7 +99,7 @@ contains
 
     END DO Loop_Non_Linear_Iter
 
-    write(357,*) 'Leaving Solver'
+    ewrite(3,*) 'Leaving Solver'
 
     RETURN
   END SUBROUTINE SOLVER
@@ -116,9 +121,9 @@ contains
     INTEGER :: ROW, START, FINISH, ST2, FI2, COL, ST1, FI1, I, J, ACR, ICOL
     REAL :: CTC
 
-    write(357,*) 'In GetCMC'
+    ewrite(3,*) 'In GetCMC'
 
-    !write(357,*)'ncmc,FREDOP,nonods=',ncmc,FREDOP,nonods
+    !ewrite(3,*)'ncmc,FREDOP,nonods=',ncmc,FREDOP,nonods
 
     CMC( 1 : NCMC ) = 0.0
 
@@ -150,7 +155,7 @@ contains
 
     END DO Loop_Row
 
-    write(357,*) 'Leaving GetCMC'
+    ewrite(3,*) 'Leaving GetCMC'
 
     RETURN
   END SUBROUTINE GETCMC
@@ -163,7 +168,7 @@ contains
     ! Local
     integer :: nod, ele, ele1, ele2, count
 
-    write(357,*) 'In GetNC'
+    ewrite(3,*) 'In GetNC'
 
     count = 0
     Loop_cvnod: do nod = 1, nonods
@@ -178,7 +183,7 @@ contains
 
     nc = count
 
-    write(357,*) 'Leaving GetNC'
+    ewrite(3,*) 'Leaving GetNC'
 
     return
   end subroutine getnc
@@ -191,7 +196,7 @@ contains
     ! Local
     integer :: nod, count, iband, col
 
-    write(357,*) 'In GetNELE'
+    ewrite(3,*) 'In GetNELE'
 
     count = 0
     col = 0

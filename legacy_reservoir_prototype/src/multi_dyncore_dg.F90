@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,6 +25,7 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
 
 module multiphase_1D_engine
 
@@ -34,6 +36,7 @@ module multiphase_1D_engine
   use spact
   use printout
   use spact
+  use fldebug
 
   implicit none
 
@@ -80,22 +83,24 @@ contains
        NDIM,  &
        NCOLM, FINDM, COLM, MIDM, &
        XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, DEN_FEMT, &
+       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+       T_FEMT, DEN_FEMT, &
        IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
        THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM )
+       T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM, &
+       MEAN_PORE_CV )
 
     ! Solve for internal energy using a control volume method.
 
-implicit none
+    implicit none
 
     INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
          U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
          CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
          NOPT_VEL_UPWIND_COEFS, &
-     IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+         IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NITS_FLUX_LIM
     LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -144,6 +149,7 @@ implicit none
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
+    REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
 
     ! Local variables
     LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -183,12 +189,13 @@ implicit none
             NDIM, GETCV_DISC, GETCT, &
             NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, DEN_FEMT, &
+            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+            T_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
-            MASS_ERROR_RELAX2_NOIT )
+            MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
 
        Conditional_Lumping: IF(LUMP_EQNS) THEN
           ! Lump the multi-phase flow eqns together
@@ -213,8 +220,8 @@ implicit none
 
           CALL SOLVER( ACV_SUB, T, CV_RHS_SUB, &
                NCOLACV_SUB, CV_NONODS, FINACV_SUB, COLACV_SUB, MIDACV_SUB,  &
-           T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-           T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
+               T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
+               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
           !               T_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
 
           DO IPHASE = 2, NPHASE
@@ -225,16 +232,16 @@ implicit none
 
           CALL SOLVER( ACV, T, CV_RHS, &
                NCOLACV, NPHASE * CV_NONODS, FINACV, COLACV, MIDACV,  &
-           T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-           T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
+               T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
+               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
           !               T_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
-write(357,*)'cv_rhs:', cv_rhs
-write(357,*)'T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1', T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-           T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1)
-write(357,*)'SUF_T_BC:',SUF_T_BC
-write(357,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
-write(357,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
-write(357,*)
+          ewrite(3,*)'cv_rhs:', cv_rhs
+          ewrite(3,*)'T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1', T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
+               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1)
+          ewrite(3,*)'SUF_T_BC:',SUF_T_BC
+          ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
+          ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
+          ewrite(3,*)
 
        END IF Conditional_Lumping
 
@@ -246,7 +253,7 @@ write(357,*)
     DEALLOCATE( CT_RHS )
     DEALLOCATE( CT )
 
-    write(357,*) 'Leaving INTENERGE_ASSEM_SOLVE'
+    ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
 
   END SUBROUTINE INTENERGE_ASSEM_SOLVE
 
@@ -273,14 +280,15 @@ write(357,*)
        NDIM, &
        NCOLM, FINDM, COLM, MIDM, &
        XU_NLOC, XU_NDGLN ,FINELE, COLELE, NCOLELE, &
-       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Sat_FEMT, DEN_FEMT, &
+       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+       Sat_FEMT, DEN_FEMT, &
        IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
        SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM )
 
-implicit none
+    implicit none
     INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE, &
@@ -335,7 +343,7 @@ implicit none
     REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
     REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
     INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-    REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD
+    REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
     LOGICAL :: GET_THETA_FLUX
 
     GET_THETA_FLUX = .FALSE.
@@ -359,6 +367,7 @@ implicit none
     ALLOCATE( TDIFFUSION( MAT_NONODS,NDIM,NDIM,NPHASE ))
     ALLOCATE( SUF_VOL_BC_ROB1(STOTEL * CV_SNLOC * NPHASE ) )
     ALLOCATE( SUF_VOL_BC_ROB2(STOTEL * CV_SNLOC * NPHASE ) )
+    ALLOCATE( MEAN_PORE_CV( CV_NONODS ) )
 
     TDIFFUSION = 0.0
     SUF_VOL_BC_ROB1 = 0.0
@@ -389,17 +398,18 @@ implicit none
             NDIM, GETCV_DISC, GETCT,  &
             NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Sat_FEMT, DEN_FEMT, &
+            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+            Sat_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
-            MASS_ERROR_RELAX2_NOIT )
+            MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
 
        CALL SOLVER( ACV, SATURA, CV_RHS, &
             NCOLACV, NPHASE * CV_NONODS, FINACV, COLACV, MIDACV,  &
-        SAT_ERROR_RELAX2_NOIT(1), SAT_ERROR_RELAX2_NOIT(2), SAT_ERROR_RELAX2_NOIT(3), &
-        SAT_ERROR_RELAX2_NOIT(4), INT(SAT_ERROR_RELAX2_NOIT(5)+0.1))
+            SAT_ERROR_RELAX2_NOIT(1), SAT_ERROR_RELAX2_NOIT(2), SAT_ERROR_RELAX2_NOIT(3), &
+            SAT_ERROR_RELAX2_NOIT(4), INT(SAT_ERROR_RELAX2_NOIT(5)+0.1))
        !               SAT_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
 
     END DO Loop_NonLinearFlux
@@ -420,7 +430,7 @@ implicit none
     DEALLOCATE( WIC_T2_BC )
     DEALLOCATE( THETA_GDIFF )
 
-    write(357,*) 'Leaving VOLFRA_ASSEM_SOLVE'
+    ewrite(3,*) 'Leaving VOLFRA_ASSEM_SOLVE'
 
     RETURN
 
@@ -440,13 +450,13 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-       NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparsity
+       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+       NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
        NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
-       NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
+       NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
        CV_ELE_TYPE, &
        NU, NV, NW, NUOLD, NVOLD, NWOLD, &
        V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
@@ -541,7 +551,7 @@ implicit none
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: GL_ERROR_RELAX2_NOIT, U_ERROR_RELAX2_NOIT, &
          P_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-                                        PLIKE_GRAD_SOU_GRAD
+         PLIKE_GRAD_SOU_GRAD
 
     ! Local Variables
     LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE. 
@@ -565,7 +575,7 @@ implicit none
     REAL :: der1, der2, der3, uabs
     LOGICAL :: JUST_BL_DIAG_MAT
 
-    write(357,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
+    ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
     ALLOCATE( ACV( NCOLACV )) 
     ALLOCATE( CT( NCOLCT * NDIM * NPHASE ))
@@ -592,7 +602,7 @@ implicit none
     ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
     ALLOCATE( DGM_PHA( NCOLDGM_PHA ))
 
-    write(357,*) 'ncolc, ncolct:',ncolc, ncolct
+    ewrite(3,*) 'ncolc, ncolct:',ncolc, ncolct
 
     CALL CV_ASSEMB_FORCE_CTY_PRES(  &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -605,8 +615,8 @@ implicit none
          U, V, W, UOLD, VOLD, WOLD,  &
          CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
-         NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES,  & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -636,14 +646,14 @@ implicit none
     IF( GLOBAL_SOLVE ) THEN 
        ! Global solve  
        IF(JUST_BL_DIAG_MAT) THEN
-          WRITE(357,*)'OPTION NOT READY YET WITH A GLOBAL SOLVE'
+          EWRITE(3,*)'OPTION NOT READY YET WITH A GLOBAL SOLVE'
           STOP 8331
        ENDIF
        UP=0.0
        CALL SOLVER( MCY, UP, MCY_RHS, &
             NCOLMCY, NLENMCY, FINMCY, COLMCY, MIDMCY,  &
-        GL_ERROR_RELAX2_NOIT(1), GL_ERROR_RELAX2_NOIT(2), GL_ERROR_RELAX2_NOIT(3), &
-        GL_ERROR_RELAX2_NOIT(4), INT(GL_ERROR_RELAX2_NOIT(5)+0.1))
+            GL_ERROR_RELAX2_NOIT(1), GL_ERROR_RELAX2_NOIT(2), GL_ERROR_RELAX2_NOIT(3), &
+            GL_ERROR_RELAX2_NOIT(4), INT(GL_ERROR_RELAX2_NOIT(5)+0.1))
        !            GL_RELAX, GL_RELAX_DIAABS, GL_RELAX_DIA, GL_N_LIN_ITS )
 
        CALL ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE )
@@ -672,8 +682,8 @@ implicit none
 
           CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                NCOLDGM_PHA, U_NONODS * NPHASE, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA,  &
-           U_ERROR_RELAX2_NOIT(1), U_ERROR_RELAX2_NOIT(2), U_ERROR_RELAX2_NOIT(3), &
-           U_ERROR_RELAX2_NOIT(4), INT(U_ERROR_RELAX2_NOIT(5)+0.1))
+               U_ERROR_RELAX2_NOIT(1), U_ERROR_RELAX2_NOIT(2), U_ERROR_RELAX2_NOIT(3), &
+               U_ERROR_RELAX2_NOIT(4), INT(U_ERROR_RELAX2_NOIT(5)+0.1))
           !               U_RELAX, U_RELAX_DIAABS, U_RELAX_DIA, U_N_LIN_ITS )
 
        ENDIF
@@ -698,22 +708,22 @@ implicit none
        END DO
 
        ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
-       write(357,*)'about to solve for pressure'
+       ewrite(3,*)'about to solve for pressure'
 
        DP = 0.0
 
-       write(357,*)'b4 pressure solve P_RHS:', P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), &
-              P_ERROR_RELAX2_NOIT(3), &
-        P_ERROR_RELAX2_NOIT(4), P_ERROR_RELAX2_NOIT(5)
-       write(357,*)'b4 pressure solve P_RHS:', P_RHS
+       ewrite(3,*)'b4 pressure solve P_RHS:', P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), &
+            P_ERROR_RELAX2_NOIT(3), &
+            P_ERROR_RELAX2_NOIT(4), P_ERROR_RELAX2_NOIT(5)
+       ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
        CALL SOLVER( CMC, DP, P_RHS, &
             NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
-        P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), P_ERROR_RELAX2_NOIT(3), &
-        P_ERROR_RELAX2_NOIT(4), INT(P_ERROR_RELAX2_NOIT(5)+0.1 ))
+            P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), P_ERROR_RELAX2_NOIT(3), &
+            P_ERROR_RELAX2_NOIT(4), INT(P_ERROR_RELAX2_NOIT(5)+0.1 ))
        !            P_RELAX, P_RELAX_DIAABS, P_RELAX_DIA, P_N_LIN_ITS )
 
-       write(357,*)'after pressure solve DP:',DP
+       ewrite(3,*)'after pressure solve DP:',DP
 
        P = P + DP
 
@@ -723,7 +733,7 @@ implicit none
        CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             C, NCOLC, FINDC, COLC)
 
-       write(357,*)'before correcting vel CDP=',CDP
+       ewrite(3,*)'before correcting vel CDP=',CDP
 
        ! correct velocity...
        ! DU = BLOCK_MAT * CDP 
@@ -736,7 +746,7 @@ implicit none
        U = U + DU
        IF( NDIM >= 2) V = V + DV
        IF( NDIM >= 3) W = W + DW
-       write(357,*)'after correcting vel U=',U
+       ewrite(3,*)'after correcting vel U=',U
 
     ENDIF
 
@@ -751,9 +761,9 @@ implicit none
        END DO
     END DO
     CV_P = CV_P / MASS_CV
-    write(357,*)'also CV_P=',CV_P
+    ewrite(3,*)'also CV_P=',CV_P
 
-    write(357,*)'the velocity should be:'
+    ewrite(3,*)'the velocity should be:'
     do ele=1,-totele
        x_nod1=x_ndgln((ele-1)*x_nloc + 1)
        x_nod2=x_ndgln((ele-1)*x_nloc + 2)
@@ -772,9 +782,9 @@ implicit none
        uabs=U_ABSORB(mat_nod1,1,1)
        uabs=1.
 
-       write(357,*)x(cv_nod1),-der1/uabs
-       write(357,*)x(cv_nod2),-der2/uabs
-       write(357,*)x(cv_nod3),-der3/uabs
+       ewrite(3,*)x(cv_nod1),-der1/uabs
+       ewrite(3,*)x(cv_nod2),-der2/uabs
+       ewrite(3,*)x(cv_nod3),-der3/uabs
     end do
 
 
@@ -783,13 +793,13 @@ implicit none
           DU=0
           DV=0
           DW=0
-          !!    if(iphase==1) then
+          !! if(iphase==1) then
           DU(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=U(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
           DV(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=V(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
           DW(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=W(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
-          !!    endif
+          !! endif
 
-          write(357,*)'iphase,du:',iphase,du
+          ewrite(3,*)'iphase,du:',iphase,du
           CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
                CT, NCOLCT, FINDCT, COLCT)
           if(iphase==1) then
@@ -803,13 +813,13 @@ implicit none
           endif
        END DO
 
-       write(357,*)'as a CV representation t:'
+       ewrite(3,*)'as a CV representation t:'
        CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
             SATURA, X_NDGLN, CV_NDGLN, X) 
-       write(357,*)'sumof phases:'
+       ewrite(3,*)'sumof phases:'
        do iphase=1,nphase
           do cv_nod=1,cv_nonods
-             write(357,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
+             ewrite(3,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
           end do
        end do
     ENDIF
@@ -837,7 +847,7 @@ implicit none
     DEALLOCATE( PIVIT_MAT )
     DEALLOCATE( INV_PIVIT_MAT )
 
-    write(357,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
+    ewrite(3,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
 
   END SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE
 
@@ -880,8 +890,8 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -993,12 +1003,12 @@ implicit none
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-                                        PLIKE_GRAD_SOU_GRAD
+         PLIKE_GRAD_SOU_GRAD
 
     ! Local Variables
     REAL, DIMENSION( : ), allocatable :: ACV
 
-    write(357,*) 'In CV_ASSEMB_FORCE_CTY_PRES'
+    ewrite(3,*) 'In CV_ASSEMB_FORCE_CTY_PRES'
 
     ALLOCATE( ACV( NCOLACV )) 
 
@@ -1014,8 +1024,8 @@ implicit none
          U, V, W, UOLD, VOLD, WOLD,  &
          CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
-         NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -1053,7 +1063,7 @@ implicit none
 
     DEALLOCATE( ACV )
 
-    write(357,*) 'Leaving CV_ASSEMB_FORCE_CTY_PRES'
+    ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY_PRES'
 
   END SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES
 
@@ -1107,7 +1117,7 @@ implicit none
 
     DEALLOCATE( INV_PIVIT_MAT )
 
-    write(357,*) 'Leaving FORM_PRES_EQN'
+    ewrite(3,*) 'Leaving FORM_PRES_EQN'
 
   END SUBROUTINE FORM_PRES_EQN
 
@@ -1125,8 +1135,8 @@ implicit none
        U, V, W, UOLD, VOLD, WOLD,  &
        CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
@@ -1162,7 +1172,7 @@ implicit none
          NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, NCOLCT, &
          CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
          NLENMCY, NCOLMCY, NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, &
-     IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU
+         IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU
     LOGICAL, intent( in ) :: USE_THETA_FLUX
     INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
     INTEGER, DIMENSION( TOTELE * P_NLOC ), intent( in ) :: P_NDGLN
@@ -1230,7 +1240,7 @@ implicit none
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-                                        PLIKE_GRAD_SOU_GRAD
+         PLIKE_GRAD_SOU_GRAD
 
     ! Local variables
     REAL, PARAMETER :: V_BETA = 1.0
@@ -1240,7 +1250,7 @@ implicit none
     real, dimension( NPHASE*CV_NONODS ) :: Sat_FEMT, DEN_FEMT
     REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
     INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-    REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD
+    REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
     LOGICAL :: GET_THETA_FLUX
     INTEGER :: IGOT_T2
 
@@ -1261,6 +1271,7 @@ implicit none
     ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ))
     ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE ))
     ALLOCATE( SUF_VOL_BC_ROB2( STOTEL * CV_SNLOC * NPHASE ))
+    ALLOCATE( MEAN_PORE_CV( CV_NONODS ))
     TDIFFUSION = 0.0
 
     IF(GLOBAL_SOLVE) MCY = 0.0
@@ -1280,8 +1291,8 @@ implicit none
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
          WIC_U_BC, WIC_P_BC,  &
          U_RHS, &
-         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+         C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT, &
@@ -1320,12 +1331,13 @@ implicit none
          NDIM,GETCV_DISC,GETCT, &
          NCOLM,FINDM,COLM,MIDM, &
          XU_NLOC,XU_NDGLN,FINELE,COLELE,NCOLELE, &
-         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Sat_FEMT, DEN_FEMT, &
+         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
+         Sat_FEMT, DEN_FEMT, &
          IGOT_T2,T2,T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         MASS_ERROR_RELAX2_NOIT )
+         MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
 
     IF(GLOBAL_SOLVE) THEN
        ! Put CT into global matrix MCY...
@@ -1351,7 +1363,7 @@ implicit none
     DEALLOCATE( WIC_T2_BC )
     DEALLOCATE( THETA_GDIFF )
 
-    write(357,*) 'Leaving CV_ASSEMB_FORCE_CTY'
+    ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 
   END SUBROUTINE CV_ASSEMB_FORCE_CTY
 
@@ -1376,7 +1388,7 @@ implicit none
     ! Local variables...
     INTEGER :: U_NOD_PHA, IWID, I, U_NOD, IPHASE, IDIM, U_NOD_PHA_I, COUNT, COUNT2
 
-    write(357,*) 'In PUT_MOM_C_IN_GLOB_MAT'
+    ewrite(3,*) 'In PUT_MOM_C_IN_GLOB_MAT'
 
     MCY = 0.0
     ! Put moment matrix DGM_PHA into global matrix MCY
@@ -1410,7 +1422,7 @@ implicit none
                 CASE( 3 ) 
                    MCY( COUNT2 ) = C( COUNT +2*NCOLC)
                 CASE DEFAULT 
-                   WRITE(357,*) 'NDIM GT 3'
+                   EWRITE(3,*) 'NDIM GT 3'
                    STOP 912
                 END SELECT
 
@@ -1422,7 +1434,7 @@ implicit none
 
     END DO Loop_UNOD
 
-    write(357,*) 'Leaving PUT_MOM_C_IN_GLOB_MAT'
+    ewrite(3,*) 'Leaving PUT_MOM_C_IN_GLOB_MAT'
 
   END SUBROUTINE PUT_MOM_C_IN_GLOB_MAT
 
@@ -1448,7 +1460,7 @@ implicit none
     INTEGER CV_NOD, IWID, COUNT, IPHASE, COUNT_MCY1, &
          COUNT_MCY, COUNT_CMC, COUNT_TAKE, IDIM
 
-    write(357,*) 'In PUT_CT_IN_GLOB_MAT'
+    ewrite(3,*) 'In PUT_CT_IN_GLOB_MAT'
 
     Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
        IWID = FINDCT( CV_NOD + 1 ) - FINDCT( CV_NOD )
@@ -1477,7 +1489,7 @@ implicit none
        END DO
     END DO
 
-    write(357,*) 'Leaving PUT_CT_IN_GLOB_MAT'
+    ewrite(3,*) 'Leaving PUT_CT_IN_GLOB_MAT'
 
     RETURN
 
@@ -1501,8 +1513,8 @@ implicit none
        SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
        WIC_U_BC, WIC_P_BC,  &
        U_RHS, &
-       C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
+       C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        XU_NLOC, XU_NDGLN, &
        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT,  &
@@ -1557,14 +1569,15 @@ implicit none
     ! This is for decifering WIC_U_BC & WIC_P_BC
     INTEGER, PARAMETER :: WIC_U_BC_DIRICHLET = 1, WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3
     INTEGER, PARAMETER :: WIC_P_BC_DIRICHLET = 1
-    LOGICAL, PARAMETER :: MOM_CONSERV = .FALSE.
+    LOGICAL, PARAMETER :: MOM_CONSERV = .FALSE., VOL_ELE_INT_PRES = .TRUE. 
     REAL, PARAMETER :: WITH_NONLIN = 1.0
 
     INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
     INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, U_ILOC_OTHER_SIDE, U_OTHER_LOC, MAT_OTHER_LOC
     REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT, DETWEI,RA,  &
          SNORMXN, SNORMYN, SNORMZN, SCVFEWEIGH, SBCVFEWEIGH, SDETWE, NXUDN, VLK, VLN,VLN_OLD, &
-         XSL,YSL,ZSL, SELE_OVERLAP_SCALE, GRAD_SOU_GI_NMX, GRAD_SOU_GI_NMY, GRAD_SOU_GI_NMZ
+         XSL,YSL,ZSL, SELE_OVERLAP_SCALE, GRAD_SOU_GI_NMX, GRAD_SOU_GI_NMY, GRAD_SOU_GI_NMZ, &
+         MASS_ELE
     REAL, DIMENSION( :, : ), ALLOCATABLE :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, & 
          CVFENX, CVFENY, CVFENZ, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, & 
          CVFENX_SHORT, CVFENY_SHORT, CVFENZ_SHORT, &
@@ -1605,12 +1618,13 @@ implicit none
          VNMX, VNMY, VNMZ
     REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
          NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN
+    REAL    :: MASSE, MASSE2
 
     character( len = 100 ) :: name
 
-    write(357,*) 'In ASSEMB_FORCE_CTY'
+    ewrite(3,*) 'In ASSEMB_FORCE_CTY'
 
-    write(357,*)'---U_ELE_TYPE:',U_ELE_TYPE
+    ewrite(3,*)'---U_ELE_TYPE:',U_ELE_TYPE
     CALL RETRIEVE_NGI( CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE, &
          NDIM, U_ELE_TYPE, CV_NLOC, U_NLOC ) 
 
@@ -1772,6 +1786,9 @@ implicit none
     ALLOCATE( GRAD_SOU_GI_NMY( NPHASE ))
     ALLOCATE( GRAD_SOU_GI_NMZ( NPHASE ))
 
+    ALLOCATE( MASS_ELE( TOTELE ))
+    MASS_ELE=0.0
+
     GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS*NDIM * NDIM * NPHASE ) /= 0.0 )
     GOT_UDEN = ( R2NORM(UDEN, CV_NONODS*NPHASE) /= 0.0 )
 
@@ -1796,9 +1813,9 @@ implicit none
     !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
     NCOLGPTS = 0
     COLGPTS = 0
-    write(357,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
-    write(357,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-    write(357,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS),FINDGPTS
+    ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
+    ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
+    ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS),FINDGPTS
 
     CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
@@ -1850,6 +1867,8 @@ implicit none
             CVFENX, CVFENY, CVFENZ, &
             U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
 
+       MASS_ELE(ELE)=VOLUME
+
        UD = 0.0
        VD = 0.0
        WD = 0.0
@@ -1857,7 +1876,7 @@ implicit none
        VDOLD = 0.0
        WDOLD = 0.0
        DO U_ILOC = 1, U_NLOC
-          !          write(357,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
+          !          ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
           U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
           DO GI = 1, CV_NGI
              DO IPHASE=1,NPHASE
@@ -1905,8 +1924,8 @@ implicit none
                                 !                        + CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                         + CVN( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                    !        + max(CVN( MAT_ILOC, GI ),CVfen( MAT_ILOC, GI )) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
-                   !               write(357,*)'ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ):', &
-                   !                        ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM )
+                   !      ewrite(3,*)'ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ):', &
+                   !               ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM )
                 END DO
              END DO
           END DO
@@ -2028,7 +2047,7 @@ implicit none
                 END DO
                 ! Time mass term...
                 GI_SHORT=MOD(GI,CV_NGI_SHORT)
-        IF(GI_SHORT==0) GI_SHORT=CV_NGI_SHORT
+                IF(GI_SHORT==0) GI_SHORT=CV_NGI_SHORT
                 DO IDIM = 1, NDIM
                    DO IPHASE = 1, NPHASE
                       IPHA_IDIM=(IPHASE-1)*NDIM + IDIM
@@ -2148,8 +2167,8 @@ implicit none
              GRAD_SOU_GI_NMY = 0.0 
              GRAD_SOU_GI_NMZ = 0.0  
              Loop_GaussPoints1: DO GI = 1, CV_NGI
-                !           print *,'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
-                !           print *,'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
+                !        print *,'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
+                !        print *,'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
                 NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                 NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                 NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
@@ -2239,7 +2258,7 @@ implicit none
           SELE  = SELE2
           ELE2  = MAX( 0, + ELE2 )
 
-          ! The surface nodes on element face IFACE.    
+          ! The surface nodes on element face IFACE. 
           U_SLOC2LOC( : ) = U_SLOCLIST( IFACE, : )
           CV_SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
 
@@ -2324,37 +2343,37 @@ implicit none
 
           If_ele2_notzero_1: IF(ELE2 /= 0) THEN
              IF(U_ELE_TYPE==2) THEN
-            U_OTHER_LOC=0
-        U_ILOC_OTHER_SIDE=0
+                U_OTHER_LOC=0
+                U_ILOC_OTHER_SIDE=0
                 DO U_SILOC = 1, U_SNLOC/CV_NLOC
                    U_ILOC = U_SLOC2LOC( U_SILOC )
                    U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
                    DO U_ILOC2 = 1, U_NLOC/CV_NLOC
                       U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
                       IF( U_INOD2 == U_INOD ) THEN
-                 DO ILEV=1,CV_NLOC
-                    U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                     = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-                    U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
-                     = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-             END DO
-              ENDIF
+                         DO ILEV=1,CV_NLOC
+                            U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
+                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                            U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
+                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                         END DO
+                      ENDIF
                    END DO
                 END DO
-         ELSE
-            U_OTHER_LOC=0
+             ELSE
+                U_OTHER_LOC=0
                 DO U_SILOC = 1, U_SNLOC
                    U_ILOC = U_SLOC2LOC( U_SILOC )
                    U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
                    DO U_ILOC2 = 1, U_NLOC
                       U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
                       IF( U_INOD2 == U_INOD ) THEN
-                 U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
-                 U_OTHER_LOC( U_ILOC )=U_ILOC2
-              ENDIF
+                         U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
+                         U_OTHER_LOC( U_ILOC )=U_ILOC2
+                      ENDIF
                    END DO
                 END DO
-         ENDIF
+             ENDIF
 
              MAT_OTHER_LOC=0
              DO MAT_SILOC = 1, CV_SNLOC
@@ -2363,8 +2382,8 @@ implicit none
                 DO MAT_ILOC2 = 1, MAT_NLOC
                    MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                    IF( MAT_INOD2 == MAT_INOD ) THEN
-              MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
-           ENDIF
+                      MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
+                   ENDIF
                 END DO
              END DO
           ENDIF If_ele2_notzero_1
@@ -2377,10 +2396,10 @@ implicit none
                 CV_KLOC=CV_SLOC2LOC( CV_SKLOC )
                 CV_NODK=CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                 IF((ELE2/=0).AND.MOM_CONSERV) THEN
-           CV_KLOC2 = MAT_OTHER_LOC(CV_KLOC)
+                   CV_KLOC2 = MAT_OTHER_LOC(CV_KLOC)
                    CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
                 ELSE
-           CV_KLOC2 = CV_KLOC
+                   CV_KLOC2 = CV_KLOC
                    CV_NODK2 = CV_NODK
                 ENDIF
                 DO IPHASE=1, NPHASE
@@ -2420,29 +2439,29 @@ implicit none
 
           If_ele2_notzero: IF(ELE2 /= 0) THEN
 
-         discontinuous_pres: IF(DISC_PRES) THEN 
+             discontinuous_pres: IF(DISC_PRES) THEN 
                 DO P_SJLOC = 1, CV_SNLOC
                    P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                   !           print *,'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
+                   !     print *,'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
                    P_JNOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
-           P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
+                   P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
                    P_JNOD2 = P_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
                    DO U_SILOC = 1, U_SNLOC
                       U_ILOC = U_SLOC2LOC( U_SILOC )
-              U_NLOC2=max(1,U_NLOC/CV_NLOC)
-              ILEV=(U_ILOC-1)/U_NLOC2 + 1
+                      U_NLOC2=max(1,U_NLOC/CV_NLOC)
+                      ILEV=(U_ILOC-1)/U_NLOC2 + 1
                       IF(U_ELE_TYPE/=2) ILEV=1
-              IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
+                      IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
                          U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                     VNMX=0.0
-                     VNMY=0.0
-                     VNMZ=0.0
+                         VNMX=0.0
+                         VNMY=0.0
+                         VNMZ=0.0
                          DO SGI=1,SBCVNGI
                             RNN=SDETWE(SGI)*SBUFEN(U_SILOC,SGI)*SBCVFEN(P_SJLOC,SGI)
-                        VNMX=VNMX + SNORMXN(SGI)*RNN
-                        VNMY=VNMY + SNORMYN(SGI)*RNN
-                        VNMZ=VNMZ + SNORMZN(SGI)*RNN
-                     END DO
+                            VNMX=VNMX + SNORMXN(SGI)*RNN
+                            VNMY=VNMY + SNORMYN(SGI)*RNN
+                            VNMZ=VNMZ + SNORMZN(SGI)*RNN
+                         END DO
 
                          CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
                               U_NONODS, FINDC, COLC, NCOLC )
@@ -2451,25 +2470,41 @@ implicit none
                          Loop_Phase5: DO IPHASE = 1, NPHASE
                             COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM * NCOLC
                             COUNT_PHA2 = COUNT2 + ( IPHASE - 1 ) * NDIM * NCOLC
+                            ! weight integral according to non-uniformmesh spacing otherwise it will go unstable.
+                            IF( VOL_ELE_INT_PRES ) THEN
+                               ! bias the weighting towards bigger eles - works with 0.25 and 0.1 and not 0.01. 
+                               MASSE=MASS_ELE(ELE)   + 0.25*MASS_ELE(ELE2)
+                               MASSE2=MASS_ELE(ELE2) + 0.25*MASS_ELE(ELE)
+                            ELSE ! Simple average (works well with IN_ELE_UPWIND=DG_ELE_UPWIND=2)...
+                               MASSE=1.0
+                               MASSE2=1.0
+                            ENDIF
+
                             ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
-                            C( COUNT_PHA ) = C( COUNT_PHA ) + 0.5*VNMX * SELE_OVERLAP_SCALE(P_JLOC)
+                            C( COUNT_PHA ) = C( COUNT_PHA ) + VNMX * SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
                             IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC )     &
-                                 = C( COUNT_PHA + NCOLC )     + 0.5*VNMY* SELE_OVERLAP_SCALE(P_JLOC)
+                                 = C( COUNT_PHA + NCOLC )     + VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
                             IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) &
-                                 = C( COUNT_PHA + 2 * NCOLC ) + 0.5*VNMZ* SELE_OVERLAP_SCALE(P_JLOC)
+                                 = C( COUNT_PHA + 2 * NCOLC ) + VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
 
-                            C( COUNT_PHA2 ) = C( COUNT_PHA2 ) - 0.5*VNMX* SELE_OVERLAP_SCALE(P_JLOC)
+                            C( COUNT_PHA2 ) = C( COUNT_PHA2 ) - VNMX* SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
                             IF( NDIM >= 2 ) C( COUNT_PHA2 + NCOLC )     &
-                                 = C( COUNT_PHA2 + NCOLC )     - 0.5*VNMY* SELE_OVERLAP_SCALE(P_JLOC)
+                                 = C( COUNT_PHA2 + NCOLC )     - VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
                             IF( NDIM >= 3 ) C( COUNT_PHA2 + 2 * NCOLC ) &
-                                 = C( COUNT_PHA2 + 2 * NCOLC ) - 0.5*VNMZ* SELE_OVERLAP_SCALE(P_JLOC)
+                                 = C( COUNT_PHA2 + 2 * NCOLC ) - VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
+                                 *MASSE/(MASSE+MASSE2) 
 
-                     END DO Loop_Phase5
-              ENDIF
-               END DO
-            END DO
-         !        STOP 383
-         ENDIF discontinuous_pres
+                         END DO Loop_Phase5
+                      ENDIF
+                   END DO
+                END DO
+                !  STOP 383
+             ENDIF discontinuous_pres
 
              If_diffusion_or_momentum2: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                 ! Calculate distance between centres of elements HDC
@@ -2527,7 +2562,7 @@ implicit none
           END IF If_ele2_notzero
 
 
-      IF(GOT_UDEN) THEN
+          IF(GOT_UDEN) THEN
              IF(MOM_CONSERV) THEN
                 IF(SELE2 /= 0) THEN
                    SUD2=0.0
@@ -2558,17 +2593,17 @@ implicit none
                                SVD(SGI,IPHASE)=0.5*(SVD(SGI,IPHASE)+SVD2(SGI,IPHASE))
                                SWD(SGI,IPHASE)=0.5*(SWD(SGI,IPHASE)+SWD2(SGI,IPHASE))
                                !                       SUD(SGI,IPHASE)=SUD2(SGI,IPHASE)
-                               !                    SVD(SGI,IPHASE)=SVD2(SGI,IPHASE)
-                               !                    SWD(SGI,IPHASE)=SWD2(SGI,IPHASE)
+                               !                 SVD(SGI,IPHASE)=SVD2(SGI,IPHASE)
+                               !                 SWD(SGI,IPHASE)=SWD2(SGI,IPHASE)
                             ENDIF
                             IF(SUDOLD(SGI,IPHASE)*SNORMXN(SGI)+SVDOLD(SGI,IPHASE)*SNORMYN(SGI) &
                                  +SWDOLD(SGI,IPHASE)*SNORMZN(SGI) < 0.0) THEN
                                SUDOLD(SGI,IPHASE)=0.5*(SUDOLD(SGI,IPHASE)+SUDOLD2(SGI,IPHASE))
                                SVDOLD(SGI,IPHASE)=0.5*(SVDOLD(SGI,IPHASE)+SVDOLD2(SGI,IPHASE))
                                SWDOLD(SGI,IPHASE)=0.5*(SWDOLD(SGI,IPHASE)+SWDOLD2(SGI,IPHASE))
-                               !                    SUDOLD(SGI,IPHASE)=SUDOLD2(SGI,IPHASE)
-                               !                    SVDOLD(SGI,IPHASE)=SVDOLD2(SGI,IPHASE)
-                               !                    SWDOLD(SGI,IPHASE)=SWDOLD2(SGI,IPHASE)
+                               !                 SUDOLD(SGI,IPHASE)=SUDOLD2(SGI,IPHASE)
+                               !                 SVDOLD(SGI,IPHASE)=SVDOLD2(SGI,IPHASE)
+                               !                 SWDOLD(SGI,IPHASE)=SWDOLD2(SGI,IPHASE)
                             ENDIF
                          END DO
                       ENDIF
@@ -2576,7 +2611,7 @@ implicit none
 
                 ENDIF
              ENDIF
-      ENDIF
+          ENDIF
 
           If_diffusion_or_momentum3: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
              DO IPHASE=1, NPHASE
@@ -2842,9 +2877,9 @@ implicit none
     END DO Loop_Elements2
 
 
-    WRITE(357,*)'-STOTEL,U_SNLOC,P_SNLOC:',STOTEL,U_SNLOC,P_SNLOC
-    WRITE(357,*)'-WIC_P_BC:',WIC_P_BC
-    WRITE(357,*)'-SUF_P_BC:',SUF_P_BC
+    EWRITE(3,*)'-STOTEL,U_SNLOC,P_SNLOC:',STOTEL,U_SNLOC,P_SNLOC
+    EWRITE(3,*)'-WIC_P_BC:',WIC_P_BC
+    EWRITE(3,*)'-SUF_P_BC:',SUF_P_BC
 
     DEALLOCATE( DETWEI )
     DEALLOCATE( RA )
@@ -2960,7 +2995,7 @@ implicit none
     ! Local
     INTEGER :: ILOC, GLOBI
 
-    write(357,*) 'In DG_DIFFUSION'
+    ewrite(3,*) 'In DG_DIFFUSION'
 
     ! LMMAT1
     LMMAT1( 1 : U_NLOC + 1, 1 : U_NLOC + 1 ) = 0.0
@@ -2998,7 +3033,7 @@ implicit none
     AMAT( GLOBI, GLOBI )    = AMAT( GLOBI, GLOBI )     + LINVMNXNMAT1( 2, 3 )
     AMAT( GLOBI, GLOBI + 1 )= AMAT( GLOBI, GLOBI + 1 ) + LINVMNXNMAT1( 2, 4 )
 
-    write(357,*) 'Leaving DG_DIFFUSION'
+    ewrite(3,*) 'Leaving DG_DIFFUSION'
 
   END SUBROUTINE DG_DIFFUSION
 
@@ -3032,7 +3067,7 @@ implicit none
     INTEGER PNOD, II, COL, COUNT, COUNT2
     LOGICAL BOT_BC_VEL, BOT_BC_DEN, TOP_BC_VEL, TOP_BC_DEN
 
-    write(357,*) 'In ASSEM_CS'
+    ewrite(3,*) 'In ASSEM_CS'
 
     BOT_BC_VEL = .FALSE.
     BOT_BC_DEN = .FALSE.
@@ -3131,7 +3166,7 @@ implicit none
        CTP( NCOLCT ) = CTP( NCOLCT ) + NORMX * DENSITY
     ENDIF
 
-    write(357,*) 'Leaving ASSEM_CS'
+    ewrite(3,*) 'Leaving ASSEM_CS'
 
   END SUBROUTINE ASSEM_CS
 
@@ -3211,7 +3246,7 @@ implicit none
     ! Local Variables
     INTEGER :: COUNT, COUNT2, CV_NOD, ICOL, ICOL_PHA, CV_NOD_PHA
 
-    write(357,*) 'In LUMP_ENERGY_EQNS'
+    ewrite(3,*) 'In LUMP_ENERGY_EQNS'
 
     COUNT2 = 0
 
@@ -3241,7 +3276,7 @@ implicit none
        END DO
     END DO
 
-    write(357,*) 'Leaving LUMP_ENERGY_EQNS'
+    ewrite(3,*) 'Leaving LUMP_ENERGY_EQNS'
 
   END SUBROUTINE LUMP_ENERGY_EQNS
 

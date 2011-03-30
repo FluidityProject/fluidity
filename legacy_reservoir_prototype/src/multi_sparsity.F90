@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,8 +25,11 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
 
 module spact
+
+  use fldebug
 
 contains
 
@@ -112,8 +116,8 @@ contains
 
     INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
          MIDELE_PHA, CENTCT
-         
-    write(357,*) 'In GET_SPARS_PATS'
+
+    ewrite(3,*) 'In GET_SPARS_PATS'
 
     ! Extend the element sparsity to an element multiphase sparsity
 
@@ -140,28 +144,28 @@ contains
     ! Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
     ! momentum and continuity eqns: 
 
-    write(357,*) 'u_ndgl:',(U_NDGLN(II), II=1,TOTELE * U_NLOC)
+    ewrite(3,*) 'u_ndgl:',(U_NDGLN(II), II=1,TOTELE * U_NLOC)
     CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
     NC = NCT
-    write(357,*) 'nc, MX_NC, nct, MX_NCT:',nc, MX_NC, nct, MX_NCT
+    ewrite(3,*) 'nc, MX_NC, nct, MX_NCT:',nc, MX_NC, nct, MX_NCT
 
     ! Convert CT sparsity to C sparsity.
     CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
 
-      write(357,*) 'NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC:',NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC
-      
+    ewrite(3,*) 'NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC:',NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC
+
     IF(CV_NONODS /= TOTELE*CV_NLOC) THEN
-    CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-!    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-         MIDCMC, FINDCMC, COLCMC )
+       CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+                                !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+            MIDCMC, FINDCMC, COLCMC )
     ELSE
-     write(357,*)'CV_NLOC,MX_NCOLCMC=',CV_NLOC,MX_NCOLCMC
-!    CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-         MIDCMC, FINDCMC, COLCMC )
+       ewrite(3,*)'CV_NLOC,MX_NCOLCMC=',CV_NLOC,MX_NCOLCMC
+       !    CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+       CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+            MIDCMC, FINDCMC, COLCMC )
     ENDIF
     if(MX_NCOLCMC < NCOLCMC) stop 272
-    write(357,*)'defining sparsity of matrix'
+    ewrite(3,*)'defining sparsity of matrix'
 
     MIDMCY = 0
     ! Extend momentum sparsity to include Continuity & Pressure: 
@@ -186,19 +190,19 @@ contains
     NACV_LOC = NCOLACV
 
 
-    write(357,*) 'going into EXTEN_SPARSE_MULTI_PHASE sbrt 2nd time'
+    ewrite(3,*) 'going into EXTEN_SPARSE_MULTI_PHASE sbrt 2nd time'
     CALL EXTEN_SPARSE_MULTI_PHASE( CV_NONODS, MXNACV_LOC, FINACV_LOC, COLACV_LOC, &
          NPHASE, CV_PHA_NONODS, MX_NCOLACV, FINACV, COLACV, MIDACV )  
 
     ! Sparsity of CV-FEM
-     write(357,*)'going to find sparsity of colm MX_NCOLM:',MX_NCOLM
-     write(357,*)'CV_NONODS,CV_NLOC:',CV_NONODS,CV_NLOC
+    ewrite(3,*)'going to find sparsity of colm MX_NCOLM:',MX_NCOLM
+    ewrite(3,*)'CV_NONODS,CV_NLOC:',CV_NONODS,CV_NLOC
     CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLM, NCOLM, &
          MIDM, FINDM, COLM )
 
-    write(357,*) 'NCOLMCY, NCOLACV, NCOLCMC:', NCOLMCY, NCOLACV, NCOLCMC
+    ewrite(3,*) 'NCOLMCY, NCOLACV, NCOLCMC:', NCOLMCY, NCOLACV, NCOLCMC
 
-    write(357,*) 'Leaving GET_SPARS_PATS'
+    ewrite(3,*) 'Leaving GET_SPARS_PATS'
 
     RETURN
 
@@ -221,8 +225,8 @@ contains
 
     ! Local variables
     INTEGER :: NOD, II, COL, COUNT
-    
-    write(357,*) 'In DEF_SPAR'
+
+    ewrite(3,*) 'In DEF_SPAR'
 
     COUNT = 0
     COL = 0
@@ -247,8 +251,8 @@ contains
     FINDC( NONODS + 1 ) = COUNT + 1
 
     NCOLC = COUNT
-    
-    write(357,*) 'Leaving DEF_SPAR'
+
+    ewrite(3,*) 'Leaving DEF_SPAR'
 
     RETURN
   END SUBROUTINE DEF_SPAR
@@ -270,11 +274,11 @@ contains
 
     INTEGER :: COUNT, COUNT2, IPHASE, JPHASE, NOD 
 
-    write(357,*) 'In EXTEN_SPARSE_MULTI_PHASE'
+    ewrite(3,*) 'In EXTEN_SPARSE_MULTI_PHASE'
 
     COUNT2 = 0
-  
-    write(357,*) ' ########  In  EXTEN_SPARSE_MULTI_PHASE Subrt.  ####### '
+
+    ewrite(3,*) ' ########  In  EXTEN_SPARSE_MULTI_PHASE Subrt.  ####### '
 
     loop_phase1: DO IPHASE = 1, NPHASE
 
@@ -302,8 +306,8 @@ contains
     END DO loop_phase1
 
     FINM_PHA( NPHASE * NONODS + 1 ) = COUNT2 + 1
-    
-    write(357,*) 'Leaving EXTEN_SPARSE_MULTI_PHASE'
+
+    ewrite(3,*) 'Leaving EXTEN_SPARSE_MULTI_PHASE'
 
     RETURN
   END SUBROUTINE EXTEN_SPARSE_MULTI_PHASE
@@ -327,8 +331,8 @@ contains
 
     ! Local variables...
     INTEGER :: COUNT, COUNT2, ELE_PHA, ELE_PHA2, ILOC, JLOC, IROW, JROW
-    
-    write(357,*) 'In FORM_DGM_PHA_SPARSITY'
+
+    ewrite(3,*) 'In FORM_DGM_PHA_SPARSITY'
 
     COUNT2 = 0
 
@@ -359,13 +363,13 @@ contains
     NCOLDGM_PHA = COUNT2
 
     IF( NCOLDGM_PHA .GT. MX_NCOLDGM_PHA ) THEN
-       WRITE(357,*) '***************** SOMETHING WRONG -- REVIEW IT !! *******************'
-       WRITE(357,*) ' -------------   IN FORM_DGM_PHA_SPARSITY SUBRT.   ------------------'
-       WRITE(357,*) 'these should be NCOLDGM_PHA .GT. MX_NCOLDGM_PHA',NCOLDGM_PHA,MX_NCOLDGM_PHA  !!double check it 
+       EWRITE(3,*) '***************** SOMETHING WRONG -- REVIEW IT !! *******************'
+       EWRITE(3,*) ' -------------   IN FORM_DGM_PHA_SPARSITY SUBRT.   ------------------'
+       EWRITE(3,*) 'these should be NCOLDGM_PHA .GT. MX_NCOLDGM_PHA',NCOLDGM_PHA,MX_NCOLDGM_PHA  !!double check it 
        STOP 383
     ENDIF
-    
-    write(357,*) 'Leaving FORM_DGM_PHA_SPARSITY'
+
+    ewrite(3,*) 'Leaving FORM_DGM_PHA_SPARSITY'
 
     RETURN
   END SUBROUTINE FORM_DGM_PHA_SPARSITY
@@ -385,111 +389,111 @@ contains
     INTEGER, DIMENSION ( U_NLOC * TOTELE ), intent( in ) :: U_NDGLN
     ! Local variables...
     INTEGER :: CV_NOD, U_NOD, JLOC, COUNT, ELE, ELE1, ELE2, CV_NODI, CV_ILOC, ILEV
-    
-    write(357,*) 'In DEF_SPAR_CT_DG'
+
+    ewrite(3,*) 'In DEF_SPAR_CT_DG'
 
     COUNT = 0
 
     IF(CV_NONODS /= CV_NLOC*TOTELE ) THEN
-    ! Have a cty CV_NOD
-      loop_cvnod: DO CV_NOD = 1, CV_NONODS
-
-        FINDCT( CV_NOD ) = COUNT + 1
-        ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
-        ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
-
-        loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
-  
-          DO JLOC = 1 ,U_NLOC
-            U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
-            COUNT = COUNT + 1
-            write(357,*) u_nod
-            COLCT( COUNT ) = U_NOD
-          END DO
-
-        END DO loop_elements
-
-      END DO loop_cvnod
-    ELSE
-    ! Have a discontinuous CV_NOD
-      loop_elements2: DO ELE = 1,TOTELE 
-        loop_cviloc: DO CV_ILOC = 1, CV_NLOC
-    
-          CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
+       ! Have a cty CV_NOD
+       loop_cvnod: DO CV_NOD = 1, CV_NONODS
 
           FINDCT( CV_NOD ) = COUNT + 1
-       
-          IF(U_ELE_TYPE==2) THEN
-            IF((CV_ILOC==1).AND.(ELE /= 1)) THEN
-              ELE2=ELE-1
-              JLOC=U_NLOC/CV_NLOC
-              DO ILEV=1,CV_NLOC
-                U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC + (ILEV-1)*U_NLOC/CV_NLOC)
+          ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
+          ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
+
+          loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
+
+             DO JLOC = 1 ,U_NLOC
+                U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
                 COUNT = COUNT + 1
+                ewrite(3,*) u_nod
                 COLCT( COUNT ) = U_NOD
-              END DO
-            ENDIF
+             END DO
 
-            DO JLOC = 1 ,U_NLOC
-              U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
-              COUNT = COUNT + 1
-              COLCT( COUNT ) = U_NOD
-            END DO
-       
-            IF((CV_ILOC==CV_NLOC).AND.(ELE /= TOTELE)) THEN
-              ELE2=ELE+1
-              JLOC=1
-              DO ILEV=1,CV_NLOC
-                U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC + (ILEV-1)*U_NLOC/CV_NLOC)
-                COUNT = COUNT + 1
-                COLCT( COUNT ) = U_NOD
-              END DO
-            ENDIF
-          ELSE
-            IF((CV_ILOC==1).AND.(ELE /= 1)) THEN
-              ELE2=ELE-1
-              JLOC=U_NLOC
-              U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC )
-              COUNT = COUNT + 1
-              COLCT( COUNT ) = U_NOD
-            ENDIF
+          END DO loop_elements
 
-            DO JLOC = 1 ,U_NLOC
-              U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
-              COUNT = COUNT + 1
-              COLCT( COUNT ) = U_NOD
-            END DO
-       
-            IF((CV_ILOC==CV_NLOC).AND.(ELE /= TOTELE)) THEN
-              ELE2=ELE+1
-              JLOC=1
-              U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC )
-              COUNT = COUNT + 1
-              COLCT( COUNT ) = U_NOD
-            ENDIF
-          ENDIF
+       END DO loop_cvnod
+    ELSE
+       ! Have a discontinuous CV_NOD
+       loop_elements2: DO ELE = 1,TOTELE 
+          loop_cviloc: DO CV_ILOC = 1, CV_NLOC
 
-        END DO loop_cviloc
+             CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
 
-      END DO loop_elements2
+             FINDCT( CV_NOD ) = COUNT + 1
+
+             IF(U_ELE_TYPE==2) THEN
+                IF((CV_ILOC==1).AND.(ELE /= 1)) THEN
+                   ELE2=ELE-1
+                   JLOC=U_NLOC/CV_NLOC
+                   DO ILEV=1,CV_NLOC
+                      U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC + (ILEV-1)*U_NLOC/CV_NLOC)
+                      COUNT = COUNT + 1
+                      COLCT( COUNT ) = U_NOD
+                   END DO
+                ENDIF
+
+                DO JLOC = 1 ,U_NLOC
+                   U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
+                   COUNT = COUNT + 1
+                   COLCT( COUNT ) = U_NOD
+                END DO
+
+                IF((CV_ILOC==CV_NLOC).AND.(ELE /= TOTELE)) THEN
+                   ELE2=ELE+1
+                   JLOC=1
+                   DO ILEV=1,CV_NLOC
+                      U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC + (ILEV-1)*U_NLOC/CV_NLOC)
+                      COUNT = COUNT + 1
+                      COLCT( COUNT ) = U_NOD
+                   END DO
+                ENDIF
+             ELSE
+                IF((CV_ILOC==1).AND.(ELE /= 1)) THEN
+                   ELE2=ELE-1
+                   JLOC=U_NLOC
+                   U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC )
+                   COUNT = COUNT + 1
+                   COLCT( COUNT ) = U_NOD
+                ENDIF
+
+                DO JLOC = 1 ,U_NLOC
+                   U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
+                   COUNT = COUNT + 1
+                   COLCT( COUNT ) = U_NOD
+                END DO
+
+                IF((CV_ILOC==CV_NLOC).AND.(ELE /= TOTELE)) THEN
+                   ELE2=ELE+1
+                   JLOC=1
+                   U_NOD = U_NDGLN(( ELE2 - 1 ) * U_NLOC + JLOC )
+                   COUNT = COUNT + 1
+                   COLCT( COUNT ) = U_NOD
+                ENDIF
+             ENDIF
+
+          END DO loop_cviloc
+
+       END DO loop_elements2
     ENDIF
 
     FINDCT( CV_NONODS + 1) = COUNT + 1
     NCT = COUNT
 
     IF(NCT > MX_NCT ) THEN
-       WRITE(357,*)'MX_NCT is not long enough NCT,MX_NCT:',NCT,MX_NCT
+       EWRITE(3,*)'MX_NCT is not long enough NCT,MX_NCT:',NCT,MX_NCT
     ENDIF
 
     DO CV_NODI=1,CV_NONODS
-      WRITE(357,*)'CV_NODI=',CV_NODI
-      WRITE(357,*)(COLCT( COUNT ),COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1 )
+       EWRITE(3,*)'CV_NODI=',CV_NODI
+       EWRITE(3,*)(COLCT( COUNT ),COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1 )
     END DO
 
-    write(357,*)'findct', (findct(cv_nod), cv_nod=1,cv_nonods)
-    write(357,*)'colct', (colct(cv_nod), cv_nod=1,nct)
-    
-    write(357,*) 'Leaving DEF_SPAR_CT_DG'
+    ewrite(3,*)'findct', (findct(cv_nod), cv_nod=1,cv_nonods)
+    ewrite(3,*)'colct', (colct(cv_nod), cv_nod=1,nct)
+
+    ewrite(3,*) 'Leaving DEF_SPAR_CT_DG'
 
     RETURN
   END SUBROUTINE DEF_SPAR_CT_DG
@@ -510,8 +514,8 @@ contains
     ! local variables...
     INTEGER :: COL, U_NOD, CV_NOD, COUNT, COUNT2
     INTEGER, DIMENSION( : ), ALLOCATABLE ::  IN_ROW_C
-    
-    write(357,*) 'In CONV_CT2C'
+
+    ewrite(3,*) 'In CONV_CT2C'
 
     ! No. of non-zero's in row of C matrix. 
     ALLOCATE( IN_ROW_C( U_NONODS ))
@@ -537,15 +541,15 @@ contains
           IN_ROW_C( COL ) = IN_ROW_C( COL ) + 1
           COUNT2 = FINDC( COL ) + IN_ROW_C( COL ) - 1
           COLC( COUNT2 ) = CV_NOD
- 
+
        END DO
     END DO
 
 
     DEALLOCATE( IN_ROW_C )
-    WRITE(357,*) 'HERE'
-    
-    write(357,*) 'Leaving CONV_CT2C'
+    EWRITE(3,*) 'HERE'
+
+    ewrite(3,*) 'Leaving CONV_CT2C'
 
     RETURN
 
@@ -578,8 +582,8 @@ contains
     INTEGER, intent( in ) :: NPHASE
     ! Local variables...
     INTEGER :: COUNT, COUNT2, IPHASE, JPHASE, U_NOD, U_PHA_NOD, CV_NOD, ICOL, JDIM
-    
-    write(357,*) 'In EXTEN_SPARSE_MOM_CTY'
+
+    ewrite(3,*) 'In EXTEN_SPARSE_MOM_CTY'
 
     COUNT2 = 0
     COUNT  = 0
@@ -627,13 +631,13 @@ contains
           ICOL = COLCMC(COUNT) + U_NONODS*NDIM*NPHASE
           COLMCY( COUNT2 ) = ICOL
           IF(U_PHA_NOD.EQ.ICOL) MIDMCY( U_PHA_NOD ) = COUNT2
- 
+
        END DO
     END DO Loop_CVNODS
     NCOLMCY = COUNT2
     FINMCY( U_NONODS *NPHASE + CV_NONODS + 1 ) = COUNT2 + 1
-    
-    write(357,*) 'Leaving EXTEN_SPARSE_MOM_CTY'
+
+    ewrite(3,*) 'Leaving EXTEN_SPARSE_MOM_CTY'
 
     RETURN
   END SUBROUTINE EXTEN_SPARSE_MOM_CTY
@@ -650,8 +654,8 @@ contains
     ! Local
     INTEGER :: INUM, LOWER, UPPER, COUNT
     INTEGER, PARAMETER :: NMAX = 100000
-    
-    !write(357,*) 'In POSINMAT'
+
+    !ewrite(3,*) 'In POSINMAT'
 
     LOWER = FINDRM( GLOBI ) 
     UPPER = FINDRM( GLOBI + 1 ) - 1
@@ -682,8 +686,8 @@ contains
        COUNT = COUNT + 1
 
     END DO Loop_While
-    
-    !write(357,*) 'Leaving POSINMAT'
+
+    !ewrite(3,*) 'Leaving POSINMAT'
 
     RETURN 
   END SUBROUTINE POSINMAT
@@ -698,14 +702,14 @@ contains
     integer, dimension( ncol ), intent( in ) :: col
     ! Local variables
     integer :: inod, icol
-    
-    write(357,*) 'In checksparsity'
+
+    ewrite(3,*) 'In checksparsity'
 
     write( unit, * )'find:', ( find( inod ), inod = 1, nonods + 1 )
     if( option_mid )write( unit, * )'mid:', ( mid( inod ), inod = 1, nonods )
     write( unit, * )'col:', ( col( icol ), icol = 1, ncol2  )
-    
-    write(357,*) 'Leaving checksparsity'
+
+    ewrite(3,*) 'Leaving checksparsity'
 
     return
   end subroutine checksparsity

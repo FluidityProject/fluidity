@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,12 +25,14 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-
+#include "fdebug.h"
 
 !!!!========================================!!!!
 !!!!           MATRIX OPERATIONS            !!!!
 !!!!========================================!!!!
 module matrix_operations
+
+  use fldebug
 
 contains
 
@@ -432,16 +435,16 @@ contains
              U_JNOD = COLCT( COUNT )
              ! Find CT for row CV_NOD and coln U_JNOD
              DO COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1
-       CV_COLJ=COLC(COUNT2)
-       IF(CV_COLJ == CV_NOD) THEN
-         DO IDIM=1,NDIM
- DO IPHASE=1,NPHASE
-           CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
-       C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
- END DO
- END DO
-       ENDIF
-     END DO
+                CV_COLJ=COLC(COUNT2)
+                IF(CV_COLJ == CV_NOD) THEN
+                   DO IDIM=1,NDIM
+                      DO IPHASE=1,NPHASE
+                         CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
+                              C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
+                      END DO
+                   END DO
+                ENDIF
+             END DO
           END DO
        END DO
 
@@ -478,8 +481,8 @@ contains
              ENDIF
 
           ENDIF
-!      write(357,*)'NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD ):', &
-!               NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD )
+          !   ewrite(3,*)'NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD ):', &
+          !               NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD )
        END DO Loop_CVNOD
 
        !       COLOR_VEC=0
@@ -487,8 +490,8 @@ contains
 
        NEED_COLOR = NEED_COLOR -  COLOR_VEC
 
-       !       WRITE(357,*)'NEED_COLOR:',NEED_COLOR
-!       WRITE(357,*)'COLOR_VEC:',COLOR_VEC
+       !       EWRITE(3,*)'NEED_COLOR:',NEED_COLOR
+       !       EWRITE(3,*)'COLOR_VEC:',COLOR_VEC
        !       STOP 7756
 
        !       COLOR_VEC=0
@@ -503,11 +506,11 @@ contains
        !!DU_LONG = BLOCK_MAT * CDP
        if(.true.) then
           !         do ele=1,totele
-          !        write(357,*)'ele=',ele
-          !        do i=1,U_nloc*nphase
-          !            write(357,*)INV_PIVIT_MAT(ele,i,:)
-          !        end do
+          !     ewrite(3,*)'ele=',ele
+          !     do i=1,U_nloc*nphase
+          !         ewrite(3,*)INV_PIVIT_MAT(ele,i,:)
           !     end do
+          !  end do
           !       INV_PIVIT_MAT=0.0
           !       do i=1,u_nloc*ndim*nphase
           !         INV_PIVIT_MAT(:,i,i)=1.0
@@ -538,14 +541,14 @@ contains
           END DO
        END DO
        IF(NDPSET /= 0) THEN
-             CV_NOD=NDPSET
-             CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-                  +  INFINY*COLOR_VEC(CV_JNOD)
+          CV_NOD=NDPSET
+          CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
+               +  INFINY*COLOR_VEC(CV_JNOD)
        ENDIF
 
        !Put into matrix CMC
        DO CV_NOD = 1, CV_NONODS 
-          !         write(357,*)CV_NOD,CMC_COLOR_VEC( CV_NOD )
+          !         ewrite(3,*)CV_NOD,CMC_COLOR_VEC( CV_NOD )
 
           DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
              CV_JNOD = COLCMC( COUNT )
@@ -561,7 +564,7 @@ contains
        END DO
        DONE = ( ABS(SUM) < 0.5 )
 
-       write(357,*)'************ sum,done,NCOLOR=',sum,done,NCOLOR
+       ewrite(3,*)'************ sum,done,NCOLOR=',sum,done,NCOLOR
 
     END DO Loop_while
 
@@ -575,8 +578,8 @@ contains
           END DO
 
        END DO
-!       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
-             stop 3931
+       !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
+       stop 3931
     endif
 
     DEALLOCATE( NEED_COLOR )
@@ -643,9 +646,9 @@ contains
     Loop_Elements: DO ELE = 1, TOTELE
 
        Loop_VelocNodsI: DO U_ILOC = 1, U_NLOC
-  U_INOD = U_NDGLN(( ELE - 1 ) *U_NLOC + U_ILOC )
+          U_INOD = U_NDGLN(( ELE - 1 ) *U_NLOC + U_ILOC )
 
-  Loop_DimensionsI: DO IDIM = 1, NDIM
+          Loop_DimensionsI: DO IDIM = 1, NDIM
 
              Loop_PhasesI: DO IPHASE = 1, NPHASE
                 I = U_INOD + ( IDIM - 1 ) * U_NONODS +( IPHASE - 1 ) * NDIM * U_NONODS

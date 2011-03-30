@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,15 +25,21 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
 
 module Compositional_Terms
+  use fldebug
+
 
 contains
 
 
   SUBROUTINE CALC_COMP_ABSORB( ICOMP, NCOMP, DT, ALPHA_BETA, &
-       NPHASE, CV_NONODS, K_COMP, DENOLD, SATURAOLD, VOLFRA_PORE, COMP_ABSORB, &
-       TOTELE, CV_NLOC, CV_NDGLN)
+       NPHASE, CV_NONODS, &
+       KCOMP_SIGMOID, K_COMP2, &
+       DENOLD, SATURAOLD, &
+       VOLFRA_PORE, COMP_ABSORB, &
+       TOTELE, CV_NLOC, CV_NDGLN )
 
     ! Calculate compositional model linkage between the phase expressed in COMP_ABSORB. 
     ! Use values from the previous time step so its easier to converge. 
@@ -41,7 +48,8 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: ICOMP, NCOMP, NPHASE, CV_NONODS, TOTELE, CV_NLOC
     REAL, intent( in ) :: DT, ALPHA_BETA
-    REAL, DIMENSION( NCOMP, NPHASE, NPHASE ), intent( in ) :: K_COMP
+    LOGICAL, intent( in ) :: KCOMP_SIGMOID
+    REAL, DIMENSION( NCOMP, NPHASE, NPHASE ), intent( in ) :: K_COMP2
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DENOLD, SATURAOLD
     REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
     REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE  ), intent( inout ) :: COMP_ABSORB
@@ -50,10 +58,13 @@ contains
     ! Local Variables
     INTEGER :: IPHASE, JPHASE, ELE, CV_ILOC, CV_NOD, JCOMP
     REAL, DIMENSION( : ), allocatable :: ALPHA, SUM_NOD, VOLFRA_PORE_NOD
+    REAL, DIMENSION( : , : , : , : ), allocatable :: K_COMP
+    REAL :: MAX_K, MIN_K
 
     ALLOCATE( ALPHA( CV_NONODS ))
     ALLOCATE( SUM_NOD( CV_NONODS ))
     ALLOCATE( VOLFRA_PORE_NOD( CV_NONODS ))
+    ALLOCATE( K_COMP( NCOMP, CV_NONODS, NPHASE, NPHASE ))
 
     ! Determine a node-wise representation of porosity VOLFRA_PORE_NOD.      
     SUM_NOD = 0.0
@@ -69,51 +80,64 @@ contains
     VOLFRA_PORE_NOD = VOLFRA_PORE_NOD / SUM_NOD
 
     COMP_ABSORB = 0.0
+    MIN_K = max( 1.e-1, MINVAL( K_COMP2( ICOMP, : , : )))
+    MAX_K = MAXVAL( K_COMP2( ICOMP, : , : ) )
+    CALL Calc_KComp2( cv_nonods, nphase, ncomp, icomp, KComp_Sigmoid, &
+         min( 1., max( 0., Saturaold )), K_Comp2, max_k, min_k, &
+         K_Comp )
 
-    DO IPHASE = 1, NPHASE
-       DO JPHASE = IPHASE + 1, NPHASE, 1
-          ALPHA( 1 : CV_NONODS ) = ALPHA_BETA * VOLFRA_PORE_NOD( 1 : CV_NONODS ) * &
-               ( SATURAOLD( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) &
-               * DENOLD( 1 +( IPHASE - 1 ) * CV_NONODS: IPHASE * CV_NONODS ) / K_COMP( ICOMP, IPHASE, JPHASE ) &
-               + SATURAOLD( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ) * DENOLD( 1 + ( JPHASE - 1 ) * &
-               CV_NONODS : JPHASE * CV_NONODS )) / DT
-write(357,*) 'iphase, jphase, alpha1:',iphase, jphase, alpha 
+    ewrite(3,*)'min,max K:', ICOMP, MIN_K, MAX_K
 
-          COMP_ABSORB( : , IPHASE, IPHASE ) = COMP_ABSORB( : , IPHASE, IPHASE ) &
-               + ALPHA( : ) * K_COMP( ICOMP, IPHASE, JPHASE )
-          COMP_ABSORB( : , IPHASE, JPHASE ) = -ALPHA( : ) 
+    DO CV_NOD = 1, CV_NONODS
+       DO IPHASE = 1, NPHASE
+          DO JPHASE = IPHASE + 1, NPHASE, 1
+
+             ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
+                  ( max(0.0,SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
+                  DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) / &
+                  K_COMP( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
+                  max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
+                  DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ))) / DT
+
+             COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
+                  COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + &
+                  ALPHA( CV_NOD ) * &
+                  K_COMP( ICOMP, CV_NOD, IPHASE, JPHASE ) 
+
+             COMP_ABSORB( CV_NOD, IPHASE, JPHASE ) = &
+                  - ALPHA( CV_NOD )                  
+
+          END DO
        END DO
     END DO
 
-    DO IPHASE = 1, NPHASE
-       DO JPHASE = 1, IPHASE - 1
+    DO CV_NOD = 1, CV_NONODS
+       DO IPHASE = 1, NPHASE
+          DO JPHASE = 1, IPHASE - 1
 
-          ALPHA( 1 : CV_NONODS ) = ALPHA_BETA * VOLFRA_PORE_NOD( 1: CV_NONODS ) * &
-               ( SATURAOLD( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) * & 
-               DENOLD( 1 +( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS )  &
-               + SATURAOLD( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ) * DENOLD( 1 + ( JPHASE - 1 ) * &
-               CV_NONODS: JPHASE * CV_NONODS ) / K_COMP( ICOMP, JPHASE, IPHASE )) / DT
+             ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
+                  ( max(0.0,SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
+                  DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) + &
+                  max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
+                  DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD )) / &
+                  K_COMP( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
+             COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
+                  COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + ALPHA( CV_NOD )
 
-          COMP_ABSORB( : , IPHASE, IPHASE ) = COMP_ABSORB( : , IPHASE, IPHASE ) &
-               + ALPHA( : ) 
-          COMP_ABSORB( : , IPHASE, JPHASE ) = -ALPHA( : ) * K_COMP( ICOMP, JPHASE, IPHASE )
-write(357,*) 'iphase, jphase, alpha2:',iphase, jphase, alpha 
+             COMP_ABSORB( CV_NOD, IPHASE, JPHASE ) = - ALPHA( CV_NOD ) * &
+                  K_COMP( ICOMP, CV_NOD, JPHASE, IPHASE ) 
 
+          END DO
        END DO
     END DO
 
-write(357,*)'comp_ABSORB:',((comp_ABSORB(1,iphase,jphase), iphase=1,nphase),jphase=1,nphase)
-write(357,*)'K_comp:'
-do jcomp = 1, ncomp
-do iphase = 1, nphase
-write(357,*) jcomp, iphase, (K_Comp( jcomp, iphase, jphase), jphase= 1, nphase )
-end do
-end do
-write(357,*)'K_comp:',K_comp
+
+    ewrite(3,*)'comp_ABSORB:',((comp_ABSORB(1,iphase,jphase), iphase=1,nphase),jphase=1,nphase)
 
     DEALLOCATE( ALPHA )
     DEALLOCATE( SUM_NOD )
     DEALLOCATE( VOLFRA_PORE_NOD )
+    DEALLOCATE( K_COMP )
 
     RETURN
 
@@ -313,8 +337,8 @@ write(357,*)'K_comp:',K_comp
     ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
 
     ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ))
- 
-!    ALLOCATE( FEMU( U_NLOC, CV_NGI ))
+
+    !    ALLOCATE( FEMU( U_NLOC, CV_NGI ))
 
     CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
@@ -382,7 +406,7 @@ write(357,*)'K_comp:',K_comp
 
              NFEMU = 0.0 !!!!!!!!!!!!HHHHHHHHEEEEERRRREEEEEEEE!!!
              DO CV_GI = 1, CV_NGI
-               ! NFEMU = NFEMU +  CVFEN( MAT_ILOC, CV_GI ) * FEMU(  U_JLOC, CV_GI ) * DETWEI( CV_GI )
+                ! NFEMU = NFEMU +  CVFEN( MAT_ILOC, CV_GI ) * FEMU(  U_JLOC, CV_GI ) * DETWEI( CV_GI )
                 NFEMU = NFEMU +  CVFEN( MAT_ILOC, CV_GI ) * UFEN(  U_JLOC, CV_GI ) * DETWEI( CV_GI )
              END DO
 
@@ -420,7 +444,7 @@ write(357,*)'K_comp:',K_comp
 
                 MAT_NOD_ID_IP = MAT_NOD + ( IDIM - 1 ) * MAT_NONODS  + &
                      ( IPHASE - 1 ) * NDIM * MAT_NONODS
- 
+
                 MAT_U( MAT_NOD_ID_IP ) = MAT_U( MAT_NOD_ID_IP ) + &
                      INV_MASS_NM( MAT_ILOC, U_JLOC ) * NU( U_NODJ_IP ) 
 
@@ -584,6 +608,183 @@ write(357,*)'K_comp:',K_comp
     RETURN
 
   END SUBROUTINE CALC_COMP_DIF_TEN
+
+
+  subroutine Calc_KComp2( cv_nonods, nphase, ncomp, icomp, KComp_Sigmoid, &
+       Satura, K_Comp, max_k, min_k, &
+       K_Comp2 )
+    implicit none
+    integer, intent( in ) :: cv_nonods, nphase, ncomp, icomp
+    logical, intent( in ) :: KComp_Sigmoid
+    real, dimension( cv_nonods * nphase ), intent( in ) :: Satura
+    real, dimension( ncomp, nphase, nphase ), intent( in ) :: K_Comp
+    real, intent( in ) :: max_k, min_k 
+    real, dimension( ncomp, cv_nonods, nphase, nphase ), intent( inout ) :: K_Comp2
+    ! Local variables
+    integer :: iphase, jphase, cv_nod
+    real, parameter :: Width = 0.1, Err = 1.e-6, Sat = 0.9
+    real :: Sat0
+
+    K_Comp2 = 0.
+
+    if( .not. KComp_Sigmoid ) then
+
+       do cv_nod = 1, cv_nonods
+          do iphase = 1, nphase
+             do jphase = iphase + 1, nphase, 1
+                K_Comp2( icomp, cv_nod, iphase, jphase ) = &
+                     1. / K_Comp( icomp, iphase, jphase )
+             end do
+          end do
+       end do
+
+    else
+
+       Sat0 = Sat
+       do cv_nod = 1, cv_nonods
+
+          do iphase = 1, nphase
+
+             do jphase = 1, nphase
+
+                if ( jphase /= iphase ) then
+                   K_Comp2( icomp, cv_nod, iphase, jphase ) = &
+                        1. / sigmoid_function( satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
+                        Sat0, Width, min_k, max_k )
+                   !   Sat0, Width, max_k, min_k )
+                endif
+                !K_Comp2( icomp, cv_nod, iphase, jphase ) = K_Comp2( icomp, cv_nod, jphase, iphase )
+             end do
+             ewrite(3,*)'icomp, iphase, sat, kcomp:',icomp, cv_nod, iphase, &
+                  satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
+                  ( K_Comp2( icomp, cv_nod, iphase, jphase ), &
+                  jphase = 1, nphase )
+
+          end do
+       end do
+
+
+    end if
+
+    return
+  end subroutine Calc_KComp2
+
+
+  real function sigmoid_function( Y, Y0, Width, LowMag, UpMag )
+    implicit none
+    real :: Y, Y0, Width, LowMag, UpMag
+    ! Local Variables
+    real :: alpha
+    !
+    ! Width: width of the sigmoid function.
+    ! The sigmoid function, varies between ( LowMag, UpMag ).
+    ! Y is the variable of the function and Y0 is the centre 
+    ! of the function.
+    ! The function looks like:
+    !             -------------
+    !           /
+    !          /
+    ! --------
+
+    if( Y - Y0 < - 3. * Width ) then
+       sigmoid_function = UpMag
+    elseif( Y - Y0 > 3. * Width ) then
+       sigmoid_function = LowMag
+    else
+       alpha = 10. / Width
+       sigmoid_function = ( UpMag - LowMag ) / &
+            ( 1. + exprep( alpha * ( Y - Y0 ))) + LowMag
+    end if
+
+    return
+  end function sigmoid_function
+
+  real function exprep( M )
+    implicit none
+    real :: M
+
+    if( M > 174. ) then
+       exprep = 3.69e+35
+    elseif( M < -180. ) then
+       exprep = 0.
+    else
+       exprep = exp( M )
+    end if
+
+    return
+  end function exprep
+
+
+
+  SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
+       MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
+    ! make sure the composition sums to 1.0 
+    implicit none
+    integer, intent( in ) :: cv_nonods, nphase, ncomp2, ITS, NITS
+    REAL, INTENT( IN ) :: DT
+    real, dimension( cv_nonods * nphase ), intent( inout ) :: V_SOURCE_COMP
+    real, dimension( cv_nonods ), intent( in ) :: MEAN_PORE_CV
+    real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD, DEN, DENOLD
+    real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD
+
+    ! the relaxing E.G. 0.5 is to help convergence. 
+    ! =1 is full adjustment to make sure we have sum to 1. 
+    ! =0 is no adjustment. 
+    ! Local variables...
+    !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
+    REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
+    INTEGER :: IPHASE, CV_NODI, ICOMP
+    REAL :: RSUM
+
+    DO IPHASE = 1, NPHASE
+       DO CV_NODI = 1, CV_NONODS
+
+          IF( ITS == NITS ) THEN ! last iteration so prepare for next time step. 
+
+             V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                  = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                  - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                  * DEN( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) / DT
+
+             RSUM=0.0
+             DO ICOMP = 1, NCOMP2
+                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                     + SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     * DEN( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     * COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
+                     + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / DT 
+                RSUM=RSUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
+                     + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+             END DO
+             !          ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),RSUM
+
+          ELSE
+
+             V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                  = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                  - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI )* SATURAOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                  * DENOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) / DT 
+
+             DO ICOMP = 1, NCOMP2
+
+                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                     + SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURAOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     * DENOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     * COMPOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
+                     + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / DT 
+             END DO
+
+          ENDIF
+
+       END DO
+
+    END DO
+
+    RETURN
+  END SUBROUTINE CAL_COMP_SUM2ONE_SOU
+
 
 
 end module Compositional_Terms

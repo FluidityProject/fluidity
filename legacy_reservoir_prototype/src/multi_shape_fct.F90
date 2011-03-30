@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,6 +25,7 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
 
 
 !!!!========================================!!!!
@@ -32,6 +34,8 @@
 
 
 module shape_functions
+
+  use fldebug
 
 contains
 
@@ -49,8 +53,8 @@ contains
     REAL, DIMENSION( : ), ALLOCATABLE :: WEIT, LX, LXP
     LOGICAL :: GETNDP
     INTEGER :: GI, CORN, GPOI
-    
-    write(357,*) 'In N_SHAPE_FUN'
+
+    ewrite(3,*) 'In N_SHAPE_FUN'
 
     ALLOCATE( WEIT( NGI ))
     ALLOCATE( LX( NGI )) 
@@ -78,8 +82,8 @@ contains
     DEALLOCATE( WEIT )
     DEALLOCATE( LX )
     DEALLOCATE( LXP )
-    
-    write(357,*) 'Leaving N_SHAPE_FUN'
+
+    ewrite(3,*) 'Leaving N_SHAPE_FUN'
 
     RETURN
 
@@ -100,8 +104,8 @@ contains
     ! Local variables
     LOGICAL :: WEIGHT
     INTEGER :: IG
-    
-    write(357,*) 'In LAGROT'
+
+    ewrite(3,*) 'In LAGROT'
 
     IF( .NOT. GETNDP ) THEN
 
@@ -126,8 +130,8 @@ contains
        ENDIF
 
     END IF
-    
-    write(357,*) 'Leaving LAGROT'
+
+    ewrite(3,*) 'Leaving LAGROT'
 
     RETURN
 
@@ -309,8 +313,8 @@ contains
     INTEGER, DIMENSION( SNLOC, SNGI ), intent( inout ) :: SNEILOC
     REAL, DIMENSION( SNLOC, SNGI ), intent( inout ) :: SN, SNLX, SNLY
     REAL, DIMENSION( SNGI ), intent( inout ) ::  SWEIGH
-    
-    write(357,*) 'In SHAPESE'
+
+    ewrite(3,*) 'In SHAPESE'
 
     SELECT CASE( SELETYP )
 
@@ -337,8 +341,8 @@ contains
     END SELECT
 
     CALL SURNEI( SNEILOC, SNLOC, SNGI, SELETYP )
-    
-    write(357,*) 'Leaving SHAPESE'
+
+    ewrite(3,*) 'Leaving SHAPESE'
 
 
     RETURN
@@ -369,8 +373,8 @@ contains
     !     - local variables
     !     
     INTEGER :: COUNT, INC, SILOC, SGI
-    
-    write(357,*) 'In SURNEI'
+
+    ewrite(3,*) 'In SURNEI'
 
 
     SNEILOC = 0
@@ -454,12 +458,12 @@ contains
        ! - points associated with a CV.
 
     CASE DEFAULT
-       WRITE(357,*) 'SELETYP .GE. 7' 
+       EWRITE(3,*) 'SELETYP .GE. 7' 
        STOP 1234
 
     END SELECT
-    
-    write(357,*) 'Leaving SURNEI'
+
+    ewrite(3,*) 'Leaving SURNEI'
 
     RETURN
 
@@ -494,8 +498,8 @@ contains
     !
     REAL, DIMENSION( : ) , allocatable :: XIGP, XI
     INTEGER, PARAMETER :: ONE = 1, TWO = 2
-    
-    write(357,*) 'In SFELIN'
+
+    ewrite(3,*) 'In SFELIN'
 
     ALLOCATE( XIGP( ONE ))
     ALLOCATE( XI( TWO ))
@@ -540,8 +544,8 @@ contains
 
     DEALLOCATE( XIGP )
     DEALLOCATE( XI )
-    
-    write(357,*) 'Leaving SFELIN'
+
+    ewrite(3,*) 'Leaving SFELIN'
 
     RETURN
     !
@@ -582,8 +586,8 @@ contains
     REAL, DIMENSION( : ), allocatable :: POS, DPDXI, DPDETA, XIGP, ETAGP, &
          XI, ETA
     REAL, DIMENSION( : , : , : ), allocatable :: CORN
-    
-    write(357,*) 'In SFEQUAD'
+
+    ewrite(3,*) 'In SFEQUAD'
 
     ALLOCATE( POS( NCOORD ))
     ALLOCATE( DPDXI( NCOORD ))
@@ -749,8 +753,8 @@ contains
     DEALLOCATE( XI )
     DEALLOCATE( ETA )
     DEALLOCATE( CORN )
-    
-    write(357,*) 'Leaving SFEQUAD'
+
+    ewrite(3,*) 'Leaving SFEQUAD'
 
 
     RETURN
@@ -793,8 +797,8 @@ contains
     REAL, DIMENSION( : ), allocatable :: POS, DPDXI, DPDETA, XIGP, ETAGP, &
          XI, ETA
     REAL, DIMENSION( : , : , : ), allocatable :: CORN
-    
-    write(357,*) 'In SFETRI'
+
+    ewrite(3,*) 'In SFETRI'
 
     ALLOCATE( POS( NCOORD ))
     ALLOCATE( DPDXI( NCOORD ))
@@ -951,8 +955,8 @@ contains
     DEALLOCATE( XI )
     DEALLOCATE( ETA )
     DEALLOCATE( CORN )
-    
-    write(357,*) 'Leaving SFETRI'
+
+    ewrite(3,*) 'Leaving SFETRI'
 
     RETURN
     !
@@ -994,8 +998,8 @@ contains
     REAL DLIJXIDXI(3), LIJXI(3)
     REAL XIP(SFNLOC),  XIPGP(SFNGI) 
     REAL CORN(SNFACE,SFNLOC)
-    
-    write(357,*) 'In SFEQLIN'
+
+    ewrite(3,*) 'In SFEQLIN'
     !
     ! - face 1
     !
@@ -1075,8 +1079,8 @@ contains
        SWEIGH(SGI) = 1.0
        !
     END DO
-    
-    write(357,*) 'Leaving SFEQLIN'
+
+    ewrite(3,*) 'Leaving SFEQLIN'
 
     RETURN
     !
@@ -1119,8 +1123,8 @@ contains
     REAL, DIMENSION( : , : , : ), allocatable :: CORN
     REAL :: XI, ETA
     INTEGER ::  I, J
-    
-    write(357,*) 'In SFEQQUAD'
+
+    ewrite(3,*) 'In SFEQQUAD'
 
     ALLOCATE( POS( NCOORD ))
     ALLOCATE( DPDXI( NCOORD ))
@@ -1405,8 +1409,8 @@ contains
     DEALLOCATE( DLIJXIDETA )
     DEALLOCATE( DLIJETADXI )
     DEALLOCATE( DLIJETADETA )
-    
-    write(357,*) 'Leaving SFEQQUAD'
+
+    ewrite(3,*) 'Leaving SFEQQUAD'
 
     RETURN
     !
@@ -1450,8 +1454,8 @@ contains
     REAL, DIMENSION( : ), allocatable :: POS, DPDXI, DPDETA, XIPGP, ETAPGP, XIP, ETAP
     REAL, DIMENSION( : , : , : ), allocatable :: CORN
     REAL ::  L1, L2, L3
-    
-    write(357,*) 'In SFEQTRI'
+
+    ewrite(3,*) 'In SFEQTRI'
 
     ALLOCATE( POS( NCOORD ))
     ALLOCATE( DPDXI( NCOORD ))
@@ -1744,8 +1748,8 @@ contains
     DEALLOCATE( CORN )
     DEALLOCATE( XIP )
     DEALLOCATE( ETAP )
-    
-    write(357,*) 'Leaving SFEQTRI'
+
+    ewrite(3,*) 'Leaving SFEQTRI'
 
     RETURN
     !
@@ -1771,8 +1775,8 @@ contains
     ! A Spectal element using Legendra, Lagrange or Chebichef polynomials. 
     !        CALL SPECTR(NGI,NLOC,MLOC, &
     !             M,WEIGHT,N,NLX,NLY,NLZ,D3,.NOT.D3, IPOLY,IQADRA)
-    
-    write(357,*) 'In SHAPE_CV_N'
+
+    ewrite(3,*) 'In SHAPE_CV_N'
 
     IF( CV_ELE_TYPE == 1 ) THEN
 
@@ -1785,8 +1789,8 @@ contains
        ENDIF
 
     ENDIF
-    
-    write(357,*) 'Leaving SHAPE_CV_N'
+
+    ewrite(3,*) 'Leaving SHAPE_CV_N'
 
   END SUBROUTINE SHAPE_CV_N
 
@@ -1809,8 +1813,8 @@ contains
          CV_NODPOS, U_NODPOS
     REAL :: VOL_CV, LX_TRAN, LXGP
     LOGICAL :: GETNDP,DIFF,NDIFF
-    
-    write(357,*) 'In QUAD_1D_SHAP'
+
+    ewrite(3,*) 'In QUAD_1D_SHAP'
 
     NQUAD = CV_NGI/CV_NLOC
 
@@ -1889,11 +1893,11 @@ contains
     GETNDP=.FALSE.
     !     Compute standard Gauss quadrature. weits and points
     CALL LAGROT(WEI,LX,NQUAD,GETNDP)
-    write(357,*)'cv_nloc,u_nloc, NQUAD, CV_NGI:',cv_nloc,u_nloc, NQUAD, CV_NGI
-    write(357,*)'wei=',wei
-    write(357,*)'lx=',lx
-    write(357,*)'CV_nodpos=',CV_NODPOS
-    write(357,*)'U_nodpos=',U_NODPOS
+    ewrite(3,*)'cv_nloc,u_nloc, NQUAD, CV_NGI:',cv_nloc,u_nloc, NQUAD, CV_NGI
+    ewrite(3,*)'wei=',wei
+    ewrite(3,*)'lx=',lx
+    ewrite(3,*)'CV_nodpos=',CV_NODPOS
+    ewrite(3,*)'U_nodpos=',U_NODPOS
 
     GPOI = 0
 
@@ -1907,29 +1911,29 @@ contains
           GPOI = GPOI + 1
           CVN(ICV, GPOI ) = 1.0 
           ! Map to a new local coord system...   
-!!!!      lx(p)=   1.0
+!!!!   lx(p)=   1.0
           LX_TRAN = 0.5*( XI_MAX( ICV ) + XI_MIN( ICV )) &
                + 0.5*( XI_MAX( ICV ) - XI_MIN( ICV ))* LX(P)
-  LXGP=LX_TRAN
-   !      write(357,*)'LX_TRAN =',LX_TRAN
-   !      stop 67
-   ! Map to a new local coord system...      
-   !          LX_TRAN = ( 2.*LX(P) - ( XI_MAX( ICV ) + XI_MIN( ICV ))) / ( XI_MAX( ICV ) - XI_MIN( ICV ))
-   !           WRITE(357,*)'ICV,P,GPOI,LX_TRAN:',ICV,P,LX_TRAN
-   !
+          LXGP=LX_TRAN
+          !   ewrite(3,*)'LX_TRAN =',LX_TRAN
+          !   stop 67
+          ! Map to a new local coord system...      
+          !          LX_TRAN = ( 2.*LX(P) - ( XI_MAX( ICV ) + XI_MIN( ICV ))) / ( XI_MAX( ICV ) - XI_MIN( ICV ))
+          !        EWRITE(3,*)'ICV,P,GPOI,LX_TRAN:',ICV,P,LX_TRAN
+          !
           CVWEIGH( GPOI ) = WEI( P ) * VOL_CV / 2.0
 
           DO ILOC=1,CV_NLOC
              N(ILOC,GPOI)  =LAGRAN(NDIFF,LXGP,ILOC,CV_NLOC,CV_NODPOS)
              NLX(ILOC,GPOI)=LAGRAN(DIFF,LXGP, ILOC,CV_NLOC,CV_NODPOS)
-  END DO
+          END DO
 
           DO ILOC=1,U_NLOC
              UN(ILOC,GPOI)  =LAGRAN(NDIFF,LXGP,ILOC,U_NLOC,U_NODPOS)
              UNLX(ILOC,GPOI)=LAGRAN(DIFF,LXGP, ILOC,U_NLOC,U_NODPOS)
-  END DO
+          END DO
 
-   ! endof DO P=1,NQUAD...
+          ! endof DO P=1,NQUAD...
        END DO
        ! endof DO ICV=1,3...
     END DO
@@ -1949,8 +1953,8 @@ contains
     DEALLOCATE( XI_MAX )
     DEALLOCATE( CV_NODPOS )
     DEALLOCATE( U_NODPOS )
-    
-    write(357,*) 'Leaving QUAD_1D_SHAP'
+
+    ewrite(3,*) 'Leaving QUAD_1D_SHAP'
 
 
     RETURN
@@ -1973,7 +1977,7 @@ contains
     !     ewrite(3,*) 'DIFF,LX,INOD,NDNOD,NODPOS:',
     !     &            DIFF,LX,INOD,NDNOD,NODPOS
     !
-    
+
     N=NDNOD-1
     K=INOD-1
     !     
@@ -2023,8 +2027,8 @@ contains
     ! determine number of quadatutre points. 
     INTEGER, intent( inout ) :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
     INTEGER, intent( in ) :: NDIM, CV_ELE_TYPE, CV_NLOC, U_NLOC
-    
-    write(357,*) 'In RETRIEVE_NGI'
+
+    ewrite(3,*) 'In RETRIEVE_NGI'
 
     IF( NDIM == 1) THEN
        IF(CV_NLOC == 1) THEN
@@ -2043,9 +2047,9 @@ contains
           !         CV_NGI = 9
           CV_NGI = 12
           SCVNGI = 4
-          !     IF(U_NLOC==4) CV_NGI = 12
+          !  IF(U_NLOC==4) CV_NGI = 12
           IF(U_NLOC == 4) CV_NGI = 18
-          !     IF(U_NLOC==5) CV_NGI = 15
+          !  IF(U_NLOC==5) CV_NGI = 15
           IF(U_NLOC == 5) CV_NGI = 18
        ENDIF
        SBCVNGI = 1
@@ -2056,8 +2060,8 @@ contains
     IF(CV_ELE_TYPE==2) THEN
        CV_NGI = CV_NGI * CV_NLOC
     ENDIF
-    
-    write(357,*) 'Leaving RETRIEVE_NGI'
+
+    ewrite(3,*) 'Leaving RETRIEVE_NGI'
 
     RETURN
   END SUBROUTINE RETRIEVE_NGI
@@ -2131,10 +2135,10 @@ contains
     ! Shape functions associated with volume integration using both CV basis 
     ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
 
-    write(357,*) 'in  cv_fem_shape_funs subrt'
-    !write(357,*)'-CV_ELE_TYPE=',CV_ELE_TYPE
+    ewrite(3,*) 'in  cv_fem_shape_funs subrt'
+    !ewrite(3,*)'-CV_ELE_TYPE=',CV_ELE_TYPE
 
-    ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces.     
+    ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces.  
     SELE_OVERLAP_SCALE = 1.0
 
     IF( CV_ELE_TYPE == 2 ) THEN
@@ -2201,7 +2205,7 @@ contains
        CVFENLZ_SHORT=CVFENLZ
        CVWEIGHT_SHORT=CVWEIGHT
     ENDIF
-    write(357,*) 'out of shape_cv_n - CVWEIGHT', CVWEIGHT
+    ewrite(3,*) 'out of shape_cv_n - CVWEIGHT', CVWEIGHT
     ! SCVFEN(CV_NLOC,SCVNGI)         - the shape function evaluated 
     !                                  for each node at each surface gauss point
     ! SCVFENSLX[X/Y](CV_NLOC,SCVNGI) - the surface derivatives of the shape 
@@ -2266,8 +2270,8 @@ contains
             SUFENLX, SUFENLY, SUFENLZ,  &
             NDIM )
     ENDIF
-    write(357,*) 'out of shapesv_fem_+ - SCVFEWEIGH', SCVFEWEIGH
-    write(357,*) 'CV_ELE_TYPE', CV_ELE_TYPE
+    ewrite(3,*) 'out of shapesv_fem_+ - SCVFEWEIGH', SCVFEWEIGH
+    ewrite(3,*) 'CV_ELE_TYPE', CV_ELE_TYPE
 
     ! Determine the surface element shape functions from those 
     ! calculated in SHAPESV_FEM_PLUS and also CV_SLOCLIST( NFACE,CV_SNLOC )
@@ -2277,8 +2281,8 @@ contains
        U_ELE_TYPE2=1
        U_NLOC2=U_NLOC/CV_NLOC
        U_SNLOC2=U_SNLOC/CV_NLOC
-       write(357,*)'U_NLOC,CV_NLOC:',U_NLOC,CV_NLOC
-       write(357,*)'U_NLOC2,U_SNLOC2:',U_NLOC2,U_SNLOC2
+       ewrite(3,*)'U_NLOC,CV_NLOC:',U_NLOC,CV_NLOC
+       ewrite(3,*)'U_NLOC2,U_SNLOC2:',U_NLOC2,U_SNLOC2
        !!       stop 3921
 
        ALLOCATE( SBUFEN2( U_SNLOC2, SBCVNGI ))
@@ -2334,11 +2338,11 @@ contains
     CALL GAUSSILOC( FINDGPTS, COLGPTS, NCOLGPTS, &
          CV_NEILOC, CV_NLOC, SCVNGI )
 
-    write(357,*) 'leaving cv_fem_shape_funs subrt', NCOLGPTS
-    WRITE(357,*)'CV_ON_FACE:',CV_ON_FACE
-    WRITE(357,*)'U_ON_FACE:',U_ON_FACE
-    WRITE(357,*)'CV_SLOCLIST=',CV_SLOCLIST
-    WRITE(357,*)'U_SLOCLIST=',U_SLOCLIST
+    ewrite(3,*) 'leaving cv_fem_shape_funs subrt', NCOLGPTS
+    EWRITE(3,*)'CV_ON_FACE:',CV_ON_FACE
+    EWRITE(3,*)'U_ON_FACE:',U_ON_FACE
+    EWRITE(3,*)'CV_SLOCLIST=',CV_SLOCLIST
+    EWRITE(3,*)'U_SLOCLIST=',U_SLOCLIST
     !    STOP 34
 
     RETURN
@@ -2410,11 +2414,11 @@ contains
           GIS = 0
 
           DO GI2 = 1, SCVNGI
-             write(357,*) 'SCVFEN( CV_KLOC, GI2 ):', ( SCVFEN( CV_KLOC, ii ), ii=1,SCVNGI)
+             ewrite(3,*) 'SCVFEN( CV_KLOC, GI2 ):', ( SCVFEN( CV_KLOC, ii ), ii=1,SCVNGI)
              IF( ABS( SCVFEN( CV_KLOC, GI2 )) > 1.E-6 ) THEN
                 IF( GIS < SBCVNGI ) THEN
                    GIS = GIS + 1
-                   !WRITE(357,*) 'CV_SNLOC, SBCVNGI, SCVNGI:',CV_SNLOC, SBCVNGI, SCVNGI
+                   !EWRITE(3,*) 'CV_SNLOC, SBCVNGI, SCVNGI:',CV_SNLOC, SBCVNGI, SCVNGI
                    SBCVFEN( CV_SKLOC, GIS ) = SCVFEN( CV_KLOC, GI2 )
                    SBCVFENSLX( CV_SKLOC, GIS ) = SCVFENSLX( CV_KLOC, GI2 )
                    SBCVFENSLY( CV_SKLOC, GIS ) = SCVFENSLY( CV_KLOC, GI2 )     
@@ -2427,8 +2431,8 @@ contains
           END DO
 
           IF(GIS /= SBCVNGI ) THEN
-             WRITE(357,*)'SOMETHING GONE WRONG WITH NO OF QUADRATURE PTS'
-             WRITE(357,*)'GIS, SBCVNGI:',GIS, SBCVNGI
+             EWRITE(3,*)'SOMETHING GONE WRONG WITH NO OF QUADRATURE PTS'
+             EWRITE(3,*)'GIS, SBCVNGI:',GIS, SBCVNGI
              STOP 2382
           ENDIF
 
@@ -2436,7 +2440,7 @@ contains
     END DO Loop_CVKLOC
 
     ! Use all quadrature pts on face with GI on it. Determine SBUFEN: 
-    write(357,*)'SBCVNGI=',SBCVNGI
+    ewrite(3,*)'SBCVNGI=',SBCVNGI
     IF(CV_SNLOC==1) THEN
        SBUFEN= SBCVFEN
        SBUFENSLX=SBCVFENSLX
@@ -2445,7 +2449,7 @@ contains
        SBUFENLY=SBCVFENLY
        SBUFENLZ=SBCVFENLZ
     ELSE
-       WRITE(357,*)'NOT READY' 
+       EWRITE(3,*)'NOT READY' 
        STOP 289
        U_SKLOC = 0
        Loop_UKLOC: DO U_KLOC = 1, U_NLOC
@@ -2457,8 +2461,8 @@ contains
              IF(ABS( SUFEN( U_KLOC, GI2 )) > 1.E-6 ) THEN
                 IF( GIS < SBCVNGI ) THEN
                    GIS = GIS + 1
-          ! WRITE(357,*)'U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 ):', &
-                  !      U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 )
+                   ! EWRITE(3,*)'U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 ):', &
+                   !      U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 )
                    SBUFEN( U_SKLOC, GIS ) = SUFEN( U_KLOC, GI2 )
                    SBUFENSLX( U_SKLOC, GIS ) = SUFENSLX( U_KLOC, GI2 )
                    SBUFENSLY( U_SKLOC, GIS ) = SUFENSLY( U_KLOC,GI2 )      
@@ -2474,9 +2478,9 @@ contains
     ENDIF
 
     ! Determine U_ON_FACE
-  !  DO U_KLOC = 1, U_NLOC
-  !     write(357,*)'SUFEN( U_KLOC, GI):',(SUFEN( U_KLOC, GI),gi=1,SCVNGI)
-  !  end do
+    !  DO U_KLOC = 1, U_NLOC
+    !     ewrite(3,*)'SUFEN( U_KLOC, GI):',(SUFEN( U_KLOC, GI),gi=1,SCVNGI)
+    !  end do
 
     ! determine CV_SLOCLIST & U_SLOCLIST
     CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, CV_ON_FACE, NFACE )
@@ -2484,13 +2488,13 @@ contains
        U_SLOCLIST(1,1)=1
        U_SLOCLIST(2,1)=U_NLOC
     ELSE
-       WRITE(357,*)'NOT YET READY'
+       EWRITE(3,*)'NOT YET READY'
        STOP 3831
        CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, U_ON_FACE, NFACE )
     ENDIF
-    write(357,*)'CV_SNLOC,U_SNLOC,SCVNGI:',CV_SNLOC,U_SNLOC,SCVNGI
-    write(357,*)'CV_SLOCLIST:',CV_SLOCLIST
-    write(357,*)'U_SLOCLIST:',U_SLOCLIST
+    ewrite(3,*)'CV_SNLOC,U_SNLOC,SCVNGI:',CV_SNLOC,U_SNLOC,SCVNGI
+    ewrite(3,*)'CV_SLOCLIST:',CV_SLOCLIST
+    ewrite(3,*)'U_SLOCLIST:',U_SLOCLIST
     !    STOP 3893
 
     RETURN
@@ -2512,44 +2516,44 @@ contains
     LOGICAL :: FOUND, FOUND_ALL, NEW_FACE
 
     ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
-    !write(357,*)'**********************************CV_SNLOC=',CV_SNLOC
-    !write(357,*)'**********************************CV_SNLOC=',CV_SNLOC
-    !write(357,*)'**********************************CV_SNLOC=',CV_SNLOC
+    !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
+    !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
+    !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
 
     ALLOCATE( GI_ON_ELE_BOUND( SCVNGI ))
     DO GI=1,SCVNGI
        GI_ON_ELE_BOUND(GI)=.FALSE.
        DO CV_KLOC = 1, CV_NLOC
-  IF(CV_ON_FACE(CV_KLOC,GI)) GI_ON_ELE_BOUND(GI)=.NOT.GI_ON_ELE_BOUND(GI)
+          IF(CV_ON_FACE(CV_KLOC,GI)) GI_ON_ELE_BOUND(GI)=.NOT.GI_ON_ELE_BOUND(GI)
        END DO
     END DO
 
-    write(357,*)'GI_ON_ELE_BOUND:',GI_ON_ELE_BOUND
+    ewrite(3,*)'GI_ON_ELE_BOUND:',GI_ON_ELE_BOUND
 
-    !  write(357,*) 'cvsnloc:', cv_snloc
+    !  ewrite(3,*) 'cvsnloc:', cv_snloc
     !do cv_kloc=1, cv_nloc
-    !   WRITE(357,*) 'CV_ON_FACE:',(CV_ON_FACE(cv_kloc,gi),gi=1,scvngi)
-       !     write(357,*) 'CV_SLOCLIST:',(CV_SLOCLIST(iface,cv_kloc), iface=1,nface)
+    !   EWRITE(3,*) 'CV_ON_FACE:',(CV_ON_FACE(cv_kloc,gi),gi=1,scvngi)
+    !     ewrite(3,*) 'CV_SLOCLIST:',(CV_SLOCLIST(iface,cv_kloc), iface=1,nface)
     !end do
 
     NUM_FACE = 0
     Loop_GI: DO GI = 1, SCVNGI
        IF(GI_ON_ELE_BOUND(GI)) THEN
-      !WRITE(357,*)'*************GI=',GI
+          !EWRITE(3,*)'*************GI=',GI
 
           CV_SKLOC = 0
           DO CV_KLOC = 1, CV_NLOC
-             WRITE(357,*)'GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI ):',GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI )
+             EWRITE(3,*)'GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI ):',GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI )
              IF( CV_ON_FACE( CV_KLOC, GI )) THEN
                 CV_SKLOC = CV_SKLOC + 1
                 CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
              END IF
           END DO
-          !write(357,*)'num_face,gi=',num_face,gi
-          !write(357,*)'CV_SLOC2LOC:',CV_SLOC2LOC
-          !WRITE(357,*) 'CV_SLOC2LOC --',( CV_SKLOC /= 0 ), (CV_SLOC2LOC( CV_KLOC ), CV_KLOC=1,CV_SKLOC)
+          !ewrite(3,*)'num_face,gi=',num_face,gi
+          !ewrite(3,*)'CV_SLOC2LOC:',CV_SLOC2LOC
+          !EWRITE(3,*) 'CV_SLOC2LOC --',( CV_SKLOC /= 0 ), (CV_SLOC2LOC( CV_KLOC ), CV_KLOC=1,CV_SKLOC)
           !do iface=1,num_face
-          !   WRITE(357,*) 'gi, iface, CV_SLOCList', gi, iface, (CV_SLOCLIST(iface, cv_kloc),cv_kloc=1,cv_snloc)
+          !   EWRITE(3,*) 'gi, iface, CV_SLOCList', gi, iface, (CV_SLOCLIST(iface, cv_kloc),cv_kloc=1,cv_snloc)
           !end do
 
           Conditional_CV_SKLOC: IF( CV_SKLOC /= 0 ) THEN ! is this a new face
@@ -2557,7 +2561,7 @@ contains
 
              Loop_IFACE: DO IFACE = 1, NUM_FACE
                 FOUND_ALL = .TRUE.
-                !write(357,*) '===> iface:',iface
+                !ewrite(3,*) '===> iface:',iface
 
                 Loop_CVLOC1: DO CV_SILOC = 1, CV_SNLOC
                    CV_ILOC = CV_SLOC2LOC( CV_SILOC )
@@ -2565,9 +2569,9 @@ contains
 
                    Loop_CVLOC2: DO CV_SJLOC = 1, CV_SNLOC
                       CV_JLOC = CV_SLOCLIST( IFACE, CV_SJLOC )
-                      !if( (gi == scvngi) .and. (iface == nface))write(357,*) 'here',cv_jloc
+                      !if( (gi == scvngi) .and. (iface == nface))ewrite(3,*) 'here',cv_jloc
                       IF( CV_ILOC == CV_JLOC ) FOUND = .TRUE.
-                      !write(357,*) 'from found:',found, iface, cv_sjloc, cv_sloclist(iface,cv_sjloc)
+                      !ewrite(3,*) 'from found:',found, iface, cv_sjloc, cv_sloclist(iface,cv_sjloc)
                    END DO Loop_CVLOC2
 
                    IF( .NOT. FOUND ) FOUND_ALL = .FALSE.
@@ -2577,14 +2581,14 @@ contains
                 IF( FOUND_ALL ) NEW_FACE = .FALSE.
              END DO Loop_IFACE
 
-     IF(CV_NLOC==1) NEW_FACE = .TRUE.
+             IF(CV_NLOC==1) NEW_FACE = .TRUE.
 
-             !WRITE(357,*) '******new_face:', new_face
-             !WRITE(357,*) '******CV_SLOC2LOC:',CV_SLOC2LOC
+             !EWRITE(3,*) '******new_face:', new_face
+             !EWRITE(3,*) '******CV_SLOC2LOC:',CV_SLOC2LOC
              IF( NEW_FACE ) THEN
                 NUM_FACE = NUM_FACE + 1
                 CV_SLOCLIST( NUM_FACE, : ) = CV_SLOC2LOC( : )
-                !WRITE(357,*) 'NUM FACE:', NUM_FACE
+                !EWRITE(3,*) 'NUM FACE:', NUM_FACE
              END IF
           END IF Conditional_CV_SKLOC
 
@@ -2592,8 +2596,8 @@ contains
     END DO Loop_GI
 
     IF(NUM_FACE /= NFACE) THEN
-       WRITE(357,*)' Not got the number of faces correct ' 
-       WRITE(357,*)' NUM_FACE, NFACE :', NUM_FACE, NFACE
+       EWRITE(3,*)' Not got the number of faces correct ' 
+       EWRITE(3,*)' NUM_FACE, NFACE :', NUM_FACE, NFACE
        STOP 962
     END IF
 
@@ -2639,7 +2643,7 @@ contains
     REAL, DIMENSION( : ), allocatable :: DXN!, LX, XN, 
     INTEGER :: ILOC
 
-    !write(357,*) 'b4 hhhh', two, three, CV_NLOC,SCVNGI
+    !ewrite(3,*) 'b4 hhhh', two, three, CV_NLOC,SCVNGI
     !ALLOCATE( LX( TWO ))
     !ALLOCATE( XN( THREE ))
     ALLOCATE( DXN( THREE ))
@@ -2655,7 +2659,7 @@ contains
           CALL FV_1D_QUAD(SCVNGI, U_NLOC, SUFEN, SUFENSLX, SUFENSLY, SCVFEWEIGH, &
                SUFENLX, SUFENLY, SUFENLZ) ! For U
 
-          !           STOP 37
+          !        STOP 37
 
           CV_ON_FACE=.FALSE.
           DO ILOC = 1, CV_NLOC
@@ -2730,7 +2734,7 @@ contains
 
     ELSE
 
-       WRITE(357,*)'NOT GOT THIS YET - 0'
+       EWRITE(3,*)'NOT GOT THIS YET - 0'
 
     END IF Cond_ShapeType
     !     
@@ -2771,7 +2775,7 @@ contains
     INTEGER :: NCV_BOU, GPOI, ILOC
     LOGICAL :: DIFF, NDIFF, GETNDP
 
-    !write(357,*) 'cv_nloc:',cv_nloc
+    !ewrite(3,*) 'cv_nloc:',cv_nloc
 
     ALLOCATE( LX( SCVNGI ))
     ALLOCATE( CV_NODPOS( CV_NLOC ))
@@ -2801,7 +2805,7 @@ contains
        LX(4) = +1.0 - 1./3.
        LX(5) = +1.0
     ELSE
-       WRITE(357,*)'NOYT AN OPT'
+       EWRITE(3,*)'NOYT AN OPT'
        STOP 38
     ENDIF
 
@@ -2811,7 +2815,7 @@ contains
     GETNDP=.TRUE.
     !      Compute standard Gauss quadrature. weits and points
     CALL LAGROT(WEI,CV_NODPOS,CV_NLOC,GETNDP) 
-    WRITE(357,*)'CV_NODPOS:',CV_NODPOS
+    EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
     !       STOP 29
 
     Loop_P2: DO GPOI = 1, NCV_BOU
@@ -2876,9 +2880,9 @@ contains
        Cond_Dimension: IF( D1 ) THEN
 
           SVWEIGH = 1.0
-NQUAD = 2
-LX(1) = 1./3.
-LX(2) = 2./3.
+          NQUAD = 2
+          LX(1) = 1./3.
+          LX(2) = 2./3.
 
           Loop_P: DO P = 1, NQUAD
 
@@ -2956,7 +2960,7 @@ LX(2) = 2./3.
 
     ELSE
 
-       WRITE(357,*)'NOT GOT THIS YET'
+       EWRITE(3,*)'NOT GOT THIS YET'
 
     END IF Cond_ShapeType
     !     
@@ -6526,7 +6530,7 @@ LX(2) = 2./3.
 
     ELSE 
 
-       write(357,*)'not an option'
+       ewrite(3,*)'not an option'
        stop 292
 
     ENDIF
@@ -6573,7 +6577,7 @@ LX(2) = 2./3.
              COUNT = COUNT + 1
              COLGPTS( COUNT ) = GI
           END IF
-          !      write(357,*)'iloc,gi,NEILOC( ILOC, GI ):',iloc,gi,NEILOC( ILOC, GI )
+          !   ewrite(3,*)'iloc,gi,NEILOC( ILOC, GI ):',iloc,gi,NEILOC( ILOC, GI )
 
        END DO
 
@@ -6818,7 +6822,7 @@ LX(2) = 2./3.
              NZ( L, GI ) = 0.0
           END DO
           !
-       end do 
+       end do
        ! ENDOF IF(D3) THEN ELSE...
     ENDIF
     !
@@ -6940,7 +6944,7 @@ LX(2) = 2./3.
           RA( GI ) = RGI
           DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
           VOLUME = VOLUME + DETWEI( GI )
-          write(357,*) 'gi:', gi,detj, detwei(gi)
+          ewrite(3,*) 'gi:', gi,detj, detwei(gi)
 
           Loop_L5: DO L = 1, X_NLOC
              NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ

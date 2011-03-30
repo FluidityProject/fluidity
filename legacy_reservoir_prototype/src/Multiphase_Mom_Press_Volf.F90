@@ -1,3 +1,4 @@
+
 !    Copyright (C) 2006 Imperial College London and others.
 !    
 !    Please see the AUTHORS file in the main source directory for a full list
@@ -24,6 +25,7 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+#include "fdebug.h"
 
 module multiphase_mom_press_volf
 
@@ -35,6 +37,7 @@ module multiphase_mom_press_volf
   use shape_functions
   use printout
   use Compositional_Terms
+  use fldebug
 
   IMPLICIT NONE
 
@@ -53,7 +56,7 @@ contains
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-       ntime, nits, nits_internal, &
+       ntime, ntime_dump, nits, nits_internal, &
        nits_flux_lim_volfra, nits_flux_lim_comp, & 
        ndpset, &
        dt, &
@@ -84,24 +87,24 @@ contains
                                 ! Positions and grid velocities
        x, y, z, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
-       uabs_option, uabs_coefs, u_abs_stab, &
+       uabs_option, uabs_coefs, u_abs_stab, Mobility, &
        u_absorb, v_absorb, comp_absorb, &
        u_source, v_source, comp_source, &
-       t_absorb, t_source, &
+       t_absorb, t_source, Comp_Sum2One, &
                                 ! Diffusion parameters
        udiffusion, &
        tdiffusion, &
        comp_diffusion_opt, ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
                                 ! Velocities and scalar fields
        u, v, w, &
-       den, satura, comp, t, p, cv_p, cv_one,  volfra_pore, &
+       den, satura, comp, t, p, cv_p, cv_one,  volfra_pore, Viscosity, &
        perm, &
        uold, vold, wold, denold, saturaold, compold, uden, udenold, deriv, &
        told, pold, cv_pold, nuold, nvold, nwold, &
                                 ! EOS terms
        eos_option, &
        eos_coefs, &
-       K_Comp, alpha_beta, &
+       KComp_Sigmoid, K_Comp, alpha_beta, &
                                 ! Capillarity pressure terms
        capil_pres_opt, ncapil_pres_coef, capil_pres_coef, &
                                 ! Matrices sparsity
@@ -122,7 +125,7 @@ contains
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
-         ntime, nits, nits_internal, &
+         ntime, ntime_dump, nits, nits_internal, &
          nits_flux_lim_volfra, nits_flux_lim_comp, & 
          ndpset 
     real, intent( in ) :: dt
@@ -158,7 +161,7 @@ contains
     real, dimension( stotel * p_snloc * nphase ), intent( in ) :: suf_p_bc
     real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_t_bc
     real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc, suf_v_bc, suf_w_bc
-    real, dimension( stotel * u_snloc * nphase * ncomp ), intent( in ) :: suf_comp_bc
+    real, dimension( stotel * cv_snloc * nphase * ncomp ), intent( in ) :: suf_comp_bc
     real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
          suf_w_bc_rob1, suf_w_bc_rob2
     real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_comp_bc_rob1, suf_comp_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -169,13 +172,16 @@ contains
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
     integer, dimension( nphase ), intent( in ) :: uabs_option
     real, dimension( nphase, nuabs_coefs ), intent( in ) :: uabs_coefs
-    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab, u_absorb
+    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
+    real, intent( in ) :: Mobility
+    real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: v_absorb
-    real, dimension( cv_nonods * nphase, nphase, nphase ), intent( inout ) :: comp_absorb
+    real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: comp_absorb
     real, dimension( u_pha_nonods ), intent( inout ) :: u_source
     real, dimension( cv_pha_nonods ), intent( inout ) :: v_source, comp_source
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: t_absorb
     real, dimension( cv_pha_nonods ), intent( inout ) :: t_source
+    logical, intent( in ) :: Comp_Sum2One
 
     real, dimension( mat_nonods, ndim, ndim, nphase ), intent( inout ) :: udiffusion, tdiffusion
     integer, intent( in ) :: comp_diffusion_opt, ncomp_diff_coef
@@ -189,6 +195,7 @@ contains
     real, dimension( cv_pha_nonods ), intent( inout ) :: t
     real, dimension( cv_nonods ), intent( inout ) :: p, cv_p
     real, dimension( cv_pha_nonods ), intent( inout ) :: cv_one
+    real, dimension( cv_nonods * nphase ), intent( in ) :: Viscosity
     real, dimension( totele ), intent( inout ) :: volfra_pore
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( u_pha_nonods ), intent( inout ) :: uold, vold, wold
@@ -200,6 +207,7 @@ contains
     integer, dimension( nphase ), intent( in ) :: eos_option
     real, dimension( nphase, ncoef ), intent( in ) :: eos_coefs
     real, dimension( ncomp, nphase, nphase ), intent( inout ) :: K_Comp
+    logical, intent( in ) :: KComp_Sigmoid
     real, intent( inout ) :: alpha_beta
 
     integer, intent( in ) :: capil_pres_opt, ncapil_pres_coef
@@ -251,7 +259,7 @@ contains
     real, dimension( : ), allocatable :: rhs, rhs_cv, diag_pres, femt_print, femt_dummy
 
     ! For output:
-    real, dimension( : ), allocatable :: Sat_FEMT, Den_FEMT
+    real, dimension( : ), allocatable :: Sat_FEMT, Den_FEMT, Comp_FEMT, SumConc_FEMT, MEAN_PORE_CV
     ! For capillary pressure:
     real, dimension( : ), allocatable :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
@@ -263,10 +271,10 @@ contains
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
 
 
-    character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dump_name, file_format
+    character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
     integer :: output_channel
 
-    write(357,*) 'In solve_multiphase_mom_press_volf'
+    ewrite(3,*) 'In solve_multiphase_mom_press_volf'
 
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
@@ -277,6 +285,9 @@ contains
     allocate( femt_dummy( cv_nonods * nphase ))
     allocate( Sat_FEMT( cv_nonods * nphase ))
     allocate( Den_FEMT( cv_nonods * nphase ))
+    allocate( Comp_FEMT( cv_nonods * nphase * ncomp ))
+    allocate( SumConc_FEMT( cv_nonods * ncomp ))
+    allocate( MEAN_PORE_CV( cv_nonods ))
 
     allocate( V_SOURCE_STORE( cv_nonods * nphase ))
     allocate( V_SOURCE_COMP( cv_nonods * nphase ))
@@ -308,6 +319,9 @@ contains
 
     compold = comp
 
+    !             ewrite(3,*)'satura:',satura
+    !      stop 383
+
     DX = DOMAIN_LENGTH / REAL(TOTELE)
 
     !       print *,'NTIME, ITIME: ',NTIME, ITIME
@@ -338,7 +352,7 @@ contains
           ! Calculate absorption for momentum eqns    
           CALL CAL_U_ABSORB( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
-               NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, &
+               NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, MOBILITY, VISCOSITY, &
                X, X_NLOC, X_NONODS, X_NDGLN, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
 
@@ -350,6 +364,17 @@ contains
           ENDIF
 
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP 
+
+          ewrite(3,*)'ITIME,NTIME,ITS,NITS:',ITIME,NTIME,ITS,NITS
+
+          ewrite(3,*)'satura:',satura
+          ewrite(3,*)'saturaold:',saturaold
+
+          IF( NCOMP <= 1 ) THEN
+             VOLFRA_USE_THETA_FLUX = .false.
+          else 
+             VOLFRA_USE_THETA_FLUX = .true.
+          END IF
 
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
@@ -401,12 +426,6 @@ contains
           NVOLD = VOLD
           NWOLD = WOLD
 
-          IF( NCOMP <= 1 ) THEN
-             VOLFRA_USE_THETA_FLUX = .false.
-          else 
-             VOLFRA_USE_THETA_FLUX = .true.
-          END IF
-
           CALL VOLFRA_ASSEM_SOLVE( &
                NCOLACV, FINACV, COLACV, MIDACV, &
                NCOLCT, FINDCT, COLCT, &
@@ -444,39 +463,54 @@ contains
           ELSE 
              NCOMP2 = NCOMP
           END IF
+          ewrite(3,*)'COMP: ',COMP
 
           Loop_COMPONENTS: DO ICOMP = 1, NCOMP2
 
              !             COMP_SOURCE = 0.0
 
              ! Use values from the previous time step DENOLD,SATURAOLD so its easier to converge
-             ! ALPHA_BETA is an order 1 acaling coefficient set up in the input file...
+             ! ALPHA_BETA is an order 1 acaling coefficient set up in the input file
+
              CALL CALC_COMP_ABSORB( ICOMP, NCOMP, DT, ALPHA_BETA, &
-                  NPHASE, CV_NONODS, K_COMP, DENOLD, SATURAOLD, VOLFRA_PORE, COMP_ABSORB, &
+                                ! NPHASE, CV_NONODS, KCOMP_SIGMOID, K_COMP, DENOLD, SATURAOLD, &
+                  NPHASE, CV_NONODS, &
+                                !KCOMP_SIGMOID, K_COMP, &
+                  .false., K_COMP, &
+                  DENOLD, SATURAOLD, &
+                  VOLFRA_PORE, COMP_ABSORB, &
                   TOTELE, CV_NLOC, CV_NDGLN )
 
-             ! Calculate the diffusion COMP_DIFFUSION...      
+             IF( KCOMP_SIGMOID ) THEN
+                DO CV_NODI = 1, CV_NONODS
+                   !                   IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
+                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
+                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
+                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !                   ENDIF
+                   !                   IF( SATURAOLD( CV_NODI ) > 0.9 ) THEN
+                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
+                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
+                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !                   ENDIF
+                   IF( SATURAOLD( CV_NODI ) > 0.95 ) THEN
+                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
+                           max( 0.01, 20. * ( 1.0 - SATURAOLD( CV_NODI )))
+                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
+                           max( 0.01, 20. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   ENDIF
+                END DO
+             END IF
+
+             ! Calculate the diffusion COMP_DIFFUSION...        
              CALL CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
                   TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                   COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF( ICOMP, :, : ), &
                   X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, CV_NONODS, &
                   MAT_NDGLN, U_NDGLN, X_NDGLN, &
                   U_ELE_TYPE, P_ELE_TYPE ) 
-
-             write(357,*)'COMP_DIFFUSION_OPT, MAT_NONODS: ', COMP_DIFFUSION_OPT, MAT_NONODS
-             write(357,*)'TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC: ',&
-                  TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC
-             write(357,*)'COMP_DIFFUSION: ',COMP_DIFFUSION
-             write(357,*)'NCOMP_DIFF_COEF: ',NCOMP_DIFF_COEF
-             write(357,*)'COMP_DIFF_COEF: ',COMP_DIFF_COEF
-             write(357,*)'icomp, COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ): ',icomp, COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 )
-             write(357,*)'icomp, COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 )--: ',icomp, COMP( NPHASE * CV_NONODS + 1 : ncomp * NPHASE * CV_NONODS  )
-             write(357,*)'COMP_SOURCE: ',COMP_SOURCE
-             write(357,*)'COMP_ABSORB: ',COMP_ABSORB
-             write(357,*)'NOIT_DIM: ',NOIT_DIM
-             !write(357,*)'COMP: ',COMP
-             !write(357,*)': ',
-             !stop 876
 
 
              ! bear in mind there are 3 internal iterations
@@ -486,7 +520,7 @@ contains
                 COMP_USE_THETA_FLUX = .FALSE.
 
                 CALL INTENERGE_ASSEM_SOLVE(  &
-                     NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
+                     NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparcity pattern matrix
                      NCOLCT, FINDCT, COLCT, &
                      CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                      U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
@@ -509,15 +543,18 @@ contains
                      NDIM,  &
                      NCOLM, FINDM, COLM, MIDM, &
                      XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-                     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Sat_FEMT, Den_FEMT, & 
+                                !  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), Den_FEMT, & 
+                     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                     Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), Den_FEMT, & 
                      IGOT_T2, SATURA, SATURAOLD, IGOT_THETA_FLUX, SCVNGI_THETA, COMP_GET_THETA_FLUX, COMP_USE_THETA_FLUX, &
                      THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
                      SUF_VOL_BC, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, WIC_VOL_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                      NOIT_DIM, &
-                     T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP )
+                     T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
+                     MEAN_PORE_CV )
 
                 do iphase = 1, nphase
-                   write(357,*) 'comp:', icomp, iphase, comp(( ICOMP - 1 ) * NPHASE * CV_NONODS + (iphase - 1) * cv_nonods + 1 )
+                   ewrite(3,*) 'comp:', icomp, iphase, comp(( ICOMP - 1 ) * NPHASE * CV_NONODS + (iphase - 1) * cv_nonods + 1 )
                 end do
 
              END DO Loop_ITS2
@@ -536,88 +573,174 @@ contains
                 END DO
              END DO
 
-             write(357,*)'v_source_comp:',V_SOURCE_COMP
 
           END DO Loop_COMPONENTS
 
-          print *,'finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME,NTIME:',ITS,nits,ITIME,NTIME
+          IF( COMP_SUM2ONE .AND. ( NCOMP2 > 1 ) ) THEN 
+             ! make sure the composition sums to 1.0 by putting constraint into V_SOURCE_COMP. 
+             CALL CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS,  &  
+                  MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
+          ENDIF
+
+          ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME,NTIME:',ITS,nits,ITIME,NTIME
 
        END DO Loop_ITS
 
-       ! output the saturation, density and velocity for each phase
-       Phase_output_loop: do iphase = 1,nphase
+       Conditional_TIMDUMP: if( ( mod( itime, ntime_dump ) == 0 ) .or. ( itime == 1 ) .or. &
+            ( itime == ntime )) then
 
-          ! form string for phase number
-          call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
+          ! output the saturation, density and velocity for each phase
+          Phase_output_loop: do iphase = 1,nphase
 
-          ! form string for dump number
-          call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
+             ! form string for phase number
+             call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
 
-          ! form the output file name for saturation --------------------------
-          dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+             ! form string for dump number
+             call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
 
-          ! open the output file for saturation   
+             ! form the output file name for saturation --------------------------
+             dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for saturation   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem interpolation of the CV solution for saturation of this phase
+             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                  x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+             ! close the file for saturation   
+             close(output_channel)  
+
+
+             ! form the output file name for density --------------------------
+             dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for density   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem interpolation of the CV solution for density of this phase
+             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                  x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+             ! close the file for density   
+             close(output_channel)  
+
+             ! form the output file name for velocity --------------------------
+             dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for velocity   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem velocity
+             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                  x, u_nonods, u_nonods * nphase, u, iphase )
+
+             ! close the file for velocity   
+             close(output_channel)
+
+          end do Phase_output_loop
+
+
+          Loop_Comp_Print: do icomp = 1, ncomp
+
+             Loop_Phase_Print: do iphase = 1, nphase
+
+                ! form string for phase number
+                call write_integer_to_string( iphase, dummy_string_phase, len( dummy_string_phase )) 
+
+                ! form string for component number
+                call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp ))  
+
+                ! form string for dump number
+                call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
+
+                ! form the output file name for saturation --------------------------
+                dump_name = 'MassFraction_FEM_Phase_'//trim( dummy_string_phase )// '_Comp_' // &
+                     trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+
+                ! open the output file for Mass/Molar Fraction   
+                output_channel = 1
+                file_format = 'formatted'
+                call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
+
+                ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
+                call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc, cv_ndgln, &
+                     x_ndgln, x, Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods ))
+
+                ! close the file   
+                close( output_channel )  
+
+             end do Loop_Phase_Print
+
+          end do Loop_Comp_Print
+
+
+
+          Loop_Comp_Print2: do icomp = 1, ncomp
+
+             ! form string for component number
+             call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp )) 
+
+             ! form string for dump number
+             call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
+
+             ! form the output file name for saturation --------------------------
+             dump_name = 'Conc_FEM_Comp_' // trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+
+             ! open the output file for Mass/Molar Fraction   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
+
+             SumConc_FEMT = 0.
+
+             Loop_Phase_Print2: do iphase = 1, nphase
+
+                SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) = &
+                     SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) + &
+                     Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )  * &
+                     Sat_FEMT(( ( iphase - 1 ) * cv_nonods + 1 ) : (( iphase - 1 ) * cv_nonods + cv_nonods ))
+
+             end do Loop_Phase_Print2
+
+             ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
+             call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, ncomp, cv_nloc, x_nloc, cv_ndgln, &
+                  x_ndgln, x, SumConc_FEMT(( ( icomp - 1 ) * cv_nonods + 1 ) : (( icomp - 1 ) * cv_nonods + cv_nonods )))
+
+             ! close the file   
+             close( output_channel )  
+
+          end do Loop_Comp_Print2
+
+
+          ! output the global pressure --------------------------
+          dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
+
+          ! open the output file for pressure   
           output_channel = 1
           file_format = 'formatted'
-          call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+          call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
 
-          ! output the fem interpolation of the CV solution for saturation of this phase
-          call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-               x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+          ! output the pressure      
+          call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+               x, cv_nonods, cv_p, 1 )
 
-          ! close the file for saturation   
-          close(output_channel)  
+          ! close the file for pressure   
+          close(output_channel)   
 
-          ! form the output file name for density --------------------------
-          dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-          ! open the output file for density   
-          output_channel = 1
-          file_format = 'formatted'
-          call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-          ! output the fem interpolation of the CV solution for density of this phase
-          call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-               x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-          ! close the file for density   
-          close(output_channel)  
-
-          ! form the output file name for velocity --------------------------
-          dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-          ! open the output file for velocity   
-          output_channel = 1
-          file_format = 'formatted'
-          call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-          ! output the fem velocity
-          call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-               x, u_nonods, u_nonods * nphase, u, iphase )
-
-          ! close the file for velocity   
-          close(output_channel)
-
-       end do Phase_output_loop
-
-       ! output the global pressure --------------------------
-       dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
-
-       ! open the output file for pressure   
-       output_channel = 1
-       file_format = 'formatted'
-       call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
-
-       ! output the pressure      
-       call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-            x, cv_nonods, cv_p, 1 )
-
-       ! close the file for pressure   
-       close(output_channel)   
+       end if Conditional_TIMDUMP
 
     END DO Loop_Time
 
-    write(357,*) 'Leaving solve_multiphase_mom_press_volf'
+    ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 
 
 
@@ -629,8 +752,9 @@ contains
     deallocate( femt_dummy )
     deallocate( Sat_FEMT )
     deallocate( Den_FEMT )
+    deallocate( Comp_FEMT )
 
   end subroutine solve_multiphase_mom_press_volf
-      
+
 
 end module multiphase_mom_press_volf
