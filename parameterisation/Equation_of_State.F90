@@ -33,6 +33,7 @@ module equation_of_state
   use state_module
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use sediment, only: get_sediment_name, get_nSediments
   implicit none
   
   private
@@ -58,7 +59,7 @@ contains
     logical include_depth_below
     real T0, S0, gamma, rho_0, salt, temp, dist, dens, theta
     integer, dimension(:), pointer:: density_nodes
-    integer ele, i, node
+    integer ele, i, node, nSediments
     
     ewrite(1,*) 'In calculate_perturbation_density'
     
@@ -183,23 +184,22 @@ contains
             "FluidConcentration")
        call zero(sedimentdensity)
        call set(fluidconcentration, 1.0)
+       nSediments=get_nSediments()
 
-       do i=1,option_count('/material_phase::'//trim(state%name)&
-            //'/sediment/sediment_class')
-          option_path='/material_phase::'//trim(state%name)//&
-               '/sediment/sediment_class['//int2str(i-1)//"]"
-          
-          call get_option(trim(option_path)//"/name", class_name)
+       do i=1,nSediments
+
+          class_name = get_sediment_name(i)
+
+          S=>extract_scalar_field(state,trim(class_name))
+          option_path = S%option_path
 
           call get_option(trim(option_path)//'/density', gamma)
           ! Note that 1000.0 is a hack. We actually need to properly
           ! account for the reference density of seawater.
           gamma=rho_0*(gamma/1000.0) - rho_0
 
-          S => extract_scalar_field(state, &
-               "SedimentConcentration"//trim(class_name))
           oldS => extract_scalar_field(state, &
-               "OldSedimentConcentration"//trim(class_name))
+               "Old"//trim(class_name))
           
           ! deltaS=theta*S+(1-theta)*oldS-S0
           call remap_field(S, remapS)

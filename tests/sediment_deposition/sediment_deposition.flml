@@ -57,12 +57,6 @@
     <finish_time>
       <real_value rank="0">10</real_value>
     </finish_time>
-    <steady_state>
-      <tolerance>
-        <real_value rank="0">1e-10</real_value>
-        <infinity_norm/>
-      </tolerance>
-    </steady_state>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -193,7 +187,7 @@
             <surface_ids>
               <integer_value shape="1" rank="1">11</integer_value>
             </surface_ids>
-            <type name="dirichlet">
+            <type name="neumann">
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
@@ -212,6 +206,12 @@
           </steady_state>
           <consistent_interpolation/>
         </prognostic>
+        <density>
+          <real_value rank="0">2650</real_value>
+        </density>
+        <diameter>
+          <real_value rank="0">2</real_value>
+        </diameter>
         <porosity>
           <real_value rank="0">0.5</real_value>
         </porosity>
@@ -235,7 +235,7 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <sediment_class name="1mm">
+      <sediment_class name="Sed1mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -257,7 +257,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="2mm">
+      <sediment_class name="Sed2mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -279,7 +279,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="3mm">
+      <sediment_class name="Sed3mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -301,7 +301,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="4mm">
+      <sediment_class name="Sed4mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -323,7 +323,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="5mm">
+      <sediment_class name="Sed5mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -345,7 +345,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="6mm">
+      <sediment_class name="Sed6mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -367,7 +367,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="7mm">
+      <sediment_class name="Sed7mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -389,7 +389,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="8mm">
+      <sediment_class name="Sed8mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -411,7 +411,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="9mm">
+      <sediment_class name="Sed9mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -433,7 +433,7 @@
           <real_value rank="0">50</real_value>
         </diameter>
       </sediment_class>
-      <sediment_class name="10mm">
+      <sediment_class name="Sed10mm">
         <scalar_field name="SinkingVelocity" rank="0">
           <prescribed>
             <value name="WholeMesh">

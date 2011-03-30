@@ -590,7 +590,7 @@ contains
         call set_ocean_forcings_boundary_conditions(states(1))
     end if
 
-    if (have_option('/material_phase[0]/sediment/scalar_field::SedimentTemplate/prognostic')) then
+    if (have_option('/material_phase[0]/sediment')) then
         call set_sediment_reentrainment(states(1))
     end if
 

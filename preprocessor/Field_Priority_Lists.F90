@@ -32,6 +32,7 @@ module field_priority_lists
   use fields
   use state_module
   use spud
+
   implicit none
   
   !! Field name list for tracers (from 1 to NTSOL)
@@ -141,23 +142,6 @@ contains
                   tmpint, default=0)
              priority(nsol) = tmpint
           end if
-
-          do i=0,option_count('/material_phase[' &
-               //int2str(p)//']/sediment/sediment_class')-1
-             nsol=nsol+1
-             call get_option('/material_phase[' &
-               //int2str(p)//']/sediment/sediment_class['//int2str(i)&
-               //']/name',temp_field_name_list(nsol))
-             temp_field_name_list(nsol)='SedimentConcentration'//&
-                  trim(temp_field_name_list(nsol))
-             temp_field_optionpath_list(nsol)='/material_phase[' &
-               //int2str(p)//']/sediment/scalar_field::SedimentTemplate'
-
-             temp_field_state_list(nsol) = p+1
-             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
-                  tmpint, default=0)
-             priority(nsol) = tmpint
-          end do
 
           ! Check for GLS - we need to make sure these fields are solved *after*
           ! everything else, so set to a big negative value. In addition, the
@@ -385,9 +369,7 @@ contains
        if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate/diagnostic')) then
           ntsol=ntsol + 1
        end if
-       ! Prognostic sediment fields.
-       ntsol=ntsol+option_count('/material_phase[' &
-            //int2str(p)//']/sediment/sediment_class')
+
     end do
 
     ! tracers for traffic modelling

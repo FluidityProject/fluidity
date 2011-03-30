@@ -258,10 +258,10 @@ ifeq (@HYPERLIGHT@,yes)
 	@echo "    MAKE hyperlight"
 	@cd hyperlight; $(MAKE)
 endif
-	@echo "    MAKE parameterisation"
-	@cd parameterisation; $(MAKE)
 	@echo "    MAKE sediments"
 	@cd sediments; $(MAKE)
+	@echo "    MAKE parameterisation"
+	@cd parameterisation; $(MAKE)
 	@echo "    MAKE forward_interfaces"
 	@cd forward_interfaces;	$(MAKE)
 	@echo "    MAKE horizontal_adaptivity"
@@ -319,10 +319,10 @@ clean-light:
 	@cd forward_interfaces; $(MAKE) clean
 	@echo "    CLEAN parameterisation"
 	@cd parameterisation; $(MAKE) clean
-	@echo "    CLEAN parameterisation/tests"
-	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
+	@echo "    CLEAN parameterisation/tests"
+	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN radiation"
 	@cd radiation; $(MAKE) clean
 	@echo "    CLEAN radiation/tests"

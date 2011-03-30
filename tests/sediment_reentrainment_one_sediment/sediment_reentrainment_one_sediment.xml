@@ -28,12 +28,12 @@ sediment_flux_near_end = s["Fluid"]["SedimentFluxSingle"]["integral"][-3]
     <variable name="sediment_concentration_initial" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
-sediment_concentration_initial = s["Fluid"]["SedimentConcentrationSingle"]["integral"][0]
+sediment_concentration_initial = s["Fluid"]["Single"]["integral"][0]
     </variable>
     <variable name="sediment_concentration_final" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
-sediment_concentration_final = s["Fluid"]["SedimentConcentrationSingle"]["integral"][-1]
+sediment_concentration_final = s["Fluid"]["Single"]["integral"][-1]
     </variable>
 
   </variables>

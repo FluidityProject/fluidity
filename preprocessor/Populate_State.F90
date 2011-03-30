@@ -57,6 +57,7 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
+  use sediment, only: get_nSediments, get_sediment_name
 
   implicit none
 
@@ -1262,54 +1263,34 @@ contains
       type(state_type), intent(inout) :: state
       
       integer :: nfields, j
-      character(len=OPTION_PATH_LEN) :: class_path, field_name,class_name
-      
-      type(scalar_field), pointer :: sediment, sedimentflux
+      character(len=OPTION_PATH_LEN) :: field_name
+      character(len=FIELD_NAME_LEN)  :: class_name
 
-      nfields=option_count(trim(state_path)//"/sediment/sediment_class")
+      type(scalar_field), pointer :: sedimentflux
 
-      
-          sediment_class_loop: do j=0,nfields-1
-             ! Note that this currently duplicates shared subfields such as
-             ! diffusivity. This should be changed.
+      nfields=get_nSediments()
 
-             class_path=trim(state_path)&
-                  //"/sediment/sediment_class["//int2str(j)//"]"
+      sediment_class_loop: do j=1,nfields
+         ! Note that this currently duplicates shared subfields such as
+         ! diffusivity. This should be changed.
 
-             call get_option(trim(class_path)//"/name",class_name)
-             field_name="SedimentConcentration"//trim(class_name)
-             call allocate_and_insert_scalar_field(&
-                  trim(state_path)&
-                  //"/sediment/scalar_field::SedimentTemplate", &
-                  state, field_name=field_name, &
-                  dont_allocate_prognostic_value_spaces&
-                  =dont_allocate_prognostic_value_spaces)
+         class_name=get_sediment_name(j)
+
+         ! Now set up the diagnostic flux field.
+         field_name="SedimentFlux"//trim(class_name)
+
+         call allocate_and_insert_scalar_field(&
+               trim(state_path)&
+               //"/sediment/scalar_field::SedimentFluxTemplate", &
+               state, field_name=field_name, &
+               dont_allocate_prognostic_value_spaces&
+               =dont_allocate_prognostic_value_spaces)
              
-             sediment=>extract_scalar_field(state, field_name)
-             
-             ! Now replace the default children with any special ones.
-             call allocate_and_insert_children(class_path, state, &
-                  sediment%mesh%name, field_name, &
-                  dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-             call allocate_and_insert_grandchildren(class_path, state, &
-                  sediment%mesh%name, field_name, &
-                  & dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         sedimentflux=>extract_scalar_field(state, field_name)
 
-             ! Now set up the diagnostic flux field.
-             field_name="SedimentFlux"//trim(class_name)
+         call zero(sedimentflux)
 
-             call allocate_and_insert_scalar_field(&
-                  trim(state_path)&
-                  //"/sediment/scalar_field::SedimentFluxTemplate", &
-                  state, field_name=field_name, &
-                  dont_allocate_prognostic_value_spaces&
-                  =dont_allocate_prognostic_value_spaces)
-             
-             sedimentflux=>extract_scalar_field(state, field_name)
-
-             call zero(sedimentflux)
-
-          end do sediment_class_loop
+        end do sediment_class_loop
 
     end subroutine allocate_and_insert_sediment
 
@@ -2553,7 +2534,8 @@ contains
     character(len=OPTION_PATH_LEN) child_path, child_name
     character(len=FIELD_NAME_LEN) :: mesh_name
     integer i
-
+    
+    ewrite(2,*) "    Inserting children of: ",trim(path)
     do i=0, option_count(trim(path)//"/scalar_field")-1
        child_path=trim(path)//"/scalar_field["//int2str(i)//"]"
        ! Reset path to have name instead of index

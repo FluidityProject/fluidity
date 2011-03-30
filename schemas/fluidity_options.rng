@@ -2856,9 +2856,35 @@ default specified here.</a:documentation>
           <ref name="velocity_mesh_choice"/>
           <ref name="prognostic_scalar_field"/>
         </element>
+        <element name="density">
+          <a:documentation>This is the density of this sediment. It will be used
+with the sediment concentration in the equation of state.</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="diameter">
+          <a:documentation>This is the diamter of the grain in mm</a:documentation>
+          <ref name="real"/>
+        </element>
         <optional>
           <element name="porosity">
             <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="erodability">
+            <a:documentation>Erodability of the sediment grain. A value of one means that only the
+critical shear stress is used to determine if a grain can be put into 
+suspension. A value of zero means these grains can never be resuspended.
+Default is 1.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="critical_shear_stress">
+            <a:documentation>Critical shear stress of a grain. If not switched on a value
+will be computed according to the particle Reynolds number and Shield's
+criterion. Otherwise inoput a value in Nm-1</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
@@ -2890,6 +2916,9 @@ domain boundary.</a:documentation>
           </attribute>
           <zeroOrMore>
             <ref name="initial_condition_scalar"/>
+          </zeroOrMore>
+          <zeroOrMore>
+            <ref name="scalar_boundary_conditions"/>
           </zeroOrMore>
           <optional>
             <element name="tensor_field">
@@ -2931,15 +2960,19 @@ floats upwards, this field should be negative.</a:documentation>
               </element>
             </element>
           </optional>
-          <element name="density">
-            <a:documentation>This is the density of this sediment. It will be used
+          <optional>
+            <element name="density">
+              <a:documentation>This is the density of this sediment. It will be used
 with the sediment concentration in the equation of state.</a:documentation>
-            <ref name="real"/>
-          </element>
-          <element name="diameter">
-            <a:documentation>This is the diamter of the grain in mm</a:documentation>
-            <ref name="real"/>
-          </element>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="diameter">
+              <a:documentation>This is the diamter of the grain in mm</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <optional>
             <element name="erodability">
               <a:documentation>Erodability of the sediment grain. A value of one means that only the

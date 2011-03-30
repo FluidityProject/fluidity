@@ -2074,8 +2074,30 @@ sediment =
                velocity_mesh_choice,
                prognostic_scalar_field
             },
+            ## This is the density of this sediment. It will be used
+            ## with the sediment concentration in the equation of state.
+            element density {
+               real
+            },
+            ## This is the diamter of the grain in mm
+            element diameter {
+               real
+            },
             ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
             element porosity {
+               real
+            }?,
+            ## Erodability of the sediment grain. A value of one means that only the
+            ## critical shear stress is used to determine if a grain can be put into 
+            ## suspension. A value of zero means these grains can never be resuspended.
+            ## Default is 1.
+            element erodability {
+                real
+            }?,
+            ## Critical shear stress of a grain. If not switched on a value
+            ## will be computed according to the particle Reynolds number and Shield's
+            ## criterion. Otherwise inoput a value in Nm-1
+            element critical_shear_stress {
                real
             }?
          },
@@ -2098,6 +2120,7 @@ sediment =
          element sediment_class {
             attribute name { xsd:string },
             initial_condition_scalar*,
+            scalar_boundary_conditions*,
             ## Diffusivity for sediment class
             element tensor_field {
                attribute name { "Diffusivity" },
@@ -2128,11 +2151,11 @@ sediment =
             ## with the sediment concentration in the equation of state.
             element density {
                real
-            },
+            }?,
             ## This is the diamter of the grain in mm
             element diameter {
                real
-            },
+            }?,
             ## Erodability of the sediment grain. A value of one means that only the
             ## critical shear stress is used to determine if a grain can be put into 
             ## suspension. A value of zero means these grains can never be resuspended.

@@ -65,16 +65,14 @@ contains
     integer, dimension(2) :: surface_id_count
     real :: dt
     character(len=FIELD_NAME_LEN) :: class_name
-    character(len=OPTION_PATH_LEN) :: option_path
     integer, dimension(:), allocatable :: surface_ids
     integer :: id
     integer, dimension(:), pointer :: surface_element_list
     real, dimension(:), allocatable :: values
     integer, dimension(:), pointer :: to_nodes
-    
-    sediment_classes=option_count("/material_phase::"&
-         //trim(state%name)//"/sediment/sediment_class")
 
+    
+    sediment_classes = get_nSediments()
     call get_option("/timestepping/timestep", dt)
     
     allocate(sediment_field(sediment_classes))
@@ -98,19 +96,16 @@ contains
          &s", surface_ids) 
 
     do i=1, sediment_classes
-       option_path='/material_phase::'//trim(state%name)//&
-               '/sediment/sediment_class['//int2str(i-1)//"]"
-       call get_option(trim(option_path)//"/name", class_name)
-
+       class_name=get_sediment_name(i)
+ 
        sediment_field(i)%ptr=>&
-            extract_scalar_field(state,"SedimentConcentration"//trim(class_name))
+            extract_scalar_field(state,trim(class_name))
 
        flux_field(i)%ptr=>&
             extract_scalar_field(state,"SedimentFlux"//trim(class_name))
 
        sink_U(i)%ptr=>&
-            extract_scalar_field(state,&
-            "SedimentConcentration"//trim(class_name)//"SinkingVelocity",&
+            extract_scalar_field(state,trim(class_name)//"SinkingVelocity",&
             & stat=stat)
        if (stat/=0) then
           nullify(sink_U(i)%ptr)
