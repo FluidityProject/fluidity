@@ -173,7 +173,7 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 bin/multiphase_prototype: fluidity_library
 	@echo "    MAKE multiphase_prototype"
 	@cd legacy_reservoir_prototype; $(MAKE)
-	@echo "BUILD multiphase prototype"
+	@echo "BUILD multiphase_prototype"
 	@echo "    MKDIR legacy_reservoir_prototype"
 	@mkdir -p bin
 	@echo "    LD multiphase_prototype"

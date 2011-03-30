@@ -25,15 +25,23 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
+#include "fdebug.h"
+
 module mp_prototype
 
-  use copy_outof_into_state
+  ! Prototype modules
   use input_var
   use multiphase_mom_press_volf
   use multiphase_field_advection
   use spact
   use printout
-
+  
+  ! Transition modules
+  use copy_outof_into_state
+  
+  ! New modules
+  use fldebug
+    
   implicit none
   
 contains
@@ -127,10 +135,8 @@ contains
 
   open( unit_input, file = 'input.dat', status = 'unknown' )
   open( unit_debug, file = 'mirror_int_data.dat', status = 'unknown' )
-  open( 357, file = 'flog.dat', status = 'unknown')
-  !open( 357, file = '/dev/null', status = 'unknown')
 
-  write(357,*) 'In multiphase_prototype'
+  ewrite(3,*) 'In multiphase_prototype'
   
 !!!!!!!!
 !!!!!   Major insert required here to pull everything required out of state
@@ -717,6 +723,7 @@ contains
   write(357,*) 'Leaving multiphase_prototype'
   close( 357 )
 
+  ewrite(3,*) 'Leaving multiphase_prototype'
 
   end subroutine multiphase_prototype
   

@@ -151,23 +151,20 @@ module saturation_distribution_search_hookejeeves
      ewrite(3,*) 'setting base point', base_point
      
      ! Set minimum_step_length for now
-     minimum_step_length = 0.01
+     minimum_step_length = 10.0
   
      if (do_PS) then
 !        call write_state(dump_no, state)
         call make_pattern_step(state, state_no, base_point, previous_base_point, widths, step_length, minimum_step_length, &
                                current_error, search_min, search_max)
      else
-        ! This is the first time through so need to calculate a first error
-        ! WRONG WRONG WRONG! WE CAN GET HERE IF WE RESET TO AN EARLIER BASEPOINT
-        ! IN WHICH CASE WE NEED TO BE PASSING BACK THE SMALLEST ERROR
+        ! This is either the first time through or a pass back to an old base point
         call run_model(state, state_no, base_point, widths, step_length, error, is_improved)
 !        dump_no=1
 !        call write_state(dump_no, state)
         ! Copy current base point for pattern search in case base_point is updated by exploration
         copy_base_point=base_point
         
-        ! THE ERROR WE PASS IN HERE HAS TO BE THE SMALLEST ERROR
         call make_exploration(state, state_no, base_point, widths, step_length, is_improved, error, search_min, search_max)
         if(.not.is_improved) then
            call reduce_step_length(state, state_no, base_point, base_point, widths, step_length, minimum_step_length, &
@@ -177,7 +174,7 @@ module saturation_distribution_search_hookejeeves
                                   search_min, search_max)
            else
               ewrite(3,*) 'Finishing search'
-              return ! FINISHED! PRINT RESULTS ETC ETC
+              return
            endif
         else
            call set_base_point(state, state_no, .TRUE., base_point, widths, step_length, copy_base_point, error, &
@@ -483,7 +480,7 @@ module saturation_distribution_search_hookejeeves
         write(911,10) point, widths, error
      10 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(911)
-!         open(953, file = 'model_potential_'// int2str(dump_no-1), action="write", position="append")
+!         open(953, file = 'model_potential_'// int2str(dump_no-1) //'.dat', action="write", position="append")
 !         ewrite(3,*) 'writing model potentials, samples: ', samples
 !         do i=1,samples
 !            write(953,14) target_potential(i,1), model_potential(i)
@@ -499,7 +496,7 @@ module saturation_distribution_search_hookejeeves
         write(913,12) point, widths, error
      12 FORMAT(40(F9.4,2x),40(F5.1,2x),F10.6)
         close(913)
-        open(945, file = 'model_potential_'// int2str(dump_no-1), action="write", position="append")
+        open(945, file = 'model_potential_'// int2str(dump_no-1) //'.dat', action="write", position="append")
         ewrite(3,*) 'writing model potentials, samples: ', samples
         do i=1,samples
            write(945,13) target_potential(i,1), model_potential(i)
@@ -613,7 +610,7 @@ module saturation_distribution_search_hookejeeves
             end if
           endif
           if (in_zone) then
-            call set(saturation, ele, 1.0)
+            call set(saturation, ele, 0.7)
 !            ewrite(3,*) 'found elements in the zone'
 !            ewrite(3,*) 'coords, sat, swc, sor: ', coords, saturation%val(ele), swc%val(ele), sor%val(ele)
           end if
@@ -626,7 +623,7 @@ module saturation_distribution_search_hookejeeves
 !            ewrite(3,*) 'in 2d'
             if ((coords_nodal(coord_along).gt.zone_along_min-err).and.(coords_nodal(coord_along).lt.zone_along_min+along_step+err).and.&
                   (coords_nodal(coord_perp).lt.point(i)+err)) then
-               call set(saturation, node, 1.0)
+               call set(saturation, node, 0.7)
             end if
           endif
         end do
