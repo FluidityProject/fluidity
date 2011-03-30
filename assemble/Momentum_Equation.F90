@@ -650,13 +650,13 @@
                      end if
                      if (have_rotated_bcs(u)) then
                         if (dg(istate)) then
-                          call zero_non_owned(old_u)
+                          call zero_non_owned(u)
                         end if
                         call rotate_ct_m(ctp_m(istate)%ptr, u)
                      end if
                      if (sphere_absorption(istate)) then
                         if (dg(istate)) then
-                          call zero_non_owned(old_u)
+                          call zero_non_owned(u)
                         end if
                         call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                      end if
@@ -869,7 +869,8 @@
 
                   x => extract_vector_field(state(istate), "Coordinate")
 
-                  if(use_theta_pg) then
+                  if(use_theta_divergence) then
+                     ! old_u is only used if use_theta_divergence, i.e. if theta_divergence/=1.0
                      old_u => extract_vector_field(state(istate), "OldVelocity")
                      if (old_u%aliased) then
                         ! in the case of one non-linear iteration, there is no OldVelocity,
@@ -890,7 +891,7 @@
                   end if
 
                   ! Deallocate the old velocity field
-                  if(use_theta_pg) then
+                  if(use_theta_divergence) then
                      if (old_u%name == "TempOldVelocity") then
                         call deallocate(old_u)
                         deallocate(old_u)
