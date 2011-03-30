@@ -251,9 +251,6 @@
     ! Clean up registered diagnostics
     call destroy_registered_diagnostics 
 
-    ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
-    ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT) 
-
     if (.not. adjoint) then
       call deallocate(matrices)
       call print_references(0)
