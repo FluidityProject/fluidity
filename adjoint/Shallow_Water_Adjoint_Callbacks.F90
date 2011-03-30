@@ -51,7 +51,9 @@ module shallow_water_adjoint_callbacks
       type(adj_adjointer), intent(inout) :: adjointer
       integer(kind=c_int) :: ierr
 
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "VelocityIdentity", c_funloc(velocity_identity_assembly_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "CartesianVelocityIdentity", c_funloc(cartesian_velocity_identity_assembly_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LocalVelocityIdentity", c_funloc(local_velocity_identity_assembly_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_assembly_callback))
       call adj_chkierr(ierr)
@@ -60,7 +62,9 @@ module shallow_water_adjoint_callbacks
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "Coriolis", c_funloc(coriolis_assembly_callback))
       call adj_chkierr(ierr)
 
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "VelocityIdentity", c_funloc(velocity_identity_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "CartesianVelocityIdentity", c_funloc(velocity_identity_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LocalVelocityIdentity", c_funloc(velocity_identity_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_action_callback))
       call adj_chkierr(ierr)
@@ -76,7 +80,7 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
-    subroutine velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+    subroutine cartesian_velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -91,7 +95,7 @@ module shallow_water_adjoint_callbacks
       type(vector_field) :: empty_velocity_field
 
       if (coefficient /= 1.0) then
-        FLAbort("velocity_identity_assembly_callback requires that the coefficient is 1.0")
+        FLAbort("cartesian_velocity_identity_assembly_callback requires that the coefficient is 1.0")
       end if
 
       call c_f_pointer(context, matrices)
@@ -109,8 +113,43 @@ module shallow_water_adjoint_callbacks
       output%klass = ADJ_IDENTITY_MATRIX
       output%flags = 0
 
-    end subroutine velocity_identity_assembly_callback
+    end subroutine cartesian_velocity_identity_assembly_callback
 
+    subroutine local_velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(c_ptr), intent(in), value :: context
+      type(adj_matrix), intent(out) :: output
+      type(adj_vector), intent(out) :: rhs
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: u
+      type(vector_field) :: empty_velocity_field
+
+      if (coefficient /= 1.0) then
+        FLAbort("local_velocity_identity_assembly_callback requires that the coefficient is 1.0")
+      end if
+
+      call c_f_pointer(context, matrices)
+      u => extract_vector_field(matrices, "VelocityDummy")
+
+      call allocate(empty_velocity_field, u%dim, u%mesh, trim("AdjointVelocityRhs"))
+      call zero(empty_velocity_field)
+      rhs = field_to_adj_vector(empty_velocity_field)
+      call deallocate(empty_velocity_field)
+
+      ! We're not actually going to do anything daft like allocate memory for
+      ! an identity matrix. Instead, we'll fill it in with a special tag
+      ! that we'll catch later on in the solution of the adjoint equations.
+      output%ptr = c_null_ptr
+      output%klass = ADJ_IDENTITY_MATRIX
+      output%flags = 0
+
+    end subroutine local_velocity_identity_assembly_callback
+    
     subroutine layerthickness_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
@@ -240,9 +279,8 @@ module shallow_water_adjoint_callbacks
       type(vector_field) :: u_output
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
       call field_from_adj_vector(input, u_input)
-      call allocate(u_output, u%dim, u%mesh, "IdentityVelocityOutput")
+      call allocate(u_output, u_input%dim, u_input%mesh, "IdentityVelocityOutput")
       call set(u_output, u_input)
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
