@@ -53,9 +53,12 @@ def make_adj_variables(d):
   varlist = []
   for key in d:
     for timestep in d[key]:
-      newd = {}
-      newd['name'] = key
-      newd['timestep'] = timestep
-      varlist.append(newd)
+      if timestep < 0:
+        print "Warning: dependencies function returned a variable with timestep %d." % timestep
+      else:
+        newd = {}
+        newd['name'] = key
+        newd['timestep'] = timestep
+        varlist.append(newd)
 
   return varlist
