@@ -14,7 +14,7 @@ module edge_length_module
   public :: get_edge_lengths, get_directional_edge_lengths
 
   interface get_edge_lengths
-    module procedure get_edge_lengths_field, get_edge_lengths_tensor
+    module procedure get_edge_lengths_field, get_edge_lengths_tensor, get_edge_lengths_ele
   end interface
 
   contains
@@ -63,6 +63,19 @@ module edge_length_module
       call eigenrecomposition(tensor%val(:, :, i), evectors, evalues)
     end do
   end subroutine get_edge_lengths_tensor
+
+  subroutine get_edge_lengths_ele(mesh, coordinates, ele, edge_lengths)
+    !!< Given an element, calculate the desired edge length at each node.
+    type(mesh_type), intent(in) :: mesh
+    type(vector_field), intent(in) :: coordinates
+    integer, intent(in) :: ele
+    real, dimension(mesh_dim(mesh), mesh_dim(mesh), ele_ngi(mesh, 1)),  intent(inout) :: edge_lengths
+    real, dimension(mesh_dim(mesh), mesh_dim(mesh)) :: ele_tensor
+
+    ele_tensor = simplex_tensor(coordinates, ele)
+    edge_lengths = spread(edge_length_from_eigenvalue(ele_tensor), 3, size(edge_lengths, 3))
+
+  end subroutine get_edge_lengths_ele
 
   subroutine get_directional_edge_lengths(metric, field, vec)
     !!< Get the edge lengths of metric

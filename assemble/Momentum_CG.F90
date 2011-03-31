@@ -60,6 +60,8 @@
     use rotated_boundary_conditions
     use Coordinates
     use multiphase_module
+    use edge_length_module
+
     implicit none
 
     private
@@ -2543,7 +2545,6 @@
       integer :: ele
       type(csr_matrix) :: kt
       real, dimension(mesh_dim(pressure_mesh), mesh_dim(pressure_mesh), ele_ngi(pressure_mesh, 1)) :: h_bar
-      real, dimension(mesh_dim(pressure_mesh), mesh_dim(pressure_mesh)) :: ele_tensor
       type(element_type), pointer :: p_shape
       real, dimension(ele_ngi(pressure_mesh, 1)) :: detwei
       real, dimension(ele_loc(pressure_mesh, 1), ele_ngi(pressure_mesh, 1), coordinates%dim) :: dp_t
@@ -2566,8 +2567,7 @@
       ! the ideal element.
       do ele=1,ele_count(pressure_mesh)
         call transform_to_physical(coordinates, ele, p_shape, dshape=dp_t, detwei=detwei)
-        ele_tensor = simplex_tensor(coordinates, ele)
-        h_bar = spread(edge_length_from_eigenvalue(ele_tensor), 3, size(h_bar, 3))
+        call get_edge_lengths(pressure_mesh, coordinates, ele, h_bar)
         little_stiff_matrix = dshape_tensor_dshape(dp_t, h_bar, dp_t, detwei)
         call addto(kt, ele_nodes(pressure_mesh, ele), ele_nodes(pressure_mesh, ele), 0.5 * little_stiff_matrix)
       end do
