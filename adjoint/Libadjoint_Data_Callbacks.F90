@@ -31,6 +31,7 @@
 #include "libadjoint/adj_fortran.h"
 module libadjoint_data_callbacks
 use libadjoint
+use boundary_conditions
 use fields
 use fields_manipulation
 use sparse_tools
@@ -104,18 +105,34 @@ end subroutine
     type(vector_field) :: newx_vector
     type(tensor_field) :: newx_tensor
     type(mesh_type) :: newx_mesh
+    integer :: i
+    character(len=30) :: bc_type
+    character(len=FIELD_NAME_LEN) :: bc_name
+    integer, dimension(:), pointer:: surface_element_list
 
     select case(x%klass)
       case(ADJ_SCALAR_FIELD)
         call c_f_pointer(x%ptr, x_scalar)
         call allocate(newx_scalar, x_scalar%mesh, trim(x_scalar%name))
         call zero(newx_scalar)
+        do i=1,get_boundary_condition_count(x_scalar)
+          call get_boundary_condition(x_scalar, i, type=bc_type, surface_element_list=surface_element_list, name=bc_name)
+          if (trim(bc_type) == "dirichlet") then
+            call add_boundary_condition_surface_elements(newx_scalar, bc_name, bc_type, surface_element_list)
+          end if
+        end do
         newx = field_to_adj_vector(newx_scalar)
         call deallocate(newx_scalar)
       case(ADJ_VECTOR_FIELD)
         call c_f_pointer(x%ptr, x_vector)
         call allocate(newx_vector, x_vector%dim, x_vector%mesh, trim(x_vector%name))
         call zero(newx_vector)
+        do i=1,get_boundary_condition_count(x_vector)
+          call get_boundary_condition(x_vector, i, type=bc_type, surface_element_list=surface_element_list, name=bc_name)
+          if (trim(bc_type) == "dirichlet") then
+            call add_boundary_condition_surface_elements(newx_vector, bc_name, bc_type, surface_element_list)
+          end if
+        end do
         newx = field_to_adj_vector(newx_vector)
         call deallocate(newx_vector)
       case(ADJ_TENSOR_FIELD)
