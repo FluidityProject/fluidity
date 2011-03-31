@@ -68,7 +68,10 @@ module mangle_dirichlet_rows_module
           call get_boundary_condition(field, i, type=bctype, surface_node_list=node_list)
 
           if (bctype /= "dirichlet") cycle
-          bc_field => extract_surface_field(field, i, "value")
+
+          if (present(rhs)) then
+            bc_field => extract_surface_field(field, i, "value")
+          end if
 
           do j=1,size(node_list)
             node = node_list(j)
