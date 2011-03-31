@@ -52,14 +52,13 @@ module adjoint_functional_evaluation
 
   contains
 
-  subroutine libadjoint_functional_derivative(var, ndepends, dependencies, values, functional_name_c, start_time, end_time, output) bind(c)
+  subroutine libadjoint_functional_derivative(adjointer, var, ndepends, dependencies, values, functional_name_c, output) bind(c)
+    type(adj_adjointer), intent(in) :: adjointer
     type(adj_variable), intent(in), value :: var
     integer(kind=c_int), intent(in), value :: ndepends
     type(adj_variable), dimension(ndepends), intent(in) :: dependencies
     type(adj_vector), dimension(ndepends), intent(in) :: values
     character(kind=c_char), dimension(ADJ_NAME_LEN), intent(in) :: functional_name_c
-    adj_scalar_f, intent(in), value :: start_time
-    adj_scalar_f, intent(in), value :: end_time
     type(adj_vector), intent(out) :: output
 
     character(len=PYTHON_FUNC_LEN) :: code_deriv, code_func, check_uncertainties
@@ -67,9 +66,9 @@ module adjoint_functional_evaluation
     integer :: i
     integer :: s_idx
     character(len=ADJ_NAME_LEN) :: functional_name_f, variable_name_f
-    character(len = 30) :: buffer
-    integer :: timestep, ierr, max_timestep, tmp_timestep, min_timestep, nmaterial_phases, iteration
-    type(state_type), dimension(:,:), pointer :: states ! material_phases x timesteps
+    character(len = 30) :: buffer, buffer2
+    integer :: timelevel, ierr, max_timelevel, tmp_timelevel, min_timelevel, nmaterial_phases, iteration
+    type(state_type), dimension(:,:), pointer :: states ! material_phases x timelevels
     character(len=OPTION_PATH_LEN) :: material_phase_name, field_name, mesh_name
     character(len=6) :: type_string
 
@@ -84,7 +83,9 @@ module adjoint_functional_evaluation
     integer :: dim
     real :: J
     integer :: ndepending_timesteps
-    real :: tmp_start_time, tmp_end_time
+    integer :: no_timesteps
+    integer :: timestep
+    real :: start_time, end_time
 
     call python_reset
 
@@ -94,11 +95,9 @@ module adjoint_functional_evaluation
       functional_name_f(i:i) = functional_name_c(i)
       i = i + 1
     end do
-    ierr = adj_variable_get_timestep(var, timestep)
+    ierr = adj_variable_get_timestep(var, timelevel)
 
     ierr = adj_variable_get_iteration(var, iteration)
-    ! FIXME: check here that iteration is the last one in the timestep -- at the minute we don't know enough information here
-    ! to figure that out
 
     ! Fetch the python code the user has helpfully supplied.
     has_deriv = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_derivative/algorithm")
@@ -117,16 +116,16 @@ module adjoint_functional_evaluation
 
     ! Convert from the list of adj_values/adj_vectors to actual states
     if (ndepends > 0) then
-      ierr = adj_variable_get_timestep(dependencies(1), max_timestep)
-      min_timestep = max_timestep
+      ierr = adj_variable_get_timestep(dependencies(1), max_timelevel)
+      min_timelevel = max_timelevel
 
       do i=2,ndepends
-        ierr = adj_variable_get_timestep(dependencies(i), tmp_timestep)
-        max_timestep = max(max_timestep, tmp_timestep)
-        min_timestep = min(min_timestep, tmp_timestep)
+        ierr = adj_variable_get_timestep(dependencies(i), tmp_timelevel)
+        max_timelevel = max(max_timelevel, tmp_timelevel)
+        min_timelevel = min(min_timelevel, tmp_timelevel)
       end do
       nmaterial_phases = option_count("/material_phase")
-      allocate(states(nmaterial_phases, min_timestep:max_timestep))
+      allocate(states(nmaterial_phases, min_timelevel:max_timelevel))
 
       ! Set the names of the material phases, so that we can look them up and know
       ! which material_phase to put stuff into in convert_adj_vectors_to_states
@@ -139,7 +138,7 @@ module adjoint_functional_evaluation
     else
       ierr = adj_variable_get_name(var, variable_name_f)
       ewrite(-1,*) "Variable: ", trim(variable_name_f)
-      ewrite(-1,*) "Timestep: ", timestep
+      ewrite(-1,*) "Timelevel: ", timelevel
       ewrite(-1,*) "At a minimum, the functional depends on the meshes that the output is to be allocated on."
       ewrite(-1,*) "Register them as auxiliary dependencies."
       FLAbort("You really need at least one dependency.")
@@ -165,7 +164,7 @@ module adjoint_functional_evaluation
       type_string = "scalar"
       ! Allocate a scalar_field on the appropriate mesh and add it to python as 'derivative'.
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timelevel), trim(mesh_name))
       call allocate(sfield, mesh, trim(variable_name_f))
       call zero(sfield)
       call insert(derivative_state, mesh, trim(mesh%name))
@@ -176,7 +175,7 @@ module adjoint_functional_evaluation
       is_vector = .true.
       type_string = "vector"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timelevel), trim(mesh_name))
       call get_option("/geometry/dimension", dim)
       call allocate(vfield, dim, mesh, trim(variable_name_f))
       call zero(vfield)
@@ -188,7 +187,7 @@ module adjoint_functional_evaluation
       is_tensor = .true.
       type_string = "tensor"
       call get_option(trim(complete_field_path(path)) // '/mesh/name', mesh_name)
-      mesh => extract_mesh(states(:, min_timestep), trim(mesh_name))
+      mesh => extract_mesh(states(:, min_timelevel), trim(mesh_name))
       call allocate(tfield, mesh, trim(variable_name_f))
       call zero(tfield)
       call insert(derivative_state, mesh, trim(mesh%name))
@@ -212,21 +211,31 @@ module adjoint_functional_evaluation
     call python_run_string("states = megastates; del megastates")
 
     ! Also set up some useful variables for the user to use
-    write(buffer,*) end_time
-    call python_run_string("time = " // trim(buffer))
+    ierr = adj_timestep_count(adjointer, no_timesteps)
+    call adj_chkierr(ierr)
+    write(buffer, *) no_timesteps
+    call python_run_string("times = [0] * " // trim(buffer))
+    do timestep=0,no_timesteps-2
+      ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
+      call adj_chkierr(ierr)
+      write(buffer, '(i0)') timestep
+      write(buffer2, *) start_time
+      call python_run_string("times[" // trim(buffer) // "] = " // trim(buffer2))
+      write(buffer, '(i0)') timestep+1
+      write(buffer2, *) end_time
+      call python_run_string("times[" // trim(buffer) // "] = " // trim(buffer2))
+    end do
 
-    write(buffer, *) start_time - end_time
-    call python_run_string("dt = " // trim(buffer))
-
-    write(buffer, *) timestep
+    write(buffer, *) timelevel
     call python_run_string("n = " // trim(buffer))
-    call python_run_string("timestep = " // trim(buffer))
-    call python_run_string("original_timestep = " // trim(buffer))
+    call python_run_string("original_timelevel = " // trim(buffer))
 
 
     ! OK! We're ready for the user's code:
     if (has_deriv) then
       call python_run_string(trim(code_deriv))
+      !write(0,*) "Hand-coded derivative value: "
+      !call python_run_string("print derivative.val")
     end if
 
     if (has_func) then
@@ -250,9 +259,9 @@ module adjoint_functional_evaluation
 
 
         ! Backup u.val
-        call python_run_string("tmp_uval = states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
+        call python_run_string("tmp_uval = states[original_timelevel]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val")
         ! Replace u.val with AD-ified object
-        call python_run_string("states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
+        call python_run_string("states[original_timelevel]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val = unumpy.uarray((tmp_uval, [0] * len(tmp_uval)))")
         ! Loop over each timestep that this variable might be used in
 
         ierr = adj_variable_get_ndepending_timesteps(adjointer, var, trim(functional_name_f), ndepending_timesteps)
@@ -261,13 +270,14 @@ module adjoint_functional_evaluation
           ierr = adj_variable_get_depending_timestep(adjointer, var, trim(functional_name_f), i, timestep)
           call adj_chkierr(ierr)
 
-          ierr = adj_timestep_get_times(adjointer, timestep, tmp_start_time, tmp_end_time)
+          ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
           call adj_chkierr(ierr)
+          assert(start_time < end_time)
 
-          write(buffer,*) tmp_end_time
+          write(buffer,*) start_time
           call python_run_string("time = " // trim(buffer))
 
-          write(buffer, *) tmp_start_time - tmp_end_time
+          write(buffer, *) abs(start_time - end_time)
           call python_run_string("dt = " // trim(buffer))
 
           write(buffer, *) timestep + 1 ! + 1 because libadjoint numbers timesteps from 0, while we number from 1
@@ -278,12 +288,14 @@ module adjoint_functional_evaluation
           ! The += below comes from the fact that the reduction operator for each timestep component is addition
           ! So we shall assert that no one has added anything funny:
           assert(have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/reduction/sum"))
-          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[original_timestep]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
+          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[original_timelevel]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
         end do
+        !write(0,*) "AD derivative value: "
+        !call python_run_string("print derivative.val")
       end if
     end if
 
-    if (max_timestep >= 0) then
+    if (max_timelevel >= 0) then
       call deallocate(states)
       deallocate(states)
     endif

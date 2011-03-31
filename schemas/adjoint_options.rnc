@@ -75,9 +75,8 @@ adjoint_options =
          ## The derivative of the functional at each time level.
          element functional_derivative {
             ## Python code for the functional derivative. This code is given the following variables:
-            ##  n, the current timestep number
-            ##  time, the start of the timestep
-            ##  dt, the current size of the timestep
+            ##  n, the timelevel of the field to differentiate with respect to
+            ##  times, an array containing the value of time for each timelevel
             ##  states, which represents the states through time, and may be accessed like
             ##   states[0]["MaterialPhase"].vector_fields["Coordinate"], or
             ##   states[n]["MyOtherMaterialPhase"].scalar_fields["Pressure"], etc.
