@@ -69,8 +69,8 @@ truth = -0.0993644944
 from fluidity_tools import stat_parser as stat
 from math import log
 
-a_func = stat("mms_diffusion_adjoint_A_adjoint_dummy.stat")["dummy"]["value"][0]
-b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][0]
+a_func = stat("mms_diffusion_adjoint_A_adjoint_dummy.stat")["dummy"]["value"][1]
+b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][1]
 
 a_error = abs(truth - a_func)
 b_error = abs(truth - b_func)
@@ -82,8 +82,8 @@ truth = -0.0993644944
 from fluidity_tools import stat_parser as stat
 from math import log
 
-b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][0]
-c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][0]
+b_func = stat("mms_diffusion_adjoint_B_adjoint_dummy.stat")["dummy"]["value"][1]
+c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][1]
 
 b_error = abs(truth - b_func)
 c_error = abs(truth - c_func)
@@ -95,8 +95,8 @@ truth = -0.0993644944
 from fluidity_tools import stat_parser as stat
 from math import log
 
-c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][0]
-d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][0]
+c_func = stat("mms_diffusion_adjoint_C_adjoint_dummy.stat")["dummy"]["value"][1]
+d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][1]
 
 c_error = abs(truth - c_func)
 d_error = abs(truth - d_func)
@@ -108,8 +108,8 @@ truth = -0.0993644944
 from fluidity_tools import stat_parser as stat
 from math import log
 
-d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][0]
-e_func = stat("mms_diffusion_adjoint_E_adjoint_dummy.stat")["dummy"]["value"][0]
+d_func = stat("mms_diffusion_adjoint_D_adjoint_dummy.stat")["dummy"]["value"][1]
+e_func = stat("mms_diffusion_adjoint_E_adjoint_dummy.stat")["dummy"]["value"][1]
 
 d_error = abs(truth - d_func)
 e_error = abs(truth - e_func)

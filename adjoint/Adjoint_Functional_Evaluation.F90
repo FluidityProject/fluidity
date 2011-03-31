@@ -240,6 +240,16 @@ module adjoint_functional_evaluation
 
     if (has_func) then
       if (.not. functional_computed) then
+        ierr = adj_timestep_get_times(adjointer, timelevel, start_time, end_time)
+        call adj_chkierr(ierr)
+        assert(start_time < end_time)
+
+        write(buffer,*) start_time
+        call python_run_string("time = " // trim(buffer))
+
+        write(buffer, *) abs(start_time - end_time)
+        call python_run_string("dt = " // trim(buffer))
+
         call python_run_string(trim(code_func))
         J = python_fetch_real("J")
         call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))

@@ -136,7 +136,16 @@ module adjoint_main_loop
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
           default_stat = functional_stats(functional + 1)
-          functional_computed = .false.
+          ! We don't want to compute a functional for the dummy timestep added at the end to act
+          ! as a container for the last equation
+          if (start_time == end_time) then
+            if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+              call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
+            end if
+            functional_computed = .true.
+          else
+            functional_computed = .false.
+          end if
 
           do equation=end_timestep,start_timestep,-1
             ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
