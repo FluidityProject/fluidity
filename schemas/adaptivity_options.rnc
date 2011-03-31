@@ -1877,7 +1877,7 @@ mesh_adaptivity_options =
                  ## can therefore not be represented exactly on the pressure mesh.
                  ## This option enables geometrical volume conservation by evaluating the maximum operator only at the nodal positions (instead of at each quadrature point),
                  ## on the cost of a worse internal representation of the wetting and drying interface.
-                 element conserve_geometric_volume {void}?
+                 element conserve_geometric_volume {empty}?
                }?
             }|
             ## Enable movement of mesh by an imposed Grid Velocity.

@@ -2229,7 +2229,7 @@ Note: If you double d0, this value has to be doubled as well to achieve the same
 can therefore not be represented exactly on the pressure mesh.
 This option enables geometrical volume conservation by evaluating the maximum operator only at the nodal positions (instead of at each quadrature point),
 on the cost of a worse internal representation of the wetting and drying interface.</a:documentation>
-                      <ref name="void"/>
+                      <empty/>
                     </element>
                   </optional>
                 </element>
