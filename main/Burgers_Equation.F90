@@ -212,6 +212,7 @@
 
       call execute_timestep(state, matrices, timestep, dt, change=change)
 
+      call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
