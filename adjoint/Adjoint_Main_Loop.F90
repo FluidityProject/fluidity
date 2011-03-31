@@ -244,6 +244,9 @@ module adjoint_main_loop
 
           if (do_write_state(current_time, timestep, adjoint=.true.)) then
             call write_state(dump_no, state, adjoint=.true.)
+            if (functional /= no_functionals - 1) then
+              dump_no = dump_no + 1 ! we need to give everything the same dump numbers
+            end if
           endif
 
           functional_stats(functional + 1) = default_stat
