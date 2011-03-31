@@ -45,6 +45,8 @@ module linear_shallow_water
     use assemble_cmc
     use global_parameters, only: option_path_len
 
+    logical :: is_shallow_water=.false.
+
 contains 
   subroutine setup_wave_matrices(state,u_sparsity,wave_sparsity,ct_sparsity, &
        h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,div_mat,&
@@ -573,7 +575,9 @@ contains
 
     subroutine linear_shallow_water_register_diagnostic
       
-      call register_diagnostic(dim=1, name="LinearEnergy", statistic="Value")
+      if(is_shallow_water) then
+         call register_diagnostic(dim=1, name="LinearEnergy", statistic="Value")
+      end if
 
     end subroutine linear_shallow_water_register_diagnostic
 

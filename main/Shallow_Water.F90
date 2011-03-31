@@ -161,6 +161,8 @@
     end if
 #endif
 
+    is_shallow_water=.true.
+
     call populate_state(state)
     call adjoint_register_initial_eta_condition(state)
 
