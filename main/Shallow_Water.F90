@@ -54,6 +54,7 @@
     & check_diagnostic_dependencies
     use iso_c_binding
     use mangle_options_tree
+    use manifold_projections
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
@@ -206,8 +207,8 @@
             exclude_nonreprescribed=.true., time=current_time + (theta * dt))
        if (has_vector_field(state(1), "VelocitySource")) then
           v_field => extract_vector_field(state(1), "VelocitySource")
-          call project_cartesian_field_to_local(state(1), v_field)
-        end if 
+          call project_cartesian_to_local(state(1), v_field)
+       end if 
 
        call execute_timestep(state(1), dt)
        call adjoint_register_timestep(timestep, dt, state)
@@ -266,7 +267,7 @@
 
       call mangle_options_tree_adjoint
       call populate_state(state)
-      call allocate_and_insert_additional_fields(state(1))
+      call allocate_and_insert_additional_fields(state(1), adjoint=.true.)
       call check_diagnostic_dependencies(state)
       call compute_matrix_transposes(matrices)
 
@@ -324,10 +325,11 @@
            div_mat,wave_mat,big_mat, &
            dt,theta,D0,g)
 
-      call project_cartesian_to_local(state(1))
+      v_field => extract_vector_field(state(1), "Velocity")
+      call project_cartesian_to_local(state(1), v_field)
       if (has_vector_field(state(1), "VelocitySource")) then
                 v_field => extract_vector_field(state(1), "VelocitySource")
-        call project_cartesian_field_to_local(state(1), v_field)
+        call project_cartesian_to_local(state(1), v_field)
       end if
 
       call get_option("/timestepping/nonlinear_iterations"&
@@ -364,9 +366,16 @@
       eta => extract_scalar_field(state, "LayerThickness")
       u => extract_vector_field(state, "Velocity")
       call insert(matrices, eta%mesh, "LayerThicknessMesh")
+      ! Insert a dummy velocity field which will be used in the adjoint callbacks
       call allocate(dummy_field, u%dim, u%mesh, "VelocityDummy", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummy_field)
       call insert(matrices, dummy_field, "VelocityDummy")
+      call deallocate(dummy_field)
+      ! Insert a dummy local velocity field which will be used in the adjoint callbacks
+      v_field => extract_vector_field(state(1), "LocalVelocity")
+      call allocate(dummy_field, v_field%dim, v_field%mesh, "LocalVelocityDummy", field_type=FIELD_TYPE_CONSTANT)
+      call zero(dummy_field)
+      call insert(matrices, dummy_field, "LocalVelocityDummy")
       call deallocate(dummy_field)
 
     end subroutine get_parameters
@@ -572,7 +581,11 @@
       integer :: stat
 
       X=>extract_vector_field(state, "Coordinate")
-      U=>extract_vector_field(state, "Velocity")
+      if (present_and_true(adjoint)) then
+        U=>extract_vector_field(state, "AdjointVelocity")
+      else
+        U=>extract_vector_field(state, "Velocity")
+      end if
 
       call allocate(f, X%mesh, "Coriolis")
       call get_option("/physical_parameters/coriolis", coriolis, stat)
@@ -607,168 +620,6 @@
 
     end subroutine allocate_and_insert_additional_fields
 
-    subroutine project_cartesian_to_local(state)
-      !!< Project the cartesian velocity to local coordinates
-      type(state_type), intent(inout) :: state
-
-      integer :: ele
-      type(vector_field), pointer :: X, U_local, U_cartesian
-
-      ewrite(1,*) "In project_cartesian_to_local"
-
-      X=>extract_vector_field(state, "Coordinate")
-      U_local=>extract_vector_field(state, "LocalVelocity")
-      U_cartesian=>extract_vector_field(state, "Velocity")
-
-      do ele=1, element_count(U_local)
-
-         call project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
-
-      end do
-
-    end subroutine project_cartesian_to_local
-
-    subroutine project_cartesian_field_to_local(state, field)
-      !!< Project the cartesian velocity to local coordinates
-      type(state_type), intent(inout) :: state
-      type(vector_field), pointer, intent(in) :: field
-
-      integer :: ele
-      type(vector_field), pointer :: X, U_local, U_cartesian
-
-      ewrite(1,*) "In project_cartesian_field_to_local"
-
-      X=>extract_vector_field(state, "Coordinate")
-      U_local=>extract_vector_field(state, "Local"//field%name)
-      U_cartesian=>extract_vector_field(state, field%name)
-
-      do ele=1, element_count(U_local)
-
-         call project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
-
-      end do
-
-    end subroutine project_cartesian_field_to_local
-    
-    subroutine project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
-      !!< Project the cartesian velocity to local coordinates
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: X, U_cartesian
-      type(vector_field), intent(inout) :: U_local
-
-      real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_ngi(X,ele)) :: G
-      real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
-      real, dimension(ele_ngi(X,ele)) :: detwei, detJ
-      real, dimension(U_cartesian%dim, ele_ngi(X,ele)) :: U_quad
-      real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_rhs
-      real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_loc(U_local,ele), ele_loc(U_local,ele)) :: l_mass
-      real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele), mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_big_mat
-      type(element_type), pointer :: U_shape
-      integer, dimension(:), pointer :: U_ele
-      integer :: dim, dim1, dim2, gi, loc, nloc
-
-      dim=U_local%dim
-
-      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
-
-      U_shape=>ele_shape(U_local,ele)
-      U_quad=ele_val_at_quad(U_cartesian,ele)
-      U_ele=>ele_nodes(U_local, ele)
-
-      nloc=ele_loc(U_local,ele)
-      do dim1=1, dim
-         l_rhs((dim1-1)*nloc+1:dim1*nloc)=shape_rhs(U_shape, sum(&
-              J(dim1,:,:)*U_quad(:,:),dim=1)*U_shape%quadrature%weight)
-      end do
-
-      do gi=1,ele_ngi(X,ele)
-         G(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
-      end do
-
-      l_mass=shape_shape_tensor(u_shape, u_shape, &
-           u_shape%quadrature%weight, G)
-
-      do dim1 = 1, dim
-         do dim2 = 1, dim
-            l_big_mat(nloc*(dim1-1)+1:nloc*dim1, &
-                 nloc*(dim2-1)+1:nloc*dim2) = &
-                 l_mass(dim1,dim2,:,:)
-         end do
-      end do
-
-      call solve(l_big_mat, l_rhs)
-
-      do dim1=1, U_local%dim
-         do loc=1, nloc
-            call set(U_local, dim1, U_ele(loc), l_rhs((dim1-1)*nloc+loc))
-         end do
-      end do
-      
-    end subroutine project_cartesian_to_local_ele
-
-    subroutine project_local_to_cartesian(state, adjoint)
-      !!< Project the local velocity to cartesian coordinates
-      type(state_type), intent(inout) :: state
-      logical, intent(in), optional :: adjoint
-
-      integer :: ele
-      type(vector_field), pointer :: X, U_local, U_cartesian
-
-      ewrite(1,*) "In project_local_to_cartesian"
-
-      X=>extract_vector_field(state, "Coordinate")
-      if (present_and_true(adjoint)) then
-        U_local=>extract_vector_field(state, "AdjointLocalVelocity")
-      else
-        U_local=>extract_vector_field(state, "LocalVelocity")
-      endif
-      U_cartesian=>extract_vector_field(state, "Velocity")
-
-      do ele=1, element_count(U_cartesian)
-
-         call project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
-
-      end do
-
-    end subroutine project_local_to_cartesian
-
-    subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
-      !!< Project the local velocity to cartesian
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: X, U_local
-      type(vector_field), intent(inout) :: U_cartesian
-
-      real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
-      real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
-      real, dimension(ele_ngi(U_local,ele)) :: detwei
-      real, dimension(U_local%dim, ele_ngi(X,ele)) :: U_quad
-      real, dimension(X%dim, ele_ngi(X,ele)) :: U_cartesian_gi
-      real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
-      type(element_type), pointer :: U_shape
-      integer :: d, gi
-
-      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
-
-      U_shape=>ele_shape(U_cartesian,ele)
-      U_quad=ele_val_at_quad(U_local,ele)
-
-      mass=shape_shape(U_shape, U_shape, detwei)
-
-      call invert(mass)
-
-      U_cartesian_gi=0.
-      do gi=1, ele_ngi(X,ele)
-         U_cartesian_gi(:,gi)=matmul(transpose(J(:,:,gi)),U_quad(:,gi))
-      end do
-
-      rhs=shape_vector_rhs(U_shape, U_cartesian_gi, U_shape%quadrature%weight)
-
-      do d=1,U_cartesian%dim
-         call set(U_cartesian, d, ele_nodes(U_cartesian,ele), matmul(mass,rhs(d,:)))
-      end do
-
-    end subroutine project_local_to_cartesian_ele
-
     subroutine project_velocity(state)
       !!< Project the quadratic continuous VelocityInitialCondition into
       !!< the velocity space.
@@ -781,6 +632,8 @@
 
       integer :: ele
 
+      call print_state(state, 0)
+
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
       U_in=>extract_vector_field(state, "VelocityInitialCondition")
@@ -790,8 +643,6 @@
          call project_velocity_ele(ele, X, U, U_in)
 
       end do
-
-
     end subroutine project_velocity
 
     subroutine project_velocity_ele(ele, X, U, U_in)
@@ -1030,10 +881,8 @@
       ! (in fluidity this would be done as each equation is registered)
       u => extract_vector_field(states(1), "Velocity")
       eta => extract_scalar_field(states(1), "LayerThickness")
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LocalVelocity", trim(u%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LocalVelocityDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
       ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(eta%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThicknessDelta", trim(eta%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
@@ -1068,7 +917,7 @@
         ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=cartesian_u0, blocks=(/I/), targets=(/cartesian_u0/), equation=equation)
@@ -1133,7 +982,7 @@
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=cartesian_u0, blocks=(/P, I/), targets=(/local_u0, cartesian_u0/), equation=equation)
@@ -1154,7 +1003,7 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, E, P, CI
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, LP, CP, CI
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
@@ -1171,7 +1020,7 @@
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::CartesianVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
       call adj_chkierr(ierr)
@@ -1225,17 +1074,17 @@
       call adj_chkierr(ierr)
 
       ! Blocks for embedded manifold business
-      ierr = adj_create_block("LocalProjection", context=c_loc(matrices), block=P)
+      ierr = adj_create_block("LocalProjection", context=c_loc(matrices), block=LP)
       call adj_chkierr(ierr)
-      ierr = adj_block_set_hermitian(P, hermitian=ADJ_TRUE)
+      ierr = adj_block_set_hermitian(LP, hermitian=ADJ_TRUE)
       call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(P, coefficient=-1.0)
+      ierr = adj_block_set_coefficient(LP, coefficient=-1.0)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("CartesianEmbedding", context=c_loc(matrices), block=E)
+      ierr = adj_create_block("CartesianProjection", context=c_loc(matrices), block=CP)
       call adj_chkierr(ierr)
-      ierr = adj_block_set_hermitian(E, hermitian=ADJ_TRUE)
+      ierr = adj_block_set_hermitian(CP, hermitian=ADJ_TRUE)
       call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(E, coefficient=-1.0)
+      ierr = adj_block_set_coefficient(CP, coefficient=-1.0)
       call adj_chkierr(ierr)
       ierr = adj_create_block("CartesianVelocityIdentity", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
@@ -1273,7 +1122,7 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(cartesian_u, blocks=(/P, CI/), &
+      ierr = adj_create_equation(cartesian_u, blocks=(/LP, CI/), &
                                     & targets=(/u, cartesian_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
@@ -1302,9 +1151,9 @@
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(MC)
       call adj_chkierr(ierr)
-      ierr = adj_destroy_block(E)
+      ierr = adj_destroy_block(CP)
       call adj_chkierr(ierr)
-      ierr = adj_destroy_block(P)
+      ierr = adj_destroy_block(LP)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(CI)
       call adj_chkierr(ierr)
