@@ -394,7 +394,11 @@ angular moment set (itself associated with a energy group set)</a:documentation>
   </define>
   <define name="diffusion_robin">
     <element name="type">
-      <a:documentation>Robin boundary condition. This can be used for vacuum and more general albedo. </a:documentation>
+      <a:documentation>Robin boundary condition. This can be used for vacuum and more general albedo. 
+For a vacuum BC set the order_zero_coefficient to 0.0 and the order_one_coefficient
+to 0.5. For a albedo BC set the order_zero_coefficient to 0.0 and the order_one_coefficient 
+to 0.5*((1.0-alpha)/(1.0+alpha)) where alpha is defined in [0.0,1.0] with alpha equal 1.0
+being a perfect reflective and alpha equal 0.0 a perfect vacuum.</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>robin</value>
@@ -409,7 +413,8 @@ angular moment set (itself associated with a energy group set)</a:documentation>
   </define>
   <define name="diffusion_dirichlet">
     <element name="type">
-      <a:documentation>Dirichlet boundary condition </a:documentation>
+      <a:documentation>Dirichlet boundary condition. This is typically used for an approximation to a 
+vacuum BC via a zero dirichlet for special benchmarks. Not recommended for anything else. </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>dirichlet</value>

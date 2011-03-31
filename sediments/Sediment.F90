@@ -93,6 +93,9 @@ subroutine sediment_init()
     ! Check if we have SedimentTemplate on - if so, this is a fresh run, so 
     ! construct the sediment classes fro mthe template.
     ! If it doesn't exist, it's a checkpoint run, so no need to do this.
+    ! Note that we have to also check options more carefully, as we can't 
+    ! carry out all possible checks in options_check (our fields haven't been
+    ! constructed at that point).
     if (have_option('/material_phase[0]/sediment/scalar_field::SedimentTemplate')) then
 
         ewrite(2,*) "Initialising sediment classes from Template"
@@ -129,9 +132,21 @@ subroutine sediment_init()
 
             ! now do the one off fields and options
             if (have_option(trim(option_path)//'/tensor_field::Diffusivity')) then
+                if (have_option(trim(temp_path)//'/prognostic/tensor_field::Diffusivity')) then
+                    call delete_option(trim(temp_path)//'/prognostic/tensor_field::Diffusivity')
+                end if
                 call move_option(trim(option_path)//'/tensor_field::Diffusivity',&
-                & trim(temp_path)//'/tensor_field::Diffusivity')
+                & trim(temp_path)//'/prognostic/tensor_field::Diffusivity')
             end if
+
+            ! Check that we have a density somewhere
+            if (.not. have_option(trim(option_path)//'/density') .and. &
+                .not. have_option(trim(temp_path)//'/density')) then
+                FLExit("You must specify a sediment density under the Template &&
+                && or under each sediment class")
+            end if
+            ! OK, so let's make sure we have the one under the sediment class
+            ! if it exists.
             if (have_option(trim(option_path)//'/density')) then
                 if (have_option(trim(temp_path)//'/density')) then
                     call delete_option(trim(temp_path)//'/density')
@@ -139,6 +154,7 @@ subroutine sediment_init()
                 call move_option(trim(option_path)//'/density',&
                 & trim(temp_path)//'/density')
             end if
+
             if (have_option(trim(option_path)//'/diameter')) then
                 if (have_option(trim(temp_path)//'/diameter')) then
                     call delete_option(trim(temp_path)//'/diameter')
@@ -146,6 +162,7 @@ subroutine sediment_init()
                 call move_option(trim(option_path)//'/diameter',&
                 & trim(temp_path)//'/diameter')
             end if
+            
             if (have_option(trim(option_path)//'/erodability')) then
                 if (have_option(trim(temp_path)//'/erodability')) then
                     call delete_option(trim(temp_path)//'/erodability')
@@ -153,6 +170,7 @@ subroutine sediment_init()
                 call move_option(trim(option_path)//'/erodability',&
                 & trim(temp_path)//'/erodability')
             end if
+            
             if (have_option(trim(option_path)//'/critical_shear_stress')) then
                 if (have_option(trim(temp_path)//'/critical_shear_stress')) then
                     call delete_option(trim(temp_path)//'/critical_shear_stress')
@@ -160,6 +178,7 @@ subroutine sediment_init()
                 call move_option(trim(option_path)//'/critical_shear_stress',&
                 & trim(temp_path)//'/critical_shear_stress')
             end if
+            
             if (have_option(trim(option_path)//'/scalar_field::SinkingVelocity')) then
                 if (have_option(trim(temp_path)//'/prognostic/scalar_field::SinkingVelocity')) then
                     call delete_option(trim(temp_path)//'/prognostic/scalar_field::SinkingVelocity')
@@ -304,7 +323,12 @@ subroutine set_sediment_reentrainment(state)
         if (have_option(trim(option_path)//"/critical_shear_stress")) then
             call get_option(trim(option_path)//"/critical_shear_stress", critical_shear_stress)
         else
-            call get_option(trim(option_path)//"/diameter",diameter)
+            if (have_option(trim(option_path)//"/diameter")) then
+                call get_option(trim(option_path)//"/diameter",diameter)
+            else
+                FLExit("You need to either specify a critical shear stress or a &&
+                && sediment diameter")
+            end if
             call get_option(trim(option_path)//"/density",density)
             ! calc critical shear stress
             s = density/1000.
@@ -312,17 +336,14 @@ subroutine set_sediment_reentrainment(state)
             !critical_shear_stress = 0.105*S_star**(-0.13) + &
             !                        0.045*exp(-35*S_star**(-0.59))
             ! estimate of critical shear stress assuming grains larger than
-            ! 10 microns and constant viscosity - not the conversion to mm!
+            ! 10 microns and constant viscosity - note the conversion to mm!
             critical_shear_stress = 0.041 * (s-1) * 1024. * g * (diameter/1000.)
         end if
-        
-        
+
         call remap_field_to_surface(bedload, bedLoadSurface, &
                                         surface_element_list)
-
-
         erosion => extract_surface_field(SedConc,sediment_boundary_condition_ids(i),"value")
-        
+
         ! we only need to add to the source the erosion of sediment from the
         ! bedload into the neumann BC term
         !

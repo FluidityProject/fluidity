@@ -2076,13 +2076,15 @@ sediment =
             },
             ## This is the density of this sediment. It will be used
             ## with the sediment concentration in the equation of state.
+            ## Density must be specified here or for each sediment class.
             element density {
                real
-            },
-            ## This is the diamter of the grain in mm
+            }?,
+            ## This is the diameter of the grain in mm.
+            ## Diameter must be specified here or under each sediment class.
             element diameter {
                real
-            },
+            }?,
             ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
             element porosity {
                real
