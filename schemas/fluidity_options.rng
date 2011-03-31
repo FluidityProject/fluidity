@@ -8142,6 +8142,17 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
                   </element>
                 </element>
               </optional>
+              <optional>
+                <element name="calculate_boundaries">
+                  <a:documentation>Boundary stuff   </a:documentation>
+                  <element name="string_value">
+                    <choice>
+                      <value>neumann</value>
+                      <value>dirichlet</value>
+                    </choice>
+                  </element>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>

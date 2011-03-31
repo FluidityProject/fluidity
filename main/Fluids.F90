@@ -409,6 +409,10 @@ contains
         call melt_surf_init(state(1))
         call melt_allocate_surface(state(1))
         call melt_surf_calc(state(1))
+         !BC for ice melt
+          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
+            call melt_bc(state(1))
+          endif
     end if
     
     ! Checkpoint at start
@@ -653,6 +657,14 @@ contains
                 endif
              end if
 
+            ! Calculate the meltrate
+            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+                if( (trim(field_name_list(it))=="MeltRate")) then
+                    call melt_surf_calc(state(1))
+                endif
+            end if
+
+
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
@@ -727,7 +739,12 @@ contains
             ! Update the diffusivity, at each iteration.
             call keps_eddyvisc(state(1))
           end if
-
+          
+          !BC for ice melt
+          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
+            call melt_bc(state(1))
+          endif
+          
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
           end if
@@ -842,10 +859,10 @@ contains
        end if
 
        current_time=current_time+DT
-       ! Calculate the meltrate
-       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-          call melt_surf_calc(state(1))
-       end if
+!       ! Calculate the meltrate
+!       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+!          call melt_surf_calc(state(1))
+!       end if
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)

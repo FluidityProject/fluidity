@@ -6432,7 +6432,13 @@ forcing =
                         diagnostic_vector_field
                         }
                      )
-           }?                     
+           }?, 
+            ## Boundary stuff   
+           element calculate_boundaries {
+                     element string_value {
+                     "neumann"|"dirichlet"
+                     }
+                  }?                       
            }?      
         }?,
         element shelf {
