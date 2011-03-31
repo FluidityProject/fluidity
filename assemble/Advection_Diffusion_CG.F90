@@ -63,7 +63,8 @@ module advection_diffusion_cg
     & STABILISATION_STREAMLINE_UPWIND = 1, STABILISATION_SUPG = 2
   
   ! Boundary condition types
-  integer, parameter :: BC_TYPE_NEUMANN = 1, BC_TYPE_WEAKDIRICHLET = 2, BC_TYPE_INTERNAL = 3
+  integer, parameter :: BC_TYPE_NEUMANN = 1, BC_TYPE_WEAKDIRICHLET = 2, BC_TYPE_INTERNAL = 3, &
+                        BC_TYPE_ROBIN = 4
   
   ! Global variables, set by assemble_advection_diffusion_cg for use by
   ! assemble_advection_diffusion_element_cg and
@@ -217,7 +218,7 @@ contains
     character(len = FIELD_NAME_LEN) :: lvelocity_name
     integer :: i, j, stat
     integer, dimension(:), allocatable :: t_bc_types
-    type(scalar_field) :: t_bc
+    type(scalar_field) :: t_bc, t_bc_2
     type(scalar_field), pointer :: absorption, sinking_velocity, source
     type(tensor_field), pointer :: diffusivity
     type(vector_field) :: velocity
@@ -298,7 +299,7 @@ contains
     else
       ewrite(2, *) "No absorption"
     end if
-    
+
     ! Sinking velocity
     sinking_velocity => extract_scalar_field(state, trim(t%name) // "SinkingVelocity", stat = stat)
     if(stat == 0) then
@@ -480,10 +481,14 @@ contains
       & ) then
     
       allocate(t_bc_types(surface_element_count(t)))
-      call get_entire_boundary_condition(t, (/ &
-        "neumann      ", &
-        "weakdirichlet", &
-        "internal     "/), t_bc, t_bc_types)
+      call get_entire_boundary_condition(t, &
+                                         (/ "neumann      ", &
+                                            "weakdirichlet", &
+                                            "internal     ", &
+                                            "robin        "/), &
+                                          t_bc, &
+                                          t_bc_types, &
+                                          boundary_second_value = t_bc_2)
 
       if(any(t_bc_types /= 0)) then
         call ewrite_bc_counts(2, t_bc_types)
@@ -491,13 +496,14 @@ contains
     
       do i = 1, surface_element_count(t)
         if(t_bc_types(i)==BC_TYPE_INTERNAL) cycle
-        call assemble_advection_diffusion_face_cg(i, t_bc_types(i), t, t_bc,  &
+        call assemble_advection_diffusion_face_cg(i, t_bc_types(i), t, t_bc, t_bc_2, &
                                                   matrix, rhs, &
                                                   positions, velocity, grid_velocity, &
                                                   density, olddensity)
       end do
     
       call deallocate(t_bc)
+      call deallocate(t_bc_2)
       deallocate(t_bc_types)
     
     end if
@@ -522,13 +528,14 @@ contains
     integer, intent(in) :: debug_level
     integer, dimension(:), intent(in) :: bc_types
     
-    integer :: i, nneumann, nweak_dirichlet, ninternal
+    integer :: i, nneumann, nweak_dirichlet, ninternal, nrobin
     
     if(debug_level > current_debug_level) return
     
     nneumann = 0
     nweak_dirichlet = 0
     ninternal = 0
+    nrobin = 0
     do i = 1, size(bc_types)
       select case(bc_types(i))
         case(BC_TYPE_NEUMANN)
@@ -537,6 +544,8 @@ contains
           nweak_dirichlet = nweak_dirichlet + 1
         case(BC_TYPE_INTERNAL)
           ninternal = ninternal + 1
+        case(BC_TYPE_ROBIN)
+          nrobin = nrobin + 1
         case(0)
         case default
           ! this is a code error
@@ -548,6 +557,7 @@ contains
     ewrite(debug_level, *) "Surface elements with Neumann boundary condition: ", nneumann
     ewrite(debug_level, *) "Surface elements with weak Dirichlet boundary condition: ", nweak_dirichlet
     ewrite(debug_level, *) "Surface elements with internal or periodic boundary condition: ", ninternal
+    ewrite(debug_level, *) "Surface elements with Robin boundary condition: ", nrobin
     
   end subroutine ewrite_bc_counts
   
@@ -972,11 +982,12 @@ contains
     
   end subroutine add_pressurediv_element_cg
   
-  subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, matrix, rhs, positions, velocity, grid_velocity, density, olddensity)
+  subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity)
     integer, intent(in) :: face
     integer, intent(in) :: bc_type
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(in) :: t_bc
+    type(scalar_field), intent(in) :: t_bc_2
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(vector_field), intent(in) :: positions
@@ -994,7 +1005,7 @@ contains
     real, dimension(face_loc(t, face)) :: rhs_addto
     real, dimension(face_loc(t, face), face_loc(t, face)) :: matrix_addto
     
-    assert(any(bc_type == (/0, BC_TYPE_NEUMANN, BC_TYPE_WEAKDIRICHLET/)))
+    assert(any(bc_type == (/0, BC_TYPE_NEUMANN, BC_TYPE_WEAKDIRICHLET, BC_TYPE_ROBIN/)))
     assert(face_ngi(positions, face) == face_ngi(t, face))
     assert(face_ngi(velocity, face) == face_ngi(t, face))
 
@@ -1006,7 +1017,7 @@ contains
     if(have_advection .and. integrate_advection_by_parts) then
       call transform_facet_to_physical(positions, face, &
         & detwei_f = detwei, normal = normal)
-    else if(have_diffusivity.and.(bc_type == BC_TYPE_NEUMANN)) then
+    else if(have_diffusivity.and.((bc_type == BC_TYPE_NEUMANN).or.(bc_type == BC_TYPE_ROBIN))) then
       call transform_facet_to_physical(positions, face, &
         & detwei_f = detwei)
     end if
@@ -1020,7 +1031,7 @@ contains
       call add_advection_face_cg(face, bc_type, t, t_bc, velocity, grid_velocity, density, olddensity, detwei, normal, matrix_addto, rhs_addto)
     
     ! Diffusivity
-    if(have_diffusivity) call add_diffusivity_face_cg(face, bc_type, t, t_bc, detwei, rhs_addto)
+    if(have_diffusivity) call add_diffusivity_face_cg(face, bc_type, t, t_bc, t_bc_2, detwei, matrix_addto, rhs_addto)
     
     ! Step 3: Insertion
     
@@ -1083,18 +1094,31 @@ contains
 
   end subroutine add_advection_face_cg
   
-  subroutine add_diffusivity_face_cg(face, bc_type, t, t_bc, detwei, rhs_addto)
+  subroutine add_diffusivity_face_cg(face, bc_type, t, t_bc, t_bc_2, detwei, matrix_addto, rhs_addto)
     integer, intent(in) :: face
     integer, intent(in) :: bc_type
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(in) :: t_bc
+    type(scalar_field), intent(in) :: t_bc_2
     real, dimension(face_ngi(t, face)), intent(in) :: detwei
+    real, dimension(face_loc(t, face), face_loc(t, face)), intent(inout) :: matrix_addto    
     real, dimension(face_loc(t, face)), intent(inout) :: rhs_addto
     
+    real, dimension(face_loc(t, face), face_loc(t,face)) :: robin_mat
+    type(element_type), pointer :: t_shape
+
     assert(have_diffusivity)
 
+    t_shape => face_shape(t, face)
+
     if(bc_type == BC_TYPE_NEUMANN) then
-      rhs_addto = rhs_addto + shape_rhs(face_shape(t, face), detwei * ele_val_at_quad(t_bc, face))
+      rhs_addto = rhs_addto + shape_rhs(t_shape, detwei * ele_val_at_quad(t_bc, face))
+    else if(bc_type == BC_TYPE_ROBIN) then
+      robin_mat = shape_shape(t_shape, t_shape, detwei * ele_val_at_quad(t_bc_2, face))   
+      matrix_addto = matrix_addto + robin_mat
+      rhs_addto = rhs_addto + shape_rhs(t_shape, detwei * ele_val_at_quad(t_bc, face))
+      ! this next term is due to solving the acceleration form of the equation
+      rhs_addto = rhs_addto - matmul(robin_mat, face_val(t, face))      
     else if(bc_type == BC_TYPE_WEAKDIRICHLET) then
       ! Need to add stuff here once transform_to_physical can supply gradients
       ! on faces to ensure that weak bcs work

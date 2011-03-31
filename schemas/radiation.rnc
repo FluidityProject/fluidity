@@ -268,6 +268,10 @@ angular_moment_set_even_parity =
 
          particle_type_material_mesh_choice, 
          
+         angular_moment_set_diffusivity_field,
+         
+         angular_moment_set_absorption_field,
+         
          particle_flux_diffusion_field
            
       }
@@ -299,6 +303,54 @@ particle_type_material_mesh_choice =
    
    )
 
+
+angular_moment_set_diffusivity_field = 
+   (
+      ## The tensor field used during assemble for the moments of this set
+      ## associated with the diffusivity term. 
+      element tensor_field {
+         comment,
+         
+         attribute name { "Diffusivity" },
+         
+         element diagnostic {
+            comment,
+            
+            element algorithm {
+               comment,
+               
+               attribute name { "Internal" }
+            },
+            
+            field_exclude_all_output
+         }  
+      }
+   )
+
+
+angular_moment_set_absorption_field = 
+   (
+      ## The scalar field used during assemble for the moments of this set
+      ## associated with the absorption term. 
+      element scalar_field{
+         comment,
+         
+         attribute name { "Absorption" },
+         
+         element diagnostic {
+            comment,
+            
+            element algorithm {
+               comment,
+               
+               attribute name { "Internal" }
+            },
+            
+            field_exclude_all_output
+         }  
+      }
+   )
+
    
 particle_flux_diffusion_field =
    (
@@ -325,7 +377,7 @@ prognostic_particle_diffusion_removal_source_scalar_field =
                            
          radiation_diffusion_spatial_discretisation,
 
-         radiation_temporal_discretisation?,
+         radiation_temporal_discretisation,
                
          radiation_diffusion_inner_solver_options,
       
@@ -374,20 +426,78 @@ radiation_diffusion_spatial_discretisation =
       ## Spatial discretisation options
       element spatial_discretisation {
          comment,
-         (
-            ## Continuous galerkin formulation
-            element continuous_galerkin {
-               comment
-            }           
-         )
+         
+         radiation_diffusion_continuous_galerkin_options,
+         
+         radiation_diffusion_conservative_advection_option
       }   
+   )
+
+
+radiation_diffusion_continuous_galerkin_options = 
+   (
+      ## Continuous galerkin formulation
+      element continuous_galerkin {
+         comment, 
+
+         radiation_diffusion_cg_advection_terms,
+         
+         radiation_diffusion_cg_mass_terms
+      }              
+   )
+
+
+radiation_diffusion_cg_advection_terms = 
+   (
+      ## Discretisation options for the advection terms.
+      element advection_terms {
+         comment, 
+         
+         ## EXCLUDE THE ADVECTION TERMS FROM THE GENERAL ADVECTIONDIFFUSION SCALAR FIELD SOLVER
+         element exclude_advection_terms {
+            comment
+         }
+      }
+   )
+
+
+radiation_diffusion_cg_mass_terms = 
+   (
+      ##  FOR EQUATION(EIGENVALUE) THE MASS TERMS MUST BE REMVOVED
+      ##  Discretisation options for the mass terms.
+      element mass_terms {
+         ## Lump the mass matrix
+         element lump_mass_matrix {
+            empty
+         }?,
+         ## Remove the mass terms from the equation. This requires an
+         ## implicitness factor theta = 1.0 (under
+         ## temporal_discretisation).
+         element exclude_mass_terms {
+            empty
+         }?
+      }   
+   )
+
+
+radiation_diffusion_conservative_advection_option = 
+   (
+      ##  THIS OPTION IS NOT USED BUT IS NEEDED FOR THE GENERAL ADVECTIONDIFFUSION SCALAR FIELD SOLVER
+      element conservative_advection {
+         comment,
+         
+         element real_value {
+            attribute rank { "0" },
+            ("1.0")
+         }
+      }      
    )
 
 
 radiation_temporal_discretisation = 
    (
       ##  The temporal discretisation options 
-      ##  NOT RELEVANT FOR EQUATION(EIGENVALUE)
+      ##  FOR EQUATION(EIGENVALUE) THIS MUST BE SET TO 1.0 FOR THE GENERAL ACCELERATION SOLVER
       element temporal_discretisation {
          comment,
          ## the theta value
@@ -1231,4 +1341,54 @@ delayed_particle_type_mesh_choice =
          attribute name { string }
       }
    
+   )
+
+
+field_exclude_all_output = 
+   (
+      field_exclude_vtu,
+      
+      field_exclude_stat,
+      
+      field_exclude_detectors
+   )
+   
+   
+
+field_exclude_vtu = 
+   (
+      ## Specify what is written to vtu dump files
+      element output {
+         comment, 
+         ## Exclude this field from dump files
+         element exclude_from_vtu {
+            comment
+         }
+      }
+   )
+   
+   
+field_exclude_stat = 
+   (
+      ## Specify what is added to the .stat file
+      element stat {
+         comment,
+         ## Exclude this field from the .stat file
+         element exclude_from_stat {
+            comment
+         }
+      }
+   )
+   
+   
+field_exclude_detectors = 
+   (
+      ## Specify what is added to the detector files
+      element detectors {
+         comment,
+         ## This field is not output at detector locations
+         element exclude_from_detectors {
+            comment
+         }
+      }
    )

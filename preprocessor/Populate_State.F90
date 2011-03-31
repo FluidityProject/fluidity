@@ -1465,18 +1465,19 @@ contains
                      ! allocate and insert the diffusivity and absorption assemble fields
                      ! - each group then has similar aliased fields to these allocated and inserted after
                
-                     ! field path is not needed
-                     field_path = '' 
+                     field_path = trim(angular_moment_set_path)//'/tensor_field::Diffusivity' 
                
                      ! form the parent field name 
                      parent_field_name = 'ParticleFluxGroupSet'//int2str(g_set)//'MomentSet'//int2str(m_set)//trim(particle_type_name)
                
                      ! the call to 'allocate_and_insert_tensor_field' will not work so do it manually for Diffusivity   
                      call allocate(aux_tfield, material_fn_space, trim(parent_field_name)//'Diffusivity')
-                     aux_tfield%option_path = ''
+                     aux_tfield%option_path = trim(field_path)
                      call zero(aux_tfield)
                      call insert(state, aux_tfield, trim(aux_tfield%name))
                      call deallocate(aux_tfield)
+
+                     field_path = trim(angular_moment_set_path)//'/scalar_field::Absorption' 
 
                      call allocate_and_insert_scalar_field(trim(field_path), &
                                                            state, &
@@ -1512,14 +1513,12 @@ contains
                   
                            aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
                            aux_tfield%name        = trim(field_name)//'Diffusivity'
-                           aux_tfield%option_path = ""
                            aux_tfield%aliased     = .true.
                   
                            call insert(state, aux_tfield, trim(aux_tfield%name))
 
                            aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
                            aux_sfield%name        = trim(field_name)//'Absorption'
-                           aux_sfield%option_path = ""
                            aux_sfield%aliased     = .true.
                   
                            call insert(state, aux_sfield, trim(aux_sfield%name))
