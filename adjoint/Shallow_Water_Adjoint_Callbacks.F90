@@ -39,6 +39,7 @@ module shallow_water_adjoint_callbacks
     use spud, only: get_option
     use adjoint_global_variables, only: adj_var_lookup
     use mangle_options_tree, only: adjoint_field_path
+    use manifold_projections
     implicit none
 
     private
@@ -600,6 +601,87 @@ module shallow_water_adjoint_callbacks
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
     end subroutine bigmat_coriolis_action_callback
+
+    subroutine cartesian_projection_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(vector_field) :: u_output, u_input
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: X, local_dummy_u, dummy_u
+      type(mesh_type), pointer :: eta_mesh
+      type(block_csr_matrix), pointer :: coriolis_mat, big_mat
+
+      call c_f_pointer(context, matrices)
+      local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
+      dummy_u => extract_vector_field(matrices, "VelocityDummy")
+      X => extract_vector_field(matrices, "Coordinates")
+
+      call field_from_adj_vector(input, u_input)
+
+      if (hermitian==ADJ_FALSE) then
+        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
+        call zero(u_output)
+        ! So, we'll project from local space to cartesian space
+        call project_local_to_cartesian(X, u_input, u_output)
+      else
+        call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "CartesianProjectionTOutput")
+        call zero(u_output)
+        ! So, we'll project from cartesian space to local space
+        call project_cartesian_to_local(X, u_input, u_output)
+      end if
+      call scale(u_output, coefficient)
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine cartesian_projection_action_callback
+
+    subroutine local_projection_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(vector_field) :: u_output, u_input
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: X, local_dummy_u, dummy_u
+      type(mesh_type), pointer :: eta_mesh
+      type(block_csr_matrix), pointer :: coriolis_mat, big_mat
+
+      call c_f_pointer(context, matrices)
+      local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
+      dummy_u => extract_vector_field(matrices, "VelocityDummy")
+      X => extract_vector_field(matrices, "Coordinates")
+
+      call field_from_adj_vector(input, u_input)
+
+      if (hermitian==ADJ_FALSE) then
+        call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionOutput")
+        call zero(u_output)
+        ! So, we'll project from cartesian space to local space
+        call project_cartesian_to_local(X, u_input, u_output)
+      else
+        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "LocalProjectionTOutput")
+        call zero(u_output)
+        ! So, we'll project from local space to cartesian space
+        call project_local_to_cartesian(X, u_input, u_output)
+      end if
+      call scale(u_output, coefficient)
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine local_projection_action_callback
+
 
 #endif
 end module shallow_water_adjoint_callbacks
