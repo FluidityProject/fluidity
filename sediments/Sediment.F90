@@ -78,9 +78,9 @@ end function get_nSediments
 subroutine sediment_init()
 
     integer                        :: ic, bc, i, stat, nSedimentClasses
-    integer                        :: nBoundaryConditions, nInitialConditions
+    integer                        :: nBoundaryConditions, nInitialConditions, existingInitCond
     character(len=OPTION_PATH_LEN) :: option_path, temp_path
-    character(len=FIELD_NAME_LEN)  :: class_name
+    character(len=FIELD_NAME_LEN)  :: class_name, bc_name, ic_name
 
     ! Set up some constants and allocate an array of sediment boundary condition
     ! IDs. 
@@ -91,7 +91,7 @@ subroutine sediment_init()
     ewrite(2,*) "In sediment_init"
     ewrite(2,*) "Found ",nSedimentClasses, "sediment classes"
     ! Check if we have SedimentTemplate on - if so, this is a fresh run, so 
-    ! construct the sediment classes fro mthe template.
+    ! construct the sediment classes from the template.
     ! If it doesn't exist, it's a checkpoint run, so no need to do this.
     ! Note that we have to also check options more carefully, as we can't 
     ! carry out all possible checks in options_check (our fields haven't been
@@ -116,18 +116,25 @@ subroutine sediment_init()
             call copy_option(trim(option_path)//"/name",trim(temp_path)//"/name")
 
             ! loop over all boundary conditions
-            nBoundaryConditions = option_count(trim(option_path)//'/boundary_condition')
+            nBoundaryConditions = option_count(trim(option_path)//'/boundary_conditions')
             bc_loop: do bc=1,nBoundaryConditions
-                call move_option(trim(option_path)//'/boundary_condition['//int2str(bc)//']',&
-                                 trim(temp_path)//'/boundary_condition['//int2str(bc)//']')
-            call delete_option(trim(option_path),stat)
+                call get_option(trim(option_path)//'/boundary_conditions['//int2str(bc-1)//']/name',bc_name)
+                call move_option(trim(option_path)//'/boundary_conditions::'//trim(bc_name),&
+                                 trim(temp_path)//'/prognostic//boundary_conditions::'//trim(bc_name))
             end do bc_loop
                           
             ! loop over all initial conditions
             nInitialConditions = option_count(trim(option_path)//'/initial_condition')
+            existingInitCond = option_count(trim(temp_path)//'/prognostic/initial_condition')
+            if (nInitialConditions > 0) then
+                do ic=1,existingInitCond
+                    call delete_option(trim(temp_path)//'/prognostic/initial_condition[0]')
+                end do
+            end if
             ic_loop: do ic=1,nInitialConditions
-                call move_option(trim(option_path)//'/initial_condition['//int2str(ic)//']',&
-                                 trim(temp_path//'/initial_condition['//int2str(ic)//']'))
+                call get_option(trim(option_path)//'/initial_condition['//int2str(ic-1)//']/name',ic_name)
+                call copy_option(trim(option_path)//'/initial_condition::'//trim(ic_name),&
+                                 trim(temp_path)//'/prognostic/initial_condition::'//trim(ic_name))
             end do ic_loop
 
             ! now do the one off fields and options
