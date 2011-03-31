@@ -37,7 +37,7 @@ module adjoint_functional_evaluation
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use spud
   use state_module
-  use diagnostic_variables, only: set_diagnostic
+  use diagnostic_variables, only: set_diagnostic, get_diagnostic
   use embed_python
   use python_state
   use libadjoint_data_callbacks
@@ -86,6 +86,7 @@ module adjoint_functional_evaluation
     integer :: no_timesteps
     integer :: timestep
     real :: start_time, end_time
+    real, dimension(:), pointer :: fn_value
 
     call python_reset
 
@@ -252,6 +253,13 @@ module adjoint_functional_evaluation
 
         call python_run_string(trim(code_func))
         J = python_fetch_real("J")
+
+        ! So we've computed the component of the functional associated with this timestep.
+        ! We also want to sum them all up ...
+
+        call set_diagnostic(name=trim(functional_name_f) // "_component", statistic="value", value=(/J/))
+        fn_value => get_diagnostic(name=trim(functional_name_f), statistic="value")
+        J = J + fn_value(1)
         call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
         functional_computed = .true.
       end if

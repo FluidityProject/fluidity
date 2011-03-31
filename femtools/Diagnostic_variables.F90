@@ -87,7 +87,8 @@ module diagnostic_variables
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
-       & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic
+       & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic, &
+       & get_diagnostic
 
   public :: default_stat
   public :: stat_type
@@ -832,7 +833,41 @@ contains
       end do
     end if
 
-  end subroutine
+  end subroutine set_diagnostic
+
+  function get_diagnostic(name, statistic, material_phase) result(value)
+    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in), optional ::  material_phase
+    real, dimension(:), pointer :: value
+    integer :: i
+    
+    type(registered_diagnostic_item), pointer :: iterator
+
+    iterator => null()
+    value => null()
+    
+    if(getprocno() == 1) then
+      iterator => default_stat%registered_diagnostic_first 
+
+      do while (.true.) 
+        if (.not. associated(iterator)) then
+          ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
+               & "material_phase=" //  trim(material_phase) // " does not exist."
+          FLAbort("Error in set_diagnostic.")
+        end if
+        ! Check if name and statistic match
+        if (iterator%name == name .and. iterator%statistic == statistic) then
+          ! Check if name of material_phase match if supplied
+          if ((present(material_phase) .and. iterator%have_material_phase .and. iterator%material_phase == material_phase) &
+             & .or. .not. iterator%have_material_phase) then
+            value => iterator%value
+            return
+          end if
+        end if
+        iterator => iterator%next
+      end do
+    end if
+  end function get_diagnostic
 
   subroutine print_registered_diagnostics
   type(registered_diagnostic_item), pointer :: iterator => NULL()

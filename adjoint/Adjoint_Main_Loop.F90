@@ -139,8 +139,10 @@ module adjoint_main_loop
           ! We don't want to compute a functional for the dummy timestep added at the end to act
           ! as a container for the last equation
           if (start_time == end_time) then
+            assert(timestep == no_timesteps-1)
             if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
               call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
+              call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/0.0/))
             end if
             functional_computed = .true.
           else
@@ -291,6 +293,7 @@ module adjoint_main_loop
         ! Register a diagnostic for each functional 
         if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
           call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
         end if
       end do
