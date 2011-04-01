@@ -245,6 +245,9 @@ module adjoint_functional_evaluation
         call adj_chkierr(ierr)
         assert(start_time < end_time)
 
+        write(buffer,*) timelevel + 1
+        call python_run_string("n = " // trim(buffer))
+
         write(buffer,*) start_time
         call python_run_string("time = " // trim(buffer))
 
@@ -404,6 +407,7 @@ module adjoint_functional_evaluation
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     type(adj_vector) :: record
+    type(adj_storage_data) :: storage
 
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/finish_time", finish_time)
@@ -430,36 +434,39 @@ module adjoint_functional_evaluation
           if (has_scalar_field(states(state), trim(field_name))) then
             sfield => extract_scalar_field(states(state), trim(field_name))
             record = field_to_adj_vector(sfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
-            if (ierr == ADJ_ERR_INVALID_INPUTS) then
-              call femtools_vec_destroy_proc(record)
-            else
+            ierr = adj_storage_memory_copy(record, storage)
+            call adj_chkierr(ierr)
+            ierr = adj_record_variable(adjointer, vars(j), storage)
+            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
               call adj_chkierr(ierr)
             end if
+            call femtools_vec_destroy_proc(record)
             cycle
           end if
 
           if (has_vector_field(states(state), trim(field_name))) then
             vfield => extract_vector_field(states(state), trim(field_name))
             record = field_to_adj_vector(vfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
-            if (ierr == ADJ_ERR_INVALID_INPUTS) then
-              call femtools_vec_destroy_proc(record)
-            else
+            ierr = adj_storage_memory_copy(record, storage)
+            call adj_chkierr(ierr)
+            ierr = adj_record_variable(adjointer, vars(j), storage)
+            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
               call adj_chkierr(ierr)
             end if
+            call femtools_vec_destroy_proc(record)
             cycle
           end if
 
           if (has_tensor_field(states(state), trim(field_name))) then
             tfield => extract_tensor_field(states(state), trim(field_name))
             record = field_to_adj_vector(tfield)
-            ierr = adj_record_variable(adjointer, vars(j), adj_storage_memory_incref(record))
-            if (ierr == ADJ_ERR_INVALID_INPUTS) then
-              call femtools_vec_destroy_proc(record)
-            else
+            ierr = adj_storage_memory_copy(record, storage)
+            call adj_chkierr(ierr)
+            ierr = adj_record_variable(adjointer, vars(j), storage)
+            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
               call adj_chkierr(ierr)
             end if
+            call femtools_vec_destroy_proc(record)
             cycle
           end if
 

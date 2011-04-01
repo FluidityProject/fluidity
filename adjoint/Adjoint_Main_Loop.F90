@@ -88,6 +88,7 @@ module adjoint_main_loop
       type(csr_matrix) :: csr_mat
       type(block_csr_matrix) :: block_csr_mat
       character(len=ADJ_DICT_LEN) :: path
+      type(adj_storage_data) :: storage
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
@@ -186,7 +187,9 @@ module adjoint_main_loop
 
                 call insert(state(1), sfield_soln, trim(sfield_soln%name))
                 soln = field_to_adj_vector(sfield_soln)
-                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
+                ierr = adj_storage_memory_incref(soln, storage)
+                call adj_chkierr(ierr)
+                ierr = adj_record_variable(adjointer, adj_var, storage)
                 call adj_chkierr(ierr)
                 call deallocate(sfield_soln)
               case(ADJ_VECTOR_FIELD)
@@ -220,7 +223,9 @@ module adjoint_main_loop
 
                 call insert(state(1), vfield_soln, trim(vfield_soln%name))
                 soln = field_to_adj_vector(vfield_soln)
-                ierr = adj_record_variable(adjointer, adj_var, adj_storage_memory_incref(soln))
+                ierr = adj_storage_memory_incref(soln, storage)
+                call adj_chkierr(ierr)
+                ierr = adj_record_variable(adjointer, adj_var, storage)
                 call adj_chkierr(ierr)
                 call deallocate(vfield_soln)
               case default
