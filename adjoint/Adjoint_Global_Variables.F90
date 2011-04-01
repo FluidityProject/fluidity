@@ -33,7 +33,7 @@ module adjoint_global_variables
   use libadjoint
   implicit none
 
-  type(adj_dictionary) :: adj_var_lookup
+  type(adj_dictionary) :: adj_path_lookup, adj_solver_path_lookup
   type(adj_adjointer)  :: adjointer
   logical :: functional_computed = .false.
 #endif

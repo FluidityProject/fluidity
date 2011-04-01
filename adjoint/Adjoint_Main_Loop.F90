@@ -89,6 +89,7 @@ module adjoint_main_loop
       type(block_csr_matrix) :: block_csr_mat
       character(len=ADJ_DICT_LEN) :: path
       type(adj_storage_data) :: storage
+      logical :: has_path
 
       ierr = adj_adjointer_check_consistency(adjointer)
       call adj_chkierr(ierr)
@@ -159,9 +160,13 @@ module adjoint_main_loop
 
             ! Now solve lhs . adjoint = rhs
             ierr = adj_variable_get_name(adj_var, variable_name)
-            ierr = adj_dict_find(adj_var_lookup, trim(variable_name), path)
-            call adj_chkierr(ierr)
-            path = adjoint_field_path(path)
+            ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
+            if (ierr == ADJ_ERR_OK) then
+              path = adjoint_field_path(path)
+              has_path = .true.
+            else
+              has_path = .false.
+            end if
 
             ! variable_name should be something like Fluid::Velocity 
             select case(rhs%klass)
@@ -169,7 +174,10 @@ module adjoint_main_loop
                 call field_from_adj_vector(rhs, sfield_rhs)
                 call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name)))
                 call zero(sfield_soln)
-                sfield_soln%option_path = trim(path)
+
+                if (has_path) then
+                  sfield_soln%option_path = trim(path)
+                end if
 
                 select case(lhs%klass)
                   case(ADJ_IDENTITY_MATRIX)
@@ -179,7 +187,13 @@ module adjoint_main_loop
                     if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(sfield_soln, csr_mat, sfield_rhs)
                     else
-                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs)
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
+
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                       call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
@@ -199,7 +213,10 @@ module adjoint_main_loop
                 call field_from_adj_vector(rhs, vfield_rhs)
                 call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
                 call zero(vfield_soln)
-                vfield_soln%option_path = trim(path)
+
+                if (has_path) then
+                  vfield_soln%option_path = trim(path)
+                end if
 
                 select case(lhs%klass)
                   case(ADJ_IDENTITY_MATRIX)
@@ -209,7 +226,13 @@ module adjoint_main_loop
                     if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(vfield_soln, csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs)
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
+
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
                       call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
@@ -217,7 +240,13 @@ module adjoint_main_loop
                     if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
                       call mult(vfield_soln, block_csr_mat, vfield_rhs)
                     else
-                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs)
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
+
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
                       call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                     endif
                   case default

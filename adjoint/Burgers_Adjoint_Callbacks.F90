@@ -37,7 +37,7 @@ module burgers_adjoint_callbacks
     use fields
     use sparse_matrices_fields
     use spud
-    use adjoint_global_variables, only: adj_var_lookup
+    use adjoint_global_variables, only: adj_path_lookup
     use mangle_options_tree, only: adjoint_field_path
     use mangle_dirichlet_rows_module
     implicit none

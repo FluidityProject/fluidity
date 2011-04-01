@@ -68,7 +68,7 @@ module manifold_projections
   subroutine project_cartesian_to_local_generic(X, in_field_cartesian, out_field_local)
     !!< Project the cartesian velocity to local coordinates
     type(vector_field), intent(in) :: X, in_field_cartesian
-    type(vector_field), intent(out) :: out_field_local
+    type(vector_field), intent(inout) :: out_field_local
 
     integer :: ele
 
@@ -166,7 +166,7 @@ module manifold_projections
   subroutine project_local_to_cartesian_generic(X, in_field_local, out_field_cartesian)
     !!< Project the local velocity to cartesian coordinates
     type(vector_field), intent(in) :: X, in_field_local
-    type(vector_field), intent(out) :: out_field_cartesian
+    type(vector_field), intent(inout) :: out_field_cartesian
 
     integer :: ele
 

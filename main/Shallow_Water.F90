@@ -126,8 +126,6 @@
     integer, save :: dump_no=0
     real :: energy
 #ifdef HAVE_ADJOINT
-    type(adj_variable), dimension(:), allocatable :: adj_meshes
-
     ierr = adj_create_adjointer(adjointer)
     ! Register the data callbacks
     call adj_register_femtools_data_callbacks(adjointer)
@@ -303,7 +301,7 @@
 
     subroutine get_parameters()
       implicit none
-      type(vector_field), pointer :: u, v_field
+      type(vector_field), pointer :: u, v_field, coord
       type(scalar_field), pointer :: eta
       type(vector_field) :: dummy_field
 
@@ -377,6 +375,9 @@
       call zero(dummy_field)
       call insert(matrices, dummy_field, "LocalVelocityDummy")
       call deallocate(dummy_field)
+      ! And don't forget Coordinate
+      coord => extract_vector_field(state(1), "Coordinate")
+      call insert(matrices, coord, "Coordinate")
 
     end subroutine get_parameters
 
@@ -865,27 +866,15 @@
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
 
-      ! We should also set up the adj_meshes variable, as this will be necessary for every functional evaluation
-      nmeshes = option_count("/geometry/mesh")
-      allocate(adj_meshes(nmeshes))
-      do j=0,nmeshes-1
-        call get_option("/geometry/mesh[" // int2str(j) // "]/name", mesh_name)
-        ierr = adj_create_variable(trim(mesh_name), timestep=0, iteration=0, auxiliary=ADJ_TRUE, variable=adj_meshes(j+1))
-        call adj_chkierr(ierr)
-        mesh => extract_mesh(states, trim(mesh_name))
-        mesh_vec = mesh_type_to_adj_vector(mesh)
-        ierr = adj_storage_memory_incref(mesh_vec, storage)
-        call adj_chkierr(ierr)
-        ierr = adj_record_variable(adjointer, adj_meshes(j+1), storage)
-        call adj_chkierr(ierr)
-      end do
-
       ! We also may as well set the option paths for each variable now, since we know them here
       ! (in fluidity this would be done as each equation is registered)
       u => extract_vector_field(states(1), "Velocity")
       eta => extract_scalar_field(states(1), "LayerThickness")
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::LayerThickness", trim(eta%option_path))
+      ierr = adj_dict_set(adj_path_lookup, "Fluid::Velocity", trim(u%option_path))
+      ierr = adj_dict_set(adj_path_lookup, "Fluid::LayerThickness", trim(eta%option_path))
+
+      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LocalVelocityDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LayerThicknessDelta", trim(u%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
@@ -1161,7 +1150,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars, extras=adj_meshes)
+        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)

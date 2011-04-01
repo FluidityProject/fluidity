@@ -148,7 +148,7 @@ module adjoint_functional_evaluation
     ! We also need to set up the field to differentiate with respect to.
     ! First, get the material phase and field names
     ierr = adj_variable_get_name(var, variable_name_f)
-    ierr = adj_dict_find(adj_var_lookup, trim(variable_name_f), path)
+    ierr = adj_dict_find(adj_path_lookup, trim(variable_name_f), path)
     call adj_chkierr(ierr)
     path = adjoint_field_path(path)
     s_idx = scan(trim(variable_name_f), ":")

@@ -37,7 +37,7 @@ module shallow_water_adjoint_callbacks
     use fields
     use sparse_matrices_fields
     use spud, only: get_option
-    use adjoint_global_variables, only: adj_var_lookup
+    use adjoint_global_variables, only: adj_path_lookup
     use mangle_options_tree, only: adjoint_field_path
     use manifold_projections
     implicit none
@@ -78,6 +78,10 @@ module shallow_water_adjoint_callbacks
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "BigMatGrad", c_funloc(bigmat_grad_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "BigMatCoriolis", c_funloc(bigmat_coriolis_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LocalProjection", c_funloc(local_projection_action_callback))
+      call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "CartesianProjection", c_funloc(cartesian_projection_action_callback))
       call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
@@ -135,7 +139,7 @@ module shallow_water_adjoint_callbacks
       end if
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
 
       call allocate(empty_velocity_field, u%dim, u%mesh, trim("AdjointVelocityRhs"))
       call zero(empty_velocity_field)
@@ -245,7 +249,7 @@ module shallow_water_adjoint_callbacks
       end if
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       inv_coriolis_mat => extract_block_csr_matrix(matrices, "InverseCoriolisMatrix")
       inv_coriolis_mat_T => extract_block_csr_matrix(matrices, "InverseCoriolisMatrixTranspose")
 
@@ -337,7 +341,7 @@ module shallow_water_adjoint_callbacks
       type(scalar_field) :: eta_output
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
 
@@ -403,13 +407,13 @@ module shallow_water_adjoint_callbacks
       end if
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
 
-      ierr = adj_dict_find(adj_var_lookup, "Fluid::LayerThickness", path)
+      ierr = adj_dict_find(adj_path_lookup, "Fluid::LayerThickness", path)
       call adj_chkierr(ierr)
       path = adjoint_field_path(path)
 
@@ -474,7 +478,7 @@ module shallow_water_adjoint_callbacks
       type(vector_field) :: u_tmp
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
@@ -527,7 +531,7 @@ module shallow_water_adjoint_callbacks
 
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
@@ -580,7 +584,7 @@ module shallow_water_adjoint_callbacks
       type(block_csr_matrix), pointer :: coriolis_mat, big_mat
 
       call c_f_pointer(context, matrices)
-      u => extract_vector_field(matrices, "VelocityDummy")
+      u => extract_vector_field(matrices, "LocalVelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
@@ -622,7 +626,7 @@ module shallow_water_adjoint_callbacks
       call c_f_pointer(context, matrices)
       local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
       dummy_u => extract_vector_field(matrices, "VelocityDummy")
-      X => extract_vector_field(matrices, "Coordinates")
+      X => extract_vector_field(matrices, "Coordinate")
 
       call field_from_adj_vector(input, u_input)
 
@@ -662,7 +666,7 @@ module shallow_water_adjoint_callbacks
       call c_f_pointer(context, matrices)
       local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
       dummy_u => extract_vector_field(matrices, "VelocityDummy")
-      X => extract_vector_field(matrices, "Coordinates")
+      X => extract_vector_field(matrices, "Coordinate")
 
       call field_from_adj_vector(input, u_input)
 

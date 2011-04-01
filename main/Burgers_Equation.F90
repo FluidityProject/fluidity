@@ -695,7 +695,7 @@
       ! We also may as well set the option paths for each variable now, since we know them here
       ! (in fluidity this would be done as each equation is registered)
       u => extract_scalar_field(states(1), "Velocity")
-      ierr = adj_dict_set(adj_var_lookup, "Fluid::Velocity", trim(u%option_path))
+      ierr = adj_dict_set(adj_path_lookup, "Fluid::Velocity", trim(u%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
