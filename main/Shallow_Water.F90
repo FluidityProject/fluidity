@@ -209,7 +209,6 @@
        end if 
 
        call execute_timestep(state(1), dt)
-       call adjoint_register_timestep(timestep, dt, state)
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
@@ -218,6 +217,7 @@
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
+       call adjoint_register_timestep(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
        if (simulation_completed(current_time, timestep)) exit timestep_loop
