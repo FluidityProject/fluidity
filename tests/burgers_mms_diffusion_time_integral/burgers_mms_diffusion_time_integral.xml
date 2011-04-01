@@ -116,6 +116,46 @@ e_error = abs(truth - e_func)
 
 de_func_error = log(d_error/e_error, 2)
     </variable>
+    <variable name="functional_difference_a" language="python">
+from fluidity_tools import stat_parser as stat
+
+ad_value = stat("mms_diffusion_adjoint_A_adjoint_time_integral_ad.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+hc_value = stat("mms_diffusion_adjoint_A_adjoint_time_integral_hc.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+
+functional_difference_a = abs(ad_value - hc_value)
+    </variable>
+    <variable name="functional_difference_b" language="python">
+from fluidity_tools import stat_parser as stat
+
+ad_value = stat("mms_diffusion_adjoint_B_adjoint_time_integral_ad.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+hc_value = stat("mms_diffusion_adjoint_B_adjoint_time_integral_hc.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+
+functional_difference_b = abs(ad_value - hc_value)
+    </variable>
+    <variable name="functional_difference_c" language="python">
+from fluidity_tools import stat_parser as stat
+
+ad_value = stat("mms_diffusion_adjoint_C_adjoint_time_integral_ad.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+hc_value = stat("mms_diffusion_adjoint_C_adjoint_time_integral_hc.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+
+functional_difference_c = abs(ad_value - hc_value)
+    </variable>
+    <variable name="functional_difference_d" language="python">
+from fluidity_tools import stat_parser as stat
+
+ad_value = stat("mms_diffusion_adjoint_D_adjoint_time_integral_ad.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+hc_value = stat("mms_diffusion_adjoint_D_adjoint_time_integral_hc.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+
+functional_difference_d = abs(ad_value - hc_value)
+    </variable>
+    <variable name="functional_difference_e" language="python">
+from fluidity_tools import stat_parser as stat
+
+ad_value = stat("mms_diffusion_adjoint_E_adjoint_time_integral_ad.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+hc_value = stat("mms_diffusion_adjoint_E_adjoint_time_integral_hc.stat")["Fluid"]["AdjointVelocity"]["l2norm"][-1]
+
+functional_difference_e = abs(ad_value - hc_value)
+    </variable>
   </variables>
   <pass_tests>
     <test name="ab_convergence_stat: L2 order > 1.8" language="python">
@@ -141,6 +181,21 @@ assert(abs(cd_func_error-2.0) &lt; 0.2)
     </test>
     <test name="de_func_error: order in [1.8,2.2]" language="python">
 assert(abs(de_func_error-2.0) &lt; 0.2)
+    </test>
+    <test name="functionals give the same adjoint: A" language="python">
+assert functional_difference_a &lt; 1.0e-14
+    </test>
+    <test name="functionals give the same adjoint: B" language="python">
+assert functional_difference_b &lt; 1.0e-14
+    </test>
+    <test name="functionals give the same adjoint: C" language="python">
+assert functional_difference_c &lt; 1.0e-14
+    </test>
+    <test name="functionals give the same adjoint: D" language="python">
+assert functional_difference_d &lt; 1.0e-14
+    </test>
+    <test name="functionals give the same adjoint: E" language="python">
+assert functional_difference_e &lt; 1.0e-14
     </test>
   </pass_tests>
   <warn_tests>
