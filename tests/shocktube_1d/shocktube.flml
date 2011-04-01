@@ -130,7 +130,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
