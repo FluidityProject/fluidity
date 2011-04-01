@@ -64,6 +64,7 @@ void adj_variables_from_python(char* function, int function_len,
   int i;
   int ierr;
   adj_variable* result_var;
+  int auxiliary;
 
   // the function string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
@@ -179,7 +180,18 @@ void adj_variables_from_python(char* function, int function_len,
       *stat=1;
       return;
     }
-    ierr = adj_create_variable(PyString_AsString(pName), (int) PyLong_AsLong(pTimestep), 0, 0, &(result_var[i]));
+
+    /* If we don't have a MaterialPhaseName:: in front, assume it's auxiliary */
+    if (strstr(PyString_AsString(pName), "::") == NULL)
+      auxiliary = ADJ_TRUE;
+    else
+      auxiliary = ADJ_FALSE;
+
+    /* If "Coordinate" is in the variable name, assume it's auxiliary */
+    if (strstr(PyString_AsString(pName), "Coordinate") != NULL)
+      auxiliary = ADJ_TRUE;
+
+    ierr = adj_create_variable(PyString_AsString(pName), (int) PyLong_AsLong(pTimestep), 0, auxiliary, &(result_var[i]));
 
     Py_DECREF(pResultItem);
   }

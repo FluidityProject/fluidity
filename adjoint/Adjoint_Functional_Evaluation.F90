@@ -357,6 +357,7 @@ module adjoint_functional_evaluation
         do matpas=1,size(states, 1)
           if (trim(states(matpas,timestep)%name) == trim(material_phase_name)) then
             call insert(states(matpas, timestep), sfield, trim(field_name))
+            call insert(states(matpas, :), sfield%mesh, trim(sfield%mesh%name))
           endif
         end do
       case (ADJ_VECTOR_FIELD)
@@ -364,6 +365,7 @@ module adjoint_functional_evaluation
         do matpas=1,size(states, 1)
           if (trim(states(matpas,timestep)%name) == trim(material_phase_name)) then
             call insert(states(matpas, timestep), vfield, trim(field_name))
+            call insert(states(matpas, :), vfield%mesh, trim(vfield%mesh%name))
           endif
         end do
       case (ADJ_TENSOR_FIELD)
@@ -371,6 +373,7 @@ module adjoint_functional_evaluation
         do matpas=1,size(states, 1)
           if (trim(states(matpas,timestep)%name) == trim(material_phase_name)) then
             call insert(states(matpas, timestep), tfield, trim(field_name))
+            call insert(states(matpas, :), tfield%mesh, trim(tfield%mesh%name))
           endif
         end do
       case (ADJ_MESH_TYPE)
@@ -403,6 +406,7 @@ module adjoint_functional_evaluation
     integer :: var_timestep
     integer :: state
     integer :: stat
+    type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -415,10 +419,32 @@ module adjoint_functional_evaluation
     call get_option("/adjoint/functional::" // trim(functional) // "/functional_dependencies/algorithm", buf)
     call adj_variables_from_python(buf, current_time, finish_time, python_timestep, vars)
 
-    do j=1,size(vars)
+    variable_loop: do j=1,size(vars)
       ierr = adj_variable_get_timestep(vars(j), var_timestep)
       if (var_timestep /= timestep_to_record) cycle
       ierr = adj_variable_get_name(vars(j), variable_name)
+
+      if (has_mesh(states(1), trim(variable_name))) then
+        mesh => extract_mesh(states(1), trim(variable_name))
+        record = mesh_type_to_adj_vector(mesh)
+
+        assert(.not. have_option("/mesh_adaptivity")) ! if you're adaptive you'll need to use adj_storage_memory_copy instead
+        ierr = adj_storage_memory_incref(record, storage)
+        call adj_chkierr(ierr)
+
+        assert(.not. have_option("/mesh_adaptivity")) ! if you're adaptive, your meshes are no longer auxiliary, are they?
+        ierr = adj_variable_set_auxiliary(vars(j), .true.)
+        call adj_chkierr(ierr)
+
+        ierr = adj_record_variable(adjointer, vars(j), storage)
+        if (ierr == ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
+          call femtools_vec_destroy_proc(record)
+        else
+          call adj_chkierr(ierr)
+        end if
+        cycle
+      end if
+
       s_idx = scan(trim(variable_name), ":")
       material_phase_name = variable_name(1:s_idx - 1)
       field_name = variable_name(s_idx + 2:len_trim(variable_name))
@@ -428,7 +454,7 @@ module adjoint_functional_evaluation
             & (.not. has_vector_field(states(state), trim(field_name))) .and. &
             & (.not. has_tensor_field(states(state), trim(field_name)))) then
             ewrite(-1,*) "Warning: want to record ", trim(variable_name), " now, but don't have it in state"
-            cycle
+            cycle variable_loop
           end if
 
           if (has_scalar_field(states(state), trim(field_name))) then
@@ -437,11 +463,11 @@ module adjoint_functional_evaluation
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
             ierr = adj_record_variable(adjointer, vars(j), storage)
-            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
+            if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)
             end if
             call femtools_vec_destroy_proc(record)
-            cycle
+            cycle variable_loop
           end if
 
           if (has_vector_field(states(state), trim(field_name))) then
@@ -449,12 +475,19 @@ module adjoint_functional_evaluation
             record = field_to_adj_vector(vfield)
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
+
+            if (trim(field_name) == "Coordinate") then
+              assert(.not. have_option("/mesh_adaptivity")) ! your coordinate is no longer auxiliary, because you compute it
+              ierr = adj_variable_set_auxiliary(vars(j), .true.)
+              call adj_chkierr(ierr)
+            end if
+
             ierr = adj_record_variable(adjointer, vars(j), storage)
-            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
+            if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)
             end if
             call femtools_vec_destroy_proc(record)
-            cycle
+            cycle variable_loop
           end if
 
           if (has_tensor_field(states(state), trim(field_name))) then
@@ -463,16 +496,16 @@ module adjoint_functional_evaluation
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
             ierr = adj_record_variable(adjointer, vars(j), storage)
-            if (ierr /= ADJ_ERR_INVALID_INPUTS) then ! ADJ_ERR_INVALID_INPUTS means we have recorded it already
+            if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)
             end if
             call femtools_vec_destroy_proc(record)
-            cycle
+            cycle variable_loop
           end if
 
         end if
       end do
-    end do
+    end do variable_loop
 
     deallocate(vars)
   end subroutine adj_record_anything_necessary

@@ -90,6 +90,9 @@ module adjoint_main_loop
       character(len=ADJ_DICT_LEN) :: path
       type(adj_storage_data) :: storage
 
+      ierr = adj_adjointer_check_consistency(adjointer)
+      call adj_chkierr(ierr)
+
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
 

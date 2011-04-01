@@ -117,8 +117,6 @@
 
 
 #ifdef HAVE_ADJOINT
-    type(adj_variable), dimension(:), allocatable :: adj_meshes
-
     ierr = adj_create_adjointer(adjointer)
     ! Register the data callbacks
     call adj_register_femtools_data_callbacks(adjointer)
@@ -694,21 +692,6 @@
       call get_option("/timestepping/current_time", start_time)
       call get_option("/timestepping/timestep", dt)
 
-      ! We should also set up the adj_meshes variable, as this will be necessary for every functional evaluation
-      nmeshes = option_count("/geometry/mesh")
-      allocate(adj_meshes(nmeshes))
-      do j=0,nmeshes-1
-        call get_option("/geometry/mesh[" // int2str(j) // "]/name", mesh_name)
-        ierr = adj_create_variable(trim(mesh_name), timestep=0, iteration=0, auxiliary=ADJ_TRUE, variable=adj_meshes(j+1))
-        call adj_chkierr(ierr)
-        mesh => extract_mesh(states, trim(mesh_name))
-        mesh_vec = mesh_type_to_adj_vector(mesh)
-        ierr = adj_storage_memory_incref(mesh_vec, storage)
-        call adj_chkierr(ierr)
-        ierr = adj_record_variable(adjointer, adj_meshes(j+1), storage)
-        call adj_chkierr(ierr)
-      end do
-
       ! We also may as well set the option paths for each variable now, since we know them here
       ! (in fluidity this would be done as each equation is registered)
       u => extract_scalar_field(states(1), "Velocity")
@@ -801,7 +784,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars, extras=adj_meshes)
+        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
@@ -849,7 +832,7 @@
       call adj_chkierr(ierr)
       ierr = adj_record_variable(adjointer, u_var, storage);
       call femtools_vec_destroy_proc(u_vec)
-      if (ierr /= ADJ_ERR_INVALID_INPUTS) then
+      if (ierr /= ADJ_WARN_ALREADY_RECORDED) then
         call adj_chkierr(ierr)
       end if
 #endif
