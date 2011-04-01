@@ -341,13 +341,13 @@ def val(X,t):
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
           <theta_divergence>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta_divergence>
         </temporal_discretisation>
         <solver>
