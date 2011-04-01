@@ -406,6 +406,7 @@
 
            ! Initialise necessary local fields.
            ewrite(2,*) "Initialising compulsory dynamic LES fields"
+           allocate(mnu); allocate(tnu); allocate(leonard)
            call allocate(mnu, u%dim, u%mesh, "DynamicVelocity")
            call allocate(tnu, u%dim, u%mesh, "DynamicFilteredVelocity")
            call allocate(leonard, u%mesh, "DynamicLeonardTensor")
@@ -418,6 +419,7 @@
            if(have_averaging) then
              ewrite(2,*) "Initialising dynamic LES averaged fields"
              ! Test-filtered velocity field
+             allocate(mnu_av); allocate(tnu_av); allocate(leonard_av)
              call allocate(mnu_av, u%dim, u%mesh, "DynamicAverageVelocity")
              call allocate(tnu_av, u%dim, u%mesh, "DynamicFilteredAverageVelocity")
              call allocate(leonard_av, u%mesh, "DynamicAverageLeonardTensor")
@@ -848,9 +850,14 @@
       end if
 
       if (dynamic_les) then
-        call deallocate(mnu); call deallocate(mnu_av)
-        call deallocate(tnu); call deallocate(tnu_av)
-        call deallocate(leonard); call deallocate(leonard_av)
+        call deallocate(mnu); deallocate(mnu)
+        call deallocate(tnu); deallocate(tnu)
+        call deallocate(leonard); deallocate(leonard)
+        if (have_averaging) then
+          call deallocate(mnu_av); deallocate(mnu_av)
+          call deallocate(tnu_av); deallocate(tnu_av)
+          call deallocate(leonard_av); deallocate(leonard_av)
+        end if
       end if
 
       call deallocate(dummytensor)
