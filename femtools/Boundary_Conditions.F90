@@ -1076,7 +1076,7 @@ contains
     call allocate(boundary_value, surface_mesh, name=trim(field%name)//"EntireBC")
     call zero(boundary_value)
     bc_type_list=0
-    
+
     if (present(boundary_second_value)) then
        call allocate(boundary_second_value, surface_mesh, name=trim(field%name)//"EntireBCSecondValue")
        call zero(boundary_second_value)    
@@ -1095,20 +1095,24 @@ contains
        if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
           surface_field => field%bc%boundary_condition(i)%surface_fields(1)
-          ! extract 2nd surface field if needed
-          if (present(boundary_second_value)) then
-             if (size(field%bc%boundary_condition(i)%surface_fields) == 2) then 
-                surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+          ! extract 2nd surface field if needed for robin BC type
+          if (trim(bctype) == 'robin') then
+             if (present(boundary_second_value)) then
+                if (size(field%bc%boundary_condition(i)%surface_fields) > 1) then
+                   surface_field_second_value => field%bc%boundary_condition(i)%surface_fields(2)
+                else
+                   FLAbort('Boundary condition surface_fields not off sufficient size for assigning robin second boundary value')
+                end if
              else
-                FLAbort('Boundary condition surface_fields not the correct size for assigning second boundary value')
-             end if 
-          else 
+                FLAbort('Robin boundary condition cannot be assigned without the optional argument boundary_second_value')  
+             end if
+          else
              nullify(surface_field_second_value)
-          end if 
+          end if
        else
           nullify(surface_field)
           nullify(surface_field_second_value)
-       end if       
+       end if
        
        do k=1, size(surface_element_list)
           sele=surface_element_list(k)
