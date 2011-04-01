@@ -345,7 +345,7 @@
 
       adjoint = have_option("/adjoint")
 
-      call allocate(iterated_velocity, u%mesh, "IteratedVelocity")
+      call allocate(iterated_velocity, u%mesh, "Velocity")
       call set(iterated_velocity, u)
       call allocate(old_iterated_velocity, u%mesh, "OldIteratedVelocity")
       call allocate(iterated_velocity_difference, u%mesh, "IteratedVelocityDifference")
@@ -374,7 +374,7 @@
 
         ! Tell libadjoint about the equations we are solving
         if (adjoint) then
-          call adjoint_record_velocity(timestep, nit, states)
+          call adjoint_record_velocity(timestep, nit, states, field=iterated_velocity)
         end if
 
         if (sig_hup .or. sig_int) then
@@ -813,20 +813,36 @@
 #endif
     end subroutine adjoint_register_timestep
 
-    subroutine adjoint_record_velocity(timestep, iteration, states)
+    subroutine adjoint_record_velocity(timestep, iteration, states, field)
       integer, intent(in) :: timestep, iteration
       type(state_type), dimension(:), intent(in) :: states
+      type(scalar_field), intent(in), optional, target :: field
 #ifdef HAVE_ADJOINT
       type(adj_storage_data) :: storage
       integer :: ierr
       type(adj_vector) :: u_vec
-      type(scalar_field), pointer :: u
+      type(scalar_field), pointer :: u, bc_u
       type(adj_variable) :: u_var
+      integer :: bc
+      character(len=FIELD_NAME_LEN) :: bc_name, bc_type
+      integer, dimension(:), pointer :: surface_element_list
 
       ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u_var)
       call adj_chkierr(ierr)
 
-      u => extract_scalar_field(states(1), "Velocity")
+      if (present(field)) then
+        u => field
+        ! We need to record any dirichlet boundary conditions on Velocity, and put them onto the IteratedVelocity too
+        bc_u => extract_scalar_field(states(1), "Velocity")
+        do bc=1,get_boundary_condition_count(bc_u)
+          call get_boundary_condition(bc_u, bc, type=bc_type, surface_element_list=surface_element_list, name=bc_name)
+          if (trim(bc_type) == "dirichlet") then
+            call add_boundary_condition_surface_elements(u, bc_name, bc_type, surface_element_list)
+          end if
+        end do
+      else
+        u => extract_scalar_field(states(1), "Velocity")
+      end if
       u_vec = field_to_adj_vector(u)
 
       ierr = adj_storage_memory_copy(u_vec, storage);
