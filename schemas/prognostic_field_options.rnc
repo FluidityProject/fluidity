@@ -621,43 +621,6 @@ prognostic_velocity_field =
                            }
                         )
                      }?,
-                     ## Strain rate modulus |S1|.
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "DynamicStrainRateModulus" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## Strain rate modulus |S2|.
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "DynamicFilteredStrainRateModulus" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## Dynamic Smagorinsky coefficient.
-                     ## This is the anisotropic tensor coefficient field.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "DynamicSmagorinskyCoefficient" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
                      ## Dynamic eddy viscosity (turbulent diffusion of velocity).
                      ## This is an anisotropic viscosity, added to normal viscosity field, that
                      ## carries the influence of turbulence onto the velocity field.

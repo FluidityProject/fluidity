@@ -735,55 +735,6 @@ Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
                     </element>
                   </optional>
                   <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Strain rate modulus |S1|.</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>DynamicStrainRateModulus</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Strain rate modulus |S2|.</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>DynamicFilteredStrainRateModulus</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Dynamic Smagorinsky coefficient.
-This is the anisotropic tensor coefficient field.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>DynamicSmagorinskyCoefficient</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="tensor_field">
                       <a:documentation>Dynamic eddy viscosity (turbulent diffusion of velocity).
 This is an anisotropic viscosity, added to normal viscosity field, that

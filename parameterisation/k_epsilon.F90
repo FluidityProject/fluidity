@@ -85,7 +85,7 @@ subroutine keps_init(state)
     integer                         :: i
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
-    keps_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
+    keps_path = "/material_phase/subgridscale_parameterisations/k-epsilon"
 
     ! Allocate the temporary, module-level variables
     call keps_allocate_fields(state)
@@ -560,7 +560,7 @@ subroutine keps_check_options
     integer                        :: dimension
 
     ewrite(1,*) "In keps_check_options"
-    option_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
+    option_path = "/material_phase/subgridscale_parameterisations/k-epsilon"
 
     ! one dimensional problems not supported
     call get_option("/geometry/dimension/", dimension) 
@@ -647,7 +647,7 @@ subroutine keps_check_options
         FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
     end if
     ! check for velocity
-    if (.not.have_option("/material_phase[0]/vector_field::Velocity")) then
+    if (.not.have_option("/material_phase/vector_field::Velocity")) then
         FLExit("You need Velocity field for k-epsilon")
     end if
     ! these fields allow the new diffusivities/viscosities to be used in other calculations
@@ -660,12 +660,12 @@ subroutine keps_check_options
     !    FLExit("You need KEpsEddyDiffusivity field for k-epsilon")
     !end if
     ! check there's a viscosity somewhere
-    if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
+    if (.not.have_option("/material_phase/vector_field::Velocity/prognostic/&
                           &tensor_field::Viscosity/")) then
         FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
     end if
     ! check that the user has switched Velocity/viscosity to diagnostic
-    if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
+    if (.not.have_option("/material_phase/vector_field::Velocity/prognostic/&
                           &tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
