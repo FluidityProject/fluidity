@@ -735,7 +735,7 @@ subroutine keps_bcs(state, field)
 
           ewrite(1,*) "Calculating field BC: ",trim(field%name),trim(bc_name),' ',trim(bc_type),' ',trim(wall_fns)
 
-          call allocate(rhs_field, field%mesh, name="RHS")
+          call allocate(rhs_field, EV%mesh, name="RHS")
           call zero(rhs_field)
 
           ! Surface element loop
