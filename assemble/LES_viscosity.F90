@@ -35,22 +35,27 @@ module les_viscosity_module
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use smoothing_module
   use vector_tools
+  !use diagnostic_source_fields
   implicit none
 
   private
 
   public les_viscosity_strength, wale_viscosity_strength
   public dynamic_les_init_fields, leonard_tensor, les_strain_rate
+  !public les_viscosity_module_register_diagnostic
 
 contains
 
-  subroutine dynamic_les_init_fields(state, les_option_path, tnu, mnu, leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter)
+  subroutine dynamic_les_init_fields(state, les_option_path, tnu, mnu, nu_av, tnu_av, mnu_av, leonard, leonard_av, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_strain_mod, dynamic_t_strain_mod, dynamic_filter)
 
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer :: tnu, mnu
-    type(tensor_field), pointer :: leonard, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
+    type(vector_field), pointer :: nu_av, tnu_av, mnu_av, tnu, mnu, u
+    type(tensor_field), pointer :: leonard, leonard_av, dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
+    type(scalar_field), pointer :: dynamic_strain_mod, dynamic_t_strain_mod
     character(len=OPTION_PATH_LEN) :: les_option_path
     integer :: stat
+
+    u => extract_vector_field(state, "Velocity")
 
     ewrite(2,*) "Initialising compulsory dynamic LES fields"
     ! Test-filtered velocity field
@@ -72,6 +77,35 @@ contains
       call zero(leonard)
     end if
 
+    ! Are we using averaged velocity to stabilise the model?
+    if(have_option(trim(les_option_path)//"/dynamic_les/enable_averaging")) then
+      ewrite(2,*) "Initialising dynamic LES averaged fields"
+      ! Averaged velocity field
+      !nu_av => vector_source_field(state, u)
+      nu_av => u
+
+      ! Test-filtered velocity field
+      tnu_av => extract_vector_field(state, "DynamicFilteredAverageVelocity", stat)
+      if(stat == 0) then
+        ewrite(2,*) "zeroing field: ", trim(tnu_av%name), ", ", trim(tnu_av%mesh%name)
+        call zero(tnu_av)
+      end if
+      ! Dynamic velocity field
+      mnu_av => extract_vector_field(state, "DynamicAverageVelocity", stat)
+      if(stat == 0) then
+        ewrite(2,*) "zeroing field: ", trim(mnu_av%name), ", ", trim(mnu_av%mesh%name)
+        call zero(mnu_av)
+      end if
+      ! Leonard tensor field L_ij
+      leonard_av => extract_tensor_field(state, "DynamicAverageLeonardTensor", stat)
+      if(stat == 0) then
+        ewrite(2,*) "zeroing field: ", trim(leonard_av%name)
+        call zero(leonard_av)
+      end if
+    else
+      nu_av => null(); mnu_av => null(); tnu_av => null(); leonard_av => null()
+    end if
+
     ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
     ! Filter width
     if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")) then
@@ -91,8 +125,21 @@ contains
     if(have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")) then
       dynamic_t_strain => extract_tensor_field(state, "DynamicFilteredStrainRate", stat)
       if(stat == 0) then
-        ewrite(2,*) "zeroing field: ", trim(dynamic_t_strain%name)
         call zero(dynamic_t_strain)
+      end if
+    end if
+    ! Strain rate modulus field |S1|
+    if(have_option(trim(les_option_path)//"/dynamic_les/scalar_field::DynamicStrainRateModulus")) then
+      dynamic_strain_mod => extract_scalar_field(state, "DynamicStrainRateModulus", stat)
+      if(stat == 0) then
+        call zero(dynamic_strain_mod)
+      end if
+    end if
+    ! Filtered strain rate modulus field |S2|
+    if(have_option(trim(les_option_path)//"/dynamic_les/scalar_field::DynamicFilteredStrainRateModulus")) then
+      dynamic_t_strain_mod => extract_scalar_field(state, "DynamicFilteredStrainRateModulus", stat)
+      if(stat == 0) then
+        call zero(dynamic_t_strain_mod)
       end if
     end if
     ! Eddy viscosity field m_ij
@@ -112,9 +159,8 @@ contains
 
   end subroutine dynamic_les_init_fields
 
-  subroutine leonard_tensor(state, mnu, positions, tnu, leonard, alpha, path)
+  subroutine leonard_tensor(mnu, positions, tnu, leonard, alpha, path)
 
-    type(state_type), intent(inout)           :: state
     ! Unfiltered velocity
     type(vector_field), pointer               :: mnu
     type(vector_field), intent(in)            :: positions
@@ -135,6 +181,7 @@ contains
     ! Path is to level above solver options
     lpath = (trim(path)//"/dynamic_les")
     ewrite(2,*) "path: ", trim(lpath)
+    ewrite(2,*) "alpha: ", alpha
 
     do i = 1, positions%dim
       ewrite_minmax(mnu%val(i,:))
@@ -166,8 +213,8 @@ contains
       call set( ui_uj, i, t_loc )
       ! Test filter ^t
       u_loc = node_val(tnu,i)
-      call outer_product(u_loc, u_loc, t_loc)
       ! Calculate (test-filtered velocity) products: (ui^rt*uj^rt)
+      call outer_product(u_loc, u_loc, t_loc)
       call set( tui_tuj, i, t_loc )
     end do
 
@@ -184,6 +231,16 @@ contains
     deallocate(ui_uj); deallocate(tui_tuj)
 
   end subroutine leonard_tensor
+
+  !subroutine les_viscosity_module_register_diagnostic
+
+  !  dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
+
+  !  call register_diagnostic(dim=1, name="tensor", statistic="effectivestress", material_phase="Fluid")
+
+  !  call set_diagnostic(name, statistic, material_phase, value)
+
+  !end subroutine les_viscosity_module_register_diagnostic
 
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate

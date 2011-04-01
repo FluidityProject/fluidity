@@ -914,7 +914,8 @@ contains
             ! in all other cases the positions are remapped to the actual surface
             call remap_field_to_surface(position, bc_position, surface_element_list)
          end if
-         
+
+         ! Synthetic Eddy Method for generating inflow turbulence
          if (have_sem_bc) then
             surface_field11 => extract_surface_field(field, bc_name, name="MeanProfile")
             do k=1,3

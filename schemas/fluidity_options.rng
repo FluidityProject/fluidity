@@ -1568,7 +1568,7 @@ unedited surface.</a:documentation>
               </optional>
               <optional>
                 <element name="k-epsilon">
-                  <a:documentation>Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+                  <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
 Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
 Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
@@ -1621,21 +1621,6 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                     </element>
                   </element>
                   <element name="tensor_field">
-                    <a:documentation>Set the value of the background (laminar) tracer diffusivity field here.
-Make it small to see the influence of the eddy diffusivity.
-Background diffusivity</a:documentation>
-                    <attribute name="rank">
-                      <value>2</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>BackgroundDiffusivity</value>
-                    </attribute>
-                    <element name="prescribed">
-                      <ref name="mesh_choice"/>
-                      <ref name="prescribed_tensor_field"/>
-                    </element>
-                  </element>
-                  <element name="tensor_field">
                     <a:documentation>Eddy viscosity (turbulent diffusion of velocity).
 This is a fictitious isotropic viscosity, added to normal viscosity field, that
 carries the influence of turbulence onto the velocity field.</a:documentation>
@@ -1654,7 +1639,7 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                   <element name="tensor_field">
                     <a:documentation>Eddy diffusivity (turbulent diffusion of scalar fields).
 This is a fictitious isotropic diffusivity, added to normal diffusivity field, that
-carries the influence of turbulence onto scalar fields.
+carries the influence of turbulence onto the temperature field.
 It is related to the Eddy Viscosity by the turbulent Schmidt number for the
 TurbulentKineticEnergy field, sigma_k.</a:documentation>
                     <attribute name="rank">
@@ -1669,6 +1654,21 @@ TurbulentKineticEnergy field, sigma_k.</a:documentation>
                       <ref name="diagnostic_tensor_field"/>
                     </element>
                   </element>
+                  <element name="scalar_field">
+                    <a:documentation>Scalar component of the eddy viscosity tensor (diagnostic).
+This will appear in the stat file.</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>ScalarEddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
                   <optional>
                     <element name="scalar_field">
                       <a:documentation>Integral length scale of the turbulence (diagnostic).</a:documentation>
@@ -1677,22 +1677,6 @@ TurbulentKineticEnergy field, sigma_k.</a:documentation>
                       </attribute>
                       <attribute name="name">
                         <value>LengthScale</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Scalar component of the eddy viscosity tensor (diagnostic).</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>ScalarEddyViscosity</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -1733,6 +1717,34 @@ TurbulentKineticEnergy field, sigma_k.</a:documentation>
                       </element>
                     </element>
                   </optional>
+                  <element name="scalar_field">
+                    <a:documentation>Strain rate calculated by double dot product (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>StrainRate</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>Lumped mass (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>LumpedMass</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
                   <element name="source_absorption">
                     <a:documentation>Select whether source and absorption terms for k and epsilon
 are implicit or explicit.</a:documentation>

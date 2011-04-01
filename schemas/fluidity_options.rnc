@@ -1250,7 +1250,7 @@ start =
                      }
                   }
                }?,
-               ## Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+               ## [UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
                ## Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
@@ -1297,19 +1297,6 @@ start =
                         }
                      )
                   },
-                  ## Set the value of the background (laminar) tracer diffusivity field here.
-                  ## Make it small to see the influence of the eddy diffusivity.
-                  ## Background diffusivity
-                  element tensor_field {
-                     attribute rank { "2" },
-                     attribute name { "BackgroundDiffusivity" },
-                     (
-                        element prescribed {
-                           mesh_choice,
-                           prescribed_tensor_field
-                        }
-                     )
-                  },
                   ## Eddy viscosity (turbulent diffusion of velocity).
                   ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
                   ## carries the influence of turbulence onto the velocity field.
@@ -1326,7 +1313,7 @@ start =
                   },
                   ## Eddy diffusivity (turbulent diffusion of scalar fields).
                   ## This is a fictitious isotropic diffusivity, added to normal diffusivity field, that
-                  ## carries the influence of turbulence onto scalar fields.
+                  ## carries the influence of turbulence onto the temperature field.
                   ## It is related to the Eddy Viscosity by the turbulent Schmidt number for the
                   ## TurbulentKineticEnergy field, sigma_k.
                   element tensor_field {
@@ -1340,10 +1327,11 @@ start =
                         }
                      )
                   },
-                  ## Integral length scale of the turbulence (diagnostic).
+                  ## Scalar component of the eddy viscosity tensor (diagnostic).
+                  ## This will appear in the stat file.
                   element scalar_field {
                      attribute rank { "0" },
-                     attribute name { "LengthScale" },
+                     attribute name { "ScalarEddyViscosity" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1351,11 +1339,11 @@ start =
                            diagnostic_scalar_field
                         }
                      )
-                  }?,
-                  ## Scalar component of the eddy viscosity tensor (diagnostic).
+                  },
+                  ## Integral length scale of the turbulence (diagnostic).
                   element scalar_field {
                      attribute rank { "0" },
-                     attribute name { "ScalarEddyViscosity" },
+                     attribute name { "LengthScale" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1388,6 +1376,30 @@ start =
                         }
                      )
                   }?,
+                  ## Strain rate calculated by double dot product (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "StrainRate" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  },
+                  ## Lumped mass (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "LumpedMass" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  },
                   ## Select whether source and absorption terms for k and epsilon
                   ## are implicit or explicit.
                   element source_absorption {
