@@ -845,6 +845,7 @@
       type(vector_field), pointer :: u
       type(scalar_field), pointer :: eta
       type(adj_vector) :: mesh_vec
+      type(adj_storage_data) :: storage
 
       ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -873,7 +874,9 @@
         call adj_chkierr(ierr)
         mesh => extract_mesh(states, trim(mesh_name))
         mesh_vec = mesh_type_to_adj_vector(mesh)
-        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory_incref(mesh_vec))
+        ierr = adj_storage_memory_incref(mesh_vec, storage)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, adj_meshes(j+1), storage)
         call adj_chkierr(ierr)
       end do
 
