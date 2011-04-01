@@ -224,9 +224,12 @@ class Transform:
   def set_J(self,J,gi):
     # Set J for the specified quadrature point and calculate its inverse
     self.J[gi] = numpy.matrix(J)
-    self.invJ[gi] = numpy.matrix(numpy.linalg.inv(self.J[gi]))
-    self.invJ[gi] = self.invJ[gi] #/ numpy.linalg.det(self.invJ[gi])
-
+    if max(J.shape) != min(J.shape):
+      # we don't have a square Jacobian, i.e. mesh_dim < coord_dim
+      if hasattr(self, "invJ"):
+        del self.invJ
+    else:
+      self.invJ[gi] = numpy.matrix(numpy.linalg.inv(self.J[gi]))
 
   def transform_to_physical_detwei(self,field):
      # field is the Coordinate Field
@@ -253,7 +256,7 @@ class Transform:
           self.set_J(numpy.transpose(J),gi)
       elif(dim==2 or dim == 3):
         for gi in range(element.ngi):
-          J = X*element.dn[:,gi,:]
+          J = numpy.dot(X, element.dn[:,gi,:])
           self.detwei[gi] = abs( numpy.linalg.det(J)) * element.quadrature.weights[gi]
           # The Jacobian is the transpose of the J that was calculated
           self.set_J(numpy.transpose(J),gi)
@@ -265,7 +268,8 @@ class Transform:
       # 1-dim element embedded in 'dim'-dimensional space:
       if(ldim==1):
         for gi in range(element.ngi):
-          J[:,0] = X*element.dn[:,gi,0]
+          J = numpy.zeros([dim, ldim])
+          J[:,0] = numpy.dot(X, element.dn[:,gi,0])
           self.detwei[gi] = element.quadrature.weights[gi]
           self.set_J(numpy.transpose(J),gi)
 
@@ -273,7 +277,7 @@ class Transform:
       elif(ldim==2):
         # J is 2 columns of 2 'dim'-dimensional vectors:
         for gi in range(element.ngi):
-          J = X*element.dn[:,gi,:]
+          J = numpy.dot(X, element.dn[:,gi,:])
           # Outer product times quad. weight
           self.detwei[gi] = abs( J[1,0]*J[2,1]-J[2,0]*J[1,1]
                           - J[2,0]*J[0,1]+J[0,0]*J[2,1]
