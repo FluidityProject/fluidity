@@ -549,42 +549,6 @@ prognostic_velocity_field =
                      element enable_lilly {
                         empty
                      }?,
-                     ## Mesh-filtered velocity - may not be required. (diagnostic). 
-                     element vector_field {
-                        attribute rank { "1" },
-                        attribute name { "DynamicVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_vector_field
-                           }
-                        )
-                     },
-                     ## Test-filtered velocity (diagnostic).
-                     element vector_field {
-                        attribute rank { "1" },
-                        attribute name { "DynamicFilteredVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_vector_field
-                           }
-                        )
-                     },
-                     ## Leonard tensor (diagnostic). This is the resolved turbulent stress tensor T_ij-t_ij.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "DynamicLeonardTensor" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     },
                      ## Filter width tensor (diagnostic). This is the square of the mesh size.
                      element tensor_field {
                         attribute rank { "2" },
@@ -626,7 +590,7 @@ prognostic_velocity_field =
                      ## carries the influence of turbulence onto the velocity field.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicEddyViscosity" },
+                        attribute name { "EddyViscosity" },
                         (
                            element diagnostic {
                               internal_algorithm,

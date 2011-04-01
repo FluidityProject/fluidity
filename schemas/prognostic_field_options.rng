@@ -644,48 +644,6 @@ Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
                       <empty/>
                     </element>
                   </optional>
-                  <element name="vector_field">
-                    <a:documentation>Mesh-filtered velocity - may not be required. (diagnostic). </a:documentation>
-                    <attribute name="rank">
-                      <value>1</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>DynamicVelocity</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
-                  </element>
-                  <element name="vector_field">
-                    <a:documentation>Test-filtered velocity (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>1</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>DynamicFilteredVelocity</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
-                  </element>
-                  <element name="tensor_field">
-                    <a:documentation>Leonard tensor (diagnostic). This is the resolved turbulent stress tensor T_ij-t_ij.</a:documentation>
-                    <attribute name="rank">
-                      <value>2</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>DynamicLeonardTensor</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_tensor_field"/>
-                    </element>
-                  </element>
                   <optional>
                     <element name="tensor_field">
                       <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
@@ -743,7 +701,7 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicEddyViscosity</value>
+                        <value>EddyViscosity</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>

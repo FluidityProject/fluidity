@@ -41,147 +41,83 @@ module les_viscosity_module
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public dynamic_les_init_diagnostic_fields, dynamic_les_set_diagnostic_fields, leonard_tensor, les_strain_rate
+  public les_init_diagnostic_tensor_fields, les_set_diagnostic_tensor_fields, leonard_tensor, les_strain_rate
 
 contains
 
-  subroutine dynamic_les_init_diagnostic_fields(state, tnu, mnu, leonard, have_averaging, &
-                               have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+  subroutine les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer     :: tnu, mnu, u, nu_av, tnu_av, mnu_av
-    type(tensor_field), pointer     :: leonard, dynamic_eddy_visc, leonard_av
-    type(tensor_field), pointer     :: dynamic_strain, dynamic_t_strain, dynamic_filter
-    logical                         :: have_averaging, have_eddy_visc, have_strain
-    logical                         :: have_filtered_strain, have_filter_width
-    integer                         :: stat
-
-    u => extract_vector_field(state, "Velocity")
-
-    ewrite(2,*) "Initialising compulsory dynamic LES fields"
-    ! Test-filtered velocity field
-    tnu => extract_vector_field(state, "DynamicFilteredVelocity", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(tnu%name), ", ", trim(tnu%mesh%name)
-      call zero(tnu)
-    end if
-    ! Dynamic velocity field
-    mnu => extract_vector_field(state, "DynamicVelocity", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(mnu%name), ", ", trim(mnu%mesh%name)
-      call zero(mnu)
-    end if
-    ! Leonard tensor field L_ij
-    leonard => extract_tensor_field(state, "DynamicLeonardTensor", stat)
-    if(stat == 0) then
-      ewrite(2,*) "zeroing field: ", trim(leonard%name)
-      call zero(leonard)
-    end if
-
-    ! Are we using averaged velocity to stabilise the model? DOES NOT WORK YET
-    if(have_averaging) then
-      ewrite(2,*) "Initialising dynamic LES averaged fields"
-      ! Averaged velocity field
-      !nu_av => vector_source_field(state, u)
-      nu_av => u
-
-      ! Test-filtered velocity field
-      tnu_av => extract_vector_field(state, "DynamicFilteredAverageVelocity", stat)
-      if(stat == 0) then
-        ewrite(2,*) "zeroing field: ", trim(tnu_av%name), ", ", trim(tnu_av%mesh%name)
-        call zero(tnu_av)
-      end if
-      ! Dynamic velocity field
-      mnu_av => extract_vector_field(state, "DynamicAverageVelocity", stat)
-      if(stat == 0) then
-        ewrite(2,*) "zeroing field: ", trim(mnu_av%name), ", ", trim(mnu_av%mesh%name)
-        call zero(mnu_av)
-      end if
-      ! Leonard tensor field L_ij
-      leonard_av => extract_tensor_field(state, "DynamicAverageLeonardTensor", stat)
-      if(stat == 0) then
-        ewrite(2,*) "zeroing field: ", trim(leonard_av%name)
-        call zero(leonard_av)
-      end if
-    else
-      nu_av => null(); mnu_av => null(); tnu_av => null(); leonard_av => null()
-    end if
+    type(tensor_field), pointer     :: tensorfield
+    logical                         :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
 
     ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
     ! Filter width
     if(have_filter_width) then
-      dynamic_filter => extract_tensor_field(state, "DynamicFilterWidth", stat)
-      if(stat == 0) then
-        call zero(dynamic_filter)
-      end if
+      tensorfield => extract_tensor_field(state, "DynamicFilterWidth")
+      call zero(tensorfield)
     end if
     ! Strain rate field S1
     if(have_strain) then
-      dynamic_strain => extract_tensor_field(state, "DynamicStrainRate", stat)
-      if(stat == 0) then
-        call zero(dynamic_strain)
-      end if
+      tensorfield => extract_tensor_field(state, "DynamicStrainRate")
+      call zero(tensorfield)
     end if
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
-      dynamic_t_strain => extract_tensor_field(state, "DynamicFilteredStrainRate", stat)
-      if(stat == 0) then
-        call zero(dynamic_t_strain)
-      end if
+      tensorfield => extract_tensor_field(state, "DynamicFilteredStrainRate")
+      call zero(tensorfield)
     end if
     ! Eddy viscosity field m_ij
     if(have_eddy_visc) then
-      dynamic_eddy_visc => extract_tensor_field(state, "DynamicEddyViscosity", stat)
-      if(stat == 0) then
-        call zero(dynamic_eddy_visc)
-      end if
+      tensorfield => extract_tensor_field(state, "EddyViscosity")
+      call zero(tensorfield)
     end if
 
-  end subroutine dynamic_les_init_diagnostic_fields
+  end subroutine les_init_diagnostic_tensor_fields
 
-  subroutine dynamic_les_set_diagnostic_fields(mnu, ele, detwei, &
+  subroutine les_set_diagnostic_tensor_fields(state, nu, ele, detwei, &
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
-    type(state_type)                   :: state
-    type(vector_field), intent(in)                    :: mnu
-    integer, intent(in)                               :: ele
-    real, dimension(ele_ngi(mnu,ele)), intent(in)     :: detwei
-    real, dimension(mnu%dim,mnu%dim,ele_ngi(mnu,ele)),intent(in) &
-                      & :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
+    type(state_type), intent(inout)                             :: state
+    type(vector_field), intent(in)                              :: nu
+    integer, intent(in)                                         :: ele
+    real, dimension(ele_ngi(nu,ele)), intent(in)                :: detwei
+    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in) &
+                                       & :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
     logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
-    type(tensor_field), pointer                       :: tensorfield
-    real, dimension(mnu%dim,mnu%dim,ele_loc(mnu,ele)) :: tensor_loc
+    type(tensor_field), pointer                                 :: tensorfield
+    real, dimension(nu%dim,nu%dim,ele_loc(nu,ele))              :: tensor_loc
 
-    ! Filter width
-    if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "DynamicFilterWidth")
-      tensor_loc=shape_tensor_rhs(ele_shape(mnu, ele), mesh_size_gi, detwei)
-      call addto(tensorfield, ele_nodes(mnu, ele), tensor_loc)
+    ! Eddy viscosity field m_ij
+    if(have_eddy_visc) then
+      tensorfield => extract_tensor_field(state, "EddyViscosity")
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), les_tensor_gi, detwei)
+      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Strain rate field S1
     if(have_strain) then
       tensorfield => extract_tensor_field(state, "DynamicStrainRate")
-      tensor_loc=shape_tensor_rhs(ele_shape(mnu, ele), strain_gi, detwei)
-      call addto(tensorfield, ele_nodes(mnu, ele), tensor_loc)
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), strain_gi, detwei)
+      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
       tensorfield => extract_tensor_field(state, "DynamicFilteredStrainRate")
-      tensor_loc=shape_tensor_rhs(ele_shape(mnu, ele), t_strain_gi, detwei)
-      call addto(tensorfield, ele_nodes(mnu, ele), tensor_loc)
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), t_strain_gi, detwei)
+      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
-    ! Eddy viscosity field m_ij
-    if(have_eddy_visc) then
-      tensorfield => extract_tensor_field(state, "DynamicEddyViscosity")
-      tensor_loc=shape_tensor_rhs(ele_shape(mnu, ele), les_tensor_gi, detwei)
-      call addto(tensorfield, ele_nodes(mnu, ele), tensor_loc)
+    ! Filter width
+    if(have_filter_width) then
+      tensorfield => extract_tensor_field(state, "DynamicFilterWidth")
+      tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), mesh_size_gi, detwei)
+      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
-  end subroutine dynamic_les_set_diagnostic_fields
+  end subroutine les_set_diagnostic_tensor_fields
 
   subroutine leonard_tensor(mnu, positions, tnu, leonard, alpha, path)
 

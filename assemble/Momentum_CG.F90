@@ -226,12 +226,10 @@
 
       ! for all LES models:
       character(len=OPTION_PATH_LEN) :: les_option_path
-      ! For 2nd order:
-      type(tensor_field), pointer :: eddy_visc
       ! For 4th order:
       type(tensor_field):: grad_u
       ! For Germano Dynamic LES:
-      type(vector_field), pointer :: nu_av, mnu_av, tnu_av, tnu, mnu
+      type(vector_field), pointer :: nu_av, mnu, mnu_av, tnu, tnu_av
       type(tensor_field), pointer :: leonard, leonard_av
       real                        :: alpha, alpha2
       logical                     :: have_averaging
@@ -377,19 +375,12 @@
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-            ! Eddy viscosity field m_ij
+
             have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
             if(have_eddy_visc) then
-               eddy_visc => extract_tensor_field(state, "EddyViscosity", stat)
-               if(stat == 0) then
-                  call zero(eddy_visc)
-                  ! 2nd order LES debug checks
-                  do dim = 1, viscosity%dim(1)
-                    do dim2 = 1, viscosity%dim(2)
-                      ewrite_minmax(eddy_visc%val(dim,dim2,:))
-                    end do
-                  end do
-               end if
+               ! Initialise the eddy viscosity field. Calling this subroutine works because
+               ! you can't have 2 different types of LES model for the same material phase.
+               call les_init_diagnostic_tensor_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
          end if
          if (les_fourth_order) then
@@ -413,17 +404,31 @@
            have_filtered_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")
 
-           ! Initialise some compulsory and optional fields for the model.
-           call dynamic_les_init_diagnostic_fields(state, tnu, mnu, leonard, have_averaging, &
-                               have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+           ! Initialise necessary local fields.
+           ewrite(2,*) "Initialising compulsory dynamic LES fields"
+           call allocate(mnu, u%dim, u%mesh, "DynamicVelocity")
+           call allocate(tnu, u%dim, u%mesh, "DynamicFilteredVelocity")
+           call allocate(leonard, u%mesh, "DynamicLeonardTensor")
+           call zero(mnu); call zero(tnu); call zero(leonard)
+
+           ! Initialise optional diagnostic fields.
+           call les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
            ! Use time-averaged quantities. EXPERIMENTAL - DOES NOT WORK.
            if(have_averaging) then
+             ewrite(2,*) "Initialising dynamic LES averaged fields"
+             ! Test-filtered velocity field
+             call allocate(mnu_av, u%dim, u%mesh, "DynamicAverageVelocity")
+             call allocate(tnu_av, u%dim, u%mesh, "DynamicFilteredAverageVelocity")
+             call allocate(leonard_av, u%mesh, "DynamicAverageLeonardTensor")
+             call zero(mnu_av); call zero(tnu_av); call zero(leonard_av)
+
+             ! Averaged velocity field
              ewrite(2,*) "Calculating averaged velocity"
+             !nu_av => vector_source_field(state, u)
              !call calculate_time_averaged_vector(state, nu_av)
-             do dim = 1, nu%dim
-               ewrite_minmax(nu_av%val(dim,:))
-             end do
+           else
+             nu_av => dummyvector
            end if
 
            ! Are we filtering the velocity field to stabilise the model?
@@ -454,7 +459,6 @@
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.
-           ! If velocity is already filtered, this applies the test filter on top of that.
            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
            call leonard_tensor(mnu, x, tnu, leonard, alpha, les_option_path)
            if(have_averaging) then
@@ -469,7 +473,7 @@
          end if
       else
          tnu => dummyvector; mnu => dummyvector; nu_av => dummyvector; tnu_av => dummyvector; mnu_av => dummyvector
-         leonard => dummytensor; leonard_av => dummytensor; eddy_visc => dummytensor
+         leonard => dummytensor; leonard_av => dummytensor
       end if
       
 
@@ -664,12 +668,12 @@
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
-         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
+         call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
-              mnu, tnu, leonard, alpha, eddy_visc, &
+              mnu, tnu, leonard, alpha, &
               gp, surfacetension, &
               assemble_ct_matrix, cg_pressure, on_sphere, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
@@ -841,6 +845,12 @@
 
       if (les_fourth_order) then
         call deallocate(grad_u)
+      end if
+
+      if (dynamic_les) then
+        call deallocate(mnu); call deallocate(mnu_av)
+        call deallocate(tnu); call deallocate(tnu_av)
+        call deallocate(leonard); call deallocate(leonard_av)
       end if
 
       call deallocate(dummytensor)
@@ -1098,19 +1108,22 @@
 
     end subroutine construct_momentum_surface_element_cg
 
-    subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
+    subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
                                             mass, masslump, visc_masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
-                                            mnu, tnu, leonard, alpha, eddy_visc, &
+                                            mnu, tnu, leonard, alpha, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix, cg_pressure, on_sphere, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
 
       !!< Assembles the local element matrix contributions and places them in big_m
       !!< and rhs for the continuous galerkin momentum equations
+
+      ! Needed for dynamic LES unfortunately
+      type(state_type), intent(inout) :: state
 
       ! current element
       integer, intent(in) :: ele
@@ -1129,9 +1142,6 @@
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
-
-      ! Diagnostic field for LES 2nd order
-      type(tensor_field), intent(inout) :: eddy_visc
 
       ! Fields for Germano Dynamic LES Model
       type(vector_field), intent(in)    :: mnu, tnu
@@ -1315,8 +1325,8 @@
       
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
-           mnu, tnu, leonard, alpha, eddy_visc, &
+        call add_viscosity_element_cg(state, ele, u, oldu_val, nu, x, viscosity, grad_u, &
+           mnu, tnu, leonard, alpha, &
            du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
       
@@ -1907,18 +1917,16 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
-         mnu, tnu, leonard, alpha, eddy_visc, &
+    subroutine add_viscosity_element_cg(state, ele, u, oldu_val, nu, x, viscosity, grad_u, &
+         mnu, tnu, leonard, alpha, &
          du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+      type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
       type(tensor_field), intent(in) :: viscosity
       type(tensor_field), intent(in) :: grad_u
-
-      ! Diagnostic field for LES 2nd order
-      type(tensor_field), intent(inout) :: eddy_visc
 
       ! Fields for Germano Dynamic LES Model
       type(vector_field), intent(in)    :: mnu, tnu
@@ -1928,13 +1936,10 @@
       ! Local quantities specific to Germano Dynamic LES Model
       real                                           :: numerator, denominator
       real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi, dynamic_les_coef_gi
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
       real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
-      real, dimension(ele_loc(u, ele))               :: scalar_loc
-      real, dimension(x%dim, x%dim, ele_loc(u, ele)) :: tensor_loc
       type(element_type)                             :: shape_mnu
       integer, dimension(:), pointer                 :: nodes_mnu
-      character(len=OPTION_PATH_LEN)                 :: les_path
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
@@ -1997,10 +2002,12 @@
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
                     smagorinsky_coefficient**2
             end do
-            ! Eddy viscosity tensor field
+            ! Eddy viscosity tensor field. Calling this subroutine works because
+            ! you can't have 2 different types of LES model for the same material phase.
             if(have_eddy_visc) then
-              tensor_loc=shape_tensor_rhs(ele_shape(u, ele), les_tensor_gi, detwei)
-              call addto(eddy_visc, ele_nodes(u, ele), tensor_loc)
+              call les_set_diagnostic_tensor_fields(state, u, ele, detwei, &
+                   les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
+                 have_eddy_visc, .false., .false., .false.)
             end if
 
          ! 4th order Smagorinsky model
@@ -2080,7 +2087,7 @@
             end if
 
             ! Set diagnostic fields
-            call dynamic_les_set_diagnostic_fields(mnu, ele, detwei, &
+            call les_set_diagnostic_tensor_fields(state, mnu, ele, detwei, &
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
