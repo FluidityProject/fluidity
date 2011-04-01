@@ -374,7 +374,6 @@
 
         ! Tell libadjoint about the equations we are solving
         if (adjoint) then
-          call adjoint_register_timestep_iteration(timestep, dt, nit, states)
           call adjoint_record_velocity(timestep, nit, states)
         end if
 
@@ -400,6 +399,8 @@
       call deallocate(lhs_matrix)
       call deallocate(rhs)
       call deallocate(advection_matrix)
+
+      call adjoint_register_timestep(timestep, dt, nit-1, states)
 
     end subroutine execute_timestep
 
@@ -673,6 +674,7 @@
       type(mesh_type), pointer :: mesh
       type(scalar_field), pointer :: u
       type(adj_vector) :: mesh_vec
+      type(adj_storage_data) :: storage
 
       ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -701,7 +703,9 @@
         call adj_chkierr(ierr)
         mesh => extract_mesh(states, trim(mesh_name))
         mesh_vec = mesh_type_to_adj_vector(mesh)
-        ierr = adj_record_variable(adjointer, adj_meshes(j+1), adj_storage_memory_incref(mesh_vec))
+        ierr = adj_storage_memory_incref(mesh_vec, storage)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, adj_meshes(j+1), storage)
         call adj_chkierr(ierr)
       end do
 
@@ -718,12 +722,12 @@
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
         call adj_record_anything_necessary(adjointer, python_timestep=1, timestep_to_record=0, functional=trim(functional_name), states=states)
       end do
-      call adjoint_record_velocity(timestep=0, iteration=1, states=states)
+      call adjoint_record_velocity(0, 1, states)
 #endif
     end subroutine adjoint_register_initial_condition
 
-    subroutine adjoint_register_timestep_iteration(timestep, dt, iteration, states)
-      integer, intent(in) :: timestep, iteration
+    subroutine adjoint_register_timestep(timestep, dt, niterations, states)
+      integer, intent(in) :: timestep, niterations
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
@@ -737,50 +741,58 @@
       integer :: j, nfunctionals, nonlinear_iterations
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
-      
-      call get_option("/timestepping/nonlinear_iterations", nonlinear_iterations, default=2)
-      ! Set up adj_variables
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=nonlinear_iterations-1, auxiliary=ADJ_FALSE, variable=previous_u)
-      call adj_chkierr(ierr)
-      if (iteration==1) then
-        ! Set up adj_blocks
-        ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=burgers_advection_block)
-        call adj_chkierr(ierr)
-        ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
-        call adj_chkierr(ierr)
-      else 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
-        call adj_chkierr(ierr)
-        ! Set up adj_blocks
-        ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
-        call adj_chkierr(ierr)
-        ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
-        call adj_chkierr(ierr)
-      end if
-      
-      
-      ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("BurgersOperator", burgers_advection_block, context=c_loc(matrices), block=burgers_block)
-      call adj_chkierr(ierr)
-      
-      ! Now we can register our lovely equation.
-      ierr = adj_create_equation(u, blocks=(/timestepping_block, burgers_block/), &
-                                          & targets=(/previous_u, u/), equation=equation)
-      call adj_chkierr(ierr)
+      integer :: iteration, niterations_prev
 
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
+      do iteration=1,niterations
+        ! Set up adj_variables
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
+        call adj_chkierr(ierr)
 
-      ! And now we gots to destroy some blocks
-      ierr = adj_destroy_block(timestepping_block)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(burgers_block)
-      call adj_chkierr(ierr)
+        ! We need to find out how many nonlinear iterations we did at the previous timestep, so that we can reference it
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+        call adj_chkierr(ierr)
+        ierr = adj_iteration_count(adjointer, previous_u, niterations_prev)
+        call adj_chkierr(ierr)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=niterations_prev-1, auxiliary=ADJ_FALSE, variable=previous_u)
+        call adj_chkierr(ierr)
+
+        if (iteration==1) then
+          ! Set up adj_blocks
+          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+        else 
+          ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
+          call adj_chkierr(ierr)
+          ! Set up adj_blocks
+          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+        end if
+
+        ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
+        call adj_chkierr(ierr)
+        ierr = adj_create_block("BurgersOperator", burgers_advection_block, context=c_loc(matrices), block=burgers_block)
+        call adj_chkierr(ierr)
+
+        ! Now we can register our lovely equation.
+        ierr = adj_create_equation(u, blocks=(/timestepping_block, burgers_block/), &
+                                            & targets=(/previous_u, u/), equation=equation)
+        call adj_chkierr(ierr)
+
+        ierr = adj_register_equation(adjointer, equation)
+        call adj_chkierr(ierr)
+        ierr = adj_destroy_equation(equation)
+        call adj_chkierr(ierr)
+
+        ! And now we gots to destroy some blocks
+        ierr = adj_destroy_block(timestepping_block)
+        call adj_chkierr(ierr)
+        ierr = adj_destroy_block(burgers_block)
+        call adj_chkierr(ierr)
+      end do
 
       ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
@@ -799,7 +811,7 @@
       end do
 
 #endif
-    end subroutine adjoint_register_timestep_iteration
+    end subroutine adjoint_register_timestep
 
     subroutine adjoint_record_velocity(timestep, iteration, states)
       integer, intent(in) :: timestep, iteration
@@ -817,14 +829,12 @@
       u => extract_scalar_field(states(1), "Velocity")
       u_vec = field_to_adj_vector(u)
 
-      storage = adj_storage_memory_incref(u_vec);
+      ierr = adj_storage_memory_copy(u_vec, storage);
+      call adj_chkierr(ierr)
       ierr = adj_record_variable(adjointer, u_var, storage);
-      ! We don't call adj_chkierr because we might already have recorded it, and that's OK
-      if (ierr /= ADJ_ERR_OK) then
-        ! We pre-emptively incref'd in preparation for giving libadjoint a copy,
-        ! but libadjoint already has a copy.
-        ! So we decref again
-        call femtools_vec_destroy_proc(u_vec)
+      call femtools_vec_destroy_proc(u_vec)
+      if (ierr /= ADJ_ERR_INVALID_INPUTS) then
+        call adj_chkierr(ierr)
       end if
 #endif
     end subroutine adjoint_record_velocity
