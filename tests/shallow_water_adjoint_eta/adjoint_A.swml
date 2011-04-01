@@ -76,7 +76,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -410,12 +410,10 @@ if time &lt;= 1.0 &lt; time+dt:
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
   eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
   
-  tmp_eta = numpy.zeros(len(eta.val))
-  
   # We want to temporally interpolate to evaluate eta at t=1.0
   alpha = (1.0 - time) / dt
   assert 0 &lt;= alpha &lt;= 1
-  tmp_eta[:] = (1-alpha) * eta_prev.val + alpha * eta.val
+  tmp_eta = (1-alpha) * eta_prev.val + alpha * eta.val
   
   # Now we want to integrate that over space
   coord = states[0]["Fluid"].vector_fields["Coordinate"]
