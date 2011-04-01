@@ -57,7 +57,7 @@ module radiation_solve_power_iteration
       integer :: max_power_iteration
       real :: keff_tolerance_relative
       real :: flux_tolerance_absolute
-      logical :: terminate_if_not_converged_power            
+      logical :: terminate_if_not_converged_power
    end type power_iteration_options_type
    
 contains
@@ -76,7 +76,7 @@ contains
       integer :: count_group_solves
       integer :: total_count_group_solves
       integer :: petsc_iterations_taken_scatter_iter_all
-      integer :: petsc_iterations_taken_power_iter_all      
+      integer :: petsc_iterations_taken_power_iter_all
       logical :: power_iteration_converged
       type(power_iteration_options_type) :: power_iteration_options
       type(scalar_field), pointer :: keff_field
@@ -92,7 +92,7 @@ contains
       total_count_group_solves = 0
       
       call get_power_iteration_options(particle, &
-                                       power_iteration_options)                                       
+                                       power_iteration_options)
       
       petsc_iterations_taken_power_iter_all = 0
                   
@@ -109,7 +109,7 @@ contains
                                 count_group_solves, &
                                 petsc_iterations_taken_scatter_iter_all, &
                                 invoke_eigenvalue_scatter_solve = .true.)
-                           
+
          call calculate_eigenvalue(particle)
 
          call check_power_iteration_convergence(power_iteration_converged, &
@@ -127,16 +127,16 @@ contains
          petsc_iterations_taken_power_iter_all = &
          petsc_iterations_taken_power_iter_all + &
          petsc_iterations_taken_scatter_iter_all
-                           
+
          if (power_iteration_converged) exit power_iteration
-                  
+
       end do power_iteration
       
       ewrite(1,*) 'Total number of group solves for power iteration method: ', &
                   total_count_group_solves
       
-      ewrite(1,*) 'Total number of petsc iterations taken for power iteration method: ', &
-                  petsc_iterations_taken_power_iter_all
+      ewrite(1,*) 'Total number of petsc iterations taken for power iteration method: ',&
+                  &petsc_iterations_taken_power_iter_all
       
       ! set the Keff into the constant scalar field for output
       keff_field => extract_scalar_field(particle%state, &
@@ -183,7 +183,7 @@ contains
                       power_iteration_options%flux_tolerance_absolute)
 
       power_iteration_options%terminate_if_not_converged_power = &
-      have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')         
+      have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')
             
    end subroutine get_power_iteration_options
 
@@ -193,12 +193,12 @@ contains
       
       !!< Copy the latest flux and eigenvalue to the old values 
       
-      type(particle_type), intent(inout) :: particle      
+      type(particle_type), intent(inout) :: particle
                   
       ! set the eigenvalue old
       particle%keff%keff_old = particle%keff%keff_new
       
-      call copy_to_old_values_particle_flux(particle)     
+      call copy_to_old_values_particle_flux(particle)
             
    end subroutine copy_to_old_values_eig 
 
@@ -225,7 +225,7 @@ contains
       type(vector_field), pointer :: positions 
       type(scalar_field), pointer :: particle_flux 
       type(scalar_field), pointer :: particle_flux_old
-      type(scalar_field), target :: production_coeff      
+      type(scalar_field), target :: production_coeff
       type(mesh_type), pointer :: material_fn_space
       type(scalar_field_pointer), dimension(:), pointer :: scalar_fields 
       character(len=OPTION_PATH_LEN) :: positions_mesh_name
@@ -273,7 +273,7 @@ contains
                                            trim(material_fn_space_name))
 
          ! get the number_energy_groups within this set
-         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)         
+         call get_option(trim(energy_group_set_path)//'/number_of_energy_groups',number_of_energy_groups)
          
          ! allocate the the production field for this group set
          call allocate(production_coeff, &
@@ -337,8 +337,8 @@ contains
       ! form the latest keff estimate
       particle%keff%keff_new = particle%keff%keff_old*k_top/k_bottom
 
-      ewrite(1,*) 'Keff: ',particle%keff%keff_new     
-                
+      ewrite(1,*) 'Keff: ',particle%keff%keff_new
+
    end subroutine calculate_eigenvalue  
 
    ! --------------------------------------------------------------------------
@@ -349,7 +349,7 @@ contains
                                                 power_iteration_options) 
    
       !!< Check the convergence of the power iterations via the keff and flux
-      !!< Always insist on atleast 2 successive convergence passes   
+      !!< Always insist on atleast 2 successive convergence passes
       
       logical, intent(out) :: power_iteration_converged
       integer, intent(inout) :: number_all_convereged_pass 
@@ -390,7 +390,7 @@ contains
       end if check_keff 
       
       ewrite(1,*) 'rel_difference_keff,abs_difference_keff,keff_converged: ', &
-                   rel_difference_keff,abs_difference_keff,keff_converged     
+                   rel_difference_keff,abs_difference_keff,keff_converged
       
       ! check the flux convergence
       call check_particle_flux_convergence(particle, &
@@ -400,20 +400,20 @@ contains
       ! decide if power iteration converged
       power_iteration_converged = .true.
       
-      if (.not. keff_converged) power_iteration_converged = .false.     
+      if (.not. keff_converged) power_iteration_converged = .false.
 
-      if (.not. flux_converged) power_iteration_converged = .false.     
+      if (.not. flux_converged) power_iteration_converged = .false.
       
       ! count the number of all converged passes to insist on two consecutive passes
       if (power_iteration_converged) number_all_convereged_pass = number_all_convereged_pass + 1
       
       if (.not. power_iteration_converged) number_all_convereged_pass = 0
       
-      if (number_all_convereged_pass < 2) power_iteration_converged = .false.    
+      if (number_all_convereged_pass < 2) power_iteration_converged = .false.
 
-      ewrite(1,*) 'power_iteration_converged: ',power_iteration_converged  
+      ewrite(1,*) 'power_iteration_converged: ',power_iteration_converged
           
-   end subroutine check_power_iteration_convergence  
+   end subroutine check_power_iteration_convergence
 
    ! --------------------------------------------------------------------------
 
