@@ -76,10 +76,20 @@ contains
 
     type(state_type), intent(inout)     :: state
     character(len=OPTION_PATH_LEN)      :: melt_path
-    integer                             :: i
-    integer                             :: surf_id
     ! hack
     type(scalar_field), pointer                  :: T,S
+    ! When bc=Dirichlet 
+     character(len=FIELD_NAME_LEN)       :: bc_type
+    type(integer_set)                   :: surface_ids
+    integer, dimension(:),allocatable   :: surf_id
+    integer, dimension(:), allocatable  :: sf_nodes_ar
+    integer, dimension(2) :: shape_option
+    type(mesh_type), pointer            :: mesh
+    type(mesh_type)                     :: surface_mesh
+    integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
+    integer, dimension(:), allocatable  :: surface_element_list
+     integer                             :: i,the_node
+      
     melt_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
 
  
@@ -98,15 +108,44 @@ contains
     gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
     gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
 
+    !! bc= Dirichlet initialize T and S at the ice-ocean interface
     !hack
-    T => extract_scalar_field(state,"Temperature")
-    S => extract_scalar_field(state,"Salinity")
-!    do i=1,node_count(T)
-! Enabling the following will make Dirichlet work
-!       call set(T,2.0)
-!       call set(S,34.0)
-!    enddo
+    !This change with bc type
+    call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)   
+       
+        select case(bc_type)
+        case("neumann")
+         
+            
+        case("dirichlet") 
+        !! Define the values at ice-ocean interface    
+        ! Get the surface_id of the ice-ocean interface
+            shape_option=option_shape(trim(melt_path)//"/melt_surfaceID")
+            allocate(surf_id(1:shape_option(1)))
+            call get_option(trim(melt_path)//'/melt_surfaceID',surf_id)
+            call allocate(surface_ids)
+            call insert(surface_ids,surf_id)
+            mesh => extract_mesh(state,"VelocityMesh")
+            ! Input, mesh, surface_id
+            ! Output surface_mesh,surface_element_list
+            call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
+
+            T => extract_scalar_field(state,"Temperature")
+            S => extract_scalar_field(state,"Salinity")
+            do i=1,size(surface_nodes)
+                the_node = surface_nodes(i)
+                
+                call set(T,the_node,0.0)
+                call set(S,the_node,34.0)
+               
+            enddo
+!            T_bc => extract_scalar_field(state,"Tb")
+!            S_bc => extract_scalar_field(state,"Sb")
+        case default
+            FLAbort('Unknown BC for TKE')
+        end select 
     
+
     ewrite(1,*) "---------End melt_surf_init---------------------------------"
 
  end subroutine melt_surf_init
@@ -251,7 +290,7 @@ subroutine melt_allocate_surface(state)
         av_normal = av_normal / area_sum
         ! normalize 
         av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) 
-        
+         
         dist_meltrate = abs(dist_meltrate)
         ! Shift the location of the surface nodes.
         !The coordinate of the surface node.
@@ -264,9 +303,13 @@ subroutine melt_allocate_surface(state)
         call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.
        
         call set(surface_positions,node,coord) !Original coordinate of the surface
-
-        ! Save the corresponding node number.
-        !sf_nodes_ar(i) = node
+!!        ewrite(1,*) "--------------------------------"
+!!        ewrite(1,*) "node: ", node
+!!        ewrite(1,*) "av_normal: ", av_normal
+!!        ewrite(1,*) "funky: ", xyz
+!!        ewrite(1,*) "coord: ", coord
+!!        ! Save the corresponding node number.
+!!        !sf_nodes_ar(i) = node
         call insert(sf_nodes,node)
        
         node = 0
@@ -340,6 +383,8 @@ end subroutine melt_allocate_surface
     call set(Location_org,vel)
     
     positions => extract_vector_field(state,"Coordinate")
+    !my positions
+  
       ! Surface node list
     allocate(surface_node_list(key_count(sf_nodes)))
     ! Make it to vector from integer_set.
@@ -355,14 +400,10 @@ end subroutine melt_allocate_surface
    
     ! Salinity
     scalarfield=> extract_scalar_field(state,"Salinity")
-!    do i=1,size(surface_node_list)
-!        ewrite(1,*) "line339,surfaceS: ",i, node_val(scalarfield,surface_node_list(i))
-!    enddo
+ 
     call allocate(re_salinity,positions%mesh, name="ReSalinity")
     call remap_field(scalarfield,re_salinity,stat)
-!     do i=1,size(surface_node_list)
-!        ewrite(1,*) "line343,re_surfaceS: ",i, node_val(re_salinity,surface_node_list(i))
-!    enddo
+
     ! Pressure
     scalarfield => extract_scalar_field(state,"Pressure")
     call allocate(re_pressure,positions%mesh, name="RePressure")
@@ -378,25 +419,24 @@ end subroutine melt_allocate_surface
    
   
 
-!! BC test stuff
-   
-!!!!!!!!!!!!!!!!!!!!!!!!!
 
+!!!!!!!!!!!!!!!!!!!!!!!!!
+     !surface_positions
 
     !! Loope over the surface nodes to calculate melt rate etc.
     do i=1,size(surface_node_list)
         the_node = surface_node_list(i)
         !!! Interpolating   
         coord = node_val(funky_positions,the_node)
-        call picker_inquire(positions, coord, ele, local_coord)
+        call picker_inquire(positions, coord, ele, local_coord,global=.true.)
+
         !! If sum(local_coord) is not equal to 1,      
         !! we know that this coord (funky position) does not exist in the domain.
-        !!This allocation can be outside of the loop as long as all the elements have the same shape.
-        !!FLExit("GLS modelling is only supported for problem type oceans.")
+        
         if (sum(local_coord) .gt. 1.0) then 
             ewrite(1,*) "Funk coord: ", node_val(funky_positions,the_node)
             !! node_val(surface_positions,the_node) = node_val(positions,the_node)
-            ewrite(1,*) "Original coord: ", node_val(surface_positions,the_node)  
+            ewrite(1,*) "Original ele: ",ele   
             ewrite(1,*) "sum of local_coord: ",  sum(local_coord)    
             FLExit("Your funky_positions is out of the domain. Change melt_LayerLength.")
         endif
@@ -482,7 +522,7 @@ end subroutine melt_allocate_surface
         !! BC test
         !!call set(TT,the_node,11.1)
 !         ewrite(1,*) "----------iceshelf, loc_saltflux----", the_node,loc_saltflux
-!        ewrite(1,*) "----------iceshelf, loc_Tb----", the_node,loc_Tb
+!        ewrite(1,*) "----------melt_surf_calc, loc_Tb----", the_node,loc_Tb
 !        ewrite(1,*) "----------iceshelf, surfaceS----",node_val(re_salinity,the_node)
 !        ewrite(1,*) "----------line 477 iceshelf, loc_meltrate----",loc_meltrate
 !        ewrite(1,*) "----------iceshelf, node_val(TT,the_node)----",node_val(TT,the_node)
@@ -562,6 +602,7 @@ subroutine melt_bc(state)
       
 
 end subroutine melt_bc
+
 
 
 !!------------------------------------------------------------------!
