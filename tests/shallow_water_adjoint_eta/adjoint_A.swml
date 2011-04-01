@@ -400,4 +400,46 @@
       </diagnostic>
     </vector_field>
   </material_phase>
+  <adjoint>
+    <functional name="integral_eta_t1">
+      <functional_value>
+        <algorithm name="functional_value">
+          <string_value type="python" lines="20">J = 0.0
+if time &lt;= 1.0 &lt; time+dt:
+  import numpy
+  eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
+  eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
+  
+  tmp_eta = numpy.zeros(len(eta.val))
+  
+  # We want to temporally interpolate to evaluate eta at t=1.0
+  alpha = (1.0 - time) / dt
+  assert 0 &lt;= alpha &lt;= 1
+  tmp_eta[:] = (1-alpha) * eta_prev.val + alpha * eta.val
+  
+  # Now we want to integrate that over space
+  coord = states[0]["Fluid"].vector_fields["Coordinate"]
+  for ele in range(coord.element_count):
+    t = Transform(ele, coord)
+    shape = eta_prev.ele_shape(ele)
+    mass = t.shape_shape(shape, shape)
+    nodes = eta_prev.ele_nodes(ele)
+    J = J + sum(numpy.dot(mass, tmp_eta[nodes]))</string_value>
+        </algorithm>
+        <reduction>
+          <sum/>
+        </reduction>
+      </functional_value>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value type="python" lines="20">def dependencies(times, timestep):
+  if times[0] &lt;= 1.0 &lt; times[1]:
+    return {"Fluid::Coordinate": [0],
+            "Fluid::LayerThickness": [timestep-1, timestep]}
+  else:
+    return {}</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
+  </adjoint>
 </shallow_water_options>
