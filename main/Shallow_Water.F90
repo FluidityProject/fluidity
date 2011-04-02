@@ -601,7 +601,6 @@
       if (present_and_true(adjoint)) then
         call allocate(U_local, mesh_dim(U), U%mesh, "AdjointLocalVelocity")
         call zero(U_local)
-        U_local%option_path=U%option_path
         call insert(state, U_local, "AdjointLocalVelocity")
         call deallocate(U_local)
       else
