@@ -3464,6 +3464,7 @@ i.e. the free surface or rigid lid.</a:documentation>
   -->
   <define name="diagnostic_tensor_field">
     <ref name="diagnostic_output_options"/>
+    <ref name="diagnostic_tensor_stat_options"/>
     <ref name="adaptivity_options_tensor_field"/>
     <optional>
       <ref name="interpolation_algorithm_vector"/>
@@ -4156,6 +4157,26 @@ iteration in the .stat file.</a:documentation>
   <define name="vector_field_stat_options_disabled_default" combine="choice">
     <ref name="include_stat"/>
   </define>
+  <!-- Diagnostic statistics options for tensor fields, with enabled by default -->
+  <define name="tensor_field_stat_options_enabled_default">
+    <ref name="include_stat"/>
+  </define>
+  <define name="tensor_field_stat_options_enabled_default" combine="choice">
+    <ref name="exclude_components_from_stat"/>
+  </define>
+  <define name="tensor_field_stat_options_enabled_default" combine="choice">
+    <ref name="exclude_stat"/>
+  </define>
+  <!-- Diagnostic statistics options for tensor fields, with enabled by default -->
+  <define name="tensor_field_stat_options_disabled_default">
+    <ref name="exclude_stat"/>
+  </define>
+  <define name="tensor_field_stat_options_disabled_default" combine="choice">
+    <ref name="exclude_components_from_stat"/>
+  </define>
+  <define name="tensor_field_stat_options_disabled_default" combine="choice">
+    <ref name="include_stat"/>
+  </define>
   <!-- Diagnostic statistics for prognostic vector fields -->
   <define name="prognostic_velocity_stat_options">
     <element name="stat">
@@ -4175,6 +4196,19 @@ iteration in the .stat file.</a:documentation>
   </define>
   <define name="prescribed_vector_stat_options">
     <ref name="prognostic_vector_stat_no_old_or_nonlinear_options"/>
+  </define>
+  <!-- Diagnostic statistics for tensor fields -->
+  <define name="prognostic_tensor_stat_no_old_or_nonlinear_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="prognostic_tensor_stat_no_old_or_nonlinear_options.stat"/>
+    </element>
+  </define>
+  <define name="diagnostic_tensor_stat_options">
+    <ref name="prognostic_tensor_stat_no_old_or_nonlinear_options"/>
+  </define>
+  <define name="prescribed_tensor_stat_options">
+    <ref name="prognostic_tensor_stat_no_old_or_nonlinear_options"/>
   </define>
   <!-- Combining of stat elements for vector fields -->
   <define name="prognostic_velocity_stat_options.stat">
@@ -4224,6 +4258,10 @@ IN PROGRESS - Does not include all terms!</a:documentation>
     <zeroOrMore>
       <ref name="surface_integral_stats_vector"/>
     </zeroOrMore>
+  </define>
+  <!-- Combining of stat elements for tensor fields -->
+  <define name="prognostic_tensor_stat_no_old_or_nonlinear_options.stat">
+    <ref name="tensor_field_stat_options_enabled_default"/>
   </define>
   <!-- Convergence options for prognostic scalar fields -->
   <define name="scalar_convergence_options">

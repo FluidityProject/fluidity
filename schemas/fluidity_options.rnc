@@ -2553,6 +2553,7 @@ diagnostic_vector_field_bed_shear_stress =
 diagnostic_tensor_field =
    (
       diagnostic_output_options,
+      diagnostic_tensor_stat_options,
       adaptivity_options_tensor_field,
       interpolation_algorithm_vector?
    )
@@ -3124,6 +3125,16 @@ vector_field_stat_options_disabled_default = exclude_stat
 vector_field_stat_options_disabled_default |= exclude_components_from_stat
 vector_field_stat_options_disabled_default |= include_stat
 
+# Diagnostic statistics options for tensor fields, with enabled by default
+tensor_field_stat_options_enabled_default = include_stat
+tensor_field_stat_options_enabled_default |= exclude_components_from_stat
+tensor_field_stat_options_enabled_default |= exclude_stat
+
+# Diagnostic statistics options for tensor fields, with enabled by default
+tensor_field_stat_options_disabled_default = exclude_stat
+tensor_field_stat_options_disabled_default |= exclude_components_from_stat
+tensor_field_stat_options_disabled_default |= include_stat
+
 # Diagnostic statistics for prognostic vector fields
 prognostic_velocity_stat_options =
    (
@@ -3145,6 +3156,17 @@ prognostic_vector_stat_no_old_or_nonlinear_options =
    )
 diagnostic_vector_stat_options = prognostic_vector_stat_no_old_or_nonlinear_options
 prescribed_vector_stat_options = prognostic_vector_stat_no_old_or_nonlinear_options
+
+# Diagnostic statistics for tensor fields
+prognostic_tensor_stat_no_old_or_nonlinear_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         prognostic_tensor_stat_no_old_or_nonlinear_options.stat
+      }
+   )
+diagnostic_tensor_stat_options = prognostic_tensor_stat_no_old_or_nonlinear_options
+prescribed_tensor_stat_options = prognostic_tensor_stat_no_old_or_nonlinear_options
 
 # Combining of stat elements for vector fields
 prognostic_velocity_stat_options.stat = prognostic_vector_stat_no_old_or_nonlinear_options.stat
@@ -3184,6 +3206,12 @@ prognostic_vector_stat_no_old_or_nonlinear_options.stat =
    (
       vector_field_stat_options_enabled_default,
       surface_integral_stats_vector*
+   )
+
+# Combining of stat elements for tensor fields
+prognostic_tensor_stat_no_old_or_nonlinear_options.stat =
+   (
+      tensor_field_stat_options_enabled_default
    )
 
 # Convergence options for prognostic scalar fields

@@ -94,7 +94,7 @@ module diagnostic_variables
   public :: stat_type
 
   interface stat_field
-    module procedure stat_field_scalar, stat_field_vector
+    module procedure stat_field_scalar, stat_field_vector, stat_field_tensor
   end interface stat_field
 
   interface convergence_field
@@ -166,6 +166,7 @@ module diagnostic_variables
     !! the output.
     type(stringlist), dimension(:), allocatable :: sfield_list
     type(stringlist), dimension(:), allocatable :: vfield_list
+    type(stringlist), dimension(:), allocatable :: tfield_list
 
     !! Similar lists for detectors
     type(stringlist), dimension(:), allocatable :: detector_sfield_list
@@ -288,6 +289,48 @@ contains
     end if
 
   end function stat_field_vector
+
+  function stat_field_tensor(tfield, state, test_for_components)
+    !!< Return whether the supplied field should be included in the .stat file.
+
+    type(tensor_field), target, intent(in) :: tfield
+    type(state_type), intent(in) :: state
+    logical, optional, intent(in) :: test_for_components
+
+    logical :: stat_field_tensor
+
+    character(len = OPTION_PATH_LEN) :: stat_test_path
+    type(tensor_field), pointer :: parent_tfield => null()
+
+    if(tfield%name(:3) == "Old") then
+      parent_tfield => extract_tensor_field(state, trim(tfield%name(4:)))
+      stat_test_path = "/stat/previous_time_step"
+    else if(tfield%name(:9) == "Nonlinear") then
+      parent_tfield => extract_tensor_field(state, trim(tfield%name(10:)))
+      stat_test_path = "/stat/nonlinear_field"
+    else if(tfield%name(:8) == "Iterated") then
+      parent_tfield => extract_tensor_field(state, trim(tfield%name(9:)))
+      stat_test_path = "/stat/nonlinear_field"
+    else
+      parent_tfield => tfield
+      stat_test_path =  "/stat"
+    end if
+
+    if((len_trim(parent_tfield%option_path) == 0).or.aliased(parent_tfield)) then
+      stat_field_tensor = .false.
+    else if(.not. have_option(trim(complete_field_path(parent_tfield%option_path)) // trim(stat_test_path))) then
+      stat_field_tensor = .false.
+    else if(present_and_true(test_for_components)) then
+      stat_field_tensor = (.not. have_option(trim(complete_field_path(parent_tfield%option_path)) &
+        & // trim(stat_test_path) // "/exclude_components_from_stat") &
+        & .and. .not. have_option(trim(complete_field_path(parent_tfield%option_path)) &
+        & // trim(stat_test_path) // "/exclude_from_stat"))
+    else
+      stat_field_tensor = (.not. have_option(trim(complete_field_path(parent_tfield%option_path)) &
+        & // trim(stat_test_path) // "/exclude_from_stat"))
+    end if
+
+  end function stat_field_tensor
 
   function convergence_field_scalar(sfield)
     !!< Return whether the supplied field should be included in the .convergence file
@@ -459,7 +502,7 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    integer :: column, i, j, phase, stat
+    integer :: column, i, j, k, phase, stat
     integer, dimension(2) :: shape_option
     integer :: no_mixing_bins
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -467,10 +510,11 @@ contains
     character(len = 254) :: buffer, material_phase_name, prefix
     character(len = FIELD_NAME_LEN) :: surface_integral_name, mixing_stats_name
     character(len = OPTION_PATH_LEN) :: func
-    type(scalar_field) :: vfield_comp
+    type(scalar_field) :: vfield_comp, tfield_comp
     type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
     ! Iterator for the registered diagnostics
     type(registered_diagnostic_item), pointer :: iterator => NULL()
 
@@ -506,6 +550,16 @@ contains
           default_stat%vfield_list(phase)%ptr = state(phase)%vector_names
        else
           allocate(default_stat%vfield_list(phase)%ptr(0))
+       end if
+    end do
+    ! Tensor field list
+    allocate (default_stat%tfield_list(size(state)))
+    do phase = 1, size(state)
+       if (associated(state(phase)%tensor_names)) then
+          allocate(default_stat%tfield_list(phase)%ptr(size(state(phase)%tensor_names)))
+          default_stat%tfield_list(phase)%ptr = state(phase)%tensor_names
+       else
+          allocate(default_stat%tfield_list(phase)%ptr(0))
        end if
     end do
 
@@ -693,7 +747,7 @@ contains
                write(default_stat%diag_unit, '(a)') trim(buffer)
              end do
            end if
-           
+
            ! Surface integrals
            do j = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
              call get_option(trim(complete_field_path(vfield%option_path)) &
@@ -752,6 +806,59 @@ contains
              end do
            end if
 
+         end do
+
+         do i = 1, size(default_stat%tfield_list(phase)%ptr)
+           ! Headers for output statistics for each tensor field
+           tfield => extract_tensor_field(state(phase), &
+             & default_stat%tfield_list(phase)%ptr(i))
+
+           ! Standard scalar field stats for tensor field magnitude
+           if(stat_field(tfield, state(phase))) then
+             column = column + 1
+             buffer = field_tag(name=trim(tfield%name) // "%magnitude", column=column, &
+               & statistic="min", material_phase_name=material_phase_name)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
+
+             column = column + 1
+             buffer = field_tag(name=trim(tfield%name) // "%magnitude", column=column, &
+               & statistic="max",material_phase_name= material_phase_name)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
+
+             column = column + 1
+             buffer = field_tag(name=trim(tfield%name) // "%magnitude", column=column, &
+               & statistic="l2norm", material_phase_name=material_phase_name)
+             write(default_stat%diag_unit, '(a)') trim(buffer)
+           end if
+
+           ! Standard scalar field stats for tensor field components
+           if(stat_field(tfield, state(phase), test_for_components = .true.)) then
+             do j = 1, tfield%dim(1)
+               do k = 1, tfield%dim(2)
+                 tfield_comp = extract_scalar_field(tfield, j, k)
+
+                 column = column + 1
+                 buffer=field_tag(name=tfield_comp%name, column=column, statistic="min", &
+                   & material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+
+                 column = column + 1
+                 buffer=field_tag(name=tfield_comp%name, column=column, statistic="max", &
+                   & material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+
+                 column = column + 1
+                 buffer=field_tag(name=tfield_comp%name, column=column, statistic="l2norm", &
+                   & material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+
+                 column = column + 1
+                 buffer=field_tag(name=tfield_comp%name, column=column, statistic="integral", &
+                   & material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+               end do
+             end do
+           end if
          end do
 
       end do phaseloop
@@ -1843,9 +1950,10 @@ contains
     real, dimension(:), pointer :: mixing_bin_bounds
     real :: current_time
     type(mesh_type), pointer :: mesh
-    type(scalar_field) :: vfield_comp
+    type(scalar_field) :: vfield_comp, tfield_comp
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
     type(vector_field) :: xfield
     type(registered_diagnostic_item), pointer :: iterator => NULL()
     logical :: l_move_detectors
@@ -2032,6 +2140,43 @@ contains
          call deallocate(xfield)
          
        end do vector_field_loop
+
+       tensor_field_loop: do i = 1, size(default_stat%tfield_list(phase)%ptr)
+         ! Output statistics for each tensor field
+         tfield => extract_tensor_field(state(phase), &
+           & default_stat%tfield_list(phase)%ptr(i))
+          
+         xfield=get_diagnostic_coordinate_field(state(phase), tfield%mesh)
+
+         ! Standard scalar field stats for tensor field magnitude
+         if(stat_field(tfield,state(phase))) then
+           call field_stats(tfield, Xfield, fmin, fmax, fnorm2)
+           ! Only the first process should write statistics information
+           if(getprocno() == 1) then
+             write(default_stat%diag_unit, trim(format3), advance = "no") fmin, fmax, fnorm2
+           end if
+         end if
+
+         ! Standard scalar field stats for tensor field components
+         if(stat_field(tfield, state(phase), test_for_components = .true.)) then
+           do j = 1, tfield%dim(1)
+             do k = 1, tfield%dim(2)
+               tfield_comp = extract_scalar_field(tfield, j, k)
+
+               call field_stats(tfield_comp, Xfield, fmin, fmax, fnorm2, &
+                 & fintegral)
+               ! Only the first process should write statistics information
+               if(getprocno() == 1) then
+                 write(default_stat%diag_unit, trim(format4), advance = "no") fmin, fmax, fnorm2, &
+                   & fintegral
+               end if
+             end do
+           end do
+         end if
+         
+         call deallocate(xfield)
+         
+       end do tensor_field_loop
 
     end do phaseloop
 

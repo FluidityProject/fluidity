@@ -29,7 +29,7 @@ module vector_tools
 !  end interface
 
   interface norm2
-     module procedure norm2_array
+     module procedure norm2_vector, norm2_tensor
   end interface
     
   interface cross_product
@@ -55,14 +55,23 @@ contains
     dot = dot_product(vector1, vector2)
   end function dot_product_op
   
-  pure function norm2_array(vector)
+  pure function norm2_vector(vector)
     !!< Calculate the 2-norm of vector
-    real :: norm2_array
+    real :: norm2_vector
     real, dimension(:), intent(in) :: vector
     
-    norm2_array=sqrt(dot_product(vector, vector))
+    norm2_vector=sqrt(dot_product(vector, vector))
     
-  end function norm2_array
+  end function norm2_vector
+
+  pure function norm2_tensor(tensor)
+    !!< Calculate the 2-norm of tensor
+    real :: norm2_tensor
+    real, dimension(:,:), intent(in) :: tensor
+    
+    norm2_tensor=sqrt(sum(tensor(:,:)*tensor(:,:)))
+    
+  end function norm2_tensor
 
   pure function cross_product_array(vector1, vector2) result(prod)
     !!< Calculate the cross product of the vectors provided.

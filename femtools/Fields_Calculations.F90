@@ -63,7 +63,7 @@ implicit none
   end interface
 
   interface field_stats
-     module procedure field_stats_scalar, field_stats_vector
+     module procedure field_stats_scalar, field_stats_vector, field_stats_tensor
   end interface
     
   interface field_cv_stats
@@ -112,6 +112,21 @@ implicit none
     end do
 
   end function magnitude
+
+  function magnitude_tensor(field) 
+    !!< Return a scalar field which is the magnitude of the tensor field.
+    type(scalar_field) :: magnitude_tensor
+    type(tensor_field), intent(inout) :: field
+
+    integer :: node
+
+    call allocate(magnitude_tensor, field%mesh,trim(field%name)//"Magnitude")
+    
+    do node=1,node_count(field)
+       magnitude_tensor%val(node)=norm2(node_val(field, node))
+    end do
+
+  end function magnitude_tensor
 
   pure function mean_scalar(field) result (mean)
     !!< Return the mean value of a field
@@ -384,6 +399,30 @@ implicit none
 
   end subroutine field_stats_vector
     
+  subroutine field_stats_tensor(field, X, min, max, norm2)
+    !!< Return scalar statistical information about field. For a tensor
+    !!< field the statistics are calculated on the magnitude of the field.
+    type(tensor_field) :: field
+    !! Positions field assocated with field
+    type(vector_field), optional :: X
+    !! Minimum value in the field.
+    real, intent(out), optional :: min
+    !! Maximum value in the field.
+    real, intent(out), optional :: max
+    !! L2 norm of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out), optional :: norm2
+
+    type(scalar_field) :: mag
+
+    mag=magnitude_tensor(field)
+
+    call field_stats(mag, X, min, max, norm2)
+
+    call deallocate(mag)
+
+  end subroutine field_stats_tensor
+
   subroutine field_con_stats_scalar(field, nlfield, error, &
                                     norm, coordinates)
     !!< Return scalar convergence informaion about field.

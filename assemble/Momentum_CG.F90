@@ -399,7 +399,7 @@
            ! Are we using the Lilly (1991) modification?
            have_lilly = have_option(trim(les_option_path)//"/dynamic_les/enable_lilly")
            ! Get optional diagnostic fields
-           have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicEddyViscosity")
+           have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
            have_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicStrainRate")
            have_filtered_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilteredStrainRate")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")
@@ -470,7 +470,9 @@
            end if
 
            do dim = 1, viscosity%dim(1)
-             ewrite_minmax(tnu%val(dim,:))
+             do dim2 = 1, viscosity%dim(2)
+               ewrite_minmax(leonard%val(dim,dim2,:))
+             end do
            end do
          end if
       else
@@ -1329,7 +1331,7 @@
                                       masslump, mass, depth, gravity, buoyancy, &
                                       alpha_u_field, abs_wd)
       end if
-      
+
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, u, oldu_val, nu, x, viscosity, grad_u, &
