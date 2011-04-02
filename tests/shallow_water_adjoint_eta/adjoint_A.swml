@@ -405,18 +405,19 @@
       <functional_value>
         <algorithm name="functional_value">
           <string_value lines="20" type="python">J = 0.0
-if time &lt;= 1.0 &lt; time+dt:
+if time &lt; 1.0 &lt;= time+dt:
   import numpy
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
   eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
   
   # We want to temporally interpolate to evaluate eta at t=1.0
-  alpha = (1.0 - time) / dt
-  assert 0 &lt;= alpha &lt;= 1
-  tmp_eta = (1-alpha) * eta_prev.val + alpha * eta.val
+  alpha = (time + dt - 1.0) / dt
+  assert 0 &lt;= alpha &lt; 1
+  tmp_eta = alpha * eta_prev.val + (1-alpha) * eta.val
   
   # Now we want to integrate that over space
   coord = states[0]["Fluid"].vector_fields["Coordinate"]
+  assert eta.element_count == eta_prev.element_count == coord.element_count
   for ele in range(coord.element_count):
     t = Transform(ele, coord)
     shape = eta_prev.ele_shape(ele)
@@ -431,7 +432,7 @@ if time &lt;= 1.0 &lt; time+dt:
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  if times[0] &lt;= 1.0 &lt; times[1]:
+  if times[0] &lt; 1.0 &lt;= times[1]:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep-1, timestep]}
   else:
