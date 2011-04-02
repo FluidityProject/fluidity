@@ -399,7 +399,7 @@ module adjoint_functional_evaluation
     real :: finish_time
     type(adj_variable), dimension(:), allocatable :: vars
     character(len=OPTION_PATH_LEN) :: buf
-    integer :: j
+    integer :: j, i
     integer :: ierr
     integer :: s_idx
     character(len=ADJ_NAME_LEN) :: variable_name, material_phase_name, field_name
@@ -453,7 +453,12 @@ module adjoint_functional_evaluation
           if ((.not. has_scalar_field(states(state), trim(field_name))) .and. &
             & (.not. has_vector_field(states(state), trim(field_name))) .and. &
             & (.not. has_tensor_field(states(state), trim(field_name)))) then
-            ewrite(-1,*) "Warning: want to record ", trim(variable_name), " now, but don't have it in state"
+            ewrite(-1,*) "Warning: want to record ", trim(variable_name), " now, but don't have it in state."
+            ewrite(-1,*) "However, I can offer you:"
+            do i=1,size(states)
+              call print_state(states(i), 0)
+            end do
+            FLAbort("Fix your dependencies function")
             cycle variable_loop
           end if
 
@@ -476,7 +481,7 @@ module adjoint_functional_evaluation
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
 
-            if (trim(field_name) == "Coordinate") then
+            if (index(trim(field_name), "Coordinate") /= 0) then
               assert(.not. have_option("/mesh_adaptivity")) ! your coordinate is no longer auxiliary, because you compute it
               ierr = adj_variable_set_auxiliary(vars(j), .true.)
               call adj_chkierr(ierr)
