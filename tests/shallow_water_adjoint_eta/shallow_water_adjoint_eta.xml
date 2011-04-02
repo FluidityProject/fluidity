@@ -13,6 +13,20 @@ import eta_adjoint_convergence_rate as convergence_rate
 convergence_rate.print_convergence_rates("wave_[A-E].stat")
 passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E].stat")
     </variable>
+    <variable name="functional_convergence" language="python">
+import numpy
+from fluidity_tools import stat_parser as stat
+sims = ["_A", "_B", "_C", "_D", "_E"]
+funcs = numpy.zeros(len(sims))
+for i, sim in enumerate(sims):
+  funcs[i] = stat("wave%s_adjoint_integral_eta_t1.stat" % sim)["integral_eta_t1"]["value"][-1]
+
+errors = numpy.abs(0.5 - funcs) # true value is 0.5, computed using sage
+
+functional_convergence = numpy.zeros(4)
+for i in range(len(sims)-1):
+  functional_convergence[i] = numpy.log(errors[i]/errors[i+1], 2)
+    </variable>
   </variables>
   <pass_tests>
     <test name="convergence" language="python">
