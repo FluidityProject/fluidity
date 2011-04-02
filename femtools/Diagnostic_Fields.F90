@@ -247,7 +247,7 @@ contains
     
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: d_field_name
-    type(scalar_field), intent(inout) ::d_field
+    type(scalar_field), intent(inout) :: d_field
     integer, optional, intent(out) :: stat
     
     select case(d_field_name)
