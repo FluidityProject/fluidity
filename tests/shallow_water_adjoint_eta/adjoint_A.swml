@@ -404,7 +404,7 @@
     <functional name="integral_eta_t1">
       <functional_value>
         <algorithm name="functional_value">
-          <string_value type="python" lines="20">J = 0.0
+          <string_value lines="20" type="python">J = 0.0
 if time &lt;= 1.0 &lt; time+dt:
   import numpy
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
@@ -422,7 +422,7 @@ if time &lt;= 1.0 &lt; time+dt:
     shape = eta_prev.ele_shape(ele)
     mass = t.shape_shape(shape, shape)
     nodes = eta_prev.ele_nodes(ele)
-    J = J + sum(numpy.dot(mass, tmp_eta[nodes]))</string_value>
+    J = J + numpy.dot(tmp_eta[nodes], numpy.dot(mass, tmp_eta[nodes]))</string_value>
         </algorithm>
         <reduction>
           <sum/>
@@ -430,7 +430,7 @@ if time &lt;= 1.0 &lt; time+dt:
       </functional_value>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value type="python" lines="20">def dependencies(times, timestep):
+          <string_value lines="20" type="python">def dependencies(times, timestep):
   if times[0] &lt;= 1.0 &lt; times[1]:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep-1, timestep]}
