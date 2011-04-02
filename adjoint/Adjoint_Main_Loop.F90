@@ -36,7 +36,7 @@ module adjoint_main_loop
     use diagnostic_variables
     use fields
     use spud
-    use global_parameters, only: OPTION_PATH_LEN
+    use global_parameters, only: OPTION_PATH_LEN, running_adjoint
     use adjoint_global_variables
     use adjoint_functional_evaluation
     use populate_state_module
@@ -96,6 +96,7 @@ module adjoint_main_loop
 
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
+      running_adjoint = .true.
 
       ! Switch the html output on if you are interested what the adjointer has registered
       ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)

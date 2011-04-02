@@ -157,5 +157,6 @@ module global_parameters
   real, dimension(:, :), allocatable :: domain_bbox
 
   real :: domain_volume
+  logical :: running_adjoint = .false.
 
 end module global_parameters

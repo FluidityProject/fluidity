@@ -43,7 +43,8 @@ module linear_shallow_water
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, running_adjoint
+    implicit none
 
     logical :: is_shallow_water=.false.
 
@@ -566,8 +567,7 @@ contains
       !
       energy_out = energy
 
-      call set_diagnostic(name="LinearEnergy", statistic="Value", value=(/&
-           & energy /))
+      call set_diagnostic(name="LinearEnergy", statistic="value", value=(/energy/))
 
       call deallocate(Md)
       call deallocate(Mu)
@@ -575,8 +575,8 @@ contains
 
     subroutine linear_shallow_water_register_diagnostic
       
-      if(is_shallow_water) then
-         call register_diagnostic(dim=1, name="LinearEnergy", statistic="Value")
+      if(is_shallow_water .and. .not. running_adjoint) then
+         call register_diagnostic(dim=1, name="LinearEnergy", statistic="value")
       end if
 
     end subroutine linear_shallow_water_register_diagnostic
