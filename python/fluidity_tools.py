@@ -320,10 +320,12 @@ for example:
         lineNo = 0
         for line in statfile:
           entries = map(float, line.split())
-             # Ignore incomplete lines        # Ignore non-sampled lines
-          if len(entries) == len(columns) and lineNo == 0:
+          # Ignore non-sampled lines
+          if len(entries) == len(columns) and (lineNo % subsample) == 0:
             map(list.append, columns, entries)
-          lineNo = (lineNo + 1) % subsample
+          elif len(entries) != len(columns):
+            raise Exception("Incomplete line %d: expected %d, but got %d columns" % (lineNo, len(columns), len(entries)))
+          lineNo = lineNo + 1
         columns = numpy.array(columns)
               
       for field in parsed.getElementsByTagName("field"):
