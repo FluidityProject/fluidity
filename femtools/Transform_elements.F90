@@ -736,7 +736,7 @@ contains
                 ! J is 'dim'-dimensional vector:
                 J(:,1)=matmul(X_val(:,:), x_shape%dn(:,gi,1))
                 ! length of that
-                det=sum(sqrt(J))
+                det=norm2(J(:,1))
              end if
              ! length of that times quad. weight
              detwei(gi)=det*x_shape%quadrature%weight(gi)

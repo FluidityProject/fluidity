@@ -270,7 +270,8 @@ class Transform:
         for gi in range(element.ngi):
           J = numpy.zeros([dim, ldim])
           J[:,0] = numpy.dot(X, element.dn[:,gi,0])
-          self.detwei[gi] = element.quadrature.weights[gi]
+          det = numpy.linalg.norm(J[:,0])
+          self.detwei[gi] = det * element.quadrature.weights[gi]
           self.set_J(numpy.transpose(J),gi)
 
       # 1-dim element embedded in 'dim'-dimensional space:
