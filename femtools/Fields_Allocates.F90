@@ -2203,7 +2203,7 @@ contains
                                   7, 8, 9, 10, 7, 8, 9, 9/), (/8,4/))
         case default
           ewrite(-1,*) "Submesh only supported for simplex elements."
-          FLExit("Unsupport vertex count for the submesh.")
+          FLExit("Unsupported vertex count for the submesh.")
         end select
       case(1)
         !nothing to be done really
@@ -2222,7 +2222,7 @@ contains
           permutation = reshape((/1, 2, 3, 4/), (/1,4/))
         case default
           ewrite(-1,*) "Submesh only supported for simplex elements."
-          FLExit("Unsupport vertex count for the submesh.")
+          FLExit("Unsupported vertex count for the submesh.")
         end select
 
       case default
