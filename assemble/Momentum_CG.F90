@@ -1334,7 +1334,7 @@
 
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(state, ele, u, oldu_val, nu, x, viscosity, grad_u, &
+        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
            mnu, tnu, leonard, alpha, &
            du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
@@ -1926,11 +1926,12 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(state, ele, u, oldu_val, nu, x, viscosity, grad_u, &
+    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
          mnu, tnu, leonard, alpha, &
          du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
+      type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
@@ -1968,6 +1969,7 @@
       real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
+
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
@@ -2123,8 +2125,13 @@
           assert(u%dim > 0)
 
           if(multiphase) then
-             ! There's a div(u)(N grad(vfrac)) term missing here and will deal with this soon.
-             viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei*viscosity_gi(1, 1, :)*ele_val_at_quad(nvfrac, ele))
+             ! We need to compute \int{grad(N_A vfrac) viscosity grad(N_B)},
+             ! so split up grad(N_A vfrac) using the product rule and compute
+             ! \int{grad(N_A) vfrac viscosity grad(N_B)} + \int{N_A grad(vfrac) viscosity grad(N_B)}
+             viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei*viscosity_gi(1, 1, :)*&
+                                         ele_val_at_quad(nvfrac, ele)) + &
+                                         shape_vector_dot_dshape(test_function, ele_grad_at_quad(nvfrac, ele, du_t), &
+                                         du_t, detwei*viscosity_gi(1, 1, :)*ele_val_at_quad(nvfrac, ele))
           else
              viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
           end if
