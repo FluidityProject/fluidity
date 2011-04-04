@@ -133,8 +133,8 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
-    logical :: have_averaging=.false., have_lilly=.false., have_eddy_visc=.false.
-    logical :: have_strain=.false., have_filtered_strain=.false., have_filter_width=.false.
+    logical :: have_averaging, have_lilly, have_eddy_visc
+    logical :: have_strain, have_filtered_strain, have_filter_width
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -381,6 +381,8 @@
                ! you can't have 2 different types of LES model for the same material phase.
                call les_init_diagnostic_tensor_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
+         else
+            have_eddy_visc=.false.
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
@@ -473,8 +475,12 @@
                ewrite_minmax(leonard%val(dim,dim2,:))
              end do
            end do
+         else
+           have_averaging=.false.; have_lilly=.false.; have_eddy_visc=.false.
+           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
          end if
       else
+         les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
          tnu => dummyvector; mnu => dummyvector; nu_av => dummyvector; tnu_av => dummyvector; mnu_av => dummyvector
          leonard => dummytensor; leonard_av => dummytensor
       end if
