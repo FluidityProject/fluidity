@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>diff_src_dirichlet_1d</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity diff_src_dirichlet_1d_cg_p1_A.flml 
+    </command_line>
+    <!-- One dimensional problem for diffusion, source with right dirichlet bc and left neumann zero compared to analytic-->
+  </problem_definition>
+  <variables>
+    <variable name="cg_p1_A_error_l2" language="python">
+from fluidity_tools import stat_parser as stat
+cg_p1_A_error_l2 = stat("diff_src_dirichlet_1d_cg_p1_A.stat")["fluid"]["TError"]["l2norm"][-1]
+    </variable>
+    <variable name="cg_p1_A_error_linf" language="python">
+from fluidity_tools import stat_parser as stat
+cg_p1_A_error_linf = stat("diff_src_dirichlet_1d_cg_p1_A.stat")["fluid"]["TError"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check cg_p1_A_error_l2 less than 1.0e-8" language="python">
+assert(abs(cg_p1_A_error_l2) &lt; 1.0e-8)
+    </test>
+    <test name="Check cg_p1_A_error_linf less than 1.0e-8" language="python">
+assert(abs(cg_p1_A_error_linf) &lt; 1.0e-8)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

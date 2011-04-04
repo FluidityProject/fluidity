@@ -1114,9 +1114,11 @@ contains
     if(bc_type == BC_TYPE_NEUMANN) then
       rhs_addto = rhs_addto + shape_rhs(t_shape, detwei * ele_val_at_quad(t_bc, face))
     else if(bc_type == BC_TYPE_ROBIN) then
-      robin_mat = shape_shape(t_shape, t_shape, detwei * ele_val_at_quad(t_bc_2, face))   
-      matrix_addto = matrix_addto + robin_mat
       rhs_addto = rhs_addto + shape_rhs(t_shape, detwei * ele_val_at_quad(t_bc, face))
+      robin_mat = shape_shape(t_shape, t_shape, detwei * ele_val_at_quad(t_bc_2, face))   
+      if (abs(dt_theta) > epsilon(0.0)) then 
+         matrix_addto = matrix_addto + dt_theta * robin_mat
+      end if 
       ! this next term is due to solving the acceleration form of the equation
       rhs_addto = rhs_addto - matmul(robin_mat, face_val(t, face))      
     else if(bc_type == BC_TYPE_WEAKDIRICHLET) then

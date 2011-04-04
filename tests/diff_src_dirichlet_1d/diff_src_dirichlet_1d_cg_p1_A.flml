@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">diff_src_dirichlet_1d_cg_p1_A</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">1</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="diff_src_dirichlet_1d_A">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">2</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">0</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">5.0</real_value>
+      <comment>time stepping is actually not needed for this test case</comment>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">10.0</real_value>
+      <comment>time stepping is actually not needed for this test case</comment>
+    </finish_time>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="fluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="T" rank="0">
+      <prognostic>
+        <mesh name="CoordinateMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="right">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">2.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <scalar_field name="Source" rank="0">
+          <prescribed>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">2.13</real_value>
+              </constant>
+            </value>
+            <output/>
+            <stat/>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </scalar_field>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="TAnalytic" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   # get the 1d coord
+   x = X[0]
+   
+   # define the analytic input
+   x_left   = 0.0
+   x_right  = 10.0
+   src      = 2.13
+   bc_right = 2.0
+   
+   # calc the analytic solution
+   T = (src/2.0)*(x_right**2 - x**2) \
+     + (src*x_left)*(x - x_right) \
+     + bc_right
+   
+   return T</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">field1=state.scalar_fields["T"]
+field2=state.scalar_fields["TAnalytic"]
+for i in range(field.node_count):
+   field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>
