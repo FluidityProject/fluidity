@@ -133,8 +133,8 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
-    logical :: have_averaging, have_lilly, have_eddy_visc
-    logical :: have_strain, have_filtered_strain, have_filter_width
+    logical :: have_averaging=.false., have_lilly=.false., have_eddy_visc=.false.
+    logical :: have_strain=.false., have_filtered_strain=.false., have_filter_width=.false.
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -232,7 +232,6 @@
       type(vector_field), pointer :: nu_av, mnu, mnu_av, tnu, tnu_av
       type(tensor_field), pointer :: leonard, leonard_av
       real                        :: alpha, alpha2
-      logical                     :: have_averaging
 
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
