@@ -1879,8 +1879,14 @@ contains
 
     end if
 
-     if ((isparallel()).or.((.not.isparallel()).and.(default_stat%binary_detector_output))) then
+    if ((isparallel()).or.((.not.isparallel()).and.(default_stat%binary_detector_output))) then
 
+    ! bit of hack to delete any existing .detectors.dat file
+    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+    ! gradually overwritten, mixing detector output from the current with that of a previous run
+    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%fh, IERROR)
+    call MPI_FILE_CLOSE(default_stat%fh, IERROR)
+    
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%fh, IERROR)
     assert(ierror == MPI_SUCCESS)
 
