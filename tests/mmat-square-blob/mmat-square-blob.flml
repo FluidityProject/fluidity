@@ -269,6 +269,9 @@
             <lump_mass_matrix/>
             <integrate_by_parts/>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <output/>

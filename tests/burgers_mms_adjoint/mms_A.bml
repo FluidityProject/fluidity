@@ -202,7 +202,7 @@ field.val[-1] = 0.0</string_value>
     <functional name="dummy">
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer
 from math import sin, pi, cos, exp, sqrt
 import numpy
 
@@ -223,7 +223,7 @@ for ele in range(du.element_count):
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer</string_value>
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>

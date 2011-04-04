@@ -283,6 +283,9 @@ for n in range(Temperature.node_count):
    field.set(n, visc)</string_value>
             </algorithm>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <vector_field name="Source" rank="1">
@@ -697,6 +700,9 @@ for n in range(Temperature.node_count):
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
       </diagnostic>
     </tensor_field>
   </material_phase>

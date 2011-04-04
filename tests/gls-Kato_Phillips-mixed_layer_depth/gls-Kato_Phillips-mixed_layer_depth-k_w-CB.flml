@@ -207,7 +207,7 @@
           <string_value>k-omega</string_value>
         </option>
         <stability_function>
-            <string_value>Canuto-01-B</string_value>
+          <string_value>Canuto-01-B</string_value>
         </stability_function>
         <calculate_boundaries>
           <string_value>neumann</string_value>
@@ -217,7 +217,6 @@
           <bottom_surface_ids>
             <integer_value shape="1" rank="1">11</integer_value>
           </bottom_surface_ids>
-          
         </calculate_boundaries>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>
@@ -273,6 +272,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -366,6 +368,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -824,6 +829,9 @@
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <output/>

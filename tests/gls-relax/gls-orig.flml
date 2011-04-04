@@ -246,6 +246,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -340,6 +343,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -813,6 +819,9 @@
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <output/>

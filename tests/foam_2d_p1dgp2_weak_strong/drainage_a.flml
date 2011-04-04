@@ -485,7 +485,7 @@
     </scalar_field>
     <scalar_field name="FEDivergence" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="finite_element_divergence">
+        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>

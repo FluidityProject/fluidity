@@ -187,7 +187,7 @@ field.val[:] = soln.val - exact.val</string_value>
     <functional name="dummy">
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer
 coord  = states[n]["Fluid"].vector_fields["Coordinate"]
 du = derivatives["FluidDerivatives"].scalar_fields["VelocityDerivative"]
 
@@ -205,7 +205,7 @@ for ele in range(du.element_count):
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value type="python" lines="20"># FIXME: This python function is based on the old burgers schemer</string_value>
+          <string_value lines="20" type="python"># FIXME: This python function is based on the old burgers schemer</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>

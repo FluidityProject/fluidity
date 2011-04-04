@@ -198,6 +198,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -292,6 +295,9 @@
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -744,6 +750,9 @@ def val(X,t):
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <vector_field name="Absorption" rank="1">

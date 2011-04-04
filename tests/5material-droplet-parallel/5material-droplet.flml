@@ -248,6 +248,9 @@
           <diagnostic>
             <algorithm name="bulk_viscosity" material_phase_support="multiple "/>
             <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
           </diagnostic>
         </tensor_field>
         <output/>
