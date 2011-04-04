@@ -298,6 +298,7 @@
           </region_to_physical_radiation_material_map>
         </region_id_material_mapping>
       </particle_type>
+      <use_fluids_advection_diffusion/>
     </radiation>
   </embedded_models>
 </fluidity_options>
