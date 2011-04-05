@@ -54,7 +54,7 @@ ParticleKeffNeutron_D = stat("rad_1d_2grp_hom_zerobc_eig_D.stat")["ParticleKeffN
     <test name="Check ParticleKeffNeutron_A against PANTHER reference" language="python">
 reference_keff = 1.0
 print 'Relative error compared to reference: ',abs((ParticleKeffNeutron_A - reference_keff)/reference_keff)
-assert abs((ParticleKeffNeutron_A - reference_keff)/reference_keff) &lt; 3.7e-03
+assert abs((ParticleKeffNeutron_A - reference_keff)/reference_keff) &lt; 4.2e-03
     </test>
     <test name="Check ParticleKeffNeutron_B against PANTHER reference" language="python">
 reference_keff = 1.0
@@ -64,18 +64,18 @@ assert abs((ParticleKeffNeutron_B - reference_keff)/reference_keff) &lt; 3.9e-03
     <test name="Check ParticleKeffNeutron_C against PANTHER reference" language="python">
 reference_keff = 1.0
 print 'Relative error compared to reference: ',abs((ParticleKeffNeutron_C - reference_keff)/reference_keff)
-assert abs((ParticleKeffNeutron_C - reference_keff)/reference_keff) &lt; 1.0e-05
+assert abs((ParticleKeffNeutron_C - reference_keff)/reference_keff) &lt; 4.0e-05
     </test>
     <test name="Check ParticleKeffNeutron_D against PANTHER reference" language="python">
 reference_keff = 1.0
 print 'Relative error compared to reference: ',abs((ParticleKeffNeutron_D - reference_keff)/reference_keff)
-assert abs((ParticleKeffNeutron_D - reference_keff)/reference_keff) &lt; 1.1e-05
+assert abs((ParticleKeffNeutron_D - reference_keff)/reference_keff) &lt; 2.0e-05
     </test>
 
     <test name="Check ParticleKeffNeutron_A against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
 print 'Relative error compared to reference: ',abs((ParticleKeffNeutron_A - reference_keff)/reference_keff)
-assert abs((ParticleKeffNeutron_A - reference_keff)/reference_keff) &lt; 3.7e-03
+assert abs((ParticleKeffNeutron_A - reference_keff)/reference_keff) &lt; 4.2e-03
     </test>
     <test name="Check ParticleKeffNeutron_B against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
@@ -85,7 +85,7 @@ assert abs((ParticleKeffNeutron_B - reference_keff)/reference_keff) &lt; 3.9e-03
     <test name="Check ParticleKeffNeutron_C against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
 print 'Relative error compared to reference: ',abs((ParticleKeffNeutron_C - reference_keff)/reference_keff)
-assert abs((ParticleKeffNeutron_C - reference_keff)/reference_keff) &lt; 1.1e-05
+assert abs((ParticleKeffNeutron_C - reference_keff)/reference_keff) &lt; 2.0e-05
     </test>
     <test name="Check ParticleKeffNeutron_D against fine mesh (mesh size 0.001, number of vele 44500) cg reference" language="python">
 reference_keff = 0.999986731726
@@ -114,7 +114,7 @@ relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected
 
 print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
 
-assert relative_error &lt; 1.5e-02
+assert relative_error &lt; 1.0e-03
     </test>
   </pass_tests>
   <warn_tests>

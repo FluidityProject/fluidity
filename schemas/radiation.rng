@@ -11,13 +11,6 @@
       <optional>
         <ref name="particle_type_photon"/>
       </optional>
-      <optional>
-        <element name="use_fluids_advection_diffusion">
-          <a:documentation>Use the fluids assemble solve procedure
-ONLY FOR DEVELOPMENT PURPOSES</a:documentation>
-          <empty/>
-        </element>
-      </optional>
     </element>
   </define>
   <define name="particle_type_neutron">

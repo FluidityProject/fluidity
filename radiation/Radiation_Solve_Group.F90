@@ -32,18 +32,12 @@ module radiation_assemble_solve_group
    !!< This module contains procedures associated with solving the 
    !!< group g particle matrix problem
 
-   use sparse_tools
-   use fields
-
-   use boundary_conditions
-   use boundary_conditions_from_options
-   use field_options   
    use futils
    use global_parameters, only : OPTION_PATH_LEN
    use spud
    use state_module  
-   use petsc_solve_state_module   
-   use sparsity_patterns_meshes 
+   use fields
+   use boundary_conditions
    use advection_diffusion_cg 
       
    use radiation_particle_data_type
@@ -56,13 +50,6 @@ module radiation_assemble_solve_group
    private 
 
    public :: particle_assemble_solve_group
-
-  ! Source?
-  logical :: have_source
-  ! Absorption?
-  logical :: have_absorption
-  ! Diffusivity?
-  logical :: have_diffusivity
 
 contains
 
@@ -84,6 +71,7 @@ contains
       character(len=OPTION_PATH_LEN) :: field_name
       real :: dt
       type(scalar_field) :: extra_discretised_source
+      type(scalar_field), pointer :: t 
             
       ! assemble the diffusivity and absorption 
       ! scalar fields and insert into particle%state
@@ -95,25 +83,22 @@ contains
       
       ! form the field name to solve for
       field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
+
+      call get_option('/timestepping/timestep',dt)
       
-      if (have_option('/embedded_models/radiation/use_fluids_advection_diffusion')) then
-         
-         call get_option('/timestepping/timestep',dt)
-         
-         call solve_field_equation_cg(trim(field_name), &
-                                      particle%state, &
-                                      dt, &
-                                      extra_discretised_source = extra_discretised_source, &
-                                      iterations_taken = petsc_iterations_taken_group_g)
-         
-      else 
-            
-         call assemble_matrix_solve_group_g(trim(field_name), &
-                                            particle%state, &
-                                            extra_discretised_source = extra_discretised_source, &
-                                            iterations_taken = petsc_iterations_taken_group_g)
+      ! this procedure is in assemble/Advection_Diffusion_CG.F90
+      call solve_field_equation_cg(trim(field_name), &
+                                   particle%state, &
+                                   dt, &
+                                   extra_discretised_source = extra_discretised_source, &
+                                   iterations_taken = petsc_iterations_taken_group_g)
       
-      end if 
+      ! set the direchlet bc nodes to be consistent
+        
+      t => extract_scalar_field(particle%state, &
+                                trim(field_name))
+
+      call set_dirichlet_consistent(t)
       
       ! deallocate the extra_discretised_source
       call deallocate(extra_discretised_source)
@@ -451,319 +436,6 @@ contains
                         
    end subroutine assemble_coeff_source_group_g
    
-   ! --------------------------------------------------------------------------
-   
-   subroutine assemble_matrix_solve_group_g(field_name, &
-                                            state, &
-                                            extra_discretised_source, &
-                                            iterations_taken)
-      
-      !!< Assemble the diffusion absorption source (extra_discretised_source) matrix system 
-      !!< for a scalar field using CG and solve
-            
-      character(len=*), intent(in) :: field_name
-      type(state_type), intent(inout) :: state
-      type(scalar_field), intent(in), optional :: extra_discretised_source
-      integer, intent(out), optional :: iterations_taken
-      
-      ! local variables
-      integer :: stat
-      integer :: vele,sele
-      type(csr_matrix) :: matrix
-      type(scalar_field) :: rhs
-      type(csr_sparsity), pointer :: sparsity
-      integer, dimension(:), allocatable :: bc_types
-      type(scalar_field) :: bc_value1,bc_value2
-      type(tensor_field), pointer :: diffusivity
-      type(scalar_field), pointer :: absorption
-      type(scalar_field), pointer :: source      
-      type(vector_field), pointer :: positions      
-      type(scalar_field), pointer :: t 
-        
-      t => extract_scalar_field(state, field_name)
-      
-      if(t%mesh%continuity /= 0) then
-         FLExit('Radiation model requires a continuous solution mesh')
-      end if
-      
-      ! determine the sparsity pattern of matrix assuming first order connections 
-      sparsity => get_csr_sparsity_firstorder(state, &
-                                              t%mesh, &
-                                              t%mesh)
-      
-      ! allocate the matrix and rhs vector used for solving
-      call allocate(matrix, &
-                    sparsity)
-                    
-      call allocate(rhs, &
-                    t%mesh)
-      
-      call zero(matrix)
-      call zero(rhs)
-
-      ! get the positions field for this energy group set
-      positions => extract_vector_field(state, &
-                                        'Coordinate')
-      
-      ! extract the absorption, diffusivity, source and discretised source fields
-      absorption => extract_scalar_field(state, &
-                                         trim(t%name) // 'Absorption', &
-                                         stat = stat)
-
-      have_absorption = stat == 0
-                                        
-      diffusivity => extract_tensor_field(state, &
-                                          trim(t%name) // 'Diffusivity', &
-                                          stat = stat)
-
-      have_diffusivity = stat == 0
-
-      source => extract_scalar_field(state, &
-                                     trim(t%name)//'Source', &
-                                     stat=stat)
-             
-      have_source = stat == 0
-  
-      ! volume integrations 
-      volume_element_loop: do vele = 1, ele_count(t)      
-                  
-         call assemble_particle_group_g_vele(vele, &
-                                             t, &
-                                             matrix, &
-                                             rhs, &
-                                             positions, &
-                                             source, &
-                                             absorption, &
-                                             diffusivity)
-
-      end do volume_element_loop
-      
-      ! include the already discretised_source into rhs
-      add_extra_source: if (present(extra_discretised_source)) then 
-         
-         ! assert that the rhs and extra source have the same mesh
-         assert(trim(rhs%mesh%name) == trim(extra_discretised_source%mesh%name))
-         
-         call addto(rhs, extra_discretised_source)
-      
-      end if add_extra_source
-      
-      ! surface integrations for albedo and source BC's for diffusion theory
-      
-      allocate(bc_types(surface_element_count(t)))
-
-      call get_entire_boundary_condition(t, &
-                                         (/"robin  ", &
-                                           "neumann"/), &
-                                         bc_value1, &
-                                         bc_types, &
-                                         boundary_second_value = bc_value2)
-
-      surface_element_loop: do sele = 1,surface_element_count(t)
-         
-         diffusion_bc: if (bc_types(sele) == 1) then
-         
-            call assemble_particle_group_g_sele_albedo(sele, &
-                                                       positions, &
-                                                       matrix, & 
-                                                       bc_value2, &
-                                                       t)
-         
-         else if (bc_types(sele) == 2) then 
-            
-            call assemble_particle_group_g_sele_source(sele, &
-                                                       positions, &
-                                                       rhs, & 
-                                                       bc_value1, &
-                                                       t)
-                        
-         end if diffusion_bc
-         
-      end do surface_element_loop
-
-      call deallocate(bc_value1)
-      call deallocate(bc_value2)
-
-      if (allocated(bc_types)) deallocate(bc_types)
-            
-      ! apply direchlet BC
-      call apply_dirichlet_conditions(matrix, &
-                                      rhs, &
-                                      t)
-            
-      ! solve the linear system       
-      call petsc_solve(t, &
-                       matrix, &
-                       rhs, &
-                       state, &
-                       option_path = trim(t%option_path), &
-                       iterations_taken = iterations_taken)
-      
-      ! set the direchlet bc nodes to be consistent
-      call set_dirichlet_consistent(t)
-   
-      ! deallocate the matrix and rhs vector used for solving
-      call deallocate(matrix)
-      call deallocate(rhs)
-              
-   end subroutine assemble_matrix_solve_group_g
-
-   ! --------------------------------------------------------------------------
-
-   subroutine assemble_particle_group_g_vele(vele, &
-                                             t, &
-                                             matrix, &
-                                             rhs, &
-                                             positions, &
-                                             source, &
-                                             absorption, &
-                                             diffusivity)
-
-      !!< Assemble the volume element vele contribution to the global 
-      !!< matrix and rhs for this particle type for group g
-            
-      integer, intent(in) :: vele
-      type(scalar_field), intent(in) :: t 
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(inout) :: rhs
-      type(vector_field), intent(in) :: positions
-      type(scalar_field), intent(in) :: source      
-      type(scalar_field), intent(in) :: absorption
-      type(tensor_field), intent(in) :: diffusivity
-      
-      ! local variables 
-      real, dimension(ele_ngi(t, vele)) :: detwei
-      real, dimension(ele_loc(t, vele), ele_ngi(t, vele), mesh_dim(t)) :: dshape
-      real, dimension(ele_loc(t, vele), ele_loc(t, vele)) :: matrix_addto
-      real, dimension(ele_loc(t, vele)) :: rhs_addto      
-      
-      ! initialise the local vele matrix and vector that are added to the global arrays
-      matrix_addto = 0.0
-      rhs_addto    = 0.0
-           
-      ! form the velement jacobian transform and gauss weight
-      call transform_to_physical(positions, &
-                                 vele, &
-                                 ele_shape(t, vele), &
-                                 dshape = dshape, &
-                                 detwei = detwei)
-            
-      ! add the diffusion term            
-      have_diffusivity_if: if (have_diffusivity) then
-         
-         matrix_addto = matrix_addto + dshape_tensor_dshape(dshape, &
-                                                            ele_val_at_quad(diffusivity, vele), &
-                                                            dshape, &
-                                                            detwei)
-
-      end if have_diffusivity_if
-               
-      ! add the absortion term 
-      have_absorption_if: if (have_absorption) then
-         
-         matrix_addto = matrix_addto + shape_shape(ele_shape(t,vele), &
-                                                   ele_shape(t,vele), &
-                                                   detwei*ele_val_at_quad(absorption,vele))
-         
-      end if have_absorption_if 
-
-      ! add the source term 
-      have_source_if: if (have_source) then
-         
-             rhs_addto = rhs_addto + shape_rhs(ele_shape(t,vele), &
-                                               detwei*ele_val_at_quad(source,vele))
-         
-      end if have_source_if 
-
-      ! insert the local vele matrix and rhs into the global arrays 
-      call addto(matrix, &
-                 ele_nodes(t, vele), &
-                 ele_nodes(t, vele), &
-                 matrix_addto)
-
-      call addto(rhs, &
-                 ele_nodes(t, vele), &
-                 rhs_addto)
-              
-   end subroutine assemble_particle_group_g_vele
-
-   ! --------------------------------------------------------------------------
-
-   subroutine assemble_particle_group_g_sele_albedo(face, &
-                                                    positions, &
-                                                    matrix, & 
-                                                    bc_value, &
-                                                    t)
-      
-      !!< Assemble the diffusion theory albedo boundary condition that involves adding 
-      !!< a surface mass matrix * coefficient to the main matrix
-      
-      ! this is actually a robin BC for angular diffusion
-      
-      integer, intent(in) :: face
-      type(vector_field), intent(in) :: positions
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(in) :: bc_value
-      type(scalar_field), pointer :: t 
-      
-      ! local variables
-      real, dimension(face_ngi(t, face)) :: detwei    
-      real, dimension(face_loc(t, face), face_loc(t, face)) :: matrix_addto
-      
-      assert(face_ngi(positions, face) == face_ngi(t, face))
-            
-      call transform_facet_to_physical(positions, &
-                                       face, &
-                                       detwei_f = detwei)  
-      
-      matrix_addto = shape_shape(face_shape(t, face), &
-                                 face_shape(t, face), &
-                                 detwei*ele_val_at_quad(bc_value,face))
-      
-      call addto(matrix, &
-                 face_global_nodes(t,face), &
-                 face_global_nodes(t,face), &
-                 matrix_addto)
-                
-   end subroutine assemble_particle_group_g_sele_albedo
-
-   ! --------------------------------------------------------------------------
-
-   subroutine assemble_particle_group_g_sele_source(face, &
-                                                    positions, &
-                                                    rhs, & 
-                                                    bc_value, &
-                                                    t)
-      
-      !!< Include the particle source boundary condition into the rhs
-      
-      ! this is actually a neumann BC for angular diffusion
-      
-      integer, intent(in) :: face
-      type(vector_field), intent(in) :: positions
-      type(scalar_field), intent(inout) :: rhs
-      type(scalar_field), intent(in) :: bc_value
-      type(scalar_field), pointer :: t 
-      
-      ! local variables
-      real, dimension(face_ngi(t, face)) :: detwei    
-      real, dimension(ele_loc(t, face)) :: rhs_addto      
-      
-      assert(face_ngi(positions, face) == face_ngi(t, face))
-            
-      call transform_facet_to_physical(positions, &
-                                       face, &
-                                       detwei_f = detwei)  
-      
-      rhs_addto = shape_rhs(face_shape(t, face), &
-                            detwei*ele_val_at_quad(bc_value,face) )
-      
-      call addto(rhs, &
-                 face_global_nodes(t,face), &
-                 rhs_addto)
-                
-   end subroutine assemble_particle_group_g_sele_source
-
    ! --------------------------------------------------------------------------
 
 end module radiation_assemble_solve_group

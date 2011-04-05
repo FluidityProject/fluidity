@@ -135,9 +135,8 @@ contains
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
     
     call profiler_tic(t, "assembly")
-    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name)
-    
-    call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
+    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name, &
+                                         extra_discretised_source = extra_discretised_source)    
     call profiler_toc(t, "assembly")
 
     call profiler_tic(t, "solve_total")
@@ -207,14 +206,16 @@ contains
     
   end subroutine set_advection_diffusion_cg_initial_guess
   
-  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name)
+  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name, &
+                                             extra_discretised_source)
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(state_type), intent(in) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
-    
+    type(scalar_field), intent(in), optional :: extra_discretised_source
+
     character(len = FIELD_NAME_LEN) :: lvelocity_name
     integer :: i, j, stat
     integer, dimension(:), allocatable :: t_bc_types
@@ -472,7 +473,11 @@ contains
                                         source, absorption, diffusivity, &
                                         density, olddensity, pressure)
     end do
-    
+
+    ! as part of assembly include the already discretised optional source
+    ! needed before applying direchlet boundary conditions
+    call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
+
     ! Step 4: Boundary conditions
     
     if( &
