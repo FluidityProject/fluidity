@@ -135,7 +135,8 @@ contains
       integer :: vele
       integer :: inode
       integer :: g_dash
-      integer :: g_set      
+      integer :: g_set
+      real :: theta    
       real :: data_value
       real, dimension(:), allocatable :: detwei_vele
       real, dimension(:), allocatable :: rhs_addto      
@@ -365,6 +366,13 @@ contains
             end if scale_scatter 
                                            
          end if not_within_group
+
+         ! get the time theta value for this energy group g to solve for
+         get_theta: if (.not. invoke_eigenvalue_group_solve) then
+         
+            call get_option(trim(particle_flux(g)%ptr%option_path)//'/prognostic/temporal_discretisation/theta',theta)
+         
+         end if get_theta
          
          vele_loop: do vele = 1,ele_count(extra_discretised_source)
            
@@ -400,17 +408,25 @@ contains
                                               ele_val(particle_flux_old(g_dash)%ptr,vele))
                                           
             else keff_or_time
-  
+
                ! add the scatter - not the within group
                not_within_group_time: if (g /= g_dash) then
-                  
-                  ! fill in ...
-                  
+
+                  rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
+                                                             ele_shape(particle_flux(g_dash)%ptr,vele), &
+                                                             detwei_vele*ele_val_at_quad(scatter_coeff,vele)), &
+                                                 (ele_val(particle_flux(g_dash)%ptr,vele)*theta + &
+                                                  ele_val(particle_flux_old(g_dash)%ptr,vele)*(1.0-theta)))
+
                end if not_within_group_time
 
                ! add the spectrum production 
-
-               ! fill in ...
+               rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
+                                                          ele_shape(particle_flux(g_dash)%ptr,vele), &
+                                                          detwei_vele*ele_val_at_quad(production_coeff,vele) &
+                                                                     *ele_val_at_quad(prompt_spectrum_coeff,vele)), &
+                                              (ele_val(particle_flux(g_dash)%ptr,vele)*theta + &
+                                               ele_val(particle_flux_old(g_dash)%ptr,vele)*(1.0-theta)))
 
             end if keff_or_time
             
