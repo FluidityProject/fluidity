@@ -84,7 +84,15 @@ contains
       ! form the field name to solve for
       field_name = 'ParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
 
-      call get_option('/timestepping/timestep',dt)
+      eig_or_time: if (invoke_eigenvalue_group_solve) then
+      
+         dt = 1.0
+      
+      else eig_or_time
+      
+         call get_option('/timestepping/timestep',dt)
+      
+      end if eig_or_time
       
       ! this procedure is in assemble/Advection_Diffusion_CG.F90
       call solve_field_equation_cg(trim(field_name), &
