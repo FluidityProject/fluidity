@@ -2885,8 +2885,8 @@ contains
           end if
 
           if((prognostic.or.diagnostic)&
-              .and.(convergence_field(sfield).and.(iterations>1))&
-              .and. (field_name(1:8) /= 'Particle')) then
+              .and.((convergence_field(sfield).and.(iterations>1))&
+              .or. (field_name(1:8) == 'Particle'))) then
 
             call allocate(aux_sfield, sfield%mesh, "Iterated"//trim(sfield%name))
             call zero(aux_sfield)

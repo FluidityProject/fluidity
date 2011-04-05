@@ -38,6 +38,7 @@ module radiation_solve_module
    use radiation_solve_power_iteration
    use radiation_normalise_flux
    use radiation_diagnostics
+   use radiation_solve_energy_group_iteration
 
    implicit none
    
@@ -59,7 +60,7 @@ contains
       ! form the material data interpolation/mixing instructions
       call form(particle%particle_radmat_ii, &
                 particle%particle_radmat, &
-                particle%state)      
+                particle%state)
       
       ! solve the problem via a particular algorithm
       eig_solver: if (have_option(trim(particle%option_path)//'/equation/power_iteration')) then
@@ -77,9 +78,7 @@ contains
                         
       ! output diagnostics
       call radiation_eigenvalue_set_diagnostics(particle)
-            
-      ! output the solution
-            
+                        
    end subroutine radiation_solve_eigenvalue
 
    ! --------------------------------------------------------------------------
@@ -90,7 +89,13 @@ contains
       
       type(particle_type), intent(inout) :: particle
       
-      ! fill in ...      
+      ! form the material data interpolation/mixing instructions
+      call form(particle%particle_radmat_ii, &
+                particle%particle_radmat, &
+                particle%state)
+      
+      ! solve equations via an energy group iteration
+      call time_energy_group_iteration(particle)
       
    end subroutine radiation_solve_time
 

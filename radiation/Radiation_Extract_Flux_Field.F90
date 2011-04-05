@@ -57,13 +57,15 @@ contains
 
    subroutine extract_flux_all_group(particle, &
                                      particle_flux, &
-                                     particle_flux_old)
+                                     particle_flux_old, &
+                                     particle_flux_iter)
 
       !!< Extract the pointer array to the particle flux fields for a particular type
 
       type(particle_type), intent(in) :: particle
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_iter
       
       ! local variables
       integer :: g
@@ -113,12 +115,33 @@ contains
       
       end if check_present_old
       
+      check_present_iter: if (present(particle_flux_iter)) then
+      
+         check_associated_iter: if (.not. associated(particle_flux_iter)) then
+      
+            allocate(particle_flux_iter(number_of_energy_groups))
+         
+            group_loop_iter: do g = 1,number_of_energy_groups
+         
+               allocate(particle_flux_iter(g)%ptr)
+         
+            end do group_loop_iter
+                  
+         else check_associated_iter
+         
+            FLAbort('Cannot extract flux iter all group as already associated')
+      
+         end if check_associated_iter
+      
+      end if check_present_iter
+      
       group_loop_extract: do g = 1,number_of_energy_groups
          
          call extract_flux_group_g(particle, &
                                    g, &
                                    particle_flux = particle_flux(g)%ptr, &
-                                   particle_flux_old = particle_flux_old(g)%ptr)
+                                   particle_flux_old = particle_flux_old(g)%ptr, &
+                                   particle_flux_iter = particle_flux_iter(g)%ptr)
          
       end do group_loop_extract
         
@@ -127,12 +150,14 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine deallocate_flux_all_group(particle_flux, &
-                                        particle_flux_old)
+                                        particle_flux_old, &
+                                        particle_flux_iter)
       
       !!< Deallocate the pointer array to the particle flux fields
       
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
       type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
+      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_iter
       
       check_present: if (present(particle_flux)) then
       
@@ -146,6 +171,12 @@ contains
             
       end if check_present_old
 
+      check_present_iter: if (present(particle_flux_iter)) then
+      
+         if (associated(particle_flux_iter)) deallocate(particle_flux_iter)
+            
+      end if check_present_iter
+
    end subroutine deallocate_flux_all_group
 
    ! --------------------------------------------------------------------------
@@ -153,19 +184,22 @@ contains
    subroutine extract_flux_group_g(particle, & 
                                    g, &
                                    particle_flux, &
-                                   particle_flux_old) 
+                                   particle_flux_old, &
+                                   particle_flux_iter) 
    
-      !!< Extract the particle latest and old flux fields for group g from particle%state
+      !!< Extract the particle flux fields for group g from particle%state
 
       type(particle_type), intent(in) :: particle
       integer, intent(in) :: g
       type(scalar_field), pointer, optional :: particle_flux 
       type(scalar_field), pointer, optional :: particle_flux_old
+      type(scalar_field), pointer, optional :: particle_flux_iter
       
       ! local variables
       integer :: status
       character(len=OPTION_PATH_LEN) :: field_name
-      character(len=OPTION_PATH_LEN) :: field_name_old      
+      character(len=OPTION_PATH_LEN) :: field_name_old
+      character(len=OPTION_PATH_LEN) :: field_name_iter
 
       extract_latest: if (present(particle_flux)) then
             
@@ -194,6 +228,20 @@ contains
          if (status /= 0) FLAbort('Failed to extract old particle flux field from particle%state')      
       
       end if extract_old
+       
+      extract_iter: if (present(particle_flux_iter)) then
+       
+         ! form the iter field name using the particle_name and group g number for moment 1
+         field_name_iter = 'IteratedParticleFluxGroup'//int2str(g)//'Moment1'//trim(particle%name)
+
+         ! extract the field
+         particle_flux_iter => extract_scalar_field(particle%state, &
+                                                    trim(field_name_iter), &
+                                                    stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract iter particle flux field from particle%state')      
+      
+      end if extract_iter
             
    end subroutine extract_flux_group_g
 
@@ -204,9 +252,10 @@ contains
                                                 g, &
                                                 g_set, &
                                                 particle_flux, &
-                                                particle_flux_old) 
+                                                particle_flux_old, &
+                                                particle_flux_iter) 
    
-      !!< Extract the particle latest and old flux fields for group g
+      !!< Extract the particle flux fields for group g
       !!< within group set g_set from state. g is the within set number not the global number
 
       type(state_type), intent(in) :: state
@@ -215,14 +264,16 @@ contains
       integer, intent(in) :: g_set
       type(scalar_field), pointer, optional :: particle_flux 
       type(scalar_field), pointer, optional :: particle_flux_old
+      type(scalar_field), pointer, optional :: particle_flux_iter
       
       ! local variables
       integer :: status
       integer :: first_g_in_g_set
       integer :: global_g
       character(len=OPTION_PATH_LEN) :: field_name
-      character(len=OPTION_PATH_LEN) :: field_name_old      
-      character(len=OPTION_PATH_LEN) :: particle_name      
+      character(len=OPTION_PATH_LEN) :: field_name_old
+      character(len=OPTION_PATH_LEN) :: field_name_iter
+      character(len=OPTION_PATH_LEN) :: particle_name
 
       ! determine the first energy group in this group set
       call first_g_within_group_set(g_set, &
@@ -262,6 +313,20 @@ contains
          if (status /= 0) FLAbort('Failed to extract old particle flux field from state')      
       
       end if extract_old
+       
+      extract_iter: if (present(particle_flux_iter)) then
+       
+         ! form the iter field name using the particle_name and group global_g number for moment 1
+         field_name_iter = 'IteratedParticleFluxGroup'//int2str(global_g)//'Moment1'//trim(particle_name)
+
+         ! extract the field
+         particle_flux_iter => extract_scalar_field(state, &
+                                                    trim(field_name_iter), &
+                                                    stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract iter particle flux field from state')      
+      
+      end if extract_iter
             
    end subroutine extract_flux_group_from_group_set
 

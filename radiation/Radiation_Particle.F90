@@ -158,10 +158,10 @@ contains
       type(keff_type), intent(out) :: keff
       real, intent(in) :: value
       
-      keff%keff_new         = value
-      keff%keff_old         = value
-      keff%keff_old_coupled = value
-      keff%keff_old_control = value
+      keff%keff_new          = value
+      keff%keff_iter         = value
+      keff%keff_iter_coupled = value
+      keff%keff_iter_control = value
    
    end subroutine set_all_keff
    

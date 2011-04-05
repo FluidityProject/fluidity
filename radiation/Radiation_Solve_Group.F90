@@ -123,7 +123,8 @@ contains
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
       !!< somewhere else to assemble the linear system. For a time run the velocity coeff
       !!< are times through the equation into the other material property fields
-      !!< as the assemble and solve procedure has no density term.
+      !!< as the assemble and solve procedure has no density term (this does not happen
+      !!< if the option is chosen to exclude the mass terms)
 
       type(particle_type), intent(inout) :: particle
       type(scalar_field), intent(out) :: extra_discretised_source
@@ -131,6 +132,7 @@ contains
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
+      logical :: scale_by_velocity_coeff
       integer :: stat
       integer :: vele
       integer :: inode
@@ -148,22 +150,25 @@ contains
       type(tensor_field), pointer :: diffusivity_coeff
       type(mesh_type), pointer :: material_fn_space
       type(vector_field), pointer :: positions      
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux 
-      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old      
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_old
+      type(scalar_field_pointer), dimension(:), pointer :: particle_flux_iter     
       character(len=OPTION_PATH_LEN) :: material_fn_space_name
       character(len=OPTION_PATH_LEN) :: energy_group_set_path
       character(len=OPTION_PATH_LEN) :: field_name
+      character(len=OPTION_PATH_LEN) :: mass_terms_path
                  
       ! extract the particle flux fields for all energy groups
       call extract_flux_all_group(particle, & 
-                                  particle_flux     = particle_flux, &
-                                  particle_flux_old = particle_flux_old)
+                                  particle_flux      = particle_flux, &
+                                  particle_flux_old  = particle_flux_old, &
+                                  particle_flux_iter = particle_flux_iter)
 
       ! currently assume all energy groups point to the same coordinate mesh
       
       ! if the above assumption was to be broken then the there would need to be a sweep of the other groups
-      ! fluxes (new and old) to see which needs supermeshing to a new field and then the pointer within the 
-      ! scalar_field_pointer particle_flux (or _old) is then changed such that no code change below is needed
+      ! fluxes (new, old and iter) to see which needs supermeshing to a new field and then the pointer within the 
+      ! scalar_field_pointer particle_flux (or _old or _iter) is then changed such that no code change below is needed
       
       ! determine which group set this g belongs to
       call which_group_set_contains_g(g, &
@@ -184,6 +189,37 @@ contains
       positions => extract_vector_field(particle%state, &
                                         'Coordinate')
       
+      ! deduce if for a time equation the mass terms will be included
+      ! to deduce if the material properties should be scaled by the velocity coeff
+      time_run: if (.not. invoke_eigenvalue_group_solve) then
+         
+         ! set the mass terms option path
+         discr: if (have_option(trim(particle_flux(g)%ptr%option_path)//'/prognostic/spatial_discretisation/continuous_galerkin')) then
+            
+            mass_terms_path = trim(particle_flux(g)%ptr%option_path)//'/prognostic/spatial_discretisation/continuous_galerkin/mass_terms'
+         
+         else discr
+            
+            FLAbort('Unknown spatial discretisation for radiation model')
+         
+         end if discr
+         
+         exclude_mass: if (have_option(trim(mass_terms_path)//'/exclude_mass_terms')) then
+
+            scale_by_velocity_coeff = .false.
+
+         else exclude_mass
+
+            scale_by_velocity_coeff = .true.
+
+         end if exclude_mass
+         
+      else time_run
+      
+         scale_by_velocity_coeff = .false.
+         
+      end if time_run
+      
       ! allocate the input discretised_source using the mesh of the group to solve for
       field_name = trim(particle_flux(g)%ptr%name)//'DiscretisedSource'
       call allocate(extra_discretised_source, particle_flux(g)%ptr%mesh, trim(field_name))
@@ -203,7 +239,7 @@ contains
       call allocate(prompt_spectrum_coeff, material_fn_space, trim(field_name))
       call zero(prompt_spectrum_coeff)
 
-      alloc_velocity: if (.not. invoke_eigenvalue_group_solve) then
+      alloc_velocity: if (scale_by_velocity_coeff) then
          
          field_name = trim(particle_flux(g)%ptr%name)//'Velocity'
          call allocate(velocity_coeff, material_fn_space, trim(field_name))
@@ -223,9 +259,9 @@ contains
       ! zero the extracted fields
       call zero(absorption_coeff)
       call zero(diffusivity_coeff)
-
+      
       ! form the velocity coeff field for this energy group if time run
-      form_velocity: if (.not. invoke_eigenvalue_group_solve) then
+      form_velocity: if (scale_by_velocity_coeff) then
                  
          call form(material_fn_space, &
                    particle%particle_radmat_ii%energy_group_set_ii(g_set), &
@@ -245,73 +281,23 @@ contains
                 component = 'removal')
       
       ! if a time run scale the absorption coeff by the velocity coeff
-      scale_abs: if (.not. invoke_eigenvalue_group_solve) then
+      scale_abs: if (scale_by_velocity_coeff) then
       
          call scale(absorption_coeff, &
                     velocity_coeff)
          
       end if scale_abs 
             
-      ! form the diffusivity tensor coeff field for this energy group (only fill in diagonals)            
-      node_loop_d: do inode = 1,node_count(material_fn_space)                                                                      
-            
-         ! get the inode diffusionx data for this energy group
-         call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
-                   particle%particle_radmat, &
-                   inode, &
-                   g, &
-                   data_value, &
-                   component = 'diffusionx')
-               
-         ! set the interpolated value into the scalar field
-         call set(diffusivity_coeff, &
-                  1, &
-                  1, &
-                  inode, &
-                  data_value)
-
-         if (positions%dim > 1) then
-         
-            ! get the inode diffusiony data for this energy group
-            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
-                      particle%particle_radmat, &
-                      inode, &
-                      g, &
-                      data_value, &
-                      component = 'diffusiony')
-               
-            ! set the interpolated value into the scalar field
-            call set(diffusivity_coeff, &
-                     2, &
-                     2, &
-                     inode, &
-                     data_value)
-
-         end if 
-         
-         if (positions%dim > 2) then
-
-            ! get the inode diffusionz data for this energy group
-            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
-                      particle%particle_radmat, &
-                      inode, &
-                      g, &
-                      data_value, &
-                      component = 'diffusionz')
-               
-            ! set the interpolated value into the scalar field
-            call set(diffusivity_coeff, &
-                     3, &
-                     3, &
-                     inode, &
-                     data_value)
-
-         end if 
-               
-      end do node_loop_d
+      ! form the diffusivity tensor coeff field for this energy group
+      call form(material_fn_space, &
+                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+                particle%particle_radmat, &
+                diffusivity_coeff, &
+                g, &
+                positions%dim)
 
       ! if a time run scale the diffusivity coeff by the velocity coeff
-      scale_diff: if (.not. invoke_eigenvalue_group_solve) then
+      scale_diff: if (scale_by_velocity_coeff) then
       
          call scale(diffusivity_coeff, &
                     velocity_coeff)
@@ -329,7 +315,7 @@ contains
                 component = 'prompt_spectrum')
 
       ! if a time run scale the prompt spectrum coeff by the velocity coeff
-      scale_prompt: if (.not. invoke_eigenvalue_group_solve) then
+      scale_prompt: if (scale_by_velocity_coeff) then
       
          call scale(prompt_spectrum_coeff, &
                     velocity_coeff)
@@ -358,7 +344,7 @@ contains
                       g_dash = g_dash)
 
             ! if a time run scale the scatter coeff by the velocity coeff
-            scale_scatter: if (.not. invoke_eigenvalue_group_solve) then
+            scale_scatter: if (scale_by_velocity_coeff) then
       
                call scale(scatter_coeff, &
                           velocity_coeff)
@@ -401,11 +387,11 @@ contains
             
                ! add the spectrum production - this is the eigenvector
                rhs_addto = rhs_addto + matmul(shape_shape(ele_shape(particle_flux(g)%ptr,vele), &
-                                                          ele_shape(particle_flux_old(g_dash)%ptr,vele), &
+                                                          ele_shape(particle_flux(g_dash)%ptr,vele), &
                                                           detwei_vele*ele_val_at_quad(production_coeff,vele) &
                                                                      *ele_val_at_quad(prompt_spectrum_coeff,vele) &
                                                                      *(1.0/particle%keff%keff_new) ), &
-                                              ele_val(particle_flux_old(g_dash)%ptr,vele))
+                                              ele_val(particle_flux_iter(g_dash)%ptr,vele))
                                           
             else keff_or_time
 
@@ -425,7 +411,7 @@ contains
                                                           ele_shape(particle_flux(g_dash)%ptr,vele), &
                                                           detwei_vele*ele_val_at_quad(production_coeff,vele) &
                                                                      *ele_val_at_quad(prompt_spectrum_coeff,vele)), &
-                                              (ele_val(particle_flux(g_dash)%ptr,vele)*theta + &
+                                              (ele_val(particle_flux_iter(g_dash)%ptr,vele)*theta + &
                                                ele_val(particle_flux_old(g_dash)%ptr,vele)*(1.0-theta)))
 
             end if keff_or_time
@@ -448,15 +434,16 @@ contains
       call deallocate(production_coeff)
       call deallocate(prompt_spectrum_coeff)
       
-      dealloc_velocity: if (.not. invoke_eigenvalue_group_solve) then
+      dealloc_velocity: if (scale_by_velocity_coeff) then
          
          call deallocate(velocity_coeff)
       
       end if dealloc_velocity
       
       ! deallocate the particle flux pointer fields
-      call deallocate_flux_all_group(particle_flux     = particle_flux, &
-                                     particle_flux_old = particle_flux_old)
+      call deallocate_flux_all_group(particle_flux      = particle_flux, &
+                                     particle_flux_old  = particle_flux_old, &
+                                     particle_flux_iter = particle_flux_iter)
                         
    end subroutine assemble_coeff_source_group_g
    

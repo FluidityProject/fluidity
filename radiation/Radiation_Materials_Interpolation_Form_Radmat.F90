@@ -46,12 +46,88 @@ module radiation_materials_interpolation_form_radmat
    public :: form
    
    interface form
-      module procedure form_radiation_material_scalar_field, &
+      module procedure form_radiation_material_diffusivity_field, &
+                       form_radiation_material_scalar_field, &
                        form_radmat_inode_component_group_g
    end interface form
       
 contains
 
+   ! --------------------------------------------------------------------------
+   
+   subroutine form_radiation_material_diffusivity_field(material_fn_space, &
+                                                        energy_group_set_ii, &
+                                                        particle_radmat, &
+                                                        diffusivity_field, &                                                   
+                                                        g, &
+                                                        geom_dim)
+
+      !!< Form a radiation material diffusivity field for group g
+
+      type(mesh_type), intent(in) :: material_fn_space
+      type(energy_group_set_ii_type), intent(in) :: energy_group_set_ii  
+      type(particle_radmat_type), intent(in) :: particle_radmat  
+      type(tensor_field), intent(inout) :: diffusivity_field
+      integer, intent(in) :: g
+      integer, intent(in) :: geom_dim
+      
+      ! local variables
+      integer :: inode
+      real, dimension(:,:), allocatable :: node_values
+      
+      allocate(node_values(geom_dim,geom_dim))
+      
+      node_loop: do inode = 1,node_count(material_fn_space)                                                                      
+         
+         node_values = 0.0
+         
+         ! get the inode diffusionx data for this energy group
+         call form(energy_group_set_ii, &
+                   particle_radmat, &
+                   inode, &
+                   g, &
+                   node_values(1,1), &
+                   component = 'diffusionx')
+
+         second: if (geom_dim > 1) then
+         
+            ! get the inode diffusiony data for this energy group
+            call form(energy_group_set_ii, &
+                      particle_radmat, &
+                      inode, &
+                      g, &
+                      node_values(2,2), &
+                      component = 'diffusiony')
+
+         end if second
+         
+         third: if (geom_dim > 2) then
+
+            ! get the inode diffusionz data for this energy group
+            call form(energy_group_set_ii, &
+                      particle_radmat, &
+                      inode, &
+                      g, &
+                      node_values(3,3), &
+                      component = 'diffusionz')
+
+         end if third
+         
+         ! rotate the diffusivity tensor for this node if required
+         
+         
+               
+         ! set the interpolated node values into the tensor field
+         call set(diffusivity_field, &
+                  inode, &
+                  node_values)
+               
+      end do node_loop
+      
+      if (allocated(node_values)) deallocate(node_values)
+   
+   end subroutine form_radiation_material_diffusivity_field
+   
    ! --------------------------------------------------------------------------
 
    subroutine form_radiation_material_scalar_field(material_fn_space, &

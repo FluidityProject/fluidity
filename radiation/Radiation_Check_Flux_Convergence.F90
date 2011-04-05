@@ -65,7 +65,7 @@ contains
       real :: difference
       real :: max_abs_difference_flux
       type(scalar_field), pointer :: particle_flux 
-      type(scalar_field), pointer :: particle_flux_old
+      type(scalar_field), pointer :: particle_flux_iter
       
       max_abs_difference_flux = 0.0
       
@@ -78,11 +78,11 @@ contains
          call extract_flux_group_g(particle, &
                                    g, &  
                                    particle_flux = particle_flux, &
-                                   particle_flux_old = particle_flux_old)
+                                   particle_flux_iter = particle_flux_iter)
          
          ! use generic fields operation to find the L_Infinity norm of the difference
          call field_con_stats(particle_flux, &
-                              particle_flux_old, &
+                              particle_flux_iter, &
                               difference)
          
          ! find the max difference over all energy groups

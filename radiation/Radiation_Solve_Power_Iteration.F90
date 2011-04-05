@@ -88,7 +88,7 @@ contains
       ! intialise the number of all convergence passes in power iterations
       number_all_convereged_pass = 0
       
-      ! initialise the total number of groups solves performed counter
+      ! initialise the total number of group solves performed counter
       total_count_group_solves = 0
       
       call get_power_iteration_options(particle, &
@@ -103,7 +103,7 @@ contains
          ! initialise the number of group solves performed for this power iteration counter
          count_group_solves = 0
          
-         call copy_to_old_values_eig(particle)
+         call copy_to_iter_values_eig(particle)
                   
          call scatter_iteration(particle, &
                                 count_group_solves, &
@@ -189,25 +189,29 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine copy_to_old_values_eig(particle) 
+   subroutine copy_to_iter_values_eig(particle) 
       
-      !!< Copy the latest flux and eigenvalue to the old values 
+      !!< Copy the latest flux and eigenvalue to the iter values 
       
       type(particle_type), intent(inout) :: particle
                   
-      ! set the eigenvalue old
-      particle%keff%keff_old = particle%keff%keff_new
+      ! set the eigenvalue iter
+      particle%keff%keff_iter = particle%keff%keff_new
       
+      ! set the iter flux
+      call copy_to_iter_values_particle_flux(particle)
+      
+      ! set the old flux, this is needed for the generic assemble-solve
       call copy_to_old_values_particle_flux(particle)
             
-   end subroutine copy_to_old_values_eig 
+   end subroutine copy_to_iter_values_eig 
 
    ! --------------------------------------------------------------------------
 
    subroutine calculate_eigenvalue(particle) 
       
       !!< Calculate the latest eigenvalue as:
-      !!< keff_new = keff_old*(integral_dv(production_source*production_source)/integral_dv(production_source*production_source_old))
+      !!< keff_new = keff_iter*(integral_dv(production_source*production_source)/integral_dv(production_source*production_source_iter))
       
       type(particle_type), intent(inout) :: particle
       
@@ -224,7 +228,7 @@ contains
       real :: k_bottom_group
       type(vector_field), pointer :: positions 
       type(scalar_field), pointer :: particle_flux 
-      type(scalar_field), pointer :: particle_flux_old
+      type(scalar_field), pointer :: particle_flux_iter
       type(scalar_field), target :: production_coeff
       type(mesh_type), pointer :: material_fn_space
       type(scalar_field_pointer), dimension(:), pointer :: scalar_fields 
@@ -289,7 +293,7 @@ contains
             call extract_flux_group_g(particle, &
                                       g_global, &
                                       particle_flux = particle_flux, &
-                                      particle_flux_old = particle_flux_old)
+                                      particle_flux_iter = particle_flux_iter)
             
             call zero(production_coeff)
             
@@ -317,7 +321,7 @@ contains
             scalar_fields(1)%ptr => production_coeff
             scalar_fields(2)%ptr => particle_flux
             scalar_fields(3)%ptr => production_coeff
-            scalar_fields(4)%ptr => particle_flux_old
+            scalar_fields(4)%ptr => particle_flux_iter
 
             call integrate(scalar_fields, &
                            positions, &
@@ -335,7 +339,7 @@ contains
       if (associated(scalar_fields)) deallocate(scalar_fields)
       
       ! form the latest keff estimate
-      particle%keff%keff_new = particle%keff%keff_old*k_top/k_bottom
+      particle%keff%keff_new = particle%keff%keff_iter*k_top/k_bottom
 
       ewrite(1,*) 'Keff: ',particle%keff%keff_new
 
@@ -365,16 +369,16 @@ contains
       power_iteration_converged = .true.
       
       ! find the keff absolute difference
-      abs_difference_keff = abs(particle%keff%keff_new - particle%keff%keff_old)
+      abs_difference_keff = abs(particle%keff%keff_new - particle%keff%keff_iter)
       
       ! find the keff relative difference
-      find_change_keff: if (particle%keff%keff_old > 0.0) then
+      find_change_keff: if (particle%keff%keff_iter > 0.0) then
          
-         rel_difference_keff = abs_difference_keff / abs(particle%keff%keff_old)
+         rel_difference_keff = abs_difference_keff / abs(particle%keff%keff_iter)
          
       else find_change_keff
          
-         FLAbort('ERROR the radiation eigenvalue Keff old is not > 0.0')
+         FLAbort('ERROR the radiation eigenvalue Keff iter is not > 0.0')
                   
       end if find_change_keff
       

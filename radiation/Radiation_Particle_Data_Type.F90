@@ -50,11 +50,11 @@ module radiation_particle_data_type
       ! the latest keff
       real :: keff_new
       ! the previous keff
-      real :: keff_old
+      real :: keff_iter
       ! the previous coupled keff
-      real :: keff_old_coupled
+      real :: keff_iter_coupled
       ! the previous control iteration keff
-      real :: keff_old_control
+      real :: keff_iter_control
    end type keff_type
 
    

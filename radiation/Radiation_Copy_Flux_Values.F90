@@ -44,7 +44,8 @@ module radiation_copy_flux_values
    
    private 
 
-   public :: copy_to_old_values_particle_flux
+   public :: copy_to_old_values_particle_flux, &
+             copy_to_iter_values_particle_flux
 
 contains
 
@@ -81,6 +82,40 @@ contains
       end do group_loop
     
    end subroutine copy_to_old_values_particle_flux 
+
+   ! --------------------------------------------------------------------------
+
+   subroutine copy_to_iter_values_particle_flux(particle) 
+      
+      !!< Copy the latest flux to the iter values 
+
+      type(particle_type), intent(inout) :: particle
+      
+      ! local variables
+      integer :: g
+      integer :: number_of_energy_groups
+      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: particle_flux_iter
+      
+      ewrite(1,*) 'Copy latest radiation particle flux values to iter for type ',trim(particle%name)
+      
+      ! find the number of energy groups
+      call find_total_number_energy_groups(trim(particle%option_path), &
+                                           number_of_energy_groups)
+                  
+      ! set the iter flux
+      group_loop: do g = 1,number_of_energy_groups
+         
+         call extract_flux_group_g(particle, &
+                                   g, &  
+                                   particle_flux = particle_flux, &
+                                   particle_flux_iter = particle_flux_iter)
+            
+         call set(particle_flux_iter, particle_flux)
+                  
+      end do group_loop
+    
+   end subroutine copy_to_iter_values_particle_flux 
 
    ! --------------------------------------------------------------------------
 
