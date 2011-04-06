@@ -1380,16 +1380,20 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
       </choice>
     </element>
     <optional>
-      <element name="reference_node">
-        <a:documentation>Reference node (Node at which pressure = 0.)
-
-Must be less than the total number of nodes.
-If parallel must be less than the total number of nodes of the first processor.
-
-Note - it is also an option to remove the null-space of the residual vector. This
-option is available under solvers.</a:documentation>
-        <ref name="integer"/>
-      </element>
+      <choice>
+        <element name="reference_node">
+          <a:documentation>Reference node (Node at which pressure = 0.) Note that the node number must be less than the total number of nodes.
+If running in parallel, the node number must be less than the total number of nodes of the first processor.
+** Note - it is also an option to remove the null-space of the residual vector. This
+option is available under solvers</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <element name="reference_coordinates">
+          <a:documentation>Input coordinates of desired reference node. If a node does not exist at these
+coordinates, the nearest vertex will be selected.</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
+      </choice>
     </optional>
     <optional>
       <element name="repair_stiff_nodes">

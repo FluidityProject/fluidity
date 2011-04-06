@@ -1140,16 +1140,20 @@ prognostic_pressure_field =
             }
          )
       },
-      ## Reference node (Node at which pressure = 0.)
-      ##
-      ## Must be less than the total number of nodes.
-      ## If parallel must be less than the total number of nodes of the first processor.
-      ##
-      ## Note - it is also an option to remove the null-space of the residual vector. This
-      ## option is available under solvers.
-      element reference_node {
-         integer
-      }?,
+      (
+         ## Reference node (Node at which pressure = 0.) Note that the node number must be less than the total number of nodes.
+         ## If running in parallel, the node number must be less than the total number of nodes of the first processor.
+         ## ** Note - it is also an option to remove the null-space of the residual vector. This
+         ## option is available under solvers
+         element reference_node {
+            integer
+         }|
+         ## Input coordinates of desired reference node. If a node does not exist at these
+         ## coordinates, the nearest vertex will be selected.
+         element reference_coordinates {
+            real_dim_vector
+         }
+      )?,
       ## **UNDER DEVELOPMENT**
       ## This searches the CMC matrix diagonal looking for nodes that are less than the maximum value time epsilon(0.0) (i.e. nodes that are effectively zero).
       ## It then zeros that row and column and places a one on the diagonal and a zero on the rhs.

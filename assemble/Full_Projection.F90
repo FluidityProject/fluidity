@@ -42,6 +42,7 @@
     use Multigrid
     use state_module
     use petsc_solve_state_module
+    use boundary_conditions_from_options
 
 #ifdef HAVE_PETSC_MODULES
 #include "petscversion.h"
@@ -204,6 +205,8 @@
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
+      ! Positions:
+      type(vector_field), pointer :: positions
 
       ! Additional arrays used internally:
       ! Additional numbering types:
@@ -229,6 +232,8 @@
       integer reference_node, stat, i
       logical parallel, have_auxiliary_matrix
 
+      logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
+
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
       inner_option_path= trim(option_path)//&
@@ -243,16 +248,49 @@
          name=option_path
       end if
 
-      ! Impose reference pressure node on processor 1 only:
-      call get_option(trim(option_path)//&
-           '/prognostic/reference_node', reference_node, stat=stat)
-      if (stat==0.AND.GetProcNo()==1) then
-         ewrite(2,*) 'Imposing_reference_pressure_node'        
-         allocate(ghost_nodes(1:1))
-         ghost_nodes(1) = reference_node
-         call set(rhs,reference_node,0.0) ! Modify RHS accordingly
+      ! Are we applying a reference pressure node?
+      apply_reference_node = have_option(trim(option_path)//&
+                 '/prognostic/reference_node')
+      apply_reference_node_from_coordinates = have_option(trim(option_path)//&
+                 '/prognostic/reference_coordinates')
+
+      ! If so, impose reference pressure node:
+      if(apply_reference_node) then
+
+         call get_option(trim(option_path)//&
+              '/prognostic/reference_node', reference_node)
+         if (GetProcNo()==1) then
+            ewrite(2,*) 'Imposing_reference_pressure_node'        
+            allocate(ghost_nodes(1:1))
+            ghost_nodes(1) = reference_node
+            call set(rhs,reference_node,0.0) ! Modify RHS accordingly
+         else
+            allocate(ghost_nodes(1:0))
+         end if
+
+      elseif(apply_reference_node_from_coordinates) then
+
+         ewrite(1,*) 'Imposing_reference_pressure_node from user-specified coordinates'
+         positions => extract_vector_field(state, "Coordinate")
+         call find_reference_pressure_node_from_coordinates(positions,rhs,option_path,reference_node,reference_node_owned)
+         if(IsParallel()) then
+            if (reference_node_owned) then
+               allocate(ghost_nodes(1:1))
+               ghost_nodes(1) = reference_node
+               call set(rhs,reference_node,0.0)
+            else
+               allocate(ghost_nodes(1:0))
+            end if
+         else
+            allocate(ghost_nodes(1:1))
+            ghost_nodes(1) = reference_node
+            call set(rhs,reference_node,0.0)
+         end if
+
       else
+
          allocate(ghost_nodes(1:0))
+
       end if
 
       ! Is auxiliary matrix present?
@@ -266,6 +304,7 @@
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
            halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+
            ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
            ! - same question about the nnodes use of the rows of the block of the divergence matrix?
            ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?

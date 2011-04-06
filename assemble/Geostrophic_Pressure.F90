@@ -1126,15 +1126,16 @@ contains
   
   end subroutine assemble_cmc_rhs
   
-  subroutine apply_cmc_reference_node(matrices, cmc_rhs)
+  subroutine apply_cmc_reference_node(matrices, cmc_rhs, positions)
     !!< Apply reference node to CMC
   
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(inout) :: cmc_rhs
+    type(vector_field), intent(inout) :: positions
     
     assert(matrices%have_cmc_m)
     
-    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = matrices%p_option_path)
+    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, positions, option_path = matrices%p_option_path)
   
   end subroutine apply_cmc_reference_node
   
@@ -1232,7 +1233,8 @@ contains
     character(len = *), optional, intent(in) :: option_path
     type(vector_field), optional, intent(in) :: bcfield
     type(cmc_matrices), optional, intent(out) :: matrices
-    
+
+    type(vector_field), pointer :: positions
     type(cmc_matrices) :: lmatrices
     type(scalar_field) :: cmc_rhs    
         
@@ -1243,7 +1245,8 @@ contains
     call allocate(cmc_rhs, lmatrices%p_mesh, "CMCRHS")
     call assemble_cmc_rhs(field, lmatrices, cmc_rhs, gp = gp)
     
-    call apply_cmc_reference_node(lmatrices, cmc_rhs)
+    positions => extract_vector_field(state, "Coordinate")
+    call apply_cmc_reference_node(lmatrices, cmc_rhs, positions)
     call petsc_solve(p, lmatrices%cmc_m, cmc_rhs, option_path = lmatrices%p_option_path)
     call cmc_solve_finalise(lmatrices)
     
@@ -1304,7 +1307,7 @@ contains
       call assemble_geopressure_ele(i, p_mesh, field, matrix, rhs, positions)
     end do
     
-    call impose_reference_pressure_node(matrix, rhs, option_path = loption_path)
+    call impose_reference_pressure_node(matrix, rhs, positions, option_path = loption_path)
     
     call petsc_solve(p, matrix, rhs, option_path = loption_path)
     

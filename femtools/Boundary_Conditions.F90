@@ -1453,7 +1453,7 @@ contains
     
   end subroutine get_vector_boundary_condition_nodes
 
-  subroutine set_reference_node_scalar(matrix, node, rhs, reference_value)
+  subroutine set_reference_node_scalar(matrix, node, rhs, reference_value, reference_node_owned)
     !!< Sets a reference node for which the value is fixed in the equation
     !!< This is typically done for a Poisson equation with all Neumann
     !!< bcs to eliminate the spurious freedom of adding a constant value
@@ -1465,9 +1465,22 @@ contains
     type(scalar_field), optional, intent(inout) :: rhs
     !! by default the field gets set to 0 at the reference node
     real, optional, intent(in) :: reference_value
+    !! in parallel all processes need to call this routine, only one
+    !! of them actually sets the reference node - this processor should
+    !! call with reference_node_owned=.true., other processes with reference_node_owned=.false.
+    !! if reference_node_owned is not present, we will assume that only process with rank 0
+    !! owns and thus sets the reference node
+    logical, optional, intent(in) :: reference_node_owned
     
-    ! but only first should set the reference node
-    if (GetProcNo()/=1) then
+    logical:: lnode_owned
+
+    if (present(reference_node_owned)) then
+       lnode_owned = reference_node_owned
+    else
+       lnode_owned = GetProcNo()==1
+    end if
+       
+    if (.not. lnode_owned) then
        ! Other processors still need to have the inactive mask, even if
        ! it's empty.
        call initialise_inactive(matrix)
@@ -1486,7 +1499,7 @@ contains
     
   end subroutine set_reference_node_scalar
 
-  subroutine set_reference_node_vector_petsc(matrix, node, rhs, reference_value)
+  subroutine set_reference_node_vector_petsc(matrix, node, rhs, reference_value, reference_node_owned)
     !!< Sets a reference node for which the value is fixed in the equation
     !!< This is typically done for a Poisson equation with all Neumann
     !!< bcs to eliminate the spurious freedom of adding a constant value
@@ -1498,12 +1511,25 @@ contains
     type(vector_field), optional, intent(inout) :: rhs
     !! by default the field gets set to 0 at the reference node
     real, dimension(blocks(matrix,1)), optional, intent(in) :: reference_value
+    !! in parallel all processes need to call this routine, only one
+    !! of them actually sets the reference node - this processor should
+    !! call with reference_node_owned=.true., other processes with reference_node_owned=.false.
+    !! if reference_node_owned is not present, we will assume that only process with rank 0
+    !! owns and thus sets the reference node
+    logical, optional, intent(in) :: reference_node_owned 
+    
+    logical:: lnode_owned
 
     !! iterator
     integer :: k
-    
-    ! only first should set the reference node (as this is a big spring)
-    if (GetProcNo()/=1) return
+
+    if (present(reference_node_owned)) then
+       lnode_owned = reference_node_owned 
+    else
+       lnode_owned = GetProcNo()==1
+    end if
+
+    if (.not. lnode_owned) return
     
     assert(blocks(matrix,1)==blocks(matrix,2))
     do k = 1, blocks(matrix, 1)

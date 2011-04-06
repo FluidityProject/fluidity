@@ -284,7 +284,7 @@ module solenoidal_interpolation_module
     call scale(projec_rhs, -1.0)
     call addto(projec_rhs, ct_rhs)
     
-    call impose_reference_pressure_node(cmc_m, projec_rhs, trim(l_option_path)//"/lagrange_multiplier")
+    call impose_reference_pressure_node(cmc_m, projec_rhs, coordinate, trim(l_option_path)//"/lagrange_multiplier")
     
     if(stiff_nodes_repair) then
       call zero_stiff_nodes(projec_rhs, stiff_nodes_list)

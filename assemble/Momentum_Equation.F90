@@ -1284,13 +1284,14 @@
 
          type(csr_matrix), intent(in) :: schur_auxiliary_matrix
 
+         type(vector_field), pointer :: positions
+
          real, intent(in) :: theta_pg
 
          !! Local variables
          type(scalar_field) :: poisson_rhs
 
          ewrite(1,*) 'Entering solve_poisson_pressure'
-
 
          call allocate(poisson_rhs, p%mesh, "PoissonRHS")
 
@@ -1316,7 +1317,8 @@
          ! Apply strong dirichlet conditions
          call apply_dirichlet_conditions(cmc_m, poisson_rhs, p)
 
-         call impose_reference_pressure_node(cmc_m, poisson_rhs, trim(p%option_path))
+         positions => extract_vector_field(state(prognostic_p_istate), "Coordinate")
+         call impose_reference_pressure_node(cmc_m, poisson_rhs, positions, trim(p%option_path))
 
          call profiler_toc(p, "assembly") ! Don't include Poisson solve
          if(full_schur) then
@@ -1350,7 +1352,6 @@
          call deallocate(poisson_rhs)
 
       end subroutine solve_poisson_pressure
-
 
 
       subroutine advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, mom_rhs, subcycle_m, inverse_mass)
@@ -1577,7 +1578,6 @@
 
       end subroutine assemble_projection
 
-
       subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
                                  p_theta, theta_pg, theta_divergence, cmc_m, &
                                  ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
@@ -1615,6 +1615,8 @@
 
          type(ilist), intent(inout) :: stiff_nodes_list
 
+         type(vector_field), pointer :: positions
+
          ewrite(1,*) 'Entering correct_pressure'
 
 
@@ -1625,7 +1627,8 @@
          call apply_dirichlet_conditions(cmc_m, projec_rhs, p, &
                                          dt=1.0/(dt*theta_pg*theta_divergence))
 
-         call impose_reference_pressure_node(cmc_m, projec_rhs, trim(p%option_path))
+         positions => extract_vector_field(state(prognostic_p_istate), "Coordinate")
+         call impose_reference_pressure_node(cmc_m, projec_rhs, positions, trim(p%option_path))
 
          ! Allocate the change in pressure field
          call allocate(delta_p, p%mesh, "DeltaP")

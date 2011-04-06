@@ -130,6 +130,9 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
+        <reference_coordinates>
+          <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+        </reference_coordinates>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
@@ -166,7 +169,6 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
