@@ -5,14 +5,14 @@
 // The structured, non-adaptive mesh shown in the images contains for instance the sought information at the mesh nodes, spaced out 2.5 km from each other near the critical point of contact between the three// different regions of our domain, and 7.5km everywhere else. In this particular case, the test uses a prescribed wedge flow (Batchelor1967) and is mainly intended to check for the validity of initial condi// tions at the various boundaries. 
 
 
-Point(1) = {0,0,0,30000};
-Point(2) = {660000,0,0,30000};
-Point(3) = {660000,-50000,0,30000};
-Point(4) = {660000,-600000,0,30000};
-Point(5) = {600000,-600000,0,30000};
-Point(6) = {0,-600000,0,30000};
-Point(7) = {50000,-50000,0,10000};
-Point(8) = {660000,-420000,0,30000};
+Point(1) = {0,0,0,2000};
+Point(2) = {660000,0,0,10000};
+Point(3) = {660000,-50000,0,10000};
+Point(4) = {660000,-600000,0,10000};
+Point(5) = {600000,-600000,0,10000};
+Point(6) = {0,-600000,0,10000};
+Point(7) = {50000,-50000,0,2000};
+Point(8) = {660000,-420000,0,10000};
 
 Line(1) = {1,2};
 Line(2) = {2,3};

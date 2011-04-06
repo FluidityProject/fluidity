@@ -43,7 +43,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">0</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -54,6 +54,16 @@
       <static_detector name="Temperature6060">
         <location>
           <real_value shape="2" dim1="dim" rank="1">60000. -60000.</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Pressure_up">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">66000. -54000.</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Pressure_down">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">594000. -354000.</real_value>
         </location>
       </static_detector>
       <detector_array name="TSlab">
@@ -99,9 +109,20 @@
     <finish_time>
       <real_value rank="0">1e16</real_value>
     </finish_time>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">5.0</real_value>
+      </requested_cfl>
+      <courant_number name="CFLNumber">
+        <mesh name="CoordinateMesh"/>
+      </courant_number>
+      <increase_tolerance>
+        <real_value rank="0">5</real_value>
+      </increase_tolerance>
+    </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1e-6</real_value>
+        <real_value rank="0">1e-3</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -111,10 +132,11 @@
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <remove_stabilisation_term/>
-          </continuous_galerkin>
+          <continuous_galerkin/>
         </spatial_discretisation>
+        <reference_node>
+          <integer_value rank="0">4</integer_value>
+        </reference_node>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
@@ -124,11 +146,9 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="mg">
-                    <higher_order_lumping/>
-                  </preconditioner>
+                  <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.0e-12</real_value>
+                    <real_value rank="0">1.0e-9</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">10000</integer_value>
@@ -145,7 +165,7 @@
           </use_projection_method>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
+          <iterative_method name="fgmres"/>
           <preconditioner name="ksp">
             <solver>
               <iterative_method name="cg"/>
@@ -164,12 +184,14 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">9.7e-10</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">25000</integer_value>
           </max_iterations>
-          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors>
@@ -183,18 +205,35 @@
           <include_in_convergence/>
         </convergence>
         <detectors>
-          <exclude_from_detectors/>
+          <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="Boussinesq"/>
+        <equation name="LinearMomentum"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
@@ -211,7 +250,7 @@
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -224,11 +263,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <higher_order_lumping/>
-          </preconditioner>
+          <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">5000</integer_value>
@@ -395,7 +432,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">3.3e17</real_value>
+                  <real_value rank="0">1e21</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -429,7 +466,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
@@ -458,14 +495,10 @@
           </theta>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="ilu"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">25000</integer_value>
@@ -535,7 +568,7 @@
 
    	Depth = X[1] * -1.
   	Age = 1576800000000000.
-   	TempHalfSpace = 273. + 1300.*(erf(Depth/(2.*math.sqrt(0.0000007272*Age))))
+   	TempHalfSpace = 273.+ 1300.*(erf(Depth/(2.*math.sqrt(0.0000007272*Age))))
    	return TempHalfSpace</string_value>
             </python>
           </type>
@@ -548,7 +581,7 @@
             <python>
               <string_value lines="20" type="python">def val(X, t):
    	Depth = X[1] * -1.
-   	T = 273 + (Depth*0.026)
+   	T = 273. + (Depth*0.026)
 	return T</string_value>
             </python>
           </type>
@@ -617,9 +650,42 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="FiniteElementGradient" rank="1">
+      <diagnostic field_name="Pressure">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
 </fluidity_options>
