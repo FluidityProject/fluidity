@@ -458,8 +458,7 @@ contains
        ! - points associated with a CV.
 
     CASE DEFAULT
-       EWRITE(3,*) 'SELETYP .GE. 7' 
-       STOP 1234
+       FLAbort(" Wrong option for surface element type ")
 
     END SELECT
 
@@ -1829,8 +1828,8 @@ contains
 
     IF( (CV_NGI /= 18) .and. (CV_NGI /= 15) .and. (CV_NGI /= 12) &
          .and. (CV_NGI /= 9) .and. (CV_NGI /= 6) .and. (CV_NGI /= 1 )) THEN
-       WRITE( 357, * )'NOT THE RIGHT NO OF QUADATRUE PTS CV_NGI=', CV_NGI
-       STOP 292
+       EWRITE( 3, * )'NOT THE RIGHT NO OF QUADATRURE PTS CV_NGI=', CV_NGI
+       FLAbort("Incorrect number of quadrature points")
     ENDIF
 
     Case_CV_NLOC: SELECT CASE( CV_NLOC )
@@ -2433,7 +2432,7 @@ contains
           IF(GIS /= SBCVNGI ) THEN
              EWRITE(3,*)'SOMETHING GONE WRONG WITH NO OF QUADRATURE PTS'
              EWRITE(3,*)'GIS, SBCVNGI:',GIS, SBCVNGI
-             STOP 2382
+             FLAbort("Wrong number of surface quadrature points")
           ENDIF
 
        ENDIF
@@ -2449,8 +2448,8 @@ contains
        SBUFENLY=SBCVFENLY
        SBUFENLZ=SBCVFENLZ
     ELSE
-       EWRITE(3,*)'NOT READY' 
-       STOP 289
+       EWRITE(3,*)'NOT READY YET' 
+       FLAbort("Wrong number of surface CV-based grid nodes")
        U_SKLOC = 0
        Loop_UKLOC: DO U_KLOC = 1, U_NLOC
           !       IF( U_ON_FACE( U_KLOC, GI )) THEN ! We are on the correct face
@@ -2489,7 +2488,7 @@ contains
        U_SLOCLIST(2,1)=U_NLOC
     ELSE
        EWRITE(3,*)'NOT YET READY'
-       STOP 3831
+       FLAbort("Wrong number of surface velocity grid nodes")
        CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, U_ON_FACE, NFACE )
     ENDIF
     ewrite(3,*)'CV_SNLOC,U_SNLOC,SCVNGI:',CV_SNLOC,U_SNLOC,SCVNGI
@@ -2595,10 +2594,9 @@ contains
        ENDIF
     END DO Loop_GI
 
-    IF(NUM_FACE /= NFACE) THEN
-       EWRITE(3,*)' Not got the number of faces correct ' 
+    IF(NUM_FACE /= NFACE) THEN 
        EWRITE(3,*)' NUM_FACE, NFACE :', NUM_FACE, NFACE
-       STOP 962
+       FLAbort(" Wrong number of computed faces ")
     END IF
 
     DEALLOCATE( CV_SLOC2LOC )
@@ -2805,8 +2803,7 @@ contains
        LX(4) = +1.0 - 1./3.
        LX(5) = +1.0
     ELSE
-       EWRITE(3,*)'NOYT AN OPT'
-       STOP 38
+       FLAbort(" Wrong number of computed surface quadrature points for CV ")
     ENDIF
 
     DIFF=.TRUE.
@@ -2816,7 +2813,6 @@ contains
     !      Compute standard Gauss quadrature. weits and points
     CALL LAGROT(WEI,CV_NODPOS,CV_NLOC,GETNDP) 
     EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
-    !       STOP 29
 
     Loop_P2: DO GPOI = 1, NCV_BOU
 
@@ -6530,8 +6526,7 @@ contains
 
     ELSE 
 
-       ewrite(3,*)'not an option'
-       stop 292
+       FLAbort(" Wrong integer option for element type ")
 
     ENDIF
 

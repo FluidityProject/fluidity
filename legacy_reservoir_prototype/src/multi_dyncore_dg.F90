@@ -1418,12 +1418,11 @@ contains
                 CASE( 1 ) 
                    MCY( COUNT2 ) = C( COUNT )
                 CASE( 2 ) 
-                   MCY( COUNT2 ) = C( COUNT +NCOLC)
+                   MCY( COUNT2 ) = C( COUNT + NCOLC )
                 CASE( 3 ) 
-                   MCY( COUNT2 ) = C( COUNT +2*NCOLC)
+                   MCY( COUNT2 ) = C( COUNT + 2 * NCOLC )
                 CASE DEFAULT 
-                   EWRITE(3,*) 'NDIM GT 3'
-                   STOP 912
+                   FLExit("Invalid integer for for problem dimension")
                 END SELECT
 
              END DO

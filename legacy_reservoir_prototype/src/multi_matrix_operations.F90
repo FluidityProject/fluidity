@@ -579,7 +579,6 @@ contains
 
        END DO
        !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
-       stop 3931
     endif
 
     DEALLOCATE( NEED_COLOR )

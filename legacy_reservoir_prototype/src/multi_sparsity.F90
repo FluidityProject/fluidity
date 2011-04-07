@@ -164,7 +164,8 @@ contains
        CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
             MIDCMC, FINDCMC, COLCMC )
     ENDIF
-    if(MX_NCOLCMC < NCOLCMC) stop 272
+    if(MX_NCOLCMC < NCOLCMC) FLAbort(" Incorrect number of computed dimension of CMC sparcity matrix")
+
     ewrite(3,*)'defining sparsity of matrix'
 
     MIDMCY = 0
@@ -363,10 +364,9 @@ contains
     NCOLDGM_PHA = COUNT2
 
     IF( NCOLDGM_PHA .GT. MX_NCOLDGM_PHA ) THEN
-       EWRITE(3,*) '***************** SOMETHING WRONG -- REVIEW IT !! *******************'
        EWRITE(3,*) ' -------------   IN FORM_DGM_PHA_SPARSITY SUBRT.   ------------------'
-       EWRITE(3,*) 'these should be NCOLDGM_PHA .GT. MX_NCOLDGM_PHA',NCOLDGM_PHA,MX_NCOLDGM_PHA  !!double check it 
-       STOP 383
+       EWRITE(3,*) 'these should be NCOLDGM_PHA .GT. MX_NCOLDGM_PHA',NCOLDGM_PHA,MX_NCOLDGM_PHA  
+       FLAbort(" Incorrect number of computed dimension of sparcity matrix - coupling terms for multiphase flow")
     ENDIF
 
     ewrite(3,*) 'Leaving FORM_DGM_PHA_SPARSITY'

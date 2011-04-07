@@ -171,7 +171,7 @@ contains
           IF( CP_OPTION( IPHASE ) == 1 ) THEN
              CPDEN( CV_NOD_IPHA ) = CP_COEFS( IPHASE, 1 ) * DEN( CV_NOD_IPHA )
           ELSE
-             STOP 3931
+             FLAbort("Invalid integer for Element CP_Coefs")
           ENDIF
 
        END DO Loop_CV
@@ -187,7 +187,7 @@ contains
           IF( CP_OPTION( IPHASE ) == 1 ) THEN
              SUF_CPD_BCU( IS_IPHA ) = CP_COEFS( IPHASE, 1 ) * SUF_D_BCU( IS_IPHA )
           ELSE
-             STOP 3932
+             FLAbort("Invalid integer for Surface CP_Coefs")
           ENDIF
 
        END DO Loop_Phase2
@@ -890,8 +890,7 @@ contains
 
 
     IF( IPLIKE_GRAD_SOU /= 1 ) THEN
-       EWRITE(3,*),'PROBLEM WITH THE CAPILLARY OPTION SET UP' 
-       STOP 3831
+       FLAbort("Invalid integer for capillary pressure source option")
     ENDIF
 
 
@@ -899,8 +898,7 @@ contains
 
     CASE DEFAULT
 
-       EWRITE(3,*),'PROBLEM WITH THE CAPILLARY OPTION SET UP - OPTION NOT AVAILABLE' 
-       STOP 3832
+       FLAbort("Invalid integer for capillary pressure option")
 
     CASE( 1 )
        ! Capillary pressure coefs 
