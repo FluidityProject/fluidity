@@ -44,17 +44,7 @@ want this.</a:documentation>
           </attribute>
           <ref name="input_choice_real"/>
         </element>
-        <element name="type">
-          <attribute name="name">
-            <value>robin</value>
-          </attribute>
-          <element name="order_zero_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-          <element name="order_one_coefficient">
-            <ref name="input_choice_real"/>
-          </element>
-        </element>
+        <ref name="robin_bc_scalar"/>
         <element name="type">
           <a:documentation>Prevent the field from fluxing out of the boundary.
 Only applicable to control volume spatial discretisations.</a:documentation>
@@ -103,6 +93,31 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
           </element>
         </element>
       </choice>
+    </element>
+  </define>
+  <define name="robin_bc_scalar">
+    <element name="type">
+      <a:documentation> A robin boundary condition of the form
+ C1*T + n.(k*grad(T)) = C0
+ where k is the diffusivity tensor,
+ n the outward normal vector to the surface,
+ T the scalar field value on the surface,
+ C0 is the input order zero coefficient and
+ C1 is the input order one coefficient.
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION</a:documentation>
+      <attribute name="name">
+        <value>robin</value>
+      </attribute>
+      <element name="order_zero_coefficient">
+        <a:documentation> The order zero coefficient represented as C0 in
+ C1*T + n.(k*grad(T)) = C0</a:documentation>
+        <ref name="input_choice_real"/>
+      </element>
+      <element name="order_one_coefficient">
+        <a:documentation> The order one coefficient represented as C1 in
+ C1*T + n.(k*grad(T)) = C0</a:documentation>
+        <ref name="input_choice_real"/>
+      </element>
     </element>
   </define>
   <define name="prognostic_scalar_field">
@@ -1968,17 +1983,7 @@ want this.</a:documentation>
             </attribute>
             <ref name="input_choice_real"/>
           </element>
-          <element name="type">
-            <attribute name="name">
-              <value>robin</value>
-            </attribute>
-            <element name="order_zero_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-            <element name="order_one_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-          </element>
+          <ref name="robin_bc_scalar"/>
           <element name="type">
             <a:documentation>Prevent the field from fluxing out of the boundary.
 Only applicable to control volume spatial discretisations.</a:documentation>
@@ -2249,17 +2254,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
             </attribute>
             <ref name="input_choice_real"/>
           </element>
-          <element name="type">
-            <attribute name="name">
-              <value>robin</value>
-            </attribute>
-            <element name="order_zero_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-            <element name="order_one_coefficient">
-              <ref name="input_choice_real"/>
-            </element>
-          </element>
+          <ref name="robin_bc_scalar"/>
         </choice>
       </element>
     </zeroOrMore>

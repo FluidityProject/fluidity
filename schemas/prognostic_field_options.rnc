@@ -33,15 +33,7 @@ scalar_boundary_conditions =
                attribute name { "neumann" },
                input_choice_real
             }|
-            element type {
-               attribute name { "robin" },
-               element order_zero_coefficient {
-                  input_choice_real
-               },
-               element order_one_coefficient {
-                  input_choice_real
-               }
-            }|
+            robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
             ## Only applicable to control volume spatial discretisations.
             element type {
@@ -81,6 +73,33 @@ scalar_boundary_conditions =
          )
       }
 )
+
+
+robin_bc_scalar = 
+   (
+      ##  A robin boundary condition of the form
+      ##  C1*T + n.(k*grad(T)) = C0
+      ##  where k is the diffusivity tensor,
+      ##  n the outward normal vector to the surface,
+      ##  T the scalar field value on the surface,
+      ##  C0 is the input order zero coefficient and
+      ##  C1 is the input order one coefficient.
+      ##  THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION
+      element type {
+         attribute name { "robin" },
+         ##  The order zero coefficient represented as C0 in
+         ##  C1*T + n.(k*grad(T)) = C0
+         element order_zero_coefficient {
+            input_choice_real
+         },
+         ##  The order one coefficient represented as C1 in
+         ##  C1*T + n.(k*grad(T)) = C0
+         element order_one_coefficient {
+            input_choice_real
+         }
+      }      
+   )
+
 
 prognostic_scalar_field =
    (
@@ -1617,15 +1636,7 @@ prognostic_foam_velocity_potential_field =
                attribute name { "neumann" },
                input_choice_real
             }|
-            element type {
-               attribute name { "robin" },
-               element order_zero_coefficient {
-                  input_choice_real
-               },
-               element order_one_coefficient {
-                  input_choice_real
-               }
-            }|
+            robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
             ## Only applicable to control volume spatial discretisations.
             element type {
@@ -1818,15 +1829,7 @@ prognostic_free_surface_field =
                attribute name { "neumann" },
                input_choice_real
             }|
-            element type {
-               attribute name { "robin" },
-               element order_zero_coefficient {
-                  input_choice_real
-               },
-               element order_one_coefficient {
-                  input_choice_real
-               }
-            }
+            robin_bc_scalar
          )
       }*,
       # no Diffusivity for field

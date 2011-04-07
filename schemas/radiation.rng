@@ -475,19 +475,32 @@ angular moment set (itself associated with a energy group set)</a:documentation>
   </define>
   <define name="diffusion_robin">
     <element name="type">
-      <a:documentation>Robin boundary condition. This can be used for vacuum and more general albedo. 
-For a vacuum BC set the order_zero_coefficient to 0.0 and the order_one_coefficient
-to 0.5. For a albedo BC set the order_zero_coefficient to 0.0 and the order_one_coefficient 
-to 0.5*((1.0-alpha)/(1.0+alpha)) where alpha is defined in [0.0,1.0] with alpha equal 1.0
-being a perfect reflective and alpha equal 0.0 a perfect vacuum.</a:documentation>
+      <a:documentation> A robin boundary condition of the form
+ C1*T + n.(k*grad(T)) = C0
+ where k is the diffusivity tensor,
+ n the outward normal vector to the surface,
+ T the scalar field value on the surface,
+ C0 is the input order zero coefficient and
+ C1 is the input order one coefficient.
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION
+ 
+ This can be used for vacuum and more general albedo.
+ For a vacuum BC set the order_zero_coefficient to 0.0 and the order_one_coefficient
+ to 0.5. For a albedo BC set the order_zero_coefficient to 0.0 and the order_one_coefficient
+ to 0.5*((1.0-alpha)/(1.0+alpha)) where alpha is defined in [0.0,1.0] with alpha equal 1.0
+ being a perfect reflective and alpha equal 0.0 a perfect vacuum.</a:documentation>
       <ref name="comment"/>
       <attribute name="name">
         <value>robin</value>
       </attribute>
       <element name="order_zero_coefficient">
+        <a:documentation> The order zero coefficient represented as C0 in
+ C1*T + n.(k*grad(T)) = C0</a:documentation>
         <ref name="input_choice_real"/>
       </element>
       <element name="order_one_coefficient">
+        <a:documentation> The order one coefficient represented as C1 in
+ C1*T + n.(k*grad(T)) = C0</a:documentation>
         <ref name="input_choice_real"/>
       </element>
     </element>
