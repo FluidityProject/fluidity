@@ -433,7 +433,7 @@ end subroutine melt_allocate_surface
         !! If sum(local_coord) is not equal to 1,      
         !! we know that this coord (funky position) does not exist in the domain.
         
-        if (sum(local_coord) .gt. 1.0) then 
+        if (sum(local_coord) .gt. 2.0) then 
             ewrite(1,*) "Funk coord: ", node_val(funky_positions,the_node)
             !! node_val(surface_positions,the_node) = node_val(positions,the_node)
             ewrite(1,*) "Original ele: ",ele   
@@ -558,8 +558,8 @@ subroutine melt_bc(state)
             T_bc => extract_scalar_field(state,"Heat_flux")
             S_bc => extract_scalar_field(state,"Salt_flux")
             do i=1,node_count(T_bc)
-                call set(T_bc,node_val(T_bc,i)*10.0**5)
-                call set(S_bc,node_val(S_bc,i)*10.0**5)
+                call set(T_bc,node_val(T_bc,i)*10.0**3)
+                call set(S_bc,node_val(S_bc,i)*10.0**3)
             enddo
             
         case("dirichlet") 
