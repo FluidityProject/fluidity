@@ -588,6 +588,18 @@ module hadapt_extrude
           ewrite(-1,*) "in your extrusion. The surface height option will have no effect."
         end if
       end do
+      if (nregions>1) then
+        ! we're using region ids to extrude
+        if (have_option('/mesh_adaptivity/hr_adaptivity') &
+           .and. .not. have_option('/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions')) then
+          ewrite(-1,*) "You are using region ids to specify mesh extrusion"
+          ewrite(-1,*) "However in your adaptivity settings you have not selected " // &
+            & "/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions"
+          ewrite(-1,*) "This means fluidity will not be able to extrude your mesh again after the adapt."
+          FLExit("Missing /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions option")
+        end if
+      end if   
+        
     end do
 
   end subroutine hadapt_extrude_check_options
