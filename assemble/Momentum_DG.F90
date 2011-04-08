@@ -939,7 +939,6 @@ contains
     ! Absorption matrices
     real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
     real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: tensor_absorption_gi
-    real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat_sphere
 
     ! Add vertical velocity relaxation to the absorption if present
     real, intent(in), optional :: vvr_sf
@@ -1325,7 +1324,7 @@ contains
       end if
     end if
 
-    if(have_absorption.or.have_vertical_stabilization.or.have_wd_abs) then
+    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs) .and. (owned_element .or. pressure_corrected_absorption)) then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1373,7 +1372,7 @@ contains
         end if
 
         do i=1,ele_ngi(U,ele)
-          drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+          drho_dz(i)=dot_product(grad_rho(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
           if (drho_dz(i) < ib_min_grad) drho_dz(i)=ib_min_grad ! Default ib_min_grad=0.0
         end do
 
@@ -1412,22 +1411,24 @@ contains
         if(lump_abs) then
 
           Abs_lump_sphere = sum(Abs_mat_sphere, 4)
-          do dim = 1, U%dim
-            do dim2 = 1, U%dim
-              do i = 1, ele_loc(U, ele)
-                big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
-                  & dt*theta*Abs_lump_sphere(dim,dim2,i)
+          if (owned_element) then          
+            do dim = 1, U%dim
+              do dim2 = 1, U%dim
+                do i = 1, ele_loc(U, ele)
+                  big_m_tensor_addto(dim, dim2, i, i) = big_m_tensor_addto(dim, dim2, i, i) + &
+                    & dt*theta*Abs_lump_sphere(dim,dim2,i)
+                end do
               end do
+              if (acceleration) then
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
+                ! off block diagonal absorption terms
+                do dim2 = 1, u%dim
+                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
+                end do
+              end if
             end do
-            if (acceleration) then
-              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
-              ! off block diagonal absorption terms
-              do dim2 = 1, u%dim
-                if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim2,:)*u_val(dim2,:)
-              end do
-            end if
-          end do
+          end if
           if (present(inverse_masslump) .and. pressure_corrected_absorption) then
             assert(lump_mass)
             abs_lump = sum(Abs_mat, 3)
@@ -1444,20 +1445,22 @@ contains
 
         else
 
-          do dim = 1, u%dim
-            do dim2 = 1, u%dim
-              big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
-                & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
-            end do
-            if (acceleration) then
-              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), u_val(dim,:))
-              ! off block diagonal absorption terms
+          if (owned_element) then
+            do dim = 1, u%dim
               do dim2 = 1, u%dim
-                if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+                big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
+                  & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
               end do
-            end if
-          end do
+              if (acceleration) then
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
+                ! off block diagonal absorption terms
+                do dim2 = 1, u%dim
+                  if (dim==dim2) cycle ! The dim=dim2 terms were done above
+                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim2,:,:), u_val(dim2,:))
+                end do
+              end if
+            end do
+          end if
           Abs_lump_sphere = 0.0
           if (present(inverse_mass) .and. pressure_corrected_absorption) then
             assert(.not. lump_mass)
@@ -1487,9 +1490,11 @@ contains
         if(lump_abs) then        
           abs_lump = sum(Abs_mat, 3)
           do dim = 1, u%dim
-            big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
-            if(acceleration) then
-              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+            if (owned_element) then
+              big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
+              if(acceleration) then
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+              end if
             end if
             if (present(inverse_masslump) .and. pressure_corrected_absorption) then
               assert(lump_mass)
@@ -1506,10 +1511,12 @@ contains
         else
       
           do dim = 1, u%dim
-            big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
-              & dt*theta*Abs_mat(dim,:,:)
-            if(acceleration) then
-              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+            if (owned_element) then
+              big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
+                & dt*theta*Abs_mat(dim,:,:)
+              if(acceleration) then
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+              end if
             end if
             if (present(inverse_mass) .and. pressure_corrected_absorption) then
               assert(.not. lump_mass)
