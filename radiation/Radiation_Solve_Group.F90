@@ -135,11 +135,9 @@ contains
       logical :: scale_by_velocity_coeff
       integer :: stat
       integer :: vele
-      integer :: inode
       integer :: g_dash
       integer :: g_set
       real :: theta    
-      real :: data_value
       real, dimension(:), allocatable :: detwei_vele
       real, dimension(:), allocatable :: rhs_addto      
       type(scalar_field) :: production_coeff 
