@@ -25,18 +25,19 @@ module fefields
 
 contains
 
-  subroutine compute_lumped_mass(positions, lumped_mass, density)
+  subroutine compute_lumped_mass(positions, lumped_mass, density, vfrac)
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: lumped_mass
     type(scalar_field), intent(inout), target, optional :: density
+    type(scalar_field), intent(inout), target, optional :: vfrac ! PhaseVolumeFraction field
 
     integer :: ele
     real, dimension(ele_ngi(lumped_mass, 1)) :: detwei
     type(element_type), pointer :: t_shape
     real, dimension(ele_loc(lumped_mass, 1), ele_loc(lumped_mass, 1)) :: mass_matrix
-    type(scalar_field), pointer :: l_density
+    type(scalar_field), pointer :: l_density, l_vfrac
 
-    real, dimension(ele_ngi(lumped_mass, 1)) :: density_gi
+    real, dimension(ele_ngi(lumped_mass, 1)) :: density_gi, vfrac_gi
 
     ewrite(1,*) 'In compute_lumped_mass'
 
@@ -48,19 +49,33 @@ contains
       call set(l_density, 1.0)
     end if
 
+    if(present(vfrac)) then
+      l_vfrac => vfrac
+    else
+      allocate(l_vfrac)
+      call allocate(l_vfrac, lumped_mass%mesh, name="LocalPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+      call set(l_vfrac, 1.0)
+    end if
+
     call zero(lumped_mass)
 
     do ele=1,ele_count(lumped_mass)
       t_shape => ele_shape(lumped_mass, ele)
       density_gi = ele_val_at_quad(l_density, ele)
+      vfrac_gi = ele_val_at_quad(l_vfrac, ele)
       call transform_to_physical(positions, ele, detwei=detwei)
-      mass_matrix = shape_shape(t_shape, t_shape, detwei*density_gi)
+      mass_matrix = shape_shape(t_shape, t_shape, detwei*density_gi*vfrac_gi)
       call addto(lumped_mass, ele_nodes(lumped_mass, ele), sum(mass_matrix, 2))
     end do
 
     if(.not.present(density)) then
       call deallocate(l_density)
       deallocate(l_density)
+    end if
+
+    if(.not.present(vfrac)) then
+      call deallocate(l_vfrac)
+      deallocate(l_vfrac)
     end if
 
   end subroutine compute_lumped_mass
@@ -114,15 +129,17 @@ contains
 
   end subroutine compute_mass
 
-  subroutine compute_lumped_mass_on_submesh(state, lumped_mass, density)
+  subroutine compute_lumped_mass_on_submesh(state, lumped_mass, density, vfrac)
 
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: lumped_mass
     type(scalar_field), intent(in), optional :: density
+    type(scalar_field), intent(in), optional :: vfrac
 
-    type(mesh_type) :: submesh, unperiodic_submesh  ! submesh
-    type(scalar_field) :: rho_pmesh, rho_submesh    ! density on parent and submesh
-    type(vector_field) :: x_pmesh, x_submesh        ! coordinates on parent and submesh
+    type(mesh_type) :: submesh, unperiodic_submesh    ! submesh
+    type(scalar_field) :: rho_pmesh, rho_submesh      ! density on parent and submesh
+    type(vector_field) :: x_pmesh, x_submesh          ! coordinates on parent and submesh
+    type(scalar_field) :: vfrac_pmesh, vfrac_submesh  ! PhaseVolumeFraction on parent and submesh
     type(scalar_field) :: masslump_submesh
 
     ewrite(1,*) 'In compute_lumped_mass_on_submesh'
@@ -158,15 +175,30 @@ contains
       call set(rho_submesh, 1.0)
     end if
 
+    ! This is only included in multiphase simulations
+    if(present(vfrac)) then
+      call allocate(vfrac_pmesh, lumped_mass%mesh, name="ParentMeshPhaseVolumeFraction")
+      call remap_field(vfrac, vfrac_pmesh)
+
+      call allocate(vfrac_submesh, submesh, name="SubMeshPhaseVolumeFraction")
+      call set_to_submesh(vfrac_pmesh, vfrac_submesh)
+
+      call deallocate(vfrac_pmesh)
+    else
+      call allocate(vfrac_submesh, submesh, name="DummySubMeshPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+      call set(vfrac_submesh, 1.0)
+    end if
+
     call allocate(masslump_submesh, submesh, "TemporarySubMeshLumpedMass")
 
-    call compute_lumped_mass(x_submesh, masslump_submesh, rho_submesh)
+    call compute_lumped_mass(x_submesh, masslump_submesh, rho_submesh, vfrac_submesh)
 
     call set_from_submesh(masslump_submesh, lumped_mass)
 
     call deallocate(submesh)
     call deallocate(x_submesh)
     call deallocate(rho_submesh)
+    call deallocate(vfrac_submesh)
     call deallocate(masslump_submesh)
 
   end subroutine compute_lumped_mass_on_submesh

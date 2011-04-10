@@ -782,7 +782,11 @@
           ! we still have to make the lumped mass if this is true
           masslump_component=extract_scalar_field(inverse_masslump, 1)
 
-          call compute_lumped_mass_on_submesh(state, masslump_component, density=density)
+          if(multiphase) then
+            call compute_lumped_mass_on_submesh(state, masslump_component, density=density, vfrac=nvfrac)
+          else
+            call compute_lumped_mass_on_submesh(state, masslump_component, density=density)
+          end if
 
           ! copy over to other components
           do dim = 2, inverse_masslump%dim
