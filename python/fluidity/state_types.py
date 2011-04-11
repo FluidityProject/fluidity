@@ -25,6 +25,7 @@ class Field:
   def set_mesh(self,mesh):
     self.mesh = mesh
     self.element_count = self.mesh.element_count
+    self.ele_count = self.mesh.element_count
 
   def shape(self):
     return self.mesh.shape
@@ -94,6 +95,23 @@ class Field:
   def ele_region_id(self,ele_number):
     return self.mesh.ele_region_id(ele_number)
 
+  def remap_ele(self, ele_number, mesh):
+    assert self.mesh.continuity >= mesh.continuity
+    if mesh.continuity >= 0: # if we are CG
+      assert self.mesh.shape.degree <= mesh.shape.degree
+
+    # we should check for periodic/nonperiodic here, but
+    # our mesh type doesn't know whether it's periodic or not ...
+
+    # we really ought to cache locweight, as it's constant
+    # for each element, and only depends on the target mesh --
+    # but we currently don't, sorry
+    locweight = numpy.zeros((mesh.shape.loc, self.mesh.shape.loc))
+    for i in range(mesh.shape.loc):
+      for j in range(self.mesh.shape.loc):
+        locweight[i,j] = self.mesh.shape.eval_shape(j, mesh.shape.local_coords(i))
+
+    return numpy.dot(locweight, self.ele_val(ele_number))
 
 class ScalarField(Field):
   "A scalar field"  
@@ -184,6 +202,11 @@ class Element:
       self.spoly[x-1][y-1] = poly
   def set_polynomial_ds(self,poly,x,y):
     self.dspoly[x-1][y-1] = poly
+  def eval_shape(self, node, coords):
+    result = 1.0
+    for i in range(self.spoly.shape[0]):
+      result = result * self.spoly[i,node].eval(coords[i])
+    return result
 
 class Quadrature:
   "Quadrature"
@@ -203,6 +226,11 @@ class Polynomial:
     self.degree = degree
   def __repr__(self):
     return '(Polynomial)'+str(self.coefficients)
+  def eval(self, x):
+    val = 0.0
+    for i in range(self.degree+1):
+      val = val + self.coefficients[i] * x**i
+    return val
 
 class Transform:
   "Transform with information about the detwei and Jacobian"
