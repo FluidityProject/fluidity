@@ -99,6 +99,7 @@ class Field:
     assert self.mesh.continuity >= mesh.continuity
     if mesh.continuity >= 0: # if we are CG
       assert self.mesh.shape.degree <= mesh.shape.degree
+    assert not (self.mesh.shape.type == "bubble" and mesh.shape.type == "lagrangian")
 
     # we should check for periodic/nonperiodic here, but
     # our mesh type doesn't know whether it's periodic or not ...
@@ -151,7 +152,7 @@ class Mesh:
     self.name = name
     self.option_path = option_path
     self.region_ids = region_ids
-    self.shape = Element(0,0,0,0,[],[],0,0,0,0)
+    self.shape = Element(0,0,0,0,[],[], [], 0,0,0,0, "unknown", "unknown")
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
@@ -179,7 +180,7 @@ class Mesh:
 
 class Element:
   "An element"
-  def __init__(self,dim,loc,ngi,degree,n,dn, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y):
+  def __init__(self,dim,loc,ngi,degree,n,dn, coords, size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y, family, type):
     self.dimension = dim  # 2d or 3d?
     self.loc = loc  # Number of nodes
     self.ngi = ngi  # Number of gauss points
@@ -188,6 +189,9 @@ class Element:
     # n is loc x ngi, dn is loc x ngi x dim
     self.n = n
     self.dn = dn
+    self.coords = coords
+    self.family = family
+    self.type = type
 
     # Initialize spoly and dspoly, make sure to transpose due to Fortran silliness
     self.spoly = [ [ Polynomial([],0) for inner in range(size_spoly_y) ] for outer in range(size_spoly_x)]
@@ -204,9 +208,11 @@ class Element:
     self.dspoly[x-1][y-1] = poly
   def eval_shape(self, node, coords):
     result = 1.0
-    for i in range(self.spoly.shape[0]):
-      result = result * self.spoly[i,node].eval(coords[i])
+    for i in range(len(self.spoly)):
+      result = result * self.spoly[i][node].eval(coords[i])
     return result
+  def local_coords(self, node):
+    return self.coords[node,:]
 
 class Quadrature:
   "Quadrature"
