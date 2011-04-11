@@ -107,11 +107,12 @@
               <integer_value rank="0">100</integer_value>
             </maximum>
             <flux_tolerance_absolute>
-              <real_value rank="0">1.0e-08</real_value>
+              <real_value rank="0">1.0e-01</real_value>
             </flux_tolerance_absolute>
             <keff_tolerance_relative>
               <real_value rank="0">1.0e-08</real_value>
             </keff_tolerance_relative>
+            <keff_acceleration name="AitkensDeltaSquared"/>
           </power_iteration>
           <flux_normalisation name="TotalFlux">
             <value>

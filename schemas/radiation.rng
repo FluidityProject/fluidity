@@ -668,6 +668,12 @@ where for example 4 implies quarter geometry represented</a:documentation>
       <ref name="real"/>
     </element>
     <optional>
+      <ref name="accelerate_flux"/>
+    </optional>
+    <optional>
+      <ref name="accelerate_keff"/>
+    </optional>
+    <optional>
       <ref name="scatter_group_iteration_options"/>
     </optional>
     <optional>
@@ -678,6 +684,25 @@ iterations is reached and the tolerance criteria (both flux and keff) are not me
         <empty/>
       </element>
     </optional>
+  </define>
+  <define name="accelerate_flux">
+    <element name="flux_acceleration">
+      <a:documentation>Accelerate the flux calculation via a relaxation parameter in range (0,2.0)</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>Relaxation</value>
+      </attribute>
+      <ref name="real"/>
+    </element>
+  </define>
+  <define name="accelerate_keff">
+    <element name="keff_acceleration">
+      <a:documentation>Accelerate the Keff calculation via the Aitkens Delta Squared process</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>AitkensDeltaSquared</value>
+      </attribute>
+    </element>
   </define>
   <define name="scatter_group_iteration_options">
     <element name="scatter_group_iteration">

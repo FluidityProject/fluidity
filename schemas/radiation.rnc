@@ -809,6 +809,8 @@ power_iteration_element =
          comment,
          real
       },
+      accelerate_flux?,
+      accelerate_keff?,
       scatter_group_iteration_options?,
       ## Terminate the simulation if the maximum number of power
       ## iterations is reached and the tolerance criteria (both flux and keff) are not met.
@@ -817,7 +819,31 @@ power_iteration_element =
          empty
       }?            
    )   
-   
+
+
+accelerate_flux = 
+   (
+      ## Accelerate the flux calculation via a relaxation parameter in range (0,2.0)
+      element flux_acceleration {
+         comment, 
+         
+         attribute name { "Relaxation" },
+         
+         real
+      }
+   )
+
+
+accelerate_keff = 
+   (
+      ## Accelerate the Keff calculation via the Aitkens Delta Squared process
+      element keff_acceleration {
+         comment, 
+         
+         attribute name { "AitkensDeltaSquared" }
+      }
+   )
+      
 
 scatter_group_iteration_options = 
    (

@@ -113,6 +113,9 @@
             <keff_tolerance_relative>
               <real_value rank="0">1.0e-08</real_value>
             </keff_tolerance_relative>
+            <flux_acceleration name="Relaxation">
+              <real_value rank="0">1.4</real_value>
+            </flux_acceleration>
           </power_iteration>
           <flux_normalisation name="TotalFlux">
             <value>

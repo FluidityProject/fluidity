@@ -58,6 +58,9 @@ module radiation_solve_power_iteration
       real :: keff_tolerance_relative
       real :: flux_tolerance_absolute
       logical :: terminate_if_not_converged_power
+      character(len=OPTION_PATH_LEN) :: flux_acceleration
+      real :: flux_relaxation_coeff
+      character(len=OPTION_PATH_LEN) :: keff_acceleration
    end type power_iteration_options_type
    
 contains
@@ -110,8 +113,15 @@ contains
                                 petsc_iterations_taken_scatter_iter_all, &
                                 invoke_eigenvalue_scatter_solve = .true.)
 
+         call power_iteration_flux_acceleration(particle, &
+                                                power_iteration_options)
+         
          call calculate_eigenvalue(particle)
-
+         
+         call power_iteration_keff_acceleration(particle, &
+                                                power_iteration_options, &
+                                                ipower)
+         
          call check_power_iteration_convergence(power_iteration_converged, &
                                                 number_all_convereged_pass, &
                                                 particle, &
@@ -184,7 +194,30 @@ contains
 
       power_iteration_options%terminate_if_not_converged_power = &
       have_option(trim(power_iteration_option_path)//'/terminate_if_not_converged')
-            
+      
+      ! get the flux acceleration method name if any
+      call get_option(trim(power_iteration_option_path)//'/flux_acceleration/name', &
+                      power_iteration_options%flux_acceleration, &
+                      default = 'none')
+      
+      ! if Relaxation method get the coefficient
+      relax_coeff_flux: if (trim(power_iteration_options%flux_acceleration) == 'Relaxation') then
+         
+         call get_option(trim(power_iteration_option_path)//'/flux_acceleration', &
+                         power_iteration_options%flux_relaxation_coeff, &
+                         default = 1.0)
+      
+      else relax_coeff_flux
+         
+         power_iteration_options%flux_relaxation_coeff = 1.0
+         
+      end if relax_coeff_flux
+      
+      ! get the keff acceleration method name if any
+      call get_option(trim(power_iteration_option_path)//'/keff_acceleration/name', &
+                      power_iteration_options%keff_acceleration, &
+                      default = 'none')
+
    end subroutine get_power_iteration_options
 
    ! --------------------------------------------------------------------------
@@ -205,6 +238,68 @@ contains
       call copy_to_old_values_particle_flux(particle)
             
    end subroutine copy_to_iter_values_eig 
+
+   ! --------------------------------------------------------------------------
+      
+   subroutine power_iteration_flux_acceleration(particle, &
+                                                power_iteration_options)
+      
+      !!< Power iteration flux acceleration schemes
+      
+      type(particle_type), intent(inout) :: particle
+      type(power_iteration_options_type), intent(in) :: power_iteration_options
+      
+      ! local variables
+      real :: relax
+      integer :: g
+      integer :: number_of_energy_groups
+      type(scalar_field), pointer :: particle_flux 
+      type(scalar_field), pointer :: particle_flux_iter
+      type(scalar_field) :: particle_flux_tmp
+
+      acceleration_name: if (trim(power_iteration_options%flux_acceleration) == 'none') then
+         
+         return
+      
+      else if (trim(power_iteration_options%flux_acceleration) == 'Relaxation') then acceleration_name
+      
+         ! simple relaxation acceleration
+         relax = power_iteration_options%flux_relaxation_coeff
+
+         ! find the number of energy groups
+         call find_total_number_energy_groups(trim(particle%option_path), &
+                                              number_of_energy_groups)
+
+         ! set the acceleted flux
+         group_loop: do g = 1,number_of_energy_groups
+         
+            call extract_flux_group_g(particle, &
+                                      g, &
+                                      particle_flux = particle_flux, &
+                                      particle_flux_iter = particle_flux_iter)
+            
+            call allocate(particle_flux_tmp, &
+                          particle_flux_iter%mesh)
+                                      
+            call set(particle_flux_tmp, &
+                     particle_flux_iter)
+
+            call scale(particle_flux_tmp, &
+                       1.0 - relax)
+            
+            call scale(particle_flux, &
+                       relax)
+            
+            call addto(particle_flux, &
+                       particle_flux_tmp)
+            
+            call deallocate(particle_flux_tmp)
+            
+         end do group_loop
+               
+      end if acceleration_name
+      
+   end subroutine power_iteration_flux_acceleration   
 
    ! --------------------------------------------------------------------------
 
@@ -344,6 +439,61 @@ contains
       ewrite(1,*) 'Keff: ',particle%keff%keff_new
 
    end subroutine calculate_eigenvalue  
+
+   ! --------------------------------------------------------------------------
+      
+   subroutine power_iteration_keff_acceleration(particle, &
+                                                power_iteration_options, &
+                                                ipower)
+      
+      !!< Power iteration keff acceleration schemes
+      
+      type(particle_type), intent(inout) :: particle
+      type(power_iteration_options_type), intent(in) :: power_iteration_options
+      integer, intent(in) :: ipower
+      
+      ! local variables
+      real, save :: keff1, keff2, keff3
+      real :: delta_k
+      
+      acceleration_name: if (trim(power_iteration_options%keff_acceleration) == 'none') then
+         
+         return
+
+      else if (trim(power_iteration_options%keff_acceleration) == 'AitkensDeltaSquared') then acceleration_name
+      
+         ! initialise
+         if (ipower == 1) then
+            
+            keff1 = 0.0
+            keff2 = 0.0
+            keff3 = 0.0
+         
+         end if 
+         
+         ! accelerate
+         if (ipower > 3) then
+         
+            keff1 = particle%keff%keff_new
+                        
+            delta_k = ( (keff1 - keff2)**2.0 ) / &
+                      ( keff3 - 2.0*keff2 + keff1 )
+            
+            particle%keff%keff_new = particle%keff%keff_new - &
+                                     delta_k
+            
+         end if 
+         
+         ! back save eigenvalues
+         keff3 = keff2
+         keff2 = keff1
+         keff1 = particle%keff%keff_new
+         
+         ewrite(1,*) 'AitkensDeltaSquared accelerated Keff: ',particle%keff%keff_new
+      
+      end if acceleration_name
+      
+   end subroutine power_iteration_keff_acceleration   
 
    ! --------------------------------------------------------------------------
 
