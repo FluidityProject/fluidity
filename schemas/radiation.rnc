@@ -181,7 +181,7 @@ angular_parity =
          
          even_parity_source_options,
          
-         calculate_odd_parity?,
+         calculate_current?,
          
          angular_moment_set_even_parity  
       }
@@ -198,27 +198,29 @@ even_parity_source_options =
    )
 
 
-calculate_odd_parity = 
+calculate_current = 
    (
-      ## The odd parity particle flux scalar field calculated 
-      ## diagnostically from the even parity solution 
-      element scalar_field {
+      ## The particle current vector field calculated 
+      ## diagnostically from the even parity solution.
+      ## This is for each energy group with in this
+      ## energy group set. 
+      element vector_field {
          comment,
-         attribute name { "ParticleFluxOddParity" },
+         attribute name { "ParticleCurrent" },
                   
-         odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt
+         current_internal_algorithm_diagnostic_vector_field_no_adapt
       }          
    )
 
 
-odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt = 
+current_internal_algorithm_diagnostic_vector_field_no_adapt = 
    ( 
       element diagnostic {
          comment,
          
          internal_algorithm,
 
-         odd_parity_mesh_choice,
+         current_mesh_choice,
          
          radiation_output_options,
       
@@ -229,18 +231,20 @@ odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt =
    )
 
 
-odd_parity_mesh_choice = 
+current_mesh_choice = 
    (
+      ## THE CURRENT MESH MUST BE DISCONTINUOUS
       element mesh {
-         attribute name { "OddParityParticleMesh" }
+         attribute name { "ParticleCurrentMesh" }
       }|
+      ## THE CURRENT MESH MUST BE DISCONTINUOUS
       element mesh {
          attribute name { "ParticleMesh" }
       }|
+      ## THE CURRENT MESH MUST BE DISCONTINUOUS
       element mesh {
          attribute name { string }
-      }
-   
+      }   
    )
 
 
@@ -288,9 +292,11 @@ number_of_angular_moments =
    
 particle_type_material_mesh_choice = 
    (
+      ## THE PARTICLE MATERIAL MESH MUST BE DISCONTINUOUS
       element mesh {
          attribute name { "ParticleMaterialMesh" }
       }|
+      ## THE PARTICLE MATERIAL MESH MUST BE DISCONTINUOUS
       element mesh {
          attribute name { string }
       }

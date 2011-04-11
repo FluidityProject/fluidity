@@ -1346,7 +1346,7 @@ contains
       integer :: start_group, end_group
       integer :: global_group_count  
       integer :: number_of_angular_moment_set, global_moment_count
-      integer :: number_of_angular_moments, start_moment, end_moment, number_of_odd_parity_moments  
+      integer :: number_of_angular_moments, start_moment, end_moment  
       logical, dimension(:), allocatable :: material_phase_number_found
       character(len=OPTION_PATH_LEN) :: field_name, field_path, equation_type_name
       character(len=OPTION_PATH_LEN) :: energy_discretisation_path, energy_group_set_path
@@ -1354,8 +1354,7 @@ contains
       character(len=OPTION_PATH_LEN) :: particle_type_name, particle_type_path, delayed_path
       character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path
       character(len=OPTION_PATH_LEN) :: angular_parity, angular_parity_path, angular_moment_set_path 
-      character(len=OPTION_PATH_LEN) :: angular_odd_parity_path     
-      character(len=OPTION_PATH_LEN) :: material_fn_space_name, parent_field_name
+      character(len=OPTION_PATH_LEN) :: current_path, material_fn_space_name, parent_field_name
       type(scalar_field) :: aux_sfield
       type(tensor_field) :: aux_tfield
       type(mesh_type), pointer :: x_mesh
@@ -1509,7 +1508,7 @@ contains
                                                                  field_name = trim(field_name), &
                                                                  dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
                   
-                           ! allocate and insert the diffusivity, absorption and source fields that 
+                           ! allocate and insert the diffusivity and absorption fields that 
                            ! are actually aliased to corresponding group set moment set fields
                   
                            aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
@@ -1530,40 +1529,25 @@ contains
                   
                   end do angular_moment_set_loop
                   
-                  ! form the odd parity field path
-                  angular_odd_parity_path = trim(angular_parity_path)//'/scalar_field::ParticleFluxOddParity'
+                  ! form the current field path
+                  current_path = trim(angular_parity_path)//'/vector_field::ParticleCurrent'
                   
-                  insert_odd_parity: if (have_option(trim(angular_odd_parity_path))) then
+                  insert_current: if (have_option(trim(current_path))) then
                   
-                     ! the global_moment_count represents the even parity moments for this angular discretisation
-                     ! if the odd parity is to be diagnositcally calculated the number of odd parity moments 
-                     ! for this group set is first calculated then the fields inserted
-                  
-                     ! assume Pn order 1 (ie diffusion theory) such that number of odd moments is == geometry dimension 
-                     call get_option('/geometry/dimension',number_of_odd_parity_moments)
-                     
-                     ! create each odd parity moment field for each energy group of this group set
-                     
-                     odd_parity_group_loop: do g = start_group,end_group
-                                       
-                        odd_moment_loop: do m = 1,number_of_odd_parity_moments
-                     
-                           field_path = trim(angular_odd_parity_path)//'/scalar_field::ParticleFluxOddParity'
-                                    
-                           ! form the field name for solution 
-                           field_name = 'ParticleFluxOddParityGroup'//int2str(g)//'Moment'//int2str(m)//trim(particle_type_name)
-                  
-                           ! allocate and insert the solution fields
-                           call allocate_and_insert_scalar_field(trim(field_path), &
-                                                                 state, &
-                                                                 field_name = trim(field_name), &
-                                                                 dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
-                     
-                        end do odd_moment_loop
+                     current_group_loop: do g = start_group,end_group
                       
-                     end do odd_parity_group_loop
-                           
-                  end if insert_odd_parity
+                        ! form the field name for particle group current 
+                        field_name = 'ParticleCurrentGroup'//int2str(g)//trim(particle_type_name)
+                  
+                        ! allocate and insert the current field
+                        call allocate_and_insert_vector_field(trim(current_path), &
+                                                              state, &
+                                                              field_name = trim(field_name), &
+                                                              dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)                  
+                     
+                     end do current_group_loop
+                  
+                  end if insert_current
                   
                else angular_parity_if
 
@@ -2261,12 +2245,14 @@ contains
 
   end subroutine allocate_and_insert_scalar_field
 
-  recursive subroutine allocate_and_insert_vector_field(option_path, state, parent_mesh, parent_name, dont_allocate_prognostic_value_spaces)
+  recursive subroutine allocate_and_insert_vector_field(option_path, state, parent_mesh, parent_name, &
+                                                        field_name, dont_allocate_prognostic_value_spaces)
 
     character(len=*), intent(in) :: option_path
     type(state_type), intent(inout) :: state
     character(len=*), intent(in), optional :: parent_mesh
     character(len=*), intent(in), optional :: parent_name
+    character(len=*), optional, intent(in):: field_name
     logical, intent(in), optional :: dont_allocate_prognostic_value_spaces
     
     integer :: dim
@@ -2274,7 +2260,7 @@ contains
     ! paths for options and child fields
     character(len=OPTION_PATH_LEN) :: path, adapt_path
     ! strings for names
-    character(len=OPTION_PATH_LEN) :: field_name, mesh_name
+    character(len=OPTION_PATH_LEN) :: lfield_name, mesh_name
     type(mesh_type), pointer :: mesh
     type(vector_field) :: field
     logical :: backward_compatibility, is_constant
@@ -2285,11 +2271,16 @@ contains
     ! Save option_path
     path=trim(option_path)
 
-    call get_option(trim(path)//"/name", field_name)
-    if(present(parent_name)) then
-       field_name=trim(parent_name)//trim(field_name)
+    if (present(field_name)) then
+       lfield_name=field_name
+    else
+       call get_option(trim(path)//"/name", lfield_name)
     end if
-    ewrite(1,*) "In allocate_and_insert_vector_field, field is: ", trim(field_name)
+
+    if(present(parent_name)) then
+       lfield_name=trim(parent_name)//trim(lfield_name)
+    end if
+    ewrite(1,*) "In allocate_and_insert_vector_field, field is: ", trim(lfield_name)
 
     ! Do we need backward compatibility?
     ! If we need backward compatibility, then no matter how the field
@@ -2337,12 +2328,12 @@ contains
 
     if (defer_allocation(option_path, mesh, dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)) then
        ! If we want to defer allocation (for sam), don't allocate the value space yet
-       call allocate(field, dim, mesh, name=trim(field_name), &
+       call allocate(field, dim, mesh, name=trim(lfield_name), &
           field_type=FIELD_TYPE_DEFERRED)
     else if(is_constant .and. .not. backward_compatibility) then
          
        ! Allocate as constant field if possible (and we don't need backward compatibility)
-       call allocate(field, dim, mesh, name=trim(field_name), &
+       call allocate(field, dim, mesh, name=trim(lfield_name), &
           field_type=FIELD_TYPE_CONSTANT)
        call zero(field)
        
@@ -2352,11 +2343,11 @@ contains
        ! and don't try any funny tricks to save memory.
 
        ! Allocate field
-       call allocate(field, dim, mesh, trim(field_name))
+       call allocate(field, dim, mesh, trim(lfield_name))
        call zero(field)
     end if
     
-    ewrite(2,*) trim(field_name), " is on mesh ", trim(mesh%name)
+    ewrite(2,*) trim(lfield_name), " is on mesh ", trim(mesh%name)
 
     ! Set field%option_path
     field%option_path=trim(option_path)
@@ -2366,20 +2357,20 @@ contains
     call deallocate(field)
 
     ! Check for fields that are children of this field:
-    call allocate_and_insert_children(path, state, mesh_name, field_name, &
+    call allocate_and_insert_children(path, state, mesh_name, lfield_name, &
         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-    call allocate_and_insert_grandchildren(path, state, mesh_name, field_name, &
+    call allocate_and_insert_grandchildren(path, state, mesh_name, lfield_name, &
         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
 
     ! Check for adaptivity weights associated with this field:
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 

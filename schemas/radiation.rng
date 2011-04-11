@@ -142,7 +142,7 @@ of this angular discretisation </a:documentation>
       </attribute>
       <ref name="even_parity_source_options"/>
       <optional>
-        <ref name="calculate_odd_parity"/>
+        <ref name="calculate_current"/>
       </optional>
       <ref name="angular_moment_set_even_parity"/>
     </element>
@@ -154,40 +154,45 @@ of this angular discretisation </a:documentation>
       <ref name="comment"/>
     </element>
   </define>
-  <define name="calculate_odd_parity">
-    <element name="scalar_field">
-      <a:documentation>The odd parity particle flux scalar field calculated 
-diagnostically from the even parity solution </a:documentation>
+  <define name="calculate_current">
+    <element name="vector_field">
+      <a:documentation>The particle current vector field calculated 
+diagnostically from the even parity solution.
+This is for each energy group with in this
+energy group set. </a:documentation>
       <ref name="comment"/>
       <attribute name="name">
-        <value>ParticleFluxOddParity</value>
+        <value>ParticleCurrent</value>
       </attribute>
-      <ref name="odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt"/>
+      <ref name="current_internal_algorithm_diagnostic_vector_field_no_adapt"/>
     </element>
   </define>
-  <define name="odd_parity_internal_algorithm_diagnostic_scalar_field_no_adapt">
+  <define name="current_internal_algorithm_diagnostic_vector_field_no_adapt">
     <element name="diagnostic">
       <ref name="comment"/>
       <ref name="internal_algorithm"/>
-      <ref name="odd_parity_mesh_choice"/>
+      <ref name="current_mesh_choice"/>
       <ref name="radiation_output_options"/>
       <ref name="radiation_stat_options"/>
       <ref name="diagnostic_detector_options"/>
     </element>
   </define>
-  <define name="odd_parity_mesh_choice">
+  <define name="current_mesh_choice">
     <choice>
       <element name="mesh">
+        <a:documentation>THE CURRENT MESH MUST BE DISCONTINUOUS</a:documentation>
         <attribute name="name">
-          <value>OddParityParticleMesh</value>
+          <value>ParticleCurrentMesh</value>
         </attribute>
       </element>
       <element name="mesh">
+        <a:documentation>THE CURRENT MESH MUST BE DISCONTINUOUS</a:documentation>
         <attribute name="name">
           <value>ParticleMesh</value>
         </attribute>
       </element>
       <element name="mesh">
+        <a:documentation>THE CURRENT MESH MUST BE DISCONTINUOUS</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
@@ -229,11 +234,13 @@ define the necessary even parity moments)</a:documentation>
   <define name="particle_type_material_mesh_choice">
     <choice>
       <element name="mesh">
+        <a:documentation>THE PARTICLE MATERIAL MESH MUST BE DISCONTINUOUS</a:documentation>
         <attribute name="name">
           <value>ParticleMaterialMesh</value>
         </attribute>
       </element>
       <element name="mesh">
+        <a:documentation>THE PARTICLE MATERIAL MESH MUST BE DISCONTINUOUS</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
