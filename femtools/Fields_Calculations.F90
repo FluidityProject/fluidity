@@ -78,6 +78,10 @@ implicit none
      module procedure integral_scalar, integral_vector
   end interface
 
+  interface fields_integral
+     module procedure integral_scalars
+  end interface
+
   interface function_val_at_quad
      module procedure function_val_at_quad_scalar, function_val_at_quad_vector
   end interface
@@ -281,6 +285,84 @@ implicit none
     call allsum(integral)
 
   end function integral_scalar_cv
+
+  function integral_scalars(fields, X, region_ids) result (integral)
+    !!< Integrate the product of fields assuming the same coordinate mesh X.
+    !!< If region ids is present then only integrate these associated regions
+    !!< else integrate the whole domain
+    real :: integral
+    type(scalar_field_pointer), dimension(:), intent(in) :: fields
+    !! The positions field associated with the fields.
+    type(vector_field), intent(in) :: X
+    integer, dimension(:), intent(in), optional :: region_ids
+
+    integer :: ele
+    integer :: s
+    integer :: id
+    integer :: ele_id
+    logical :: found_id
+
+    integral=0
+    
+    ! Ideally there needs to be an assertion that the fields are associated
+    ! with the same positions mesh X
+    
+    ! assert that each scalar field has the same number of elements 
+    ! and the same dim as positions mesh X
+    do s = 1,size(fields)
+
+      assert(ele_count(X) == ele_count(fields(s)%ptr))
+
+      assert(mesh_dim(X) == mesh_dim(fields(s)%ptr))
+
+    end do
+
+    ! if region_ids is present assert that it has something
+    if (present(region_ids)) then
+         
+      assert(size(region_ids) > 0)
+      
+    end if
+
+    velement_loop: do ele=1, element_count(fields(1)%ptr)
+
+      if(element_owned(fields(1)%ptr, ele)) then
+         
+        ! if present only conisder input region_ids
+        region_id_present: if (present(region_ids)) then
+
+          ! initialise flag for whether this volume element ele should be considered
+          found_id = .false.
+
+          ! find the positions X field ele region id
+          ele_id = ele_region_id(X,ele)
+
+          region_id_loop: do id = 1,size(region_ids)
+
+            check_id: if (ele_id == region_ids(id)) then
+
+              found_id = .true.
+
+              exit region_id_loop
+
+            end if check_id
+
+          end do region_id_loop
+
+          ! if not found an id match then cycle the volume element loop
+          if (.not. found_id) cycle velement_loop
+
+        end if region_id_present
+
+        integral=integral + integral_element(fields, X, ele)
+
+      end if
+
+    end do velement_loop
+
+    call allsum(integral)
+
+  end function integral_scalars
 
   function mesh_integral(X) result (integral)
     !!< Integrate mesh volume.

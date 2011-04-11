@@ -37,8 +37,6 @@ module radiation_reaction_rate
    use state_module
    use fields
    
-   use diagnostic_integrate_fields
-   
    use radiation_particle_data_type
    use radiation_materials_interpolation
    use radiation_extract_flux_field
@@ -76,7 +74,6 @@ contains
       integer :: g_global
       integer :: number_of_energy_groups
       integer :: number_of_energy_group_set
-      real :: reaction_rate_group
       type(vector_field), pointer :: positions 
       type(scalar_field), pointer :: particle_flux 
       type(scalar_field), target :: reaction_rate_coeff      
@@ -167,12 +164,9 @@ contains
             scalar_fields(1)%ptr => reaction_rate_coeff
             scalar_fields(2)%ptr => particle_flux
 
-            call integrate(scalar_fields, &
-                           positions, &
-                           reaction_rate_group, &
-                           region_ids = region_ids)
-
-            reaction_rate = reaction_rate + reaction_rate_group
+            reaction_rate = reaction_rate + fields_integral(scalar_fields, &
+                                                            positions, &
+                                                            region_ids = region_ids)
           
          end do group_loop
          

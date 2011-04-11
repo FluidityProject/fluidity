@@ -21,11 +21,11 @@ module fetools
   end interface
 
   interface integral_element
-     module procedure integral_element_scalar, integral_element_vector
+     module procedure integral_element_scalar, integral_element_vector, integral_element_scalars
   end interface
 
   private :: norm2_element
-  private :: integral_element_scalar, integral_element_vector
+  private :: integral_element_scalar, integral_element_vector, integral_element_scalars
 
 contains
   
@@ -923,6 +923,44 @@ contains
     integral=dot_product(lumped_mass, ele_val(field, ele))
 
   end function integral_cv
+
+  function integral_element_scalars(fields, X, ele) result&
+       & (integral)
+    !!< Return the integral of the product of fields over the given element.
+    real :: integral
+    ! Element values at the nodes.
+    type(scalar_field_pointer), dimension(:), intent(in) :: fields
+    ! The positions of the nodes in this element.
+    type(vector_field), intent(in) :: X
+    ! The number of the current element
+    integer, intent(in) :: ele
+    
+    integer :: s
+    real, dimension(ele_ngi(fields(1)%ptr, ele)) :: detwei
+    real, dimension(ele_ngi(fields(1)%ptr, ele)) :: product_ele_val_at_quad
+    
+    call transform_to_physical(X, ele, detwei=detwei)
+    
+    do s = 1,size(fields)
+       
+       assert(ele_ngi(X,ele) == ele_ngi(fields(s)%ptr,ele))
+       
+       if (s == 1) then
+          
+          product_ele_val_at_quad = ele_val_at_quad(fields(s)%ptr, ele)
+       
+       else 
+       
+          product_ele_val_at_quad = product_ele_val_at_quad * &
+                                    ele_val_at_quad(fields(s)%ptr, ele)
+       
+       end if 
+       
+    end do
+    
+    integral=dot_product(product_ele_val_at_quad, detwei)
+
+  end function integral_element_scalars
 
 !!$  subroutine lump(mass)
 !!$    !!< lump mass.

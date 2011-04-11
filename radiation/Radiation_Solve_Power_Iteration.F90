@@ -36,8 +36,6 @@ module radiation_solve_power_iteration
    use spud
    use state_module  
    use fields
-   
-   use diagnostic_integrate_fields
 
    use radiation_particle_data_type
    use radiation_materials_interpolation
@@ -319,8 +317,6 @@ contains
       integer :: number_of_energy_group_set
       real :: k_top
       real :: k_bottom
-      real :: k_top_group
-      real :: k_bottom_group
       type(vector_field), pointer :: positions 
       type(scalar_field), pointer :: particle_flux 
       type(scalar_field), pointer :: particle_flux_iter
@@ -405,24 +401,18 @@ contains
             scalar_fields(2)%ptr => particle_flux
             scalar_fields(3)%ptr => production_coeff
             scalar_fields(4)%ptr => particle_flux
-
-            call integrate(scalar_fields, &
-                           positions, &
-                           k_top_group)
             
-            k_top = k_top + k_top_group
+            k_top = k_top + fields_integral(scalar_fields, &
+                                            positions)
 
             ! set the fields to integrate for k_bottom
             scalar_fields(1)%ptr => production_coeff
             scalar_fields(2)%ptr => particle_flux
             scalar_fields(3)%ptr => production_coeff
             scalar_fields(4)%ptr => particle_flux_iter
-
-            call integrate(scalar_fields, &
-                           positions, &
-                           k_bottom_group)
-
-            k_bottom = k_bottom + k_bottom_group
+            
+            k_bottom = k_bottom + fields_integral(scalar_fields, &
+                                                  positions)
             
          end do group_loop
          
