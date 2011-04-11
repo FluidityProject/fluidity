@@ -309,7 +309,12 @@ module adjoint_functional_evaluation
           ! The += below comes from the fact that the reduction operator for each timestep component is addition
           ! So we shall assert that no one has added anything funny:
           assert(have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/reduction/sum"))
-          call python_run_string("for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[original_timelevel]['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
+          call python_run_string("if not hasattr(J, 'nominal_value'): " // achar(10) // &
+                              &  "  print 'Warning: you have told us that the functional at timelevel %d depends on variable %s, but the" // &
+                              &  " algorithmic differentiation disagrees.' % (original_timelevel, derivative.name)" // achar(10) // &
+                              &  "else: " // achar(10) // &
+                              &  "  for i in range(0,len(derivative.val)): derivative.val[i] += J.derivatives[states[original_timelevel]" // &
+                              &  "['"//trim(material_phase_name)//"']."//trim(type_string)//"_fields['"//trim(field_name)//"'].val[i]]")
         end do
         !write(0,*) "AD derivative value: "
         !call python_run_string("print derivative.val")
