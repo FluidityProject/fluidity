@@ -113,6 +113,9 @@
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
+    !--------------------------------------------------------------------------------------------------------
+    ! This should be read by the Copy_Outof_Into_State subrts
+
     ! set the remaining timestepping options, needs to be before any diagnostics are calculated
     call get_option("/timestepping/timestep", dt)
     !  if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
@@ -126,34 +129,52 @@
     call get_option('/simulation_name',simulation_name)
     call initialise_diagnostics(trim(simulation_name),state)
 
-    call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state)
-
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
     call get_ntsol(ntsol)
 
     call initialise_field_lists_from_options(state, ntsol)
 
-!--------------------------------------------------------------------------------------------------------
-! This should be read by the Copy_Outof_Into_State subrts
 
     ! For multiphase simulations, we have to call calculate_diagnostic_phase_volume_fraction *before*
     ! copy_to_stored(state,"Old") is called below. Otherwise, OldPhaseVolumeFraction (in the phase
     ! containing the diagnostic PhaseVolumeFraction) will be zero and 
     ! NonlinearPhaseVolumeFraction will be calculated incorrectly at t=0.
     if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-      call calculate_diagnostic_phase_volume_fraction(state)
+       call calculate_diagnostic_phase_volume_fraction(state)
     end if
 
-   ! set the nonlinear timestepping options, needs to be before the adapt at first timestep
+    ! set the nonlinear timestepping options, needs to be before the adapt at first timestep
     call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
 
+    ! Auxilliary fields.
+    call allocate_and_insert_auxilliary_fields(state)
+    call copy_to_stored_values(state,"Old")
+    call copy_to_stored_values(state,"Iterated")
+    call relax_to_nonlinear(state)
 
-!--------------------------------------------------------------------------------------------------------
+    call enforce_discrete_properties(state)
+
+    call run_diagnostics(state)
+
+    !     Determine the output format.
+    call get_option('/io/dump_format', option_buffer)
+    if(trim(option_buffer) /= "vtk") then
+       ewrite(-1,*) "You must specify a dump format and it must be vtk."
+       FLExit("Rejig your FLML: /io/dump_format")
+    end if
+
+    ! initialise the multimaterial fields
+    call initialise_diagnostic_material_properties(state)
+
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
+
+
+    !--------------------------------------------------------------------------------------------------------
 
 
     if( &
@@ -165,6 +186,12 @@
          & ) then
        call write_state(dump_no, state)
     end if
+
+    call initialise_convergence(filename, state)
+    call initialise_steady_state(filename, state)
+    call initialise_advection_convergence(state)
+
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
 
     ! ******************************
     ! *** Start of timestep loop ***
@@ -193,8 +220,22 @@
                                 ! Test write_state conditions
             .and. do_write_state(current_time, timestep) &
             ) then
+          ! Intermediate dumps
+          if(do_checkpoint_simulation(dump_no)) then
+             call checkpoint_simulation(state, cp_no = dump_no)
+          end if
           call write_state(dump_no, state)
        end if
+
+       ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
+
+       ! this may already have been done in populate_state, but now
+       ! we evaluate at the correct "shifted" time level:
+       call set_boundary_conditions_values(state, shift_time=.true.)
+
+       call enforce_discrete_properties(state, only_prescribed=.true., &
+            exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true.)
 
        ! Call the multiphase_prototype code  
        call multiphase_prototype()
