@@ -52,22 +52,22 @@ module shallow_water_adjoint_callbacks
       type(adj_adjointer), intent(inout) :: adjointer
       integer(kind=c_int) :: ierr
 
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "CartesianVelocityIdentity", c_funloc(cartesian_velocity_identity_assembly_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "CartesianVelocityMassMatrix", c_funloc(cartesian_velocity_mass_assembly_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LocalVelocityIdentity", c_funloc(local_velocity_identity_assembly_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LocalVelocityMassMatrix", c_funloc(local_velocity_mass_assembly_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_assembly_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "LayerThicknessMassMatrix", c_funloc(layerthickness_mass_assembly_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "WaveMatrix", c_funloc(wave_mat_assembly_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ASSEMBLY_CB, "Coriolis", c_funloc(coriolis_assembly_callback))
       call adj_chkierr(ierr)
 
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "CartesianVelocityIdentity", c_funloc(velocity_identity_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "CartesianVelocityMassMatrix", c_funloc(cartesian_velocity_mass_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LocalVelocityIdentity", c_funloc(velocity_identity_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LocalVelocityMassMatrix", c_funloc(local_velocity_mass_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LayerThicknessIdentity", c_funloc(layerthickness_identity_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LayerThicknessMassMatrix", c_funloc(layerthickness_mass_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "Grad", c_funloc(grad_action_callback))
       call adj_chkierr(ierr)
@@ -79,13 +79,11 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "BigMatCoriolis", c_funloc(bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "LocalProjection", c_funloc(local_projection_action_callback))
-      call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "CartesianProjection", c_funloc(cartesian_projection_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassLocalProjection", c_funloc(local_projection_action_callback))
       call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
-    subroutine cartesian_velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+    subroutine cartesian_velocity_mass_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -98,9 +96,10 @@ module shallow_water_adjoint_callbacks
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: u
       type(vector_field) :: empty_velocity_field
+      type(block_csr_matrix), pointer :: u_mass_mat
 
       if (coefficient /= 1.0) then
-        FLAbort("cartesian_velocity_identity_assembly_callback requires that the coefficient is 1.0")
+        FLAbort("cartesian_velocity_mass_assembly_callback requires that the coefficient is 1.0")
       end if
 
       call c_f_pointer(context, matrices)
@@ -111,16 +110,13 @@ module shallow_water_adjoint_callbacks
       rhs = field_to_adj_vector(empty_velocity_field)
       call deallocate(empty_velocity_field)
 
-      ! We're not actually going to do anything daft like allocate memory for
-      ! an identity matrix. Instead, we'll fill it in with a special tag
-      ! that we'll catch later on in the solution of the adjoint equations.
-      output%ptr = c_null_ptr
-      output%klass = ADJ_IDENTITY_MATRIX
-      output%flags = 0
+      ! If we had dirichlet conditions, we would have to care about hermitian being true or not
+      u_mass_mat => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
+      output = matrix_to_adj_matrix(u_mass_mat)
 
-    end subroutine cartesian_velocity_identity_assembly_callback
+    end subroutine cartesian_velocity_mass_assembly_callback
 
-    subroutine local_velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+    subroutine local_velocity_mass_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -133,6 +129,7 @@ module shallow_water_adjoint_callbacks
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: u
       type(vector_field) :: empty_velocity_field
+      type(block_csr_matrix), pointer :: u_mass_mat
 
       if (coefficient /= 1.0) then
         FLAbort("local_velocity_identity_assembly_callback requires that the coefficient is 1.0")
@@ -146,16 +143,12 @@ module shallow_water_adjoint_callbacks
       rhs = field_to_adj_vector(empty_velocity_field)
       call deallocate(empty_velocity_field)
 
-      ! We're not actually going to do anything daft like allocate memory for
-      ! an identity matrix. Instead, we'll fill it in with a special tag
-      ! that we'll catch later on in the solution of the adjoint equations.
-      output%ptr = c_null_ptr
-      output%klass = ADJ_IDENTITY_MATRIX
-      output%flags = 0
+      ! If we had dirichlet conditions, we would have to care about hermitian being true or not
+      u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
+      output = matrix_to_adj_matrix(u_mass_mat)
+    end subroutine local_velocity_mass_assembly_callback
 
-    end subroutine local_velocity_identity_assembly_callback
-    
-    subroutine layerthickness_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
+    subroutine layerthickness_mass_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -168,6 +161,7 @@ module shallow_water_adjoint_callbacks
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
       type(scalar_field) :: empty_eta_field
+      type(csr_matrix), pointer :: h_mass_mat
 
       if (coefficient /= 1.0) then
         FLAbort("layerthickness_identity_assembly_callback requires that the coefficient is 1.0")
@@ -181,14 +175,11 @@ module shallow_water_adjoint_callbacks
       rhs = field_to_adj_vector(empty_eta_field)
       call deallocate(empty_eta_field)
 
-      ! We're not actually going to do anything daft like allocate memory for
-      ! an identity matrix. Instead, we'll fill it in with a special tag
-      ! that we'll catch later on in the solution of the adjoint equations.
-      output%ptr = c_null_ptr
-      output%klass = ADJ_IDENTITY_MATRIX
-      output%flags = 0
+      ! Again, if we had dirichlet conditions we'd need to care about hermitian or not
+      h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
+      output = matrix_to_adj_matrix(h_mass_mat)
 
-    end subroutine layerthickness_identity_assembly_callback
+    end subroutine layerthickness_mass_assembly_callback
 
     subroutine wave_mat_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
@@ -267,7 +258,7 @@ module shallow_water_adjoint_callbacks
       end if
     end subroutine coriolis_assembly_callback
 
-    subroutine velocity_identity_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+    subroutine cartesian_velocity_mass_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -282,17 +273,47 @@ module shallow_water_adjoint_callbacks
 
       type(vector_field) :: u_input
       type(vector_field) :: u_output
+      type(block_csr_matrix), pointer :: u_mass_mat
 
       call c_f_pointer(context, matrices)
       call field_from_adj_vector(input, u_input)
-      call allocate(u_output, u_input%dim, u_input%mesh, "IdentityVelocityOutput")
-      call set(u_output, u_input)
+      call allocate(u_output, u_input%dim, u_input%mesh, "CartesianVelocityMassOutput")
+      u_mass_mat => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
+      call mult(u_output, u_mass_mat, u_input)
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
-    end subroutine velocity_identity_action_callback
+    end subroutine cartesian_velocity_mass_action_callback
 
-    subroutine layerthickness_identity_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+
+    subroutine local_velocity_mass_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: u
+
+      type(vector_field) :: u_input
+      type(vector_field) :: u_output
+      type(block_csr_matrix), pointer :: u_mass_mat
+
+      call c_f_pointer(context, matrices)
+      call field_from_adj_vector(input, u_input)
+      call allocate(u_output, u_input%dim, u_input%mesh, "LocalVelocityMassOutput")
+      u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
+      call mult(u_output, u_mass_mat, u_input)
+      call scale(u_output, coefficient)
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine local_velocity_mass_action_callback
+
+    subroutine layerthickness_mass_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -307,17 +328,19 @@ module shallow_water_adjoint_callbacks
 
       type(scalar_field) :: eta_input
       type(scalar_field) :: eta_output
+      type(csr_matrix), pointer :: h_mass_mat
 
       call c_f_pointer(context, matrices)
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
 
       call field_from_adj_vector(input, eta_input)
-      call allocate(eta_output, eta_mesh, "IdentityLayerThicknessOutput")
-      call set(eta_output, eta_input)
+      call allocate(eta_output, eta_mesh, "LayerThicknessMassOutput")
+      h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
+      call mult(eta_output, h_mass_mat, eta_input)
       call scale(eta_output, coefficient)
       output = field_to_adj_vector(eta_output)
       call deallocate(eta_output)
-    end subroutine layerthickness_identity_action_callback
+    end subroutine layerthickness_mass_action_callback
 
     subroutine grad_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
@@ -606,46 +629,6 @@ module shallow_water_adjoint_callbacks
       call deallocate(u_output)
     end subroutine bigmat_coriolis_action_callback
 
-    subroutine cartesian_projection_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
-      integer(kind=c_int), intent(in), value :: nvar
-      type(adj_variable), dimension(nvar), intent(in) :: variables
-      type(adj_vector), dimension(nvar), intent(in) :: dependencies
-      integer(kind=c_int), intent(in), value :: hermitian
-      adj_scalar_f, intent(in), value :: coefficient
-      type(adj_vector), intent(in), value :: input
-      type(c_ptr), intent(in), value :: context
-      type(adj_vector), intent(out) :: output
-
-      type(vector_field) :: u_output, u_input
-
-      type(state_type), pointer :: matrices
-      type(vector_field), pointer :: X, local_dummy_u, dummy_u
-      type(mesh_type), pointer :: eta_mesh
-      type(block_csr_matrix), pointer :: coriolis_mat, big_mat
-
-      call c_f_pointer(context, matrices)
-      local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
-      dummy_u => extract_vector_field(matrices, "VelocityDummy")
-      X => extract_vector_field(matrices, "Coordinate")
-
-      call field_from_adj_vector(input, u_input)
-
-      if (hermitian==ADJ_FALSE) then
-        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
-        call zero(u_output)
-        ! So, we'll project from local space to cartesian space
-        call project_local_to_cartesian(X, u_input, u_output)
-      else
-        call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "CartesianProjectionTOutput")
-        call zero(u_output)
-        ! So, we'll project from cartesian space to local space
-        call project_cartesian_to_local(X, u_input, u_output)
-      end if
-      call scale(u_output, coefficient)
-      output = field_to_adj_vector(u_output)
-      call deallocate(u_output)
-    end subroutine cartesian_projection_action_callback
-
     subroutine local_projection_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
@@ -656,30 +639,38 @@ module shallow_water_adjoint_callbacks
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
 
-      type(vector_field) :: u_output, u_input
+      type(vector_field) :: u_output, u_input, tmp_u
 
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: X, local_dummy_u, dummy_u
       type(mesh_type), pointer :: eta_mesh
-      type(block_csr_matrix), pointer :: coriolis_mat, big_mat
+      type(block_csr_matrix), pointer :: coriolis_mat, big_mat, cartesian_mass_matrix, local_mass_matrix
 
       call c_f_pointer(context, matrices)
       local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
       dummy_u => extract_vector_field(matrices, "VelocityDummy")
       X => extract_vector_field(matrices, "Coordinate")
+      cartesian_mass_matrix => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
+      local_mass_matrix => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
 
       call field_from_adj_vector(input, u_input)
 
       if (hermitian==ADJ_FALSE) then
+        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionTemp")
         call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionOutput")
         call zero(u_output)
         ! So, we'll project from cartesian space to local space
-        call project_cartesian_to_local(X, u_input, u_output)
+        call project_cartesian_to_local(X, u_input, tmp_u)
+        call mult(u_output, local_mass_matrix, tmp_u)
+        call deallocate(tmp_u)
       else
-        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "LocalProjectionTOutput")
+        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionTemp")
+        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         ! So, we'll project from local space to cartesian space
-        call project_local_to_cartesian(X, u_input, u_output)
+        call project_local_to_cartesian(X, u_input, tmp_u)
+        call mult(u_output, cartesian_mass_matrix, tmp_u)
+        call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)

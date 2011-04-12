@@ -353,8 +353,8 @@
       end if
 
       ! Set up the state of cached matrices
-      call insert(matrices, u_mass_mat, "VelocityMassMatrix")
-      call insert(matrices, h_mass_mat, "PressureMassMatrix")
+      call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
+      call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")
       call insert(matrices, coriolis_mat, "CoriolisMatrix")
       call insert(matrices, inverse_coriolis_mat, "InverseCoriolisMatrix")
       call insert(matrices, div_mat, "DivergenceMatrix")
@@ -378,9 +378,49 @@
       ! And don't forget Coordinate
       coord => extract_vector_field(state(1), "Coordinate")
       call insert(matrices, coord, "Coordinate")
+      ! And the CartesianVelocityMassMatrix
+
+      call assemble_cartesian_velocity_mass_matrix(state(1))
+      call insert(matrices, extract_block_csr_matrix(state(1), "CartesianVelocityMassMatrix"), "CartesianVelocityMassMatrix")
 
     end subroutine get_parameters
 
+    subroutine assemble_cartesian_velocity_mass_matrix(state)
+      type(state_type), intent(inout) :: state
+      type(vector_field), pointer :: positions, velocity
+      type(block_csr_matrix) :: mass_matrix
+      type(csr_sparsity), pointer :: sparsity
+      integer :: ele
+
+      positions => extract_vector_field(state, "Coordinate")
+      velocity => extract_vector_field(state, "Velocity")
+      sparsity => get_csr_sparsity_firstorder(state, velocity%mesh, velocity%mesh)
+      call allocate(mass_matrix, sparsity, (/velocity%dim, velocity%dim/), name="CartesianVelocityMassMatrix", diagonal=.true., equal_diagonal_blocks=.true.)
+      call zero(mass_matrix)
+
+      do ele = 1, ele_count(positions)
+        call assemble_cartesian_velocity_mass_matrix_ele(mass_matrix, velocity%mesh, positions, ele)
+      end do
+
+      ! Insert mass matrix into state
+      call insert(state, mass_matrix, "CartesianVelocityMassMatrix")
+      call deallocate(mass_matrix)
+
+    end subroutine assemble_cartesian_velocity_mass_matrix
+
+    subroutine assemble_cartesian_velocity_mass_matrix_ele(mass_matrix, mesh, positions, ele)
+      type(block_csr_matrix), intent(inout) :: mass_matrix
+      type(mesh_type), intent(in) :: mesh
+      type(vector_field), intent(in) :: positions
+      integer, intent(in) :: ele
+      real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: little_mass_matrix
+      real, dimension(ele_ngi(mesh, ele)) :: detwei
+
+      call transform_to_physical(positions, ele, detwei=detwei)
+      little_mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
+      call addto(mass_matrix, 1, 1, ele_nodes(mesh, ele), ele_nodes(mesh, ele), little_mass_matrix) ! we only add it once because equal_diagonal_blocks=.true.
+    end subroutine assemble_cartesian_velocity_mass_matrix_ele
+    
     subroutine insert_time_in_state(state)
       type(state_type), dimension(:), intent(inout) :: state
 
@@ -847,7 +887,7 @@
       type(adj_vector) :: mesh_vec
       type(adj_storage_data) :: storage
 
-      ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
+      ierr = adj_create_block("LayerThicknessMassMatrix", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
       ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
@@ -873,7 +913,9 @@
       ierr = adj_dict_set(adj_path_lookup, "Fluid::LayerThickness", trim(eta%option_path))
 
       ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LocalVelocityDelta", trim(u%option_path))
-      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LayerThicknessDelta", trim(u%option_path))
+      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LocalVelocity", trim(u%option_path))
+      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LayerThicknessDelta", trim(eta%option_path))
+      ierr = adj_dict_set(adj_solver_path_lookup, "Fluid::LayerThickness", trim(eta%option_path))
 
       ! We may as well set the times for this timestep now
       ierr = adj_timestep_set_times(adjointer, timestep=0, start=start_time-dt, end=start_time)
@@ -898,7 +940,7 @@
       ! if balanced is false, we just read in an initial condition as usual
 
       if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
+        ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
@@ -913,9 +955,9 @@
         ierr = adj_destroy_equation(equation)
         ierr = adj_destroy_block(I)
 
-        ierr = adj_create_block("LocalVelocityIdentity", block=I, context=c_loc(matrices))
+        ierr = adj_create_block("LocalVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
-        ierr = adj_create_block("LocalProjection", block=P, context=c_loc(matrices))
+        ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -956,10 +998,10 @@
         ierr = adj_destroy_block(L)
         ierr = adj_destroy_block(gC)
 
-        ierr = adj_create_block("CartesianVelocityIdentity", block=I, context=c_loc(matrices))
+        ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_block("LocalProjection", block=P, context=c_loc(matrices))
+        ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
         call adj_chkierr(ierr)
         ierr = adj_block_set_hermitian(block=P, hermitian=ADJ_TRUE)
         call adj_chkierr(ierr)
@@ -987,7 +1029,7 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, LP, CP, CI
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, LP, CI
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
@@ -1028,9 +1070,9 @@
       call adj_chkierr(ierr)
 
       ! Blocks for eta_n equation
-      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=Ieta)
+      ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=Ieta)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=minusIeta)
+      ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=minusIeta)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusIeta, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1050,27 +1092,21 @@
       call adj_chkierr(ierr)
 
       ! Blocks for u_n equation
-      ierr = adj_create_block("LocalVelocityIdentity", context=c_loc(matrices), block=Iu)
+      ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=Iu)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("LocalVelocityIdentity", context=c_loc(matrices), block=minusIu)
+      ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=minusIu)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusIu, coefficient=-1.0)
       call adj_chkierr(ierr)
 
       ! Blocks for embedded manifold business
-      ierr = adj_create_block("LocalProjection", context=c_loc(matrices), block=LP)
+      ierr = adj_create_block("MassLocalProjection", context=c_loc(matrices), block=LP)
       call adj_chkierr(ierr)
       ierr = adj_block_set_hermitian(LP, hermitian=ADJ_TRUE)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(LP, coefficient=-1.0)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("CartesianProjection", context=c_loc(matrices), block=CP)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_hermitian(CP, hermitian=ADJ_TRUE)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(CP, coefficient=-1.0)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("CartesianVelocityIdentity", context=c_loc(matrices), block=CI)
+      ierr = adj_create_block("CartesianVelocityMassMatrix", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
 
       ! Ahah! Now we can register our lovely equations. 
@@ -1134,8 +1170,6 @@
       ierr = adj_destroy_block(ML)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(MC)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(CP)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(LP)
       call adj_chkierr(ierr)
