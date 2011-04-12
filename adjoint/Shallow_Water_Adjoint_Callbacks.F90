@@ -71,7 +71,7 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "Grad", c_funloc(grad_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivMinusDivBigMatCoriolis", c_funloc(grad_minus_div_bigmat_coriolis_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivMinusDivBigMatCoriolis", c_funloc(div_minus_div_bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivBigMatGrad", c_funloc(div_bigmat_grad_action_callback))
       call adj_chkierr(ierr)
@@ -397,7 +397,7 @@ module shallow_water_adjoint_callbacks
       end if
     end subroutine grad_action_callback
 
-    subroutine grad_minus_div_bigmat_coriolis_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+    subroutine div_minus_div_bigmat_coriolis_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       use global_parameters, only:  dt
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
@@ -426,7 +426,7 @@ module shallow_water_adjoint_callbacks
       integer :: ierr
 
       if (coefficient /= -1.0) then
-        FLAbort("The coefficient in grad_minus_div_bigmat_coriolis_action_callback has to be -1.0")
+        FLAbort("The coefficient in div_minus_div_bigmat_coriolis_action_callback has to be -1.0")
       end if
 
       call c_f_pointer(context, matrices)
@@ -485,7 +485,7 @@ module shallow_water_adjoint_callbacks
         call deallocate(u_tmp)
         call deallocate(u_tmp_2)
       end if
-    end subroutine grad_minus_div_bigmat_coriolis_action_callback
+    end subroutine div_minus_div_bigmat_coriolis_action_callback
 
     subroutine div_bigmat_grad_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
       integer(kind=c_int), intent(in), value :: nvar
