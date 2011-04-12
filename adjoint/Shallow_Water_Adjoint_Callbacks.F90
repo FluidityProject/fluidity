@@ -71,7 +71,7 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "Grad", c_funloc(grad_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "GradMinusDivBigMatCoriolis", c_funloc(grad_minus_div_bigmat_coriolis_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivMinusDivBigMatCoriolis", c_funloc(grad_minus_div_bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivBigMatGrad", c_funloc(div_bigmat_grad_action_callback))
       call adj_chkierr(ierr)
@@ -420,7 +420,7 @@ module shallow_water_adjoint_callbacks
       type(scalar_field) :: eta_input
       type(vector_field) :: u_output
 
-      type(vector_field) :: u_tmp
+      type(vector_field) :: u_tmp, u_tmp_2
       real :: theta, d0
       character(len=ADJ_DICT_LEN) :: path
       integer :: ierr
@@ -446,31 +446,36 @@ module shallow_water_adjoint_callbacks
       if (hermitian==ADJ_FALSE) then
         call field_from_adj_vector(input, u_input)
         call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
+        call allocate(u_tmp_2, u%dim, u%mesh, "TemporaryVelocityVariable2")
         call zero(u_tmp)
-        call allocate(eta_output, eta_mesh, "AdjointGradMinusDivBigmatCoriolisOutput")
+        call zero(u_tmp_2)
+        call allocate(eta_output, eta_mesh, "AdjointDivMinusDivBigmatCoriolisOutput")
         call zero(eta_output)
 
         call mult(u_tmp, coriolis_mat, u_input)
-        call mult(u_tmp, big_mat, u_tmp)
-        call scale(u_tmp, -1.0*dt*theta)
-        call addto(u_tmp, u_input)
-        call mult(eta_output, div_mat, u_tmp)
+        call mult(u_tmp_2, big_mat, u_tmp)
+        call scale(u_tmp_2, -1.0*dt*theta)
+        call addto(u_tmp_2, u_input)
+        call mult(eta_output, div_mat, u_tmp_2)
         call scale(eta_output, dt*d0)
 
         output = field_to_adj_vector(eta_output)
         call deallocate(eta_output)
         call deallocate(u_tmp)
+        call deallocate(u_tmp_2)
       else
         ! Do the same steps as above, but backwards and with the transposed operators
         call field_from_adj_vector(input, eta_input)
         call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
+        call allocate(u_tmp_2, u%dim, u%mesh, "TemporaryVelocityVariable2")
         call zero(u_tmp)
-        call allocate(u_output, u%dim, u%mesh, "AdjointGradMinusDivBigmatCoriolisOutput")
+        call zero(u_tmp_2)
+        call allocate(u_output, u%dim, u%mesh, "AdjointDivMinusDivBigmatCoriolisOutput")
         call zero(u_output)
 
         call mult_T(u_tmp, div_mat, eta_input)
-        call mult_T(u_output, big_mat, u_tmp)
-        call mult_T(u_output, coriolis_mat, u_output)
+        call mult_T(u_tmp_2, big_mat, u_tmp)
+        call mult_T(u_output, coriolis_mat, u_tmp_2)
         call scale(u_output, -1.0*dt*theta)
         call addto(u_output, u_tmp)
         call scale(u_output, dt*d0)
@@ -478,6 +483,7 @@ module shallow_water_adjoint_callbacks
         output = field_to_adj_vector(u_output)
         call deallocate(u_output)
         call deallocate(u_tmp)
+        call deallocate(u_tmp_2)
       end if
     end subroutine grad_minus_div_bigmat_coriolis_action_callback
 

@@ -1064,7 +1064,7 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("GradMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
+      ierr = adj_create_block("DivMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTML, coefficient=-1.0)
       call adj_chkierr(ierr)
