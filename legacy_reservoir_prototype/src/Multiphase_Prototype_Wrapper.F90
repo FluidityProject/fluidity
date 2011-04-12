@@ -53,6 +53,7 @@
     use multiphase_module
     use multimaterial_module
     use field_equations_cv, only: initialise_advection_convergence
+    use memory_diagnostics
     use mp_prototype
     implicit none
 
@@ -93,6 +94,7 @@
     character(len = option_path_len) :: simulation_name, dump_format
 
     real :: finish_time, nonlinear_iteration_tolerance, steady_state_tolerance
+    integer :: mpi_success
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
