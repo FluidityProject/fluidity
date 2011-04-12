@@ -389,8 +389,7 @@ contains
             call zero(production_coeff)
             
             ! form the production coeff field for this energy group
-            call form(material_fn_space, &
-                      particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                       particle%particle_radmat, &
                       production_coeff, &
                       g, &

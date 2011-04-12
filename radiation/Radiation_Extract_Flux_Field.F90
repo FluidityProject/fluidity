@@ -47,9 +47,9 @@ module radiation_extract_flux_field
    private 
 
    public :: extract_flux_all_group, &
-             deallocate_flux_all_group, &
              extract_flux_group_g, &
-             extract_flux_group_from_group_set 
+             extract_flux_group_from_group_set, &
+             extract_current_group_g 
 
 contains
 
@@ -147,38 +147,6 @@ contains
         
    end subroutine extract_flux_all_group
    
-   ! --------------------------------------------------------------------------
-
-   subroutine deallocate_flux_all_group(particle_flux, &
-                                        particle_flux_old, &
-                                        particle_flux_iter)
-      
-      !!< Deallocate the pointer array to the particle flux fields
-      
-      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux 
-      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_old
-      type(scalar_field_pointer), dimension(:), pointer, optional :: particle_flux_iter
-      
-      check_present: if (present(particle_flux)) then
-      
-         if (associated(particle_flux)) deallocate(particle_flux)
-            
-      end if check_present
-
-      check_present_old: if (present(particle_flux_old)) then
-      
-         if (associated(particle_flux_old)) deallocate(particle_flux_old)
-            
-      end if check_present_old
-
-      check_present_iter: if (present(particle_flux_iter)) then
-      
-         if (associated(particle_flux_iter)) deallocate(particle_flux_iter)
-            
-      end if check_present_iter
-
-   end subroutine deallocate_flux_all_group
-
    ! --------------------------------------------------------------------------
 
    subroutine extract_flux_group_g(particle, & 
@@ -329,6 +297,72 @@ contains
       end if extract_iter
             
    end subroutine extract_flux_group_from_group_set
+
+   ! --------------------------------------------------------------------------
+
+   subroutine extract_current_group_g(particle, & 
+                                      g, &
+                                      particle_current, &
+                                      particle_current_old, &
+                                      particle_current_iter) 
+   
+      !!< Extract the particle current fields for group g from particle%state
+
+      type(particle_type), intent(in) :: particle
+      integer, intent(in) :: g
+      type(vector_field), pointer, optional :: particle_current 
+      type(vector_field), pointer, optional :: particle_current_old
+      type(vector_field), pointer, optional :: particle_current_iter
+      
+      ! local variables
+      integer :: status
+      character(len=OPTION_PATH_LEN) :: field_name
+      character(len=OPTION_PATH_LEN) :: field_name_old
+      character(len=OPTION_PATH_LEN) :: field_name_iter
+
+      extract_latest: if (present(particle_current)) then
+            
+         ! form the field name using the particle_name and group number g for moment 1
+         field_name = 'ParticleCurrentGroup'//int2str(g)//trim(particle%name)
+
+         ! extract the field
+         particle_current => extract_vector_field(particle%state, &
+                                                  trim(field_name), &
+                                                  stat=status)
+         
+         if (status /= 0) FLAbort('Failed to extract particle current field from particle%state')
+         
+      end if extract_latest
+       
+      extract_old: if (present(particle_current_old)) then
+       
+         ! form the old field name using the particle_name and group g number for moment 1
+         field_name_old = 'OldParticleCurrentGroup'//int2str(g)//trim(particle%name)
+
+         ! extract the field
+         particle_current_old => extract_vector_field(particle%state, &
+                                                      trim(field_name_old), &
+                                                      stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract old particle current field from particle%state')      
+      
+      end if extract_old
+       
+      extract_iter: if (present(particle_current_iter)) then
+       
+         ! form the iter field name using the particle_name and group g number for moment 1
+         field_name_iter = 'IteratedParticleCurrentGroup'//int2str(g)//trim(particle%name)
+
+         ! extract the field
+         particle_current_iter => extract_vector_field(particle%state, &
+                                                       trim(field_name_iter), &
+                                                       stat=status)
+
+         if (status /= 0) FLAbort('Failed to extract iter particle current field from particle%state')      
+      
+      end if extract_iter
+            
+   end subroutine extract_current_group_g
 
    ! --------------------------------------------------------------------------
 

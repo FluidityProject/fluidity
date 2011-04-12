@@ -73,7 +73,8 @@ OBJS = Radiation.o \
        Create_Unittest_Input.o \
        Radiation_Check_Flux_Convergence.o \
        Radiation_Copy_Flux_Values.o \
-       Radiation_Diagnostics.o 
+       Radiation_Diagnostics.o \
+       Radiation_Calculate_Current.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -100,7 +101,7 @@ default: $(OBJS)
 Radiation.o: Radiation_Particle.o Radiation_Solve.o
 Radiation_Particle_Data_Type.o: Radiation_Materials_Data_Types.o Radiation_Materials_Interpolation_Data_Types.o 
 Radiation_Particle.o: Radiation_Particle_Data_Type.o Radiation_Materials.o Radiation_Materials_Interpolation.o  
-Radiation_Solve.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Solve_Power_Iteration.o Radiation_Normalise_Flux.o Radiation_Diagnostics.o Radiation_Solve_Energy_Group_Iteration.o
+Radiation_Solve.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Solve_Power_Iteration.o Radiation_Normalise_Flux.o Radiation_Calculate_Current.o Radiation_Diagnostics.o Radiation_Solve_Energy_Group_Iteration.o
 Radiation_Solve_Power_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Solve_Scatter_Iteration.o Radiation_Extract_Flux_Field.o Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o Radiation_Energy_Group_Set_Tools.o
 Radiation_Solve_Energy_Group_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Solve_Scatter_Iteration.o Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o 
 Radiation_Solve_Scatter_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Solve_Group.o Radiation_Energy_Group_Set_Tools.o
@@ -127,6 +128,7 @@ Radiation_Materials_Interpolation_Form_II.o: Radiation_Materials_Interpolation_D
 Radiation_Materials_Interpolation_Form_Radmat.o: Radiation_Materials.o Radiation_Materials_Interpolation_Data_Types.o
 Create_Unittest_Input.o: Radiation_Materials_Data_Types.o Radiation_Materials_Create.o 
 Radiation_Diagnostics.o: Radiation_Particle_Data_Type.o 
+Radiation_Calculate_Current.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Materials_Interpolation.o Radiation_Energy_Group_Set_Tools.o
 
 clean:
 	rm -f *.o *.d *.mod

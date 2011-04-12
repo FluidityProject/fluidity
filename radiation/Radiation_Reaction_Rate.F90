@@ -149,8 +149,7 @@ contains
             else form_reaction_rate_coeff
                
                ! the reaction rate names are the same as the material ii names         
-               call form(material_fn_space, &
-                         particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+               call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                          particle%particle_radmat, &
                          reaction_rate_coeff, &
                          g, &

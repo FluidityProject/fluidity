@@ -37,6 +37,7 @@ module radiation_solve_module
    use radiation_materials_interpolation
    use radiation_solve_power_iteration
    use radiation_normalise_flux
+   use radiation_calculate_current_module
    use radiation_diagnostics
    use radiation_solve_energy_group_iteration
 
@@ -75,6 +76,9 @@ contains
             
       ! normalise the particle flux solution
       call normalise_particle_flux(particle)
+      
+      ! calculate the particle flux current
+      call radiation_calculate_current(particle)
                         
       ! output diagnostics
       call radiation_eigenvalue_set_diagnostics(particle)
@@ -96,6 +100,9 @@ contains
       
       ! solve equations via an energy group iteration
       call time_energy_group_iteration(particle)
+      
+      ! calculate the particle flux current
+      call radiation_calculate_current(particle)
       
    end subroutine radiation_solve_time
 

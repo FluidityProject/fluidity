@@ -55,8 +55,7 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine form_radiation_material_diffusivity_field(material_fn_space, &
-                                                        energy_group_set_ii, &
+   subroutine form_radiation_material_diffusivity_field(energy_group_set_ii, &
                                                         particle_radmat, &
                                                         diffusivity_field, &                                                   
                                                         g, &
@@ -64,7 +63,6 @@ contains
 
       !!< Form a radiation material diffusivity field for group g
 
-      type(mesh_type), intent(in) :: material_fn_space
       type(energy_group_set_ii_type), intent(in) :: energy_group_set_ii  
       type(particle_radmat_type), intent(in) :: particle_radmat  
       type(tensor_field), intent(inout) :: diffusivity_field
@@ -77,7 +75,7 @@ contains
       
       allocate(node_values(geom_dim,geom_dim))
       
-      node_loop: do inode = 1,node_count(material_fn_space)                                                                      
+      node_loop: do inode = 1,node_count(diffusivity_field)                                                                      
          
          node_values = 0.0
          
@@ -130,8 +128,7 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine form_radiation_material_scalar_field(material_fn_space, &
-                                                   energy_group_set_ii, &
+   subroutine form_radiation_material_scalar_field(energy_group_set_ii, &
                                                    particle_radmat, &
                                                    material_scalar_field, &                                                   
                                                    g, &
@@ -140,7 +137,6 @@ contains
       
       !!< Form a radiation material scalar field for the component for group g (and perhaps associated with g_dash)
       
-      type(mesh_type), intent(in) :: material_fn_space
       type(energy_group_set_ii_type), intent(in) :: energy_group_set_ii  
       type(particle_radmat_type), intent(in) :: particle_radmat  
       type(scalar_field), intent(inout) :: material_scalar_field
@@ -152,7 +148,7 @@ contains
       integer :: inode
       real :: data_value
       
-      node_loop_a: do inode = 1,node_count(material_fn_space)                                                                      
+      node_loop: do inode = 1,node_count(material_scalar_field)                                                                      
             
          ! get the inode material data for this energy group at this spatial dof
          call form(energy_group_set_ii, &
@@ -168,7 +164,7 @@ contains
                   inode, &
                   data_value)
                         
-      end do node_loop_a      
+      end do node_loop      
       
    end subroutine form_radiation_material_scalar_field
    

@@ -261,8 +261,7 @@ contains
       ! form the velocity coeff field for this energy group if time run
       form_velocity: if (scale_by_velocity_coeff) then
                  
-         call form(material_fn_space, &
-                   particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+         call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                    particle%particle_radmat, &
                    velocity_coeff, &
                    g, &
@@ -271,8 +270,7 @@ contains
       end if form_velocity
             
       ! form the absorption coeff field for this energy group (which is actually the removal cross section)            
-      call form(material_fn_space, &
-                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+      call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                 particle%particle_radmat, &
                 absorption_coeff, &
                 g, &
@@ -287,8 +285,7 @@ contains
       end if scale_abs 
             
       ! form the diffusivity tensor coeff field for this energy group
-      call form(material_fn_space, &
-                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+      call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                 particle%particle_radmat, &
                 diffusivity_coeff, &
                 g, &
@@ -305,8 +302,7 @@ contains
       ! form the discretised source - scatter and production            
       
       ! form the prompt spectrum coeff field for this energy group
-      call form(material_fn_space, &
-                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+      call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                 particle%particle_radmat, &
                 prompt_spectrum_coeff, &
                 g, &
@@ -323,8 +319,7 @@ contains
       group_loop: do g_dash = 1,size(particle_flux)
 
          ! form the production coeff field for this energy group
-         call form(material_fn_space, &
-                   particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+         call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                    particle%particle_radmat, &
                    production_coeff, &
                    g_dash, &
@@ -333,8 +328,7 @@ contains
          not_within_group: if (g /= g_dash) then
  
             ! form the scatter field for this energy group g_dash to g            
-            call form(material_fn_space, &
-                      particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+            call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                       particle%particle_radmat, &
                       scatter_coeff, &
                       g, &
@@ -439,9 +433,9 @@ contains
       end if dealloc_velocity
       
       ! deallocate the particle flux pointer fields
-      call deallocate_flux_all_group(particle_flux      = particle_flux, &
-                                     particle_flux_old  = particle_flux_old, &
-                                     particle_flux_iter = particle_flux_iter)
+      if (associated(particle_flux)) deallocate(particle_flux)
+      if (associated(particle_flux_old)) deallocate(particle_flux_old)
+      if (associated(particle_flux_iter)) deallocate(particle_flux_iter)
                         
    end subroutine assemble_coeff_source_group_g
    
