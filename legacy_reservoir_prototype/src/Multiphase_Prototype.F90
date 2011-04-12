@@ -40,15 +40,29 @@ module mp_prototype
   
   ! New modules
   use fldebug
+  use state_module
 
 
     implicit none
 
   contains
 
-    subroutine multiphase_prototype()
+    subroutine multiphase_prototype(state, dt, current_time, finish_time, &
+                                    nonlinear_iterations, nonlinear_iteration_tolerance)
 
       implicit none
+      
+      !! New variable declaration
+      
+      type(state_type), dimension(:), pointer :: state
+      
+      integer :: nonlinear_iterations  !! equal to nits in prototype code
+      
+      real :: dt, current_time, finish_time
+      real :: nonlinear_iteration_tolerance
+
+      
+      !! Old variable declaration
 
       integer :: problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
@@ -60,7 +74,7 @@ module mp_prototype
       integer :: ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp
 
-      real :: dt, patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
+      real :: patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
            u_theta, domain_length, Mobility
 
       integer :: t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
@@ -113,12 +127,6 @@ module mp_prototype
       real, dimension( :, :, :, : ), allocatable :: udiffusion, tdiffusion
       real, dimension( : ), allocatable :: u, v, w
   
-!!!!!!!!
-!!!!!   Major insert required here to pull everything required out of state
-!!!!!    - for this we need to list everything that's read in and not derived
-!!!!!    - although some derived stuff might be available through state as well
-!!!!!!!!
-
       real, dimension( : ), allocatable :: den, satura, volfra, comp, t, p, cv_p, volfra_pore, &
            cv_one, Viscosity
       real, dimension( :, :, : ), allocatable :: perm
@@ -153,6 +161,13 @@ module mp_prototype
       !open( 357, file = '/dev/null', status = 'unknown')
 
       ewrite(3,*) 'In multiphase_prototype'
+
+!!!!!!!!
+!!!!!   Major insert required here to pull everything required out of state
+!!!!!    - for this we need to list everything that's read in and not derived
+!!!!!    - although some derived stuff might be available through state as well
+!!!!!!!!
+      call copy_outof_state(state)
 
       call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &

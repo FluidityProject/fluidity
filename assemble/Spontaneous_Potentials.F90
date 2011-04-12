@@ -532,7 +532,7 @@ module spontaneous_potentials
 !    ewrite_minmax(sigma_fs)
     
     ! get coupling coefficient
-    Cv => extract_scalar_field(state, trim(coupling)//'['//int2str(i-1)//']', stat=stat)
+    Cv => extract_scalar_field(state, trim(coupling), stat=stat)
     if (stat/=0) then
       FLExit('Did not find a '//trim(coupling)//' coupling coefficient scalar field.')
     end if

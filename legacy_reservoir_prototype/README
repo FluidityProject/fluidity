@@ -9,23 +9,15 @@ Multiphase Prototype Brief Description
 
 Within this directory there is:
 
-     bin/
-     include/
-     lib/
      main.cpp
-     Makefile
-     source/
+     Makefile.in
+     src/
      tests/
      tools/
 
-the source/ directory has the source code files that were needed in the
+the src/ directory has the source code files that were needed in the
 Makefile (note this is less than that previously as some code wasnt
 actually being compiled)
-
-the bin/ will have the exec called MultiphasePrototype.bin when compiled
-
-the lib/ main.cpp and Makefile are added/changed in a way Brendan was familiar
-to get this to work with testharness but changes nothing else
 
 the tools/ contains the python scripts
 
@@ -61,14 +53,7 @@ tests the xml will load the .py module in
 
      tools/MultiphasePrototype_Tools.py
 
-So to compile the code from Reservoir/multiphase_prototype do:
-
-     make superclean
-     make
-
-this will produce (hopefully) a executable in bin/
-
-to run all tests, from Reservoir/multiphase_prototype do:
+to run all tests, from legacy_reservoir_prototype/ do:
 
      make test
 

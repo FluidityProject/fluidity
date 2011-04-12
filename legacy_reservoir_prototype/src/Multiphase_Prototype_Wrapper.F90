@@ -47,6 +47,12 @@
          & check_diagnostic_dependencies
     use field_priority_lists
     use spud
+    use checkpoint
+    use boundary_conditions_from_options
+    use discrete_properties_module
+    use multiphase_module
+    use multimaterial_module
+    use field_equations_cv, only: initialise_advection_convergence
     use mp_prototype
     implicit none
 
@@ -80,13 +86,13 @@
     type(state_type), dimension(:), pointer :: state
 
     integer, intent(in) :: filename_len
-    character(len = filename_len), intent(in) :: filename
-
-    character(len = option_path_len) :: simulation_name
-    real :: finish_time
     integer :: ierr, i, dump_no = 0
-
     integer :: ntsol, nonlinear_iterations
+
+    character(len = filename_len), intent(in) :: filename
+    character(len = option_path_len) :: simulation_name, dump_format
+
+    real :: finish_time, nonlinear_iteration_tolerance, steady_state_tolerance
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -161,8 +167,8 @@
     call run_diagnostics(state)
 
     !     Determine the output format.
-    call get_option('/io/dump_format', option_buffer)
-    if(trim(option_buffer) /= "vtk") then
+    call get_option('/io/dump_format', dump_format)
+    if(trim(dump_format) /= "vtk") then
        ewrite(-1,*) "You must specify a dump format and it must be vtk."
        FLExit("Rejig your FLML: /io/dump_format")
     end if
@@ -191,7 +197,9 @@
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
 
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+    if(have_option("/io/stat/output_at_start")) then
+      call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+    end if
 
     ! ******************************
     ! *** Start of timestep loop ***
@@ -238,7 +246,8 @@
             exclude_nonreprescribed=.true.)
 
        ! Call the multiphase_prototype code  
-       call multiphase_prototype()
+       call multiphase_prototype(state, dt, current_time, finish_time, &
+                                 nonlinear_iterations, nonlinear_iteration_tolerance)
 
        current_time = current_time + dt
 

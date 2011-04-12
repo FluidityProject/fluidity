@@ -64,7 +64,12 @@ ncoef                10                                                       ``
 
 # Number of coeffs for polynomial representation of permeability/absorption   User could create a scalar field under the relevant phase to represent
 nuabs_coefs           1                                                       permeability/absorption. Then using the python option, one can easily
-                                                                              prescribe a polynomial representation.
+                                                                              prescribe a polynomial representation. ** This already exists. Permeability
+                                                                              is available under the porous_media options /porous_media/scalar_field::
+                                                                              Permeability and can be a scalar, vector or tensor field. Porosity is also
+                                                                              there. Viscosity for each phase is a tensor field under velocity for that phase
+                                                                              and absorption is also under velocity and may be used to carry the combined
+                                                                              permeability/viscosity/relative permeability absorption term. **
 
 # Option for element type: Velocity mesh   -----------------------------|
 u_ele_type            2                                                 |
@@ -103,9 +108,9 @@ nits                  3                                                       al
 
 # Total number of non-linear iterations - internal loop                       Contolled via option /material_phase::phase1/scalar_field::component1/
 nits_internal         1                                                       prognostic/temporal_discretisation/control_volumes and its sub options.
-                                                                              Note that the aforementioned option is ``off'' by dafault in diamond and
+                                                                              Note that the aforementioned option is ``off'' by default in diamond and
                                                                               needs to be activated should the user want to. As indicated in the path,
-                                                                              this option is set separatelly for each field in each phase.
+                                                                              this option is set separately for each field in each phase.
 
 # noit_dim : dimension of the arrays to be defined in later stage             The dimension of corresponding variables/arrays is not explicitly 
 # (e.g., Field_error, Field_relax, Field_relax_diag, Field_relax_row          specified, it is calculated by fluidity itself. However, options related
@@ -199,7 +204,9 @@ domain_length         4.                                                     opt
 capil_pres_opt        0                                                      typical options path is then /material_phase::phase1/
                                                                              scalar_field::whatever_diagnostic_field/diagnostic . The user can then
                                                                              choose the algorithm to calculate the diagnostic, and specify related
-                                                                             options
+                                                                             options. ** capillary pressure options are currently under /porous_media/
+                                                                             multiphase_parameters but should probably be moved to /material_phase::phase1/
+                                                                             multiphase_properties, and properly reworked **
 
 # Polynomial representation for the cappilary pressure - order (length of the matrix)  An arbitrary number of diagnostic fields can be created by the
 ncapil_pres_coef      0                                                      user, a typical options path is then /material_phase::phase1/

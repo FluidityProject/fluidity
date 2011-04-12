@@ -1122,19 +1122,19 @@ contains
       if (have_option(trim(tmp)//'scalar_field::Electrokinetic')) then
         call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Electrokinetic', &
                                               states(i), &
-                                              field_name='Electrokinetic['//int2str(i-1)//']')
+                                              field_name='Electrokinetic')
       end if
       ! Thermoelectric coupling coefficient scalar field
       if (have_option(trim(tmp)//'scalar_field::Thermoelectric')) then
         call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Thermoelectric', &
                                               states(i), &
-                                              field_name='Thermoelectric['//int2str(i-1)//']')
+                                              field_name='Thermoelectric')
       end if
       ! Electrochemical coupling coefficient scalar field
       if (have_option(trim(tmp)//'scalar_field::Electrochemical')) then
         call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Electrochemical', &
                                               states(i), &
-                                              field_name='Electrochemical['//int2str(i-1)//']')
+                                              field_name='Electrochemical')
       end if
     end do
 
