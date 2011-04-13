@@ -148,8 +148,8 @@ contains
       integer :: inode
       real :: data_value
       
-      node_loop: do inode = 1,node_count(material_scalar_field)                                                                      
-            
+      node_loop: do inode = 1,node_count(material_scalar_field)
+
          ! get the inode material data for this energy group at this spatial dof
          call form(energy_group_set_ii, &
                    particle_radmat, &
