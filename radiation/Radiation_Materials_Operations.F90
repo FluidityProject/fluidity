@@ -103,16 +103,16 @@ contains
          ! check the sizes
          equals = radmat_type_equals(particle_radmat_1%particle_radmat_size,particle_radmat_2%particle_radmat_size,error_message_particle_radmat_size_equals)
          if (.not. equals) then
-            error_message_particle_radmat_equals = 'particle_radmat_1%particle_radmat_size /= particle_radmat_2%particle_radmat_size, with error message '&
-                                           &//trim(error_message_particle_radmat_size_equals)
+            error_message_particle_radmat_equals = &
+'particle_radmat_1%particle_radmat_size /= particle_radmat_2%particle_radmat_size, with error message '//trim(error_message_particle_radmat_size_equals)
             return
          end if
       
          ! check the delayed lambda and spectrum
          equals = radmat_type_equals(particle_radmat_1%delayed_lambda_spectrum,particle_radmat_2%delayed_lambda_spectrum,error_message_delayed_lambda_spectrum_equals)
          if (.not. equals) then 
-            error_message_particle_radmat_equals = 'particle_radmat_1%delayed_lambda_spectrum /= particle_radmat_2%delayed_lambda_spectrum, with error message '&
-                                           &//trim(error_message_delayed_lambda_spectrum_equals)
+            error_message_particle_radmat_equals = &
+'particle_radmat_1%delayed_lambda_spectrum /= particle_radmat_2%delayed_lambda_spectrum, with error message '//trim(error_message_delayed_lambda_spectrum_equals)
             return
          end if
       

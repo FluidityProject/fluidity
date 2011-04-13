@@ -124,12 +124,12 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                       particle_radmat_size = particle_radmat_1%particle_radmat_size, &
                                                       keyword_list   = keyword_list) 
       
-   call test_read_or_associate_transport_and_diffusion_format_radmats(file_unit            = file_unit_1, &
-                                                                      record_len           = 132, &
-                                                                      dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
-                                                                      particle_radmat_size = particle_radmat_1%particle_radmat_size, &
-                                                                      keyword_list         = keyword_list, &
-                                                                      problem_dim          = 3)
+   call test_read_or_form_trans_and_diff_format_radmats(file_unit            = file_unit_1, &
+                                                        record_len           = 132, &
+                                                        dataset_radmat       = particle_radmat_1%dataset_radmats(1), &
+                                                        particle_radmat_size = particle_radmat_1%particle_radmat_size, &
+                                                        keyword_list         = keyword_list, &
+                                                        problem_dim          = 3)
 
    call test_read_fission_data_format_radmats(file_unit                 = file_unit_1, &
                                               record_len                = 132, &
@@ -1020,12 +1020,12 @@ contains
    
    ! --------------------------------------------------------------------------
 
-   subroutine test_read_or_associate_transport_and_diffusion_format_radmats(file_unit, &
-                                                                            record_len, &
-                                                                            dataset_radmat, &
-                                                                            particle_radmat_size, &
-                                                                            keyword_list, &
-                                                                            problem_dim)
+   subroutine test_read_or_form_trans_and_diff_format_radmats(file_unit, &
+                                                              record_len, &
+                                                              dataset_radmat, &
+                                                              particle_radmat_size, &
+                                                              keyword_list, &
+                                                              problem_dim)
       
       !!< Test the procedure that reads the transport or diffusion data. This will also read in the total and absorption (which itself will 
       !!< read in the scatter data)
@@ -1080,7 +1080,7 @@ contains
                
                has_failed = .true.
                
-               call report_test("[test_read_or_associate_transport_and_diffusion_format_radmats]", &
+               call report_test("[test_read_or_form_trans_and_diff_format_radmats]", &
                                 has_failed, &
                                 has_warned, &
                                 "failed to find keyword MACRO as needed")   
@@ -1095,12 +1095,12 @@ contains
             ! now read in the required values for each dimension
             dim_loop: do idim = 1,problem_dim              
 
-               call read_or_associate_transport_and_diffusion_format_radmats(file_unit, &
-                                                                             line_number, &
-                                                                             dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
-                                                                             idim, &
-                                                                             record_len, &
-                                                                             keyword_list)
+               call read_or_form_trans_and_diff_format_radmats(file_unit, &
+                                                               line_number, &
+                                                               dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat), &
+                                                               idim, &
+                                                               record_len, &
+                                                               keyword_list)
             
                has_failed =  fnequals(dataset_radmat%physical_radmats(pmat)%radmats(rmat)%transport(:,idim), &
                                       dataset_radmat_format_radmats%physical_radmats(pmat)%radmats(rmat)%transport(:,idim))
@@ -1125,14 +1125,14 @@ contains
             
       end do pmat_loop
             
-      call report_test("[test_read_or_associate_transport_and_diffusion_format_radmats]", &
+      call report_test("[test_read_or_form_trans_and_diff_format_radmats]", &
                        has_failed, &
                        has_warned, &
                        "failed values read in not what expected")   
                         
       call destroy(dataset_radmat_format_radmats)
       
-   end subroutine test_read_or_associate_transport_and_diffusion_format_radmats
+   end subroutine test_read_or_form_trans_and_diff_format_radmats
    
    ! --------------------------------------------------------------------------
 

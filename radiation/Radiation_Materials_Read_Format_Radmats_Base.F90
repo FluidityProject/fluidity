@@ -45,7 +45,7 @@ module radiation_materials_read_format_radmats_base
              read_scatter_mom_format_radmats, &
              read_absorption_and_total_format_radmats, &
              calculate_removal_moments_format_radmats, &
-             read_or_associate_transport_and_diffusion_format_radmats, &
+             read_or_form_trans_and_diff_format_radmats, &
              read_fission_data_format_radmats, &
              read_velocity_style_data_format_radmats, &
              read_delayed_data_format_radmats, &
@@ -700,12 +700,12 @@ contains
 
    ! --------------------------------------------------------------------------
 
-   subroutine read_or_associate_transport_and_diffusion_format_radmats(format_radmats_file_unit, &
-                                                                       line_number, &
-                                                                       radmat, &
-                                                                       idim, &
-                                                                       record_len, &
-                                                                       keyword_list)
+   subroutine read_or_form_trans_and_diff_format_radmats(format_radmats_file_unit, &
+                                                         line_number, &
+                                                         radmat, &
+                                                         idim, &
+                                                         record_len, &
+                                                         keyword_list)
             
       !!< Read from a format_radmats file or form the sigtran and diffusion cross sections for this geometric dimension idim. 
       !!< This could depend on the total already being set so check that it is and if not set it. For the second and third dimension if 
@@ -901,7 +901,7 @@ contains
                           exit_if_eor=.true.,&
                           exit_if_eof=.true.) 
       
-   end subroutine read_or_associate_transport_and_diffusion_format_radmats
+   end subroutine read_or_form_trans_and_diff_format_radmats
 
    ! --------------------------------------------------------------------------
 

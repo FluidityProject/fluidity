@@ -233,12 +233,12 @@ contains
             ! read or associate the sigtran and diffusion cross sections for each geometric dimension - then put the file back to the start of this macro
             geom_dim_loop: do idim = 1,problem_dimension 
             
-               call read_or_associate_transport_and_diffusion_format_radmats(format_radmats_file_unit, &
-                                                                             line_number, &
-                                                                             dataset_radmat%physical_radmats(pmat)%radmats(rmat), &
-                                                                             idim, &
-                                                                             record_len, &
-                                                                             keyword_list)
+               call read_or_form_trans_and_diff_format_radmats(format_radmats_file_unit, &
+                                                               line_number, &
+                                                               dataset_radmat%physical_radmats(pmat)%radmats(rmat), &
+                                                               idim, &
+                                                               record_len, &
+                                                               keyword_list)
                                                                                     
             end do geom_dim_loop
                                                 
