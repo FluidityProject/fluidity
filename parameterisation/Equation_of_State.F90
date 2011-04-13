@@ -547,8 +547,7 @@ contains
         ! density = reference_density
         call set(density, reference_density)
       else
-        assert(density%mesh==drhodp%mesh)            
-          
+        assert(density%mesh==drhodp%mesh)
         call set(density, pressure_remap)
         call scale(density, drhodp)
         call scale(density, 1.0/(1.0+power))
