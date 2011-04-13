@@ -41,7 +41,7 @@ extern "C" {
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
 #endif
-  void mainfl_fc(const char *, const int *);
+  void mainfl();
 
 /* we probably can get rid of this hack nowadays, cos the default in gfortran
 (since 4.2, I think) is to use four-byte record markers */
@@ -88,8 +88,7 @@ int main(int argc, char **argv){
 
   // Start fortran main
   if(fl_command_line_options.count("simulation_name")){
-    int filenamelen = fl_command_line_options["simulation_name"].size();
-    mainfl_fc(fl_command_line_options["simulation_name"].c_str(), &filenamelen);    
+    mainfl();    
   }else{
     usage(argv[0]);
     exit(-1);

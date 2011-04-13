@@ -27,10 +27,9 @@
 
 #include "fdebug.h"
 
-subroutine mainfl(filename, filename_len)
+subroutine mainfl() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
-
   use fldebug
   use fluids_module
   !use reduced_fluids_module
@@ -42,10 +41,6 @@ subroutine mainfl(filename, filename_len)
 #endif
   
   implicit none
-  
-  integer, intent(in) :: filename_len
-
-  character(len = filename_len), intent(in) :: filename
 
   ! We need to do this here because the fortran Zoltan initialisation
   ! routine does extra things on top of the C one. That wasn't a fun
@@ -77,7 +72,7 @@ subroutine mainfl(filename, filename_len)
      
      call tic(TICTOC_ID_SIMULATION)
      ewrite(1, *) "Calling fluids from mainfl"
-     call fluids(filename)
+     call fluids()
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)

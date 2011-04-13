@@ -118,8 +118,8 @@ module fluids_module
 
 contains
 
-  SUBROUTINE FLUIDS(filename)
-    character(len = *), intent(in) :: filename
+  SUBROUTINE FLUIDS()
+    character(len = OPTION_PATH_LEN) :: filename
 
     INTEGER :: &
          & NTSOL,  &
@@ -179,6 +179,8 @@ contains
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
     ewrite(1,*) "Options sanity check successful"
+
+    call get_option("/simulation_name",filename)
 
     call set_simulation_start_times()
     call initialise_walltime
