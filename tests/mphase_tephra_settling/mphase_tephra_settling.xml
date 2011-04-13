@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_tephra_settling</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="special" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This is a 2D simulation of the formation of density currents. We consider a -->
+    <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
+    <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="water_u1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+water_u1=s["Water"]["Velocity%1"]["integral"]
+    </variable>
+    
+    <variable name="water_u2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+water_u2=s["Water"]["Velocity%2"]["integral"]
+    </variable>
+    
+    <variable name="tephra_u1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+tephra_u1=s["Tephra"]["Velocity%1"]["integral"]
+    </variable>
+    
+    <variable name="tephra_u2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+tephra_u2=s["Tephra"]["Velocity%2"]["integral"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
