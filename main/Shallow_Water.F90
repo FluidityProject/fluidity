@@ -1001,9 +1001,7 @@
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-        ierr = adj_block_set_hermitian(block=P, hermitian=ADJ_TRUE)
+        ierr = adj_create_block("MassCartesianProjection", block=P, context=c_loc(matrices))
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -1029,7 +1027,7 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, LP, CI
+      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC, CP, CI
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
@@ -1100,11 +1098,9 @@
       call adj_chkierr(ierr)
 
       ! Blocks for embedded manifold business
-      ierr = adj_create_block("MassLocalProjection", context=c_loc(matrices), block=LP)
+      ierr = adj_create_block("MassCartesianProjection", context=c_loc(matrices), block=CP)
       call adj_chkierr(ierr)
-      ierr = adj_block_set_hermitian(LP, hermitian=ADJ_TRUE)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(LP, coefficient=-1.0)
+      ierr = adj_block_set_coefficient(CP, coefficient=-1.0)
       call adj_chkierr(ierr)
       ierr = adj_create_block("CartesianVelocityMassMatrix", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
@@ -1142,7 +1138,7 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(cartesian_u, blocks=(/LP, CI/), &
+      ierr = adj_create_equation(cartesian_u, blocks=(/CP, CI/), &
                                     & targets=(/u, cartesian_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
@@ -1171,7 +1167,7 @@
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(MC)
       call adj_chkierr(ierr)
-      ierr = adj_destroy_block(LP)
+      ierr = adj_destroy_block(CP)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(CI)
       call adj_chkierr(ierr)

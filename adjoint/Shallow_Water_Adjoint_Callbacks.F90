@@ -81,6 +81,8 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassLocalProjection", c_funloc(local_projection_action_callback))
       call adj_chkierr(ierr)
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassCartesianProjection", c_funloc(cartesian_projection_action_callback))
+      call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
     subroutine cartesian_velocity_mass_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
@@ -650,13 +652,12 @@ module shallow_water_adjoint_callbacks
       type(state_type), pointer :: matrices
       type(vector_field), pointer :: X, local_dummy_u, dummy_u
       type(mesh_type), pointer :: eta_mesh
-      type(block_csr_matrix), pointer :: coriolis_mat, big_mat, cartesian_mass_matrix, local_mass_matrix
+      type(block_csr_matrix), pointer :: coriolis_mat, big_mat, local_mass_matrix
 
       call c_f_pointer(context, matrices)
       local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
       dummy_u => extract_vector_field(matrices, "VelocityDummy")
       X => extract_vector_field(matrices, "Coordinate")
-      cartesian_mass_matrix => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
       local_mass_matrix => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
 
       call field_from_adj_vector(input, u_input)
@@ -670,12 +671,12 @@ module shallow_water_adjoint_callbacks
         call mult(u_output, local_mass_matrix, tmp_u)
         call deallocate(tmp_u)
       else
-        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionTemp")
+        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "MassTimesLocalTemp")
         call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         ! So, we'll project from local space to cartesian space
-        call project_local_to_cartesian(X, u_input, tmp_u)
-        call mult(u_output, cartesian_mass_matrix, tmp_u)
+        call mult_T(tmp_u, local_mass_matrix, u_input)
+        call project_local_to_cartesian(X, tmp_u, u_output)
         call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)
@@ -683,6 +684,50 @@ module shallow_water_adjoint_callbacks
       call deallocate(u_output)
     end subroutine local_projection_action_callback
 
+    subroutine cartesian_projection_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      integer(kind=c_int), intent(in), value :: hermitian
+      adj_scalar_f, intent(in), value :: coefficient
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(vector_field) :: u_output, u_input, tmp_u
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: X, local_dummy_u, dummy_u
+      type(mesh_type), pointer :: eta_mesh
+      type(block_csr_matrix), pointer :: coriolis_mat, big_mat, cartesian_mass_matrix
+
+      call c_f_pointer(context, matrices)
+      local_dummy_u => extract_vector_field(matrices, "LocalVelocityDummy")
+      dummy_u => extract_vector_field(matrices, "VelocityDummy")
+      X => extract_vector_field(matrices, "Coordinate")
+      cartesian_mass_matrix => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
+
+      call field_from_adj_vector(input, u_input)
+
+      if (hermitian==ADJ_FALSE) then
+        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionTemp")
+        call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
+        call zero(u_output)
+        call project_local_to_cartesian(X, u_input, tmp_u)
+        call mult(u_output, cartesian_mass_matrix, tmp_u)
+        call deallocate(tmp_u)
+      else
+        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "MassTimesLocalTemp")
+        call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "CartesianProjectionOutput")
+        call zero(u_output)
+        call mult_T(tmp_u, cartesian_mass_matrix, u_input)
+        call project_cartesian_to_local(X, tmp_u, u_output)
+        call deallocate(tmp_u)
+      end if
+      call scale(u_output, coefficient)
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine cartesian_projection_action_callback
 
 #endif
 end module shallow_water_adjoint_callbacks
