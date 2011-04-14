@@ -1,0 +1,104 @@
+# Copyright (C) 2006 Imperial College London and others.
+#
+# Please see the AUTHORS file in the main source directory for a full list
+# of copyright holders.
+#
+# Dr Gerard J Gorman
+# Applied Modelling and Computation Group
+# Department of Earth Science and Engineering
+# Imperial College London
+#
+# g.gorman@imperial.ac.uk
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+# USA
+
+# Generated automatically from g
+SHELL = @SHELL@
+
+LIB	= ../lib/libadaptivity.a
+
+srcdir 	= .
+VPATH 	= .:./src
+
+FC      = @FC@
+CC      = @CC@
+CXX     = @CXX@
+
+LINKER 	= @CXX@
+
+MAKE   	= @MAKE@
+RANLIB	= @RANLIB@
+AR	= @AR@
+ARFLAGS = @ARFLAGS@
+
+INSTALL = @INSTALL@
+
+CPPFLAGS= -I./include -I../include @CPPFLAGS@ 
+
+CFLAGS	= $(CPPFLAGS) @CFLAGS@
+CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
+FCFLAGS = $(CPPFLAGS) @FCFLAGS@
+
+LFLAGS	= -L./lib -lparmetis -lmetis @LIBS@ @FLIBS@ @LDFLAGS@
+
+# List library objects.
+ifeq (@enable_mpi@,yes)
+OBJS = 	main.o      Node.o      Element.o Mesh.o    imports.o      \
+	exports.o   MI5.o       migrate.o packing.o Graph.o          \
+	formHalo2.o ParMetis.o  mtetin.o  mtetin.o  PressureNode.o \
+	fixate.o    flstripH2.o fluidity_sam.o  		                     \
+	c++debuglog.o invent_pressure_mesh.o errorHandling.o graph_partitioning.o \
+  functional_2d.o 
+else
+OBJS = fluidity_sam.o
+endif
+
+# Set up appropriate suffix list & define double suffix rules:
+.SUFFIXES: .o .cpp .f .F .f90 .a
+
+.F.o:
+	$(FC) $(FCFLAGS) -c $<
+
+.f.o:
+	$(FC) $(FCFLAGS) -c $<
+
+.f90.o:
+	$(FC) $(FCFLAGS) -cpp -c $<
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) -c $<
+
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+
+#+
+# Build specific programs...
+#-
+default: $(OBJS)
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+install:
+	$(INSTALL) $(LIB) @prefix@/lib/
+
+clean:
+	rm -f *.o $(LIB) core so_locations config.status config.log 
+	rm -rf *.cache lib/lib*
+
+formHalo2.o: formHalo2.cpp include/comTools.h
+fixate.o:    fixate.cpp include/comTools.h
+packing.o:   packing.cpp include/comTools.h
+

@@ -1,0 +1,227 @@
+#!/usr/bin/env python
+
+#    This file is part of Diamond.
+#
+#    Diamond is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Diamond is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+
+import getopt
+import os
+import os.path
+import sys
+import traceback
+
+import gtk
+import gtk.gdk
+gtk.gdk.threads_init()
+import gobject
+
+# do this right at the start, so we can find the diamond modules
+diamond_path = os.path.join( os.path.realpath(os.path.dirname(__file__)), os.pardir )
+sys.path.insert(0, diamond_path)
+
+import diamond.debug as debug
+
+def Help():
+  """
+  Prints usage information to standard output.
+  """
+
+  debug.dprint("Usage: diamond [OPTIONS] ... [FILE]\n" + \
+               "\n" + \
+               "A Relax NG aware XML editor. [FILE] is the XML file to be opened (a new file is\n" + \
+               "created if this is not supplied).\n" + \
+               "\n" + \
+               "Options:\n" + \
+               "\n" + \
+               "-h               Display this message\n" + \
+               "-s [SCHEMAFILE]  Use the supplied schema file *\n" + \
+               "-t [TRONFILE]    Use the supplied schematron file for extended validation\n" + \
+               "-v               Verbosity switch - if supplied Diamond prints additional\n" + \
+               "                 debugging information to standard output and standard error\n" + \
+               "\n" + \
+               "* Note: The locations of Spud schemas can also be defined in ~/.diamond/schemata/,\n" + \
+               "  see the Spud manual for further details.", 0)
+
+  return
+
+def main():
+
+  # Detach from controlling terminal
+  try:
+    pid = os.fork()
+    if pid == 0:
+      os.setsid()
+      pid = os.fork()
+      if pid != 0:
+        os._exit(0)
+    else:
+      os._exit(0)
+  except:
+    pass
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "hvs:t:")
+  except:
+    Help()
+    sys.exit(1)
+
+  if len(args) > 1:
+    Help()
+    sys.exit(1)
+
+  if not ("-v", "") in opts:
+    debug.SetDebugLevel(0)
+  if ("-h", "") in opts:
+    Help()
+    return
+
+  import diamond.config as config
+  import diamond.dialogs as dialogs
+  import diamond.interface as interface
+  import diamond.schema as schema
+  import diamond.tree as tree
+  import diamond.plugins as plugins
+
+  try:
+    input_filename = args[0]
+  except IndexError:
+    input_filename = None
+
+  logofile = None
+  for possible_logofile in [os.path.join(diamond_path, "gui", "diamond.svg"), "/usr/share/diamond/gui/diamond.svg"]:
+    try:
+      os.stat(possible_logofile)
+      logofile = possible_logofile
+      break
+    except OSError:
+      pass
+
+
+  # Let's find a schema.
+
+  suffix = "xml"
+
+  # if the user specifies a schema on the command line, use that.
+
+  input_schemafile = None
+  input_schematron_file = None
+  for opt in opts:
+    if opt[0] == "-s":
+      input_schemafile = opt[1]
+    elif opt[0] == "-t":
+      input_schematron_file = opt[1]
+
+  # if the user has specified a file to work on, use the suffix as a key
+
+  if input_filename is not None and input_schemafile is None:
+    suffix = input_filename.split(".")[-1]
+    try:
+      input_schemafile = config.schemata[suffix][1]
+    except:
+      debug.deprint("Could not find schema matching suffix %s." % suffix, 0)
+      debug.deprint("Have you registered it in /etc/diamond/schemata/ or $HOME/.diamond/schemata?", 0)
+      debug.deprint("To register a schema, place a file in one of those directories, and let its name be the suffix of your language.", 0)
+      debug.deprint("The file should have two lines in it:", 0)
+      debug.deprint("A Verbal Description Of The Language Purpose", 0)
+      debug.deprint("/path/to/the/schema/file.rng", 0)
+      sys.exit(1)
+
+  # if there is only one schema, use that
+
+  if input_schemafile is None:
+    if len(config.schemata) == 1:
+      suffix = config.schemata.keys()[0]
+      input_schemafile = config.schemata[suffix][1]
+
+  # otherwise ask the user to choose
+
+  if input_schemafile is None:
+    choices = [key + ": " + config.schemata[key][0] for key in config.schemata]
+    choice = dialogs.radio_dialog("Choose a schema", "Choose a schema to use:", choices, logofile)
+    suffix = choice.split(":")[0]
+    input_schemafile = config.schemata[suffix][1]
+
+  # ensure that the specified schema actually exists!
+
+  try:
+    if 'http' not in input_schemafile:
+      os.stat(input_schemafile)
+  except OSError:
+    debug.deprint("Could not find schemafile %s!" % input_schemafile, 0)
+    sys.exit(1)
+
+  if input_schematron_file is not None:
+    # ensure that the specified schematron file actually exists!
+    try:
+      os.stat(input_schematron_file)
+    except OSError:
+      debug.deprint("Could not find Schematron file %s!" % input_schematron_file, 0)
+      sys.exit(1)
+
+  if input_filename is not None:
+    try:
+      os.stat(input_filename)
+    except OSError:
+       pass
+
+  # Import the GUI Glade file.
+
+  gladefile = None
+  for possible_gladefile in [os.path.join(diamond_path, "gui", "gui.glade"),
+                             os.path.join(diamond_path, "share", "diamond", "gui", "gui.glade"),
+                             "/usr/share/diamond/gui/gui.glade"]:
+    try:
+      os.stat(possible_gladefile)
+      gladefile = possible_gladefile
+      break
+    except OSError:
+      pass
+  if gladefile is None:
+    debug.deprint("Cannot locate GUI!", 0)
+    sys.exit(1)
+
+  # If input_schemafile doesn't exist, use the fluidity_options schema.
+  if input_schemafile is None:
+    debug.deprint("Cannot locate schemafile!", 0)
+    sys.exit(1)
+
+  debug.dprint("\n" + \
+               "Glade file:  " + str(gladefile) + "\n" + \
+               "Schema file: " + str(input_schemafile) + "\n" + \
+               "Logo file:   " + str(logofile) + "\n" + \
+               "Input file:  " + str(input_filename) + "\n")
+
+  plugins.configure_plugins(suffix)
+
+  i = interface.Diamond(gladefile = gladefile, logofile = logofile, suffix = suffix)
+
+  def initialise(i, s, f):
+    i.open_file(schemafile = s, filename = f)
+    i.main_window.window.set_cursor(None)
+    i.statusbar.clear_statusbar()
+
+  i.statusbar.set_statusbar("Loading ...")
+  i.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+  initialise(i, input_schemafile, input_filename)
+
+  gtk.main()
+
+  return
+
+if __name__ == "__main__":
+#  import hotshot
+#  prof = hotshot.Profile("hotshot_stats.prof")
+#  prof.runcall(main)
+#  prof.close()
+  main()

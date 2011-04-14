@@ -1,0 +1,97 @@
+C ==========================================================
+C The mesh generation can be controled in a few ways. 
+C The main way is through the metric field. However, some 
+C mesh features may be missing. In order to ensure additional 
+C (optinal) mesh features, we introduce integer variable 
+C status. The non-zero bits of this variable turn on the 
+C following mesh features:
+C
+C  bit 01 - (ANIForbidBoundaryElements=1): the final mesh will
+C           not contain triangles with all vertices on the
+C           domain boundary.
+C
+C  bit 02 - (ANIUse2ArmRule=2): each boundary point of the mesh
+C           may be connected to an inner mesh point with at 
+C           most 2 mesh edges. 
+C
+C           The feature allows more stable implementation of
+C           Hessian recovering algorithms. 
+C
+C  bit 03 - (ANIFixBoundaryEdges=4): the boundary edges will be
+C           added to the list of fixed edges.
+C
+C           The feature may be useful for generating multi-block 
+C           meshes. 
+C
+C  bit 04 - (ANIDeleteTemporaryEdges=8): the new edges created by 
+C           the algorithm will be removed from the final mesh.
+C           The new egdes may include material interfaces.
+C  
+C  bit 05 - (ANIFixBoundaryPoints=16): the boundary points will be
+C           added to the list of fixed points.
+C
+C           The feature may be useful for preserving complex 
+C           geometries in anisotropic metric fields.
+C
+C  bit 06 - (reserved=32)
+C
+C ==========================================================
+C The following bits reflect mesh features discovered by
+C the algorithm. We keep it for the user disposal.
+C
+C  bit 07 - (ANIMultiConnectedGeometry=64): the geometry is
+C           multi-connected.
+C           
+c  bit 08 - (reserved=128)
+C
+C
+C ==========================================================
+C The following bits are under development. They will be 
+C automatically removed from the initial value of status.
+C
+C  bit 09 - (ANISmoothMesh=256): the final mesh is supposed
+C           to be smooth. The feature may be useful for
+C           extremely anisotropic meshes. It is not stable
+C           at the moment.
+C
+C  bit 10 - (ANIUntangleMesh=512): the initial mesh may be 
+C           tangled. This feature will allow to fix the
+C           problem.
+C
+C  bit 11 - (reserved=1024):
+C
+C
+C ==========================================================
+C *** Remarks: 
+C       1. Some features can be automatically turned on/off 
+C          if the initial grid does not satisfy oprions set 
+C          up by the user.
+C
+C       2. The default features (when flagAuto=.TRUE.) are
+C          ANIUse2ArmRule & ANIDeleteTemporaryEdges
+C
+C ==========================================================
+      Integer   ANIForbidBoundaryElements
+      Parameter(ANIForbidBoundaryElements = 1)
+
+      Integer   ANIUse2ArmRule
+      Parameter(ANIUse2ArmRule = 2)
+
+      Integer   ANIFixBoundaryEdges
+      Parameter(ANIFixBoundaryEdges = 4)
+
+      Integer   ANIDeleteTemporaryEdges
+      Parameter(ANIDeleteTemporaryEdges = 8)
+
+      Integer   ANIFixBoundaryPoints
+      Parameter(ANIFixBoundaryPoints = 16)
+
+      Integer   ANIMultiConnectedGeometry
+      Parameter(ANIMultiConnectedGeometry = 64)
+
+      Integer   ANISmoothMesh
+      Parameter(ANISmoothMesh = 256)
+
+      Integer   ANIUntangleMesh 
+      Parameter(ANIUntangleMesh = 512)
+

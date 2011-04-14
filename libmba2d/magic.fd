@@ -1,0 +1,27 @@
+C =========================================================
+C AniRatio      = the maximal ratio of Hessian eigenvalues
+C AniEigenvalue = the eigenvalue used when H is zero matrix
+C
+C MaxBaskets    = the maximal number of baskets
+C
+C DiscreteGrad  = mesh step for computing finite difference 
+C                 gradient of mesh quality function.
+C
+C MaxSharpAngle = cosine of the maximal permitable sharp 
+c                 angle, default is 150 degrees
+C =========================================================
+      Real*8    AniRatio
+      Parameter(AniRatio = 1D-8)
+
+      Real*8    AniEigenvalue
+      Parameter(AniEigenvalue = 1D-6)
+
+      Integer   MaxBaskets
+      Parameter(MaxBaskets = 20)
+
+      Real*8    DiscreteGrad
+      Parameter(DiscreteGrad = 6D-5)
+
+      Real*8    MaxSharpAngle
+      Parameter(MaxSharpAngle = -8.6603D-01)
+

@@ -1,0 +1,18 @@
+C ====================================================
+C       The parameters controling lintrp2D
+C 
+C MaxH          - the maximal depth of quad-treee
+C MaxBuf        - the maximal number of deleted quad-cells 
+C                 in the search algorithm
+C RelativeTrials- the part of mesh cells, whose number of 
+C                 elements is the upper bound for trials
+C MaxTrSSEl     - maximal number of triangles in supersuper element
+C ====================================================
+       Integer   MaxH, MaxBuf, MaxTrSSEl
+       Real*8    RelativeTrials
+
+       Parameter(MaxH = 128)
+       Parameter(MaxBuf = 10000)
+       Parameter(MaxTrSSEl = 1000)
+       Parameter(RelativeTrials = 1D-1)
+

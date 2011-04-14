@@ -1,0 +1,14 @@
+C ==========================================================
+C List of implemented operations and list of active operations
+C By default, all operations are active.
+C ==========================================================
+C ...  list of operations
+       Integer   iCLPS,     iSWAP,     iINSRT,     iMOVE
+       Parameter(iCLPS = 1, iSWAP = 2, iINSRT = 3, iMOVE = 4)
+
+
+C ...  available operations
+       Integer   iCLPSop,     iSWAPop,     iINSRTop,     iMOVEop
+       Parameter(iCLPSop = 1, iSWAPop = 1, iINSRTop = 1, iMOVEop = 1)
+
+

@@ -1,0 +1,64 @@
+#FIG 3.2
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+4 0 0 50 0 0 12 0.0000 4 180 1095 2250 3375 class mesh_t{\001
+4 0 0 50 0 0 12 0.0000 4 180 615 2250 3600  private:\001
+4 0 0 50 0 0 12 0.0000 4 135 4110 2250 3825   // These variables are used to estimate the maximum.\001
+4 0 0 50 0 0 12 0.0000 4 180 4245 2250 4050   // number of bytes required to store an node or element.\001
+4 0 0 50 0 0 12 0.0000 4 180 2505 2250 4275   unsigned int max_len_node_CE;\001
+4 0 0 50 0 0 12 0.0000 4 180 2685 2250 4500   unsigned int max_len_node_fields;\001
+4 0 0 50 0 0 12 0.0000 4 180 2715 2250 4725   unsigned int max_len_elem_nodes;\001
+4 0 0 50 0 0 12 0.0000 4 180 2895 2250 4950   unsigned int max_len_elem_property;\001
+4 0 0 50 0 0 12 0.0000 4 180 2685 2250 5175   unsigned int max_len_elem_fields;\001
+4 0 0 50 0 0 12 0.0000 4 165 4275 2250 5625   // These values are stored so that we don't have to ask,\001
+4 0 0 50 0 0 12 0.0000 4 180 4080 2250 5850   // because a call to size() in deque can be expensive.\001
+4 0 0 50 0 0 12 0.0000 4 180 2190 2250 6075   unsigned int node_list_size;\001
+4 0 0 50 0 0 12 0.0000 4 180 2430 2250 6300   unsigned int element_list_size;\001
+4 0 0 50 0 0 12 0.0000 4 180 540 2250 6525  public:\001
+4 0 0 50 0 0 12 0.0000 4 15 90 2250 6750   \001
+4 0 0 50 0 0 12 0.0000 4 180 5400 2250 6975   // Data that defines a mesh. The reason a deque is choosen is because\001
+4 0 0 50 0 0 12 0.0000 4 180 5400 2250 7200   // there can be important resizes carried out. The meshes can get large\001
+4 0 0 50 0 0 12 0.0000 4 180 4020 2250 7425   // thus a realloc might wreak havoc on the computer.\001
+4 0 0 50 0 0 12 0.0000 4 180 2460 2250 7650   std::deque<node_t> node_list;  \001
+4 0 0 50 0 0 12 0.0000 4 180 2850 2250 7875   std::deque<element_t> element_list;\001
+4 0 0 50 0 0 12 0.0000 4 15 90 2250 8100   \001
+4 0 0 50 0 0 12 0.0000 4 180 6030 2250 8325   std::map< unsigned short, std::map<std::string, unsigned int> > scatter_nodes;\001
+4 0 0 50 0 0 12 0.0000 4 180 5970 2250 8550   std::map< unsigned short, std::map<std::string, unsigned int> > gather_nodes;\001
+4 0 0 50 0 0 12 0.0000 4 135 2100 2250 9000   // Constructer & distructer\001
+4 0 0 50 0 0 12 0.0000 4 180 840 2250 9225   mesh_t();\001
+4 0 0 50 0 0 12 0.0000 4 180 945 2250 9450   ~mesh_t();\001
+4 0 0 50 0 0 12 0.0000 4 15 90 2250 9675   \001
+4 0 0 50 0 0 12 0.0000 4 135 180 2250 9900   //\001
+4 0 0 50 0 0 12 0.0000 4 135 945 2250 10125   // Methods.\001
+4 0 0 50 0 0 12 0.0000 4 135 180 2250 10350   //\001
+4 0 0 50 0 0 12 0.0000 4 180 2025 2250 10575   void add_node(node_t&);\001
+4 0 0 50 0 0 12 0.0000 4 180 3510 2250 10800   void insert_node(node_t&, unsigned int pos);\001
+4 0 0 50 0 0 12 0.0000 4 180 2835 2250 11025   unsigned int MPI_max_node_size();\001
+4 0 0 50 0 0 12 0.0000 4 180 2505 2250 11475   void add_element(element_t&);\001
+4 0 0 50 0 0 12 0.0000 4 180 3990 2250 11700   void insert_element(element_t&, unsigned int pos);\001
+4 0 0 50 0 0 12 0.0000 4 180 3075 2250 11925   unsigned int MPI_max_element_size();\001
+4 0 0 50 0 0 12 0.0000 4 180 3885 2250 12375   // unn2gnn is used to index of a node that's stored \001
+4 0 0 50 0 0 12 0.0000 4 180 2190 2250 12600   // in node_list using the unn.\001
+4 0 0 50 0 0 12 0.0000 4 180 2700 2250 12825   unsigned int unn2node(unn_t unn);\001
+4 0 0 50 0 0 12 0.0000 4 180 1965 2250 13050   void unn2node_update();\001
+4 0 0 50 0 0 12 0.0000 4 180 1770 2250 13275   void unn2node_new();\001
+4 0 0 50 0 0 12 0.0000 4 15 90 2250 13500   \001
+4 0 0 50 0 0 12 0.0000 4 180 4080 2250 13725   // The number of nodes that owned by this processor.\001
+4 0 0 50 0 0 12 0.0000 4 180 3795 2250 13950   // This is node_list.size() less the nodes that are \001
+4 0 0 50 0 0 12 0.0000 4 180 2730 2250 14175   // gatherwed from other processors\001
+4 0 0 50 0 0 12 0.0000 4 180 2685 2250 14400   unsigned int num_owned_nodes();\001
+4 0 0 50 0 0 12 0.0000 4 180 2100 2250 14850   unsigned int num_nodes();\001
+4 0 0 50 0 0 12 0.0000 4 180 2340 2250 15075   unsigned int num_elements();\001
+4 0 0 50 0 0 12 0.0000 4 180 2730 2250 15300   unsigned int num_scatter_nodes();\001
+4 0 0 50 0 0 12 0.0000 4 180 2670 2250 15525   unsigned int num_gather_nodes();\001
+4 0 0 50 0 0 12 0.0000 4 180 1215 2250 15975   void migrate();\001
+4 0 0 50 0 0 12 0.0000 4 180 135 2250 16875 };\001
+4 0 0 50 0 0 12 0.0000 4 180 615 2250 16200  private:\001
+4 0 0 50 0 0 12 0.0000 4 180 2715 2250 16425   unsigned int __num_owned_nodes;\001
+4 0 0 50 0 0 12 0.0000 4 180 3930 2250 16650   std::map<std::string, unsigned int> unn2node_map;\001

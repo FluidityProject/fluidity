@@ -1,0 +1,306 @@
+# Copyright (C) 2006 Imperial College London and others.
+#
+# Please see the AUTHORS file in the main source directory for a full list
+# of copyright holders.
+#
+# Adrian Umpleby
+# Applied Modelling and Computation Group
+# Department of Earth Science and Engineering
+# Imperial College London
+#
+# adrian@Imperial.ac.uk
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+# USA
+
+SHELL = @SHELL@
+
+LIB 	= ../lib/libadaptivity.a
+
+CPPFLAGS = @CPPFLAGS@ -I./include -I../include
+
+FC	= @FC@
+FCFLAGS	= $(CPPFLAGS) @FCFLAGS@
+
+CXX	= @CXX@
+CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
+
+LINKER	= @CXX@
+LFLAGS	= @LIBS@ @FLIBS@
+
+MAKE	= @MAKE@
+INSTALL = @INSTALL@
+
+VPATH	= ./src
+
+OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.o  addnd.o   adfrnd.o \
+		adptvy.o  angedg.o  angfac.o  chkfac.o  chkgmy.o  cmlced.o \
+		cmneds.o  cmnnod.o  cnctel.o  cnctfc.o  dofacs.o  edg2fc.o \
+		edg3nd.o  edg4nd.o  edgdst.o  edgeig.o  edgels.o  edgfnc.o \
+		edginf.o  edgtst.o  elmdiv.o  elmeig.o  elmfnc.o  elminf.o \
+		elmtst.o  elnods.o  elstst.o  facinf.o  facnrm.o  fc2edg.o \
+		fchsnd.o  fixeig.o  fndedg.o  fndelm.o  fndsrf.o  getflg.o \
+		getmsh.o  getsiz.o  gtfrfl.o  gtndfl.o  hasedg.o  adaptmem.o \
+		hasnod.o  inipwr.o  inirls.o  initim.o  initls.o  intfld.o \
+		intrpl.o  lenedg.o  lisbig.o  lstels.o  lstfac.o  lstnds.o \
+		lstout.o  minang.o  mk1ele.o  mkadpt.o  mkecls.o  mkfixd.o \
+		mkfrnt.o  mkncls.o  mknels.o  mshout.o  ndcnct.o  nodeig.o \
+		nodfcs.o  nodmov.o  nodtst.o  nxtid.o   oppedg.o  ordnds.o \
+		qlyout.o  rmfrnd.o  rmvedg.o  rmvele.o  rmvfac.o  rmvnd.o \
+		rmvnxt.o  rspnse.o  second.o  sectlp.o  setflg.o  setgmy.o \
+		shredg.o  shwhst.o  shwtim.o  spledg.o  stchfr.o  stfrfl.o \
+		stfrgm.o  stndfl.o  mtetin.o  tetvol.o  undstt.o  vals3d.o \
+		invrse.o  chkint.o  assval.o  nwcnel.o  wchfac.o  chgeds.o \
+		Adaptivity.o expected_elements.o Flag_Handling.o
+
+.SUFFIXES: .F .F90 .c .o .a
+
+.F.o:
+	$(FC) $(FCFLAGS) -c $<
+
+.F90.o:
+	$(FC) $(FCFLAGS) -c $<
+
+.cpp.a:
+	$(CXX) $(CXXFLAGS) -c $<
+
+$(LIB): $(OBJS)
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+include/fdebug.h: include/confdefs.h include/ewrite.h
+
+Debug.o: include/fdebug.h write_log.o
+
+adapt1.o :	adapt1.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
+
+addedg.o :	addedg.F include/blknew.i include/blkbig.i include/blkerr.i
+
+addele.o :	addele.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+addfac.o :	addfac.F include/blkfrt.i include/blknwf.i include/blkerr.i
+
+addnd.o :	addnd.F include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i
+
+adfrnd.o :	adfrnd.F include/blknew.i include/blkbig.i include/blkerr.i
+
+adptvy.o :	adptvy.F write_log.o include/blkprm.i include/blknew.i include/blkerr.i
+
+angedg.o :	angedg.F include/blknew.i include/blkbig.i include/blkerr.i
+
+angfac.o :	angfac.F include/blknew.i include/blkbig.i include/blkerr.i
+
+chkfac.o :	chkfac.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+chkgmy.o :	chkgmy.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+cmlced.o :	cmlced.F include/blknew.i include/blkbig.i include/blkerr.i
+
+cmneds.o :	cmneds.F include/blknew.i include/blkbig.i include/blkerr.i
+
+cmnnod.o :	cmnnod.F include/blknew.i include/blkbig.i include/blkerr.i
+
+cnctel.o :	cnctel.F include/blknew.i include/blkbig.i include/blkerr.i
+
+nwcnel.o :	nwcnel.F include/blknew.i include/blkbig.i include/blkerr.i
+
+wchfac.o :	wchfac.F include/blknew.i include/blkbig.i include/blkerr.i
+
+chgeds.o :	chgeds.F include/blknew.i include/blkbig.i include/blkerr.i
+
+cnctfc.o :	cnctfc.F include/blkfrt.i include/blkerr.i
+
+dofacs.o :	dofacs.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+edg2fc.o :	edg2fc.F include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+edg3nd.o :	edg3nd.F include/blknew.i include/blkbig.i include/blkerr.i
+
+edg4nd.o :	edg4nd.F include/blknew.i include/blkbig.i include/blkerr.i
+
+edgdst.o :	edgdst.F include/blknew.i include/blkbig.i include/blkerr.i
+
+edgeig.o :	edgeig.F include/blknew.i include/blkbig.i include/fixeig.i
+
+edgels.o :	edgels.F include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+edgfnc.o :	edgfnc.F include/blknew.i include/blkbig.i include/blkerr.i
+
+edginf.o :	edginf.F include/blknew.i include/blkbig.i include/blkerr.i
+
+edgtst.o :	edgtst.F include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i include/blktim.i
+
+elmdiv.o :	elmdiv.F include/blknew.i include/blkbig.i include/blkerr.i include/blkorg.i
+
+elmeig.o :	elmeig.F include/blknew.i include/blkbig.i include/fixeig.i
+
+elmfnc.o :	elmfnc.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+elminf.o :	elminf.F include/blknew.i include/blkbig.i include/blkerr.i
+
+elmtst.o :	elmtst.F include/blknew.i include/blkbig.i include/blkerr.i include/blkorg.i
+
+elnods.o :	elnods.F include/blknew.i include/blkbig.i include/blkerr.i
+
+elstst.o :	elstst.F include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+facinf.o :	facinf.F include/blkfrt.i include/blknwf.i include/blkerr.i
+
+facnrm.o :	facnrm.F include/blknew.i include/blkbig.i include/blkerr.i
+
+fc2edg.o :	fc2edg.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+fchsnd.o :	fchsnd.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+fixeig.o :	fixeig.F include/fixeig.i
+
+fndedg.o :	fndedg.F
+
+fndelm.o :	fndelm.F include/blkorg.i include/blkerr.i
+
+fndsrf.o :	fndsrf.F
+
+getflg.o :	getflg.F include/blknew.i include/blkbig.i include/blkerr.i include/blkpwr.i Flag_Handling.o
+
+getmsh.o :	getmsh.F
+
+getsiz.o :	getsiz.F include/blknew.i include/blkbig.i
+
+gtfrfl.o :	gtfrfl.F include/blkfrt.i include/blknwf.i include/blkerr.i include/blkpwr.i
+
+gtndfl.o :	gtndfl.F include/blknew.i include/blkbig.i include/blkerr.i include/blkpwr.i Flag_Handling.o
+
+hasedg.o :	hasedg.F include/blknew.i include/blkbig.i include/blkerr.i
+
+adaptmem.o	:	adaptmem.F
+
+hasnod.o :	hasnod.F include/blknew.i include/blkbig.i include/blkerr.i
+
+inipwr.o :	inipwr.F include/blkpwr.i
+
+inirls.o :	inirls.F include/blkerr.i
+
+initim.o :	initim.F include/blktim.i
+
+initls.o :	initls.F include/blkerr.i
+
+intfld.o :	intfld.F include/blknew.i include/blkbig.i include/blkerr.i
+
+intrpl.o :	intrpl.F write_log.o include/blkerr.i
+
+lenedg.o :	lenedg.F include/blknew.i include/blkbig.i include/blkerr.i
+
+lisbig.o :	lisbig.F include/blknew.i include/blkbig.i include/blkerr.i
+
+lstels.o :	lstels.F include/blknew.i include/blkbig.i include/blkerr.i
+
+lstfac.o :	lstfac.F include/blkfrt.i include/blknwf.i include/blkerr.i
+
+lstnds.o :	lstnds.F include/blknew.i include/blkbig.i include/blkerr.i
+
+lstout.o :	lstout.F include/blknew.i include/blkbig.i include/blkerr.i
+
+minang.o :	minang.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+mk1ele.o :	mk1ele.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+mkadpt.o :	mkadpt.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+mkecls.o :	mkecls.F
+
+mkfixd.o :	mkfixd.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+mkfrnt.o :	mkfrnt.F include/blknew.i include/blkbig.i include/blkfrt.i include/blknwf.i include/blkerr.i
+
+mkncls.o :	mkncls.F
+
+mknels.o :	mknels.F
+
+mshout.o :	mshout.F
+
+ndcnct.o :	ndcnct.F include/blknew.i include/blkbig.i include/blkerr.i include/blktim.i
+
+nodeig.o :	nodeig.F include/blknew.i include/blkbig.i include/fixeig.i
+
+nodfcs.o :	nodfcs.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+nodmov.o :	nodmov.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i include/blktim.i
+
+nodtst.o :	nodtst.F include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i include/blktim.i
+
+nxtid.o :	nxtid.F include/blkerr.i include/blknxt.i
+
+oppedg.o :	oppedg.F include/blknew.i include/blkbig.i include/blkerr.i
+
+ordnds.o :	ordnds.F include/blknew.i include/blkbig.i include/blkerr.i
+
+qlyout.o :	qlyout.F include/blknew.i include/blkbig.i
+
+rmfrnd.o :	rmfrnd.F include/blknew.i include/blkbig.i include/blkerr.i
+
+rmvedg.o :	rmvedg.F include/blknew.i include/blkbig.i include/blknxt.i include/blkerr.i
+
+rmvele.o :	rmvele.F write_log.o include/blknew.i include/blkbig.i include/blknxt.i include/blkerr.i include/blktim.i
+
+rmvfac.o :	rmvfac.F include/blkfrt.i include/blknwf.i include/blkerr.i
+
+rmvnd.o :	rmvnd.F include/blknew.i include/blkbig.i include/blkerr.i
+
+rmvnxt.o :	rmvnxt.F include/blknxt.i
+
+rspnse.o :	rspnse.F
+
+second.o :	second.F
+
+sectlp.o :	sectlp.F
+
+setflg.o :	setflg.F include/blknew.i include/blkbig.i include/blkerr.i include/blkpwr.i Flag_Handling.o
+
+setgmy.o :	setgmy.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+shredg.o :	shredg.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i include/blktim.i
+
+shwhst.o :	shwhst.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+shwtim.o :	shwtim.F write_log.o include/blktim.i
+
+spledg.o :	spledg.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blkerr.i include/blktim.i
+
+stchfr.o :	stchfr.F include/blknew.i include/blkbig.i include/blkfrt.i include/blknwf.i include/blkerr.i
+
+stfrfl.o :	stfrfl.F include/blkfrt.i include/blknwf.i include/blkerr.i include/blkpwr.i
+
+stfrgm.o :	stfrgm.F include/blknew.i include/blkbig.i include/blkfrt.i include/blkerr.i
+
+stndfl.o :	stndfl.F include/blknew.i include/blkbig.i include/blkerr.i include/blkpwr.i Flag_Handling.o
+
+mtetin.o :	mtetin.F
+
+tetvol.o :	tetvol.F
+
+undstt.o :	undstt.F
+
+vals3d.o :	vals3d.F
+
+invrse.o :	invrse.F
+
+chkint.o :	chkint.F write_log.o include/blknew.i include/blkbig.i include/blkerr.i
+
+assval.o :	assval.F
+
+Flag_Handling.o: include/blkerr.i include/blkprm.i Debug.o
+
+clean:
+	rm -rf *.o *.mod
+

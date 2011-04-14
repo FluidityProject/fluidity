@@ -1,0 +1,7 @@
+C =========================================================
+C  The size of elements in a mesh superelement. 
+C  It is strictly recommended to set  MaxS >= 10
+C =========================================================
+      Integer   MaxS
+      Parameter(MaxS = 1000)
+

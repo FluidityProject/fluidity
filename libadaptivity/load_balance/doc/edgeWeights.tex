@@ -1,0 +1,157 @@
+\documentclass[11pt]{article}
+
+\pagestyle{empty}                         %%%% No page Numbering
+ 
+% Mathews packages....
+\usepackage{amsbsy,amsmath,amssymb,psfig} 
+\usepackage{times,mathpi,mathptm} 
+\usepackage{graphicx,psfrag,rotating,subfigure} 
+
+\begin{document} 
+%\DeclareGraphicsExtensions{.pdf}
+
+\date{}   
+	
+\title{Biasing graph partitioning ({\it against partitioning regions of interest})}
+
+%\author{
+%Gerard Gorman             \\
+%T. H. Huxley School        \\
+%Imperial College            \\
+%Prince Consort Road          \\
+%London SW7 2BP, UK            \\
+%}
+
+\maketitle
+\thispagestyle{empty}
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%cpain wrote:
+%> I read through your document and it looks good.
+%> The points I'd like to make are:
+%> 1) we need to take into account the node weight for balancing
+%> partition load when we have adapted the mesh. We can use the
+%> same criteria that we ahve used befor - in our paper.
+%g This would be nice but there is a problem. According to Adrian,
+%g there is no clear relation between the number of expected nodes and
+%g the time that will be required for adaption. 
+%> 2) we need to discurroage partition boundaries from
+%> occuring where they occured on the pevious iteration.
+%> Otherwise we will never adapte along partition boundaries.
+%g Done. See the section ``Constraints on Adaptivity in Parallel''
+%> 3) using a large edge weight around areas of high
+%> curvature will discourage partition boundaries from occureing
+%> across areas which will require a lot of work for mesh adaptivity.
+%g Same as previous.
+%> 4) the curvature normal to the boundary between subdomains
+%> might be important
+%> for the iterative convergence of the the DDM solution method.
+%g hmm..I'm still thinking about this one.
+
+\section{Constraints on Adaptivity in Parallel}
+The mesh optimization procedure used in this work is essentially
+serial. That is to say that it operates strictly on a local
+basis. When the procedure is used in a parallel context, halo elements
+are marked as being static and thus cannot be changed by the adaptive
+procedure. This is necessary in order to keep the mesh consistent
+across the distributed domain. The problem is that some of these
+static elements may need to be adapted.
+
+This restriction is overcome by preforming a series of adaptations and
+repartitions. It is necessary to ensure that successive graph
+partitions do not continue to bisect elements of interest. In actual
+fact there is a strong tendency for the graph partitioning to follow
+the previous partitioning in instances where the halo elements need to
+be refined. This is a natural consequence of the fact that a partition
+through an unrefined region will have a low edge cut. Of course the
+inverse is true in the case where the mesh is being coarsened and thus
+no problem arises. If it can be ensured that successive partitions can
+avoid a region then the maximum number of adapt/repartition steps that
+would be required is the same as the mesh dimensionality of the
+problem.
+
+A precursor to biasing a graph-partition calculation is the
+assignment of {\it edge-weights} to the graph, where the graph
+partitioning seeks to minimize the weight of the edge-cut.  In this
+work, the edge-weight is derived directly from the mesh-adaptivity
+formulation~\cite{adapt}. First the element functionals are calculated
+over the whole domain. In the case of a tetrahedron, the element
+functional is
+\begin{equation}
+F_e = \frac{1}{2}\sum_{l=1}^{6}\left(1.0 - r_l \right)^2 + \left( 1.0 - \frac{\alpha}{\rho_e} \right)^2
+\end{equation}
+where $F_e$ is the element functional for some element $e$, $\alpha =
+1/(2\sqrt{6})$, and $\rho_e$ is the radius of the inscribed sphere of
+element $e$. The scalar $\alpha$ is chosen such that $\alpha/\rho_e =
+1$ for an ideal element. $r_l$ is the length of a edge $l$, with
+respect to the metric $M(\Omega)$ defined in Euclidean space $\Omega$,
+on an edge $l$. In general, the length $r_l$ with respect to
+$M(\omega)$ is given by
+\begin{equation}
+r_l = \int_a^b \left( s_l(t)^T M(a + s_l(t)) s_l(t) \right)^{1/2} dt
+\end{equation}
+where $a$ and $b$ are the positions of the two nodes that define the
+edge $l$, $s_l(t)$ is the position in $\Omega$, relative to the point
+a, along edge l. In this work we are only concerned with meshes with
+straight edges. Thus $r_l$ can be expressed using a one point
+quadrature
+\begin{equation}
+r_l = \left(v_l^T M_l v_l \right)^{1/2}
+\end{equation}
+where $v_l = \pmb{b} - \pmb{a}$, and $M_l$ is the average metric of
+nodes $a$ and $b$.
+Armed with an expression for the element-functional, the edge-weight is defined as
+\begin{equation}
+w_l = MAX_{\forall e|l\in e}F_e
+\end{equation}
+The weight, when assigned in this fashion, tried to dis-encourage an
+edge-cut if any one of its' elements requires adjustment.
+
+Given the above definition for the edge-weights, two further
+adjustments must be made before it can be used with a
+graph-partitioning library such as the publicly available
+ParMETIS~\cite{parmetis}. First the weights must be non-zero. The
+element-functionals as defined above are zero for a ideal
+element~\cite{adapt}. In addition, the weights are required to be
+integers. With this in mind we define the edge-weight to be
+\begin{equation}
+w_l' = int(1.0 + w_l)
+\end{equation}
+
+\section{Minimizing the partitioning of regions of physical interest}
+The existence of a partition in a local computational domain is
+usually treated as being Dirichlet boundary. Convergence in DDM's may
+degrade when the graph-partition lies along the curvature of a field
+variable $\psi$. This suggests that for the solver, a good choice for
+the edge-weights in the graph-partitioning calculation has to form
+\begin{equation}
+w_l = \left(\pmb{\nabla}\psi \right).\pmb{v}
+\end{equation}
+
+\bibliographystyle{plain}
+\bibliography{migrate}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,141 @@
+/* Copyright (C) 2006 Imperial College London and others.
+
+ Please see the AUTHORS file in the main source directory for a full list
+ of copyright holders.
+
+ Dr Gerard J Gorman
+ Applied Modelling and Computation Group
+ Department of Earth Science and Engineering
+ Imperial College London
+
+ g.gorman@imperial.ac.uk
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+ USA
+*/
+#include <mpi.h>
+#include <assert.h>
+#include <vector>
+#include <deque>
+#include <string>
+#include <map>
+#include <set>
+using std::map;
+using std::set;
+using std::vector;
+using std::deque;
+using std::string;
+
+#include "mesh.h"
+#include "packing.h"
+#include "c++debuglog.h"
+
+void Mesh::formHalo2(){
+  
+  // Make a list of the halo2 elements and a map of 
+  // the neighbouring domains of a node.
+  map<unsigned, set< unsigned > > node_neighbours;
+  deque< unsigned > halo2_Elems;
+  {
+    
+    // Create a mapping of shared nodes to neighbouring domain sets. 
+    // This will also serve as a shared node list.
+    for(unsigned p = 0; p < (unsigned)NProcs; p++){
+      for(map<unn_t, gnn_t>::iterator it = shared_nodes[p].begin(); it != shared_nodes[p].end(); ++it){
+	node_neighbours[ (*it).first ].insert( p );
+      }
+    }
+
+    // Search though elements
+    unsigned pos = 0;
+    for(deque<Element>::iterator it = element_list.begin(); it != element_list.end(); ++it){
+      vector<unn_t> nodes = (*it).get_enlist();
+      bool interesting = false;
+      for( vector<unn_t>::iterator jt = nodes.begin(); jt != nodes.end(); ++jt){
+	// Check if this node is a shared
+	if(node_neighbours.find( *jt ) != node_neighbours.end()){
+	  interesting = true;
+	  break;
+	}
+      }
+      
+      bool halo2_element = true;
+      if( interesting ){
+	// Determine if this element is a halo-1 or halo-2 element.
+	for( vector<unn_t>::iterator jt = nodes.begin(); jt != nodes.end(); ++jt){
+	  // Check if this node is a halo node.
+	  if( node_list[ unn2gnn(*jt) ].get_current_owner() != MyRank ){
+	    halo2_element = false;
+	    break;
+	  }
+	}
+	
+	// Place the element index in the appropiate array
+	if(halo2_element){
+	  halo2_Elems.push_back( pos );
+	}
+      }
+      
+      pos++;
+    }
+  }
+
+  // What must be sent to who?
+  deque< set<unsigned> > nodes2send( NProcs );
+  deque< deque<unsigned> > elems2send( NProcs );
+  //  map<unsigned, set< unsigned > > node_neighbours;
+  //  deque< unsigned > halo2_Elems;
+  for( deque< unsigned >::iterator it=halo2_Elems.begin(); it != halo2_Elems.end(); ++it){
+    vector< unn_t > nodes = element_list[ *it ].get_enlist();
+
+    // Find the set of neighbours that need this halo2 element
+    set< unsigned > neighbours;
+    for( vector< unn_t >::iterator nt = nodes.begin(); nt != nodes.end(); ++nt ){
+      map<unsigned, set< unsigned > >::iterator pos = node_neighbours.find( *nt );
+      if( pos != node_neighbours.end() ){ // If this is a shared node...
+	neighbours.insert((*pos).second.begin(), (*pos).second.end());
+      }
+    }
+
+    // Record what elements has to be sent where.
+    for(set< unsigned >::iterator pt = neighbours.begin(); pt != neighbours.end(); ++pt){
+      elems2send[*pt].push_back( *it );
+    }
+
+    // Record what nodes has to be sent where.
+    for( vector< unn_t >::iterator nt = nodes.begin(); nt != nodes.end(); ++nt ){
+
+      map<unsigned, set< unsigned > >::iterator pos = node_neighbours.find( *nt );
+      if( pos == node_neighbours.end() ){ // If this is not a shared node...
+	for(set< unsigned >::iterator pt = neighbours.begin(); pt != neighbours.end(); ++pt){
+	  nodes2send[*pt].insert( *nt );
+	}
+      }
+    }
+    
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+

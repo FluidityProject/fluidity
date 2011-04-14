@@ -1,0 +1,32 @@
+#FIG 3.2
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+4 0 0 50 0 0 12 0.0000 4 180 1050 2475 2700 class node_t{\001
+4 0 0 50 0 0 12 0.0000 4 15 90 2475 5400   \001
+4 0 0 50 0 0 12 0.0000 4 15 90 2475 6075   \001
+4 0 0 50 0 0 12 0.0000 4 15 90 2475 6750   \001
+4 0 0 50 0 0 12 0.0000 4 180 2250 2475 7200 #ifdef USING_ADAPTIVITY\001
+4 0 0 50 0 0 12 0.0000 4 135 465 2475 7650 #endif\001
+4 0 0 50 0 0 12 0.0000 4 180 135 2475 7875 };\001
+4 0 0 50 0 0 12 0.0000 4 180 585 2475 2925   public:\001
+4 0 0 50 0 0 12 0.0000 4 180 5700 2475 3825     const node_t &operator=(const node_t &n); // Copy assignment operator\001
+4 0 0 50 0 0 12 0.0000 4 135 2040 2475 5625     // Nodewise field values.\001
+4 0 0 50 0 0 12 0.0000 4 180 2190 2475 5850     std::vector<field_t> fields;\001
+4 0 0 50 0 0 12 0.0000 4 135 975 2475 6300     // Position.\001
+4 0 0 50 0 0 12 0.0000 4 180 1140 2475 6525     coord_t x[3];\001
+4 0 0 50 0 0 12 0.0000 4 180 3060 2475 6975     // Nodewise metric used for adaptivity\001
+4 0 0 50 0 0 12 0.0000 4 180 1590 2475 7425     metric_t metric[9];\001
+4 0 0 50 0 0 12 0.0000 4 180 5760 2475 3150     node_t();                                                            // "No argument" constructor\001
+4 0 0 50 0 0 12 0.0000 4 180 5025 2475 3375     node_t(const node_t& node);                          // Copy constructor\001
+4 0 0 50 0 0 12 0.0000 4 180 4515 2475 3600     ~node_t();                                                          // destructer\001
+4 0 0 50 0 0 12 0.0000 4 180 5985 2475 4275     unn_t    unn;                                                        // Universal Node Number.        \001
+4 0 0 50 0 0 12 0.0000 4 180 6045 2475 4500     gnn_t    vid;                                                         // Partition-wide node number.   \001
+4 0 0 50 0 0 12 0.0000 4 180 4230 2475 4725     unsigned char  flags;                                          // flags! \001
+4 0 0 50 0 0 12 0.0000 4 180 7410 2475 4950     unsigned short owner[2];                                   // owner[0] == old owner, owner[2] == new owner \001
+4 0 0 50 0 0 12 0.0000 4 180 5295 2475 5175     std::vector<unsigned int> CE;                          // Connected elements\001
