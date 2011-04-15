@@ -8,7 +8,7 @@ import numpy
 import pylab
 import re
 
-def get_filelist():
+def get_filelist(sample, start):
 
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
@@ -20,8 +20,26 @@ def get_filelist():
     vals.sort()
     unzip = lambda l:tuple(apply(zip,l))
     vtu_nos, list = unzip(vals)
+    shortlist = []
 
-    return list
+    for file in list:
+      try:
+        os.stat(file)
+      except:
+        f_log.write("No such file: %s" % files)
+        sys.exit(1)
+
+      ##### Start at the (start+1)th file.
+      ##### Add every nth file by taking integer multiples of n.
+      vtu_no = float(file.split('_')[-1].split('.')[0])
+      if vtu_no > start:
+        if (vtu_no%sample==0):
+          shortlist.append(file)
+        ##### Append final file.
+        elif vtu_no==len(vtu_nos)-1:
+          shortlist.append(file)
+
+    return shortlist
 
 #### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
 def tryint(s):
@@ -48,12 +66,11 @@ def sort_nicely(l):
 ###################################################################
 
 # Reattachment length:
-def reatt_length(filelist, exclude_initial_results):
+def reattachment_length(filelist):
 
   print "Calculating reattachment point locations using change of x-velocity sign\n"
-  print "Processing output files...\n"
-  nums=[]; results=[]; files = []
 
+  nums=[]; results=[]; files = []
   ##### check for no files
   if (len(filelist) == 0):
     print "No files!"
@@ -64,11 +81,7 @@ def reatt_length(filelist, exclude_initial_results):
     except:
       print "No such file: %s" % file
       sys.exit(1)
-    num = int(re.split("\.p?vtu", file)[0].split('_')[-1])
-    ##### Exclude data from simulation spin-up time
-    if num > exclude_initial_results:
-       files.append(file)
-
+    files.append(file)
   sort_nicely(files)
 
   for file in files:
@@ -77,7 +90,7 @@ def reatt_length(filelist, exclude_initial_results):
     datafile = vtktools.vtu(file)
 
     ##### points near bottom surface, 0 < x < 20
-    pts=[]; no_pts = 82; offset = 0.1
+    pts=[]; no_pts = 82; offset = 0.01
     x = 0.0
     for i in range(1, no_pts):
       pts.append((x, offset, 0.0))
@@ -89,8 +102,6 @@ def reatt_length(filelist, exclude_initial_results):
     uvw = datafile.ProbeData(pts, "Velocity")
     u = []
     u = uvw[:,0]
-
-    ##### Find all potential reattachment points:
     points = []
 
     for i in range(len(u)-1):
@@ -129,38 +140,28 @@ def meanvelo(filelist,x,y):
 
   pts=numpy.array(pts)
   ##### Create output array of correct shape
-  files = 3; filecount = 0
-  profiles = numpy.zeros([files, x.size, y.size], float)
+  profiles=numpy.zeros([len(filelist), x.size, y.size], float)
+  time = numpy.zeros([len(filelist)], float)
 
+  filecount = 0
   for file in filelist:
-    try:
-      os.stat(file)
-    except:
-      f_log.write("No such file: %s" % files)
-      sys.exit(1)
+      datafile = vtktools.vtu(file)
+      # Get time
+      t = min(datafile.GetScalarField("Time"))
+      print file, ', elapsed time = ', t
+      time[filecount] = t
 
-    ##### Only process these 3 datafiles:
-    vtu_no = float(file.split('_')[-1].split('.')[0])
-    if (vtu_no == 6 or vtu_no == 11 or vtu_no == 33):
-
-        datafile = vtktools.vtu(file)
-        t = min(datafile.GetScalarField("Time"))
-        print file, ', elapsed time = ', t
-
-        ##### Get x-velocity
-        uvw = datafile.ProbeData(pts, "Velocity")
-        umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
-        (ilen, jlen) = uvw.shape
-        u = uvw[:,0]/umax
-        u=u.reshape([x.size,y.size])
-        profiles[filecount,:,:] = u
-
-        ##### reset time to something big to prevent infinite loop
-        t = 1000.
-        filecount += 1
+      ##### Get x-velocity
+      uvw = datafile.ProbeData(pts, "Velocity")
+      umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
+      (ilen, jlen) = uvw.shape
+      u = uvw[:,0]/umax
+      u=u.reshape([x.size,y.size])
+      profiles[filecount,:,:] = u
+      filecount += 1
 
   print "\n...Finished writing data files.\n"
-  return profiles
+  return profiles, time
 
 #########################################################################
 
@@ -174,7 +175,7 @@ def plot_length(reattachment_length):
   pylab.savefig("reattachment_length_2D.pdf")
   return
 
-def plot_meanvelo(profiles,xarray,yarray):
+def plot_meanvelo(profiles,xarray,yarray,time):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle('Evolution of U-velocity profiles downstream of backward facing step', fontsize=30)
@@ -182,46 +183,49 @@ def plot_meanvelo(profiles,xarray,yarray):
   size = 15
 
   ax = pylab.subplot(141)
-  ax.plot(profiles[0,0,:],yarray, color='green', linestyle="dashed")
-  ax.plot(profiles[1,0,:],yarray, color='blue', linestyle="dashed")
-  ax.plot(profiles[2,0,:],yarray, color='red', linestyle="dashed")
-  pylab.legend(("5secs", "10secs", "50secs"), loc="lower right")
-  ax.set_title('(a) x/h = 0', fontsize=16)
-  ax.grid("True")
+  shift=0.0
+  leg_end = []
+  for i in range(len(time)):
+    ax.plot(profiles[i,0,:]+shift,yarray, linestyle="solid")
+    shift+=0.0
+    leg_end.append("%.0f secs"%time[i])
+  pylab.legend((leg_end), loc="lower right")
+  ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
+  #ax.grid("True")
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   for tick in ax.yaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
 
   bx = pylab.subplot(142, sharex=ax, sharey=ax)
-  bx.plot(profiles[0,1,:],yarray, color='green', linestyle="dashed")
-  bx.plot(profiles[1,1,:],yarray, color='blue', linestyle="dashed")
-  bx.plot(profiles[2,1,:],yarray, color='red', linestyle="dashed")
-  pylab.legend(("5secs", "10secs", "50secs"), loc="lower right")
-  bx.set_title('(b) x/h = 2', fontsize=16)
-  bx.grid("True")
+  shift=0.0
+  for i in range(len(time)):
+    bx.plot(profiles[i,1,:]+shift,yarray, linestyle="solid")
+    shift+=0.0
+  bx.set_title('(a) x/h='+str(xarray[1]), fontsize=16)
+  #bx.grid("True")
   for tick in bx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(bx.get_yticklabels(), visible=False)
 
   cx = pylab.subplot(143, sharex=ax, sharey=ax)
-  cx.plot(profiles[0,2,:],yarray, color='green', linestyle="dashed")
-  cx.plot(profiles[1,2,:],yarray, color='blue', linestyle="dashed")
-  cx.plot(profiles[2,2,:],yarray, color='red', linestyle="dashed")
-  pylab.legend(("5secs", "10secs", "50secs"), loc="lower right")
-  cx.set_title('(c) x/h = 4', fontsize=16)
-  cx.grid("True")
+  shift=0.0
+  for i in range(len(time)):
+    cx.plot(profiles[i,2,:]+shift,yarray, linestyle="solid")
+    shift+=0.0
+  cx.set_title('(a) x/h='+str(xarray[2]), fontsize=16)
+  #bx.grid("True")
   for tick in cx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(cx.get_yticklabels(), visible=False)
 
   dx = pylab.subplot(144, sharex=ax, sharey=ax)
-  dx.plot(profiles[0,3,:],yarray, color='green', linestyle="dashed")
-  dx.plot(profiles[1,3,:],yarray, color='blue', linestyle="dashed")
-  dx.plot(profiles[2,3,:],yarray, color='red', linestyle="dashed")
-  pylab.legend(("5secs", "10secs", "50secs"), loc="lower right")
-  dx.set_title('(d) x/h = 6', fontsize=16)
-  dx.grid("True")
+  shift=0.0
+  for i in range(len(time)):
+    dx.plot(profiles[i,3,:]+shift,yarray, linestyle="solid")
+    shift+=0.0
+  dx.set_title('(a) x/h='+str(xarray[3]), fontsize=16)
+  #bx.grid("True")
   for tick in dx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
@@ -236,23 +240,24 @@ def plot_meanvelo(profiles,xarray,yarray):
 #########################################################################
 
 def main():
-    ##### Call reattachment_length function defined above
-    filelist = get_filelist()
+    ##### Only process every nth file by taking integer multiples of n:
+    filelist = get_filelist(sample=30, start=10)
 
-    reattachment_length = numpy.array(reatt_length(filelist, exclude_initial_results=130))
-    av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-    numpy.save("reattachment_length_2D", reattachment_length)
+    ##### Call reattachment_length function
+    reatt_length = numpy.array(reattachment_length(filelist))
+    av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
+    numpy.save("reattachment_length_2D", reatt_length)
     print "\nTime-averaged reattachment length (in step heights): ", av_length
-    plot_length(reattachment_length)
+    plot_length(reatt_length)
 
     ##### Points to generate profiles:
     xarray = numpy.array([0.0, 2.0, 4.0, 6.0])
     yarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])
 
-    ##### Call meanvelo function defined above
-    profiles = meanvelo(filelist, xarray, yarray)
+    ##### Call meanvelo function
+    profiles, time = meanvelo(filelist, xarray, yarray)
     numpy.save("velo_profiles_2d", profiles)
-    plot_meanvelo(profiles,xarray,yarray)
+    plot_meanvelo(profiles,xarray,yarray,time)
     pylab.show()
 
     print "\nAll done.\n"
