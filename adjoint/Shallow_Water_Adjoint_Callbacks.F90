@@ -546,7 +546,7 @@ module shallow_water_adjoint_callbacks
 
       type(scalar_field) :: eta_input
       type(scalar_field) :: eta_output
-      type(vector_field) :: u_tmp
+      type(vector_field) :: u_tmp, u_tmp2
 
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "LocalVelocityDummy")
@@ -557,25 +557,28 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, eta_input)
       call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
       call zero(u_tmp)
+      call allocate(u_tmp2, u%dim, u%mesh, "TemporaryVelocityVariable")
+      call zero(u_tmp2)
       call allocate(eta_output, eta_mesh, "AdjointDivBigmatGradOutput")
       call zero(eta_output)
 
       if (hermitian==ADJ_FALSE) then
         call mult_T(u_tmp, div_mat, eta_input)
-        call mult(u_tmp, big_mat, u_tmp)
-        call mult(eta_output, div_mat, u_tmp)
+        call mult(u_tmp2, big_mat, u_tmp)
+        call mult(eta_output, div_mat, u_tmp2)
         call scale(eta_output, coefficient)
         output = field_to_adj_vector(eta_output)
       else
         ! Do the same steps as above, but backwards and with the transposed operators
         call mult_T(u_tmp, div_mat, eta_input)
-        call mult_T(u_tmp, big_mat, u_tmp)
-        call mult(eta_output, div_mat, u_tmp)
+        call mult_T(u_tmp2, big_mat, u_tmp)
+        call mult(eta_output, div_mat, u_tmp2)
         call scale(eta_output, coefficient)
         output = field_to_adj_vector(eta_output)
       end if
         call deallocate(eta_output)
         call deallocate(u_tmp)
+        call deallocate(u_tmp2)
     end subroutine div_bigmat_grad_action_callback
 
     subroutine mass_bigmat_grad_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
