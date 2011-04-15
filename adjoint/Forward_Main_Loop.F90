@@ -57,9 +57,10 @@ module forward_main_loop
     public :: compute_forward
 #endif
 
-    contains
 
 #ifdef HAVE_ADJOINT
+    contains
+    
     subroutine compute_forward(state)
       type(state_type), dimension(:), intent(inout) :: state
 
