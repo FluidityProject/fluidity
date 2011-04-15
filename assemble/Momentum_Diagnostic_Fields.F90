@@ -61,7 +61,7 @@ contains
     integer :: submaterials_istate
     
     ! Local variables  
-    type(scalar_field), pointer :: bulk_density, buoyancy_density
+    type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     
@@ -125,6 +125,15 @@ contains
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
         call calculate_surfacetension(submaterials, tfield)
+      end if
+    end if
+
+    ! not really a child of Velocity, but still a diagnostic we want to calculate before solving for Momentum
+    sfield => extract_scalar_field(submaterials(submaterials_istate), 'Pressure', stat)
+    if(stat==0) then
+      diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
+      if(diagnostic) then
+        call calculate_diagnostic_pressure(submaterials(submaterials_istate), sfield)
       end if
     end if
 
@@ -397,5 +406,21 @@ contains
     end if
   
   end subroutine calculate_densities_multiple_states
+
+  subroutine calculate_diagnostic_pressure(state, pressure)
+    type(state_type), intent(inout):: state
+    type(scalar_field), intent(inout):: pressure
+
+    ewrite(1,*) "In calculate_diagnostic_pressure"
+
+    if (have_option(trim(state%option_path)//'/equation_of_state/compressible')) then
+      call compressible_eos(state, pressure=pressure)
+    else
+      FLExit("Diagnostic pressure can only be used in combination with a compressible equation of state.")
+    end if
+
+    ewrite_minmax(pressure)
+
+  end subroutine calculate_diagnostic_pressure
 
 end module momentum_diagnostic_fields
