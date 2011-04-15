@@ -74,6 +74,7 @@ module adjoint_main_loop
       integer :: ierr
       integer :: no_functionals
       integer :: functional
+      integer :: s_idx
 
       real :: finish_time, dt
       integer :: end_timestep, start_timestep, no_timesteps, timestep
@@ -82,7 +83,7 @@ module adjoint_main_loop
       character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
       type(stat_type), dimension(:), allocatable :: functional_stats
 
-      character(len=ADJ_NAME_LEN) :: variable_name
+      character(len=ADJ_NAME_LEN) :: variable_name, field_name, material_phase_name
       type(scalar_field) :: sfield_soln, sfield_rhs
       type(vector_field) :: vfield_soln, vfield_rhs
       type(csr_matrix) :: csr_mat
@@ -161,6 +162,9 @@ module adjoint_main_loop
 
             ! Now solve lhs . adjoint = rhs
             ierr = adj_variable_get_name(adj_var, variable_name)
+            s_idx = scan(trim(variable_name), ":")
+            material_phase_name = variable_name(1:s_idx - 1)
+            field_name = variable_name(s_idx + 2:len_trim(variable_name))
             ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
             if (ierr == ADJ_ERR_OK) then
               path = adjoint_field_path(path)
@@ -173,7 +177,7 @@ module adjoint_main_loop
             select case(rhs%klass)
               case(ADJ_SCALAR_FIELD)
                 call field_from_adj_vector(rhs, sfield_rhs)
-                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name)))
+                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // trim(field_name))
                 call zero(sfield_soln)
 
                 if (has_path) then
@@ -195,7 +199,9 @@ module adjoint_main_loop
                       end if
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                      call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
+                      !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
+                      ewrite(1,*) "Scalar field: ", trim(sfield_soln%name)
+                      ewrite(1,*) sfield_soln%val
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
@@ -212,7 +218,7 @@ module adjoint_main_loop
                 call deallocate(sfield_soln)
               case(ADJ_VECTOR_FIELD)
                 call field_from_adj_vector(rhs, vfield_rhs)
-                call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // variable_name(8:len_trim(variable_name))) 
+                call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // trim(field_name)) 
                 call zero(vfield_soln)
 
                 if (has_path) then

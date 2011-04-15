@@ -63,6 +63,7 @@
     use adjoint_python
     use adjoint_global_variables
     use adjoint_main_loop
+    use forward_main_loop
 #include "libadjoint/adj_fortran.h"
 #endif
     implicit none
@@ -259,6 +260,19 @@
 
 #ifdef HAVE_ADJOINT
     if (adjoint) then
+      ! Let's run the forward model through libadjoint, too, for the craic
+      ewrite(1,*) "Entering forward computation through libadjoint"
+      call clear_options
+      call read_command_line
+      call mangle_options_tree_forward
+      call populate_state(state)
+      call allocate_and_insert_additional_fields(state(1))
+      call check_diagnostic_dependencies(state)
+      call compute_forward(state)
+      call deallocate_transform_cache
+      call deallocate_reserve_state
+      call deallocate(state)
+
       ewrite(1,*) "Entering adjoint computation"
       call clear_options
       call read_command_line
@@ -379,10 +393,11 @@
       coord => extract_vector_field(state(1), "Coordinate")
       call insert(matrices, coord, "Coordinate")
       ! And the CartesianVelocityMassMatrix
-
       call assemble_cartesian_velocity_mass_matrix(state(1))
       call insert(matrices, extract_block_csr_matrix(state(1), "CartesianVelocityMassMatrix"), "CartesianVelocityMassMatrix")
-
+      ! And the VelocitySource and LayerThicknessSource
+      call insert(matrices, extract_vector_field(state(1), "VelocitySource"), "VelocitySource")
+      call insert(matrices, extract_scalar_field(state(1), "LayerThicknessSource"), "LayerThicknessSource")
     end subroutine get_parameters
 
     subroutine assemble_cartesian_velocity_mass_matrix(state)
