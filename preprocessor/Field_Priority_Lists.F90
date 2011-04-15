@@ -62,7 +62,7 @@ contains
     logical, save:: initialised=.false.
     integer :: nsol, nphases,nfields,ncars,p,f,i, tmpint
     character(len=FIELD_NAME_LEN) :: tmpstring
-    logical :: aliased, pressure, density
+    logical :: aliased, pressure
 
     integer, dimension(:), allocatable :: priority
     !! Field list for tracers (from 1 to NTSOL)
@@ -106,9 +106,8 @@ contains
                   &prognostic/priority', &
                   tmpint, default=0)
              pressure = (trim(tmpstring)=='Pressure')
-             density = (trim(tmpstring)=='Density')
 
-             if ((.not.aliased).and.(.not.pressure).and.(.not.density)) then
+             if (.not. aliased .and. .not. pressure) then
                 nsol = nsol + 1
                 temp_field_name_list(nsol) = tmpstring
                 temp_field_optionpath_list(nsol) = '/material_phase['// &
@@ -313,7 +312,7 @@ contains
     integer, intent(out) :: ntsol
     integer :: nphases,nfields,ncars,p,f
     character(len=FIELD_NAME_LEN) :: tmpstring
-    logical :: aliased, pressure, density
+    logical :: aliased, pressure
 
     ntsol = 0
 
@@ -327,9 +326,8 @@ contains
           call get_option('/material_phase['// &
                int2str(p)//']/scalar_field['//int2str(f)//']/name', tmpstring)
           pressure = (trim(tmpstring)=='Pressure')
-          density = (trim(tmpstring)=='Density')
 
-          if ((.not.aliased).and.(.not.pressure).and.(.not.density)) then
+          if (.not. aliased .and. .not. pressure) then
              ntsol = ntsol + 1
           end if
        end do
