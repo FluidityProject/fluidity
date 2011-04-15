@@ -61,7 +61,7 @@ contains
     integer :: submaterials_istate
     
     ! Local variables  
-    type(scalar_field), pointer :: bulk_density, buoyancy_density
+    type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     
@@ -125,6 +125,16 @@ contains
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
         call calculate_surfacetension(submaterials, tfield)
+      end if
+    end if
+
+    ! diagnostic Pressure (only for compressible) calculated from
+    ! Density and InternalEnergie via compressible eos
+    sfield => extract_scalar_field(submaterials(submaterials_istate), 'Pressure', stat)
+    if(stat==0) then
+      diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
+      if(diagnostic) then
+        call calculate_diagnostic_pressure(submaterials(submaterials_istate), sfield)
       end if
     end if
 
@@ -397,5 +407,43 @@ contains
     end if
   
   end subroutine calculate_densities_multiple_states
+
+  subroutine calculate_diagnostic_pressure(state, pressure)
+    ! diagnostic Pressure (only for compressible) calculated from
+    ! Density and InternalEnergie via compressible eos
+    type(state_type), intent(inout):: state
+    type(scalar_field), intent(inout):: pressure
+
+    ewrite(1,*) "In calculate_diagnostic_pressure"
+
+    if (have_option(trim(state%option_path)//'/equation_of_state/compressible')) then
+      call compressible_eos(state, pressure=pressure)
+    else
+      FLExit("Diagnostic pressure can only be used in combination with a compressible equation of state.")
+    end if
+
+    ewrite_minmax(pressure)
+
+  end subroutine calculate_diagnostic_pressure
+
+  subroutine momentum_diagnostics_fields_check_options
+
+    character(len=OPTION_PATH_LEN):: phase_path
+    integer:: i
+  
+    do i=0, option_count('/material_phase')-1
+       phase_path = '/material_phase[' // int2str(i) // ']'
+       if (have_option(trim(phase_path)//'/scalar_field::Pressure/diagnostic')) then
+         if (.not. have_option(trim(phase_path)//'/equation_of_state/compressible')) then
+           FLExit("Diagnostic pressure can only be used in combination with a compressible equation of state.")
+         end if
+         if (have_option(trim(phase_path)//'/scalar_field::MaterialVolumeFraction')) then
+           FLExit("Diagnostic pressure currently does not work with multi-material")
+         end if
+
+       end if
+    end do
+
+  end subroutine momentum_diagnostics_fields_check_options
 
 end module momentum_diagnostic_fields

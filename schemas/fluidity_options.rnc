@@ -1445,14 +1445,22 @@ start =
                ## Field type
                (
                   element prognostic {
-                     # in the future this can be any mesh_choice:
+                     # mesh choice with PressureMesh as first option
                      pressure_mesh_choice,
                      prognostic_pressure_field
                   }|
                   element prescribed {
-                     # in the future this can be any mesh_choice:
+                     # mesh choice with PressureMesh as first option
                      pressure_mesh_choice,
                      prescribed_scalar_field
+                  }|
+                  ## Compute pressure from Density and InternalEnergy
+                  ## via a compressible equation of state.
+                  element diagnostic {
+                     # mesh choice with PressureMesh as first option
+                     pressure_mesh_choice,
+                     internal_algorithm,
+                     diagnostic_scalar_field
                   }|
                   element aliased {
                      attribute material_phase_name { xsd:string },
