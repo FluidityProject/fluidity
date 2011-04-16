@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define get_environment_variable_fc F77_FUNC(get_environment_variable_c, GET_ENVIRONMENT_VARIABLE_C)
 void get_environment_variable_fc(char* name, int* name_len, char* val, int* val_len, int* stat)
@@ -73,4 +74,9 @@ void get_environment_variable_fc(char* name, int* name_len, char* val, int* val_
 void F77_FUNC(memcpy,MEMCPY)(void* dest, void* src, int* bytes)
 {
   memcpy(dest, src, *bytes);
+}
+
+bool compare_pointers(void* ptr1, void* ptr2)
+{
+  return (ptr1 == ptr2);
 }
