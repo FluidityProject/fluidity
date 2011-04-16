@@ -261,7 +261,7 @@ Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
    FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o \
 	 Parallel_Tools.o
 Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
-   Sparse_Tools_Petsc.o
+   Sparse_Tools_Petsc.o C_Interfaces_Fortran.o
 
 qsortd.o: Global_Parameters.o
 
