@@ -325,10 +325,10 @@ contains
     end if
     ewrite(2, *) "Include advection? ", have_advection
 
-    Source=extract_vector_field(state, "VelocitySource", stat)
+    Source=extract_vector_field(state, trim(u%name)//"Source", stat)
     have_source = (stat==0)
     if (.not.have_source) then
-       call allocate(Source, U%dim,  U%mesh, "VelocitySource", FIELD_TYPE_CONSTANT)
+       call allocate(Source, U%dim,  U%mesh, trim(u%name)//"Source", FIELD_TYPE_CONSTANT)
        call zero(Source)
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
@@ -338,10 +338,10 @@ contains
       end do
     end if
 
-    Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
+    Abs=extract_vector_field(state, trim(u%name)//"Absorption", stat)   
     have_absorption = (stat==0)
     if (.not.have_absorption) then
-       call allocate(Abs, U%dim, U%mesh, "VelocityAbsorption", FIELD_TYPE_CONSTANT)
+       call allocate(Abs, U%dim, U%mesh, trim(u%name)//"Absorption", FIELD_TYPE_CONSTANT)
        call zero(Abs)
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
@@ -354,7 +354,7 @@ contains
     have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
     ! Absorption term in dry zones for wetting and drying
     if (have_wd_abs) then
-       call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
+       call allocate(Abs_wd, U%dim, U%mesh, trim(u%name)//"Absorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
    ! else
@@ -386,14 +386,14 @@ contains
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
     have_gravity = stat==0
     if(have_gravity) then
-      buoyancy=extract_scalar_field(state, "VelocityBuoyancyDensity")
+      buoyancy=extract_scalar_field(state, trim(u%name)//"BuoyancyDensity")
       call incref(buoyancy)
       gravity=extract_vector_field(state, "GravityDirection", stat)
       call incref(gravity)
 
     else
       gravity_magnitude = 0.0
-      call allocate(buoyancy, u%mesh, "VelocityBuoyancyDensity", FIELD_TYPE_CONSTANT)
+      call allocate(buoyancy, u%mesh, trim(u%name)//"BuoyancyDensity", FIELD_TYPE_CONSTANT)
       call zero(buoyancy)
       call allocate(gravity, u%dim, u%mesh, "GravityDirection", FIELD_TYPE_CONSTANT)
       call zero(gravity)
@@ -426,10 +426,10 @@ contains
         &/discontinuous_galerkin/les_model/smagorinsky_coefficient", smagorinsky_coefficient)
     end if
 
-    surfacetension = extract_tensor_field(state, "VelocitySurfaceTension", stat)
+    surfacetension = extract_tensor_field(state, trim(u%name)//"SurfaceTension", stat)
     have_surfacetension = (stat == 0)
     if(.not. have_surfacetension) then
-      call allocate(surfacetension, u%mesh, "VelocitySurfaceTension", FIELD_TYPE_CONSTANT)
+      call allocate(surfacetension, u%mesh, trim(u%name)//"SurfaceTension", FIELD_TYPE_CONSTANT)
       call zero(surfacetension)
     else
       call incref(surfacetension)
@@ -3400,6 +3400,10 @@ contains
 
        phase_path="/material_phase["//int2str(i)//"]"
        velocity_path=trim(phase_path)//"/vector_field::Velocity/prognostic"
+       if (.not. have_option(velocity_path)) then
+         ! try prognostic momentum instead 
+         velocity_path=trim(phase_path)//"/vector_field::Momentum/prognostic"
+       end if
        dg_path=trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin"
        
        if (have_option(dg_path)) then
@@ -3410,8 +3414,7 @@ contains
             
              ewrite(0,*) "Warning: You have selected conjugate gradient &
                 &as a solver for"
-             ewrite(0,*) "    "//trim(phase_path)//&
-                &"/vector_field::Velocity"
+             ewrite(0,*) "    "//trim(velocity_path)
              ewrite(0,*) "which is probably an asymmetric matrix"
           end if
     

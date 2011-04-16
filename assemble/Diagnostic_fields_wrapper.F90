@@ -409,8 +409,12 @@ contains
          if(diagnostic .and. .not.(aliased(s_field))) then
            if(recalculate(trim(s_field%option_path))) then
              if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
-               call get_phase_submaterials(state, i, submaterials)
+               call get_phase_submaterials(state, i, submaterials, "Velocity")
                call calculate_densities(submaterials, bulk_density=s_field)
+             else if(option_count("/material_phase/vector_field::Momentum/prognostic") > 1) then
+               call get_phase_submaterials(state, i, submaterials, "Momentum")
+               call calculate_densities(submaterials, bulk_density=s_field)
+               deallocate(submaterials)
                deallocate(submaterials)
              else
                call calculate_densities(state, bulk_density=s_field)

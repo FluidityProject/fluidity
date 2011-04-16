@@ -49,7 +49,7 @@ module momentum_diagnostic_fields
 
 contains
 
-  subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
+  subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, u_name)
     !< A subroutine to group together all the diagnostic calculations that
     !< must happen before a momentum solve.
   
@@ -59,6 +59,8 @@ contains
     type(state_type), dimension(:), intent(inout) :: submaterials
     ! The index of the current phase (i.e. state(istate)) in the submaterials array
     integer :: submaterials_istate
+    ! name of the u field, either "Velocity" or "Momentum"
+    character(len=*), intent(in) :: u_name
     
     ! Local variables  
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
@@ -82,7 +84,7 @@ contains
     diagnostic = .false.
     if (stat==0) diagnostic = have_option(trim(bulk_density%option_path)//'/diagnostic')
     if(diagnostic.and.gravity) then
-      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate),'VelocityBuoyancyDensity')
+      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate), trim(u_name)//'BuoyancyDensity')
       call calculate_densities(submaterials,&
                                 buoyancy_density=buoyancy_density, &
                                 bulk_density=bulk_density, &
@@ -92,20 +94,20 @@ contains
                                 bulk_density=bulk_density, &
                                 momentum_diagnostic=.true.)
     else if(gravity) then
-      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate),'VelocityBuoyancyDensity')
+      buoyancy_density => extract_scalar_field(submaterials(submaterials_istate), trim(u_name)//'BuoyancyDensity')
       call calculate_densities(submaterials,&
                                 buoyancy_density=buoyancy_density, &
                                 momentum_diagnostic=.true.)
     end if
     
-    vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
+    vfield => extract_vector_field(submaterials(submaterials_istate), trim(u_name)//"Absorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
       end if
     end if
 
-    vfield => extract_vector_field(submaterials(submaterials_istate), "VelocitySource", stat = stat)
+    vfield => extract_vector_field(submaterials(submaterials_istate), trim(u_name)//"Source", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         call calculate_diagnostic_variable(state, istate, vfield)
@@ -120,7 +122,7 @@ contains
       end if
     end if
 
-    tfield => extract_tensor_field(submaterials(submaterials_istate), 'VelocitySurfaceTension', stat)
+    tfield => extract_tensor_field(submaterials(submaterials_istate), trim(u_name)//'SurfaceTension', stat)
     if(stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then

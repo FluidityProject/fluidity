@@ -44,15 +44,17 @@
 
    contains
 
-      subroutine get_phase_submaterials(state, istate, submaterials, phase_istate)
+      subroutine get_phase_submaterials(state, istate, submaterials, u_name, phase_istate)
          !!< Sets up an array of the submaterials of a phase.
          !!< NB: This includes the current state itself (i.e. state(istate)).
 
          type(state_type), dimension(:), target, intent(inout) :: state
          integer, intent(in) :: istate
+         ! name of the prognostic u field (can be either "Velocity" or "Momentum")
+         character(len=*), intent(in) :: u_name
          type(state_type), dimension(:), pointer :: submaterials
-         integer, intent(inout), optional :: phase_istate
 
+         integer, intent(inout), optional :: phase_istate
          !! Local variables
          integer :: i, next, stat, material_count
          type(vector_field), pointer :: u
@@ -78,7 +80,7 @@
                cycle ! Already counted the current state
             end if
             
-            u => extract_vector_field(state(i), "Velocity", stat)
+            u => extract_vector_field(state(i), u_name, stat)
             is_submaterial(i) = .false.
 
             ! If velocity field exists and is aliased to a phase's velocity field...
@@ -88,7 +90,7 @@
                   ! then we have found one more submaterial.
 
                   ! Save the name of the phase that the current state is aliased to
-                  call get_option(trim(state(i)%option_path)//"/vector_field::Velocity/aliased/material_phase_name", target_name)
+                  call get_option(trim(state(i)%option_path)//"/vector_field::"//trim(u_name)//"/aliased/material_phase_name", target_name)
 
                   if(target_name == phase_name) then
                      ! Found one more submaterial!
