@@ -2140,7 +2140,7 @@
              viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei*viscosity_gi(1, 1, :)*&
                                          ele_val_at_quad(nvfrac, ele)) + &
                                          shape_vector_dot_dshape(test_function, ele_grad_at_quad(nvfrac, ele, du_t), &
-                                         du_t, detwei*viscosity_gi(1, 1, :)*ele_val_at_quad(nvfrac, ele))
+                                         du_t, detwei*viscosity_gi(1, 1, :))
           else
              viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
           end if

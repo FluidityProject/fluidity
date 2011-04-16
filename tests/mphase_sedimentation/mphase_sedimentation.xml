@@ -42,6 +42,18 @@ s = stat_parser("mphase_sedimentation.stat")
 f2_vfrac_min = s["Fluid2"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
     
+    <variable name="f1_vfrac_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_sedimentation.stat")
+f1_vfrac_integral = s["Fluid1"]["PhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    
+    <variable name="f2_vfrac_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_sedimentation.stat")
+f2_vfrac_integral = s["Fluid2"]["PhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    
     <variable name="divergence" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation.stat")
@@ -51,20 +63,26 @@ divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
   </variables>
     
   <pass_tests>
-    <test name="Fluid 1 has max(vfrac)=1.0" language="python">
-assert abs(f1_vfrac_max - 1.0) &lt; 1e-2
+    <test name="Fluid 1 has 0.9 <= max(vfrac) <= 1.0" language="python">
+assert abs(f1_vfrac_max - 1.0) &lt; 1e-1
     </test>
-    <test name="Fluid 1 has min(vfrac)=0.0" language="python">
-assert abs(f1_vfrac_min) &lt; 1e-2
+    <test name="Fluid 1 has 0.0 <= min(vfrac) <= 0.1" language="python">
+assert abs(f1_vfrac_min) &lt; 1e-1
     </test>
-    <test name="Fluid 2 has max(vfrac)=1.0" language="python">
-assert abs(f2_vfrac_max - 1.0) &lt; 1e-2
+    <test name="Fluid 2 has 0.9 <= max(vfrac) <= 1.0" language="python">
+assert abs(f2_vfrac_max - 1.0) &lt; 1e-1
     </test>
-    <test name="Fluid 2 has min(vfrac)=0.0" language="python">
-assert abs(f2_vfrac_min) &lt; 1e-2
+    <test name="Fluid 2 has 0.0 <= min(vfrac) <= 0.1" language="python">
+assert abs(f2_vfrac_min) &lt; 1e-1
     </test>
-    <test name="SumVelocityDivergence is zero" language="python">
-assert abs(divergence) &lt; 1e-9
+    <test name="SumVelocityDivergence is less than 1e-6" language="python">
+assert abs(divergence) &lt; 1e-6
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 1 is conserved" language="python">
+assert abs(f1_vfrac_integral - 0.5) &lt; 1e-6
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 2 is conserved" language="python">
+assert abs(f2_vfrac_integral - 0.5) &lt; 1e-6
     </test>
   </pass_tests>
   
