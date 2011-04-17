@@ -57,10 +57,9 @@ module forward_main_loop
     public :: compute_forward
 #endif
 
-
 #ifdef HAVE_ADJOINT
     contains
-    
+
     subroutine compute_forward(state)
       type(state_type), dimension(:), intent(inout) :: state
 
@@ -170,8 +169,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                    ewrite(1,*), "Scalar field solved for via libadjoint: ", sfield_soln%name
-                    ewrite(1,*), sfield_soln%val
                     call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
@@ -213,8 +210,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                    print *, vfield_soln%name
-                    print *, vfield_soln%val
                     !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
@@ -228,8 +223,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
-                    ewrite(1,*), "Vector field solved for via libadjoint: ", vfield_soln%name
-                    ewrite(1,*), vfield_soln%val
                     !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                   endif
                 case default
