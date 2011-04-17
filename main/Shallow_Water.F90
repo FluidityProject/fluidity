@@ -260,18 +260,20 @@
 
 #ifdef HAVE_ADJOINT
     if (adjoint) then
-      ! Let's run the forward model through libadjoint, too, for the craic
-      ewrite(1,*) "Entering forward computation through libadjoint"
-      call clear_options
-      call read_command_line
-      call mangle_options_tree_forward
-      call populate_state(state)
-      call allocate_and_insert_additional_fields(state(1))
-      call check_diagnostic_dependencies(state)
-      call compute_forward(state)
-      call deallocate_transform_cache
-      call deallocate_reserve_state
-      call deallocate(state)
+      if (have_option("/adjoint/replay_forward_run")) then
+        ! Let's run the forward model through libadjoint, too, for the craic
+        ewrite(1,*) "Entering forward computation through libadjoint"
+        call clear_options
+        call read_command_line
+        call mangle_options_tree_forward
+        call populate_state(state)
+        call allocate_and_insert_additional_fields(state(1))
+        call check_diagnostic_dependencies(state)
+        call compute_forward(state)
+        call deallocate_transform_cache
+        call deallocate_reserve_state
+        call deallocate(state)
+      end if
 
       ewrite(1,*) "Entering adjoint computation"
       call clear_options
