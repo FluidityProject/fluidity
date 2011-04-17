@@ -14,6 +14,13 @@ This is a debugging option to check if the libadjoint callbacks are implemented 
           <empty/>
         </element>
       </optional>
+      <optional>
+        <element name="html_output">
+          <a:documentation>Activate the visualisation of the forward and adjoint equations solved. 
+This option creates an html file for both the forward and adjoint system.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
       <oneOrMore>
         <element name="functional">
           <a:documentation>A functional to be computed.

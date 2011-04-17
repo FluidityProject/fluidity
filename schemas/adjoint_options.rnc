@@ -11,6 +11,11 @@ adjoint_options =
       element replay_forward_run {
          empty
       }?,
+      ## Activate the visualisation of the forward and adjoint equations solved. 
+      ## This option creates an html file for both the forward and adjoint system.
+      element html_output {
+         empty
+      }?,
       ## A functional to be computed.
       ## If the functional_value is supplied by the user, then the functional gets
       ## evaluated and printed in the .stat files.
