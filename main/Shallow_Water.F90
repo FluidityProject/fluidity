@@ -396,8 +396,12 @@
       call assemble_cartesian_velocity_mass_matrix(state(1))
       call insert(matrices, extract_block_csr_matrix(state(1), "CartesianVelocityMassMatrix"), "CartesianVelocityMassMatrix")
       ! And the VelocitySource and LayerThicknessSource
-      call insert(matrices, extract_vector_field(state(1), "VelocitySource"), "VelocitySource")
-      call insert(matrices, extract_scalar_field(state(1), "LayerThicknessSource"), "LayerThicknessSource")
+      if (has_vector_field(state(1), "VelocitySource")) then
+        call insert(matrices, extract_vector_field(state(1), "VelocitySource"), "VelocitySource")
+      end if
+      if (has_scalar_field(state(1), "LayerThicknessSource")) then
+        call insert(matrices, extract_scalar_field(state(1), "LayerThicknessSource"), "LayerThicknessSource")
+      end if  
     end subroutine get_parameters
 
     subroutine assemble_cartesian_velocity_mass_matrix(state)
