@@ -94,9 +94,6 @@ module forward_main_loop
       ierr = adj_adjointer_check_consistency(adjointer)
       call adj_chkierr(ierr)
 
-      ! Forget everything up to the first equation
-      ierr = adj_forget_adjoint_equation(adjointer, 0)
-
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .false.
@@ -184,6 +181,12 @@ module forward_main_loop
               soln = field_to_adj_vector(sfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(sfield_soln)
@@ -236,6 +239,12 @@ module forward_main_loop
               soln = field_to_adj_vector(vfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(vfield_soln)
