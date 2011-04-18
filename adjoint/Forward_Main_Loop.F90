@@ -184,7 +184,7 @@ module forward_main_loop
 
               !ierr = adj_storage_set_compare(storage, .true., 0.0)
               !call adj_chkierr(ierr)
-              ierr = adj_storage_set_overwrite(storage, .true.)
+              !ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)
 
               ierr = adj_record_variable(adjointer, fwd_var, storage)
@@ -242,7 +242,7 @@ module forward_main_loop
 
               !ierr = adj_storage_set_compare(storage, .true., 0.0)
               !call adj_chkierr(ierr)
-              ierr = adj_storage_set_overwrite(storage, .true.)
+!              ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)
 
               ierr = adj_record_variable(adjointer, fwd_var, storage)
@@ -267,7 +267,7 @@ module forward_main_loop
           end if
         end do ! end of the equation loop
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
         call write_diagnostics(state, current_time, dt, equation+1)
