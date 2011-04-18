@@ -879,7 +879,6 @@ module shallow_water_adjoint_callbacks
 
           output = field_to_adj_vector(eta_output)
           has_output = ADJ_TRUE
-          write(0,*) "Callback LayerThickessDelta source: ", eta_output%val
           call deallocate(eta_output)
         case("Fluid::LayerThickness")
         case("Fluid::LocalVelocity")
