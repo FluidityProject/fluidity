@@ -140,6 +140,7 @@ module adjoint_functional_evaluation
       ierr = adj_variable_get_name(var, variable_name_f)
       ewrite(-1,*) "Variable: ", trim(variable_name_f)
       ewrite(-1,*) "Timelevel: ", timelevel
+      ewrite(-1,*) "Functional: ", trim(functional_name_f)
       ewrite(-1,*) "At a minimum, the functional depends on the meshes that the output is to be allocated on."
       ewrite(-1,*) "Register them as auxiliary dependencies."
       FLAbort("You really need at least one dependency.")
