@@ -3018,15 +3018,17 @@ contains
               call insert(states(p), aux_vfield, trim(aux_vfield%name))
 
             end if
+          end if
+          if(trim(vfield%name)=="Velocity" .or. trim(vfield%name)=="Momentum") then
 
             if(prognostic) then
               gravity = have_option("/physical_parameters/gravity")
               if(gravity) then
                 sfield => extract_scalar_field(states(p), "Density", stat)
                 if(stat==0) then
-                  call allocate(aux_sfield, sfield%mesh, "VelocityBuoyancyDensity")
+                  call allocate(aux_sfield, sfield%mesh, trim(vfield%name)//"BuoyancyDensity")
                 else
-                  call allocate(aux_sfield, vfield%mesh, "VelocityBuoyancyDensity")
+                  call allocate(aux_sfield, vfield%mesh, trim(vfield%name)//"BuoyancyDensity")
                 end if
                 call zero(aux_sfield)
                 aux_sfield%option_path=""
