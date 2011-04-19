@@ -406,7 +406,7 @@
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")
 
            ! Initialise necessary local fields.
-           ewrite(2,*) "Initialising compulsory dynamic LES fields"
+           ewrite(3,*) "Initialising compulsory dynamic LES fields"
            allocate(mnu); allocate(tnu); allocate(leonard)
            call allocate(mnu, u%dim, u%mesh, "DynamicVelocity")
            call allocate(tnu, u%dim, u%mesh, "DynamicFilteredVelocity")
@@ -418,7 +418,7 @@
 
            ! Use time-averaged quantities. EXPERIMENTAL - DOES NOT WORK.
            if(have_averaging) then
-             ewrite(2,*) "Initialising dynamic LES averaged fields"
+             ewrite(3,*) "Initialising dynamic LES averaged fields"
              ! Test-filtered velocity field
              allocate(mnu_av); allocate(tnu_av); allocate(leonard_av)
              call allocate(mnu_av, u%dim, u%mesh, "DynamicAverageVelocity")
@@ -427,7 +427,7 @@
              call zero(mnu_av); call zero(tnu_av); call zero(leonard_av)
 
              ! Averaged velocity field
-             ewrite(2,*) "Calculating averaged velocity"
+             ewrite(3,*) "Calculating averaged velocity"
              !nu_av => vector_source_field(state, u)
              !call calculate_time_averaged_vector(state, nu_av)
            else
@@ -438,7 +438,7 @@
            call get_option(trim(les_option_path)//"/dynamic_les/stabilisation_parameter", alpha2, default=0.0)
            if(alpha2 > 0.0) then
              ! Calculate mesh-filtered velocity
-             ewrite(2,*) "Calculating mesh-filtered velocity from Velocity (not NonlinearVelocity)"
+             ewrite(3,*) "Calculating mesh-filtered velocity from Velocity (not NonlinearVelocity)"
              call anisotropic_smooth_vector(u, x, mnu, alpha2, trim(les_option_path)//"/dynamic_les")
              ! If averaging, we need to smooth the averaged velocity too!
              if(have_averaging) then
@@ -462,7 +462,7 @@
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.
-           ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
+           ewrite(3,*) "Calculating test-filtered velocity and Leonard tensor"
            call leonard_tensor(mnu, x, tnu, leonard, alpha, les_option_path)
            if(have_averaging) then
              call leonard_tensor(mnu_av, x, tnu_av, leonard_av, alpha, les_option_path)

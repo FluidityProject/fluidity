@@ -178,6 +178,10 @@ module fields_base
           & face_val_at_shape_quad_tensor
   end interface
 
+  interface ele_grad_at_quad
+     module procedure ele_grad_at_quad_scalar, ele_grad_at_quad_vector
+  end interface
+
   interface node_val
      module procedure node_val_scalar, node_val_vector, node_val_tensor, &
           & node_val_scalar_v, node_val_vector_v, node_val_vector_dim_v,&
@@ -2409,7 +2413,7 @@ contains
 
   end function face_val_at_shape_quad_tensor
 
-  function ele_grad_at_quad(field, ele_number, dn) result (quad_grad)
+  function ele_grad_at_quad_scalar(field, ele_number, dn) result (quad_grad)
     ! Return the grad of field at the quadrature points of
     ! ele_number. dn is the transformed element gradient.
     type(scalar_field),intent(in) :: field
@@ -2425,7 +2429,28 @@ contains
        quad_grad(i,:)=matmul(ele_val(field, ele_number),dn(:,:,i))
     end do
     
-  end function ele_grad_at_quad
+  end function ele_grad_at_quad_scalar
+
+  function ele_grad_at_quad_vector(field, ele_number, dn) result (quad_grad)
+    ! Return the grad of field at the quadrature points of
+    ! ele_number. dn is the transformed element gradient.
+    type(vector_field),intent(in) :: field
+    integer, intent(in) :: ele_number
+    real, dimension(ele_loc(field,ele_number), &
+         &          ele_ngi(field,ele_number),&
+         &          mesh_dim(field)), intent(in) :: dn
+    real, dimension(mesh_dim(field), mesh_dim(field), &
+         &          field%mesh%shape%ngi)        :: quad_grad
+    
+    integer :: i, j
+
+    do i=1, mesh_dim(field)
+       do j=1, mesh_dim(field)
+          quad_grad(i,j,:)=matmul(ele_val(field, j, ele_number),dn(:,:,i))
+       end do
+    end do
+    
+  end function ele_grad_at_quad_vector
 
   function ele_div_at_quad_tensor(field, ele_number, dn) result (quad_div)
     ! Return the grad of field (dtensor_{ij}/dx_{j}) at the quadrature points of
