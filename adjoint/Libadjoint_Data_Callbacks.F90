@@ -83,6 +83,8 @@ implicit none
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_DIVIDE_CB, c_funloc(femtools_vec_divide_proc))
     call adj_chkierr(ierr)
+    ierr = adj_register_data_callback(adjointer, ADJ_VEC_GETNORM_CB, c_funloc(femtools_vec_getnorm_proc))
+    call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_MAT_AXPY_CB, c_funloc(femtools_mat_axpy_proc))
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_MAT_DESTROY_CB, c_funloc(femtools_mat_destroy_proc))
@@ -239,6 +241,27 @@ end subroutine
       FLAbort("adj_vector class not supported.")
     end if
   end subroutine femtools_vec_divide_proc
+
+  subroutine femtools_vec_getnorm_proc(vec, norm) bind(c)
+    type(adj_vector), intent(in), value :: vec
+    adj_scalar_f, intent(out) :: norm
+    type(scalar_field), pointer :: scalar
+    type(vector_field), pointer :: vector
+    type(tensor_field), pointer :: tensor
+
+    if (vec%klass == ADJ_SCALAR_FIELD) then
+      call c_f_pointer(vec%ptr, scalar)
+      norm = norm2(scalar%val)
+    else if (vec%klass == ADJ_VECTOR_FIELD) then
+      call c_f_pointer(vec%ptr, vector)
+      norm = norm2(reshape(vector%val, (/size(vector%val)/)))
+    else if (vec%klass == ADJ_TENSOR_FIELD) then
+      call c_f_pointer(vec%ptr, tensor)
+      norm = norm2(reshape(tensor%val, (/size(tensor%val)/)))
+    else
+      FLAbort("adj_vector class not supported.")
+    end if
+  end subroutine femtools_vec_getnorm_proc
 
   subroutine femtools_mat_axpy_proc(Y, alpha, X) bind(c)  
     ! Computes Y = alpha*X + Y.
