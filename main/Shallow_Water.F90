@@ -1057,10 +1057,10 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Mu, minusMu, Meta, minusMeta, W, CTMC, CTML, MBCdelta, MBL, MBC, CP, CI
+      type(adj_block) :: Mu, minusMu, Meta, minusMeta, W, CTMC, CTML, MBCdelta, MBL, MBC, CP, CI, P
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
+      type(adj_variable) :: u, previous_cartesian_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
       real :: start_time
 
       integer :: j, nfunctionals
@@ -1075,7 +1075,7 @@
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_cartesian_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
@@ -1097,7 +1097,7 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("DivMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
+      ierr = adj_create_block("DivMinusDivBigMatCoriolisProjection", context=c_loc(matrices), block=CTML)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTML, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1115,7 +1115,7 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBCdelta, coefficient=theta * dt * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("MassBigMatCoriolis", context=c_loc(matrices), block=MBL)
+      ierr = adj_create_block("MassBigMatCoriolisProjection", context=c_loc(matrices), block=MBL)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBL, coefficient=dt)
       call adj_chkierr(ierr)
@@ -1131,6 +1131,10 @@
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusMu, coefficient=-1.0)
       call adj_chkierr(ierr)
+      ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(P, coefficient=-1.0)
+      call adj_chkierr(ierr)
 
       ! Blocks for embedded manifold business
       ierr = adj_create_block("MassCartesianProjection", context=c_loc(matrices), block=CP)
@@ -1142,7 +1146,7 @@
 
       ! Ahah! Now we can register our lovely equations. 
       ierr = adj_create_equation(delta_eta, blocks=(/CTMC, CTML, W/), &
-                                          & targets=(/previous_eta, previous_u, delta_eta/), equation=equation)
+                                          & targets=(/previous_eta, previous_cartesian_u, delta_eta/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1162,7 +1166,7 @@
       call adj_chkierr(ierr)
 
       ierr = adj_create_equation(delta_u, blocks=(/MBC, MBL, MBCdelta, Mu/), &
-                                        & targets=(/previous_eta, previous_u, delta_eta, delta_u/), equation=equation)
+                                        & targets=(/previous_eta, previous_cartesian_u, delta_eta, delta_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1171,8 +1175,8 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(u, blocks=(/minusMu, minusMu, Mu/), &
-                                    & targets=(/previous_u, delta_u, u/), equation=equation)
+      ierr = adj_create_equation(u, blocks=(/P, minusMu, Mu/), &
+                                    & targets=(/previous_cartesian_u, delta_u, u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1215,6 +1219,8 @@
       ierr = adj_destroy_block(CP)
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(CI)
+      call adj_chkierr(ierr)
+      ierr = adj_destroy_block(P)
       call adj_chkierr(ierr)
 
       ! Set the times and functional dependencies for this timestep

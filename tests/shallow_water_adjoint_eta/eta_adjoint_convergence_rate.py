@@ -3,9 +3,9 @@ from math import log
 import glob
 
 def get_convergence(statfileA, statfileB, field):
-  dt_A = stat(statfileA)["ElapsedTime"]['value'][1] - stat(statfileA)["ElapsedTime"]['value'][0]
-  dt_B = stat(statfileB)["ElapsedTime"]['value'][1] - stat(statfileB)["ElapsedTime"]['value'][0]
-  
+  dt_A = abs(stat(statfileA)["dt"]['value'][-1])
+  dt_B = abs(stat(statfileB)["dt"]['value'][-1])
+
   a_error_l1 = sum(stat(statfileA)["Fluid"][field]["integral"])*dt_A
   b_error_l1 = sum(stat(statfileB)["Fluid"][field]["integral"])*dt_B
 
