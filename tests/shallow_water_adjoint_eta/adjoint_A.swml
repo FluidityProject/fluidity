@@ -327,17 +327,15 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="dJdh" rank="0">
+    <scalar_field name="AnalyticalAdjointLayerThickness" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-  from math import cos, sin, pi
-  h = 1.0
-  c = 1.0
+  from math import sin, cos, pi
   x = X[0]
-  return (-1.0/4)*((2*c + sin(2*c))/pi - (4*pi + 2*c + sin(2*c))/pi)*h</string_value>
+  return cos(2*pi*x) + sin(2*pi*t)</string_value>
           </python>
         </value>
         <output/>
@@ -349,6 +347,28 @@
           <exists_in_adjoint/>
         </adjoint_storage>
       </prescribed>
+    </scalar_field>
+    <scalar_field name="AdjointLayerThicknessError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="AnalyticalAdjointLayerThickness" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </diagnostic>
     </scalar_field>
     <vector_field name="AnalyticalVelocity" rank="1">
       <prescribed>
@@ -399,6 +419,53 @@
         </adjoint_storage>
       </diagnostic>
     </vector_field>
+    <vector_field name="AnalyticalAdjointVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X, t):
+  from math import sin, cos, pi
+  x = X[0]
+  return [sin(2*pi*x) + cos(2*pi*t), 0, 0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
+    <vector_field name="AdjointVelocityError" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="AnalyticalAdjointVelocity" material_phase_support="single" source_field_1_type="vector">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <adjoint>
     <functional name="integral_eta_t1">
@@ -437,6 +504,40 @@ if time &lt; 1.0 &lt;= time+dt:
             "Fluid::LayerThickness": [timestep-1, timestep]}
   else:
     return {}</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
+    <functional name="sinusoidal_mms">
+      <functional_derivative>
+        <algorithm name="functional_derivative">
+          <string_value lines="20" type="python">import numpy
+from math import sin, cos, pi
+coord  = states[0]["Fluid"].vector_fields["Coordinate"]
+derivative.val[:] = 0.0
+T = times[n]
+  
+if derivative.name == "Fluid::LayerThickness":
+  for ele in range(coord.ele_count):
+    t = Transform(ele, coord)
+    shape = derivative.ele_shape(ele)
+    mass = t.shape_shape(shape, shape)
+    dJdeta = [(-2*pi*cos(2*pi*T) - 2*pi*cos(2*pi*x[0])) for x in coord.remap_ele(ele, derivative.mesh)]
+    derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, dJdeta))
+elif derivative.name == "Fluid::Velocity":
+  for ele in range(coord.ele_count):
+    t = Transform(ele, coord)
+    shape = derivative.ele_shape(ele)
+    mass = t.shape_shape(shape, shape)
+    dJdeta = [[(2*pi*sin(2*pi*T) + 2*pi*sin(2*pi*x[0])), 0, 0] for x in coord.remap_ele(ele, derivative.mesh)]
+    derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, dJdeta))</string_value>
+        </algorithm>
+      </functional_derivative>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value lines="20" type="python">def dependencies(times, timestep):
+  return {"Fluid::Coordinate": [0], 
+          "Fluid::LayerThickness": [timestep],
+          "Fluid::Velocity": [timestep]}</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
