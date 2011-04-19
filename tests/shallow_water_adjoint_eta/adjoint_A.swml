@@ -510,7 +510,7 @@ if time &lt; 1.0 &lt;= time+dt:
         </algorithm>
       </functional_dependencies>
     </functional>
-    <functional name="mms">
+    <functional name="mms_eta">
       <functional_derivative>
         <algorithm name="functional_derivative">
           <string_value lines="20" type="python">import numpy
