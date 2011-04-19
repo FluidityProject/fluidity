@@ -182,17 +182,14 @@ module forward_main_loop
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
 
-              !ierr = adj_storage_set_compare(storage, .true., 0.0)
-              !call adj_chkierr(ierr)
-              !ierr = adj_storage_set_overwrite(storage, .true.)
+              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)
 
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(sfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case(ADJ_VECTOR_FIELD)
               call field_from_adj_vector(rhs, vfield_rhs)
               call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, trim(field_name))
@@ -240,17 +237,14 @@ module forward_main_loop
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
 
-              !ierr = adj_storage_set_compare(storage, .true., 0.0)
-              !call adj_chkierr(ierr)
-!              ierr = adj_storage_set_overwrite(storage, .true.)
+              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)
 
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(vfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case default
               FLAbort("Unknown rhs%klass")
           end select
