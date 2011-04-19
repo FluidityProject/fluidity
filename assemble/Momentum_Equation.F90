@@ -317,14 +317,14 @@
                if(have_prognostic_momentum(istate)) then
                   if (stat==0) then
                      ! we also have a velocity
-                     if (.not. have_option(trim(diagnostic_u%option_path)// &
-                           "/diagnostic/diagnostic_algorithm::Internal")) then
+                     if (.not. have_option(trim(u%option_path)// &
+                           "/diagnostic/algorithm::Internal")) then
                         ! it has to be diagnostic
                         ewrite(-1,*) "With a prognostic Momentum field Velocity has to be diagnostic"
                         ewrite(-1,*) "and its diagnostic algorithm set to Internal"
                         FLExit("Non-diagnostic Velocity in combination with prognostic Momentum")
                      end if
-                     if (.not. diagnostic_u%mesh==momentum%mesh) then
+                     if (.not. u%mesh==momentum%mesh) then
                         ! this is a temp. measure as long as I haven't got the logic of 
                         ! get_velocity_mesh/divergence_matrix etc. sorted
                         FLExit("Prognostic Momentum and diagnostic Velocity need to be on the same mesh")
