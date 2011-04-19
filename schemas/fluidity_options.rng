@@ -6605,6 +6605,25 @@ Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }<
         <empty/>
       </element>
       <element name="vector_field">
+        <a:documentation>Prognostic momentum - provides a linear momentum equation
+that solves for momentum rather than velocity. This should
+be used in combination with a diagnostic Velocity calculated
+after the momentum equation by Velocity=Momentum/Density. This velocity
+is then used as the advective velocity in advective terms
+in subsequent prognostic equations.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Momentum</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice"/>
+          <ref name="prognostic_velocity_field"/>
+        </element>
+      </element>
+      <!---->
+      <element name="vector_field">
         <a:documentation>As HydrostaticPressure, but solves for the gradient of the pressure
 associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
         <attribute name="rank">

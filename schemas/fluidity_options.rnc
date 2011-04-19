@@ -5173,6 +5173,23 @@ vector_field_choice =
          element ___Prognostic_fields_below___ {
             empty
          }|
+         ## Prognostic momentum - provides a linear momentum equation
+         ## that solves for momentum rather than velocity. This should
+         ## be used in combination with a diagnostic Velocity calculated
+         ## after the momentum equation by Velocity=Momentum/Density. This velocity
+         ## is then used as the advective velocity in advective terms
+         ## in subsequent prognostic equations.
+         element vector_field {
+            attribute rank { "0" },
+            attribute name { "Momentum" },
+            (
+               element prognostic {
+                  mesh_choice,
+                  prognostic_velocity_field
+               }
+            )
+         }|
+#
          ## As HydrostaticPressure, but solves for the gradient of the pressure
          ## associated with buoyancy. Requires a discontinuous mesh.
          element vector_field {
