@@ -322,7 +322,7 @@ end subroutine keps_eps
 subroutine keps_eddyvisc(state)
 
     type(state_type), intent(inout)  :: state
-    type(tensor_field), pointer      :: eddy_visc, eddy_diff, viscosity, diffusivity, bg_visc
+    type(tensor_field), pointer      :: eddy_visc, viscosity, diffusivity, bg_visc
     type(vector_field), pointer      :: positions
     type(scalar_field), pointer      :: kk, eps, EV, scalarField, lumped_mass
     type(scalar_field)               :: ev_rhs
@@ -336,7 +336,6 @@ subroutine keps_eddyvisc(state)
     eps        => extract_scalar_field(state, "TurbulentDissipation")
     positions  => extract_vector_field(state, "Coordinate")
     eddy_visc  => extract_tensor_field(state, "KEpsEddyViscosity")
-    eddy_diff  => extract_tensor_field(state, "KEpsEddyDiffusivity")
     viscosity  => extract_tensor_field(state, "Viscosity")
     bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
     EV         => extract_scalar_field(state, "ScalarEddyViscosity")
@@ -385,8 +384,8 @@ subroutine keps_eddyvisc(state)
 
     call deallocate(ev_rhs)
 
-    ewrite(2,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors"
-    call zero(eddy_visc); call zero(eddy_diff)
+    ewrite(2,*) "Set k-epsilon eddy-viscosity tensor"
+    call zero(eddy_visc)
 
     ! eddy tensors are isotropic
     do i = 1, eddy_visc%dim(1)

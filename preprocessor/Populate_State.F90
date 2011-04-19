@@ -2034,7 +2034,7 @@ contains
     ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
     do i = 1, size(states)
        
-       tfield=extract_tensor_field(states(i), "KEpsEddyDiffusivity", stat)
+       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
 
        if (stat/=0) cycle
 
