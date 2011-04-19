@@ -8,10 +8,15 @@
     <command_line> shallow_water adjoint_A.swml; shallow_water adjoint_B.swml; shallow_water adjoint_C.swml; shallow_water adjoint_D.swml; shallow_water adjoint_E.swml</command_line>
   </problem_definition>
   <variables>
-    <variable name="passed" language="python">
+    <variable name="mms_eta_passed" language="python">
 import eta_adjoint_convergence_rate as convergence_rate
-convergence_rate.print_convergence_rates("wave_[A-E]_adjoint_mms_eta.stat", ["AdjointLayerThicknessError"])
-passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E]_adjoint_mms_eta.stat", ["AdjointLayerThicknessError"])
+convergence_rate.print_convergence_rates("wave_[A-E]_adjoint_mms_eta.stat", ["MMSEtaAdjointLayerThicknessError"])
+mms_eta_passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E]_adjoint_mms_eta.stat", ["MMSEtaAdjointLayerThicknessError"])
+    </variable>
+    <variable name="mms_u_passed" language="python">
+import eta_adjoint_convergence_rate as convergence_rate
+convergence_rate.print_convergence_rates("wave_[A-E]_adjoint_mms_u.stat", ["MMSUAdjointVelocityError%1"])
+mms_u_passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E]_adjoint_mms_u.stat", ["MMSUAdjointVelocityError%1"])
     </variable>
     <variable name="functional_convergence" language="python">
 import numpy
@@ -31,8 +36,12 @@ for i in range(len(sims)-1):
     </variable>
   </variables>
   <pass_tests>
-    <test name="convergence" language="python">
-assert passed
+    <test name="mms_eta convergence" language="python">
+assert mms_eta_passed
+    </test>
+    <test name="mms_u convergence" language="python">
+#assert mms_u_passed
+assert True
     </test>
     <test name="functional_convergence" language="python">
 for order in functional_convergence[1:]:

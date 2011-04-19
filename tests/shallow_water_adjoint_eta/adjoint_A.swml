@@ -328,7 +328,7 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="AnalyticalAdjointLayerThickness" rank="0">
+    <scalar_field name="MMSEtaAnalyticalAdjointLayerThickness" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -350,12 +350,56 @@
         </adjoint_storage>
       </prescribed>
     </scalar_field>
-    <scalar_field name="AdjointLayerThicknessError" rank="0">
+    <scalar_field name="MMSEtaAdjointLayerThicknessError" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="AnalyticalAdjointLayerThickness" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="MMSEtaAnalyticalAdjointLayerThickness" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="MMSUAnalyticalAdjointLayerThickness" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+  from math import sin, cos, pi
+  x = X[0]
+  tau = 10.0 - t
+  return 0.0</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="MMSUAdjointLayerThicknessError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="MMSUAnalyticalAdjointLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -421,7 +465,7 @@
         </adjoint_storage>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnalyticalAdjointVelocity" rank="1">
+    <vector_field name="MMSEtaAnalyticalAdjointVelocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -444,9 +488,57 @@
         </adjoint_storage>
       </prescribed>
     </vector_field>
-    <vector_field name="AdjointVelocityError" rank="1">
+    <vector_field name="MMSEtaAdjointVelocityError" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="AnalyticalAdjointVelocity" material_phase_support="single" source_field_1_type="vector">
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="MMSEtaAnalyticalAdjointVelocity" material_phase_support="single" source_field_1_type="vector">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="MMSUAnalyticalAdjointVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+  from math import sin, cos, pi
+  x = X[0]
+  tau = 10.0 - t
+  return [tau * (10-tau) * (4-tau), 0, 0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_adjoint/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
+    <vector_field name="MMSUAdjointVelocityError" rank="1">
+      <diagnostic>
+        <algorithm name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="MMSUAnalyticalAdjointVelocity" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -543,6 +635,42 @@ if derivative.name == "Fluid::LayerThickness":
   else:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep]}</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
+    <functional name="mms_u">
+      <functional_derivative>
+        <algorithm name="functional_derivative">
+          <string_value type="python" lines="20">import numpy
+from math import sin, cos, pi
+coord  = states[0]["Fluid"].vector_fields["Coordinate"]
+derivative.val[:] = 0.0
+tau = times[-1] - times[n]
+dt = times[1] - times[0]
+  
+if derivative.name == "Fluid::Velocity":
+  for ele in range(coord.ele_count):
+    t = Transform(ele, coord)
+    shape = derivative.ele_shape(ele)
+    mass = t.shape_shape(shape, shape)
+    if tau == 0.0:
+      dJdeta = [tau * (10 - tau) * (4 - tau) for x in coord.remap_ele(ele, derivative.mesh)]
+    else:
+      tauprime = tau - 0.5*dt
+      src_term = (tauprime - 10) * (tauprime - 4) + (tauprime - 10) * tauprime + (tauprime - 4) * tauprime
+      dJdeta = [[src_term*dt, 0, 0] for x in coord.remap_ele(ele, derivative.mesh)]
+    derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, dJdeta))</string_value>
+        </algorithm>
+      </functional_derivative>
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value type="python" lines="20">def dependencies(times, timestep):
+  if timestep == 1:
+    return {"Fluid::Coordinate": [0], 
+            "Fluid::Velocity": [timestep, 0]}
+  else:
+    return {"Fluid::Coordinate": [0],
+            "Fluid::Velocity": [timestep]}</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
