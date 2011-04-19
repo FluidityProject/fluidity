@@ -1067,6 +1067,11 @@
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
 
+      type(adj_storage_data) :: storage_u, storage_eta
+      type(scalar_field), pointer :: eta_ptr
+      type(vector_field), pointer :: u_ptr
+      type(adj_vector) :: u_vec, eta_vec
+
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
@@ -1227,6 +1232,28 @@
         ! We also need to check if these variables will be used
         call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
+
+      if (have_option("/adjoint/replay_forward_run")) then
+        u_ptr => extract_vector_field(states(1), "Velocity")
+        u_vec = field_to_adj_vector(u_ptr)
+        ierr = adj_storage_memory_copy(u_vec, storage_u)
+        call adj_chkierr(ierr)
+        ierr = adj_storage_set_overwrite(storage_u, .true.)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, cartesian_u, storage_u)
+        call adj_chkierr(ierr)
+        call femtools_vec_destroy_proc(u_vec)
+
+        eta_ptr => extract_scalar_field(states(1), "LayerThickness")
+        eta_vec = field_to_adj_vector(eta_ptr)
+        ierr = adj_storage_memory_copy(eta_vec, storage_eta)
+        call adj_chkierr(ierr)
+        ierr = adj_storage_set_overwrite(storage_eta, .true.)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, eta, storage_eta)
+        call adj_chkierr(ierr)
+        call femtools_vec_destroy_proc(eta_vec)
+      end if
 
       ! And that's it!
 #endif
