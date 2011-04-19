@@ -599,6 +599,26 @@ AC_SUBST(FLFEMDEM_PATH)
 AC_SUBST(LIB_FEMDEM)
 AC_SUBST(FEMDEM)
 
+##########################################
+# Are we using OASIS
+##########################################
+ 
+AC_ARG_WITH(psmile,
+    [AC_HELP_STRING([--with-psmile@<:@=psmile_library@:>@],
+    [specify the oasis4 path])])
+if test -n "$with_psmile" ; then
+  FLPSMILE_PATH="${with_psmile}"
+  ENABLE_PSMILE="yes"
+  cat >> confdefs.h << EOF
+#define USING_FEMDEM 1                                                                                                
+EOF
+else
+  FLPSMILE_PATH=""
+  ENABLE_PSMILE=""
+fi
+AC_SUBST(FLPSMILE_PATH)
+AC_SUBST(ENABLE_PSMILE)
+
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
 saved_CC="${CC}"

@@ -170,6 +170,22 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    LD burgers_equation"
 	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
+ifeq (@ENABLE_PSMILE@,yes)
+LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
+bin/test_coupler: fluidity_library main/test_coupler.F90
+	@cd main; $(MAKE) test_coupler.o
+	@echo "BUILD test_coupler"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD test_coupler"
+	@$(EVAL) $(FC) -o bin/test_coupler main/test_coupler.o $(LIBPSMILE) $(FCFLAGS) $(LIBS)
+else
+bin/test_coupler:
+	@echo "     Unable to build bin/test_coupler without psmile libraries"
+	@echo "     Please reconfigure --with-psmile=/path/to/oasis4"
+	exit 1
+endif
+
 bin/multiphase_prototype: fluidity_library
 	@echo "    MAKE multiphase_prototype"
 	@cd legacy_reservoir_prototype; $(MAKE)

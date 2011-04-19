@@ -623,6 +623,8 @@ MPICXX
 MPICC
 MPIF77
 MPIF90
+ENABLE_PSMILE
+FLPSMILE_PATH
 FEMDEM
 LIB_FEMDEM
 FLFEMDEM_PATH
@@ -727,6 +729,7 @@ enable_openmp
 enable_shared
 enable_verbose
 with_femdem
+with_psmile
 enable_mpi
 with_netcdf
 with_ParMetis
@@ -1417,6 +1420,8 @@ Optional Packages:
   --with-lapack-dir=<dir> look for LAPACK library in <dir>
   --with-femdem[=femdem_library]
                           specify the femdem path
+  --with-psmile[=psmile_library]
+                          specify the oasis4 path
   --with-netcdf[=netcdf_ROOT]
                           specify where to find lib/ and include/ for netCDF
   --with-ParMetis=PFX        Prefix where ParMetis is installed
@@ -10960,6 +10965,29 @@ fi
 
 
 
+##########################################
+# Are we using FEMDEM
+##########################################
+
+
+# Check whether --with-psmile was given.
+if test "${with_psmile+set}" = set; then :
+  withval=$with_psmile;
+fi
+
+if test -n "$with_psmile" ; then
+  FLPSMILE_PATH="${with_psmile}"
+  ENABLE_PSMILE="yes"
+  cat >> confdefs.h << EOF
+#define USING_FEMDEM 1
+EOF
+else
+  FLPSMILE_PATH=""
+  ENABLE_PSMILE=""
+fi
+
+
+
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
 saved_CC="${CC}"
@@ -15524,7 +15552,7 @@ do
     "qg_strat/unittests/Makefile") CONFIG_FILES="$CONFIG_FILES qg_strat/unittests/Makefile" ;;
     "tests/lauwerier/Makefile") CONFIG_FILES="$CONFIG_FILES tests/lauwerier/Makefile" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
-    "multiphase/Makefile") CONFIG_FILES="$CONFIG_FILES multiphase/Makefile" ;;
+    "legacy_reservoir_prototype/Makefile") CONFIG_FILES="$CONFIG_FILES legacy_reservoir_prototype/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5 ;;
   esac
