@@ -140,8 +140,8 @@ module copy_outof_into_state
 
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
-      integer :: U_BC_Type, P_BC_Type, SufID_BC_U, SufID_BC_P
-      real :: Suf_BC_U
+      integer :: Velocity_BC_Type, Pressure_BC_Type, Velocity_SufID_BC, Pressure_SufID_BC
+      real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, Pressure_Suf_BC
 
 
 
@@ -297,43 +297,58 @@ module copy_outof_into_state
       ! Others (from read_all())
 
       !!
-      !! All options bellow should be replaced by PETSc options soon, i.e., still at the second part of
+      !! Most of the options below should be replaced by PETSc options soon, i.e., still at the second part of
       !! of the first stage of the integration.  So let's keep as it is for the moment and remove them
       !! as soon as we have all PETSc data structure enabled.
 
-      volfra_relax_number_iterations = 100
+      Conditional_VolumeFraction_Solver: if( have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic' )) then
+         call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+              'solver/max_iterations', volfra_relax_number_iterations )
+         call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+              'solver/relative_error', volfra_error )
+         volfra_relax = 1.
+         volfra_relax_diag = 0.
+         volfra_relax_row = 1.
+      endif Conditional_VolumeFraction_Solver
+
+      Conditional_Pressure_Solver: if( have_option( '/material_phase[0]/scalar_field::Pressure' )) then
+         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations', &
+              pressure_relax_number_iterations )
+         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/solver/relative_error', &
+              pressure_error )
+         pressure_relax = 1.
+         pressure_relax_diag = 0.
+         pressure_relax_row = 1.
+      endif Conditional_Pressure_Solver
+
+      Conditional_Velocity_Solver: if( have_option( '/material_phase[0]/vector_field::Velocity' )) then
+         call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations', &
+              velocity_relax_number_iterations )
+         call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/solver/relative_error', &
+              velocity_error ) 
+         velocity_relax = 1.
+         velocity_relax_diag = 0.
+         velocity_relax_row = 1.
+      end if Conditional_Velocity_Solver
+
       scalar_relax_number_iterations = 100
       global_relax_number_iterations = 100
-      velocity_relax_number_iterations = 100
-      pressure_relax_number_iterations = 4000
       mass_matrix_relax_number_iterations = 100 
 
-      volfra_error = 1.e-5
       scalar_error = 1.e-5
       global_error = 1.e-5
-      velocity_error = 1.e-5
-      pressure_error = 1.e-3
       mass_matrix_error = 1.-5
 
-      volfra_relax = 1.
       scalar_relax = 1.
       global_relax = 1.
-      velocity_relax = 1.
-      pressure_relax = 1.
       mass_matrix_relax = 1. 
 
-      volfra_relax_diag = 0.
       scalar_relax_diag = 0.
       global_relax_diag = 0.
-      velocity_relax_diag = 0.
-      pressure_relax_diag = 0.
       mass_matrix_relax_diag = 0. 
 
-      volfra_relax_row = 1.
       scalar_relax_row = 1.
       global_relax_row = 1.
-      velocity_relax_row = 1.
-      pressure_relax_row = 1.
       mass_matrix_relax_row = 1. 
 
       ! IN/DG_ELE_UPWIND are options for optimisisation of upwinding across faces in the overlapping
@@ -379,40 +394,125 @@ module copy_outof_into_state
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
 
-      Conditional_Velocity_BC: if( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
+      Conditional_Velocity_BC_U: if( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'boundary_conditions[0]/type::dirichlet' )) then
-         U_BC_Type = 1
+
+         Velocity_BC_Type = 1
          call get_option( '/material_phase[0]/vector_field::Velocity/' // &
-              'prognostic/boundary_conditions::/surface_ids', SufID_BC_U )
-         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
-              'prognostic/boundary_conditions::/type::dirichlet/' // &
-              'align_bc_with_cartesian/x_component/constant', Suf_BC_U )
+              'prognostic/boundary_conditions[0]/surface_ids', Velocity_SufID_BC )
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+              'align_bc_with_cartesian/x_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+                 'align_bc_with_cartesian/x_component/constant', Velocity_Suf_BC_U )
+         endif
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+              'align_bc_with_cartesian/y_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+                 'align_bc_with_cartesian/y_component/constant', Velocity_Suf_BC_V )
+         endif
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+              'align_bc_with_cartesian/y_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::dirichlet/' // &
+                 'align_bc_with_cartesian/z_component/constant', Velocity_Suf_BC_W )
+         endif
+
       elseif( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'boundary_conditions[0]/type::neumann' )) then
-         U_BC_Type = 3
+         Velocity_BC_Type = 3
          call get_option( '/material_phase[0]/vector_field::Velocity/' // &
-              'prognostic/boundary_conditions::/surface_ids', SufID_BC_U )
-         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
-              'prognostic/boundary_conditions::/type::neumann/' // &
-              'align_bc_with_cartesian/x_component/constant', Suf_BC_U )
-      endif Conditional_Velocity_BC
+              'prognostic/boundary_conditions[0]/surface_ids', Velocity_SufID_BC )
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::neumann/' // &
+              'align_bc_with_cartesian/x_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::neumann/' // &
+                 'align_bc_with_cartesian/x_component/constant', Velocity_Suf_BC_U )
+         endif
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::neumann/' // &
+              'align_bc_with_cartesian/y_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::neumann/' // &
+                 'align_bc_with_cartesian/y_component/constant', Velocity_Suf_BC_V )
+         endif
+         if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions[0]/type::neumann/' // &
+              'align_bc_with_cartesian/y_component' )) then
+            call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+                 'prognostic/boundary_conditions[0]/type::neumann/' // &
+                 'align_bc_with_cartesian/z_component/constant', Velocity_Suf_BC_W )
+         endif
 
-      Conditional_Pressure_BC:if( have_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+      endif Conditional_Velocity_BC_U
+
+      wic_u_bc = 0
+      wic_u_bc( Velocity_SufID_BC ) = Velocity_BC_Type
+      suf_u_bc = 0.
+      suf_v_bc = 0.
+      suf_w_bc = 0.
+      suf_u_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_U
+      suf_v_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_V
+      suf_w_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_W
+
+      Conditional_Pressure_BC: if( have_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
            'boundary_conditions[0]/type::dirichlet' )) then
-         P_BC_Type = 1
+
+         Pressure_BC_Type = 1
          call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-              'boundary_conditions[0]/surface_ids', SufID_BC_P )
+              'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
          call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet/constant', Suf_BC_P )
+              'boundary_conditions[0]/type::dirichlet/constant', Pressure_Suf_BC )
+
+         wic_p_bc = 0
+         wic_p_bc( Pressure_SufID_BC ) = Pressure_BC_Type
+         suf_p_bc = 0.
+         suf_p_bc( Pressure_SufID_BC ) = Pressure_Suf_BC
+
       endif Conditional_Pressure_BC
 
+      Conditional_Density_BC: if( have_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+           'boundary_conditions[0]/type::dirichlet' )) then
 
-      ! wic_vol_bc
-      ! wic_d_bc
-      ! wic_u_bc
-      ! wic_p_bc
-      ! wic_t_bc
-      ! wic_comp_bc
+         Density_BC_Type = 1
+         call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+              'boundary_conditions[0]/surface_ids', Density_SufID_BC )
+         call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet/constant', Density_Suf_BC )
+
+         wic_d_bc = 0
+         wic_d_bc( Density_SufID_BC ) = Density_BC_Type
+         suf_d_bc = 0.
+         suf_d_bc( Density_SufID_BC ) = Density_Suf_BC
+
+      endif Conditional_Density_BC
+
+
+
+!!!
+!!! Robin Boundary conditions need to be added at a later stage
+!!!
+      suf_u_bc_rob1 = 0.
+      suf_u_bc_rob2 = 0.
+      suf_v_bc_rob1 = 0.
+      suf_v_bc_rob2 = 0.
+      suf_w_bc_rob1 = 0.
+      suf_w_bc_rob2 = 0.
+      suf_t_bc_rob1 = 0.
+      suf_t_bc_rob2 = 0.
+      suf_comp_bc_rob1 = 0.
+      suf_comp_bc_rob2 = 0.
+
+!!!==============================================!!!
+!!! wic_comp_bc ==> These still need to be done  !!!
+!!! suf_comp_bc                                  !!!
+!!!==============================================!!!
+
       ! uabs_option
       ! eos_option
       ! cp_option
@@ -427,16 +527,6 @@ module copy_outof_into_state
       ! suf_w_bc
       ! suf_one_bc
       ! suf_comp_bc
-      ! suf_u_bc_rob1
-      ! suf_u_bc_rob2
-      ! suf_v_bc_rob1
-      ! suf_v_bc_rob2
-      ! suf_w_bc_rob1
-      ! suf_w_bc_rob2
-      ! suf_t_bc_rob1
-      ! suf_t_bc_rob2
-      ! suf_comp_bc_rob1
-      ! suf_comp_bc_rob2
       ! x
       ! y
       ! z
