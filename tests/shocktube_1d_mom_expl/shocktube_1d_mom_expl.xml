@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>shocktube_1d</name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l shocktube.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="max_l2norm_error_pressure" language="python"># maximum l2 error in pressure
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_l2norm_error_pressure=stat['Gas']['PressureError']['l2norm'].max()</variable>
+    <variable name="max_l2norm_error_density" language="python"># maximum l2 error in density
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_l2norm_error_density=stat['Gas']['PressureError']['l2norm'].max()</variable>
+    <variable name="max_l2norm_error_velocity" language="python"># maximum l2 error in velocity
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_l2norm_error_velocity=stat['Gas']['VelocityError%1']['l2norm'].max()</variable>
+    <variable name="max_l2norm_error_internal_energy" language="python"># maximum l2 error in internal energy
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_l2norm_error_internal_energy=stat['Gas']['InternalEnergyError']['l2norm'].max()</variable>
+    <variable name="max_error_pressure" language="python"># maximum error in pressure
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_error_pressure=max(stat['Gas']['PressureError']['max'].max(),-stat['Gas']['PressureError']['min'].min())</variable>
+    <variable name="max_error_density" language="python"># maximum error in density
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_error_density=max(stat['Gas']['DensityError']['max'].max(),-stat['Gas']['DensityError']['min'].min())</variable>
+    <variable name="max_error_velocity" language="python"># maximum error in velocity
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_error_velocity=max(stat['Gas']['VelocityError%1']['max'].max(),-stat['Gas']['VelocityError%1']['min'].min())</variable>
+    <variable name="max_error_internal_energy" language="python"># maximum error in internal energy
+from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+max_error_internal_energy=max(stat['Gas']['InternalEnergyError']['max'].max(),-stat['Gas']['InternalEnergyError']['min'].min())</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+  <variable name="end_time" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('shocktube.stat')
+end_time=stat['ElapsedTime']['value'][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="check_max_l2norm_error_pressure" language="python">assert(max_l2norm_error_pressure&lt;0.1)</test>
+    <test name="check_max_l2norm_error_density" language="python">assert(max_l2norm_error_density&lt;0.1)</test>
+    <test name="check_max_l2norm_error_velocity" language="python">assert(max_l2norm_error_velocity&lt;0.2)</test>
+    <test name="check_max_l2norm_error_internal_energy" language="python">assert(max_l2norm_error_internal_energy&lt;0.2)</test>
+    <test name="check_max_error_pressure" language="python">assert(max_error_pressure&lt;0.4)</test>
+    <test name="check_max_error_density" language="python">assert(max_error_density&lt;0.4)</test>
+    <test name="check_max_error_velocity" language="python">assert(max_error_velocity&lt;0.8)</test>
+    <test name="check_max_error_internal_energy" language="python">assert(max_error_internal_energy&lt;1.0)</test>
+    <test name="check_solvers_converged" language="python">assert solvers_converged</test>
+    <test name="check_end_time" language="python">assert end_time &gt; 0.0999</test>
+  </pass_tests>
+</testproblem>
