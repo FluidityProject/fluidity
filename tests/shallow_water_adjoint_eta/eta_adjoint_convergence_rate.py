@@ -33,8 +33,7 @@ def test_convergence(statfiles, fields, tol):
           return False
   return True      
 
-def test_convergence_rates(tol, pattern):
-  fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
+def test_convergence_rates(tol, pattern, fields):
   statfiles = sorted(glob.glob(pattern))
   res = test_convergence(statfiles, fields, tol)
   return res
@@ -48,8 +47,7 @@ def print_convergence(statfiles, fields):
         continue
       print statfiles[i-1], " : ", statfiles[i], ' ', get_convergence(statfiles[i-1], statfiles[i], field)
 
-def print_convergence_rates(pattern):
-  fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
+def print_convergence_rates(pattern, fields):
   print ""
   print " =============== Time decreasing, mesh resolution increasing ================"
   statfiles = sorted(glob.glob(pattern))

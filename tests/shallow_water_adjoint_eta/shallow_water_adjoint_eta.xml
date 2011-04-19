@@ -10,8 +10,8 @@
   <variables>
     <variable name="passed" language="python">
 import eta_adjoint_convergence_rate as convergence_rate
-convergence_rate.print_convergence_rates("wave_[A-E].stat")
-passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E].stat")
+convergence_rate.print_convergence_rates("wave_[A-E]_adjoint_mms_eta.stat", ["AdjointLayerThicknessError"])
+passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E]_adjoint_mms_eta.stat", ["AdjointLayerThicknessError"])
     </variable>
     <variable name="functional_convergence" language="python">
 import numpy
