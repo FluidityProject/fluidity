@@ -140,7 +140,10 @@ module copy_outof_into_state
 
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
-      
+      integer :: U_BC_Type, P_BC_Type, SufID_BC_U, SufID_BC_P
+      real :: Suf_BC_U
+
+
 
       !! Finish declaration of variables needed from user input
 
@@ -351,34 +354,58 @@ module copy_outof_into_state
 
       Viscosity( 1 : cv_nonods ) = Viscosity_Ph1
       Viscosity( cv_nonods + 1 : cv_nonods * nphase ) = Viscosity_Ph2
+
+      ! Maybe should be worthy to add Mobility to schema and Viscosity_Ph2 become a prognostic field
       Mobility = Viscosity_Ph1 / Viscosity_Ph2
 
 !!!
 !!! Options bellow are for the multi-component flow model, still needed to be added into the schema
 !!! 
-       alpha_beta = 1.
-       KComp_Sigmoid = .true. 
-       Comp_Sum2One = .false.
+      alpha_beta = 1.
+      KComp_Sigmoid = .true. 
+      Comp_Sum2One = .false.
 
 !!!
 !!! Porosity and Permeability: it may be neecessary to change the permeability as it
 !!! is defined in the PC as a tensor with dimension ( totele, ndim, ndim )in
 !!!
-       call get_option( '/porous_media/scalar_field::Porosity/prescribed/' // &
-                        'value::WholeMesh/constant', volra_pore )
+      call get_option( '/porous_media/scalar_field::Porosity/prescribed/' // &
+           'value::WholeMesh/constant', volfra_pore )
 
-       call get_option( '/porous_media/scalar_field::Permeability/prescribed/' // &
-                        'value::WholeMesh/constant', perm )
+      call get_option( '/porous_media/scalar_field::Permeability/prescribed/' // &
+           'value::WholeMesh/constant', perm )
 
 !!!
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
 
-       if( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
-                        'boundary_conditions[0]/type::dirichlet' )
-          call get_option( '/material_phase[0]/vector_field::Velocity/' // &
-                        'prognostic/boundary_conditions::/surface_ids', nodes )
-       endif
+      Conditional_Velocity_BC: if( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'boundary_conditions[0]/type::dirichlet' )) then
+         U_BC_Type = 1
+         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions::/surface_ids', SufID_BC_U )
+         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions::/type::dirichlet/' // &
+              'align_bc_with_cartesian/x_component/constant', Suf_BC_U )
+      elseif( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'boundary_conditions[0]/type::neumann' )) then
+         U_BC_Type = 3
+         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions::/surface_ids', SufID_BC_U )
+         call get_option( '/material_phase[0]/vector_field::Velocity/' // &
+              'prognostic/boundary_conditions::/type::neumann/' // &
+              'align_bc_with_cartesian/x_component/constant', Suf_BC_U )
+      endif Conditional_Velocity_BC
+
+      Conditional_Pressure_BC:if( have_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+           'boundary_conditions[0]/type::dirichlet' )) then
+         P_BC_Type = 1
+         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+              'boundary_conditions[0]/surface_ids', SufID_BC_P )
+         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet/constant', Suf_BC_P )
+      endif Conditional_Pressure_BC
+
 
       ! wic_vol_bc
       ! wic_d_bc
