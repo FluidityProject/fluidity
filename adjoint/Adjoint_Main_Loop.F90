@@ -138,7 +138,7 @@ module adjoint_main_loop
         ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
         call adj_chkierr(ierr)
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=start_time)
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
@@ -202,8 +202,6 @@ module adjoint_main_loop
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                       !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
-                      ewrite(1,*) "Scalar field: ", trim(sfield_soln%name)
-                      ewrite(1,*) sfield_soln%val
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
