@@ -1056,15 +1056,9 @@
             ! finally update diagnostic velocities for phases with prognostic momentum
             diagnostic_velocity_loop: do istate=1, size(state)
                if (have_prognostic_momentum(istate)) then
-                  momentum => extract_vector_field(state(istate), "Momentum")
-                  ! at the moment a diagnostic velocity is required
-                  u => extract_vector_field(state(istate), "Velocity")
-                  ! a density is also required
-                  density => extract_scalar_field(state(istate), "Density")
-                  ! at the moment they need to be on the same mesh
-                  do i=1, u%dim
-                     u%val(i,:)=momentum%val(i,:)/density%val
-                  end do
+                 ! we've checked above that velocity is diagnostic (TODO: should move to options check)
+                 u => extract_vector_field(state(istate), "Velocity")
+                 call calculate_diagnostic_velocity(state(istate), u)
                end if
             end do diagnostic_velocity_loop
 

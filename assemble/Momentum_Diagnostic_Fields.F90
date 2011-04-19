@@ -428,6 +428,29 @@ contains
 
   end subroutine calculate_diagnostic_pressure
 
+  subroutine calculate_diagnostic_velocity(state, velocity)
+    ! diagnostic Velocity, only for compressible with prognostic Momentum
+    ! calculated simply by Velocity=Momentum/Density
+    type(state_type), intent(inout):: state
+    type(vector_field), intent(inout):: u
+
+      momentum => extract_vector_field(state(istate), "Momentum")
+      ! a density is also required
+      density => extract_scalar_field(state(istate), "Density")
+
+      if (have_option(trim(u%option_path)//"/diagnostic/solver")) then
+        
+        call allocate(velocity_mass, 
+      end if
+
+      call allocate(proj_rhs, u%dim, u%mesh, "DiagnosticVelocityProjectionRHS")
+
+      do ele=1, element_count(u)
+        call 
+
+ 
+  end subroutine calculate_diagnostic_velocity
+
   subroutine momentum_diagnostics_fields_check_options
 
     character(len=OPTION_PATH_LEN):: phase_path
