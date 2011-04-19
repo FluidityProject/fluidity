@@ -48,7 +48,6 @@ def print_convergence(statfiles, fields):
         continue
       print statfiles[i-1], " : ", statfiles[i], ' ', get_convergence(statfiles[i-1], statfiles[i], field)
 
-
 def print_convergence_rates(pattern):
   fields = ["AbsErrorVelocity%1", "AbsErrorLayerThickness"]
   print ""

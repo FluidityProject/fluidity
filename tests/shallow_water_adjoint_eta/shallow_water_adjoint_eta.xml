@@ -35,7 +35,7 @@ for i in range(len(sims)-1):
 assert passed
     </test>
     <test name="functional_convergence" language="python">
-for order in functional_convergence:
+for order in functional_convergence[1:]:
   assert order &gt; 2.0
     </test>
   </pass_tests>
