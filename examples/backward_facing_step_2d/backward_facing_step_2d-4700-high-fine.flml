@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_C</string_value>
+    <string_value lines="1">backward_facing_step_2d-high-fine</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,16 +11,16 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
+      <from_file file_name="step2d-fine">
+        <format name="triangle"/>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
-      </from_mesh>
+      </from_file>
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
-        <mesh name="InputMesh"/>
+        <mesh name="CoordinateMesh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -28,23 +28,15 @@
     </mesh>
     <mesh name="PressureMesh">
       <from_mesh>
-        <mesh name="InputMesh"/>
+        <mesh name="CoordinateMesh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="InputMesh">
-      <from_file file_name="MMS_C">
-        <format name="triangle"/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </from_file>
-    </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -54,16 +46,10 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">100</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">1000</integer_value>
-      </checkpoint_period_in_dumps>
-      <checkpoint_at_end/>
-    </checkpointing>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -71,13 +57,14 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.00001</real_value>
-      <comment>gives a max cfl number of 0.1</comment>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
-      <comment>10.0</comment>
+      <real_value rank="0">300.0</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">1.0</real_value>
@@ -88,21 +75,15 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-4</real_value>
+        <real_value rank="0">1.e-5</real_value>
         <infinity_norm/>
       </tolerance>
+      <steady_state_file>
+        <plain_text_output/>
+      </steady_state_file>
     </steady_state>
   </timestepping>
-  <material_phase name="NS">
-    <equation_of_state>
-      <fluids>
-        <linear>
-          <reference_density>
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
+  <material_phase name="Fluid">
     <subgridscale_parameterisations>
       <k-epsilon>
         <scalar_field name="TurbulentKineticEnergy" rank="0">
@@ -156,35 +137,26 @@
               </diagnostics>
             </solver>
             <initial_condition name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.tke(X)</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">1.e-4</real_value>
+              </constant>
             </initial_condition>
-            <boundary_conditions name="intopbottom">
+            <boundary_conditions name="inflow">
               <surface_ids>
-                <integer_value shape="3" rank="1">7 8 9</integer_value>
+                <integer_value shape="1" rank="1">9</integer_value>
               </surface_ids>
               <type name="dirichlet">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.tke(X)</string_value>
-                </python>
+                <constant>
+                  <real_value rank="0">1.e-4</real_value>
+                </constant>
               </type>
             </boundary_conditions>
-            <boundary_conditions name="out">
+            <boundary_conditions name="walls">
               <surface_ids>
-                <integer_value shape="1" rank="1">10</integer_value>
+                <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
-              <type name="neumann">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_tke(X)[0]</string_value>
-                  <comment>Take normal component of gradient</comment>
-                </python>
+              <type name="k_epsilon">
+                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -192,25 +164,19 @@
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat>
-                  <include_in_stat/>
+                  <exclude_from_stat/>
                 </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <python>
-                    <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_k(X)</string_value>
-                  </python>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
               <diagnostic>
@@ -287,34 +253,26 @@
               </diagnostics>
             </solver>
             <initial_condition name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.eps(X)</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">1.e-6</real_value>
+              </constant>
             </initial_condition>
-            <boundary_conditions name="intopbottom">
+            <boundary_conditions name="inflow">
               <surface_ids>
-                <integer_value shape="3" rank="1">7 8 9</integer_value>
+                <integer_value shape="1" rank="1">9</integer_value>
               </surface_ids>
               <type name="dirichlet">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.eps(X)</string_value>
-                </python>
+                <constant>
+                  <real_value rank="0">1.e-6</real_value>
+                </constant>
               </type>
             </boundary_conditions>
-            <boundary_conditions name="out">
+            <boundary_conditions name="walls">
               <surface_ids>
-                <integer_value shape="1" rank="1">10</integer_value>
+                <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
-              <type name="dirichlet">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.eps(X)</string_value>
-                </python>
+              <type name="k_epsilon">
+                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -322,25 +280,19 @@
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat>
-                  <include_in_stat/>
+                  <exclude_from_stat/>
                 </stat>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <python>
-                    <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_eps(X)</string_value>
-                  </python>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
               <diagnostic>
@@ -372,7 +324,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">5.e-7</real_value>
+                  <real_value rank="0">3.4e-4</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -383,9 +335,7 @@
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
               <exclude_from_stat/>
             </stat>
@@ -395,9 +345,7 @@
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
               <exclude_from_stat/>
             </stat>
@@ -416,7 +364,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -448,15 +396,15 @@
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
-            <string_value lines="1">never</string_value>
+            <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
           <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.E-7</real_value>
+            <real_value rank="0">1.0E-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -466,21 +414,7 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="allsides">
-          <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <python>
-              <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.pressure(X)</string_value>
-            </python>
-          </type>
-        </boundary_conditions>
-        <output>
-          <include_previous_time_step/>
-        </output>
+        <output/>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -491,34 +425,13 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <no_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output>
-          <exclude_from_vtu/>
-        </output>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="LinearMomentum"/>
+        <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
@@ -533,7 +446,7 @@
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -552,7 +465,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.E-7</real_value>
+            <real_value rank="0">1.0E-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -567,48 +480,51 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="intopbottom">
+        <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="3" rank="1">7 8 9</integer_value>
+            <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)[0]</string_value>
+                  <string_value lines="20" type="python">def val(X, t):
+   from math import log
+   Z=X[1]-1.0
+   if X[1]&gt;1.5:
+     Z=2.0-X[1]
+   d=0.1
+   if Z&gt;=d:
+      u=log(Z/d)
+   else:
+      u=0.0
+   return u</string_value>
+                  <comment>Log profile on upper and lower channel walls.</comment>
                 </python>
               </x_component>
               <y_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)[1]</string_value>
-                </python>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
               </y_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="out">
+        <boundary_conditions name="walls">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
-          <type name="neumann">
+          <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_u(X)[0]</string_value>
-                </python>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
               </x_component>
               <y_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_v(X)[0]</string_value>
-                </python>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
               </y_component>
             </align_bc_with_cartesian>
           </type>
@@ -616,35 +532,13 @@
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
-            <stat>
-              <exclude_from_stat/>
-            </stat>
-          </diagnostic>
-        </tensor_field>
-        <vector_field name="Source" rank="1">
-          <prescribed>
-            <value name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_mom(X)</string_value>
-              </python>
-            </value>
             <output/>
             <stat>
               <include_in_stat/>
             </stat>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-        </vector_field>
-        <output>
-          <include_previous_time_step/>
-        </output>
+          </diagnostic>
+        </tensor_field>
+        <output/>
         <stat>
           <include_in_stat/>
           <previous_time_step>
@@ -663,6 +557,26 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adaptivity_options>
+          <absolute_measure>
+            <vector_field name="InterpolationErrorBound" rank="1">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value shape="2" dim1="dim" rank="1">0.01 0.01</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </vector_field>
+          </absolute_measure>
+        </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
@@ -679,82 +593,9 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.pressure(X)</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <relative_to_average/>
-      </diagnostic>
-    </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </vector_field>
-    <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
   </material_phase>
 </fluidity_options>
