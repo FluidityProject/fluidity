@@ -1505,7 +1505,10 @@ start =
                   }|
                   element diagnostic {
                      velocity_mesh_choice,
-                     vector_python_diagnostic_algorithm,
+                     (
+                        internal_algorithm|
+                        vector_python_diagnostic_algorithm
+                     ),
                      diagnostic_vector_field
                   }|                  
                   element aliased {

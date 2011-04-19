@@ -1894,7 +1894,10 @@ via a compressible equation of state.</a:documentation>
               </element>
               <element name="diagnostic">
                 <ref name="velocity_mesh_choice"/>
-                <ref name="vector_python_diagnostic_algorithm"/>
+                <choice>
+                  <ref name="internal_algorithm"/>
+                  <ref name="vector_python_diagnostic_algorithm"/>
+                </choice>
                 <ref name="diagnostic_vector_field"/>
               </element>
               <element name="aliased">
