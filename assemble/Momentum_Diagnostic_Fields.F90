@@ -434,21 +434,46 @@ contains
     type(state_type), intent(inout):: state
     type(vector_field), intent(inout):: u
 
-      momentum => extract_vector_field(state(istate), "Momentum")
-      ! a density is also required
-      density => extract_scalar_field(state(istate), "Density")
+    positions => extract_vector_field(state, "Coordinate")
+    ! there must be a prognostic momentum
+    momentum => extract_vector_field(state, "Momentum")
+    ! a density is also required
+    density => extract_scalar_field(state, "Density")
 
-      if (have_option(trim(u%option_path)//"/diagnostic/solver")) then
-        
-        call allocate(velocity_mass, 
-      end if
+    call allocate(proj_rhs, u%dim, u%mesh, "DiagnosticVelocityProjectionRHS")
+    call zero(proj_rhs)
 
-      call allocate(proj_rhs, u%dim, u%mesh, "DiagnosticVelocityProjectionRHS")
+    allocate(detwei(1:u%mesh%shape%quadrature%ngi))
+    do ele=1, element_count(u)
+      call transform_to_physical(positions, ele, detwei)
+      call addto(proj_rhs, ele_nodes(proj_rhs, ele), shape_vector_rhs(ele_shape(u,ele), &
+          ele_val_at_quad(momentum, ele)/ele_val_at_quad(density, ele), detwei))
+    end do
 
-      do ele=1, element_count(u)
-        call 
+    if (mesh_continuity(u)<0) then
+    else if (have_option(trim(u%option_path)//"/diagnostic/solver")) then
+      mass => get_mass_matrix(state, u%mesh)
+      call petsc_solve(u, mass, proj_rhs)
+    else
+    end if
 
- 
+    contains
+
+    subroutine calculate_diagnostic_velocity_dg_ele(ele)
+      integer, intent(in):: ele
+      real, dimension(ele_loc(u, ele), ele_loc(u, ele)):: local_mass
+      real, dimension(u%dim, ele_loc(u, ele)):: local_rhs
+      real, dimension(ele_ngi(u, ngi)):: detwei
+
+
+      call transform_to_physical(positions, ele, detwei)
+      local_rhs=shape_vector_rhs(ele_shape(u, ele),  &
+          ele_val_at_quad(momentum, ele)/ele_val_at_quad(density, ele), detwei)
+
+      call solve(mass, local_rhs)
+      
+    end subroutine calculate_diagnostic_velocity_dg_ele
+
   end subroutine calculate_diagnostic_velocity
 
   subroutine momentum_diagnostics_fields_check_options
