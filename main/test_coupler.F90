@@ -49,12 +49,11 @@ program test_coupler
   use parallel_tools
   implicit none
 
-!#ifdef HAVE_PETSC
-!#include "finclude/petsc.h"
-!#endif
-
   type(state_type), dimension(:), pointer :: state
-  integer :: ierr, stat
+  integer :: ierr, stat, tracer_id
+
+  Type(PRISM_time_struct) :: model_time
+  Type(PRISM_time_struct),dimension(2) :: model_time_bounds
 
   !Coupler specific declarations
   integer :: comp_id, localComm
@@ -63,50 +62,60 @@ program test_coupler
      subroutine set_global_debug_level(n)
        integer, intent(in) :: n
      end subroutine set_global_debug_level
-     
   end interface
 
   call python_init()
   call read_command_line()
 
-  !Initialise PRISM. If coupled, do not mpi_init.
-  call prism_init('source', ierr)
-  call prism_init_comp(comp_id,'source', ierr)
+  if (have_option("/coupling")) then
 
-  !Get communicator from OASIS and set as the communicator for femtools.
-  call prism_get_localcomm(comp_id, localComm, ierr)
-  call set_communicator(localComm)
+     !Initialise PRISM. If coupled, do not mpi_init.
+     call prism_init('source', ierr)
+     call prism_init_comp(comp_id,'source', ierr)
 
-  !Necessary despite no time dependence
-  call set_option("/timestepping/current_time", 0.0, stat=stat) 
+     !Get communicator from OASIS and set as the communicator for femtools.
+     call prism_get_localcomm(comp_id, localComm, ierr)
+     call set_communicator(localComm)
 
-  call populate_state(state)
+     call populate_state(state)
+     call gen_def_grid(state, comp_id, tracer_id)
 
-  call execute_coupling(state, comp_id)
+     !Initialise OASIS4 time variable
+     model_time = PRISM_jobstart_date
+     model_time_bounds = PRISM_jobstart_date
+     call PRISM_calc_newdate(model_time_bounds(1), -43200.0, ierr)
+     call PRISM_calc_newdate(model_time_bounds(2), +43200.0, ierr)
+
+  else
+
+     call mpi_init(ierr)
+     call populate_state(state)
+
+  end if
+
+  !Necessary despite no time dependence, suppresses error/warning
+  call set_option("/timestepping/current_time", 0.0, stat=stat)
+
+  call interpolate_to_grid(state)
+  call execute_coupling(state, tracer_id, model_time, model_time_bounds)
 
   call prism_terminate(ierr)
 
 contains
 
-  subroutine execute_coupling(state, comp_id)
-    type(state_type), dimension(:), intent(in) :: state
+  subroutine gen_def_grid(state, comp_id, tracer_id)
+    type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: comp_id
+    integer, intent(out) :: tracer_id
 
     integer :: ierr
-    integer :: grid_id, method_id, mask_id, tracer_id, info
+    integer :: grid_id, method_id, mask_id, info
     integer, dimension(2,3) :: local_shape
-
-    !The tracer we are coupling
-    type(scalar_field), pointer :: T_src
 
     !The tracer field on the target mesh
     type(scalar_field) :: T_tgt
 
-    !Coordinate fields for source and target
-    type(vector_field), pointer :: X_src
     type(vector_field) :: X_tgt_Q1, X_tgt_Q0
-
-    type(mesh_type), pointer :: Mesh_src
     type(mesh_type) :: Mesh_tgt_Q1, Mesh_tgt_Q0
 
     integer, dimension(3) :: struct_sizes
@@ -115,16 +124,10 @@ contains
     real, dimension(:), allocatable :: points_lon, points_lat, points_vrt
     real, dimension(:,:), allocatable :: corners_lon, corners_lat, corners_vrt
     logical, dimension(:,:,:), allocatable :: mask
-    real, dimension(:,:,:), allocatable :: Tracer_coupler
 
     integer :: num_nodes, num_elements, i1, i2, i3, i4, i5
     type(quadrature_type) :: tgt_quad
     type(element_type) :: tgt_shape
-
-    Type(PRISM_time_struct) :: model_time
-    Type(PRISM_time_struct), dimension(2) :: model_time_bounds
-
-    write(*,*) "in execute coupling"
 
     call create_structured_grid(lon_data, lat_data, vrt_data)
 
@@ -134,95 +137,46 @@ contains
 
     call data_to_corners(lon_data,lat_data,vrt_data,corners_lon,corners_lat,corners_vrt)
 
-    write(*,*) "lon_data", lon_data
-    write(*,*) "lat_data", lat_data
-
-    write(*,*) "points_lon", points_lon
-    write(*,*) "points_lat", points_lat
-
-    write(*,*) "corners_lon", corners_lon
-    write(*,*) "corners_lat", corners_lat
-
-    !Done
-
     !Define grid to OASIS
 
     call define_local_shape(local_shape)
 
     call define_mask(mask)
 
-    write(*,*) "about to define grid"
-
     call prism_def_grid( grid_id, "GRID", comp_id, local_shape, &
          PRISM_reglonlatvrt, ierr)
-
-    write(*,*) "about to define points"
 
     call prism_set_points (method_id, "points", grid_id, local_shape, &
          points_lon, points_lat, points_vrt, .true., ierr)
 
-    write(*,*) "about to define corners"
-
     call prism_set_corners (grid_id, 8, local_shape, &
          corners_lon, corners_lat, corners_vrt, ierr)
 
-    write(*,*) "about to define mask"
-
     call prism_set_mask(mask_id, grid_id, local_shape, mask, .true., ierr)
-
-    write(*,*) "about to define variable"
 
     call prism_def_var (tracer_id, "field_ou", grid_id, method_id, mask_id, (/3,0/), &
          local_shape, PRISM_Double_Precision, ierr)
 
-    write(*,*) "about to end definition phase"
-
     call prism_enddef(ierr)
-
-    T_src=>extract_scalar_field(state,"Tracer")
-    X_src=>extract_vector_field(state,"Coordinate")
-
-!    Mesh_tgt_Q1=>extract_mesh(state,"StructuredMesh")
-    Mesh_src=>extract_mesh(state,"CoordinateMesh")
-
-!    call allocate(T_tgt, Mesh_tgt_Q1, name="Tracer_tgt")
-
-!    X_tgt_Q1 = get_coordinate_field(state(1),Mesh_tgt_Q1)
-
-   !Dump .vtu files for visualisation
-!    call vtk_write_fields("source", position=X_src, model=Mesh_src, &
-!         sfields=(/ T_src /))
-!    call vtk_write_fields("target", position=X_tgt_Q1, model=Mesh_tgt_Q1, &
-!         sfields=(/ T_tgt /))
 
     !-----------------------------------------------------
     !- Here we define the mesh_type for a Q1 mesh
-
+    !- this is then used to generate Q0 mesh.
     tgt_quad = make_quadrature(4,2,degree=1,stat=stat)
-
-    write(*,*) "stat", stat
 
     tgt_shape = make_element_shape(4,2,1,tgt_quad, stat=stat)
 
-    write(*,*) "stat", stat
-
     call grid_counts(num_nodes, num_elements)
-
-    write(*,*) "num_nodes", num_nodes
-    write(*,*) "num_elements", num_elements
 
     call allocate(Mesh_tgt_Q1, num_nodes, num_elements, tgt_shape, "StructuredMeshQ1" )
 
     !READ struct_sizes FROM DIAMOND HERE                                                                                                                                                                                                   
     struct_sizes = (/ 5 , 5 , 1 /)
 
-    write(*,*) "Setting element nodes"
     do i1 = 1, num_elements
        i2 = i1 + floor(float(i1-1)/(struct_sizes(1)))
        call set_ele_nodes(Mesh_tgt_Q1, i1, (/ i2, i2+1, i2+struct_sizes(1)+1, i2+struct_sizes(1)+2  /) )
-       write(*,*) i1, i2
     end do
-    write(*,*) "Done setting element nodes"
     
     call allocate(X_tgt_Q1, 2, Mesh_tgt_Q1, name="StructuredMeshQ1Coordinate")
 
@@ -242,20 +196,15 @@ contains
           i5 = 2
        end if
 
-       write(*,*) i3, i1, i4, i2, i5
        call set(X_tgt_Q1,i3,(/ corners_lon(i1,i4), corners_lat(i2,i5) /) )
     end do
 
-    write(*,*) "Done with Q1 mesh"
     !- Done Q1 mesh, SructuredMesh with StructuredMeshCoordinate
-    !-----------------------------------------------------
-
     !-----------------------------------------------------
     !- Define Q0 mesh from Q1 mesh
 
     !Shape of Q0 elements
     tgt_shape = make_element_shape(4,2,0,tgt_quad, stat=stat)
-    write(*,*) "stat of make_element_shape for Q0", stat
     !Q0 mesh derived from Q1.
     Mesh_tgt_Q0 = make_mesh(Mesh_tgt_Q1 , shape=tgt_shape, continuity=-1, name="StructuredMeshQ0")
 
@@ -265,53 +214,70 @@ contains
     !Set nodal coordinates for each node
     !(note that num_nodes = num_elements for Q0 mesh)
     ! The center of each element.
-    write(*,*) "setting nodal positions of Q0 mesh"
     do i3 = 1, num_elements
        i1 = mod(i3,struct_sizes(1))
        if (i1 == 0) i1 = struct_sizes(1)
 
        i2 = floor((float(i3)-1) / struct_sizes(1) ) + 1
-       write(*,*) i3, i1, i2
        call set(X_tgt_Q0,i3,(/ points_lon(i1), points_lat(i2) /) )
     end do
-    write(*,*) "Done setting nodal positions of Q0 mesh"
+
     !- Done Q0 mesh, StructuredMeshQ0 with StructuredMeshQ0Coordinates
     !---------------------------------------------------------
 
     call allocate(T_tgt, Mesh_tgt_Q0, name="GridTracer")
-    write(*,*) "done allocate GridTracer to StructuredMeshQ0"
+
+    call insert(state,T_tgt,name="Tracer_tgt")
+    call insert(state,X_tgt_Q0,name="Coordinate_tgt")
+
+  end subroutine gen_def_grid
+
+  subroutine interpolate_to_grid(state)
+    type(state_type), dimension(:), intent(inout) :: state
+
+    !The tracer we are coupling
+    type(scalar_field), pointer :: T_src
+
+    !The tracer field on the target mesh
+    type(scalar_field), pointer :: T_tgt
+
+    !Coordinate fields for source and target
+    type(vector_field), pointer :: X_src
+    type(vector_field), pointer :: X_tgt_Q0
+
+    T_src=>extract_scalar_field(state,"Tracer")
+    X_src=>extract_vector_field(state,"Coordinate")
+
+    T_tgt=>extract_scalar_field(state,"Tracer_tgt")
+    X_tgt_Q0=>extract_scalar_field(state,"Coordinate_tgt")
 
     !Perform linear interpolation to structured mesh
     call linear_interpolation(T_src, X_src, T_tgt, X_tgt_Q0)
 
-    write(*,*) "Done interpolation"
+  end subroutine interpolate_to_grid
 
-    call vtk_write_fields("source", position=X_src, model=Mesh_src, &
-         sfields=(/ T_src /))
+  subroutine execute_coupling(state, tracer_id, model_time, model_time_bounds)
+    type(state_type), dimension(:), intent(inout) :: state
 
-    write(*,*) "done source.vtu"
+    integer, intent(in) :: tracer_id
+    Type(PRISM_time_struct), intent(in) :: model_time
+    Type(PRISM_time_struct), dimension(2), intent(in) :: model_time_bounds
 
-    call vtk_write_fields("target", position=X_tgt_Q1, model=Mesh_tgt_Q1, &
-         sfields=(/ T_tgt /))
+    integer :: ierr, info
 
-!    call vtk_write_fields("target2", position=X_tgt_Q1, model=Mesh_tgt_Q0, sfields=(/ T_tgt /))
+    !The tracer field on the target mesh
+    type(scalar_field), pointer :: T_tgt
 
-    write(*,*) "done target.vtu"
+    real, dimension(:,:,:), allocatable :: Tracer_coupler
 
-    model_time = PRISM_jobstart_date
-    model_time_bounds = PRISM_jobstart_date
 
-    call PRISM_calc_newdate(model_time_bounds(1), -43200.0, ierr)
-    call PRISM_calc_newdate(model_time_bounds(2), +43200.0, ierr)
+
+    T_tgt=>extract_scalar_field(state,"Tracer_tgt")
 
     call set_coupler_variable_from_field(Tracer_coupler,T_tgt)
 
-    write(*,*) "about to prism_put"
-
     call prism_put(tracer_id, model_time, model_time_bounds, &
          Tracer_coupler, info, ierr)
-
-!    call deallocate(T_tgt)
 
   end subroutine execute_coupling
 
@@ -518,8 +484,6 @@ subroutine data_to_corners(lon_data,lat_data,vrt_data,corners_lon,corners_lat,co
     allocate(Tracer_coupler(struct_sizes(1),struct_sizes(2),struct_sizes(3)))
 
     Tracer_coupler = 2.3
-
-    write(*,*) T_tgt%val
 
     Tracer_coupler = reshape(T_tgt%val, (/ struct_sizes(1), struct_sizes(2), struct_sizes(3) /) )
 
