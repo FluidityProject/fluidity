@@ -278,10 +278,6 @@ prognostic_scalar_field =
       adaptivity_options_prognostic_scalar_field,
       interpolation_algorithm_scalar,
       discrete_properties_algorithm_scalar?,
-      ## Flag to recognise multiphase components
-      element is_multiphase_component {
-         comment
-      }?,
       ## Set the priority of this field
       ## This determines the order in which scalar_fields are solved for:
       ##  - higher numbers have the highest priority
