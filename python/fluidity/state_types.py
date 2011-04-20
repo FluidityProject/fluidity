@@ -306,7 +306,7 @@ class Transform:
           J[:,0] = numpy.dot(X, element.dn[:,gi,0])
           det = numpy.linalg.norm(J[:,0])
           self.detwei[gi] = det * element.quadrature.weights[gi]
-          self.set_J(numpy.transpose(J),gi)
+          self.set_J(J,gi)
 
       # 1-dim element embedded in 'dim'-dimensional space:
       elif(ldim==2):
@@ -333,16 +333,20 @@ class Transform:
 
     # Create a new object with the same values of 
     newshape = copy.copy(shape)
-    newshape.dn = numpy.zeros((shape.loc,shape.ngi,shape.dimension))
-  
-    for gi in range(self.field.mesh.shape.ngi):
-      #self.grad(i,field.mesh.shape)
+    newshape.dn = numpy.zeros((shape.loc,shape.ngi,self.field.dimension))
 
-      for i in range(shape.loc):
-        a = numpy.array(self.invJ[gi]*(numpy.transpose(shape.dn[i,gi])))
-        newshape.dn[i,gi,:] = numpy.array(a.reshape(1,shape.dimension)[0])
-  
-      #self.gradient = newshape.dn
+    for gi in range(self.field.mesh.shape.ngi):
+      if (shape.dimension == self.field.dimension):
+        for i in range(shape.loc):
+          a = numpy.array(numpy.dot(shape.dn[i,gi], self.invJ[gi]))
+          newshape.dn[i,gi,:] = a
+      else:
+        if shape.dimension == 1:
+          invdetJ = 1.0/numpy.linalg.norm(self.J[gi][0,:])
+          for i in range(shape.loc):
+            newshape.dn[i,gi,:] = numpy.dot(self.J[gi], shape.dn[i, gi, :] * invdetJ)
+        else:
+          raise Exception, "Sorry, haven't worked out how to do this yet"
     return newshape
 
 
@@ -362,19 +366,20 @@ class Transform:
   def shape_dshape(self,shape,dshape):
     # For each node in element shape and transformed gradient dshape
     # calculate the coefficient of the integral int(shape dshape)dV
-    
+
     # The dimensions of dshape are: (nodes, gauss points, dimensions)
 
     # dshape is usually the element returned by calling element.grad()
-    
+
     # dshape_loc = size(self.gradient)
     dshape_loc = len(dshape.dn)
+    dshape_dim = dshape.dn.shape[2]
     field = self.field
-    
-    shape_dshape = numpy.array([ [ numpy.zeros(field.mesh.shape.dimension) for inner in range(field.mesh.shape.loc) ] for outer in range(dshape_loc)])
+
+    shape_dshape = numpy.zeros((shape.loc, dshape_loc, dshape_dim))
     for i in range(shape.loc):
       for j in range(dshape_loc):
-        shape_dshape[i,j,:] = ( numpy.matrix(self.detwei) * numpy.matrix(self.spread(shape.n[i],shape.dimension)*dshape.dn[j]))
+        shape_dshape[i,j,:] = ( numpy.matrix(self.detwei) * numpy.matrix(self.spread(shape.n[i], dshape_dim)*dshape.dn[j])).reshape((dshape_dim,))
     return shape_dshape
 
   def spread(self,arr,dim):
