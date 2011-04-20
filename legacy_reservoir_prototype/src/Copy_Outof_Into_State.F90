@@ -303,9 +303,9 @@ module copy_outof_into_state
 
       Conditional_VolumeFraction_Solver: if( have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic' )) then
          call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-              'solver/max_iterations', volfra_relax_number_iterations )
+              'solver/max_iterations', volfra_relax_number_iterations, default = 100 )
          call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-              'solver/relative_error', volfra_error )
+              'solver/relative_error', volfra_error, default = 1.e-5 )
          volfra_relax = 1.
          volfra_relax_diag = 0.
          volfra_relax_row = 1.
@@ -313,9 +313,9 @@ module copy_outof_into_state
 
       Conditional_Pressure_Solver: if( have_option( '/material_phase[0]/scalar_field::Pressure' )) then
          call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations', &
-              pressure_relax_number_iterations )
+              pressure_relax_number_iterations, default = 4000 )
          call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/solver/relative_error', &
-              pressure_error )
+              pressure_error, default = 1.e-3 )
          pressure_relax = 1.
          pressure_relax_diag = 0.
          pressure_relax_row = 1.
@@ -323,9 +323,9 @@ module copy_outof_into_state
 
       Conditional_Velocity_Solver: if( have_option( '/material_phase[0]/vector_field::Velocity' )) then
          call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations', &
-              velocity_relax_number_iterations )
+              velocity_relax_number_iterations, default = 100 )
          call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/solver/relative_error', &
-              velocity_error ) 
+              velocity_error, default = 1.e-5 ) 
          velocity_relax = 1.
          velocity_relax_diag = 0.
          velocity_relax_row = 1.
@@ -523,7 +523,14 @@ module copy_outof_into_state
 !!! Need to add cv_p (the cv representation of pressure field used in the interpolation
 !!! (overlapping) formulation
       call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-                       'initial_condition::WholeMesh/constant', satura ) 
+                       'initial_condition::WholeMesh/constant', satura )
+      call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
+                       'initial_condition::WholeMesh/constant', Velocity )
+
+!!===================================================!!
+!! How are the components of the velocity defined ?? !!
+!! u, v, w (t=0) = Velocity ?                        !!
+!!===================================================!!
 
 
       ! uabs_option
