@@ -610,7 +610,7 @@ if test -n "$with_psmile" ; then
   FLPSMILE_PATH="${with_psmile}"
   ENABLE_PSMILE="yes"
   cat >> confdefs.h << EOF
-#define USING_FEMDEM 1                                                                                                
+#define USING_PSMILE 1
 EOF
 else
   FLPSMILE_PATH=""
