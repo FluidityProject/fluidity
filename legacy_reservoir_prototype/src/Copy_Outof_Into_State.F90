@@ -569,7 +569,7 @@ module copy_outof_into_state
       suf_w_bc_rob2 = 0.
       suf_t_bc_rob1 = 0.
       suf_t_bc_rob2 = 0.
-      suf_comp_bc_rob1 = 0.
+      suf_comp_bc_rob1 = 0.0
       suf_comp_bc_rob2 = 0.
 
 !!!==============================================!!!
