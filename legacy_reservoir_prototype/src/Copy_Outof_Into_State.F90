@@ -513,6 +513,19 @@ module copy_outof_into_state
 !!! suf_comp_bc                                  !!!
 !!!==============================================!!!
 
+!!!
+!!! Initial conditions for all fields
+!!!
+      call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+                       'initial_condition::WholeMesh/constant', den )
+      call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+                       'initial_condition::WholeMesh/constant', p )
+!!! Need to add cv_p (the cv representation of pressure field used in the interpolation
+!!! (overlapping) formulation
+      call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+                       'initial_condition::WholeMesh/constant', satura ) 
+
+
       ! uabs_option
       ! eos_option
       ! cp_option
@@ -539,14 +552,8 @@ module copy_outof_into_state
       ! u
       ! v
       ! w
-      ! den
-      ! satura
-      ! volfra
       ! comp
       ! t
-      ! p
-      ! cv_p
-      ! cv_one
 
       ! uabs_coefs
       ! eos_coefs
