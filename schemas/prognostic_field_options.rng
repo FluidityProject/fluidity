@@ -355,6 +355,12 @@ floats or swims upwards, this field should be negative.</a:documentation>
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
     <optional>
+      <element name="is_multiphase_component">
+        <a:documentation>Flag to recognise multiphase components</a:documentation>
+        <ref name="comment"/>
+      </element>
+    </optional>
+    <optional>
       <element name="priority">
         <a:documentation>Set the priority of this field
 This determines the order in which scalar_fields are solved for:

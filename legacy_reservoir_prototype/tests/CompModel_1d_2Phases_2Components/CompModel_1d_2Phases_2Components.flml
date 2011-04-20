@@ -33,7 +33,7 @@
         <real_value rank="0">0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
