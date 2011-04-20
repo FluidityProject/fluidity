@@ -517,16 +517,9 @@ module copy_outof_into_state
       ! eos_option
       ! cp_option
 
-      ! suf_vol_bc
-      ! suf_d_bc
-      ! suf_cpd_bc
-      ! suf_t_bc
-      ! suf_p_bc
-      ! suf_u_bc
-      ! suf_v_bc
-      ! suf_w_bc
-      ! suf_one_bc
-      ! suf_comp_bc
+
+
+
       ! x
       ! y
       ! z
