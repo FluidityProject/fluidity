@@ -344,7 +344,7 @@ class Transform:
         if shape.dimension == 1:
           invdetJ = 1.0/numpy.linalg.norm(self.J[gi][0,:])
           for i in range(shape.loc):
-            newshape.dn[i,gi,:] = numpy.dot(self.J[gi], shape.dn[i, gi, :] * invdetJ)
+            newshape.dn[i,gi,:] = numpy.dot(self.J[gi], shape.dn[i, gi, :] * invdetJ**2)
         else:
           raise Exception, "Sorry, haven't worked out how to do this yet"
     return newshape
