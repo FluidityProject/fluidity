@@ -60,6 +60,13 @@ module copy_outof_into_state
       type(state_type), dimension(:), pointer :: state
       type(mesh_type) :: cmesh, vmesh, pmesh !! coordinate, velocity and pressure meshes
     
+      type(scalar_field), pointer :: porosity, density, pressure, &
+                                     phasevolumefraction
+
+      type(vector_field), pointer :: velocity
+
+      type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
+      
       integer :: nonlinear_iterations  !! equal to nits in prototype code
       
       real :: dt, current_time, finish_time
@@ -73,8 +80,10 @@ module copy_outof_into_state
                  U_BC_Type, P_BC_Type, SufID_BC_U, SufID_BC_P
       real :: Suf_BC_U, suf_bc_p, &
               coord_min, coord_max, &
-              viscosity_ph1, viscosity_ph2, permeability
-  
+              permeability!, viscosity_ph1, viscosity_ph2
+              
+      integer, dimension(:), allocatable :: elenodes
+              
   !! Variables needed by the prototype code
   !! and therefore needing to be pulled out of state or
   !! derived from information in state:
@@ -126,6 +135,7 @@ module copy_outof_into_state
            suf_u_bc, suf_v_bc, suf_w_bc, suf_one_bc, suf_comp_bc, &
            suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
            suf_w_bc_rob1, suf_w_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
+           suf_vol_bc_rob1, suf_vol_bc_rob2, &
            suf_comp_bc_rob1, suf_comp_bc_rob2, &
            x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
            u_source, t_source, v_source, comp_source, &
@@ -143,8 +153,11 @@ module copy_outof_into_state
            
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
-      integer :: Velocity_BC_Type, Pressure_BC_Type, Velocity_SufID_BC, Pressure_SufID_BC
-      real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, Pressure_Suf_BC
+      integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, shape_option(2)
+      real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, &
+              Pressure_Suf_BC, density_suf_bc
+              
+      integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc
 
 
 
@@ -192,9 +205,9 @@ module copy_outof_into_state
     
     ! nlev = 
       u_nloc = vmesh%shape%loc ! 6, but only when we've got the right options in the schema
-    ! xu_nloc = 2
-    ! cv_nloc = 3
-      x_nloc = cmesh%shape%loc ! 3
+      xu_nloc = cmesh%shape%loc
+      cv_nloc = pmesh%shape%loc
+      x_nloc = 3*ndim
       p_nloc = pmesh%shape%loc ! 3
     ! cv_snloc = 1
     ! u_snloc = -1
@@ -239,7 +252,7 @@ module copy_outof_into_state
       ewrite(3,*) ' Getting iteration info'
       nits = nonlinear_iterations
     ! This one is only for compositional problems
-      call get_option('/material_phase::phase1/scalar_field::component1/&
+      call get_option('/material_phase[0]/scalar_field::component1/&
                       &prognostic/temporal_discretisation/control_volumes/number_advection_iterations',&
                       &nits_internal, default=1)
                     
@@ -313,7 +326,7 @@ module copy_outof_into_state
                         'spatial_discretisation/conservative_advection', t_beta)
       end if
 
-      call get_option('/material_phase::phase1/scalar_field::PhaseVolumeFraction/prognostic/' // &
+      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
                       'spatial_discretisation/conservative_advection', v_beta)
     
       if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
@@ -344,6 +357,8 @@ module copy_outof_into_state
       volfra_get_theta_flux = .TRUE.
       comp_use_theta_flux = .FALSE.
       comp_get_theta_flux = .TRUE.
+      
+      ewrite(3,*) 'Finished stuff from read_scalar'
 
 
       ! Others (from read_all())
@@ -382,6 +397,8 @@ module copy_outof_into_state
          velocity_relax_diag = 0.
          velocity_relax_row = 1.
       end if Conditional_Velocity_Solver
+      
+      ewrite(3,*) 'Got first lot of solver options'
 
       scalar_relax_number_iterations = 100
       global_relax_number_iterations = 100
@@ -409,21 +426,21 @@ module copy_outof_into_state
       dg_ele_upwind = 3
 
       ! Calculating Mobility
-      Viscosity = 0.
-      Viscosity_Ph1 = 0.
-      Viscosity_Ph2 = 0.
-      call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
-           'tensor_field::Viscosity/prescribed/value::WholeMesh/' // &
-           'isotropic/constant', Viscosity_Ph1 )
-      call get_option( '/material_phase[1]/vector_field::Velocity/prognostic/' // &
-           'tensor_field::Viscosity/prescribed/value::WholeMesh/' // &
-           'isotropic/constant', Viscosity_Ph2 )
+      ewrite(3,*) 'going to get viscosities'
 
-      Viscosity( 1 : cv_nonods ) = Viscosity_Ph1
-      Viscosity( cv_nonods + 1 : cv_nonods * nphase ) = Viscosity_Ph2
+      viscosity_ph1 => extract_tensor_field(state(1), "Viscosity")
+      viscosity_ph2 => extract_tensor_field(state(2), "Viscosity")
+      
+      ewrite(3,*) 'Got viscosities'
 
-      ! Maybe should be worth adding Mobility to schema and Viscosity_Ph2 become a prognostic field
-      Mobility = Viscosity_Ph1 / Viscosity_Ph2
+      ! Maybe should be worth adding Mobility to schema and Viscosity_Ph2 become a diagnostic field
+      if (have_option('/material_phase[1]/vector_field::Velocity/prognostic/&
+                      &tensor_field::Viscosity/prescribed/value::WholeMesh/&
+                      &isotropic')) then
+        Mobility = Viscosity_Ph1%val(1,1,1) / Viscosity_Ph2%val(1,1,1)
+      endif
+      
+      ewrite(3,*) 'sorted mobility'
 
 !!!
 !!! Options below are for the multi-component flow model, still needed to be added into the schema
@@ -436,8 +453,13 @@ module copy_outof_into_state
 !!! Porosity and Permeability: it WILL be necessary to change the permeability as it
 !!! is defined in the PC as a tensor with dimension ( totele, ndim, ndim )
 !!!
-      call get_option( '/porous_media/scalar_field::Porosity/prescribed/' // &
-           'value::WholeMesh/constant', volfra_pore )
+      porosity => extract_scalar_field(state, "Porosity")
+      allocate(volfra_pore(totele))
+      ! The porosity will be in element order in 1d
+      do i=1,totele
+        volfra_pore(i)=porosity%val(i)
+      enddo
+      ewrite(3,*) 'Got porosity'
 
       if (have_option('/porous_media/scalar_field::Permeability')) then
         call get_option( '/porous_media/scalar_field::Permeability/prescribed/&
@@ -453,6 +475,8 @@ module copy_outof_into_state
       elseif (have_option('/porous_media/tensor_field::Permeability')) then
         FLAbort('Have not coded up tensor permeability yet! Try scalar instead')
       endif
+      
+      ewrite(3,*) 'Got permeability'
 
 !!!
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
@@ -461,9 +485,15 @@ module copy_outof_into_state
       Conditional_Velocity_BC_U: if( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'boundary_conditions[0]/type::dirichlet' )) then
 
+         shape_option=option_shape('/material_phase[0]/vector_field::Velocity/&
+                                   &prognostic/boundary_conditions[0]/surface_ids')
+         allocate(velocity_sufid_bc(1:shape_option(1)))
+         ewrite(3,*) 'allocated vel suf id'
+
          Velocity_BC_Type = 1
          call get_option( '/material_phase[0]/vector_field::Velocity/' // &
               'prognostic/boundary_conditions[0]/surface_ids', Velocity_SufID_BC )
+         ewrite(3,*) 'velocity_sufid_bc', velocity_sufid_bc
          if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
               'prognostic/boundary_conditions[0]/type::dirichlet/' // &
               'align_bc_with_cartesian/x_component' )) then
@@ -480,11 +510,12 @@ module copy_outof_into_state
          endif
          if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
               'prognostic/boundary_conditions[0]/type::dirichlet/' // &
-              'align_bc_with_cartesian/y_component' )) then
+              'align_bc_with_cartesian/z_component' )) then
             call get_option( '/material_phase[0]/vector_field::Velocity/' // &
                  'prognostic/boundary_conditions[0]/type::dirichlet/' // &
                  'align_bc_with_cartesian/z_component/constant', Velocity_Suf_BC_W )
          endif
+         ewrite(3,*) 'vel suf bc u', velocity_suf_bc_u
 
       elseif( have_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'boundary_conditions[0]/type::neumann' )) then
@@ -514,53 +545,92 @@ module copy_outof_into_state
          endif
 
       endif Conditional_Velocity_BC_U
-
+      
+      allocate( wic_u_bc( stotel * nphase ))
+      allocate( suf_u_bc( stotel * 3 * nphase ))
+      allocate( suf_v_bc( stotel * 3 * nphase ))
+      allocate( suf_w_bc( stotel * 3 * nphase ))
       wic_u_bc = 0
-      wic_u_bc( Velocity_SufID_BC ) = Velocity_BC_Type
       suf_u_bc = 0.
       suf_v_bc = 0.
       suf_w_bc = 0.
-      suf_u_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_U
-      suf_v_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_V
-      suf_w_bc( Velocity_SufID_BC ) = Velocity_Suf_BC_W
+      do i=1,shape_option(1)
+        wic_u_bc( Velocity_SufID_BC(i) ) = Velocity_BC_Type
+        suf_u_bc( Velocity_SufID_BC(i) ) = Velocity_Suf_BC_U
+        suf_v_bc( Velocity_SufID_BC(i) ) = Velocity_Suf_BC_V
+        suf_w_bc( Velocity_SufID_BC(i) ) = Velocity_Suf_BC_W
+      enddo
+
+      deallocate(velocity_sufid_bc)
+      ewrite(3,*) 'Done with velocity boundary conditions'
 
       Conditional_Pressure_BC: if( have_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-           'boundary_conditions[0]/type::dirichlet' )) then
+                                                'boundary_conditions[0]/type::dirichlet' )) then
 
-         Pressure_BC_Type = 1
-         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-              'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
-         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet/constant', Pressure_Suf_BC )
+        shape_option=option_shape('/material_phase[0]/scalar_field::Pressure/&
+                                  &prognostic/boundary_conditions[0]/surface_ids')
+        allocate(pressure_sufid_bc(1:shape_option(1)))
+        Pressure_BC_Type = 1
+        call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+                'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
+        call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+                'boundary_conditions[0]/type::dirichlet/constant', Pressure_Suf_BC )
 
-         wic_p_bc = 0
-         wic_p_bc( Pressure_SufID_BC ) = Pressure_BC_Type
-         suf_p_bc = 0.
-         suf_p_bc( Pressure_SufID_BC ) = Pressure_Suf_BC
+        allocate( wic_p_bc( stotel * nphase ))
+        allocate( suf_p_bc( stotel * 1 * nphase ))
+        wic_p_bc = 0
+        suf_p_bc = 0.
+        do i=1,shape_option(1)
+          wic_p_bc( Pressure_SufID_BC(1) ) = Pressure_BC_Type
+          suf_p_bc( Pressure_SufID_BC(1) ) = Pressure_Suf_BC
+        enddo
+
+        deallocate(pressure_sufid_bc)
 
       endif Conditional_Pressure_BC
-
+      
       Conditional_Density_BC: if( have_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
            'boundary_conditions[0]/type::dirichlet' )) then
 
-         Density_BC_Type = 1
-         call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
-              'boundary_conditions[0]/surface_ids', Density_SufID_BC )
-         call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet/constant', Density_Suf_BC )
+        shape_option=option_shape('/material_phase[0]/scalar_field::Density/&
+                                  &prognostic/boundary_conditions[0]/surface_ids')
+        allocate(density_sufid_bc(1:shape_option(1)))
+        Density_BC_Type = 1
+        call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+             'boundary_conditions[0]/surface_ids', Density_SufID_BC )
+        call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
+             'boundary_conditions[0]/type::dirichlet/constant', Density_Suf_BC )
 
-         wic_d_bc = 0
-         wic_d_bc( Density_SufID_BC ) = Density_BC_Type
-         suf_d_bc = 0.
-         suf_d_bc( Density_SufID_BC ) = Density_Suf_BC
-
+        allocate( wic_d_bc( stotel * nphase ))
+        allocate( suf_d_bc( stotel * 1 * nphase ))
+        wic_d_bc = 0
+        suf_d_bc = 0.
+        do i=1,shape_option(1)
+          wic_d_bc( Density_SufID_BC(1) ) = Density_BC_Type
+          suf_d_bc( Density_SufID_BC(1) ) = Density_Suf_BC
+        enddo
+        
+        deallocate(density_sufid_bc)
+  
       endif Conditional_Density_BC
-
-
+      
+      ewrite(3,*) 'Done with boundary conditions'
 
 !!!
 !!! Robin Boundary conditions need to be added at a later stage
 !!!
+      allocate( suf_u_bc_rob1( stotel * 3 * nphase ))
+      allocate( suf_v_bc_rob1( stotel * 3 * nphase ))
+      allocate( suf_w_bc_rob1( stotel * 3 * nphase ))
+      allocate( suf_u_bc_rob2( stotel * 3 * nphase ))
+      allocate( suf_v_bc_rob2( stotel * 3 * nphase ))
+      allocate( suf_w_bc_rob2( stotel * 3 * nphase ))
+      allocate( suf_t_bc_rob1( stotel * nphase ))
+      allocate( suf_t_bc_rob2( stotel * nphase ))
+      allocate( suf_vol_bc_rob1( stotel * nphase ))
+      allocate( suf_vol_bc_rob2( stotel * nphase ))
+      allocate( suf_comp_bc_rob1( stotel * nphase ))
+      allocate( suf_comp_bc_rob2( stotel * nphase ))
       suf_u_bc_rob1 = 0.
       suf_u_bc_rob2 = 0.
       suf_v_bc_rob1 = 0.
@@ -569,7 +639,7 @@ module copy_outof_into_state
       suf_w_bc_rob2 = 0.
       suf_t_bc_rob1 = 0.
       suf_t_bc_rob2 = 0.
-      suf_comp_bc_rob1 = 0.0
+      suf_comp_bc_rob1 = 0.
       suf_comp_bc_rob2 = 0.
 
 !!!==============================================!!!
@@ -580,16 +650,54 @@ module copy_outof_into_state
 !!!
 !!! Initial conditions for all fields
 !!!
-      call get_option( '/material_phase[0]/scalar_field::Density/prognostic/' // &
-                       'initial_condition::WholeMesh/constant', den )
-      call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-                       'initial_condition::WholeMesh/constant', p )
+    ! Density and pressure might need re-ordering because of the
+    ! peculiarity of the quadratic element setup
+    ! see copy_into_state() below
+      ewrite(3,*) 'going to get density...'
+      do i=1,nphase
+        density => extract_scalar_field(state(i), "Density")
+!       ewrite(3,*) 'size of density', node_count(density)
+        if (.not.allocated(den)) allocate(den(nphase*node_count(density)))
+        do j=1,node_count(density)
+           den((i-1)*node_count(density)+j)=density%val(j)
+        enddo
+      enddo
+      
+      ewrite(3,*) 'pressure...'
+      pressure => extract_scalar_field(state(1), "Pressure")
+      allocate(p(node_count(pressure)))
+      do i=1,node_count(pressure)
+         p(i)=pressure%val(i)
+      enddo
+      
 !!! Need to add cv_p (the cv representation of pressure field used in the interpolation
 !!! (overlapping) formulation
-      call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/' // &
-                       'initial_condition::WholeMesh/constant', satura )
-      call get_option( '/material_phase[0]/vector_field::Velocity/prognostic/' // &
-                       'initial_condition::WholeMesh/constant', Velocity )
+      ewrite(3,*) 'phasevolumefraction...'
+      do i=1,nphase
+        phasevolumefraction => extract_scalar_field(state(i), "PhaseVolumeFraction")
+        if (.not.allocated(satura)) allocate(satura(nphase*node_count(phasevolumefraction)))
+        do j=1,node_count(phasevolumefraction)
+          satura((i-1)*node_count(phasevolumefraction)+j)=phasevolumefraction%val(j)
+        enddo
+      enddo
+      
+      ewrite(3,*) 'velocity...'
+      do i=1,nphase
+        velocity => extract_vector_field(state(i), "Velocity")
+        if (.not. allocated(u)) then
+           allocate(u(nphase*node_count(velocity)))
+           allocate(v(nphase*node_count(velocity)))
+           allocate(w(nphase*node_count(velocity)))
+        endif
+        u=0.
+        v=0.
+        w=0.
+        do j=1,node_count(velocity)
+          u((i-1)*node_count(velocity)+j)=velocity%val(X_, j)
+          if (ndim>1) v((i-1)*node_count(velocity)+j)=velocity%val(Y_, j)
+          if (ndim>2) w((i-1)*node_count(velocity)+j)=velocity%val(Z_, j)
+        enddo
+      enddo
 
 !!===================================================!!
 !! How are the components of the velocity defined ?? !!
@@ -600,9 +708,6 @@ module copy_outof_into_state
       ! uabs_option
       ! eos_option
       ! cp_option
-
-
-
 
       ! x
       ! y
@@ -620,9 +725,6 @@ module copy_outof_into_state
       ! t_source
       ! v_source
       ! comp_source
-      ! u
-      ! v
-      ! w
       ! comp
       ! t
 
@@ -637,7 +739,6 @@ module copy_outof_into_state
       ! comp_absorb
       ! t_absorb
       ! v_absorb
-      ! perm
       ! K_Comp
 
       ! comp_diffusion
