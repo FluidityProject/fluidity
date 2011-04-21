@@ -758,14 +758,18 @@ module copy_outof_into_state
       real, dimension(:), intent(in) :: saturations, proto_pressure
 
       ewrite(3,*) 'In copy_into_state'
-    
-      ewrite(3,*) 'saturations:', saturations ! This is (2*nonods+1) * nphase long, and in order
+
+      ewrite(3,*) 'size of satura', size(saturations)
+      ewrite(3,*) 'saturations:', saturations ! This is cv_nonods * nphase long, and in order
 
       positions => extract_vector_field(state, "Coordinate")
     
       ! The plan is to copy the first half of saturations into PhaseVolumeFraction:
       phasevolumefraction => extract_scalar_field(state(1), "PhaseVolumeFraction")
       ewrite(3,*) 'size of pvf:', node_count(phasevolumefraction)
+      do i=1,node_count(phasevolumefraction)
+        call set(phasevolumefraction, i, saturations(i))
+      enddo
     
       ! Then to get the projection of PhaseVolumeFraction onto the CoordinateMesh
       ! so that it can be compared to the analytical solution

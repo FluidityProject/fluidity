@@ -1,11 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<fluidity_options>
+<multiphase_options>
   <simulation_name>
     <string_value lines="1">BL_test_10elements_1d</string_value>
   </simulation_name>
-  <problem_type>
-    <string_value lines="1">multiphase</string_value>
-  </problem_type>
   <geometry>
     <dimension>
       <integer_value rank="0">1</integer_value>
@@ -57,9 +54,6 @@
     </quadrature>
   </geometry>
   <io>
-    <dump_format>
-      <string_value>vtk</string_value>
-    </dump_format>
     <dump_period_in_timesteps>
       <constant>
         <integer_value rank="0">20</integer_value>
@@ -595,4 +589,4 @@
       </prescribed>
     </scalar_field>
   </porous_media>
-</fluidity_options>
+</multiphase_options>
