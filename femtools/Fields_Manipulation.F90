@@ -49,7 +49,7 @@ implicit none
 
   public :: addto, zero, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
-    & set_to_submesh, set_from_submesh, scale, bound, invert, &
+    & set_to_submesh, set_from_submesh, scale, inverse_scale, bound, invert, &
     & absolute_value, inner_product, cross_product, clone_header
   public :: piecewise_constant_field, piecewise_constant_mesh
   public :: renumber_positions, renumber_positions_trailing_receives, &
@@ -135,12 +135,19 @@ implicit none
     module procedure set_from_submesh_scalar, set_from_submesh_vector
   end interface
 
-  interface scale
+   interface scale
      module procedure scalar_scale, vector_scale, tensor_scale, &
           scalar_scale_scalar_field, &
           vector_scale_scalar_field, &
           tensor_scale_scalar_field, &
           vector_scale_vector_field
+  end interface
+
+  interface inverse_scale
+     module procedure inverse_scalar_scale_scalar_field, &
+          inverse_vector_scale_scalar_field, &
+          inverse_tensor_scale_scalar_field, &
+          inverse_vector_scale_vector_field
   end interface
   
   interface bound
@@ -2485,6 +2492,124 @@ implicit none
     end select
     
   end subroutine vector_scale_vector_field
+
+  subroutine inverse_scalar_scale_scalar_field(field, sfield)
+    !!< Divide scalar field by sfield. This will only work if the 
+    !!< fields have the same mesh.
+    !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< and then summing over these.
+    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       field%val = field%val / sfield%val
+    case (FIELD_TYPE_CONSTANT)
+       field%val = field%val / sfield%val(1)
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in scale()")
+    end select
+    
+  end subroutine inverse_scalar_scale_scalar_field
+
+  subroutine inverse_vector_scale_scalar_field(field, sfield)
+    !!< Divide vector field by scalar field. This will only work if the 
+    !!< fields have the same mesh.
+    !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< and then summing over these.
+    type(vector_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    integer :: i
+
+    assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) / sfield%val
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) / sfield%val(1)
+       end do
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in scale()")
+    end select
+    
+  end subroutine inverse_vector_scale_scalar_field
+
+  subroutine inverse_tensor_scale_scalar_field(field, sfield)
+    !!< Divide tensor field by scalar field. This will only work if the 
+    !!< fields have the same mesh.
+    !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< and then summing over these.
+    type(tensor_field), intent(inout) :: field
+    type(scalar_field), intent(in) :: sfield
+
+    integer :: i, j
+
+    assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (sfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim(1)
+          do j=1,field%dim(2)
+             field%val(i,j,:) = field%val(i,j,:) / sfield%val
+          end do
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       field%val(:,:,1) = field%val(:,:,1) / sfield%val(1)
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in scale()")
+    end select
+    
+  end subroutine inverse_tensor_scale_scalar_field
+    
+  subroutine inverse_vector_scale_vector_field(field, vfield)
+    !!< Divide vector field component-wise by another vector field. This will only work if the 
+    !!< fields have the same mesh.
+    !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< and then summing over these.
+    type(vector_field), intent(inout) :: field
+    type(vector_field), intent(in) :: vfield
+
+    integer :: i
+
+    assert(field%mesh%refcount%id==vfield%mesh%refcount%id)
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. vfield%field_type==FIELD_TYPE_CONSTANT)
+    
+    select case (vfield%field_type)
+    case (FIELD_TYPE_NORMAL)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) / vfield%val(i,:)
+       end do
+    case (FIELD_TYPE_CONSTANT)
+       do i=1,field%dim
+          field%val(i,:) = field%val(i,:) / vfield%val(i,1)
+       end do
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in scale()")
+    end select
+    
+  end subroutine inverse_vector_scale_vector_field
     
   subroutine bound_scalar_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied

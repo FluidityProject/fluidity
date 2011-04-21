@@ -30,9 +30,13 @@ module momentum_diagnostic_fields
   use FLDebug
   use equation_of_state
   use fields
+  use fefields
   use state_module
   use spud
   use state_module
+  use state_fields_module
+  use sparsity_patterns_meshes
+  use solvers
   use field_priority_lists
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use multimaterial_module
@@ -46,6 +50,7 @@ module momentum_diagnostic_fields
 
   private
   public :: calculate_momentum_diagnostics, calculate_densities
+  public :: calculate_diagnostic_velocity
 
 contains
 
@@ -428,11 +433,21 @@ contains
 
   end subroutine calculate_diagnostic_pressure
 
-  subroutine calculate_diagnostic_velocity(state, velocity)
+  subroutine calculate_diagnostic_velocity(state, u)
     ! diagnostic Velocity, only for compressible with prognostic Momentum
     ! calculated simply by Velocity=Momentum/Density
     type(state_type), intent(inout):: state
     type(vector_field), intent(inout):: u
+
+    type(vector_field), pointer:: positions, momentum
+    type(vector_field):: proj_rhs
+    type(scalar_field), pointer:: density
+    type(scalar_field):: lumped_mass 
+    type(csr_matrix):: mass
+    type(csr_sparsity), pointer:: mass_sparsity
+    integer:: ele, i
+
+    ewrite(1,*) "Inside calculate_diagnostic_velocity"
 
     positions => extract_vector_field(state, "Coordinate")
     ! there must be a prognostic momentum
@@ -440,37 +455,85 @@ contains
     ! a density is also required
     density => extract_scalar_field(state, "Density")
 
-    call allocate(proj_rhs, u%dim, u%mesh, "DiagnosticVelocityProjectionRHS")
-    call zero(proj_rhs)
+    if (continuity(u)>=0) then
 
-    allocate(detwei(1:u%mesh%shape%quadrature%ngi))
-    do ele=1, element_count(u)
-      call transform_to_physical(positions, ele, detwei)
-      call addto(proj_rhs, ele_nodes(proj_rhs, ele), shape_vector_rhs(ele_shape(u,ele), &
-          ele_val_at_quad(momentum, ele)/ele_val_at_quad(density, ele), detwei))
-    end do
+      call allocate(proj_rhs, u%dim, u%mesh, "DiagnosticVelocityProjectionRHS")
+      call zero(proj_rhs)
+      do ele=1, element_count(u)
+        call calculate_diagnostic_velocity_cg_ele(proj_rhs, ele)
+      end do
 
-    if (mesh_continuity(u)<0) then
-    else if (have_option(trim(u%option_path)//"/diagnostic/solver")) then
-      mass => get_mass_matrix(state, u%mesh)
-      call petsc_solve(u, mass, proj_rhs)
+      if (have_option(trim(u%option_path)//"/diagnostic/solver")) then
+        mass_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
+        call allocate(mass, mass_sparsity, name="DiagnosticVelocityMass")
+        call compute_mass(positions, u%mesh, mass, density=density)
+ 
+        call petsc_solve(u, mass, proj_rhs)
+
+        call deallocate(mass)
+      else
+        ewrite(1,*) "No solver options specified - lumping mass to compute diagnostic velocity"
+        call allocate(lumped_mass, u%mesh, name="DiagnosticVelocityLumpedMass")
+        call compute_lumped_mass(positions, lumped_mass, density=density)
+        call set(u, proj_rhs)
+        do i=1, u%dim
+          ewrite_minmax( u%val(i,:) )
+        end do
+        ewrite_minmax( lumped_mass )
+        call inverse_scale(u, lumped_mass)
+        call deallocate(lumped_mass)
+      end if
+
+      call deallocate(proj_rhs)
+
     else
+      do ele=1, element_count(u)
+        call calculate_diagnostic_velocity_dg_ele(ele)
+      end do
     end if
+
+    ewrite_minmax( density )
+    do i=1, u%dim
+      ewrite_minmax( u%val(i,:) )
+    end do
+    do i=1, momentum%dim
+      ewrite_minmax( momentum%val(i,:) )
+    end do
 
     contains
 
+    subroutine calculate_diagnostic_velocity_cg_ele(proj_rhs, ele)
+      type(vector_field), intent(inout):: proj_rhs
+      integer, intent(in):: ele
+
+      real, dimension(ele_ngi(u, ele)):: detwei
+
+      call transform_to_physical(positions, ele, detwei)
+      call addto(proj_rhs, ele_nodes(proj_rhs, ele), &
+          shape_vector_rhs(ele_shape(proj_rhs, ele), &
+              ele_val_at_quad(momentum, ele), detwei))
+
+    end subroutine calculate_diagnostic_velocity_cg_ele
+
     subroutine calculate_diagnostic_velocity_dg_ele(ele)
       integer, intent(in):: ele
+
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)):: local_mass
-      real, dimension(u%dim, ele_loc(u, ele)):: local_rhs
-      real, dimension(ele_ngi(u, ngi)):: detwei
+      real, dimension(ele_loc(u, ele), u%dim):: local_rhs
+      real, dimension(ele_ngi(u, ele)):: detwei
 
 
       call transform_to_physical(positions, ele, detwei)
-      local_rhs=shape_vector_rhs(ele_shape(u, ele),  &
-          ele_val_at_quad(momentum, ele)/ele_val_at_quad(density, ele), detwei)
+      ! this has to be transposed because of the way solve_mulitple (in actually fact
+      ! dgesv from lapack) expects multiple rhs's
+      local_rhs=transpose(shape_vector_rhs(ele_shape(u, ele),  &
+          ele_val_at_quad(momentum, ele), detwei/ele_val_at_quad(density, ele)))
 
-      call solve(mass, local_rhs)
+      ! this solve takes the rhs and overwrites it with the solution
+      call solve(local_mass, local_rhs)
+
+      ! now transpose it again
+      call set(u, ele_nodes(u, ele), transpose(local_rhs))
       
     end subroutine calculate_diagnostic_velocity_dg_ele
 

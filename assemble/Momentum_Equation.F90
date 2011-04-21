@@ -39,7 +39,7 @@
       use momentum_dg
       use assemble_cmc
       use field_priority_lists
-      use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
+      use momentum_diagnostic_fields
       use field_options
       use compressible_projection
       use boundary_conditions
@@ -224,7 +224,7 @@
 
          ! when solving for momentum instead of velocity, we have
          ! a diagnostic velocity
-         type(vector_field), pointer :: momentum, diagnostic_u
+         type(vector_field), pointer :: momentum 
          logical, dimension(:), allocatable :: have_prognostic_momentum
          integer :: mstat
 
@@ -1299,7 +1299,7 @@
 
          ! Are we getting the pressure gradient matrix using control volumes?
          cv_pressure = (have_option(trim(p%option_path)//&
-                           "/prognostic/spatial_discretisation/control_volumes"))
+                       !    "/prognostic/spatial_discretisation/control_volumes"))
          ! or using cg (we do this in every case of not having a control volume
          ! option so that prescribed pressures will work as well)
          cg_pressure = (.not.cv_pressure)
