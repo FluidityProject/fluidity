@@ -397,7 +397,7 @@ subroutine keps_eddyvisc(state)
     call addto(viscosity, eddy_visc)
 
     ! Check components of viscosity
-    ewrite_minmax(viscosity%val)
+    ewrite_minmax(viscosity)
 
     ! Set output on optional fields
     scalarField => extract_scalar_field(state, "LengthScale", stat)
