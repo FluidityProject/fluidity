@@ -43,6 +43,7 @@ module field_copies_diagnostics
   use transform_elements
   use state_fields_module
   use sparse_matrices_fields
+  use fldebug
 
   implicit none
   
@@ -430,7 +431,7 @@ contains
     ewrite(2, *) "alpha = ", alpha
     
     call smooth_vector(source_field, positions, v_field, alpha, path)
-    ewrite_minmax(v_field%val)
+    ewrite_minmax(v_field)
     
     deallocate(alpha)
    
@@ -487,8 +488,8 @@ contains
     call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
 
     ewrite(2, *) "alpha = ", alpha
-    ewrite_minmax(source_field%val)
-    ewrite_minmax(v_field%val)
+    ewrite_minmax(source_field)
+    ewrite_minmax(v_field)
     
     ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_vector"
     
@@ -514,8 +515,8 @@ contains
     call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
 
     ewrite(2, *) "alpha = ", alpha
-    ewrite_minmax(source_field%val)
-    ewrite_minmax(t_field%val)
+    ewrite_minmax(source_field)
+    ewrite_minmax(t_field)
     
     ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_tensor"
     

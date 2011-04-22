@@ -329,6 +329,10 @@ module fields_base
   interface print_mesh_incompatibility
     module procedure print_mesh_incompatibility, print_mesh_positions_incompatibility
   end interface
+
+  interface write_minmax
+    module procedure write_minmax_scalar, write_minmax_vector, write_minmax_tensor
+  end interface
     
 contains
 
@@ -3977,5 +3981,50 @@ contains
 
     opp_face = face_opposite_mesh(tfield%mesh, face)
   end function face_opposite_tensor
+
+  subroutine write_minmax_scalar(sfield, field_expression)
+    ! the scalar field to print its min and max of
+    type(scalar_field), intent(in):: sfield
+    ! the actual field in the code
+    character(len=*), intent(in):: field_expression
+
+    ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
+       trim(sfield%name)//'" = ',minval(sfield%val), maxval(sfield%val)
+
+  end subroutine write_minmax_scalar
    
+  subroutine write_minmax_vector(vfield, field_expression)
+    ! the vector field to print its min and max of
+    type(vector_field), intent(in):: vfield
+    ! the actual field in the code
+    character(len=*), intent(in):: field_expression
+
+    integer:: i
+
+    do i=1, vfield%dim
+      ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
+         trim(vfield%name)//'%'//int2str(i)//'" = ', &
+         minval(vfield%val(i,:)), maxval(vfield%val(i,:))
+    end do
+
+  end subroutine write_minmax_vector
+
+  subroutine write_minmax_tensor(tfield, field_expression)
+    ! the tensor field to print its min and max of
+    type(tensor_field), intent(in):: tfield
+    ! the actual field in the code
+    character(len=*), intent(in):: field_expression
+
+    integer:: i, j
+
+    do i=1, tfield%dim(1)
+      do j=1, tfield%dim(2)
+        ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
+          trim(tfield%name)//'%'//int2str(i)//','//int2str(j)// &
+          '" = ', minval(tfield%val(i,j,:)), maxval(tfield%val(i,j,:))
+      end do
+    end do
+
+  end subroutine write_minmax_tensor
+
 end module fields_base

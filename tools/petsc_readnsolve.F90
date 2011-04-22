@@ -570,7 +570,7 @@ contains
       call petsc_solve(x_field, A, rhs_field)
     end if
     
-    ewrite_minmax(x_field%val)
+    ewrite_minmax(x_field)
     
     ewrite(1,*) '-------------------------------------------------------------'
     ewrite(1,*) 'Finished petsc_solve'

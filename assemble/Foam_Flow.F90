@@ -336,7 +336,7 @@ contains
         call set(foamvel, i, ( -node_val(foamvel, i) ) )
       enddo
 
-      ewrite_minmax(foamvel%val)
+      ewrite_minmax(foamvel)
 
     endif
 
