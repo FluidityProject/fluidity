@@ -84,20 +84,30 @@ contains
     
   end subroutine csr_mult_scalar
 
-  subroutine csr_mult_addto_scalar(x, A, b)
+  subroutine csr_mult_addto_scalar(x, A, b, scale)
     !!< Replace x with x+A*b
     type(scalar_field), intent(inout) :: x
     type(csr_matrix), intent(in) :: A
     type(scalar_field), intent(in) :: b
+    real, optional, intent(in):: scale
+    
     real, dimension(:), allocatable :: tmp,tmp1
     real, dimension(:), pointer :: x_ptr
 
     select case(b%field_type)
     case(FIELD_TYPE_NORMAL)
-      call mult_addto(x%val, A, b%val)
+      if (present(scale)) then
+        call mult_addto(x%val, A, b%val*scale)
+      else
+        call mult_addto(x%val, A, b%val)
+      end if
     case(FIELD_TYPE_CONSTANT)
       allocate(tmp(size(x%val)))
-      tmp=b%val(1)
+      if (present(scale)) then
+         tmp=b%val(1)*scale
+      else
+         tmp=b%val(1)
+      end if
       call mult_addto(x%val, A, tmp)
       deallocate(tmp)
     end select

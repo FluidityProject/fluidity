@@ -27,6 +27,7 @@
 #include "fdebug.h"
 
 module free_surface_module
+use data_structures
 use fields
 use state_module
 use sparse_tools
@@ -114,16 +115,18 @@ contains
     logical, intent(in):: get_cmc
     type(scalar_field), optional, intent(inout) :: rhs
     
+      type(integer_hash_table):: sele_to_surface_p_ele
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp, original_bottomdist
+      type(scalar_field), pointer:: p, prevp, original_bottomdist, topdis
       type(scalar_field) :: original_bottomdist_remap
+      type(mesh_type), pointer:: surface_p_mesh
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, coef, d0
-      integer, dimension(:), pointer:: surface_element_list
+      integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
-      logical:: addto_cmc
+      logical:: addto_cmc, use_hydrostatic_projection
       logical:: have_wd, have_wd_node_int
       
       real, save :: coef_old = 0.0
@@ -144,6 +147,16 @@ contains
       p => extract_scalar_field(state, "Pressure")
       prevp => extract_scalar_field(state, "OldPressure")
       u => extract_vector_field(state, "Velocity")
+      
+      use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+      if (use_hydrostatic_projection) then
+        ! if we get here cmc and its rhs are already lumped, we need to translate surface
+        ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
+        surface_p_mesh => extract_mesh(state, "Lumped"//trim(p%mesh%name))
+        topdis => extract_scalar_field(state, "DistanceToTop")
+        call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
+        call invert_set(surface_p_element_list, sele_to_surface_p_ele)
+      end if
       
       ! reference density
       call get_reference_density_from_options(rho0, state%option_path)
@@ -211,6 +224,9 @@ contains
         ! therefore we need to invalidate the solver context
         call destroy_solver_cache(cmc)
       end if
+      if (use_hydrostatic_projection) then
+        call deallocate(sele_to_surface_p_ele)
+      end if      
       
       ! save the coefficient with the current timestep for the next time round
       coef_old = coef
@@ -219,13 +235,15 @@ contains
          ewrite_minmax(rhs)
       end if
       if (have_wd) then
-            call deallocate(original_bottomdist_remap)
+         call deallocate(original_bottomdist_remap)
       end if
       
     contains 
     
     subroutine add_free_surface_element(sele)
       integer, intent(in):: sele
+      
+      integer, dimension(face_loc(p, sele)):: nodes
       integer :: i
 
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
@@ -267,14 +285,19 @@ contains
           end do
         end if
       end if
+      
+      if (use_hydrostatic_projection) then
+        nodes = ele_nodes(surface_p_mesh, fetch(sele_to_surface_p_ele, sele))
+      else
+        nodes = face_global_nodes(p, sele)
+      end if
 
       if (addto_cmc) then
         ! we consider the projection equation to solve for 
         ! phi=theta_pressure_gradient theta_divergence dt dp, so that the f.s. integral
         ! alpha M_fs dp=alpha M_fs phi/(theta_pressure_gradient theta_divergence g dt**2)
         !              =coef M_fs phi
-        call addto(cmc, &
-          face_global_nodes(p, sele), face_global_nodes(p,sele), &
+        call addto(cmc, nodes, nodes, &
           (coef-coef_old)*mass_ele)
       end if
       if (move_mesh) then
@@ -298,12 +321,12 @@ contains
         end if
 
         if(present(rhs)) then
-           call addto(rhs, face_global_nodes(p, sele), &
+           call addto(rhs, nodes, &
                 -(matmul(mass_ele, face_val(p, sele)) &
                 -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
         end if
         if (have_wd .and. present(rhs)) then
-           call addto(rhs, face_global_nodes(p, sele), &
+           call addto(rhs, nodes, &
                 +(matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)-d0) &
                 -matmul(mass_ele_old_wd, face_val(original_bottomdist_remap,sele)-d0))*alpha*g)
         end if
@@ -311,7 +334,7 @@ contains
       else
         ! no mesh movement - just use the same mass matrix as above
          if(present(rhs)) then
-            call addto(rhs, face_global_nodes(p, sele), &
+            call addto(rhs, nodes, &
                  -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
          end if
       end if
@@ -361,13 +384,15 @@ contains
     type(state_type), intent(in) :: state
     real, intent(in) :: dt, theta_pg
 
+    type(integer_hash_table):: sele_to_surface_p_ele
     type(vector_field), pointer:: positions, u, gravity_normal
-    type(scalar_field), pointer:: p
+    type(scalar_field), pointer:: p, topdis
+    type(mesh_type), pointer:: surface_p_mesh
     character(len=FIELD_NAME_LEN):: bctype
     real g, coef, rho0
-    integer, dimension(:), pointer:: surface_element_list
+    integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
     integer i, j, grav_stat
-    logical:: include_normals
+    logical:: include_normals, use_hydrostatic_projection
 
     ewrite(1,*) 'Entering assemble_masslumped_poisson_rhs_free_surface'
 
@@ -378,7 +403,17 @@ contains
     ! is used at the free surface nodes only
     p => extract_scalar_field(state, "Pressure")
     u => extract_vector_field(state, "Velocity")
-
+    
+    use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+    if (use_hydrostatic_projection) then
+      ! if we get here cmc and its rhs are already lumped, we need to translate surface
+      ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
+      surface_p_mesh => extract_mesh(state, "Lumped"//trim(p%mesh%name))
+      topdis => extract_scalar_field(state, "DistanceToTop")
+      call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
+      call invert_set(surface_p_element_list, sele_to_surface_p_ele)
+    end if
+    
     ! reference density
     call get_reference_density_from_options(rho0, state%option_path)
 
@@ -410,11 +445,16 @@ contains
       end if
     end do
       
+    if (use_hydrostatic_projection) then
+      call deallocate(sele_to_surface_p_ele)
+    end if
+      
     contains
     
     subroutine add_free_surface_element(sele)
     integer, intent(in):: sele
       
+      integer, dimension(face_loc(p, sele)):: nodes
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele
       real, dimension(face_ngi(p, sele)):: detwei
@@ -428,20 +468,40 @@ contains
          detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
       end if
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
-      call addto(poisson_rhs, face_global_nodes(p, sele), &
+      
+      if (use_hydrostatic_projection) then
+        nodes = ele_nodes(surface_p_mesh, fetch(sele_to_surface_p_ele, sele))
+      else
+        nodes = face_global_nodes(p, sele)
+      end if
+      
+      call addto(poisson_rhs, nodes, &
         matmul(mass_ele, face_val(p, sele))/coef)
       
     end subroutine add_free_surface_element
     
   end subroutine add_free_surface_to_poisson_rhs
     
-  subroutine copy_poisson_solution_to_interior(p_theta, p, old_p, u)
+  subroutine copy_poisson_solution_to_interior(state, p_theta, p, old_p, u)
+  type(state_type), intent(in):: state
   type(scalar_field), intent(inout):: p_theta, p, old_p
   type(vector_field), intent(in):: u
     
+    type(scalar_field), pointer:: topdis
     character(len=FIELD_NAME_LEN):: bctype
-    integer, dimension(:), pointer:: surface_element_list
-    integer:: i, j, sele
+    type(integer_hash_table):: sele_to_surface_p_ele
+    integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
+    logical:: use_hydrostatic_projection
+    integer:: i, j, sele, ele
+    
+    use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+    if (use_hydrostatic_projection) then
+      ! if we get here p, old and p_theta are on the surface mesh, we need to translate surface
+      ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
+      topdis => extract_scalar_field(state, "DistanceToTop")
+      call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
+      call invert_set(surface_p_element_list, sele_to_surface_p_ele)
+    end if
     
     ! first copy initial free surface elevations (p/g) at free surface nodes
     ! to p_theta
@@ -451,7 +511,12 @@ contains
       if (bctype=="free_surface") then
         do j=1, size(surface_element_list)
           sele=surface_element_list(j)
-          call set(p_theta, face_global_nodes(p,sele), face_val(p, sele))
+          if (use_hydrostatic_projection) then
+            ele = fetch(sele_to_surface_p_ele, sele)
+            call set(p_theta, ele_nodes(p,ele), ele_val(p, ele))
+          else
+            call set(p_theta, face_global_nodes(p,sele), face_val(p, sele))
+          end if
         end do
       end if
     end do
@@ -462,6 +527,10 @@ contains
     ! p and old_p are the same (as we're in the first non-linear iteration)
     ! but they might be different fields (if #nonlinear iterations>1)
     call set(old_p, p_theta)
+    
+    if (use_hydrostatic_projection) then
+      call deallocate(sele_to_surface_p_ele)
+    end if
       
   end subroutine copy_poisson_solution_to_interior
   
@@ -812,7 +881,6 @@ contains
     end if
 
   end subroutine move_free_surface_nodes
-
 
   function vertical_prolongator_from_free_surface(state, mesh) result (vertical_prolongator)
   !! Creates a prolongation operator from the free surface mesh to

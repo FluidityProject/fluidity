@@ -74,6 +74,7 @@
       use slope_limiters_dg
       use implicit_solids
       use multiphase_module
+      use hydrostatic_projection
 
       implicit none
 
@@ -92,6 +93,7 @@
 
       ! Do we want to use the compressible projection method?
       logical :: use_compressible_projection
+      logical :: use_hydrostatic_projection = .false.
       ! Are we doing a full Schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
@@ -237,12 +239,17 @@
          ! information that would be required to recompile the list)
          type(ilist), save :: stiff_nodes_list
 
-         !! Variables for reduced model
+         ! Variables for reduced model
          type(vector_field), pointer :: snapmean_velocity
          type(scalar_field), pointer :: snapmean_pressure
          integer :: d
+         
+         ! Some stuff for the hydrostatic projection
+         type(scalar_field), target:: surface_p, surface_old_p
+         type(block_csr_matrix_pointer), dimension(:), allocatable :: full_ct_m
+         type(scalar_field), dimension(:), allocatable, target :: full_ct_rhs
 
-         !! Variables for multi-phase flow model
+         ! Variables for multi-phase flow model
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
          logical :: prognostic_p = .false.
@@ -308,6 +315,14 @@
            if (prognostic_p) then
              prognostic_p_istate = istate
            end if
+
+           !use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+           !if (use_hydrostatic_projection) then
+           !FIXME: break up prepare_...
+           !  ! point to surface versions, also p_theta is allocated on the surface mesh, or points to surface_p
+           !  p => surface_p; old_p => surface_old_p
+           !end if
+ 
          end if
 
          !! Get some pressure options
@@ -319,6 +334,9 @@
          allocate(ctp_m(size(state)))
          allocate(subcycle_m(size(state)))
          allocate(inner_m(size(state)))
+         allocate(full_ct_m(size(state)))
+         allocate(full_ct_rhs(size(state)))
+         
 
          nullify(cmc_global)
 
@@ -374,8 +392,20 @@
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
 
-               ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
-               cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
+               use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+               if (use_hydrostatic_projection) then
+                  call prepare_hydrostatic_projection(state(istate), &
+                       surface_p, surface_old_p, &
+                       cmc_m, get_cmc_m=reassemble_cmc_m)
+
+                  ! point to surface versions, also p_theta is allocated on the surface mesh, or points to surface_p
+                  p => surface_p; old_p => surface_old_p
+ 
+               else
+                 ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
+                 cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=get_cmc_m(istate)) ! ...and similarly for get_cmc_m
+               end if
+               
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
             end if
@@ -480,6 +510,7 @@
                theta_divergence=1.0
             end if
 
+           ! This is broken for multiphase, a p_theta is allocated for every prognostic velocity
             if (use_theta_pg) then
                allocate(p_theta)
                call allocate(p_theta, p%mesh, "PressureTheta")
@@ -490,6 +521,10 @@
             else
                p_theta => p
                theta_pg=1.0
+            end if
+            
+            if (use_hydrostatic_projection) then
+              p => extract_scalar_field(state(istate), "Pressure")
             end if
 
             call profiler_tic(u, "assembly")
@@ -672,6 +707,24 @@
                else
                   ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
                end if
+               
+               if(use_hydrostatic_projection)then
+                 if (use_compressible_projection) then
+                   ! need to do something with ctp_m a.o.
+                   FLExit("Hydrostatic pressure does not yet work with compressible.")
+                 end if
+                 
+                 full_ct_m(istate)%ptr => ct_m(istate)%ptr
+                 full_ct_rhs(istate) = ct_rhs(istate)
+                 
+                 call get_lumped_continuity_equation(state(istate), surface_p%mesh, &
+                   full_ct_m(istate)%ptr, full_ct_rhs(istate), get_ct_m, &
+                   ! returns lumped ct_m (pointer to state) and lumped ct_rhs (allocated)
+                   ct_m(istate)%ptr, ct_rhs(istate))
+                 
+                 ctp_m(istate)%ptr => ct_m(istate)%ptr
+               end if
+
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
 
@@ -693,7 +746,12 @@
                ! Assemble KMK stabilisation matrix if required:
                if(assemble_kmk) then
                   ewrite(2,*) "Assembling P1-P1 stabilisation"
-                  call assemble_kmk_matrix(state(istate), p%mesh, x, theta_pg)
+                  if (use_hydrostatic_projection) then
+                    FLAbort("FIXME") ! x needs to be a surface x:
+                    call assemble_kmk_matrix(state(istate), p_mesh, x, theta_pg)
+                  else
+                    call assemble_kmk_matrix(state(istate), p_mesh, x, theta_pg)
+                  end if
                end if
 
                if(full_schur) then
@@ -709,7 +767,7 @@
                   if(assemble_schur_auxiliary_matrix) then
                      ! Get sparsity and assemble:
                      ewrite(2,*) "Assembling auxiliary matrix for full_projection solve"
-                     schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
+                     schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p_mesh, u%mesh)
                      call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
                         name="schur_auxiliary_matrix")
                      ! Initialize matrix:
@@ -777,12 +835,12 @@
                            cmc_m, dt, theta_pg, theta_divergence, get_cmc=.true.)
                   end if
                end if
-
+               
                if(get_scaled_pressure_mass_matrix) then
                   ! Assemble scaled pressure mass matrix which will later be used as a
                   ! preconditioner in the full projection solve:
                   ewrite(2,*) "Assembling scaled pressure mass matrix preconditioner"
-                  scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
+                  scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p_mesh, p_mesh)
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
                   call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
@@ -806,13 +864,11 @@
 
          !! Obtain pressure guess p^{*} (assemble and solve a Poisson pressure equation for p^{*} if desired)
 
-
          ! Do we have a prognostic pressure field we can actually solve for?
          call profiler_tic(p, "assembly")
          if(prognostic_p .and. .not.reduced_model) then
 
-            u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
-            x => extract_vector_field(state(prognostic_p_istate), "Coordinate")
+            u => extract_vector_field(state(prognostic_p_istate), "Velocity")
 
             ! Are we solving a Poisson pressure equation for a pressure guess p^{*}?
             call get_option(trim(p%option_path)//&
@@ -985,6 +1041,11 @@
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
+                     
+                     if(use_hydrostatic_projection) then
+                        call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate))
+                        call deallocate(full_ct_rhs(istate))
+                     end if
 
                   end if ! prognostic velocity
 
@@ -1103,6 +1164,9 @@
          deallocate(ctp_m)
          deallocate(subcycle_m)
          deallocate(inner_m)
+         deallocate(full_ct_m)
+         deallocate(full_ct_rhs)
+
 
          if(multiphase .and. associated(cmc_global)) then
             call deallocate(cmc_global)
@@ -1236,6 +1300,8 @@
          ! or using cg (we do this in every case of not having a control volume
          ! option so that prescribed pressures will work as well)
          cg_pressure = (.not.cv_pressure)
+         
+         use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
 
       end subroutine get_pressure_options
 
@@ -1329,7 +1395,7 @@
          if (has_boundary_condition(u, "free_surface")) then
             ! Use this as initial pressure guess, except at the free surface
             ! where we use the prescribed initial condition
-            call copy_poisson_solution_to_interior(p_theta, p, old_p, u)
+            call copy_poisson_solution_to_interior(state(prognostic_p_istate), p_theta, p, old_p, u)
          end if
 
          if (pressure_debugging_vtus) then

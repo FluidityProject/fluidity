@@ -74,7 +74,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Linear_Shallow_Water.o Linear_Shallow_Water_Legacy.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
-				Manifold_Projections.o
+        Hydrostatic_Projection.o Manifold_Projections.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -143,13 +143,13 @@ Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
    Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
    Drag.o Geostrophic_Pressure.o Hydrostatic_Pressure.o Vertical_Balance_Pressure.o \
    Foam_Drainage.o Petsc_Solve_State.o State_Matrices.o Reduced_Model_Runtime.o OceanSurfaceForcing.o Implicit_Solids.o \
-   Multiphase.o
+   Multiphase.o Hydrostatic_Projection.o
 Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
 Implicit_Solids.o: Timeloop_utilities.o
 Full_Projection.o: Petsc_Solve_State.o
-
+Hydrostatic_Projection.o: Vertical_Extrapolation.o
 Interpolation_manager.o: Geostrophic_Pressure.o
 Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o Momentum_CG.o Momentum_DG.o

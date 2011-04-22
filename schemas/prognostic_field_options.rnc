@@ -1305,6 +1305,10 @@ prognostic_pressure_field =
 
             }
          ),
+         ## EXPERIMENTAL: assume a hydrostatic pressure distribution in the vertical
+         element hydrostatic_pressure {
+            empty
+         }?,
          ## rediscretise the equations at every timestep and iteration
          ## (this is useful as a debugging tool but shouldn't be necessary for any application runs)
          element update_discretised_equation {

@@ -365,8 +365,7 @@ module sparse_tools
   end interface
     
   interface matmul
-     module procedure csr_matmul, csr_matmul_preallocated, &
-       block_csr_matmul, block_csr_matmul_preallocated, &
+     module procedure csr_matmul, block_csr_matmul, &
        csr_sparsity_matmul
   end interface
 
@@ -375,9 +374,18 @@ module sparse_tools
   end interface  
   
   interface matmul_T
-     module procedure dcsr_matmul_T, csr_matmul_T, csr_matmul_t_preallocated
+     module procedure dcsr_matmul_T, csr_matmul_T
   end interface
     
+  interface matmul_atb
+     module procedure csr_matmul_atb, &
+       csr_sparsity_matmul_atb, csr_block_csr_matmul_atb
+  end interface
+
+  interface matmul_atb_addto
+     module procedure csr_matmul_atb_addto, csr_block_csr_matmul_atb_addto
+  end interface
+  
   interface set_inactive
      module procedure csr_set_inactive_rows, csr_set_inactive_row
   end interface set_inactive
@@ -449,6 +457,7 @@ module sparse_tools
        unclone, size, block, block_size, blocks, entries, row_m, row_val, &
        & row_m_ptr, row_val_ptr, row_ival_ptr, diag_val_ptr, row_length, zero, zero_row, addto,&
        & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul, matmul_addto, matmul_T,&
+       & matmul_atb, matmul_atb_addto, &
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
        & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted, &
@@ -813,11 +822,9 @@ contains
 
   end subroutine allocate_csr_sparsity
 
-  subroutine allocate_csr_matrix(matrix, sparsity, val, type, name, stat)
+  subroutine allocate_csr_matrix(matrix, sparsity, type, name, stat)
     type(csr_matrix), intent(out) :: matrix
     type(csr_sparsity), intent(in) :: sparsity
-    !! Val can be used to not allocate the values.
-    logical, intent(in), optional :: val
     !! Real or integer matrix.
     integer, intent(in), optional :: type
     character(len=*), intent(in), optional :: name
@@ -4218,7 +4225,7 @@ contains
 
     product%name="matmul_T"//trim(matrix1%name)//"*"//trim(matrix2%name)
 
-    call matmul_t(matrix1, matrix2, product = product, set_sparsity = .not. present(model))
+    call csr_matmul_t_preallocated(matrix1, matrix2, product = product, set_sparsity = .not. present(model))
     
   end function csr_matmul_T
   
@@ -4311,7 +4318,7 @@ contains
   function csr_sparsity_matmul(A, B) result (C)
     !!< Computes the sparsity of the matrix product:
     !!< 
-    !!<     C_ij = \sum_j A_ik * B_kj
+    !!<     C_ij = \sum_k A_ik * B_kj
     !!< 
     type(csr_sparsity), intent(in) :: A, B
     type(csr_sparsity) :: C
@@ -4354,6 +4361,54 @@ contains
     end do
 
   end function csr_sparsity_matmul
+  
+  function csr_sparsity_matmul_atb(A, B) result (C)
+    !!< Computes the sparsity of the matrix product:
+    !!< 
+    !!<     C_ij = \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    type(csr_sparsity), intent(in) :: A, B
+    type(csr_sparsity) :: C
+      
+    type(integer_set), dimension(:), allocatable:: C_rows
+    integer, dimension(:), pointer:: rowA_k, rowC_i
+    integer, dimension(:), allocatable:: C_nnz
+    integer:: i, k
+    
+    assert(size(A,1)==size(B,1))
+    
+    allocate( C_rows(1:size(A,2)), C_nnz(1:size(A,2)) )
+    do i=1, size(A,2)
+      call allocate(C_rows(i))
+    end do
+    
+    ! first we assemble the rows of C as a set of column indices for each row
+    do k=1, size(A,1)
+      rowA_k => row_m_ptr(A, k)
+      do i=1, size(rowA_k)
+        call insert(C_rows(rowA_k(i)), row_m_ptr(B, k))
+      end do
+    end do
+      
+    ! that gives us the number of nonzeros (nnz) per row
+    do i=1, size(A,2)
+      C_nnz(i)=key_count(C_rows(i))
+    end do
+    
+    ! the new sparsity C
+    call allocate(C, size(A,2), size(B,2), nnz=C_nnz, &
+      name="matmul_atb_"//trim(A%name)//"*"//trim(B%name))
+    
+    ! now turn the arrays of sets into a sparsity
+    do i=1, size(A,2)
+      rowC_i => row_m_ptr(C, i)
+      rowC_i = set2vector(C_rows(i))
+      call deallocate(C_rows(i))
+    end do
+    
+    C%sorted_rows=.true.
+    
+  end function csr_sparsity_matmul_atb
   
   function csr_matmul(A, B, model) result (C)
     !!< Perform the matrix multiplication:
@@ -4502,7 +4557,7 @@ contains
     integer, dimension(:), pointer:: rowA_i, rowB_k
     integer:: blocki, blockj, blockk, i, j, k
     
-    ewrite(1,*) 'Entering csr_matmul_preallocated_addto'
+    ewrite(1,*) 'Entering block_csr_matmul_addto'
 
     assert(size(A,2)==size(B,1))
     assert(blocks(A,2)==blocks(B,1))
@@ -4536,6 +4591,186 @@ contains
       
   end subroutine block_csr_matmul_addto
     
+  function csr_matmul_atb(A, B, model) result (C)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    type(csr_matrix), intent(in) :: A, B
+    type(csr_sparsity), intent(in), optional :: model
+    type(csr_matrix) :: C
+      
+    type(csr_sparsity):: sparsity
+
+    ewrite(1,*) 'Entering csr_matmul_atb'
+
+    assert(size(A,1)==size(B,1))
+
+    if(.not.present(model)) then
+       sparsity = csr_sparsity_matmul_atb(A%sparsity, B%sparsity)         
+       call allocate(C, sparsity)
+    else
+       call allocate(C, model)
+    end if
+
+    C%name="matmul_atb_"//trim(A%name)//"*"//trim(B%name)
+
+    call csr_matmul_atb_preallocated(A, B, product = C)
+    
+  end function csr_matmul_atb
+  
+  subroutine csr_matmul_atb_preallocated(A, B, product)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    !!< Returns the result in the pre-allocated csr matrix product.
+    
+    type(csr_matrix), intent(in) :: A
+    type(csr_matrix), intent(in) :: B
+    ! we use intent(in) here as only the value space gets changed
+    ! this allows eg. using block() as input
+    type(csr_matrix), intent(inout) :: product
+    
+    ewrite(1,*) 'Entering csr_matmul_atb_preallocated'
+    
+    call zero(product)
+    call matmul_atb_addto(A, B, product=product)
+      
+  end subroutine csr_matmul_atb_preallocated
+  
+  subroutine csr_matmul_atb_addto(A, B, product)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = C_ij+ \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    !!< Returns the result in the pre-allocated csr matrix product.
+    
+    type(csr_matrix), intent(in) :: A
+    type(csr_matrix), intent(in) :: B
+    type(csr_matrix), intent(inout) :: product
+    
+    real, dimension(:), pointer:: A_k, B_k
+    integer, dimension(:), pointer:: rowA_k, rowB_k
+    integer:: i, j, k
+    
+    ewrite(1,*) 'Entering csr_matmul_atb_addto'
+
+    assert(size(A,1)==size(B,1))
+    assert(size(product,1)==size(A,2))
+    assert(size(product,2)==size(B,2))
+    
+    ! perform C_ij=\sum_k A_ik B_kj
+    
+    do k=1, size(A, 1)
+     A_k => row_val_ptr(A, k)
+     rowA_k => row_m_ptr(A, k)
+     B_k => row_val_ptr(B, k)
+     rowB_k => row_m_ptr(B, k)
+     
+     do i=1, size(rowA_k)
+       do j=1, size(rowB_k)
+         call addto(product, i, rowB_k(j), A_k(i)*B_k(j))
+       end do
+     end do
+     
+    end do
+      
+  end subroutine csr_matmul_atb_addto
+  
+  function csr_block_csr_matmul_atb(A, B, model) result (C)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    type(csr_matrix), intent(in) :: A
+    type(block_csr_matrix), intent(in) :: B
+    type(csr_sparsity), intent(in), optional :: model
+    type(block_csr_matrix) :: C
+      
+    type(csr_sparsity):: sparsity
+
+    ewrite(1,*) 'Entering csr_block_csr_matmul_atb'
+
+    assert(size(A,1)==size(B,1))
+
+    if(.not.present(model)) then
+       sparsity = csr_sparsity_matmul_atb(A%sparsity, B%sparsity)         
+       call allocate(C, sparsity, blocks=B%blocks)
+    else
+       call allocate(C, model, blocks=B%blocks)
+    end if
+
+    C%name="matmul_atb_"//trim(A%name)//"*"//trim(B%name)
+
+    call csr_block_csr_matmul_atb_preallocated(A, B, product = C)
+    
+  end function csr_block_csr_matmul_atb
+  
+  subroutine csr_block_csr_matmul_atb_preallocated(A, B, product)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    !!< Returns the result in the pre-allocated csr matrix product.
+    
+    type(csr_matrix), intent(in) :: A
+    type(block_csr_matrix), intent(in) :: B
+    ! we use intent(in) here as only the value space gets changed
+    ! this allows eg. using block() as input
+    type(block_csr_matrix), intent(inout) :: product
+    
+    ewrite(1,*) 'Entering csr_block_csr_matmul_atb_preallocated'
+    
+    call zero(product)
+    call matmul_atb_addto(A, B, product=product)
+      
+  end subroutine csr_block_csr_matmul_atb_preallocated
+    
+  subroutine csr_block_csr_matmul_atb_addto(A, B, product)
+    !!< Perform the matrix multiplication:
+    !!< 
+    !!<     C_ij = C_ij+ \sum_k (A^T)_ik * B_kj = \sum_k A_ki * B_kj
+    !!< 
+    !!< Returns the result in the pre-allocated csr matrix product.
+    !!< This version multiplies csr_matrix A^T with block_csr B
+    !!< If blocks(B,1)>1, each row of blocks is multiplied with the same A^T
+    
+    type(csr_matrix), intent(in) :: A
+    type(block_csr_matrix), intent(in) :: B
+    type(block_csr_matrix), intent(inout) :: product
+    
+    real, dimension(:), pointer:: A_k, B_k
+    integer, dimension(:), pointer:: rowA_k, rowB_k
+    integer:: i, j, k, blocki, blockj
+    
+    ewrite(1,*) 'Entering csr_block_csr_matmul_atb_addto'
+
+    assert(size(A,1)==size(B,1))
+    assert(size(product,1)==size(A,2))
+    assert(size(product,2)==size(B,2))
+    assert(all(blocks(B)==blocks(product)))
+    
+    do blocki=1, blocks(B,1)
+      do blockj=1, blocks(B,2)
+        do k=1, size(A, 1)
+         A_k => row_val_ptr(A, k)
+         rowA_k => row_m_ptr(A, k)
+         B_k => row_val_ptr(B, blocki, blockj, k)
+         rowB_k => row_m_ptr(B, k)
+         
+         do i=1, size(rowA_k)
+           do j=1, size(rowB_k)
+             call addto(product, blocki, blockj, rowA_k(i), rowB_k(j), A_k(i)*B_k(j))
+           end do
+         end do
+         
+        end do
+      end do
+    end do
+      
+  end subroutine csr_block_csr_matmul_atb_addto
+  
   function csr_sparsity_transpose(sparsity) result(sparsity_T)
   !!< Provides the transpose of the given sparsity
   type(csr_sparsity), intent(in):: sparsity

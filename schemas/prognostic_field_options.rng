@@ -1577,6 +1577,12 @@ Allows the selection of an arbitrary field.</a:documentation>
         </element>
       </choice>
       <optional>
+        <element name="hydrostatic_pressure">
+          <a:documentation>EXPERIMENTAL: assume a hydrostatic pressure distribution in the vertical</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="update_discretised_equation">
           <a:documentation>rediscretise the equations at every timestep and iteration
 (this is useful as a debugging tool but shouldn't be necessary for any application runs)</a:documentation>
