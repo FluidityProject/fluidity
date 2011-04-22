@@ -352,9 +352,7 @@
             call profiler_toc("momentum_diagnostics")
 
             ! Print out some statistics for the velocity
-            do i = 1, u%dim
-               ewrite_minmax(u%val(i,:))
-            end do
+            ewrite_minmax(u)
 
             x => extract_vector_field(state(istate), "Coordinate")
 
@@ -381,7 +379,7 @@
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
             end if
-            ewrite_minmax(p%val)
+            ewrite_minmax(p)
 
             allocate(dummydensity)
             call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -408,7 +406,7 @@
                   ! developer error... out of sync options input and code
                   FLAbort("Unknown equation type for velocity")
             end select
-            ewrite_minmax(density%val)
+            ewrite_minmax(density)
 
             if(full_schur) then
                ! Check to see whether pressure cmc_m preconditioning matrix is needed:
@@ -640,9 +638,7 @@
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
-               do i = 1, ct_m(istate)%ptr%blocks(2)
-                  ewrite_minmax(ct_m(istate)%ptr%val(1,i)%ptr(:))
-               end do
+              ewrite_minmax(ct_m(istate)%ptr)
             end if
 
             ! Do we want to solve for pressure?
@@ -676,10 +672,8 @@
                else
                   ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
                end if
-               do i = 1, ctp_m(istate)%ptr%blocks(2)
-                  ewrite_minmax(ctp_m(istate)%ptr%val(1,i)%ptr(:))
-               end do
-               ewrite_minmax(ct_rhs(istate)%val)
+               ewrite_minmax(ctp_m(istate)%ptr)
+               ewrite_minmax(ct_rhs(istate))
 
                ! Decide whether or not to form KMK stabilisation matrix:
                apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 &
@@ -1343,7 +1337,7 @@
                   sfields=(/ p_theta, p, old_p /))
          end if
 
-         ewrite_minmax(p_theta%val)
+         ewrite_minmax(p_theta)
 
          call deallocate(poisson_rhs)
 
@@ -1413,9 +1407,7 @@
             end if
 
             ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
-            do i = 1, delta_u%dim
-               ewrite_minmax(delta_u%val(i,:))
-            end do
+            ewrite_minmax(delta_u)
             call addto(mom_rhs(istate), delta_u)
          end if
 
@@ -1429,16 +1421,12 @@
 
          !! Solve for the change in velocity
          call petsc_solve(delta_u, big_m(istate), mom_rhs(istate), state(istate))
-         do i = 1, u%dim
-            ewrite_minmax(delta_u%val(i,:))
-         end do
+         ewrite_minmax(delta_u)
 
          call profiler_tic(u, "assembly")
          ! Apply change to velocity field (Note that this gets stored in state)
          call addto(u, delta_u, dt)
-         do i = 1, u%dim
-            ewrite_minmax(u%val(i,:))
-         end do
+         ewrite_minmax(u)
 
          call deallocate(delta_u)
          call profiler_toc(u, "assembly")
@@ -1521,12 +1509,12 @@
          if (apply_kmk) then
             call add_kmk_rhs(state(istate), kmk_rhs, p_theta, dt)
          end if
-         ewrite_minmax(kmk_rhs%val)
+         ewrite_minmax(kmk_rhs)
 
          call addto(temp_projec_rhs, kmk_rhs)
          call scale(temp_projec_rhs, -1.0)
          call addto(temp_projec_rhs, ct_rhs(istate))
-         ewrite_minmax(temp_projec_rhs%val(:))
+         ewrite_minmax(temp_projec_rhs)
 
          call deallocate(kmk_rhs)
 
@@ -1546,8 +1534,8 @@
                FLAbort("Unknown pressure discretisation for compressible projection.")
             end if
 
-            ewrite_minmax(compress_projec_rhs%val)
-            ewrite_minmax(cmc_m%val)
+            ewrite_minmax(compress_projec_rhs)
+            ewrite_minmax(cmc_m)
 
             call addto(temp_projec_rhs, compress_projec_rhs)
 
@@ -1567,7 +1555,7 @@
          end if
 
          call addto(projec_rhs, temp_projec_rhs)
-         ewrite_minmax(projec_rhs%val(:))
+         ewrite_minmax(projec_rhs)
 
          call deallocate(temp_projec_rhs)
 
@@ -1651,7 +1639,7 @@
             call petsc_solve(delta_p, cmc_m, projec_rhs, state(prognostic_p_istate))
          end if
 
-         ewrite_minmax(delta_p%val)
+         ewrite_minmax(delta_p)
 
          if (pressure_debugging_vtus) then
             ! Writes out the pressure and velocity before the correction is added in
@@ -1673,7 +1661,7 @@
          ! Add the change in pressure to the pressure
          ! (if .not. use_theta_pg then theta_pg is 1.0)
          call addto(p, delta_p, scale=1.0/(theta_pg*dt))
-         ewrite_minmax(p%val)
+         ewrite_minmax(p)
 
          if(use_compressible_projection) then
             call update_compressible_density(state)

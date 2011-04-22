@@ -234,7 +234,7 @@ contains
       ewrite(1, *) "Exiting calculate_buoyancy"
       return
     end if    
-    ewrite_minmax(buoyancy_density%val)
+    ewrite_minmax(buoyancy_density)
     
     gravity => extract_vector_field(state, "GravityDirection", stat = stat)
     if(stat /= 0) then
@@ -243,9 +243,7 @@ contains
       ewrite(1, *) "Exiting calculate_buoyancy"
       return
     end if    
-    do i = 1, gravity%dim
-      ewrite_minmax(gravity%val(i,:))
-    end do  
+    ewrite_minmax(gravity)
     
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     ewrite(2, *) "Gravity magnitude = ", gravity_magnitude

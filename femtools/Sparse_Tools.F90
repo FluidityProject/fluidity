@@ -428,6 +428,9 @@ module sparse_tools
     module procedure sparsity_is_sorted
   end interface
 
+  interface write_minmax
+    module procedure csr_write_minmax, block_csr_write_minmax
+  end interface
 
 #include "Reference_count_interface_csr_sparsity.F90"
 #include "Reference_count_interface_csr_matrix.F90"
@@ -448,7 +451,8 @@ module sparse_tools
        & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul, matmul_addto, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
-       & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted
+       & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted, &
+       & write_minmax
        
   public :: posinm
 
@@ -5158,6 +5162,37 @@ contains
     ewrite(2,*) 'rows, cols, nnz: ', rows, cols, nnz
     
   end subroutine mmreadheader
+
+  subroutine csr_write_minmax(matrix, matrix_expression)
+    ! the matrix to print its min and max of
+    type(csr_matrix), intent(in):: matrix
+    ! the actual matrix in the code
+    character(len=*), intent(in):: matrix_expression
+
+    ewrite(2,*) 'Min, max of '//trim(matrix_expression)//' "'// &
+            trim(matrix%name)//'" = ', minval(matrix%val), maxval(matrix%val)
+
+  end subroutine csr_write_minmax
+
+  subroutine block_csr_write_minmax(matrix, matrix_expression)
+    ! the matrix to print its min and max of
+    type(block_csr_matrix), intent(in):: matrix
+    ! the actual matrix in the code
+    character(len=*), intent(in):: matrix_expression
+
+    integer:: i, j
+
+    do i=1, blocks(matrix, 1)
+      do j=1, blocks(matrix, 2)
+        if (associated(matrix%val(i,j)%ptr)) then
+          ewrite(2,*) 'Min, max of '//trim(matrix_expression)//' "'// &
+            trim(matrix%name)//'%'//int2str(i)//','//int2str(j)// &
+            '" = ', minval(matrix%val(i,j)%ptr), maxval(matrix%val(i,j)%ptr)
+        end if
+      end do
+    end do
+
+  end subroutine block_csr_write_minmax 
 
 #include "Reference_count_csr_matrix.F90"
 #include "Reference_count_csr_sparsity.F90"

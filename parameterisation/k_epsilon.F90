@@ -218,9 +218,9 @@ subroutine keps_tke(state)
     call zero(kk_diff)
     do i = 1, kk_diff%dim(1)
         call set(kk_diff, i, i, EV, scale=1. / sigma_k)
-        ewrite_minmax(kk_diff%val(i,i,:))
     end do
 
+    ewrite_minmax(kk_diff)
     ewrite_minmax(tke_old)
     ewrite_minmax(kk)
     ewrite_minmax(source_kk)
@@ -303,9 +303,9 @@ subroutine keps_eps(state)
     call zero(eps_diff)
     do i = 1, eps_diff%dim(1)
         call set(eps_diff, i,i, EV, scale=1./sigma_eps)
-        ewrite_minmax(eps_diff%val(i,i,:))
     end do
 
+    ewrite_minmax(eps_diff)
     ewrite_minmax(tke_old)
     ewrite_minmax(source_kk)
     ewrite_minmax(eps)
@@ -390,16 +390,14 @@ subroutine keps_eddyvisc(state)
     ! eddy tensors are isotropic
     do i = 1, eddy_visc%dim(1)
       call set(eddy_visc, i, i, EV)
-      ewrite_minmax(eddy_visc%val(i,i,:))
     end do
+    ewrite_minmax(eddy_visc)
 
     ! Add turbulence model contribution to viscosity field
     call addto(viscosity, eddy_visc)
 
     ! Check components of viscosity
-    do i = 1, viscosity%dim(1)
-      ewrite_minmax(viscosity%val(i,i,:))
-    end do
+    ewrite_minmax(viscosity%val)
 
     ! Set output on optional fields
     scalarField => extract_scalar_field(state, "LengthScale", stat)

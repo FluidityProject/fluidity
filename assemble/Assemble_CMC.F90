@@ -109,7 +109,7 @@ contains
 
       end if
 
-      ewrite_minmax(cmc%val)
+      ewrite_minmax(cmc)
 
     end subroutine assemble_cmc_dg
 
@@ -127,7 +127,7 @@ contains
 
       call mult_div_vector_div_T(cmc_m, ctp_m, inverse_masslump, ct_m)
       
-      ewrite_minmax(cmc_m%val)
+      ewrite_minmax(cmc_m)
 
     end subroutine assemble_masslumped_cmc
 
@@ -157,17 +157,15 @@ contains
       call zero(inner_m_diagonal)
       call extract_diagonal(inner_m,inner_m_diagonal)
 
-      do i = 1, inner_m_diagonal%dim
-         ewrite_minmax(inner_m_diagonal%val(i,:))
-         if(any(inner_m_diagonal%val(i,:) < 0)) then
-            ewrite(-1,*) 'Inner_m_diagonal has negative values'
-            FLExit("Negative values in the diagonal schur complement preconditioner")
+      ewrite_minmax(inner_m_diagonal)
+      if(any(inner_m_diagonal%val < 0)) then
+        ewrite(-1,*) 'Inner_m_diagonal has negative values'
+        FLExit("Negative values in the diagonal schur complement preconditioner")
 
-         end if
-      end do
+      end if
 
       call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
-      ewrite_minmax(schur_diagonal_matrix%val)
+      ewrite_minmax(schur_diagonal_matrix)
       call deallocate(inner_m_diagonal)
 
     end subroutine assemble_diagonal_schur
@@ -217,7 +215,7 @@ contains
       ! inverse viscosity is supplied as density here:
       call compute_mass(positions,pressure%mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
 
-      ewrite_minmax(scaled_pressure_mass_matrix%val)
+      ewrite_minmax(scaled_pressure_mass_matrix)
 
       ! Deallocate inverse viscosity component scalar field:
       call deallocate(inverse_viscosity_component)
@@ -303,10 +301,10 @@ contains
           call set(lctm_m_block, (/row/), row_indices, &
                   spread((row_val/node_val(masslump, row_indices)), 1, 1))
         end do
-        
-        ewrite_minmax(ctm_m%val(1,dim)%ptr)
 
       end do
+
+      ewrite_minmax(ctm_m)
 
     end subroutine assemble_masslumped_ctm
     

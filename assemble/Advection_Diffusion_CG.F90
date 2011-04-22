@@ -245,9 +245,7 @@ contains
     
     ! Coordinate
     positions => extract_vector_field(state, "Coordinate")
-    do i = 1, positions%dim
-      ewrite_minmax(positions%val(i,:))
-    end do
+    ewrite_minmax(positions)
     assert(positions%dim == mesh_dim(t))
     assert(ele_count(positions) == ele_count(t))
     
@@ -258,9 +256,7 @@ contains
       assert(ele_count(velocity_ptr) == ele_count(t))
       
       ewrite(2, *) "Velocity:"
-      do i = 1, velocity_ptr%dim
-        ewrite_minmax(velocity_ptr%val(i,:))
-      end do
+      ewrite_minmax(velocity_ptr)
 
       if (have_option(trim(t%option_path) // &
         "/prognostic/spatial_discretisation/continuous_galerkin/advection_terms/only_sinking_velocity")) then
@@ -284,7 +280,7 @@ contains
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
     
-      ewrite_minmax(source%val)
+      ewrite_minmax(source)
     else
       ewrite(2, *) "No source"
     end if
@@ -296,7 +292,7 @@ contains
       assert(mesh_dim(absorption) == mesh_dim(t))
       assert(ele_count(absorption) == ele_count(t))
     
-      ewrite_minmax(absorption%val)
+      ewrite_minmax(absorption)
     else
       ewrite(2, *) "No absorption"
     end if
@@ -304,14 +300,12 @@ contains
     ! Sinking velocity
     sinking_velocity => extract_scalar_field(state, trim(t%name) // "SinkingVelocity", stat = stat)
     if(stat == 0) then
-      ewrite_minmax(sinking_velocity%val)
+      ewrite_minmax(sinking_velocity)
       
       gravity_direction => extract_vector_field(state, "GravityDirection")
       ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
       call addto(velocity, gravity_direction, scale = sinking_velocity)
-      do i = 1, velocity_ptr%dim
-        ewrite_minmax(velocity%val(i,:))
-      end do
+      ewrite_minmax(velocity)
     else
       ewrite(2, *) "No sinking velocity"
     end if
@@ -331,11 +325,7 @@ contains
         assert(all(diffusivity%dim > 0))
         ewrite_minmax(diffusivity%val(1, 1, :))
       else
-        do i = 1, diffusivity%dim(1)
-          do j = 1, diffusivity%dim(2)
-            ewrite_minmax(diffusivity%val(i, j, :))
-          end do
-        end do
+        ewrite_minmax(diffusivity)
       end if
     else
       isotropic_diffusivity = .false.
@@ -385,13 +375,9 @@ contains
     if(move_mesh) then
       ewrite(2,*) "Moving the mesh"
       old_positions => extract_vector_field(state, "OldCoordinate")
-      do i = 1, old_positions%dim
-        ewrite_minmax(old_positions%val(i,:))
-      end do
+      ewrite_minmax(old_positions)
       new_positions => extract_vector_field(state, "IteratedCoordinate")
-      do i = 1, new_positions%dim
-        ewrite_minmax(new_positions%val(i,:))
-      end do
+      ewrite_minmax(new_positions)
       
       ! Grid velocity
       grid_velocity => extract_vector_field(state, "GridVelocity")
@@ -399,9 +385,7 @@ contains
       assert(ele_count(grid_velocity) == ele_count(t))
       
       ewrite(2, *) "Grid velocity:"    
-      do i = 1, grid_velocity%dim
-        ewrite_minmax(grid_velocity%val(i,:))
-      end do
+      ewrite_minmax(grid_velocity)
     else
       ewrite(2,*) "Not moving the mesh"
     end if
@@ -447,16 +431,16 @@ contains
       call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
                       density_name)
       density=>extract_scalar_field(state, trim(density_name))
-      ewrite_minmax(density%val)
+      ewrite_minmax(density)
       
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
-      ewrite_minmax(olddensity%val)
+      ewrite_minmax(olddensity)
       
       call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
                       density_theta)
                       
       pressure=>extract_scalar_field(state, "Pressure")
-      ewrite_minmax(pressure%val)
+      ewrite_minmax(pressure)
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -516,7 +500,7 @@ contains
     ewrite(2, *) "Applying strong Dirichlet boundary conditions"
     call apply_dirichlet_conditions(matrix, rhs, t, dt)
     
-    ewrite_minmax(rhs%val)
+    ewrite_minmax(rhs)
     
     call deallocate(velocity)
     call deallocate(dummydensity)
@@ -1161,7 +1145,7 @@ contains
     call petsc_solve(delta_t, matrix, rhs, state, option_path = t%option_path, &
                      iterations_taken = iterations_taken)
     
-    ewrite_minmax(delta_t%val)
+    ewrite_minmax(delta_t)
     
   end subroutine solve_advection_diffusion_cg
   
@@ -1170,11 +1154,11 @@ contains
     type(scalar_field), intent(in) :: delta_t
     real, intent(in) :: dt
     
-    ewrite_minmax(t%val)
+    ewrite_minmax(t)
     
     call addto(t, delta_t, dt)
     
-    ewrite_minmax(t%val)
+    ewrite_minmax(t)
     
   end subroutine apply_advection_diffusion_cg_change
     

@@ -119,11 +119,11 @@ contains
     
     call petsc_solve(delta_t, matrix, rhs, state, option_path = trim(t%option_path))
     
-    ewrite_minmax(delta_t%val)
+    ewrite_minmax(delta_t)
     
     call addto(t, delta_t, dt)
     
-    ewrite_minmax(t%val)
+    ewrite_minmax(t)
     
     call deallocate(matrix)
     call deallocate(rhs)
@@ -161,7 +161,7 @@ contains
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
     
-      ewrite_minmax(source%val)
+      ewrite_minmax(source)
     else
       ewrite(2,*) 'No source'
     end if
@@ -173,7 +173,7 @@ contains
       assert(mesh_dim(absorption) == mesh_dim(t))
       assert(ele_count(absorption) == ele_count(t))
     
-      ewrite_minmax(absorption%val)
+      ewrite_minmax(absorption)
     else
       ewrite(2, *) "No absorption"
     end if
@@ -193,11 +193,7 @@ contains
         assert(all(diffusivity%dim > 0))
         ewrite_minmax(diffusivity%val(1, 1, :))
       else
-        do i = 1, diffusivity%dim(1)
-          do j = 1, diffusivity%dim(2)
-            ewrite_minmax(diffusivity%val(i, j, :))
-          end do
-        end do
+        ewrite_minmax(diffusivity)
       end if
     else
       isotropic_diffusivity = .false.
@@ -246,9 +242,7 @@ contains
       assert(ele_count(grid_velocity) == ele_count(t))
       
       ewrite(2, *) "Grid velocity:"    
-      do i = 1, grid_velocity%dim
-        ewrite_minmax(grid_velocity%val(i,:))
-      end do
+      ewrite_minmax(grid_velocity)
     else
       ewrite(2,*) "Not moving the mesh"
     end if
@@ -265,7 +259,7 @@ contains
     ewrite(2, *) "Applying strong Dirichlet boundary conditions"
     call apply_dirichlet_conditions(matrix, rhs, t, dt)
     
-    ewrite_minmax(rhs%val)
+    ewrite_minmax(rhs)
     call deallocate(t_coordinate)
 
     ewrite(1,*) "Exiting assemble_advection_diffusion_fv"
