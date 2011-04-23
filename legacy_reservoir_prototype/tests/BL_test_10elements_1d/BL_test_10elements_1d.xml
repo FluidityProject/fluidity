@@ -7,7 +7,7 @@
   <tags></tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-       ../../../bin/multiphase_prototype BL_test_10elements_1d.flml
+       ../../../bin/multiphase_prototype BL_test_10elements_1d.mpml
     </command_line>
     <!-- One dimensional problem for BL equation using 10 elements tested against a previous run (ie. regression test) of the spatial dump files -->
   </problem_definition>

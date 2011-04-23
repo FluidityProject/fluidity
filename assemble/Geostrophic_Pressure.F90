@@ -426,7 +426,7 @@ contains
     if(have_density) then
       assert(ele_count(density) == ele_count(gp_rhs))
       
-      ewrite_minmax(density%val)
+      ewrite_minmax(density)
     else
       density => dummy_scalar
     
@@ -438,7 +438,7 @@ contains
       
       buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
       assert(ele_count(buoyancy) == ele_count(gp_rhs))
-      ewrite_minmax(buoyancy%val)
+      ewrite_minmax(buoyancy)
       
       gravity => extract_vector_field(state, "GravityDirection")
       assert(gravity%dim == mesh_dim(gp_rhs))
@@ -448,7 +448,7 @@ contains
       if(stat == 0) then
         ewrite(2, *) "Using " // hp_name
         have_hp = .true.
-        ewrite_minmax(hp%val)
+        ewrite_minmax(hp)
       else
         ewrite(2, *) "No " // hp_name
         have_hp = .false.
@@ -459,9 +459,7 @@ contains
       if(stat == 0) then
         ewrite(2, *) "Using " // hpg_name
         have_hpg = .true.
-        do i = 1, hpg%dim
-          ewrite_minmax(hpg%val(i,:))
-        end do
+        ewrite_minmax(hpg)
       else
         ewrite(2, *) "No " // hpg_name
         have_hpg = .false.
@@ -484,9 +482,7 @@ contains
       assert(velocity%dim == mesh_dim(gp_rhs))
       assert(ele_count(velocity) == ele_count(gp_rhs))
     
-      do i = 1, velocity%dim
-        ewrite_minmax(velocity%val(i,:))
-      end do
+      ewrite_minmax(velocity)
     else
       velocity => dummy_vector
     end if
@@ -514,7 +510,7 @@ contains
     ! Set any strong dirichlet bc specified
     call apply_dirichlet_conditions(gp_m, gp_rhs, gp)
     
-    ewrite_minmax(gp_rhs%val)
+    ewrite_minmax(gp_rhs)
     
     last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
         
@@ -647,7 +643,7 @@ contains
         
     call petsc_solve(gp, gp_m, gp_rhs, state)
     
-    ewrite_minmax(gp%val)
+    ewrite_minmax(gp)
     
   end subroutine solve_geostrophic_pressure
   
@@ -700,9 +696,7 @@ contains
     assert(positions%dim == mom_rhs%dim)
     assert(ele_count(positions) == ele_count(mom_rhs))
 
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i,:))
-    end do
+    ewrite_minmax(mom_rhs)
     
     do i = 1, ele_count(mom_rhs)
       if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
@@ -710,9 +704,7 @@ contains
       end if
     end do
     
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i,:))
-    end do
+    ewrite_minmax(mom_rhs)
     
     ewrite(1, *) "Exiting subtract_geostrophic_pressure_gradient"
   
@@ -1608,9 +1600,7 @@ contains
           do i = 1, ele_count(rhs)
             call assemble_velocity_ele(i, positions, coriolis, rhs, llump_rhs)
           end do
-          do i = 1, rhs%dim
-            ewrite_minmax(rhs%val(i,:))
-          end do
+          ewrite_minmax(rhs)
           call petsc_solve(velocity, mass, rhs, option_path = solver_path)
           call deallocate(rhs)
         case(-1)
@@ -1623,9 +1613,7 @@ contains
         end select
     end if
     
-    do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i,:))
-    end do
+    ewrite_minmax(velocity)
     
     ewrite(1, *) "Exiting velocity_from_coriolis"
 
@@ -1774,9 +1762,7 @@ contains
       end select
     end if
     
-    do i = 1, coriolis%dim
-      ewrite_minmax(coriolis%val(i,:))
-    end do
+    ewrite_minmax(coriolis)
     
     ewrite(1, *) "Exiting coriolis_from_velocity"
 
@@ -2002,13 +1988,13 @@ contains
       & surface_element_list = surface_element_list) 
     call interpolate_boundary_values(base_ps, base_positions, ps, positions, b_mesh, surface_element_list, b_ps) 
     b_ps%name = "value"
-    ewrite_minmax(b_ps(1)%val)
+    ewrite_minmax(b_ps(1))
     call insert_surface_field(ps(1), 1, b_ps(1))
     call deallocate(b_ps(1))
     do i = 2, size(ps)
       ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
       call add_boundary_condition_surface_elements(ps(i), "InterpolatedBoundary", "dirichlet", surface_eles) 
-      ewrite_minmax(b_ps(i)%val)
+      ewrite_minmax(b_ps(i))
       call insert_surface_field(ps(i), 1, b_ps(i))
       call deallocate(b_ps(i))
     end do
@@ -2159,9 +2145,9 @@ contains
     
     ! Compute the residual
     do i = 1, size(ps, 1)
-      ewrite_minmax(ps(i, 1)%val) 
+      ewrite_minmax(ps(i, 1)) 
       ps(i, 2)%val = base_ps(i)%val - ps(i, 1)%val
-      ewrite_minmax(ps(i, 2)%val)
+      ewrite_minmax(ps(i, 2))
     end do
     
     if(present(bc_ps)) then
@@ -2362,14 +2348,14 @@ contains
     do i = 1, size(base_ps)
       ewrite(2, *) "Boundary value for " // trim(base_ps(i)%name) // ": ", c(i)
       call addto(ps(i, 1), p_1, scale = c(i))
-      ewrite_minmax(ps(i, 1)%val) 
+      ewrite_minmax(ps(i, 1)) 
     end do
     call deallocate(p_1)
     
     ! Compute the residual
     do i = 1, size(ps, 1)
       ps(i, 2)%val = base_ps(i)%val - ps(i, 1)%val
-      ewrite_minmax(ps(i, 2)%val)
+      ewrite_minmax(ps(i, 2))
     end do
     
     if(present(bc_ps)) then
@@ -2660,7 +2646,7 @@ contains
       call allocate(old_w, old_velocity%mesh, gi_w_name)
       old_w%option_path = trim(base_path) // "/vertical_velocity"
       call set(old_w, old_velocity, W_)
-      ewrite_minmax(old_w%val)
+      ewrite_minmax(old_w)
       
       call allocate(new_w, new_velocity%mesh, old_w%name)
       new_w%option_path = old_w%option_path

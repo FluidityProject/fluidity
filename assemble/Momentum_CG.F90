@@ -278,16 +278,12 @@
       source=>extract_vector_field(state, "VelocitySource", stat)
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
-      do dim = 1, source%dim
-        ewrite_minmax(source%val(dim,:))
-      end do
+      ewrite_minmax(source)
 
       absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
-      do dim = 1, absorption%dim
-        ewrite_minmax(absorption%val(dim,:))
-      end do
+      ewrite_minmax(absorption)
 
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
@@ -333,19 +329,14 @@
         gravity=>dummyvector
         gravity_magnitude = 0.0
       end if
-      ewrite_minmax(buoyancy%val)
+      ewrite_minmax(buoyancy)
 
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
       if(.not. have_viscosity) then
          viscosity=>dummytensor
       else
-         do dim = 1, viscosity%dim(1)
-            do dim2 = 1, viscosity%dim(2)
-              if(dim2<dim) cycle
-              ewrite_minmax(viscosity%val(dim,dim2,:))
-            end do
-         end do
+        ewrite_minmax(viscosity)
       end if
       
       surfacetension=>extract_tensor_field(state, "VelocitySurfaceTension", stat)
@@ -353,12 +344,7 @@
       if(.not. have_surfacetension) then
          surfacetension=>dummytensor
       else
-         do dim = 1, surfacetension%dim(1)
-            do dim2 = 1, surfacetension%dim(2)
-              if(dim2<dim) cycle
-              ewrite_minmax(surfacetension%val(dim,dim2,:))
-            end do
-         end do
+        ewrite_minmax(surfacetension)
       end if
       
       have_coriolis = have_option("/physical_parameters/coriolis")
@@ -406,7 +392,7 @@
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicFilterWidth")
 
            ! Initialise necessary local fields.
-           ewrite(2,*) "Initialising compulsory dynamic LES fields"
+           ewrite(3,*) "Initialising compulsory dynamic LES fields"
            allocate(mnu); allocate(tnu); allocate(leonard)
            call allocate(mnu, u%dim, u%mesh, "DynamicVelocity")
            call allocate(tnu, u%dim, u%mesh, "DynamicFilteredVelocity")
@@ -418,7 +404,7 @@
 
            ! Use time-averaged quantities. EXPERIMENTAL - DOES NOT WORK.
            if(have_averaging) then
-             ewrite(2,*) "Initialising dynamic LES averaged fields"
+             ewrite(3,*) "Initialising dynamic LES averaged fields"
              ! Test-filtered velocity field
              allocate(mnu_av); allocate(tnu_av); allocate(leonard_av)
              call allocate(mnu_av, u%dim, u%mesh, "DynamicAverageVelocity")
@@ -427,7 +413,7 @@
              call zero(mnu_av); call zero(tnu_av); call zero(leonard_av)
 
              ! Averaged velocity field
-             ewrite(2,*) "Calculating averaged velocity"
+             ewrite(3,*) "Calculating averaged velocity"
              !nu_av => vector_source_field(state, u)
              !call calculate_time_averaged_vector(state, nu_av)
            else
@@ -438,7 +424,7 @@
            call get_option(trim(les_option_path)//"/dynamic_les/stabilisation_parameter", alpha2, default=0.0)
            if(alpha2 > 0.0) then
              ! Calculate mesh-filtered velocity
-             ewrite(2,*) "Calculating mesh-filtered velocity from Velocity (not NonlinearVelocity)"
+             ewrite(3,*) "Calculating mesh-filtered velocity from Velocity (not NonlinearVelocity)"
              call anisotropic_smooth_vector(u, x, mnu, alpha2, trim(les_option_path)//"/dynamic_les")
              ! If averaging, we need to smooth the averaged velocity too!
              if(have_averaging) then
@@ -462,7 +448,7 @@
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.
-           ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
+           ewrite(3,*) "Calculating test-filtered velocity and Leonard tensor"
            call leonard_tensor(mnu, x, tnu, leonard, alpha, les_option_path)
            if(have_averaging) then
              call leonard_tensor(mnu_av, x, tnu_av, leonard_av, alpha, les_option_path)
@@ -470,11 +456,7 @@
              tnu_av => dummyvector; leonard_av => dummytensor
            end if
 
-           do dim = 1, viscosity%dim(1)
-             do dim2 = 1, viscosity%dim(2)
-               ewrite_minmax(leonard%val(dim,dim2,:))
-             end do
-           end do
+           ewrite_minmax(leonard)
          else
            have_averaging=.false.; have_lilly=.false.; have_eddy_visc=.false.
            have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
@@ -505,7 +487,7 @@
       if(have_geostrophic_pressure) then
         gp => extract_scalar_field(state, "GeostrophicPressure")
         
-        ewrite_minmax(gp%val)
+        ewrite_minmax(gp)
       else
         gp => dummyscalar
       end if
@@ -805,36 +787,26 @@
           ! Add viscous terms (stored in visc_inverse_masslump)
           ! to inverse_masslump (and store it in visc_inverse_masslump):
           ewrite(2,*) "The viscous_terms are:"
-          do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(visc_inverse_masslump)
           ! Add the viscous terms to the lumped mass matrix
           call addto(visc_inverse_masslump, inverse_masslump)
           ewrite(2,*) "For comparison only:"
           ewrite(2,*) "The orig inverse_masslump is:"
-          do dim = 1, rhs%dim
-            ewrite_minmax(inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(inverse_masslump)
           ewrite(2,*) "The new visc_inverse_masslump is:"
-          do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(visc_inverse_masslump)
           ! invert the visc_inverse_masslump:
           call invert(visc_inverse_masslump)
           ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
           
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
-          do dim = 1, rhs%dim
-            ewrite_minmax(visc_inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(visc_inverse_masslump)
           
           ! Now invert the original inverse_masslump, apply dirichlet conditions:
           call invert(inverse_masslump)
           call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          do dim = 1, rhs%dim
-            ewrite_minmax(inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(inverse_masslump)
           ewrite(2,*) "****************************************"
         else 
           ! thus far we have just assembled the lumped mass in inverse_masslump
@@ -842,9 +814,7 @@
           call invert(inverse_masslump)
           ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          do dim = 1, rhs%dim
-            ewrite_minmax(inverse_masslump%val(dim,:))
-          end do
+          ewrite_minmax(inverse_masslump)
         endif
       end if
       
@@ -852,9 +822,7 @@
         call apply_dirichlet_conditions(matrix=mass, field=u)
       end if
             
-      do dim = 1, rhs%dim
-        ewrite_minmax(rhs%val(dim,:))
-      end do
+      ewrite_minmax(rhs)
 
       if (les_fourth_order) then
         call deallocate(grad_u)
@@ -2468,9 +2436,7 @@
       end do
 
       call halo_update(u)
-      do i = 1, u%dim
-        ewrite_minmax(u%val(i,:))
-      end do
+      ewrite_minmax(u)
 
       call deallocate(delta_u)
 
@@ -2509,9 +2475,7 @@
       call addto(u, delta_u2)
       
       call halo_update(u)
-      do i = 1, u%dim
-        ewrite_minmax(u%val(i,:))
-      end do
+      ewrite_minmax(u)
 
       call deallocate(delta_U1)
       call deallocate(delta_U2)

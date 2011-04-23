@@ -42,9 +42,11 @@
 
 #ifdef __GNUC__
 ! gfortran/gccs traditional cpp does not allow #array stringification
-#define ewrite_minmax(array) ewrite(2, *) "Min, max of "//'array'//" = ",minval(array), maxval(array)
+!#define ewrite_minmax(array) ewrite(2, *) "Min, max of "//'array'//" = ",minval(array), maxval(array)
+#define ewrite_minmax(array) if (current_debug_level >= 2) call write_minmax(array, 'array')
 #else
-#define ewrite_minmax(array) ewrite(2, *) "Min, max of "//#array//" = ",minval(array), maxval(array)
+!#define ewrite_minmax(array) ewrite(2, *) "Min, max of "//#array//" = ",minval(array), maxval(array)
+#define ewrite_minmax(array) if (current_debug_level >= 2) call write_minmax(array, #array)
 #endif
 
 #define EWRITE_MINMAX(array) ewrite_minmax(array)

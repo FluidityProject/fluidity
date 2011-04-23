@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">CompModel_1d_2Phases_3Components_Equilibrium</string_value>
+    <string_value lines="1">CompModel_1d_2Phases_3Components_LVI_NonEquilibrium</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multiphase</string_value>
@@ -33,7 +33,7 @@
         <real_value rank="0">0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>

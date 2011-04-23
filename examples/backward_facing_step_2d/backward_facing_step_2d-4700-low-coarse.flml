@@ -372,9 +372,6 @@
         <source_absorption>
           <string_value>explicit</string_value>
         </source_absorption>
-        <L_max>
-          <real_value rank="0">1</real_value>
-        </L_max>
         <C_mu>
           <real_value rank="0">.09</real_value>
         </C_mu>
