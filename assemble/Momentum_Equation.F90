@@ -1299,7 +1299,7 @@
 
          ! Are we getting the pressure gradient matrix using control volumes?
          cv_pressure = (have_option(trim(p%option_path)//&
-                       !    "/prognostic/spatial_discretisation/control_volumes"))
+                           "/prognostic/spatial_discretisation/control_volumes"))
          ! or using cg (we do this in every case of not having a control volume
          ! option so that prescribed pressures will work as well)
          cg_pressure = (.not.cv_pressure)
