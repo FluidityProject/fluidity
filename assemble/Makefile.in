@@ -111,7 +111,7 @@ Adapt_State_Unittest.o: Adapt_Integration.o Mba2d_Integration.o Adapt_State.o \
   Sam_integration.o
 Explicit_ALE.o: Solid_Configuration.o
 traffic.o: qmesh.o
-Implicit_Solids.o: qmesh.o
+Implicit_Solids.o: qmesh.o Supermesh_Force.o
 Mba3d_Integration.o: Adapt_Integration.o Node_Locking.o qmesh.o \
   Surface_Id_Interleaving.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
@@ -147,7 +147,7 @@ Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
 Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
-Implicit_Solids.o: Timeloop_utilities.o
+Implicit_Solids.o: Timeloop_utilities.o Supermesh_Force.o
 Full_Projection.o: Petsc_Solve_State.o
 
 Interpolation_manager.o: Geostrophic_Pressure.o

@@ -47,7 +47,7 @@ module implicit_solids
        PYTHON_FUNC_LEN, dt, timestep, current_time
   use spud
   use timeloop_utilities
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_lumped_mass, project_field
   use parallel_tools
   use diagnostic_variables
   use qmesh_module
@@ -71,11 +71,14 @@ module implicit_solids
   use sparse_matrices_fields
   use bound_field_module
   use halos
-  use diagnostic_fields
+!  use diagnostic_fields
   use boundary_conditions
   use data_structures
   use edge_length_module
-
+  use conservative_interpolation_module
+  use state_fields_module
+  use supermesh_force
+  
   implicit none
 
 #ifdef USING_FEMDEM
@@ -88,24 +91,30 @@ module implicit_solids
 
   interface
      subroutine y3d_populate_femdem(ele1, ele2 ,ele3, ele4, &
-          face1, face2, face3, xs, ys, zs)
+          face1, face2, face3, xs, ys, zs, ux, uy, uz)
        integer, dimension(*), intent(out) :: ele1, ele2, ele3, ele4
        integer, dimension(*), intent(out) :: face1, face2, face3
        real, dimension(*), intent(out) :: xs, ys, zs
+       real, dimension(*), intent(out) :: ux, uy, uz
      end subroutine y3d_populate_femdem
   end interface
 
-  interface 
-     subroutine y3dfemdem(ext_mesh_name, dt, rho_f, ibulk, &
-          xs, ys, zs, fxs, fys, fzs, uf, vf, wf, us, vs, ws, af)
-       real, intent(in) :: dt, rho_f
-       integer, intent(in) :: ibulk
-       character(len=*), intent(in) :: ext_mesh_name
-       real, dimension(*), intent(in) :: uf, vf, wf, af
-       real, dimension(*), intent(out) :: xs, ys, zs
-       real, dimension(*), intent(out) :: fxs, fys, fzs
-       real, dimension(*), intent(out) :: us, vs, ws
 
+  interface 
+     subroutine y3dfemdem(ext_mesh_name, dt, rho_f, &
+          xs, ys, zs, uf, vf, wf, us, vs, ws, femdem_totalforce_1stdt, femdem_force_bulkvel_1stdt, femdem_force_solidvel_1stdt, &
+          femdem_totalforce_lastdt, femdem_force_bulkvel_lastdt, femdem_force_solidvel_lastdt )
+       real, intent(in) :: dt, rho_f
+       real, dimension(4), intent(out) :: femdem_totalforce_1stdt
+       real, dimension(3), intent(out) :: femdem_force_bulkvel_1stdt
+       real, dimension(3), intent(out) :: femdem_force_solidvel_1stdt
+       real, dimension(3), intent(out) :: femdem_totalforce_lastdt
+       real, dimension(3), intent(out) :: femdem_force_bulkvel_lastdt
+       real, dimension(3), intent(out) :: femdem_force_solidvel_lastdt
+       character(len=*), intent(in) :: ext_mesh_name
+       real, dimension(*), intent(in) :: uf, vf, wf
+       real, dimension(*), intent(out) :: xs, ys, zs
+       real, dimension(*), intent(out) :: us, vs, ws
      end subroutine y3dfemdem
   end interface
 #endif
@@ -116,14 +125,17 @@ module implicit_solids
           interpolation_galerkin_multiple_states_femdem
   end interface
 
-  type(vector_field), target, save :: ext_pos_fluid_vel, ext_pos_solid_vel
-  type(vector_field), target, save :: ext_pos_solid_force, fl_pos_solid_force
-  type(scalar_field), target, save :: ext_pos_solid
+  interface calculate_galerkin_projection
+    module procedure calculate_galerkin_projection_scalar, calculate_galerkin_projection_vector
+  end interface
+
+  type(vector_field), target, save :: ext_pos_bulk_vel, fl_pos_bulk_vel, ext_pos_solid_vel
+  type(vector_field), pointer :: fl_pos_solid_vel, fl_pos_solid_force
+  type(vector_field), save :: old_solid_velocity
+  type(vector_field), save :: fluid_force, solid_force
 
   type(scalar_field), save :: solid_local, old_solid_local, interface_local
   type(vector_field), save :: external_positions
-
-  type(tensor_field), save :: metric, edge_lengths
 
   real, save :: beta, radius, source_intensity, rho_f
   real, save :: solid_peclet_number, fluid_peclet_number
@@ -156,21 +168,36 @@ contains
 
     type(state_type), dimension(1) :: states
     type(tensor_field), pointer :: viscosity
-    type(vector_field), pointer :: x
+    type(vector_field), pointer :: x, velocity, u, fluid_positions
     type(scalar_field), pointer :: solid, old_solid, interface
+    type(mesh_type) :: field_p0_fl_m
     integer :: i, stat
 
     integer, save :: dim
     logical, save :: init=.false.
 
+
     ewrite(2, *) "inside implicit_solids"
 
-    ! SolidConcentration will be called /alpha in the comments from now on
-    ! Furthermore, the superscript will denote on which mesh the corresponding
-    ! variable will live, and the subscript will distinguish between the phase,
+    ! SolidConcentration will be called \alpha in the comments from now on
+    ! Furthermore, the superscript will denote on which mesh the corresponding 
+    ! variable will live, and the subscript will distinguish between the phase, 
     ! i.e. u_f^s will be the fluid velocity on the solid mesh.
     ! solid actually is /alpha_s^f:
     solid => extract_scalar_field(state, "SolidConcentration")
+!    velocity => extract_vector_field(state, "Velocity")
+    velocity => extract_vector_field(state, "IteratedVelocity")
+!    u => extract_vector_field(state, "IteratedVelocity")
+
+    ewrite(2,*) "************************************************************************"
+    ewrite(2,*) "FluidVelocity on fluid mesh:"
+    ewrite_minmax(velocity%val(1,:))
+    ewrite_minmax(velocity%val(2,:))
+    ewrite_minmax(velocity%val(3,:))
+!    ewrite_minmax(u%val(1,:))
+!    ewrite_minmax(u%val(2,:))
+!    ewrite_minmax(u%val(3,:))
+    ewrite(2,*) "************************************************************************"
 
     if (.not. init) then
 
@@ -180,7 +207,7 @@ contains
        call get_option("/implicit_solids/source_intensity", &
             source_intensity, default=0.)
        call get_option("/material_phase::"//trim(state%name)// &
-            "/equation_of_state/fluids/linear/reference_density", rho_f, default = 1.0)
+            "/equation_of_state/fluids/linear/reference_density", rho_f)
 
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
@@ -218,40 +245,26 @@ contains
 
           ! Computing /alpha_s^f:
           do i = 1, number_of_solids
-             ewrite(2, *) "  calculating volume fraction for solid", i
+             ewrite(2, *) "  calculating volume fraction for solid", i 
              call calculate_volume_fraction(state, i)
           end do
 
           ! Compute the SolidPhase:
           call calculate_solid_fluid_interface(state)
 
-          ! 'x' will be the pointer to the coordinate field of the fluids mesh
-          x => extract_vector_field(state, "Coordinate")
-          ! Allocating variables for computing the absorption term
-          call allocate(metric, x%mesh, "ErrorMetric")
-          call zero(metric)
-          call allocate(edge_lengths, metric%mesh, "EdgeLengths")
-          call zero(edge_lengths)
-
-          ! calculate metric and edge lengths (used for the absorption term later on)
-          states = (/state/)
-          if (have_viscosity) then
-             call qmesh(states, metric) ! metric only needed to get the edge_lengths
-             call get_edge_lengths(metric, edge_lengths)
-          end if
        end if ! end if do_calculate_volume_fraction
 
        interface => extract_scalar_field(state, "SolidPhase")
        call zero(interface)
        call set(interface, interface_local)
 
-       ! solid being /alpha^f_s before an adapt,
+       ! solid being \alpha^f_s before an adapt,
        ! solid_local being the new /alpha^f_s, after an adapt
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
        ! Set absorption term /sigma
-       call set_absorption_coefficient(state)
+       call set_absorption_coefficient(state, velocity%mesh)
        ! Set source term (only if temperature, pressure gradient or 2-way coupling)
        call set_source(state)
 
@@ -263,8 +276,6 @@ contains
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
           call deallocate(interface_local)
-          call deallocate(edge_lengths)
-          call deallocate(metric)
           do_calculate_volume_fraction = .true.
        end if
 
@@ -272,6 +283,7 @@ contains
     else if (two_way_coupling) then
 
        old_solid => extract_scalar_field(state, "OldSolidConcentration")
+       fl_pos_solid_force => extract_vector_field(state, "SolidForce")
 
        ! this logical is true after an adapt but the volume
        ! fraction is updated-calculated EVERY time step
@@ -279,76 +291,198 @@ contains
           call allocate(solid_local, solid%mesh, "SolidConcentration")
           ! set the local field to the interpolated field after an adapt
           call set(solid_local, solid)
-
+          
           call allocate(old_solid_local, solid%mesh, "OldSolidConcentration")
           call zero(old_solid_local)
 
-          call allocate(fl_pos_solid_force, dim, solid%mesh, "SolidForce")
-          call zero(fl_pos_solid_force)
+          call allocate(ext_pos_bulk_vel, dim, external_positions%mesh, "BulkVelocity")
+          call zero(ext_pos_bulk_vel)
+
+          call allocate(fl_pos_bulk_vel, dim, solid%mesh, "BulkVelocity")
+          call zero(fl_pos_bulk_vel)
+
+          call allocate(old_solid_velocity, dim, solid%mesh, "Old_SolidVelocity")
+          call zero(old_solid_velocity)
 
           x => extract_vector_field(state, "Coordinate")
-          call allocate(metric, x%mesh, "ErrorMetric")
-          call allocate(edge_lengths, metric%mesh, "EdgeLengths")
+
        end if
+
+       call allocate(fluid_force, dim, velocity%mesh, "ForceFluidMesh")
+       call zero(fluid_force)
+       call allocate(solid_force, dim, external_positions%mesh, "ForceSolidMesh")
+       call zero(solid_force)
+
+       fl_pos_solid_vel => extract_vector_field(state, "SolidVelocity")
+
 
        if (its == 1) then
 
           ! store previous time step volume fraction
           call set(old_solid_local, solid_local)
 
-          ! interpolate the fluid or bulk velocity from
-          ! the fluidity mesh to the femdem mesh
-          call zero(ext_pos_fluid_vel)
-          call set(ext_pos_solid, 1.)
+          ! Update the bulk velocity before passing it to femdem run
+          ewrite(2,*) "************************************************************************"
+          ewrite(2,*) "BulkVelocity on fluid mesh:"
+          ewrite_minmax(fl_pos_bulk_vel%val(1,:))
+          ewrite_minmax(fl_pos_bulk_vel%val(2,:))
+          ewrite_minmax(fl_pos_bulk_vel%val(3,:))
+          ewrite_minmax(velocity%val(1,:))
+          ewrite_minmax(velocity%val(2,:))
+          ewrite_minmax(velocity%val(3,:))
+          ewrite_minmax(fl_pos_solid_vel%val(1,:))
+          ewrite_minmax(fl_pos_solid_vel%val(2,:))
+          ewrite_minmax(fl_pos_solid_vel%val(3,:))
+          ewrite(2, *) "Update the bulk velocity:"
+          call zero(fl_pos_bulk_vel)
+          ! Add velocity to fl_pos_bulk_vel
+          call addto(fl_pos_bulk_vel, velocity)
+          ! Add solid velocity to fl_pos_bulk_vel
+          call addto(fl_pos_bulk_vel, fl_pos_solid_vel)
+          call zero(fl_pos_bulk_vel)
+          call set(fl_pos_bulk_vel, (/ 0.0, 0.1, 0.0 /) )
+          ewrite(2,*) "BulkVelocity on fluid mesh:"
+          ewrite_minmax(fl_pos_bulk_vel%val(1,:))
+          ewrite_minmax(fl_pos_bulk_vel%val(2,:))
+          ewrite_minmax(fl_pos_bulk_vel%val(3,:))
+          ewrite(2,*) "external positions:"
+          ewrite_minmax(external_positions%val(1,:))
+          ewrite_minmax(external_positions%val(2,:))
+          ewrite_minmax(external_positions%val(3,:))
+          ewrite(2,*) "************************************************************************"
+
+          fluid_positions => extract_vector_field(state, "Coordinate")
+
+          call set(velocity, (/ 0.0, -0.1, 0.0 /))
+          call set(fl_pos_solid_vel, (/ 0.1, 0.2, 0.0 /))
+          call force_projection(velocity, fluid_positions, fl_pos_solid_vel, external_positions, 1.0/dt, fluid_force, solid_force)
+
+          ewrite(2,*) "************************************************************************"
+          ewrite(2,*) "Fluid force::"
+          ewrite_minmax(fluid_force%val(1,:))
+          ewrite_minmax(fluid_force%val(2,:))
+          ewrite_minmax(fluid_force%val(3,:))
+          ewrite(2,*) "Solid force::"
+          ewrite_minmax(solid_force%val(1,:))
+          ewrite_minmax(solid_force%val(2,:))
+          ewrite_minmax(solid_force%val(3,:))
+          ewrite(2,*) "************************************************************************"
+
+
+
+          ! Compute the force immediately before femdem runs:
+          ! Thus we compute the force F_f^f 
+          ! with u_s^f, u^f, \alpha_s at t=n;
+          ! In FEMDEM F_s^s will be computed with u^s at t=n
+          ! and u_s^s at t=m+1
+          ! with m being the solid timestep and n the fluid timestep.
+          ! call set(fl_pos_bulk_vel, (/ 0.0, 0.1, 0.0 /) )
+          !call implicit_solids_force_computation(state, its=its, itinoi=itinoi, before_femdem=.true., solid_mesh=.false.)
+
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! IDEA: Only send u_f^f to solid mesh and add solid velocity to form bulk velocity there:
+          !call zero(fl_pos_bulk_vel)
+          ! Add fluid velocity to fl_pos_bulk_vel
+          !call addto(fl_pos_bulk_vel, velocity)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+          ! interpolate the bulk velocity from the fluid mesh to the solid mesh
+          call zero(ext_pos_bulk_vel)
           call femdem_interpolation(state, "out")
 
-          ! update          : 1. external_positions
-          !                   2. ext_pos_solid_force (F_s)
-          ! return to femdem: 1. ext_pos_fluid_vel (fluid or bulk velocity)
-          !                   2. ext_pos_fluid (\alpha_f)
-          call femdem_update(state)
- 
-          ! interpolate the solid force from
-          ! the femdem mesh to the fluidity mesh
-          ! and update solid_local
-          call zero(fl_pos_solid_force)
+
+          ! Set fields we get from femdem to zero before femdem runs:
           call zero(solid_local)
+          call zero(external_positions)
+          call zero(ext_pos_solid_vel)
+          call zero(fl_pos_solid_vel)
+          ! From Fluidity to FEMDEM:
+          !    1. bulk velocity
+          ! From FEMDEM to Fluidity:
+          !    1. coordinates of the solid
+          !    2. solid velocity (on solid mesh)
+          !    3. alpha (sent as unity)
+          call femdem_update(state)
+
+          ! interpolate the solid force and solid velocity from the solid mesh
+          ! to the fluid mesh and update solid_local:
           call femdem_interpolation(state, "in")
 
-          ! bound solid to [0, 1]
-          call bound_concentration()
+          ! Set the old_solid_velocity
+          call set(old_solid_velocity, fl_pos_solid_vel)
 
-          ! calculate metric and edge lengths
-          call zero(metric)
-          call zero(edge_lengths)
-          states = (/state/)
-          call qmesh(states, metric)
-          call get_edge_lengths(metric, edge_lengths)
+       else
+
+          ! If not first nonlinear iteration, SolidVelocity is zero, so set it to the old value:
+          call set(fl_pos_solid_vel, old_solid_velocity)
 
        end if ! end if (its==1)
 
        ! previous time step volume fraction
        call set(old_solid, old_solid_local)
+
        ! at the first time step there is no previous time
        ! step, so assume it's the same as the current
-       if (timestep==1) call set(old_solid, solid_local)
+       if (timestep==1) then
+          call set(old_solid, solid_local)
+       end if
 
        ! current time step volume fraction
        call set(solid, solid_local)
 
-       ! Set absorption term /sigma
-       call set_absorption_coefficient(state)
-       ! set source
+       ! Update the bulk velocity after femdem ran
+       ewrite(2,*) "************************************************************************"
+       ewrite(2,*) "FluidVelocity on fluid mesh:"
+       ewrite_minmax(velocity%val(1,:))
+       ewrite_minmax(velocity%val(2,:))
+       ewrite_minmax(velocity%val(3,:))
+       call zero(fl_pos_bulk_vel)
+       ! Add velocity to fl_pos_bulk_vel
+       call addto(fl_pos_bulk_vel, velocity)
+       ! Add solid velocity to fl_pos_bulk_vel
+       call addto(fl_pos_bulk_vel, fl_pos_solid_vel)
+       ewrite(2,*) "BulkVelocity on fluid mesh:"
+       ewrite_minmax(fl_pos_bulk_vel%val(1,:))
+       ewrite_minmax(fl_pos_bulk_vel%val(2,:))
+       ewrite_minmax(fl_pos_bulk_vel%val(3,:))
+       ewrite(2,*) "************************************************************************"
+
+       ! Set absorption term /sigma_f
+       call set_absorption_coefficient(state, velocity%mesh)
+
+       ! Compute Force acting on fluid due to solid body
+       ! as a field and the total force and add this to the .stat file
+       ewrite(2, *) "call implicit_solids_force_computation"
+       !call implicit_solids_force_computation(state, its=its, itinoi=itinoi, before_femdem=.false., solid_mesh=.false.)
+
+       ! set source with the above computed Force
        call set_source(state)
+
+       ewrite(2,*) "************************************************************************"
+       ewrite(2,*) "FluidVelocity on fluid mesh:"
+       ewrite_minmax(velocity%val(1,:))
+       ewrite_minmax(velocity%val(2,:))
+       ewrite_minmax(velocity%val(3,:))
+       ewrite(2,*) "************************************************************************"
+
+       call deallocate(fluid_force)
+       call deallocate(solid_force)
 
        ! Check if the mesh is adapted at end of this timestep
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
+          ewrite(2,*) "****************************************"
+          ewrite(2,*) "deallocating:"
+          ewrite(2,*) "solid_local:"
           call deallocate(solid_local)
+          ewrite(2,*) "old_solid_local:"
           call deallocate(old_solid_local)
-          call deallocate(fl_pos_solid_force)
-          call deallocate(edge_lengths)
-          call deallocate(metric)
+          call deallocate(ext_pos_bulk_vel)
+          ewrite(2,*) "fl_pos_bulk_vel:"
+          call deallocate(fl_pos_bulk_vel)
+          call deallocate(old_solid_velocity)
+          ewrite(2,*) "done deallocating in implicit_solids!"
+          ewrite(2,*) "****************************************"
           do_calculate_volume_fraction = .true.
        end if
 
@@ -493,6 +627,7 @@ contains
     end do ! ele_B, ele_count(external_positions_local)
 
     ! bound solid to [0, 1]
+    ! IF bounded like this, we loose conservation:
     call bound_concentration()
 
     call finalise_tet_intersector
@@ -516,51 +651,94 @@ contains
 
   !----------------------------------------------------------------------------
 
-  subroutine set_absorption_coefficient(state)
+  subroutine set_absorption_coefficient(state, velocity_mesh)
 
     type(state_type), intent(inout) :: state
-
+    type(mesh_type), intent(in) :: velocity_mesh
     type(tensor_field), pointer :: viscosity
-    type(vector_field), pointer :: absorption
+    type(vector_field), pointer :: absorption, coordinates!, velocity
     type(scalar_field), pointer :: Tabsorption
-    integer :: i, j
-    real :: sigma, sigma_1, sigma_2
+    integer :: i, j, k, ele
+    real :: sigma, sigma_1
+    real, dimension(mesh_dim(velocity_mesh), mesh_dim(velocity_mesh), ele_ngi(velocity_mesh, 1)) :: edge_lengths
+    real, dimension(mesh_dim(velocity_mesh), mesh_dim(velocity_mesh)) :: sigma_2
+    integer, dimension(:), pointer :: nodes
 
     ewrite(2, *) "inside set_absorption_coefficient"
 
+    ! Get absorption velocity from state:
     absorption => extract_vector_field(state, "VelocityAbsorption")
+
     call zero(absorption)
 
+    ! If viscosity is set:
     if (have_viscosity) then
 
        viscosity => extract_tensor_field(state, "Viscosity")
+       coordinates => extract_vector_field(state, "Coordinate")
+       ! velocity => extract_vector_field(state, "Velocity")
 
-       do i = 1, node_count(absorption)
+       sigma_1 = 0.0
+       sigma_2 = 0.0
 
-          sigma_1 = node_val(solid_local, i) / dt
-          sigma_2 = node_val(solid_local, i) * &
-               node_val(viscosity, 1, 1, i) / maxval(node_val(edge_lengths, i))**2
-          sigma = max(sigma_1, sigma_2) * beta
+       do ele = 1, ele_count(velocity_mesh)
 
-          do j = 1, absorption%dim
-             call set(absorption, j, i, sigma)
+         call get_edge_lengths(velocity_mesh, coordinates, ele, edge_lengths)
+         nodes => ele_nodes(velocity_mesh, ele)
+         do i = 1, size(nodes)
+           sigma_1 = node_val(solid_local, nodes(i)) / dt
+!           if (timestep > 5) then
+!             do j = 1, mesh_dim(velocity_mesh)
+!               do k = 1, mesh_dim(velocity_mesh)
+!                 sigma_2(j,k) = node_val(solid_local, nodes(i)) * &
+!                  node_val(viscosity, j, k, nodes(i)) / ( edge_lengths(j, k, i)**2 )
+!               end do
+!             end do
+!           else
+             sigma_2 = 0.0
+!           end if
+           sigma = (sigma_1 + maxval(sigma_2)) * beta
+          do j = 1, mesh_dim(velocity_mesh)
+             call set(absorption, j, nodes(i), sigma)
           end do
+         end do
 
        end do
+ !      do i = 1, node_count(absorption)
+ !         ! compute sigma_s (not dependant on \alpha_s^f):
+ !         sigma_1 = 1.0 / dt
+ !         if (one_way_coupling) then
+ !            sigma_2 = node_val(viscosity, 1, 1, i) / (maxval(node_val(edge_lengths, i))**2)
+ !         else
+ !            sigma_2 = 0.0
+ !         end if
+ !         sigma = max(sigma_1, sigma_2) * beta
+ !         if (one_way_coupling) then
+ !            ! sigma_f is required for 1way:
+ !            sigma = sigma * node_val(solid_local, i)
+ !         end if
+
+ !         do j = 1, absorption%dim
+ !            call set(absorption, j, i, sigma)
+ !         end do
+ !      end do
 
     else
 
        do i = 1, node_count(absorption)
-
-          sigma = node_val(solid_local, i) * beta / dt
+          sigma = beta / dt
+          if (one_way_coupling) then
+             ! sigma_f is required for 1way:
+             sigma = sigma * node_val(solid_local, i)
+          end if
 
           do j = 1, absorption%dim
              call set(absorption, j, i, sigma)
           end do
-          
        end do
 
     end if
+
 
     if (have_fixed_temperature) then
 
@@ -572,8 +750,6 @@ contains
 
     end if
 
-    ewrite(2, *) "leaving set_absorption_coefficient"
-
   end subroutine set_absorption_coefficient
 
   !----------------------------------------------------------------------------
@@ -583,7 +759,7 @@ contains
     type(state_type), intent(inout) :: state
 
     type(vector_field), pointer :: source, positions
-    type(vector_field), pointer :: velocity, absorption
+    type(vector_field), pointer :: velocity
     type(scalar_field), pointer :: Tsource
     integer :: i, particle
     real :: x0, y0, z0, x, y, z, sigma
@@ -593,16 +769,18 @@ contains
     if (two_way_coupling) then
 
        velocity => extract_vector_field(state, "Velocity")
-       absorption => extract_vector_field(state, "VelocityAbsorption")
+       fl_pos_solid_force => extract_vector_field(state, "SolidForce")
 
        source => extract_vector_field(state, "VelocitySource")
        call zero(source)
 
-       ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+       ! Old version: ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+       ! (\sigma_s) (\hat{u_s} - \alpha_s^{f0} u^f)
        do i = 1, node_count(source)
-          call set(source, i, &
-               node_val(absorption, i) * node_val(velocity, i) &
-               - node_val(fl_pos_solid_force, i)/dt)
+          call set(source, i, node_val(fl_pos_solid_force, i) )
+! old version:          call set(source, i, &
+!               node_val(absorption, i) * node_val(velocity, i) &
+!               - node_val(fl_pos_solid_force, i)/dt)
        end do
 
     end if
@@ -810,12 +988,13 @@ contains
     character(len=FIELD_NAME_LEN) :: external_mesh_name
     type(vector_field), pointer :: positions
     integer :: quad_degree
-    type(mesh_type) :: mesh
+    type(mesh_type) :: solid_mesh
     integer :: i, loc, sloc
     integer :: dim, nodes, elements, edges
     integer, dimension(:), allocatable :: ele1, ele2, ele3, ele4
     integer, dimension(:), allocatable :: face1, face2, face3
     real, dimension(:), allocatable :: xs, ys, zs
+    real, dimension(:), allocatable :: ux, uy, uz
     type(quadrature_type) :: quad
     type(element_type) :: shape
     integer, dimension(:), allocatable :: sndglno, boundary_ids
@@ -823,32 +1002,27 @@ contains
 
     ewrite(2, *) "inside femdem_initialise"
 
-    call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
-         external_mesh_name)
+    call get_option("/implicit_solids/two_way_coupling/mesh/file_name", external_mesh_name)
     call get_option("/geometry/quadrature/degree", quad_degree)
-    use_bulk_velocity = &
-         have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_bulk_velocity")
-    use_fluid_velocity = &
-         have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")
+    use_bulk_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_bulk_velocity")
+    use_fluid_velocity = have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")
 
     ! femdem only supports tets
     loc = 4
     sloc= 3
 
 #ifdef USING_FEMDEM
-    call y3d_allocate_femdem(trim(external_mesh_name)//char(0), &
-         nodes, elements, edges)
+    call y3d_allocate_femdem(trim(external_mesh_name)//char(0), nodes, elements, edges)
 
     allocate(ele1(elements)); allocate(ele2(elements))
     allocate(ele3(elements)); allocate(ele4(elements))
-    allocate(face1(edges)); allocate(face2(edges))
-    allocate(face3(edges))
+    allocate(face1(edges)); allocate(face2(edges)); allocate(face3(edges))
 
-    allocate(xs(nodes)); allocate(ys(nodes))
-    allocate(zs(nodes))
+    allocate(xs(nodes)); allocate(ys(nodes)); allocate(zs(nodes))
 
-    call y3d_populate_femdem(ele1, ele2, ele3, ele4,&
-         face1, face2, face3, xs, ys, zs)
+    allocate(ux(nodes)); allocate(uy(nodes)); allocate(uz(nodes))
+
+    call y3d_populate_femdem(ele1, ele2, ele3, ele4, face1, face2, face3, xs, ys, zs, ux, uy, uz)
 #endif
 
     positions => extract_vector_field(state, "Coordinate")
@@ -859,8 +1033,8 @@ contains
     quad = make_quadrature(loc, dim, degree=quad_degree)
     shape = make_element_shape(loc, dim, 1, quad)
 
-    call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
-    call allocate(external_positions, dim, mesh, name="Coordinate")
+    call allocate(solid_mesh, nodes, elements, shape, name="CoordinateMesh")
+    call allocate(external_positions, dim, solid_mesh, name="Coordinate")
 
     ! initialise solid mesh coordinates
     external_positions%val(1,:) = xs
@@ -890,44 +1064,35 @@ contains
     deallocate(sndglno)
     deallocate(boundary_ids)
 
-    call deallocate(mesh)
+    call deallocate(solid_mesh)
     call deallocate_element(shape)
     call deallocate(quad)
 
     external_positions%dim=3
 
-    ! this is the solid force
-    ! on the solid mesh
-    call allocate(ext_pos_solid_force, external_positions%dim, &
-         external_positions%mesh, name="SolidForce")
-    call zero(ext_pos_solid_force)
+    ! this is the interpolated fluid or bulk velocity on the solid mesh
+    call allocate(ext_pos_bulk_vel, external_positions%dim, external_positions%mesh, name="BulkVelocity")
+    call zero(ext_pos_bulk_vel)
 
-    ! this is the interpolated fluid or bulk velocity
-    ! on the solid mesh
-    call allocate(ext_pos_fluid_vel, external_positions%dim, &
-         external_positions%mesh, name="Velocity")
-    call zero(ext_pos_fluid_vel)
-
-    ! this is the interpolated solid velocity
-    ! on the solid mesh
-    call allocate(ext_pos_solid_vel, external_positions%dim, &
-         external_positions%mesh, name="Velocity")
+    ! this is the interpolated solid velocity on the solid mesh
+    call allocate(ext_pos_solid_vel, external_positions%dim, external_positions%mesh, name="Velocity")
     call zero(ext_pos_solid_vel)
 
-    ! this is the interpolated fluid volume fraction
-    ! on the solid mesh
-    call allocate(ext_pos_solid, &
-         external_positions%mesh, name="SolidConcentration")
-    call zero(ext_pos_solid)
+    ! initialise solid velocity
+    ext_pos_solid_vel%val(1,:) = ux
+    ext_pos_solid_vel%val(2,:) = uy
+    ext_pos_solid_vel%val(3,:) = uz
 
-    assert(node_count(external_positions) == node_count(ext_pos_solid_force))
-    assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_force))
+    assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
 
 #ifdef USING_FEMDEM
     deallocate(ele1, ele2, ele3, ele4)
     deallocate(face1, face2, face3)
     deallocate(xs, ys, zs)
+    deallocate(ux, uy, uz)
 #endif
+
+    ewrite(2, *) "out of femdem_initialise"
 
   end subroutine femdem_initialise
 
@@ -971,63 +1136,55 @@ contains
     type(state_type), intent(in) :: state
 
     character(len=FIELD_NAME_LEN), save :: external_mesh_name
-    integer, save :: use_bulk
     logical, save :: init=.false.
-    !integer :: i
+    real, dimension(4) :: femdem_totalforce_1stdt
+    real, dimension(3) :: femdem_force_bulkvel_1stdt
+    real, dimension(3) :: femdem_force_solidvel_1stdt
+    real, dimension(3) :: femdem_totalforce_lastdt
+    real, dimension(3) :: femdem_force_bulkvel_lastdt
+    real, dimension(3) :: femdem_force_solidvel_lastdt
 
     ewrite(2, *) "inside femdem_update"
 
     if (.not. init) then
        call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
             external_mesh_name)
-
-       if (use_bulk_velocity) then
-          use_bulk = 1
-       elseif (use_fluid_velocity) then
-          use_bulk = 0
-       else
-          FLAbort("Don't recognise fluids scheme...")
-       end if
-
        init=.true.
     end if
-
-    if (use_fluid_velocity) then
-       ewrite(3, *) "calculating the bulk velocity"
-       ! ext_pos_solid_vel is u_s, not \hat{u}_s, so multiply
-       ! by \alpha_s and then add to ext_pos_fluid_vel to 
-       ! form the bulk velocity (\hat{u}_f+\hat{u}_s)
-       call scale(ext_pos_solid_vel, ext_pos_solid)
-       ! this removes fluid velocity from the volume of the solid
-       !do i = 1, ext_pos_fluid_vel%dim
-       !   ext_pos_fluid_vel%val(i,:)=ext_pos_fluid_vel%val(i,:) * (1. - ext_pos_solid%val)
-       !end do
-       call addto(ext_pos_fluid_vel, ext_pos_solid_vel)
-    end if
-
-    call zero(external_positions)
-    call zero(ext_pos_solid_vel)
 
 #ifdef USING_FEMDEM
 
     ewrite(2, *) "about to call femdem"
 
-    ! in  :: ext_pos_fluid_vel, ext_pos_fluid = 1. - ext_pos_solid 
-    ! out :: updated external_positions, ext_pos_solid_force
-    call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho_f, use_bulk, &
+    call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho_f, &
          external_positions%val(1,:), external_positions%val(2,:), &
          external_positions%val(3,:), &
-         ext_pos_solid_force%val(1,:), ext_pos_solid_force%val(2,:), &
-         ext_pos_solid_force%val(3,:), &
-         ext_pos_fluid_vel%val(1,:), ext_pos_fluid_vel%val(2,:), &
-         ext_pos_fluid_vel%val(3,:), &
+         ext_pos_bulk_vel%val(1,:), ext_pos_bulk_vel%val(2,:), &
+         ext_pos_bulk_vel%val(3,:), &
          ext_pos_solid_vel%val(1,:), ext_pos_solid_vel%val(2,:), &
          ext_pos_solid_vel%val(3,:), &
-         1.-ext_pos_solid%val(:))
+         femdem_totalforce_1stdt, femdem_force_bulkvel_1stdt, femdem_force_solidvel_1stdt, &
+         femdem_totalforce_lastdt, femdem_force_bulkvel_lastdt, femdem_force_solidvel_lastdt )
 
     ewrite(2, *) "leaving femdem"
 
 #endif
+
+    ewrite(2,*) "*****************************************************************************"
+    ewrite(2,*) "Total Force in Femdem:"
+    ewrite(2,*) "femdem_totalforce_1stdt: ", femdem_totalforce_1stdt
+    ewrite(2,*) "femdem_force_bulkvel_1stdt: ", femdem_force_bulkvel_1stdt
+    ewrite(2,*) "femdem_force_solidvel_1stdt: ", femdem_force_solidvel_1stdt
+    ewrite(2,*) "femdem_totalforce_lastdt: ", femdem_totalforce_lastdt
+    ewrite(2,*) "femdem_force_bulkvel_lastdt: ", femdem_force_bulkvel_lastdt
+    ewrite(2,*) "femdem_force_solidvel_lastdt: ", femdem_force_solidvel_lastdt
+    ewrite(2,*) "*****************************************************************************"
+    call set_diagnostic(name="FEMDEM_TotalForce_1stdt", statistic="Value", value=(/ femdem_totalforce_1stdt /))
+    call set_diagnostic(name="FEMDEM_Force_Bulkvel_1stdt", statistic="Value", value=(/ femdem_force_bulkvel_1stdt /))
+    call set_diagnostic(name="FEMDEM_Force_Solidvel_1stdt", statistic="Value", value=(/ femdem_force_solidvel_1stdt /))
+    call set_diagnostic(name="FEMDEM_TotalForce_lastdt", statistic="Value", value=(/ femdem_totalforce_lastdt /))
+    call set_diagnostic(name="FEMDEM_Force_Bulkvel_lastdt", statistic="Value", value=(/ femdem_force_bulkvel_lastdt /))
+    call set_diagnostic(name="FEMDEM_Force_Solidvel_lastdt", statistic="Value", value=(/ femdem_force_solidvel_lastdt /))
 
     ewrite(2, *) "leaving femdem_update"
 
@@ -1036,33 +1193,40 @@ contains
   !----------------------------------------------------------------------------
 
   subroutine femdem_interpolation(state, operation)
- 
+
     character(len=*), intent(in) :: operation
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
 
     type(state_type) :: alg_ext_v, alg_fl_v, alg_ext_s, alg_fl_s
+    ! Piecewise constant states:
+    type(state_type) :: alg_p0_fl_v, alg_p0_ext_v, alg_p0_fl_s, alg_p0_ext_s
+
     type(mesh_type), pointer :: fl_mesh
     type(vector_field) :: fl_positions
     type(vector_field), pointer :: field_ext_v, field_fl_v
-    type(scalar_field), pointer :: field_ext_s, field_fl_s
-    character(len=OPTION_PATH_LEN) :: &
-         path = "/tmp/galerkin_projection/continuous"
-    !integer :: stat
+    ! Piecewise constant fields:
+    type(vector_field) :: field_p0_fl_v, field_p0_ext_v
+    type(scalar_field) :: field_ext_s, field_fl_s, field_p0_ext_s, field_p0_fl_s
+    type(mesh_type) :: field_p0_ext_m, field_p0_fl_m
+    character(len=OPTION_PATH_LEN) :: path = "/tmp/galerkin_projection/continuous"
+    integer :: stat
+    integer, save :: index
 
-    ! this subroutine interpolates forces and velocities
-    ! between fluid and solid mesh
-    ! if operation == "in"  : interpolate from femdem to fluidity
+    type(scalar_field) :: alpha_s_p0
+
+
+    ! this subroutine interpolates forces and velocities between the fluid and solid mesh (in fluidity)
     ! if operation == "out" : interpolate from fluidity to femdem
+    ! if operation == "in"  : interpolate from femdem to fluidity
+    ewrite(2, *) "inside femdem_interpolation"
 
-    ! read in femdem data into alg_ext state
-    ! all data is on the femdem mesh
+    ! form states for data that will live on the solid function space:
     call insert(alg_ext_v, external_positions%mesh, "Mesh")
     call insert(alg_ext_v, external_positions, "Coordinate")
     call insert(alg_ext_s, external_positions%mesh, "Mesh")
     call insert(alg_ext_s, external_positions, "Coordinate")
 
-    ! read in fluidity data into alg_new state
-    ! all data is on the fluidity mesh
+    ! form states for data that will live on the fluid function space:
     fl_mesh => extract_mesh(state, "CoordinateMesh")
     fl_positions = extract_vector_field(state, "Coordinate")
     call insert(alg_fl_v, fl_mesh, "Mesh")
@@ -1070,175 +1234,665 @@ contains
     call insert(alg_fl_s, fl_mesh, "Mesh")
     call insert(alg_fl_s, fl_positions, "Coordinate")
 
-    !call set_solver_options(path, &
-    !        ksptype = "cg", &
-    !        pctype = "hypre", &
-    !        rtol = 1.e-10, &
-    !        atol = 0., &
-    !        max_its = 10000)
-    !
-    !call add_option( &
-    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
-    !call set_option( &
-    !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+    ! Get the P0 function spaces:
+    field_p0_fl_m = piecewise_constant_mesh(fl_mesh, "P0FluidMesh")
+    field_p0_ext_m = piecewise_constant_mesh(external_positions%mesh, "P0SolidMesh")
 
+    ! Get States for P0 fields:
+    call insert(alg_p0_fl_v, field_p0_fl_m, "Mesh")
+    call insert(alg_p0_fl_v, fl_positions, "Coordinate")
+    call insert(alg_p0_ext_v, field_p0_ext_m, "Mesh")
+    call insert(alg_p0_ext_v, external_positions, "Coordinate")
+    call insert(alg_p0_fl_s, field_p0_fl_m, "Mesh")
+    call insert(alg_p0_fl_s, fl_positions, "Coordinate")
+    call insert(alg_p0_ext_s, field_p0_ext_m, "Mesh")
+    call insert(alg_p0_ext_s, external_positions, "Coordinate")
+
+    ! Set solver options for the interpolation between fluid <--> solid function spaces:
     call set_solver_options(path, &
             ksptype = "cg", &
-            pctype = "mg", &
-            rtol = 1.e-10, &
-            atol = 0., &
-            max_its = 10000)
+            pctype = "sor", &
+            rtol = 1.e-15, &
+            !atol = 0., &
+            max_its = 1000)
+
+!    call add_option( trim(path)//"/bounded::Diffuse", stat)
+!    call add_option( trim(path)//"/bounded::Diffuse/boundedness_iterations", stat)
+!    call add_option( trim(path)//"/bounded::Diffuse/repair_deviations", stat)
+!    call set_option( trim(path)//"/bounded::Diffuse/boundedness_iterations", 50)
 
     path = "/tmp"
 
+
     if (operation == "in") then
 
-       fl_pos_solid_force%option_path = path
+       ! Solver options for the interpolation of solid velocity on the fluid mesh:
+       fl_pos_solid_vel%option_path = path
+       field_fl_s%option_path = path
 
-       ! this is the solid velocity on the fluidity mesh
-       ! this will be used to set the source term...
-       field_fl_v => fl_pos_solid_force
-       call zero(field_fl_v)
-       call insert(alg_fl_v, field_fl_v, "SolidForce")
+       ! VELOCITY:
+       ! Solid velocity on the fluid mesh
+       field_fl_v => fl_pos_solid_vel
+       ! Solid velocity on the solid mesh
+       field_ext_v => ext_pos_solid_vel
 
-       ! this is the solid velocity on the solid mesh
-       field_ext_v => ext_pos_solid_force
-       call insert(alg_ext_v, field_ext_v, "SolidForce")
+       ! \ALPHA:
+       ! Unity for solid concentration:
+       ! Allocate P1 fields first:
+       call allocate(field_ext_s, external_positions%mesh, name="SolidConcentration")
+       call allocate(field_fl_s, fl_mesh, name="SolidConcentration")
+       ! Set P1 field on the solids mesh to 1:
+       call set(field_ext_s, 1.0)
+       call zero(field_fl_s)
+
+       ! Allocate P0 fields for \alpha:
+       call allocate(field_p0_fl_s, field_p0_fl_m, name="SolidConcentration")
+       call allocate(field_p0_ext_s, field_p0_ext_m, name="SolidConcentration")
+       call zero(field_p0_fl_s)
+       call zero(field_p0_ext_s)
+
+       ! Insert fields into their states:
+       call insert(alg_fl_v, field_fl_v, "SolidVelocity")
+       call insert(alg_ext_v, field_ext_v, "SolidVelocity")
+!       call insert(alg_fl_v, field_fl_s, "SolidConcentration")
+!       call insert(alg_ext_v, field_ext_s, "SolidConcentration")
+       call insert(alg_p0_ext_s, field_p0_ext_s, "SolidConcentration")
+       call insert(alg_p0_fl_s, field_p0_fl_s, "SolidConcentration")
 
     else if (operation == "out") then
 
-       ext_pos_fluid_vel%option_path = path
+       ! Solver options for the interpolation of bulk velocity on the solid mesh:
+       ext_pos_bulk_vel%option_path = path
 
-       ! this is the fluid or bulk velocity on the solid mesh
-       ! this will be returned to femdem...
-       field_ext_v => ext_pos_fluid_vel
+       ! Allocate P0 fields for the bulk velocity:
+       call allocate(field_p0_fl_v, fl_positions%dim, field_p0_fl_m, name="BulkVelocity")
+       call allocate(field_p0_ext_v, external_positions%dim, field_p0_ext_m, name="BulkVelocity")
+       call zero(field_p0_fl_v)
+       call zero(field_p0_ext_v)
+
+       ! field_fl_v is the bulk velocity which is sent to the solids mesh:
+       field_fl_v => fl_pos_bulk_vel
+       ! this is the projected bulk velocity on the solid mesh:
+       field_ext_v => ext_pos_bulk_vel
        call zero(field_ext_v)
-       call insert(alg_ext_v, field_ext_v, "Velocity")
 
-       ! this is the fluid or bulk velocity on the fluidity mesh
-       field_fl_v => extract_vector_field(state, "Velocity")
-       call insert(alg_fl_v, field_fl_v, "Velocity")
-
-       ! this is the solid concentration on the solid mesh
-       ! this will be returned to femdem...
-       field_ext_s => ext_pos_solid
-       if (use_fluid_velocity) call zero(field_ext_s)
-       call insert(alg_ext_s, field_ext_s, "SolidConcentration")
-
-       ! this is the solid concentration on the fluidity mesh
-       field_fl_s => extract_scalar_field(state, "SolidConcentration")
-       call insert(alg_fl_s, field_fl_s, "SolidConcentration")
+       ! Insert fields into states:
+       call insert(alg_fl_v, field_fl_v, "BulkVelocity")
+       call insert(alg_ext_v, field_ext_v, "BulkVelocity")
+       ! Insert P0 bulk velocity (fluid mesh) into a state
+       call insert(alg_p0_fl_v, field_p0_fl_v, "BulkVelocity")
+       ! Insert P0 bulk velocity (solid mesh) into a state
+       call insert(alg_p0_ext_v, field_p0_ext_v, "BulkVelocity")
 
     end if
 
     ! perform interpolations
     if (operation == "in") then
-  
-       ! interpolate the solid force from
-       ! the solid mesh to the fluidity mesh
+
+       ! PROJECT unity to obtain the SolidConcentration:
+       ! Project unity: P1 solid mesh --> P0 solid mesh:
+       ! Remap is not conservative:
+       ! call remap_field(field_ext_s, field_p0_ext_s)
+       call calculate_galerkin_projection(field_ext_s, field_p0_ext_s, external_positions)
+
+       ! Galerkin projection of \alpha from P0 solid --> P0 fluid mesh:
+       call interpolation_galerkin_femdem(alg_p0_ext_s, alg_p0_fl_s, field=solid_local)
+       ! Insert P0 \alpha_s^f in state
+       ! call set(alpha_s_p0, field_p0_fl_s)
+       ! Linear interpolation of \alpha from P0 to P1 on the fluids mesh:
+       ! Linear interpolation is not conservative:
+       ! call linear_interpolation(field_p0_fl_s, fl_positions, field_fl_s, fl_positions)
+       call calculate_galerkin_projection(field_p0_fl_s, field_fl_s, fl_positions)
+
+       ! PROJECT the SOLID VELOCITY and \Alpha from FEMDEM:
        call interpolation_galerkin_femdem(alg_ext_v, alg_fl_v, field=solid_local)
 
-       ewrite_minmax(ext_pos_solid_force)
-       ewrite_minmax(field_fl_v)
+       ! Set the solid velocity in state:
+       call set(fl_pos_solid_vel, field_fl_v)
+
+       ! Set solid_local which is the SolidConcentration to field_fl_s which is obtained from
+       ! projecting unity from the solids mesh to the fluids mesh:
+       call set(solid_local, field_fl_s)
+
+       ! Reset option path for solid velocity:
+       fl_pos_solid_vel%option_path = "/material_phase::"//trim(state%name)//"/vector_field::SolidVelocity"
+
+       ! SolidConcentration on the fluids mesh is obtained from projecting unity from the solids mesh:
+       ! Print out some results:
+       ewrite(2,*) "+++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+       ewrite(2,*) "SolidVelocity on solid mesh:"
+       ewrite_minmax(field_ext_v%val(1,:))
+       ewrite_minmax(field_ext_v%val(2,:))
+       ewrite_minmax(field_ext_v%val(3,:))
+       ewrite(2,*) "SolidVelocity on fluid mesh:"
+       ewrite_minmax(field_fl_v%val(1,:))
+       ewrite_minmax(field_fl_v%val(2,:))
+       ewrite_minmax(field_fl_v%val(3,:))
+       ewrite(2,*) "SolidVelocity on solid mesh:"
+       ewrite_minmax(ext_pos_solid_vel%val(1,:))
+       ewrite_minmax(ext_pos_solid_vel%val(2,:))
+       ewrite_minmax(ext_pos_solid_vel%val(3,:))
+       ewrite(2,*) "SolidVelocity on fluid mesh:"
+       ewrite_minmax(fl_pos_solid_vel%val(1,:))
+       ewrite_minmax(fl_pos_solid_vel%val(2,:))
+       ewrite_minmax(fl_pos_solid_vel%val(3,:))
+       ewrite(2,*) "Unity on P1 solid mesh: (SolidConcentration):"
+       ewrite_minmax(field_ext_s%val)
+       ewrite(2,*) "SolidConcentration on P1 fluid mesh:"
+       ewrite_minmax(field_fl_s%val)
+       ewrite(2,*) "solid_local:"
+       ewrite_minmax(solid_local%val)
+       ewrite(2,*) "+++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
     else if (operation == "out") then
 
-       ! interpolate the fluid or bulk velocity and the solid concentration from
-       ! the fluid mesh to the solid mesh
-       call interpolation_galerkin_femdem(alg_fl_v, alg_ext_v, femdem_out=.true.)
+       ! Remap the P1 bulk_velocity field on the new P0 field
+       ! Remap is not conservative:
+       ! call remap_field(field_fl_v, field_p0_fl_v)
+       ! TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST:
+       ! call set(field_fl_v, (/ 1.0, 1.0, 1.0 /) )
+       ! END TEST TES TEST TEST TEST
+       ! Project the bulk velocity to the P0 fluid function space:
+       call calculate_galerkin_projection(field_fl_v, field_p0_fl_v, fl_positions)
+       ! Multiply with alpha_s:
+       ! call allocate(alpha_s_p0, field_p0_fl_v%mesh, "P0SolidConcentration")
+       ! Project \alpha(P1) to \alpha(P0DG):
+       ! call calculate_galerkin_projection(solid_local, alpha_s_p0, fl_positions)
+       ! call scale(field_p0_fl_v, alpha_s_p0)
+       ! call deallocate(alpha_s_p0)
 
-       if (use_fluid_velocity) &
-          call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
+       ! Alternatives:
+!       call linear_interpolation(alg_fl_v, alg_p0_fl_v, different_domains=.true.)
+!       call interpolation_galerkin(alg_fl_v, alg_p0_fl_v)
+!       call project_field(field_fl_v, field_p0_fl_v, fl_positions)
+       ! Project bulk velocity from fluid (P0) function space to solid (P0) function space:
+        call interpolation_galerkin_femdem(alg_p0_fl_v, alg_p0_ext_v, femdem_out=.true.)
 
-       ewrite_minmax(field_fl_v)
-       ewrite_minmax(ext_pos_fluid_vel)
+       ! Bulk velocity from P0 to P1 solid mesh:
+       ! Linear interpolation is not conservative:
+       ! call linear_interpolation(field_p0_ext_v, external_positions, field_ext_v, external_positions)
+        call calculate_galerkin_projection(field_p0_ext_v, field_ext_v, external_positions)
 
-       ewrite_minmax(field_fl_s)
-       ewrite_minmax(field_ext_s)
+       ! field_ext_v is the projected fluid velocity on the solid mesh,
+       ! so add u_s^s (solid velocity on the solid mesh) to it:
+       call set(ext_pos_bulk_vel, field_ext_v)
+       !call addto(ext_pos_bulk_vel, ext_pos_solid_vel)
+
+       ! TEST: To compate force on fluid and solid mesh:
+       call implicit_solids_force_computation(state, its=1, itinoi=2, before_femdem=.false., solid_mesh=.true.)
+
+       ewrite(2,*) "+++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+       ! Checking min/max values of fluid velocity
+       ewrite_minmax(field_fl_v%val(1,:))
+       ewrite_minmax(field_fl_v%val(2,:))
+       ewrite_minmax(field_fl_v%val(3,:))
+       ewrite_minmax(field_p0_fl_v%val(1,:))
+       ewrite_minmax(field_p0_fl_v%val(2,:))
+       ewrite_minmax(field_p0_fl_v%val(3,:))
+       ewrite_minmax(field_p0_ext_v%val(1,:))
+       ewrite_minmax(field_p0_ext_v%val(2,:))
+       ewrite_minmax(field_p0_ext_v%val(3,:))
+       ewrite_minmax(field_ext_v%val(1,:))
+       ewrite_minmax(field_ext_v%val(2,:))
+       ewrite_minmax(field_ext_v%val(3,:))
+       ewrite_minmax(fl_pos_bulk_vel%val(1,:))
+       ewrite_minmax(fl_pos_bulk_vel%val(2,:))
+       ewrite_minmax(fl_pos_bulk_vel%val(3,:))
+       ewrite_minmax(ext_pos_bulk_vel%val(1,:))
+       ewrite_minmax(ext_pos_bulk_vel%val(2,:))
+       ewrite_minmax(ext_pos_bulk_vel%val(3,:))
+       ewrite(2,*) "+++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+       ! Print the results of the force on the P1 mesh as vtu:
+        if (timestep .eq. 1) then
+           index = 0
+        else
+           index = index + 1 
+        end if
+       call vtk_write_fields("P1_BulkVelocity_FluidMesh", index=index, position=fl_positions, vfields=(/fl_pos_bulk_vel/), model=fl_pos_bulk_vel%mesh)
+       call vtk_write_fields("P0_BulkVelocity_FluidMesh", index=index, position=fl_positions, vfields=(/field_p0_fl_v/), model=field_p0_fl_v%mesh)
+       call vtk_write_fields("P1_BulkVelocity_SolidMesh", index=index, position=external_positions, vfields=(/ext_pos_bulk_vel/), model=ext_pos_bulk_vel%mesh)
+       call vtk_write_fields("P0_BulkVelocity_SolidMesh", index=index, position=external_positions, vfields=(/field_p0_ext_v/), model=field_p0_ext_v%mesh)
 
     else
        FLAbort("Don't know what to interpolate...")
     end if
 
-    call deallocate(alg_ext_v); call deallocate(alg_ext_s)
-    call deallocate(alg_fl_v); call deallocate(alg_fl_s)
+    ! Deallocation:
+    ! Deallocate states for projected velocities:
+    call deallocate(alg_fl_v); call deallocate(alg_ext_v)
+    call deallocate(alg_p0_fl_v); call deallocate(alg_p0_ext_v)
+    ! Deallocate states for the unity/solid concentration fields:
+    call deallocate(alg_fl_s); call deallocate(alg_ext_s)
+    call deallocate(alg_p0_fl_s); call deallocate(alg_p0_ext_s)
+
+    ewrite(2, *) "leaving femdem_interpolation"
 
   end subroutine femdem_interpolation
 
   !----------------------------------------------------------------------------
 
-  subroutine implicit_solids_nonlinear_iteration_converged()
+  subroutine implicit_solids_force_computation(state, force, particle_force, its, itinoi, before_femdem, solid_mesh)
 
-    if (do_adapt_mesh(current_time, timestep)) then
-       if (one_way_coupling) then
-          call deallocate(solid_local)
-          call deallocate(interface_local)
-          call deallocate(edge_lengths)
-          call deallocate(metric)
-       else if (two_way_coupling) then
-          call deallocate(solid_local)
-          call deallocate(old_solid_local)
-       end if
-        do_calculate_volume_fraction = .true.
-    end if
-
-  end subroutine implicit_solids_nonlinear_iteration_converged
-
-  !----------------------------------------------------------------------------
-
-  subroutine implicit_solids_force_computation(state, force, particle_force)
-
-    type(state_type), intent(in) :: state
-    real, dimension(:), allocatable, intent(out) :: force
-    real, dimension(:, :), allocatable, intent(out) :: particle_force
+    type(state_type), intent(inout) :: state
+    real, dimension(:), allocatable, intent(out), optional :: force
+    real, dimension(:, :), allocatable, intent(out), optional :: particle_force
+    integer, intent(in), optional :: its, itinoi
 
     type(vector_field), pointer :: velocity, positions, absorption
-    type(scalar_field) :: lumped_mass, lumped_mass_velocity_mesh
-    integer :: i, j, particle
+    type(scalar_field) :: lumped_mass, lumped_mass_velocity_mesh, lumped_mass_p0solid, lumped_mass_p1solid
+    ! P0DG field for alpha:
+    type(scalar_field) :: alpha_s_p0, alpha_s_p0_volume
+    ! P1DG fields:
+    type(vector_field) :: solid_velocity_forcemesh, bulk_velocity_forcemesh, force_velocitymesh !, absorption_velocity_forcemesh
+    type(vector_field) :: force_integralpart_bulkvel, force_integralpart_solidvel, ext_pos_solid_force
+    type(scalar_field) :: alpha_s_forcemesh
+    type(mesh_type), pointer :: force_mesh
+    type(mesh_type) :: field_p0_fl_m, field_p0_ext_m
+    
+    real, dimension(:), allocatable :: fluidity_totalforce, fluidity_force_bulkvel, fluidity_force_solidvel
+    real, dimension(:), allocatable :: fluidity_totalforce_before_femdem, fluidity_force_bulkvel_before_femdem, fluidity_force_solidvel_before_femdem
+    real, dimension(:), allocatable :: fluidity_totalforce_before_femdem_solidmesh
+    real :: fluidity_integral_of_alpha, fluidity_integral_of_alpha_solidmesh, fluidity_integral_of_alpha_solidmesh_p1
+    logical, intent(in), optional :: before_femdem, solid_mesh
+    type(scalar_field) :: unity, unity_p1
+
+    integer :: i, j, particle, index
     type(inode), pointer :: node1
+    character(len=FIELD_NAME_LEN) :: force_mesh_name = "ForceMesh"
 
     ewrite(2, *) "inside implicit_solids_force_computation"
 
     ! Update the computation of the force on the solids
 
+    ! Get relevant quantities from state
     velocity => extract_vector_field(state, "Velocity")
     absorption => extract_vector_field(state, "VelocityAbsorption")
-
     positions => extract_vector_field(state, "Coordinate")
 
-    call allocate(lumped_mass, positions%mesh, "LumpedMass")
-    call compute_lumped_mass(positions, lumped_mass)    
+    ! 1-way coupling:
+    if (one_way_coupling) then
 
-    call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
-    call remap_field(lumped_mass, lumped_mass_velocity_mesh)
+       ! Get lumped mass of coordinate mesh:
+       call allocate(lumped_mass, positions%mesh, "LumpedMass")
+       call compute_lumped_mass(positions, lumped_mass)
+       ! Get lumped mass on velocity mesh:
+       call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
+       call remap_field(lumped_mass, lumped_mass_velocity_mesh)
 
-    allocate(particle_force(number_of_solids, velocity%dim)); particle_force = 0.
-    allocate(force(velocity%dim)); force = 0.
+       allocate(particle_force(number_of_solids, velocity%dim)); particle_force = 0.
+       allocate(force(velocity%dim)); force = 0.
 
-    do i = 1, nowned_nodes(velocity)
-       node1 => node_to_particle(i)%firstnode
-       do while (associated(node1))
-          particle = node1%value
-          do j = 1, velocity%dim
-             particle_force(particle, j) = particle_force(particle, j) + &
-                  node_val(absorption, j, i) * node_val(velocity, j, i) * &
-                  node_val(lumped_mass_velocity_mesh, i)
+       do i = 1, nowned_nodes(velocity)
+          node1 => node_to_particle(i)%firstnode
+          do while (associated(node1))
+             particle = node1%value
+             do j = 1, velocity%dim
+                particle_force(particle, j) = particle_force(particle, j) + &
+                     node_val(absorption, j, i) * node_val(velocity, j, i) * &
+                     node_val(lumped_mass_velocity_mesh, i)
+             end do
+             node1 => node1%next
           end do
-          node1 => node1%next  
        end do
-    end do
-    
-    do i = 1, number_of_solids
-       call allsum(particle_force(i, :))
-    end do
-    do i = 1, velocity%dim
-       do j = 1, number_of_solids
-          force(i) = force(i) + particle_force(j, i)
-       end do
-    end do
 
-    call deallocate(lumped_mass)
-    call deallocate(lumped_mass_velocity_mesh)
+       do i = 1, number_of_solids
+          call allsum(particle_force(i, :))
+       end do
+       do i = 1, velocity%dim
+          do j = 1, number_of_solids
+             force(i) = force(i) + particle_force(j, i)
+          end do
+       end do
+
+       call deallocate(lumped_mass)
+       call deallocate(lumped_mass_velocity_mesh)
+
+    ! 2-way coupling:
+    else if (two_way_coupling) then
+       ! Get 2way coupling specific quantities:
+       ! Get the pointer to the force in state:
+       fl_pos_solid_force => extract_vector_field(state, "SolidForce")
+
+       ! Get mesh 'ForceMesh' from state:
+       ! Extract mesh on which the force will be computed
+       force_mesh => extract_mesh(state, force_mesh_name)
+
+       ! Get the P0DG function space for \alpha:
+       field_p0_fl_m = piecewise_constant_mesh(solid_local%mesh, "P0Mesh")
+       call allocate(alpha_s_p0, field_p0_fl_m, "P0SolidConcentration")
+       ! Project \alpha(P1) to \alpha(P0DG):
+       call calculate_galerkin_projection(solid_local, alpha_s_p0, positions)
+
+       ! Allocate fields on the P1DG function space:
+       call allocate(force_velocitymesh, velocity%dim, velocity%mesh, name="ForceVelocityMesh")
+       call allocate(alpha_s_forcemesh, force_mesh, name="AlphaForceMesh")
+       call allocate(solid_velocity_forcemesh, fl_pos_solid_vel%dim, force_mesh, name="SolidVelocityForceMesh")
+       call allocate(bulk_velocity_forcemesh, fl_pos_bulk_vel%dim, force_mesh, name="BulkVelocityForceMesh")
+!       call allocate(absorption_velocity_forcemesh, absorption%dim, force_mesh, name="AbsorptionVelocityForceMesh")
+
+       ! Project all fields (bulk velocity, solid velocity and \alpha
+       ! to the P1DG function space called 'ForceMesh', where the force
+       ! is computed:
+       ! Remap is not conservative, so use galerkin projection instead:
+       ! call remap_field(alpha_s_p0, alpha_s_p1dg)
+       ! call remap_field(fl_pos_solid_vel, solid_velocity_p1dg)
+       ! call remap_field(fl_pos_bulk_vel, bulk_velocity_p1dg)
+       ! call remap_field(absorption, absorption_velocity_p1dg)
+       call calculate_galerkin_projection(alpha_s_p0, alpha_s_forcemesh, positions)
+       call calculate_galerkin_projection(fl_pos_solid_vel, solid_velocity_forcemesh, positions)
+       call calculate_galerkin_projection(fl_pos_bulk_vel, bulk_velocity_forcemesh, positions)
+!       call calculate_galerkin_projection(absorption, absorption_velocity_forcemesh, positions)
+
+
+
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       ! FOR FORCE COMPARISON ONLY:
+       call allocate(force_integralpart_bulkvel, velocity%dim, velocity%mesh, name="ForcePartBulkVelocity")
+       call allocate(force_integralpart_solidvel, velocity%dim, velocity%mesh, name="ForcePartSolidVelocity")
+       call zero(fl_pos_solid_force)
+       ! The part of the Force integral with the bulk velocity:
+       call addto(fl_pos_solid_force, bulk_velocity_forcemesh)
+       call scale(fl_pos_solid_force, alpha_s_forcemesh)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FOR JASON'S IDEA ONLY:
+       ! call scale(fl_pos_solid_force, alpha_s_forcemesh)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       call scale(fl_pos_solid_force, -1.0)
+       call calculate_galerkin_projection(fl_pos_solid_force, force_integralpart_bulkvel, positions)
+       ! The part of the Force integral with the solid velocity:
+       call zero(fl_pos_solid_force)
+       call addto(fl_pos_solid_force, solid_velocity_forcemesh)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FOR JASON'S IDEA ONLY:
+       ! call scale(fl_pos_solid_force, alpha_s_forcemesh)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       call calculate_galerkin_projection(fl_pos_solid_force, force_integralpart_solidvel, positions)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+       ! Compute the point-wise product of \alpha_s^f and u^f (bulk velocity)
+       ! 1st: Add u^f
+       ewrite(2,*) "========================================================"
+       ewrite(2,*) "In The FORCE COMPUTATION:"
+       ewrite_minmax(bulk_velocity_forcemesh%val(1,:))
+       ewrite_minmax(bulk_velocity_forcemesh%val(2,:))
+       ewrite_minmax(bulk_velocity_forcemesh%val(3,:))
+       ewrite_minmax(alpha_s_forcemesh%val)
+       ewrite_minmax(solid_velocity_forcemesh%val(1,:))
+       ewrite_minmax(solid_velocity_forcemesh%val(2,:))
+       ewrite_minmax(solid_velocity_forcemesh%val(3,:))
+       ewrite(2,*) "========================================================"
+       call zero(fl_pos_solid_force)
+       call addto(fl_pos_solid_force, bulk_velocity_forcemesh)
+       ! 2nd: product with alpha
+       call scale(fl_pos_solid_force, alpha_s_forcemesh)
+       ! 3rd: times -1.0
+       call scale(fl_pos_solid_force, -1.0)
+       ! 4th: add u_s^f
+       call addto(fl_pos_solid_force, solid_velocity_forcemesh)
+       ! 5th: times the absorption term:
+!       call scale(fl_pos_solid_force, absorption_velocity_forcemesh)
+       call scale(fl_pos_solid_force, 1.0/dt)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FOR JASON'S IDEA ONLY:
+       ! call scale(fl_pos_solid_force, alpha_s_forcemesh)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       ! fl_pos_solid_force is now the force that will be inserted into the momentum equation (as the source term)
+
+       ! Deallocate P1DG fields (and P0DG alpha field):
+       call deallocate(alpha_s_p0)
+       call deallocate(alpha_s_forcemesh)
+       call deallocate(bulk_velocity_forcemesh)
+       call deallocate(solid_velocity_forcemesh)
+!       call deallocate(absorption_velocity_forcemesh)
+
+       ! Compute the total force only at last nonlinear iteration:
+!       if (its == itinoi) then
+          ! Get lumped mass matrix on velocity mesh:
+          call allocate(lumped_mass, velocity%mesh, "LumpedMass")
+          call compute_lumped_mass(positions, lumped_mass)
+
+          ! Now map the computed force back to P1:
+          call zero(force_velocitymesh)
+          call calculate_galerkin_projection(fl_pos_solid_force, force_velocitymesh, positions)
+
+          !ewrite(2,*) "========================================================"
+          !ewrite(2,*) "Force on P1 and P1DG:"
+          !ewrite_minmax(force_velocitymesh%val(1,:))
+          !ewrite_minmax(force_velocitymesh%val(2,:))
+          !ewrite_minmax(force_velocitymesh%val(3,:))
+          !ewrite_minmax(fl_pos_solid_force%val(1,:))
+          !ewrite_minmax(fl_pos_solid_force%val(2,:))
+          !ewrite_minmax(fl_pos_solid_force%val(3,:))
+          !ewrite(2,*) "========================================================"
+
+          ! Print the results of the force on the P1 mesh as vtu:
+          ! if (timestep .eq. 1) then
+          !    index = 0
+          ! else
+          !    index = index + 1 
+          ! end if
+          ! call vtk_write_fields("P0_Alpha_s", index=index, position=positions, model=alpha_s_p0%mesh, sfields=(/alpha_s_p0/))
+          ! call vtk_write_fields("P1_Force", index=index, position=positions, vfields=(/force_p1/), model=force_p1%mesh)
+          ! call vtk_write_fields("P1_BulkVelocity", index=index, position=positions, vfields=(/fl_pos_bulk_vel/), model=fl_pos_bulk_vel%mesh)
+          ! call vtk_write_fields("P1_BulkVelocity", index=index, position=external_positions, vfields=(/fl_pos_bulk_vel/), model=fl_pos_bulk_vel%mesh)
+          ! call vtk_write_fields("P1_Velocity", index=index, position=positions, vfields=(/velocity/), model=velocity%mesh)
+          ! call vtk_write_fields("P1_SolidVelocity", index=index, position=positions, vfields=(/fl_pos_solid_vel/), model=fl_pos_solid_vel%mesh)
+          ! call vtk_write_fields("P1_SolidVelocity_SolidMesh", index=index, position=external_positions, vfields=(/ext_pos_solid_vel/), model=ext_pos_solid_vel%mesh)
+
+          ! call vtk_write_fields("P1DG_Alpha_s", index=index, position=positions, model=alpha_s_p1dg%mesh, sfields=(/alpha_s_p1dg/))
+          ! call vtk_write_fields("P1DG_Force", index=index, position=positions, vfields=(/force_p1dg/), model=force_p1dg%mesh)
+          ! call vtk_write_fields("P1DG_BulkVelocity", index=index, position=positions, vfields=(/bulk_velocity_p1dg/), model=bulk_velocity_p1dg%mesh)
+          ! call vtk_write_fields("P1DG_SolidVelocity", index=index, position=positions, vfields=(/solid_velocity_p1dg/), model=solid_velocity_p1dg%mesh)
+          ! call vtk_write_fields("P1_FEMDEM_Force_FluidMesh", index=index, position=positions, vfields=(/fl_pos_solid_force/), model=fl_pos_solid_force%mesh)
+          ! call vtk_write_fields("P1_Force_Old_Bulk", index=index, position=positions, vfields=(/force_old_bulk_p1/), model=force_old_bulk_p1%mesh)
+          ! call vtk_write_fields("P1_Old_BulkVelocity", index=index, position=positions, vfields=(/old_fl_pos_bulk_vel/), model=old_fl_pos_bulk_vel%mesh)
+          ! call vtk_write_fields("P1_Lumped_Mass", index=index, position=positions, sfields=(/lumped_mass/), model=lumped_mass%mesh)
+
+          ! Compute the total (spatial) force:
+          allocate(fluidity_totalforce(force_velocitymesh%dim)); fluidity_totalforce = 0.0
+          ewrite(2,*) "Compute total drag:"
+          ! Loop over nodes of the field 'force_velocitymesh':
+          do i = 1, nowned_nodes(force_velocitymesh)
+             ! Loop over all dimensions of the field 'force_velocitymesh':
+             do j = 1, force_velocitymesh%dim
+                ! Compute the force of dimension 'j':
+                fluidity_totalforce(j) = fluidity_totalforce(j) + rho_f * (node_val(force_velocitymesh, j, i) * node_val(lumped_mass, i))
+             end do
+          end do
+
+
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         ! FOR FORCE COMPARISON ONLY:
+         allocate(fluidity_force_bulkvel(force_velocitymesh%dim)); fluidity_force_bulkvel = 0.0
+         allocate(fluidity_force_solidvel(force_velocitymesh%dim)); fluidity_force_solidvel = 0.0
+          do i = 1, nowned_nodes(force_velocitymesh)
+             ! Loop over all dimensions of the field 'force_velocitymesh':
+             do j = 1, force_velocitymesh%dim
+                ! Compute the force of dimension 'j':
+                fluidity_force_bulkvel(j) = fluidity_force_bulkvel(j) + (rho_f/dt * (node_val(force_integralpart_bulkvel, j, i) * node_val(lumped_mass, i)))
+                fluidity_force_solidvel(j) = fluidity_force_solidvel(j) + (rho_f/dt * (node_val(force_integralpart_solidvel, j, i) * node_val(lumped_mass, i)))
+             end do
+          end do
+          call allsum(fluidity_force_bulkvel)
+          call allsum(fluidity_force_solidvel)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! BEFORE FEMDEM RAN:
+          if (before_femdem) then
+             allocate(fluidity_totalforce_before_femdem(force_velocitymesh%dim)); fluidity_totalforce_before_femdem = 0.0
+             allocate(fluidity_force_bulkvel_before_femdem(force_velocitymesh%dim)); fluidity_force_bulkvel_before_femdem = 0.0
+             allocate(fluidity_force_solidvel_before_femdem(force_velocitymesh%dim)); fluidity_force_solidvel_before_femdem = 0.0
+             do i = 1, nowned_nodes(force_velocitymesh)
+                ! Loop over all dimensions of the field 'force_velocitymesh':
+                do j = 1, force_velocitymesh%dim
+                   ! Compute the force of dimension 'j':
+                   fluidity_totalforce_before_femdem(j) = fluidity_totalforce_before_femdem(j) + rho_f * (node_val(force_velocitymesh, j, i) * node_val(lumped_mass, i))
+                end do
+             end do
+             fluidity_force_solidvel_before_femdem = fluidity_force_solidvel
+             fluidity_force_bulkvel_before_femdem = fluidity_force_bulkvel
+             call allsum(fluidity_totalforce_before_femdem)
+             call set_diagnostic(name="Fluidity_TotalForce_Before_FEMDEM", statistic="Value", value=(/ fluidity_totalforce_before_femdem /))
+             call set_diagnostic(name="Fluidity_Force_Bulkvel_Before_FEMDEM", statistic="Value", value=(/ fluidity_force_bulkvel_before_femdem /))
+             call set_diagnostic(name="Fluidity_Force_Solidvel_Before_FEMDEM", statistic="Value", value=(/ fluidity_force_solidvel_before_femdem /))
+             deallocate(fluidity_totalforce_before_femdem)
+             deallocate(fluidity_force_bulkvel_before_femdem)
+             deallocate(fluidity_force_solidvel_before_femdem)
+          end if
+
+          ! SOLID MESH:
+          if (solid_mesh) then
+             ewrite(2,*) "========================================================"
+             ewrite(2,*) "On the solid mesh:"
+             ! Allocate the force on the P1 solid mesh:
+             call allocate(ext_pos_solid_force, external_positions%dim, external_positions%mesh, name="P1ForceSolidMesh")
+             call zero(ext_pos_solid_force)
+             ewrite_minmax(ext_pos_solid_force%val(1,:))
+             ewrite_minmax(ext_pos_solid_force%val(2,:))
+             ewrite_minmax(ext_pos_solid_force%val(3,:))
+             ewrite_minmax(ext_pos_bulk_vel%val(1,:))
+             ewrite_minmax(ext_pos_bulk_vel%val(2,:))
+             ewrite_minmax(ext_pos_bulk_vel%val(3,:))
+             ewrite_minmax(ext_pos_solid_vel%val(1,:))
+             ewrite_minmax(ext_pos_solid_vel%val(2,:))
+             ewrite_minmax(ext_pos_solid_vel%val(3,:))
+             ewrite(2,*) "========================================================"
+             call addto(ext_pos_solid_force, ext_pos_bulk_vel)
+             ! 3rd: times -1.0
+             call scale(ext_pos_solid_force, -1.0)
+             ! 4th: add u_s^f
+             !call addto(ext_pos_solid_force, ext_pos_solid_vel)
+             ! 5th: times the absorption term:
+             call scale(ext_pos_solid_force, 1.0/dt)
+             ewrite_minmax(ext_pos_solid_force%val(1,:))
+             ewrite_minmax(ext_pos_solid_force%val(2,:))
+             ewrite_minmax(ext_pos_solid_force%val(3,:))
+             ewrite(2,*) "========================================================"
+
+             ! Get unity for P1 on the solid mesh:
+             ewrite(2,*) "Allocate lumped mass p1 solid:"
+             call allocate(lumped_mass_p1solid, external_positions%mesh, "P1SolidLumpedMass")
+             ewrite(2,*) "Computed the lumped mass p1 solid"
+             call compute_lumped_mass(external_positions, lumped_mass_p1solid)
+
+             allocate(fluidity_totalforce_before_femdem_solidmesh(ext_pos_solid_force%dim)); fluidity_totalforce_before_femdem_solidmesh = 0.0
+             do i = 1, nowned_nodes(ext_pos_solid_force)
+                ! Loop over all dimensions of the field 'force_velocitymesh':
+                do j = 1, ext_pos_solid_force%dim
+                   ! Compute the force of dimension 'j':
+                   fluidity_totalforce_before_femdem_solidmesh(j) = fluidity_totalforce_before_femdem_solidmesh(j) + rho_f * (node_val(ext_pos_solid_force, j, i) * node_val(lumped_mass_p1solid, i))
+                end do
+             end do
+
+             call allsum(fluidity_totalforce_before_femdem_solidmesh)
+             call set_diagnostic(name="Fluidity_TotalForce_Before_FEMDEM_solidmesh", statistic="Value", value=(/ fluidity_totalforce_before_femdem_solidmesh /))
+             !call set_diagnostic(name="Fluidity_Force_Bulkvel_Before_FEMDEM", statistic="Value", value=(/ fluidity_force_bulkvel_before_femdem /))
+             !call set_diagnostic(name="Fluidity_Force_Solidvel_Before_FEMDEM", statistic="Value", value=(/ fluidity_force_solidvel_before_femdem /))
+
+             call deallocate(lumped_mass_p1solid)
+             call deallocate(ext_pos_solid_force)
+             deallocate(fluidity_totalforce_before_femdem_solidmesh)
+             !deallocate(fluidity_force_bulkvel_before_femdem)
+             !deallocate(fluidity_force_solidvel_before_femdem)
+          end if
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+          ! Compute the total drag (if at some point in the future this code runs in parallel):
+          call allsum(fluidity_totalforce)
+
+          ! Debugging statements:
+          ewrite(2,*) "*********************************************************************"
+          ewrite(2, *) "Fluidity, total force:", fluidity_totalforce
+          ewrite(2, *) "Fluidity, force, bulkvelocity:", fluidity_force_bulkvel
+          ewrite(2, *) "Fluidity, force, solidvelocity:", fluidity_force_solidvel
+          ewrite(2,*) "*********************************************************************"
+
+       if (its == itinoi) then
+          ! Register the TotalSolidForce computed in Fluidity
+          call set_diagnostic(name="Fluidity_TotalForce", statistic="Value", value=(/ fluidity_totalforce /))
+          call set_diagnostic(name="Fluidity_Force_Bulkvel", statistic="Value", value=(/ fluidity_force_bulkvel /))
+          call set_diagnostic(name="Fluidity_Force_Solidvel", statistic="Value", value=(/ fluidity_force_solidvel /))
+
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! Solid Volume:
+          ! Get unity for P1 on the solid mesh:
+          ewrite(2,*) "Allocate lumped mass p1 solid:"
+          call allocate(lumped_mass_p1solid, external_positions%mesh, "P1SolidLumpedMass")
+          ewrite(2,*) "Computed the lumped mass p1 solid"
+          call compute_lumped_mass(external_positions, lumped_mass_p1solid)
+          ewrite(2,*) "Allocate unity P1"
+          call allocate(unity_p1, external_positions%mesh, name="P1UnityField")
+          call zero(unity_p1)
+          call addto(unity_p1, 1.0)
+          ! Get P0 solid mesh unity:
+
+          field_p0_ext_m = piecewise_constant_mesh(external_positions%mesh, "P0SolidMesh")
+          call allocate(lumped_mass_p0solid, field_p0_ext_m, "P0SolidLumpedMass")
+          call compute_lumped_mass(external_positions, lumped_mass_p0solid)
+          ! Allocate unity field:
+          call allocate(unity, field_p0_ext_m, name="UnityField")
+          ! get the p0 \alpha on the fluids mesh:
+          ewrite(2,*) "allocate alpha_s_p0_volume"
+          ! Set unity to 1:
+          call zero(unity)
+
+          ! Project unity_p1 to p0 on the solid mesh:
+          call calculate_galerkin_projection(unity_p1, unity, external_positions)
+
+
+          ! Allocate the scalar fields:
+          !call allocate(product_solidlocal_mass, solid_local%mesh, name="ProductSolidLocalMassMatrix")
+          !call allocate(product_solidlocal_mass_solidmesh, external_positions%mesh, name="ProductSolidLocalMassMatrixSolidMesh")
+          ! Compute the product of mass and a scalar field
+          !call mult(product_solidlocal_mass, mass, solid_local)
+          !call mult(product_solidlocal_mass_solidmesh, mass_solidmesh, unity)
+          ! Initialise the real:
+          fluidity_integral_of_alpha = 0.0
+          fluidity_integral_of_alpha_solidmesh = 0.0
+          fluidity_integral_of_alpha_solidmesh_p1 = 0.0
+          ! Compute the integral on the fluid mesh
+          ewrite(2,*) "Start looping over nodes solid_local:"
+          do i = 1, nowned_nodes(solid_local)
+             ! Compute the force of dimension 'i':
+             ! fluidity_integral_of_alpha = fluidity_integral_of_alpha + (node_val(product_solidlocal_mass, i))
+             fluidity_integral_of_alpha = fluidity_integral_of_alpha + (node_val(solid_local, i) * node_val(lumped_mass, i))
+          end do
+          ! Compute the integral on the solid mesh:
+          ewrite(2,*) "Start looping over nodes unity:"
+          do i = 1, nowned_nodes(unity)
+             ! Compute the force of dimension 'i':
+             !fluidity_integral_of_alpha_solidmesh = fluidity_integral_of_alpha_solidmesh + (node_val(product_solidlocal_mass_solidmesh, i))
+             fluidity_integral_of_alpha_solidmesh = fluidity_integral_of_alpha_solidmesh + (node_val(unity, i) * node_val(lumped_mass_p0solid, i))
+             fluidity_integral_of_alpha_solidmesh_p1 = fluidity_integral_of_alpha_solidmesh_p1 + (node_val(unity_p1, i) * node_val(lumped_mass_p1solid, i))
+          end do
+          ! call allsum(fluidity_integral_of_alpha)
+          ewrite(2, *) "Integral of alpha (with mass matrix):", fluidity_integral_of_alpha
+          call set_diagnostic(name="FluiditySolidVolume", statistic="Value", value=(/fluidity_integral_of_alpha/))
+          ewrite(2, *) "Integral of alpha on the solidmesh (with mass matrix):", fluidity_integral_of_alpha_solidmesh
+          call set_diagnostic(name="FluiditySolidVolumeSolidMesh", statistic="Value", value=(/fluidity_integral_of_alpha_solidmesh/))
+          call set_diagnostic(name="FluiditySolidVolumeSolidMeshP1", statistic="Value", value=(/fluidity_integral_of_alpha_solidmesh_p1/))
+          !deallocate(fluidity_integral_of_alpha)
+          !call deallocate(product_solidlocal_mass)
+          !call deallocate(product_solidlocal_mass_solidmesh)
+          call deallocate(unity)
+          call deallocate(unity_p1)
+          call deallocate(lumped_mass_p0solid)
+          call deallocate(lumped_mass_p1solid)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       end if
+
+          ! Deallocate the force:
+          deallocate(fluidity_totalforce)
+          deallocate(fluidity_force_bulkvel)
+          deallocate(fluidity_force_solidvel)
+          call deallocate(force_integralpart_bulkvel)
+          call deallocate(force_integralpart_solidvel)
+          call deallocate(force_velocitymesh)
+          call deallocate(lumped_mass)
+
+!       end if
+
+    end if
 
     ewrite(2, *) "leaving implicit_solids_force_computation"
 
@@ -1368,15 +2022,14 @@ contains
 
   subroutine implicit_solids_update(state)
 
-    type(state_type), intent(in) :: state
-    type(vector_field), pointer :: positions
-    type(scalar_field) :: lumped_mass
+    type(state_type), intent(inout) :: state
 
     real, dimension(:), allocatable :: force
     real, dimension(:, :), allocatable :: particle_force
     real, dimension(:), allocatable :: wall_temperature, q
     real :: T_w_avg, q_avg
     integer :: i, j, str_size
+    
     character(len=254) :: fmt, buffer
 
     ewrite(2, *) "inside implicit_solids_update"
@@ -1385,14 +2038,14 @@ contains
     ! Only one-way coupling for now
     if (one_way_coupling .and. do_print_diagnostics) then
 
-       call implicit_solids_force_computation(state, force, particle_force)
+       call implicit_solids_force_computation(state, force=force, particle_force=particle_force)
 
        str_size=len_trim(int2str(number_of_solids))
        fmt="(I"//int2str(str_size)//"."//int2str(str_size)//")"
 
        ! Register the force on a solid body
        call set_diagnostic(name="Force", statistic="Value", value=(/ force /))
-       
+
        if (do_print_multiple_solids_diagnostics) then
           do j = 1, number_of_solids
              write(buffer, fmt) j
@@ -1406,7 +2059,7 @@ contains
           ! Register the diagnostics
           call set_diagnostic(name="WallTemperature", statistic="Value", value=(/ T_w_avg /))
           call set_diagnostic(name="HeatTransfer", statistic="Value", value=(/ q_avg /))
-          
+
           if (multiple_solids .and. do_print_multiple_solids_diagnostics) then
              do i = 1, number_of_solids
                 write(buffer, fmt) i
@@ -1426,6 +2079,7 @@ contains
           call deallocate(surface_nodes)
           call deallocate(surface_faces)
        end if
+
     end if
 
     ewrite(2, *) "leaving implicit_solids_update"
@@ -1544,16 +2198,18 @@ contains
       real, dimension(ele_ngi(p, ele)) :: detwei
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), x%dim) :: dp_t
       integer, dimension(:), pointer :: p_ele
-      real, dimension(ele_loc(x, ele)) :: ds, mat
+      real, dimension(ele_loc(p, ele)) :: mat
+      real, dimension(ele_ngi(solid, ele)) :: ds
 
       call transform_to_physical(x, ele, &
            p_shape, dshape=dp_t, detwei=detwei)
 
-      mat = shape_rhs(test_function, detwei)
-      ds = ele_val(solid, ele) - ele_val(old_solid, ele)
+      ds = ele_val_at_quad(solid, ele) - ele_val_at_quad(old_solid, ele)
+      mat = shape_rhs(test_function, detwei*ds/dt)
+
       p_ele => ele_nodes(p, ele)
 
-      call addto(ct_rhs, p_ele, mat*ds/dt)
+      call addto(ct_rhs, p_ele, mat)
 
     end subroutine add_ct_rhs_element_cg
 
@@ -2371,10 +3027,10 @@ contains
                 end do
 
                 call halo_update(max_bound)
-                ewrite_minmax(max_bound)
+                ewrite_minmax(max_bound%val)
 
                 call halo_update(min_bound)
-                ewrite_minmax(min_bound)
+                ewrite_minmax(min_bound%val)
                 
                 call bound_field(named_fields(name, field), max_bound, min_bound, &
                                  M_B(mesh), M_B_L(mesh), inverse_M_B_L, bounded_soln, &
@@ -2428,7 +3084,7 @@ contains
         end do
 
       end if
-      
+
     end do
 
     call deallocate(supermesh_shape)
@@ -2471,23 +3127,246 @@ contains
     call rtree_intersection_finder_reset(ntests)
 
     ewrite(1, *) "Exiting interpolation_galerkin_scalars"
-    
+
   end subroutine interpolation_galerkin_scalars
 
   !----------------------------------------------------------------------------
 
+   subroutine calculate_galerkin_projection_scalar(source_field, target_field, positions)
+     type(scalar_field), intent(in) :: source_field
+     type(scalar_field), intent(inout) :: target_field
+     type(vector_field), intent(in) :: positions
+
+!     character(len=len_trim(source_field%option_path)) :: path
+!     character(len=FIELD_NAME_LEN) :: field_name
+!     type(vector_field), pointer :: positions
+!     type(csr_sparsity) :: mass_sparsity
+!     type(csr_matrix) :: mass
+     type(scalar_field) :: rhs, mass_lumped, inverse_mass_lumped
+!     logical :: dg
+!     logical :: check_integrals
+!     logical :: apply_bcs, lump_mass
+
+     integer :: ele
+
+!     dg = (continuity(source_field) < 0)
+
+!     check_integrals = .false.
+!     apply_bcs = .true.
+
+!     path = source_field%option_path
+!     call get_option(path // "/diagnostic/source_field_name", field_name)
+!     lump_mass=have_option(path // "/diagnostic/lump_mass")
+!     projected_field => extract_scalar_field(state, trim(field_name))
+!     positions => extract_vector_field(state, "Coordinate")
+
+     ! Assuming they're on the same quadrature
+     assert(ele_ngi(target_field, 1) == ele_ngi(source_field, 1))
+
+!     if (.not. dg .and. .not. lump_mass) then
+!       mass_sparsity = make_sparsity(field%mesh, field%mesh, name="MassMatrixSparsity")
+!       call allocate(mass, mass_sparsity, name="MassMatrix")
+!       call zero(mass)
+!     else if (lump_mass) then
+       call allocate(mass_lumped, target_field%mesh, name="GalerkinProjectionMassLumped")
+       call zero(mass_lumped)
+!     end if
+     
+!     if (lump_mass .or. .not. dg) then
+       call allocate(rhs, target_field%mesh, name="GalerkinProjectionRHS")
+       call zero(rhs)
+!     end if
+
+     do ele=1,ele_count(target_field)
+       call assemble_galerkin_projection(source_field, target_field, positions, rhs, ele)
+     end do
+
+!     if (lump_mass) then
+       call allocate(inverse_mass_lumped, target_field%mesh, name="GalerkinProjectionInverseMassLumped")
+       call invert(mass_lumped, inverse_mass_lumped)
+       call set(target_field, rhs)
+       call scale(target_field, inverse_mass_lumped)
+       call deallocate(mass_lumped)
+       call deallocate(inverse_mass_lumped)
+       call deallocate(rhs)
+!     else if (.not. dg) then
+!       call petsc_solve(target_field, mass, rhs, option_path=path // "/diagnostic")
+!       call deallocate(mass)
+!       call deallocate(mass_sparsity)
+!       call deallocate(rhs)
+!     end if
+
+!     if (check_integrals) then
+!       assert(field_integral(field, positions) .feq. field_integral(projected_field, positions))
+!     end if
+
+     contains
+     
+       subroutine assemble_galerkin_projection(source_field, target_field, positions, rhs, ele)
+         type(scalar_field), intent(in) :: source_field
+         type(scalar_field), intent(inout) :: target_field
+         type(vector_field), intent(in) :: positions
+         type(scalar_field), intent(inout) :: rhs
+         integer, intent(in) :: ele
+
+         type(element_type), pointer :: target_field_shape, source_field_shape
+
+         real, dimension(ele_loc(target_field, ele)) :: little_rhs
+         real, dimension(ele_loc(target_field, ele), ele_loc(target_field, ele)) :: little_mass
+         real, dimension(ele_loc(target_field, ele), ele_loc(source_field, ele)) :: little_mba
+         real, dimension(ele_loc(target_field, ele), ele_loc(source_field, ele)) :: little_mba_int
+         real, dimension(ele_ngi(target_field, ele)) :: detwei
+         real, dimension(ele_loc(source_field, ele)) :: source_field_val
+
+         integer :: i, j, k
+
+         target_field_shape => ele_shape(target_field, ele)
+         source_field_shape => ele_shape(source_field, ele)
+
+         call transform_to_physical(positions, ele, detwei=detwei)
+
+         little_mass = shape_shape(target_field_shape, target_field_shape, detwei)
+
+         ! And compute the product of the basis functions
+         little_mba = 0
+         do i=1,ele_ngi(target_field, ele)
+           forall(j=1:ele_loc(target_field, ele), k=1:ele_loc(source_field, ele))
+             little_mba_int(j, k) = target_field_shape%n(j, i) * source_field_shape%n(k, i)
+           end forall
+           little_mba = little_mba + little_mba_int * detwei(i)
+         end do
+
+         source_field_val = ele_val(source_field, ele)
+         little_rhs = matmul(little_mba, source_field_val)
+         
+!         if (lump_mass) then
+           call addto(mass_lumped, ele_nodes(target_field, ele), &
+             sum(little_mass,2))
+           call addto(rhs, ele_nodes(target_field, ele), little_rhs)
+!         else if (dg) then
+!           call solve(little_mass, little_rhs)
+!           call set(target_field, ele_nodes(target_field, ele), little_rhs)
+!         else
+!           call addto(mass, ele_nodes(target_field, ele), ele_nodes(target_field, ele), little_mass)
+!           call addto(rhs, ele_nodes(target_field, ele), little_rhs)
+!         end if
+
+       end subroutine assemble_galerkin_projection
+
+   end subroutine calculate_galerkin_projection_scalar
+
+  !----------------------------------------------------------------------------
+
+   subroutine calculate_galerkin_projection_vector(source_field, target_field, positions)
+     type(vector_field), intent(in) :: source_field
+     type(vector_field), intent(inout) :: target_field
+     type(vector_field), intent(in) :: positions
+
+     type(vector_field) :: rhs
+     type(scalar_field) :: mass_lumped, inverse_mass_lumped
+
+     integer :: ele
+
+     ! Assuming they're on the same quadrature
+     assert(ele_ngi(target_field, 1) == ele_ngi(source_field, 1))
+
+     call allocate(mass_lumped, target_field%mesh, name="GalerkinProjectionMassLumped")
+     call zero(mass_lumped)
+     
+     call allocate(rhs, target_field%dim, target_field%mesh, name="GalerkinProjectionRHS")
+     call zero(rhs)
+
+     do ele=1,ele_count(target_field)
+       call assemble_galerkin_projection(source_field, target_field, positions, rhs, ele)
+     end do
+
+     call allocate(inverse_mass_lumped, target_field%mesh, name="GalerkinProjectionInverseMassLumped")
+     call invert(mass_lumped, inverse_mass_lumped)
+     call set(target_field, rhs)
+     call scale(target_field, inverse_mass_lumped)
+     call deallocate(mass_lumped)
+     call deallocate(inverse_mass_lumped)
+     call deallocate(rhs)
+
+     contains
+
+       subroutine assemble_galerkin_projection(source_field, target_field, positions, rhs, ele)
+         type(vector_field), intent(in) :: source_field
+         type(vector_field), intent(inout) :: target_field
+         type(vector_field), intent(in) :: positions
+         type(vector_field), intent(inout) :: rhs
+         integer, intent(in) :: ele
+
+         type(element_type), pointer :: target_field_shape, source_field_shape
+
+         real, dimension(ele_loc(target_field, ele), target_field%dim) :: little_rhs
+         real, dimension(ele_loc(target_field, ele), ele_loc(target_field, ele)) :: little_mass
+         real, dimension(ele_loc(target_field, ele), ele_loc(source_field, ele)) :: little_mba
+         real, dimension(ele_loc(target_field, ele), ele_loc(source_field, ele)) :: little_mba_int
+         real, dimension(ele_ngi(target_field, ele)) :: detwei
+         real, dimension(target_field%dim, ele_loc(source_field, ele)) :: source_field_val
+
+         integer :: i, j, k
+
+         target_field_shape => ele_shape(target_field, ele)
+         source_field_shape => ele_shape(source_field, ele)
+
+         call transform_to_physical(positions, ele, detwei=detwei)
+
+         little_mass = shape_shape(target_field_shape, target_field_shape, detwei)
+
+         ! And compute the product of the basis functions
+         little_mba = 0
+         do i=1,ele_ngi(target_field, ele)
+           forall(j=1:ele_loc(target_field, ele), k=1:ele_loc(source_field, ele))
+             little_mba_int(j, k) = target_field_shape%n(j, i) * source_field_shape%n(k, i)
+           end forall
+           little_mba = little_mba + little_mba_int * detwei(i)
+         end do
+
+         source_field_val = ele_val(source_field, ele)
+         do i=1,target_field%dim
+           little_rhs(:, i) = matmul(little_mba, source_field_val(i, :))
+         end do
+
+         call addto(mass_lumped, ele_nodes(target_field, ele), sum(little_mass,2))
+         call addto(rhs, ele_nodes(target_field, ele), transpose(little_rhs))
+
+       end subroutine assemble_galerkin_projection
+         
+   end subroutine calculate_galerkin_projection_vector
+
+  !----------------------------------------------------------------------------
+
+  subroutine implicit_solids_nonlinear_iteration_converged()
+
+    if (do_adapt_mesh(current_time, timestep)) then
+       if (one_way_coupling) then
+          call deallocate(solid_local)
+          call deallocate(interface_local)
+       else if (two_way_coupling) then
+          call deallocate(solid_local)
+          call deallocate(old_solid_local)
+       end if
+        do_calculate_volume_fraction = .true.
+    end if
+
+  end subroutine implicit_solids_nonlinear_iteration_converged
+
+  !----------------------------------------------------------------------------
+
   subroutine implicit_solids_register_diagnostic
-    
+
     integer :: i, str_size, ndim
     character(len=254) :: fmt, buffer
 
     if (.not. have_option("/implicit_solids")) return
-    
+
     ! figure out if we want to print out diagnostics and initialise files
-    do_print_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/print_diagnostics")
-    do_print_multiple_solids_diagnostics = &
-         have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+    do_print_diagnostics = have_option("/implicit_solids/one_way_coupling/print_diagnostics")
+    do_print_multiple_solids_diagnostics = have_option("/implicit_solids/one_way_coupling/multiple_solids/print_diagnostics")
+    two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
+    call get_option("/geometry/dimension", ndim)
 
     ! check for mutiple solids and get translation coordinates
     number_of_solids = 1
@@ -2503,8 +3382,8 @@ contains
     have_temperature = &
          have_option("/material_phase[0]/scalar_field::Temperature")
 
+
     if (do_print_diagnostics) then
-      call get_option("/geometry/dimension", ndim)
       call register_diagnostic(dim=ndim, name="Force", statistic="Value")
 
       if (do_print_multiple_solids_diagnostics) then
@@ -2517,7 +3396,7 @@ contains
        if (have_temperature) then
           call register_diagnostic(dim=1, name="WallTemperature", statistic="Value")
           call register_diagnostic(dim=1, name="HeatTransfer", statistic="Value")
- 
+
           if (do_print_multiple_solids_diagnostics) then
              do i = 1, number_of_solids
                 write(buffer, fmt) i
@@ -2529,26 +3408,166 @@ contains
        end if
     end if
 
+    if (two_way_coupling) then
+      call register_diagnostic(dim=ndim, name="Fluidity_TotalForce", statistic="Value")
+      call register_diagnostic(dim=ndim, name="Fluidity_Force_Bulkvel", statistic="Value")
+      call register_diagnostic(dim=ndim, name="Fluidity_Force_Solidvel", statistic="Value")
+      call register_diagnostic(dim=4, name="FEMDEM_TotalForce_1stdt", statistic="Value")
+      call register_diagnostic(dim=ndim, name="FEMDEM_Force_Bulkvel_1stdt", statistic="Value")
+      call register_diagnostic(dim=ndim, name="FEMDEM_Force_Solidvel_1stdt", statistic="Value")
+      call register_diagnostic(dim=ndim, name="FEMDEM_TotalForce_lastdt", statistic="Value")
+      call register_diagnostic(dim=ndim, name="FEMDEM_Force_Bulkvel_lastdt", statistic="Value")
+      call register_diagnostic(dim=ndim, name="FEMDEM_Force_Solidvel_lastdt", statistic="Value")
+      ! register one more diagnostic for the force directly after femdem ran:
+      call register_diagnostic(dim=ndim, name="Fluidity_TotalForce_Before_FEMDEM", statistic="Value")
+      call register_diagnostic(dim=ndim, name="Fluidity_Force_Bulkvel_Before_FEMDEM", statistic="Value")
+      call register_diagnostic(dim=ndim, name="Fluidity_Force_Solidvel_Before_FEMDEM", statistic="Value")
+      ! register diagnostic for the total force before femdem ran on the solid mesh:
+      call register_diagnostic(dim=ndim, name="Fluidity_TotalForce_Before_FEMDEM_solidmesh", statistic="Value")
+      ! Solid Volume:
+      call register_diagnostic(dim=1, name="FluiditySolidVolume", statistic="Value")
+      call register_diagnostic(dim=1, name="FEMDEMSolidVolume", statistic="Value")
+      call register_diagnostic(dim=1, name="FluiditySolidVolumeSolidMesh", statistic="Value")
+      call register_diagnostic(dim=1, name="FluiditySolidVolumeSolidMeshP1", statistic="Value")
+    end if
+
   end subroutine implicit_solids_register_diagnostic
 
   !----------------------------------------------------------------------------
 
   subroutine implicit_solids_check_options
-     integer :: ndim
-     
+     integer :: ndim, fm_degree = -1
+     character(len=20) :: force_mesh_continuity = ""
+
      ! Get dimension:
      call get_option("/geometry/dimension", ndim)
+
      ! Check options for Implicit Solids:
+     ! 1-way coupling:
      if (have_option("/implicit_solids/one_way_coupling") .and. ndim==1) then
         ewrite(-1,*) "Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via Implicit Solids"
         FLExit("Use a 2D or 3D set-up when using a 1-way coupled simulation via implicit solids")
-     else if (have_option("/implicit_solids/two_way_coupling") .and. (.not. ndim==3)) then
-        ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
-        ewrite(-1,*) "is only supported for 3D simulations."
-        FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
+     end if
+
+
+     ! 2-way coupling:
+     if (have_option("/implicit_solids/two_way_coupling")) then
+
+        ! Check if it is a 3D problem:
+        if (.not. ndim==3) then
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "is only supported for 3D simulations."
+           FLExit("Use 3D when using a 2-way coupled simulation via implicit solids")
+        end if
+
+        ! Get options of the ForceMesh:
+        if (have_option("/geometry/mesh::ForceMesh/from_mesh/mesh_continuity")) then
+           call get_option("/geometry/mesh::ForceMesh/from_mesh/mesh_continuity", force_mesh_continuity)
+        end if
+        if (have_option("/geometry/mesh::ForceMesh/from_mesh/mesh_shape/polynomial_degree")) then
+           call get_option("/geometry/mesh::ForceMesh/from_mesh/mesh_shape/polynomial_degree", fm_degree)
+        end if
+
+        ! Check if the ForceMesh was created:
+        if (.not. have_option("/geometry/mesh::ForceMesh/from_mesh/mesh::VelocityMesh") .or. &
+                    & .not. (trim(force_mesh_continuity) == "discontinuous") .or. & 
+                    & .not. (fm_degree .eq. 1)) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires a P1DG mesh which is deduced from the VelocityMesh."
+           ewrite(-1,*) "On this mesh the force induced by the solid will be computed."
+           FLExit("Create a P1DG mesh and give it the name 'ForceMesh' that is deduced from the VelocityMesh. Specify its continuity ('discontinuous') and its polynomial degree (1).")
+        end if
+
+        ! Check if SolidConcentration is set:
+        if (.not. have_option("/material_phase[0]/scalar_field::SolidConcentration/diagnostic/mesh::VelocityMesh") .or. & 
+              & .not. have_option("/material_phase[0]/scalar_field::SolidConcentration/diagnostic/adaptivity_options")) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the diagnostic scalar field SolidConcentration which is deduced from the VelocityMesh."
+           ewrite(-1,*) "Furthermore the 'adaptivity_options' have to be enabled."
+           ewrite(-1,*) "Otherwise the fluid mesh around the solid body will not be refined."
+           FLExit("Create the scalar field SolidConcentration which you can choose from the available scalar fields.&
+                   &Furthermore it must be diagnostic and the adaptivity_options have to be enabled for this field.")
+        end if
+
+        ! Check if the Source and Absorption velocities are set:
+        if (.not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/vector_field::Source/diagnostic/mesh::ForceMesh") .or. &
+              & .not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/vector_field::Source/lump_source") .or. &
+              & .not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/vector_field::Absorption/diagnostic/mesh::VelocityMesh") .or. &
+              & .not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/vector_field::Absorption/lump_absorption") ) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the diagnostic Source and Absorption velocity vector fields."
+           ewrite(-1,*) "They can be enabled in "
+           ewrite(-1,*) "   vector_field (Velocity)/prognostic/vector_field (Source) and .../vector_field (Absorption)"
+           ewrite(-1,*) "Both, the source and absorption velocity, must be diagnostic and lumped."
+           ewrite(-1,*) "Furthermore the source velocity must be on the 'ForceMesh' set under geometry, which is a P1DG function space."
+           ewrite(-1,*) "The absorption velocity must be based on the velocity mesh."
+           FLExit("Set the source and absorption velocities to be diagnostic.")
+        end if
+
+        ! Check if the SolidVelocity is set:
+        if (.not. have_option("/material_phase[0]/vector_field::SolidVelocity/diagnostic/mesh::VelocityMesh") ) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the diagnostic SolidVelocity vector field which is deduced from the VelocityMesh."
+           FLExit("Create a SolidVelocity vector field which you can choose from the available vector fields. Furthermore choose galerkin_projection for this field.")
+        end if
+
+        ! Check if the SolidForce is set:
+        if (.not. have_option("/material_phase[0]/vector_field::SolidForce/diagnostic/mesh::ForceMesh") ) then
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the diagnostic SolidForce vector field which is deduced from the ForceMesh (which is set in geometry)."
+           FLExit("Create a SolidForce vector field which you can choose from the available vector fields")
+        end if
+
+        ! Check if the Velocity and SolidVelocity use Galerkin projection from old to new mesh:
+        if (.not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/galerkin_projection") .or. &
+              & .not. have_option("/material_phase[0]/vector_field::SolidVelocity/diagnostic/galerkin_projection") ) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the Fluid Velocity and SolidVelocity vector fields to be projected"
+           ewrite(-1,*) "from the old to the new mesh (between adapting the mesh) using the Galerkin projection."
+           ewrite(-1,*) "Therefore enable the option 'galerkin_projection' for Velocity and SolidVelocity."
+           ewrite(-1,*) "Otherwise these vector fields are set to zero after an adapt (or not conservatively projected)"
+           ewrite(-1,*) "and hence the bulk velocity sent to FEMDEM would be false."
+           FLExit("Choose galerkin_projection for Velocity and SolidVelocity.")
+        end if
+
+        ! Check if the Pressure uses Galerkin projection from old to new mesh:
+        if (.not. have_option("/material_phase[0]/scalar_field::Pressure/prognostic/galerkin_projection") ) then 
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the Pressure field to be conservatively projected to the new mesh after an adapt."
+           ewrite(-1,*) "This is due to the Force being sensitive to rapid changes in the velocity."
+           ewrite(-1,*) "Therefore a conservative projection of the pressure to the new mesh"
+           ewrite(-1,*) "is needed to reduce/limit the rapid changes in pressure/velocity after an adapt."
+           FLExit("Choose galerkin_projection for Pressure.")
+        end if
+
+        ! Check for isotropic viscosity:
+        if (have_option("/material_phase[0]/vector_field::Velocity/prognostic/tensor_field::Viscosity") .and. &
+           & (.not. have_option("/material_phase[0]/vector_field::Velocity/prognostic/tensor_field::Viscosity/prescribed/value::WholeMesh/isotropic/constant")) ) then
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "requires the an isotropic and constant viscosity tensor field."
+           FLExit("Make the viscosity isotropic and constant.")
+        end if
+
+        ! Check if Mesh Adaptivity is set:
+        if (.not. have_option("/mesh_adaptivity") ) then
+           ewrite(-1,*) "Error: The 2-way coupling of Fluidity/FEMDEM via Implicit Solids"
+           ewrite(-1,*) "is highly dependant on mesh adaptivity."
+           ewrite(-1,*) "Thus enable 'mesh_adaptivity'."
+           FLExit("Enable mesh adaptivity.")
+        end if
+
      end if
   end subroutine implicit_solids_check_options
 
   !----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
 
 end module implicit_solids
