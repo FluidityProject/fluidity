@@ -316,29 +316,22 @@
                have_prognostic_momentum(istate) = have_option(trim(momentum%option_path)//"/prognostic")
                if(have_prognostic_momentum(istate)) then
                   if (stat==0) then
-                     ! we also have a velocity
-                     if (.not. have_option(trim(u%option_path)// &
-                           "/diagnostic/algorithm::Internal")) then
-                        ! it has to be diagnostic
-                        ewrite(-1,*) "With a prognostic Momentum field Velocity has to be diagnostic"
-                        ewrite(-1,*) "and its diagnostic algorithm set to Internal"
-                        FLExit("Non-diagnostic Velocity in combination with prognostic Momentum")
-                     end if
+                    ! we also have a diagnostic velocity (checked for in options check)
                      if (.not. u%mesh==momentum%mesh) then
                         ! this is a temp. measure as long as I haven't got the logic of 
                         ! get_velocity_mesh/divergence_matrix etc. sorted
                         FLExit("Prognostic Momentum and diagnostic Velocity need to be on the same mesh")
                      end if
                   else
-                     ! this is a temp. measure as long as I haven't got the logic of 
-                     ! get_velocity_mesh/divergence_matrix etc. sorted
-                     FLExit("Need a diagnostic Velocity in combination with prognostic Momentum")
+                     ! should have been catched in options check already
+                     FLAbort("Need a diagnostic Velocity in combination with prognostic Momentum")
                   end if
 
                   ! in all of the below u will actually point to momentum
                   ! and where we say velocity in the comments, this actually means momentum
                   ! except inside any if(have_prognostic_momentum(istate)) blocks
                   u => momentum
+                  ! in the else case (.not. prognostic) we'll hit the cycle a few lines further
                end if
             else
                have_prognostic_momentum(istate)=.false.
@@ -1826,6 +1819,7 @@
          character(len=FIELD_NAME_LEN) :: schur_preconditioner
          character(len=OPTION_PATH_LEN) :: phase_path, prognostic_velocity_path, &
                prognostic_pressure_path
+         logical :: prognostic_momentum
 
          ewrite(1,*) 'Checking momentum discretisation options'
 
@@ -1839,9 +1833,20 @@
             if (.not. have_option(prognostic_velocity_path)) then
                ! try prognostic momentum instead
                prognostic_velocity_path=trim(phase_path)//"/scalar_field::Momentum/prognostic"
+            else if (have_option(trim(phase_path)//"/scalar_field::Momentum/prognostic")) then
+               FLExit("Can't have both a prognostic Velocity and prognostic Momentum")
+            else 
+              prognostic_momentum = .false.
             end if
             if (.not. have_option(prognostic_velocity_path)) cycle
 
+            if (prognostic_momentum) then
+               if (.not. have_option(trim(phase_path)//"/scalar_field::Velocity/diagnostic/algorithm::Internal")) then
+                 ewrite(-1,*) "With a prognostic Momentum field Velocity has to be diagnostic"
+                 ewrite(-1,*) "and its diagnostic algorithm set to Internal"
+                 FLExit("With a prognostic Momentumfield you also need a diagnostic Velocity field")
+               end if
+            end if
             if(have_option(trim(prognostic_pressure_path)//"/reference_node").and.&
                have_option(trim(prognostic_pressure_path)//&
                                  &"/solver/remove_null_space")) then

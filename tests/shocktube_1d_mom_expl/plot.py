@@ -17,7 +17,7 @@ for folder in folders:
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
   ie=vt.GetScalarField('InternalEnergy')
-  mom=rho*u
+  mom=vt.GetScalarField('Momentum')
   mflux=mom*u+p
   
   pylab.figure(1)
