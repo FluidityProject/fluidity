@@ -932,7 +932,7 @@
                                      mom_rhs, subcycle_m, inverse_mass)
 
                if(prognostic_p) then
-                  call assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
+                  call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
                                            ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
                end if
 
