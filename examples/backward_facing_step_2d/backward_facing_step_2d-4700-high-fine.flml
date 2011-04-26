@@ -341,16 +341,6 @@
             </stat>
           </diagnostic>
         </tensor_field>
-        <tensor_field name="KEpsEddyDiffusivity" rank="2">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat>
-              <exclude_from_stat/>
-            </stat>
-          </diagnostic>
-        </tensor_field>
         <scalar_field name="ScalarEddyViscosity" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>

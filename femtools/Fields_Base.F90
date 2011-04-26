@@ -2443,7 +2443,7 @@ contains
     real, dimension(ele_loc(field,ele_number), &
          &          ele_ngi(field,ele_number),&
          &          mesh_dim(field)), intent(in) :: dn
-    real, dimension(mesh_dim(field), mesh_dim(field), &
+    real, dimension(mesh_dim(field), field%dim, &
          &          field%mesh%shape%ngi)        :: quad_grad
     
     integer :: i, j
