@@ -164,7 +164,7 @@ contains
     ! This needs to be done every time, to zero the rhs
     call set_reference_node(phi_m, 1, phi_rhs, 0.0)
 
-    ewrite_minmax(phi_rhs%val)
+    ewrite_minmax(phi_rhs)
 
     ewrite(1, *) "Exiting assemble_potential_flow_cg"
 
@@ -281,7 +281,7 @@ contains
 
     call petsc_solve(phi, phi_m, phi_rhs, state)
 
-    ewrite_minmax(phi%val)
+    ewrite_minmax(phi)
 
   end subroutine solve_potential_flow
 
@@ -336,7 +336,7 @@ contains
         call set(foamvel, i, ( -node_val(foamvel, i) ) )
       enddo
 
-      ewrite_minmax(foamvel%val)
+      ewrite_minmax(foamvel)
 
     endif
 

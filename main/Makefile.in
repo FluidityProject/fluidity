@@ -30,6 +30,10 @@ SHELL = @SHELL@
 FC      = @FC@
 FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
+ifeq (@ENABLE_PSMILE@,yes)
+FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./ -I@FLPSMILE_PATH@/build/lib/psmile_oa4.MPI1
+endif
+
 MPIF90  = @MPIF90@
 
 CC      = @CC@

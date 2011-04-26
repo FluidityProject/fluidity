@@ -497,14 +497,11 @@ contains
     end do
     
     if(lump_l) then
-      ewrite_minmax(lumped_l_m%val)
+      ewrite_minmax(lumped_l_m)
     else
-      ewrite_minmax(l_m%val)
+      ewrite_minmax(l_m)
     end if
-    ewrite_minmax(ct_m%val(1, 1)%ptr)
-    ewrite_minmax(ct_m%val(1, 2)%ptr)
-    ewrite_minmax(c_m%val(1, 1)%ptr)
-    ewrite_minmax(c_m%val(2, 1)%ptr)
+    ewrite_minmax(ct_m)
     
   end subroutine initialise_matrices
   
@@ -693,11 +690,10 @@ contains
       call assemble_n_dg_ele(i, x, u_nl, n_m, n_rhs)
     end do
     
-    ewrite_minmax(n_m%val)
+    ewrite_minmax(n_m)
     ewrite(2, *) "sum(n_m%val) = ", sum(n_m%val)
-    ewrite_minmax(n_rhs%val(1,:))
+    ewrite_minmax(n_rhs)
     ewrite(2, *) "sum(n_rhs%val(1,:)) = ", sum(n_rhs%val(1,:))
-    ewrite_minmax(n_rhs%val(2,:))
     ewrite(2, *) "sum(n_rhs%val(2,:)) = ", sum(n_rhs%val(2,:))
     
     ewrite(1, *) "Finished assembling advection terms"
@@ -941,7 +937,7 @@ contains
     big_m = dcsr2csr(d_big_m)
     call deallocate(d_big_m)
     
-    ewrite_minmax(big_m%val)
+    ewrite_minmax(big_m)
     ewrite(2, *) "sum(big_m%val) = ", sum(big_m%val)
     
     ewrite(1, *) "Flattening complete"

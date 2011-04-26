@@ -82,14 +82,12 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
           <attribute name="name">
             <value>k_epsilon</value>
           </attribute>
-          <element name="wall_functions">
+          <element name="string_value">
             <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <element name="string_value">
-              <choice>
-                <value>low_Re</value>
-                <value>high_Re</value>
-              </choice>
-            </element>
+            <choice>
+              <value>low_Re</value>
+              <value>high_Re</value>
+            </choice>
           </element>
         </element>
       </choice>
@@ -197,11 +195,13 @@ diagnostic/algorithm(internal).</a:documentation>
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
-          <element name="Prandtl_number">
-            <a:documentation>Set Prandtl number for this field
-(ratio of momentum diffusivity to field diffusivity)</a:documentation>
-            <ref name="input_choice_real"/>
-          </element>
+          <optional>
+            <element name="Prandtl_number">
+              <a:documentation>Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
+ for this field. Default = 1.0 if not specified.</a:documentation>
+              <ref name="input_choice_real"/>
+            </element>
+          </optional>
         </element>
         <element name="subgridscale_parameterisation">
           <attribute name="name">

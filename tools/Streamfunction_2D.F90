@@ -76,9 +76,7 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   velocity => extract_vector_field(state, "Velocity")
   assert(velocity%dim == positions%dim)
   assert(ele_count(velocity) == ele_count(positions))
-  do i = 1, velocity%dim
-    ewrite_minmax(velocity%val(i,:))
-  end do
+  ewrite_minmax(velocity)
   
   psi = extract_scalar_field(state, "StreamFunction", stat)
   ! Horrible hack - actually need to allocate a new mesh here and add the
@@ -95,7 +93,7 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   end if
   assert(mesh_dim(psi) == positions%dim)
   assert(ele_count(psi) == ele_count(positions))
-  ewrite_minmax(psi%val)
+  ewrite_minmax(psi)
   
   sparsity => get_csr_sparsity_firstorder(state, psi%mesh, psi%mesh)
   call allocate(matrix, sparsity, name = trim(psi%name) // "Matrix")
@@ -106,7 +104,7 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   do i = 1, ele_count(psi)
     call assemble_streamfunction_2d_element(i, matrix, rhs, positions, velocity)
   end do
-  ewrite_minmax(rhs%val)
+  ewrite_minmax(rhs)
   
   do i = 1, surface_element_count(psi)
     call set_inactive(matrix, face_global_nodes(rhs, i))
@@ -115,7 +113,7 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   
   call set_solver_options(psi, ksptype = "cg", pctype = "sor", rtol = 1.0e-10, max_its = 3000)
   call petsc_solve(psi, matrix, rhs)
-  ewrite_minmax(psi%val)
+  ewrite_minmax(psi)
   
   if(has_mesh(state, "CoordinateMesh")) then
     model = "CoordinateMesh"

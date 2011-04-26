@@ -23,7 +23,7 @@
   <variables>     
     <variable name="NormalVertDiffStart" language="python">
 for line in open("fluidity.log_orig.0"):
-  if "Min, max of K_H =" in line:
+  if "Min, max of K_H" in line:
     values = line.split('=')[1]
     NormalVertDiffStart = float(values.split()[-1])
     break
@@ -31,7 +31,7 @@ for line in open("fluidity.log_orig.0"):
     <variable name="NormalVertDiffEnd" language="python">
 n = 0
 for line in open("fluidity.log_orig.0"):
-  if "Min, max of K_H =" in line:
+  if "Min, max of K_H" in line:
     values = line.split('=')[1]
     NormalVertDiffEnd = float(values.split()[-1])
     if (1 == n):
@@ -40,7 +40,7 @@ for line in open("fluidity.log_orig.0"):
     </variable>    
     <variable name="NormalVertViscStart" language="python">
 for line in open("fluidity.log_orig.0"):
-  if "Min, max of K_M =" in line:
+  if "Min, max of K_M" in line:
     values = line.split('=')[1]
     NormalVertViscStart = float(values.split()[-1])
     break
@@ -48,7 +48,7 @@ for line in open("fluidity.log_orig.0"):
     <variable name="NormalVertViscEnd" language="python">
 n = 0
 for line in open("fluidity.log_orig.0"):
-  if "Min, max of K_M =" in line:
+  if "Min, max of K_M" in line:
     values = line.split('=')[1]
     NormalVertViscEnd = float(values.split()[-1])
     if (1 == n):
@@ -57,7 +57,7 @@ for line in open("fluidity.log_orig.0"):
     </variable>     
     <variable name="RelaxVertDiffStart" language="python">
 for line in open("fluidity.log_relax.0"):
-  if "Min, max of K_H =" in line:
+  if "Min, max of K_H" in line:
     values = line.split('=')[1]
     RelaxVertDiffStart = float(values.split()[-1])
     break
@@ -65,7 +65,7 @@ for line in open("fluidity.log_relax.0"):
     <variable name="RelaxVertDiffEnd" language="python">
 n = 0
 for line in open("fluidity.log_relax.0"):
-  if "Min, max of K_H =" in line:
+  if "Min, max of K_H" in line:
     values = line.split('=')[1]
     RelaxVertDiffEnd = float(values.split()[-1])
     if (1 == n):
@@ -74,7 +74,7 @@ for line in open("fluidity.log_relax.0"):
     </variable>    
     <variable name="RelaxVertViscStart" language="python">
 for line in open("fluidity.log_relax.0"):
-  if "Min, max of K_M =" in line:
+  if "Min, max of K_M" in line:
     values = line.split('=')[1]
     RelaxVertViscStart = float(values.split()[-1])
     break
@@ -82,7 +82,7 @@ for line in open("fluidity.log_relax.0"):
     <variable name="RelaxVertViscEnd" language="python">
 n = 0
 for line in open("fluidity.log_relax.0"):
-  if "Min, max of K_M =" in line:
+  if "Min, max of K_M" in line:
     values = line.split('=')[1]
     RelaxVertViscEnd = float(values.split()[-1])
     if (1 == n):

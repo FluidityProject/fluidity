@@ -784,10 +784,10 @@ module conservative_interpolation_module
                 end do
 
                 call halo_update(max_bound)
-                ewrite_minmax(max_bound%val)
+                ewrite_minmax(max_bound)
 
                 call halo_update(min_bound)
-                ewrite_minmax(min_bound%val)
+                ewrite_minmax(min_bound)
                 
                 call bound_field(named_fields(name, field), max_bound, min_bound, &
                                  M_B(mesh), M_B_L(mesh), inverse_M_B_L, bounded_soln, &

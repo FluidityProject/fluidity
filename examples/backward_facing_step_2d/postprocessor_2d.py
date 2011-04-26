@@ -30,13 +30,16 @@ def get_filelist(sample, start):
         sys.exit(1)
 
       ##### Start at the (start+1)th file.
-      ##### Add every nth file by taking integer multiples of n.
+      ##### Add every nth file by taking integer multiples of n; limit at 10 vtus max.
       vtu_no = float(file.split('_')[-1].split('.')[0])
+      if ((max(vtu_nos)-start)/sample > 10):
+        sample=int((max(vtu_nos)-start)/10)
+      
       if vtu_no > start:
         if (vtu_no%sample==0):
           shortlist.append(file)
-        ##### Append final file.
-        elif vtu_no==len(vtu_nos)-1:
+        ##### Append final file if a large number of files remain.
+        elif vtu_no==len(vtu_nos)-1 and (max(vtu_nos)-sample/4.0)>vtu_no:
           shortlist.append(file)
 
     return shortlist
@@ -85,13 +88,15 @@ def reattachment_length(filelist):
   sort_nicely(files)
 
   for file in files:
-    print file
     ##### Read in data from vtu
     datafile = vtktools.vtu(file)
+    ##### Get time for plot:
+    t = min(datafile.GetScalarField("Time"))
+    print file, ', elapsed time = ', t
 
     ##### points near bottom surface, 0 < x < 20
-    pts=[]; no_pts = 82; offset = 0.01
-    x = 0.0
+    pts=[]; no_pts = 82; offset = 0.1
+    x = 5.0
     for i in range(1, no_pts):
       pts.append((x, offset, 0.0))
       x += 0.25
@@ -108,14 +113,12 @@ def reattachment_length(filelist):
       ##### Hack to ignore division by zero entries in u.
       ##### All u should be nonzero away from boundary!
       if((u[i] / u[i+1]) < 0. and not numpy.isinf(u[i] / u[i+1])):
-        ##### interpolate between nodes
-        p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i])
+        ##### interpolate between nodes. Correct for origin not at step.
+        p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
         ##### Ignore spurious corner points
-        if(p>0.1):
+        if(p>1.0):
           points.append(p)
 
-    ##### Get time for plot:
-    t = min(datafile.GetScalarField("Time"))
     ##### Append actual reattachment point and time:
     results.append([points[0],t])
 
@@ -132,7 +135,7 @@ def meanvelo(filelist,x,y):
     print "No files!"
     sys.exit(1)
 
-  ##### create array of points
+  ##### create array of points. Correct for origin not at step.
   pts=[]
   for i in range(len(x)):
     for j in range(len(y)):
@@ -165,20 +168,20 @@ def meanvelo(filelist,x,y):
 
 #########################################################################
 
-def plot_length(reattachment_length):
+def plot_length(Re,type,mesh,reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
   plot1 = pylab.figure()
-  pylab.title("Time series of reattachment length behind 2D step")
+  pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh")
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.savefig("reattachment_length_2D.pdf")
+  pylab.savefig("../reatt_len_2D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
-def plot_meanvelo(profiles,xarray,yarray,time):
+def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
-  pylab.suptitle('Evolution of U-velocity profiles downstream of backward facing step', fontsize=30)
+  pylab.suptitle("Evolution of U-velocity: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh", fontsize=20)
 
   size = 15
 
@@ -188,7 +191,7 @@ def plot_meanvelo(profiles,xarray,yarray,time):
   for i in range(len(time)):
     ax.plot(profiles[i,0,:]+shift,yarray, linestyle="solid")
     shift+=0.0
-    leg_end.append("%.0f secs"%time[i])
+    leg_end.append("%.1f secs"%time[i])
   pylab.legend((leg_end), loc="lower right")
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   #ax.grid("True")
@@ -230,34 +233,40 @@ def plot_meanvelo(profiles,xarray,yarray,time):
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
 
-  pylab.axis([-0.2, 1., 0., 2.])
+  pylab.axis([-0.2, 1., 0., 1.94])
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
-  pylab.savefig("velo_profiles_2d.pdf")
+  pylab.savefig("../velo_profiles_2d_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
 #########################################################################
 
 def main():
+    ##### Which run is being processed?
+    Re = sys.argv[1]
+    type = sys.argv[2]
+    mesh = sys.argv[3]
+    print "Re, bc type, mesh: ", Re, type, mesh
+
     ##### Only process every nth file by taking integer multiples of n:
     filelist = get_filelist(sample=30, start=10)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
     av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
-    numpy.save("reattachment_length_2D", reatt_length)
+    numpy.save("reatt_len_2D_"+str(Re)+"_"+str(mesh), reatt_length)
     print "\nTime-averaged reattachment length (in step heights): ", av_length
-    plot_length(reatt_length)
+    plot_length(Re,type,mesh,reatt_length)
 
     ##### Points to generate profiles:
-    xarray = numpy.array([0.0, 2.0, 4.0, 6.0])
-    yarray = numpy.array([0.01, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])
+    xarray = numpy.array([2.0, 4.0, 6.0, 10.0])
+    yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.91,1.92,1.93,1.94])
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)
-    numpy.save("velo_profiles_2d", profiles)
-    plot_meanvelo(profiles,xarray,yarray,time)
+    numpy.save("velo_profiles_2d_"+str(Re)+"_"+str(mesh), profiles)
+    plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time)
     pylab.show()
 
     print "\nAll done.\n"

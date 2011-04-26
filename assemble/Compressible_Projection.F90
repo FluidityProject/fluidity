@@ -132,7 +132,7 @@ contains
         ! find the lumped mass
         p_lumpedmass => get_lumped_mass(state, pressure%mesh)
       end if
-      ewrite_minmax(p_lumpedmass%val)
+      ewrite_minmax(p_lumpedmass)
       
       call get_option(trim(pressure%option_path)//"/prognostic/scheme/use_compressible_projection_method/normalisation/name", &
                       normalisation_field, stat=norm_stat)
@@ -163,9 +163,9 @@ contains
       call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
 
       density=>extract_scalar_field(state,'Density')
-      ewrite_minmax(density%val)
+      ewrite_minmax(density)
       olddensity=>extract_scalar_field(state,'OldDensity')
-      ewrite_minmax(olddensity%val)
+      ewrite_minmax(olddensity)
 
       call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", theta)
 
@@ -502,8 +502,8 @@ contains
       ! this needs to be changed to be evaluated at the quadrature points!
       call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
   
-      ewrite_minmax(density%val)
-      ewrite_minmax(olddensity%val)
+      ewrite_minmax(density)
+      ewrite_minmax(olddensity)
 
       if(have_option(trim(density%option_path) // &
                           "/prognostic/spatial_discretisation/continuous_galerkin/&
