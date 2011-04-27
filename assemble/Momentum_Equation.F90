@@ -723,7 +723,11 @@
                   assemble_cmc_m=.true.
 
                else
-                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
+                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenar
+                  ! even with the compressible projection and prognostic momentum
+                  ! ctp_m doesn't change, still need to reassemble cmc_m because of the mass term 
+                  ! (this could be optimised by not reassembling the actual CMC part)
+                  assemble_cmc_m=assemble_cmc_m .or. use_compressible_projection 
                end if
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
