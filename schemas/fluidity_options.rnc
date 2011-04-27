@@ -5136,7 +5136,7 @@ vector_field_choice =
             (
                element prognostic {
                   mesh_choice,
-                  prognostic_velocity_field
+                  prognostic_momentum_field
                }
             )
          }|

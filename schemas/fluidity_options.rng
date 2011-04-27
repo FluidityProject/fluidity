@@ -6558,7 +6558,7 @@ in subsequent prognostic equations.</a:documentation>
         </attribute>
         <element name="prognostic">
           <ref name="mesh_choice"/>
-          <ref name="prognostic_velocity_field"/>
+          <ref name="prognostic_momentum_field"/>
         </element>
       </element>
       <!---->

@@ -291,6 +291,22 @@ prognostic_scalar_field =
 prognostic_velocity_field =
    (
       velocity_equation_choice,
+      prognostic_velocity_options
+   )
+
+# same options as prognostic velocity, only with equation hard coded to LinearMomentum
+prognostic_momentum_field =
+   (
+      ## LinearMomentum is the only equation available for momentum.
+      element equation {
+         attribute name { "LinearMomentum" }
+      },
+      prognostic_velocity_options
+    )
+
+# all options in common between prognostic velocity and prognostic momentum
+prognostic_velocity_options =
+   (
       ## Spatial discretisation options
       element spatial_discretisation {
          (
