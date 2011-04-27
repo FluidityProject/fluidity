@@ -154,11 +154,8 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-  from math import cos,pi, sin
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return [h * sin(2*pi*x + c*t),0,0]</string_value>
+  import constants
+  return constants.u_init(X[0])</string_value>
           </python>
         </initial_condition>
         <vector_field name="Source" rank="1">
@@ -166,11 +163,8 @@
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X, t):
-  from math import cos, sin, pi
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return [-2*pi*h*sin(2*pi*x + c*t) + c*h*cos(2*pi*x + c*t),0,0]</string_value>
+  import constants
+  return constants.u_source(X[0], t)</string_value>
               </python>
             </value>
             <output/>
@@ -246,11 +240,8 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-  from math import cos,pi, sin
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return h * cos(2*pi*x + c*t)</string_value>
+  import constants
+  return constants.eta_init(X[0])</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -261,11 +252,8 @@
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X, t):
-  from math import cos, sin, pi
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return 2*pi*h*cos(2*pi*x + c*t) - c*h*sin(2*pi*x + c*t)</string_value>
+  import constants
+  return constants.eta_source(X[0], t)</string_value>
               </python>
             </value>
             <output/>
@@ -283,17 +271,15 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="AnalyticalSolutionLayerThickness" rank="0">
+    <scalar_field name="AnalyticalLayerThickness" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import cos,pi, sin
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return h * cos(2*pi*x + c*t)</string_value>
+            <string_value lines="20" type="python">def val(X,t):
+ from math import cos, pi
+ x=X[0]
+ return t*(5-t)*cos(2*pi*x)</string_value>
           </python>
         </value>
         <output/>
@@ -306,9 +292,9 @@
         </adjoint_storage>
       </prescribed>
     </scalar_field>
-    <scalar_field name="AbsErrorLayerThickness" rank="0">
+    <scalar_field name="LayerThicknessError" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalSolutionLayerThickness" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalLayerThickness" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -328,76 +314,46 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MMSEtaAnalyticalAdjointLayerThickness" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import sin, cos, pi
-  x = X[0]
-  tau = 10.0 - t
-  return tau * (10-tau) * (5-tau)</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="MMSEtaAdjointLayerThicknessError" rank="0">
+    <scalar_field name="LayerThicknessSourceDerivative" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="MMSEtaAnalyticalAdjointLayerThickness" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="MMSUAnalyticalAdjointLayerThickness" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import sin, cos, pi
-  x = X[0]
-  tau = 10.0 - t
-  return 0.0</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="MMSUAdjointLayerThicknessError" rank="0">
-      <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AdjointLayerThickness" source_field_2_name="MMSUAnalyticalAdjointLayerThickness" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="python" lines="20">field.val[:] = 0.0</string_value>
+          <comment>def u_src(x, tau):
+  return numpy.array([0.0, 0.0, 0.0])
+def u_init(x):
+  return 0.0
+def eta_src(x, tau):
+  return (tau - 10) * (tau - 5) + (tau - 10) * tau + (tau - 5) * tau
+def eta_init(x):
+  return 0.0
+
+coord  = state.vector_fields["Coordinate"]
+eta_mesh = state.meshes["PressureMesh"]
+
+for ele in range(coord.ele_count):
+  t = Transform(ele, coord)
+  shape = derivative.ele_shape(ele)
+  eta_mass = t.shape_shape(shape, shape)
+  
+   
+    if time == 0.0:
+      dJdeta = [eta_init(x) for x in coord.remap_ele(ele, derivative.mesh)]
+    else:
+      tauprime = time - 0.5*dt
+      
+      # First, the eta source term contribution
+      dJdeta = numpy.dot(eta_mass, [eta_src(x, tauprime)*dt for x in coord.remap_ele(ele, derivative.mesh)])
+      
+      # Now, the u source term contribution
+      Linv_Musrc = numpy.dot(numpy.linalg.inv(u_mass), # + coriolis matrix in here!!!!
+                  numpy.dot(u_mass, [u_src(x, tauprime) for x in coord.remap_ele(ele, u_mesh)]))
+      u_dshape = t.grad(u_mesh.shape)
+      cT = t.shape_dshape(shape, u_dshape)
+      print "Initial dJdeta: ", dJdeta
+      for dim in range(cT.shape[2]):
+        dJdeta += numpy.dot(cT[:,:,dim], Linv_Musrc[:,dim]) * (dt**2 * d0 * theta)
+      print "Final dJdeta: ", dJdeta
+    derivative.addto(derivative.ele_nodes(ele), dJdeta)&lt;/string_value&gt;</comment>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -412,7 +368,7 @@
           <include_in_steady_state/>
         </steady_state>
         <adjoint_storage>
-          <exists_in_adjoint/>
+          <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
@@ -421,12 +377,10 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import cos,pi, sin
-  h = 1.0
-  c = 1.0
-  x = X[0]
-  return [h * sin(2*pi*x + c*t),0,0]</string_value>
+            <string_value lines="20" type="python">def val(X,t):
+ from math import sin, pi
+ x = X[0]
+ return [t*(10-t)*sin(2*pi*x), 0, 0]</string_value>
           </python>
         </value>
         <output/>
@@ -441,9 +395,9 @@
         </adjoint_storage>
       </prescribed>
     </vector_field>
-    <vector_field name="AbsErrorVelocity" rank="1">
+    <vector_field name="VelocityError" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AnalyticalVelocity" source_field_2_name="Velocity" material_phase_support="single" source_field_1_type="vector">
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AnalyticalVelocity" material_phase_support="single" source_field_1_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -462,101 +416,6 @@
         </steady_state>
         <adjoint_storage>
           <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="MMSEtaAnalyticalAdjointVelocity" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import sin, cos, pi
-  x = X[0]
-  return [0, 0, 0]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </prescribed>
-    </vector_field>
-    <vector_field name="MMSEtaAdjointVelocityError" rank="1">
-      <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="MMSEtaAnalyticalAdjointVelocity" material_phase_support="single" source_field_1_type="vector">
-          <absolute_difference/>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="MMSUAnalyticalAdjointVelocity" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X, t):
-  from math import sin, cos, pi
-  x = X[0]
-  tau = 10.0 - t
-  return [tau * (10-tau) * (4-tau), 0, 0]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </prescribed>
-    </vector_field>
-    <vector_field name="MMSUAdjointVelocityError" rank="1">
-      <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AdjointVelocity" source_field_2_name="MMSUAnalyticalAdjointVelocity" material_phase_support="single" source_field_1_type="vector">
-          <absolute_difference/>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
         </adjoint_storage>
       </diagnostic>
     </vector_field>
@@ -599,158 +458,6 @@ if time &lt; 1.0 &lt;= time+dt:
             "Fluid::LayerThickness": [timestep-1, timestep]}
   else:
     return {}</string_value>
-        </algorithm>
-      </functional_dependencies>
-    </functional>
-    <functional name="mms_eta">
-      <functional_derivative>
-        <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">import numpy
-from math import sin, cos, pi
-
-coord  = states[0]["Fluid"].vector_fields["Coordinate"]
-u_mesh = states[0]["Fluid"].meshes["VelocityMesh"]
-theta = 0.5
-d0 = 1.0
-tau = times[-1] - times[n]
-dt = times[1] - times[0]
-
-derivative.val[:] = 0.0
-
-
-def u_src(x, tau):
-  return numpy.array([0.0, 0.0, 0.0])
-def u_init(x):
-  return 0.0
-def eta_src(x, tau):
-  return (tau - 10) * (tau - 5) + (tau - 10) * tau + (tau - 5) * tau
-def eta_init(x):
-  return 0.0
-  
-if derivative.name == "Fluid::Velocity":
-  for ele in range(coord.ele_count):
-    t = Transform(ele, coord)
-    shape = derivative.ele_shape(ele)
-    mass = t.shape_shape(shape, shape)
-    if tau == 0.0:
-      dJdeta = [u_init(x) for x in coord.remap_ele(ele, derivative.mesh)]
-    else:
-      tauprime = tau - theta*dt
-      dJdeta = [u_src(x, tauprime)*dt for x in coord.remap_ele(ele, derivative.mesh)]
-    derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, dJdeta))  
-elif derivative.name == "Fluid::LayerThickness":
-  for ele in range(coord.ele_count):
-    t = Transform(ele, coord)
-    shape = derivative.ele_shape(ele)
-    eta_mass = t.shape_shape(shape, shape)
-    u_mass = t.shape_shape(u_mesh.shape, u_mesh.shape)
-    
-    if tau == 0.0:
-      dJdeta = [eta_init(x) for x in coord.remap_ele(ele, derivative.mesh)]
-    else:
-      tauprime = tau - 0.5*dt
-      
-      # First, the eta source term contribution
-      dJdeta = numpy.dot(eta_mass, [eta_src(x, tauprime)*dt for x in coord.remap_ele(ele, derivative.mesh)])
-      
-      # Now, the u source term contribution
-      Linv_Musrc = numpy.dot(numpy.linalg.inv(u_mass), # + coriolis matrix in here!!!!
-                  numpy.dot(u_mass, [u_src(x, tauprime) for x in coord.remap_ele(ele, u_mesh)]))
-      u_dshape = t.grad(u_mesh.shape)
-      cT = t.shape_dshape(shape, u_dshape)
-      print "Initial dJdeta: ", dJdeta
-      for dim in range(cT.shape[2]):
-        dJdeta += numpy.dot(cT[:,:,dim], Linv_Musrc[:,dim]) * (dt**2 * d0 * theta)
-      print "Final dJdeta: ", dJdeta
-    derivative.addto(derivative.ele_nodes(ele), dJdeta)</string_value>
-        </algorithm>
-      </functional_derivative>
-      <functional_dependencies>
-        <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
-  if timestep == 1:
-    return {"Fluid::Coordinate": [0], 
-            "Fluid::LayerThickness": [timestep, 0],
-            "VelocityMesh": [0]}
-  else:
-    return {"Fluid::Coordinate": [0],
-            "Fluid::LayerThickness": [timestep],
-            "VelocityMesh": [0]}</string_value>
-        </algorithm>
-      </functional_dependencies>
-    </functional>
-    <functional name="mms_u">
-      <functional_derivative>
-        <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">import numpy
-from math import sin, cos, pi
-
-coord  = states[0]["Fluid"].vector_fields["Coordinate"]
-u_mesh = states[0]["Fluid"].meshes["VelocityMesh"]
-theta = 0.5
-d0 = 1.0
-tau = times[-1] - times[n]
-dt = times[1] - times[0]
-
-derivative.val[:] = 0.0
-
-
-def u_src(x, tau):
-  return numpy.array([(tau - 10) * (tau - 4) + (tau - 10) * tau + (tau - 4) * tau, 0, 0])
-def u_init(x):
-  return 0.0
-def eta_src(x, tau):
-  return 0.0
-def eta_init(x):
-  return 0.0
-  
-if derivative.name == "Fluid::Velocity":
-  for ele in range(coord.ele_count):
-    t = Transform(ele, coord)
-    shape = derivative.ele_shape(ele)
-    mass = t.shape_shape(shape, shape)
-    if tau == 0.0:
-      dJdeta = [u_init(x) for x in coord.remap_ele(ele, derivative.mesh)]
-    else:
-      tauprime = tau - theta*dt
-      dJdeta = [u_src(x, tauprime)*dt for x in coord.remap_ele(ele, derivative.mesh)]
-    derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, dJdeta))  
-elif derivative.name == "Fluid::LayerThickness":
-  for ele in range(coord.ele_count):
-    t = Transform(ele, coord)
-    shape = derivative.ele_shape(ele)
-    eta_mass = t.shape_shape(shape, shape)
-    u_mass = t.shape_shape(u_mesh.shape, u_mesh.shape)
-    
-    if tau == 0.0:
-      dJdeta = [eta_init(x) for x in coord.remap_ele(ele, derivative.mesh)]
-    else:
-      tauprime = tau - 0.5*dt
-      
-      # First, the eta source term contribution
-      dJdeta = [eta_src(x, tauprime)*dt for x in coord.remap_ele(ele, derivative.mesh)]
-      
-      # Now, the u source term contribution
-      minv_usrc = numpy.dot(numpy.linalg.inv(u_mass), 
-                  [u_src(x, tauprime) for x in coord.remap_ele(ele, u_mesh)])
-      u_dshape = t.grad(u_mesh.shape)
-      cT = t.shape_dshape(shape, u_dshape)
-      for dim in range(cT.shape[2]):
-        dJdeta += numpy.dot(cT[:,:,dim], minv_usrc) * (dt**2 * d0 * theta)
-    derivative.addto(derivative.ele_nodes(ele), numpy.dot(eta_mass, dJdeta))</string_value>
-        </algorithm>
-      </functional_derivative>
-      <functional_dependencies>
-        <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
-  if timestep == 1:
-    return {"Fluid::Coordinate": [0], 
-            "Fluid::Velocity": [timestep, 0],
-            "VelocityMesh": [0]}
-  else:
-    return {"Fluid::Coordinate": [0],
-            "Fluid::Velocity": [timestep],
-            "VelocityMesh": [0]}</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
