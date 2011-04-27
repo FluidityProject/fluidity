@@ -704,10 +704,44 @@ module copy_outof_into_state
 !! u, v, w (t=0) = Velocity ?                        !!
 !!===================================================!!
 
+      allocate(uabs_option(nphase))
+      allocate(eos_option(nphase))
+      allocate(cp_option(nphase))
+      do i=1,nphase
+        call get_option('/material_phase[' // int2str(i-1) // ']/multiphase_options/relperm_option',uabs_option(i))
+        if (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear')) then
+          eos_option(i) = 2
+        elseif (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/compressible/stiffened_gas')) then
+          eos_option(i) = 1
+        else
+          FLAbort('Unknown EoS option for phase '// int2str(i))
+        endif
+        cp_option(i) = 1
+      enddo
+      
+      !! uabs_coefs is currently only used in rel perm options which aren't
+      !! selected in any of the test cases, ie the 'standard polynomial
+      !! representation of relative permeability'
+      allocate(uabs_coefs(nphase, nuabs_coefs))
+      allocate(eos_coefs(nphase, ncoef))
+      !! Capillary pressure isn't used at all at the moment
+      allocate(cp_coefs(nphase, nphase))
+      do i=1,nphase
+        uabs_coefs(i,1) = 1.
+        if (eos_option(i)==2) then
+          if (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/all_equal')) then
+             call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/all_equal', eos_coefs(i,1:ncoef))
+          else
+             call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/specify_all', eos_coefs(i, :))
+          endif
+        else
+          call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/compressible/stiffened_gas/eos_option1', eos_coefs(i, 1))
+          call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/compressible/stiffened_gas/eos_option2', eos_coefs(i, 2))
+          eos_coefs(i, 3:ncoef) = 0.
+        endif
+      enddo
+      cp_coefs = 1.
 
-      ! uabs_option
-      ! eos_option
-      ! cp_option
 
       ! x
       ! y
@@ -727,10 +761,6 @@ module copy_outof_into_state
       ! comp_source
       ! comp
       ! t
-
-      ! uabs_coefs
-      ! eos_coefs
-      ! cp_coefs
 
       ! comp_diff_coef
       ! capil_pres_coef
