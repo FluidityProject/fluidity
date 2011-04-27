@@ -129,7 +129,7 @@ module adjoint_main_loop
       do timestep=no_timesteps-1,0,-1
         ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
         call adj_chkierr(ierr)
-        current_time = end_time
+        current_time = start_time
         call set_option("/timestepping/current_time", current_time)
 
         ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
