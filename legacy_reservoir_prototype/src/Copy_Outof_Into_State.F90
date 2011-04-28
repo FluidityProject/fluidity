@@ -712,10 +712,6 @@ module copy_outof_into_state
         enddo
       enddo
 
-!!===================================================!!
-!! How are the components of the velocity defined ?? !!
-!! u, v, w (t=0) = Velocity ?                        !!
-!!===================================================!!
 
       allocate(uabs_option(nphase))
       allocate(eos_option(nphase))
