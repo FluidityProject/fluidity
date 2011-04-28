@@ -25,6 +25,12 @@ characters in the simulation name should be avoided.</a:documentation>
       <ref name="geometry"/>
       <element name="io">
         <a:documentation>Input/output options</a:documentation>
+        <element name="dump_format">
+          <a:documentation>Format for dump files. Only vtk for now.</a:documentation>
+          <element name="string_value">
+            <value>vtk</value>
+          </element>
+        </element>
         <choice>
           <element name="dump_period">
             <a:documentation>Period between dumps in time units.

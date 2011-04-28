@@ -26,6 +26,12 @@ start =
          geometry,
          ## Input/output options
          element io {
+            ## Format for dump files. Only vtk for now.
+            element dump_format {
+               element string_value{
+                  "vtk"
+               }
+            },
             (
                ## Period between dumps in time units.
                ##

@@ -1,11 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<fluidity_options>
+<multiphase_options>
   <simulation_name>
     <string_value lines="1">CompModel_1d_2Phases_2Components</string_value>
   </simulation_name>
-  <problem_type>
-    <string_value lines="1">multiphase</string_value>
-  </problem_type>
   <geometry>
     <dimension>
       <integer_value rank="0">1</integer_value>
@@ -66,4 +63,4 @@
       </prescribed>
     </vector_field>
   </material_phase>
-</fluidity_options>
+</multiphase_options>

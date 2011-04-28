@@ -61,26 +61,30 @@ module copy_outof_into_state
       type(mesh_type) :: cmesh, vmesh, pmesh !! coordinate, velocity and pressure meshes
     
       type(scalar_field), pointer :: porosity, density, pressure, &
-                                     phasevolumefraction
+                                     phasevolumefraction, pvf_source, &
+                                     scalarfield, scalarfield_source
 
-      type(vector_field), pointer :: velocity
+      type(vector_field), pointer :: velocity, velocity_source
 
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
       
-      integer :: nonlinear_iterations  !! equal to nits in prototype code
+      integer :: nonlinear_iterations, stat  !! equal to nits in prototype code
       
       real :: dt, current_time, finish_time
       real :: nonlinear_iteration_tolerance
+
+      character(len=OPTION_PATH_LEN) :: state_path, path, field_name
   
   !! temporary variables only needed for interfacing purposes
   
       type(vector_field), pointer :: positions
   
       integer :: i, j, k, nscalar_fields, cv_nonods, &
-                 U_BC_Type, P_BC_Type, SufID_BC_U, SufID_BC_P
+                 U_BC_Type, P_BC_Type, SufID_BC_U, SufID_BC_P, &
+                 x_nonods, xu_nonods, u_nonods
       real :: Suf_BC_U, suf_bc_p, &
               coord_min, coord_max, &
-              permeability!, viscosity_ph1, viscosity_ph2
+              permeability, eos_value!, viscosity_ph1, viscosity_ph2
               
       integer, dimension(:), allocatable :: elenodes
               
@@ -209,6 +213,13 @@ module copy_outof_into_state
       cv_nloc = pmesh%shape%loc
       x_nloc = 3*ndim
       p_nloc = pmesh%shape%loc ! 3
+      if (vmesh%continuity>=0) then
+        ! Continuous velocity mesh
+        cv_nonods = ( cv_nloc - 1 ) * totele + 1
+      else
+        ! Discontinuous velocity mesh
+        cv_nonods = cv_nloc * totele
+      endif
     ! cv_snloc = 1
     ! u_snloc = -1
     ! p_snloc = 1
@@ -233,6 +244,8 @@ module copy_outof_into_state
     !! Sufficient to set this to 1 for now? It is 1 in all test cases
       mat_ele_type = 1
     !! Sufficient to set this to 2 for now? It is 2 in all test cases
+    !! which presumably means discontinuous
+    !! Will need to update once schema is changed
       cv_ele_type = 2
     !! These aren't used 
       cv_sele_type = 0
@@ -319,7 +332,7 @@ module copy_outof_into_state
                       &atmospheric_pressure', patmos, default=0.0)
       call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
                       &initial_condition::WholeMesh/constant',p_ini, default=0.0)
-    
+
       t_ini = 0.0
       if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
         call get_option('/material_phase[0]/scalar_field[2]/prognostic/' // &
@@ -328,7 +341,7 @@ module copy_outof_into_state
 
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
                       'spatial_discretisation/conservative_advection', v_beta)
-    
+
       if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
         call get_option('/material_phase[0]/scalar_field[2]/prognostic/' // &
                         'temporal_discretisation/theta', t_theta)
@@ -708,7 +721,8 @@ module copy_outof_into_state
       allocate(eos_option(nphase))
       allocate(cp_option(nphase))
       do i=1,nphase
-        call get_option('/material_phase[' // int2str(i-1) // ']/multiphase_options/relperm_option',uabs_option(i))
+        call get_option('/material_phase[' // int2str(i-1) // ']/multiphase_properties/relperm_option',uabs_option(i))
+        !ewrite(3,*) 'relperm_option i:', uabs_option(i)
         if (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear')) then
           eos_option(i) = 2
         elseif (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/compressible/stiffened_gas')) then
@@ -730,7 +744,8 @@ module copy_outof_into_state
         uabs_coefs(i,1) = 1.
         if (eos_option(i)==2) then
           if (have_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/all_equal')) then
-             call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/all_equal', eos_coefs(i,1:ncoef))
+             call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/all_equal', eos_value)
+             eos_coefs(i,1:ncoef) = eos_value
           else
              call get_option('/material_phase[' // int2str(i-1) // ']/equation_of_state/incompressible/linear/specify_all', eos_coefs(i, :))
           endif
@@ -742,36 +757,117 @@ module copy_outof_into_state
       enddo
       cp_coefs = 1.
 
+      ! These are (nearly) all initialised to zero in the input files
+      x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
+      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
+      allocate(x(x_nonods))
+      allocate(y(x_nonods))
+      allocate(z(x_nonods))
+      x=0.
+      y=0.
+      z=0.
+      allocate(xu(xu_nonods))
+      allocate(yu(xu_nonods))
+      allocate(zu(xu_nonods))
+      xu=0.
+      yu=0.
+      zu=0.
+      u_nonods = u_nloc * totele
+      allocate( nu( u_nonods * nphase ))
+      allocate( nv( u_nonods * nphase ))
+      allocate( nw( u_nonods * nphase ))
+      allocate( ug( u_nonods * nphase ))
+      allocate( vg( u_nonods * nphase ))
+      allocate( wg( u_nonods * nphase ))
+      nu=1.
+      nv=0.
+      nw=0.
+      if (ndim>1) nv=1.
+      if (ndim>2) nw=1.
+      ug=0.
+      vg=0.
+      wg=0.
 
-      ! x
-      ! y
-      ! z
-      ! xu
-      ! yu
-      ! zu
-      ! nu
-      ! nv
-      ! nw
-      ! ug
-      ! vg
-      ! wg
-      ! u_source
-      ! t_source
-      ! v_source
-      ! comp_source
+      ewrite(3,*) 'Getting source terms'
+      do i=1,nphase
+        velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
+        if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphase))
+        if (stat==0) then
+          do j=1,node_count(velocity_source)
+            u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
+          enddo
+        else
+          u_source = 0.
+        endif
+      enddo
+      do i=1,nphase
+        pvf_source => extract_scalar_field(state(i), "PhaseVolumeFractionSource", stat)
+        if (.not.allocated(v_source)) allocate(v_source(cv_nonods*nphase))
+        if (stat==0) then
+          do j=1,node_count(pvf_source)
+            v_source((i-1)*node_count(pvf_source)+j)=pvf_source%val(j)
+          enddo
+        else
+          v_source = 0.
+        endif
+      enddo
+      if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
+      ! Limiting to one extra field for now although it's easy to extend as/when we
+      ! need to
+        do i=1,nphase
+          ! Save path to field
+          state_path = "material_phase[" // int2str(i-1) // "]"
+          path=trim(state_path)//"/scalar_field[2]"
+          ! Get field name
+          call get_option(trim(path)//"/name", field_name)
+          ! Reset path to have field name rather than index
+          path=trim(state_path)//"/scalar_field::"//trim(field_name)
+
+          scalarfield => extract_scalar_field(state(i), trim(field_name))
+          if (.not.allocated(t)) allocate(t(cv_nonods*nphase))
+          do j=1,node_count(scalarfield)
+            t((i-1)*node_count(scalarfield)+j)=scalarfield%val(j)
+          enddo
+          scalarfield_source => extract_scalar_field(state(i), trim(field_name) // "Source", stat)
+          if (.not.allocated(t_source)) allocate(t_source(cv_nonods*nphase))
+          if (stat==0) then
+            do j=1,node_count(scalarfield_source)
+              t_source((i-1)*node_count(scalarfield_source)+j)=scalarfield_source%val(j)
+            enddo
+          else
+            t_source = 0.
+          endif
+        enddo
+      end if
+
+      allocate(comp_source(cv_nonods*nphase))
+      comp_source=0.
+      !! STILL NEED TO DO THIS !!
       ! comp
-      ! t
 
-      ! comp_diff_coef
-      ! capil_pres_coef
-      ! u_abs_stab
-      ! u_absorb
-      ! comp_absorb
-      ! t_absorb
-      ! v_absorb
-      ! K_Comp
+      if (ncapil_pres_coef>0) then
+         allocate(capil_pres_coef(ncapil_pres_coef,nphase,nphase))
+         capil_pres_coef=0.
+      endif
+      ! Not sure what this one does yet
+      allocate(u_abs_stab(cv_nloc*totele, ndim*nphase, ndim*nphase))
+      u_abs_stab=0.
+      ! or this one
+      allocate(u_absorb(cv_nloc*totele, ndim*nphase, ndim*nphase))
+      u_absorb=0.
+      allocate(comp_absorb(cv_nonods, nphase, nphase))
+      comp_absorb=0.
+      allocate( t_absorb( cv_nonods, nphase, nphase ))
+      t_absorb=0.
+      allocate( v_absorb( cv_nonods, nphase, nphase ))
+      v_absorb=0.
+      allocate( k_comp( ncomp, nphase, nphase ))
+      k_comp=0.
 
-      ! comp_diffusion
+      allocate( comp_diffusion( cv_nloc*totele, ndim, ndim, nphase ))
+      comp_diffusion=0.
+      allocate( comp_diff_coef( ncomp, ncomp_diff_coef, nphase ))
+      comp_diff_coef=0.
 
       ewrite(3,*) 'Leaving copy_outof_state'
 
