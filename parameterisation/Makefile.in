@@ -55,9 +55,11 @@ iceshelf_meltrate_surf_normal.o
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 clean:
 	rm -f *.o *.d *.mod

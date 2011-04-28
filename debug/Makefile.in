@@ -65,10 +65,11 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
+$(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS) >/dev/null 2>&1
-	cp *.mod ../include/
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib

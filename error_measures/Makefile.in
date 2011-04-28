@@ -66,9 +66,11 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 clean:
 	rm -f *.o *.mod

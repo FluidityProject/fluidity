@@ -69,9 +69,11 @@ NEMOdataload_rotation.o bulk_parameterisations.o forcingERA40_fortran.o NEMO_loa
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 test_StormMaker:
 	$(FC) $(FCFLAGS) -DDEBUG_WRITENETCDF -o testStormMaker StormMaker.F90 $(LIBFLUIDITY) $(LIBS)

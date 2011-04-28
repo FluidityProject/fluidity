@@ -64,8 +64,10 @@ OBJS = NetCDF_reader.o SampleNetCDF2.o import_bath_data.o read_netcdf_interface.
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 DEPTH_OBJS=import_bath_data.cpp
 

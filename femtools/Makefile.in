@@ -128,10 +128,11 @@ endif
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
+$(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+	@cp *.mod ../include/
+default: $(LIB)
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib

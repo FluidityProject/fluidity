@@ -57,9 +57,10 @@ OBJS = partition.o
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-#	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 clean:
 	rm -f *.o *.mod

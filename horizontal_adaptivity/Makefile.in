@@ -61,9 +61,11 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 clean:
 	rm -f *.o *.mod

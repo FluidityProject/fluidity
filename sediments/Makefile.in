@@ -52,9 +52,11 @@ OBJS = Sediment.o Sediment_Diagnostics.o \
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 Sediment_Diagnostics.o: Sediment.o
 

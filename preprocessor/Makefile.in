@@ -72,10 +72,11 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
-default: $(OBJS)
+$(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS) >/dev/null 2>&1
-	cp *.mod ../include/
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
 
 Populate_State.o: Reserve_State.o VTK_Cache.o Initialise_Fields.o \
    Boundary_Conditions_From_Options.o Field_Priority_Lists.o
