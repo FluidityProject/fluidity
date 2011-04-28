@@ -35,7 +35,7 @@ module compressible_projection
   use sparse_matrices_fields
   use field_options
   use equation_of_state, only: compressible_eos, compressible_material_eos
-  use global_parameters, only: new_options, OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN
   use fefields, only: compute_lumped_mass
   use state_fields_module
   use upwind_stabilisation
@@ -254,27 +254,16 @@ contains
     type(vector_field), pointer :: positions
     type(scalar_field) :: lumped_mass, tempfield
 
-    ! Cause the pressure warnings to only happen once.
-    logical, save :: pressure_warned=.false.
-
     real :: atmospheric_pressure
 
     ewrite(1,*) 'Entering assemble_mmat_compressible_projection_cv'
 
-    pressure_option_path=""
     pressure=>extract_prognostic_pressure(state, stat=stat)
-    if(stat==0) then
-       pressure_option_path=trim(pressure%option_path)
-    else if((stat==1).and.(new_options).and.(.not.pressure_warned)) then
-       ewrite(0,*) "Warning: No prognostic pressure found in state."
-       ewrite(0,*) "Strange that you've got here without a prognostic press&
-            &ure."
-       pressure_warned=.true.
-    else if((stat==2).and.(new_options).and.(.not.pressure_warned)) then
-       ewrite(0,*) "Warning: Multiple prognostic pressures found."
-       ewrite(0,*) "Not sure if new options are compatible with this yet."
-       pressure_warned=.true.
+    if(stat/=0) then
+       ! how did we end up here?
+       FLAbort("In assemble_mmat_compressible_projection_cv without a pressure")
     end if
+    pressure_option_path=trim(pressure%option_path)
     
     call zero(rhs)
    
