@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
+FCFLAGS = -I../include -J../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -131,7 +131,7 @@ endif
 default: $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+#	cp *.mod ../include/
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
@@ -141,16 +141,12 @@ $(F90LIB): $(F90LIB_OBJS)
 clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
 
-Pseudo_2D.o: Node_boundary.o
-Timers.o: Global_Parameters.o MPI_Interfaces.o
-tictoc.o: Timers.o Parallel_Tools.o 
 Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 	@sed 's/REFCOUNT_TYPE/$*/' $< > $@
 	@sed 's/REFCOUNT_TYPE/$*/' Refcount_interface_templates.F90 > Reference_count_interface_$*.F90
 
-Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
-  Field_Options.o Halos.o Write_Triangle.o Parallel_Tools.o Mesh_Files.o
-Weak_BCs.o: State.o Boundary_Conditions.o Parallel_Tools.o 
+test_projections: projections.cpp
+	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
 Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
                               MeshDiagnostics.o Vector_Tools.o FETools.o Sparsity_Patterns.o Sparse_Tools.o \
@@ -158,6 +154,42 @@ Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconve
                               Sparse_Matrices_Fields.o Bound_field.o Diagnostic_Fields.o Tetrahedron_intersection.o
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+
+FETools.o: FETools.F90 Elements.o Transform_elements.o Sparse_Tools.o
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+
+# The refcount template dependencies are not actually needed for
+# Reference_counting.o but they are needed by everything which depends on
+# Reference_counting.o
+Reference_Counting.o: Global_Parameters.o \
+  Refcount_templates.F90 Refcount_interface_templates.F90
+
+test_element_numbering:test_element_numbering.F90 Futils.o \
+	Element_Numbering.o
+	$(FC) $(FCFLAGS) -o $@ $^
+
+testshapefunctions:testshapefunctions.F90 Futils.o Shape_Functions.o \
+	Polynomials.o Elements.o Quadrature.o Element_Numbering.o
+	$(FC) $(FCFLAGS) -o $@ $^
+
+testvectortools:testvectortools.F90 Futils.o Vector_Tools.o
+	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
+
+test_laplacian:test_laplacian.F90 Read_Triangle.o Futils.o Shape_Functions.o \
+	Polynomials.o Elements.o Quadrature.o Element_Numbering.o \
+	FETools.o Fields.o
+	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
+
+#####Automatically generated dependencies. Do not edit below this line#####
+
+Pseudo_2D.o: Node_boundary.o
+Timers.o: Global_Parameters.o MPI_Interfaces.o
+tictoc.o: Timers.o Parallel_Tools.o 
+
+Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
+  Field_Options.o Halos.o Write_Triangle.o Parallel_Tools.o Mesh_Files.o
+Weak_BCs.o: State.o Boundary_Conditions.o Parallel_Tools.o 
 
 Supermesh.o: Fields_Base.o Fields_Allocates.o Fields_Data_Types.o Sparse_Tools.o Futils.o \
   Metric_tools.o Linked_Lists.o Unify_meshes.o Transform_elements.o \
@@ -316,10 +348,6 @@ Adjacency_Lists.o: Fields_Base.o Fields_Data_Types.o Futils.o
 
 Futils.o: Global_Parameters.o
 
-FETools.o: FETools.F90 Elements.o Transform_elements.o Sparse_Tools.o
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
-
 FEFields.o: Fields.o Elements.o FETools.o Transform_elements.o Field_Options.o
 
 Transform_elements.o: Elements.o CV_Faces.o Fields_Base.o EventCounter.o \
@@ -358,11 +386,6 @@ Superconvergence.o: Elements.o Vector_Tools.o
 Unittest_tools.o: Vector_Tools.o Sparse_Tools.o ieee_arithmetic_dummy.o \
   Reference_Counting.o
 
-# The refcount template dependencies are not actually needed for
-# Reference_counting.o but they are needed by everything which depends on
-# Reference_counting.o
-Reference_Counting.o: Global_Parameters.o \
-  Refcount_templates.F90 Refcount_interface_templates.F90
 
 Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
   Shape_Functions.o Sparse_Tools.o Reference_Counting.o
@@ -455,26 +478,7 @@ Rotated_Boundary_Conditions.o: Fields.o Halos.o Boundary_Conditions.o Global_Par
 Tetrahedron_intersection.o: Vector_Tools.o Elements.o Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
    Fields_Manipulation.o Transform_elements.o
 
-test_element_numbering:test_element_numbering.F90 Futils.o \
-	Element_Numbering.o
-	$(FC) $(FCFLAGS) -o $@ $^
-
-testshapefunctions:testshapefunctions.F90 Futils.o Shape_Functions.o \
-	Polynomials.o Elements.o Quadrature.o Element_Numbering.o
-	$(FC) $(FCFLAGS) -o $@ $^
-
-testvectortools:testvectortools.F90 Futils.o Vector_Tools.o
-	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
-
-test_laplacian:test_laplacian.F90 Read_Triangle.o Futils.o Shape_Functions.o \
-	Polynomials.o Elements.o Quadrature.o Element_Numbering.o \
-	FETools.o Fields.o
-	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
-
 test_invert_dg_mass_matrix: test_invert_dg_mass_matrix.F90
-
-test_projections: projections.cpp
-	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
 MPI_Interfaces.o: Global_Parameters.o
 Parallel_Tools.o: Global_Parameters.o MPI_Interfaces.o
