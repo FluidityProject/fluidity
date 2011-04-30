@@ -380,7 +380,6 @@ contains
     integer, dimension(:), pointer :: neigh_A
     type(csr_sparsity), pointer :: eelist_A, eelist_B
 
-    integer :: possible_size
     type(ilist) :: clues
 
     ewrite(1, *) "In advancing_front_intersection_finder"
@@ -392,8 +391,6 @@ contains
     eelist_B => extract_eelist(mesh_B)
 
     call compute_bboxes(positionsB, bboxes_B)
-
-    possible_size = 0
 
     if(present(seed)) then
       assert(seed > 0)
@@ -451,14 +448,14 @@ contains
         type(mesh_type), pointer :: mesh_B
         real, dimension(size(posA, 1), 2) :: bboxA
         integer :: ele_B
-        type(ilist) :: seen_list
-        type(inode), pointer :: seen_ptr
         type(integer_set) :: in_list
         type(integer_hash_table) :: possibles_tbl
+        integer :: possible_size
 
         bboxA = bbox(posA)
         call allocate(in_list)
         call allocate(possibles_tbl)
+        possible_size = 0
 
         mesh_B => positionsB%mesh
 
@@ -467,7 +464,6 @@ contains
           if (.not. has_value(in_list, ele_B)) then
             call insert(map, ele_B)
             call insert(in_list, ele_B)
-            call insert(seen_list, ele_B)
           end if
 
           ! Append all the neighbours of ele_B to possibles. 
@@ -479,7 +475,6 @@ contains
               possible_size = possible_size + 1
               call insert(possibles_tbl, possible_size, neighbour)
               call insert(in_list, neighbour)
-              call insert(seen_list, neighbour)
             end if
           end do
         end do
@@ -502,18 +497,12 @@ contains
                 possible_size = possible_size + 1
                 call insert(possibles_tbl, possible_size, neighbour)
                 call insert(in_list, neighbour)
-                call insert(seen_list, neighbour)
               end if
             end do
           end if
           j = j + 1
         end do
 
-        seen_ptr => seen_list%firstnode
-        do while(associated(seen_ptr))
-          seen_ptr => seen_ptr%next
-        end do
-        call flush_list(seen_list)
         call deallocate(in_list)
         call deallocate(possibles_tbl)
 
