@@ -380,8 +380,6 @@ contains
     integer, dimension(:), pointer :: neigh_A
     type(csr_sparsity), pointer :: eelist_A, eelist_B
 
-    ! Evil large working memory !! Sorry !!
-    integer, dimension(ele_count(positionsB)) :: possibles
     integer :: possible_size
     type(ilist) :: clues
 
@@ -395,7 +393,6 @@ contains
 
     call compute_bboxes(positionsB, bboxes_B)
 
-    possibles = 0
     possible_size = 0
 
     if(present(seed)) then
@@ -480,7 +477,6 @@ contains
             if (neighbour <= 0) cycle
             if (.not. has_value(in_list, neighbour)) then
               possible_size = possible_size + 1
-              possibles(possible_size) = neighbour
               call insert(possibles_tbl, possible_size, neighbour)
               call insert(in_list, neighbour)
               call insert(seen_list, neighbour)
@@ -494,8 +490,7 @@ contains
 
         j = 1
         do while (j <= possible_size)
-          possible = possibles(j)
-          write(0,*) "error: ", possible - fetch(possibles_tbl, j)
+          possible = fetch(possibles_tbl, j)
           intersects = bbox_predicate(bboxA, bboxes_B(possible, :, :))
           if (intersects) then
             call insert(map, possible)
@@ -505,7 +500,6 @@ contains
               if (neighbour <= 0) cycle
               if (.not. has_value(in_list, neighbour)) then
                 possible_size = possible_size + 1
-                possibles(possible_size) = neighbour
                 call insert(possibles_tbl, possible_size, neighbour)
                 call insert(in_list, neighbour)
                 call insert(seen_list, neighbour)
