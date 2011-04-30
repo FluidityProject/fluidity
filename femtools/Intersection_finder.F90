@@ -457,9 +457,11 @@ contains
         type(ilist) :: seen_list
         type(inode), pointer :: seen_ptr
         type(integer_set) :: in_list
+        type(integer_hash_table) :: possibles_tbl
 
         bboxA = bbox(posA)
         call allocate(in_list)
+        call allocate(possibles_tbl)
 
         mesh_B => positionsB%mesh
 
@@ -479,6 +481,7 @@ contains
             if (.not. has_value(in_list, neighbour)) then
               possible_size = possible_size + 1
               possibles(possible_size) = neighbour
+              call insert(possibles_tbl, possible_size, neighbour)
               call insert(in_list, neighbour)
               call insert(seen_list, neighbour)
             end if
@@ -492,6 +495,7 @@ contains
         j = 1
         do while (j <= possible_size)
           possible = possibles(j)
+          write(0,*) "error: ", possible - fetch(possibles_tbl, j)
           intersects = bbox_predicate(bboxA, bboxes_B(possible, :, :))
           if (intersects) then
             call insert(map, possible)
@@ -502,6 +506,7 @@ contains
               if (.not. has_value(in_list, neighbour)) then
                 possible_size = possible_size + 1
                 possibles(possible_size) = neighbour
+                call insert(possibles_tbl, possible_size, neighbour)
                 call insert(in_list, neighbour)
                 call insert(seen_list, neighbour)
               end if
@@ -516,6 +521,7 @@ contains
         end do
         call flush_list(seen_list)
         call deallocate(in_list)
+        call deallocate(possibles_tbl)
 
         possible_size = 0
       end function advance_front
