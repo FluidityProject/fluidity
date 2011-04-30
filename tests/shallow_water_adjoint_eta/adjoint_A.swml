@@ -381,19 +381,19 @@ deta_src = state.scalar_fields["LayerThicknessSource"]
 adj_eta = state.scalar_fields["AdjointLayerThickness"]
 
 J = 0.0
-print "time", time
-print "adj_eta.val", adj_eta.val
+#print "time", time
+#print "adj_eta.val", adj_eta.val
 if time == 0.0:
-  for ele in range(coord.element_count):
-    t = Transform(ele, coord)
-    eta_shape = deta_src.ele_shape(ele)
-    eta_mass = t.shape_shape(eta_shape, eta_shape)
-    print "Adding to dJdh: ", numpy.dot(adj_eta.ele_val(ele), numpy.dot(eta_mass, deta_src.ele_val(ele)))
-    J += numpy.dot(adj_eta.ele_val(ele), numpy.dot(eta_mass, deta_src.ele_val(ele)))
+#  for ele in range(coord.element_count):
+#    t = Transform(ele, coord)
+#    eta_shape = deta_src.ele_shape(ele)
+#    eta_mass = t.shape_shape(eta_shape, eta_shape)
+#    print "Adding to dJdh: ", numpy.dot(adj_eta.ele_val(ele), numpy.dot(eta_mass, deta_src.ele_val(ele)))
+#    J += numpy.dot(adj_eta.ele_val(ele), deta_src.ele_val(ele))
+  J = numpy.dot(adj_eta.val, deta_src.val)
   print "J: ", J
     
-field.val[:] = J
-</string_value>
+field.val[:] = J</string_value>
           <depends>
             <string_value lines="1">LayerThicknessSource</string_value>
           </depends>
@@ -412,6 +412,49 @@ field.val[:] = J
         </steady_state>
         <adjoint_storage>
           <exists_in_adjoint/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="J" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="python" lines="20">import fluidity.state_types
+import numpy
+
+coord = state.vector_fields["Coordinate"]
+eta = state.scalar_fields["LayerThickness"]
+
+J = 0.0
+
+if time == 0.0:
+#  for ele in range(coord.element_count):
+#    t = Transform(ele, coord)
+#    eta_shape = eta.ele_shape(ele)
+#    eta_mass = t.shape_shape(eta_shape, eta_shape)
+#    print "Adding to dJdh: ", numpy.dot(adj_eta.ele_val(ele), numpy.dot(eta_mass, eta.ele_val(ele)))
+  
+  J = numpy.dot(numpy.ones(len(eta.val[:])), eta.val)
+  print "correct J: ", J
+    
+field.val[:] = J</string_value>
+          <depends>
+            <string_value lines="1">LayerThicknessSource</string_value>
+          </depends>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
@@ -467,7 +510,7 @@ field.val[:] = J
     <functional name="integral_eta_t1">
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value type="python" lines="20">import numpy
+          <string_value lines="20" type="python">import numpy
 derivative.val[:] = 0.0
 if derivative.name == "Fluid::LayerThickness":
   derivative.val[:] = 1.0</string_value>
