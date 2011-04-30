@@ -439,7 +439,7 @@ Data_structures.o: Integer_hash_table.o Integer_set.o
 
 Intersection_finder.o: Elements.o Fields_Data_Types.o Fields_Base.o Adjacency_Lists.o Linked_Lists.o \
   Supermesh.o Adjacency_Lists.o Fields_Allocates.o Transform_elements.o \
-  Parallel_fields.o Parallel_Tools.o
+  Parallel_fields.o Parallel_Tools.o Data_structures.o
 
 State_Fields.o: Fields.o State.o FEFields.o Sparsity_Patterns_Meshes.o Dgtools.o
 

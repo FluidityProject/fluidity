@@ -14,6 +14,7 @@ use parallel_fields
 use parallel_tools
 use supermesh_construction
 use transform_elements
+use data_structures
 
 implicit none
 
@@ -380,7 +381,6 @@ contains
     type(csr_sparsity), pointer :: eelist_A, eelist_B
 
     ! Evil large working memory !! Sorry !!
-    logical, dimension(ele_count(positionsB)) :: in_list
     integer, dimension(ele_count(positionsB)) :: possibles
     integer :: possible_size
     type(ilist) :: clues
@@ -395,7 +395,6 @@ contains
 
     call compute_bboxes(positionsB, bboxes_B)
 
-    in_list = .false.
     possibles = 0
     possible_size = 0
 
@@ -457,16 +456,18 @@ contains
         integer :: ele_B
         type(ilist) :: seen_list
         type(inode), pointer :: seen_ptr
+        type(integer_set) :: in_list
 
         bboxA = bbox(posA)
+        call allocate(in_list)
 
         mesh_B => positionsB%mesh
 
         do while (clues%length /= 0)
           ele_B = pop(clues)
-          if (.not. in_list(ele_B)) then
+          if (.not. has_value(in_list, ele_B)) then
             call insert(map, ele_B)
-            in_list(ele_B) = .true.
+            call insert(in_list, ele_B)
             call insert(seen_list, ele_B)
           end if
 
@@ -475,10 +476,10 @@ contains
           do i=1,size(neigh_B)
             neighbour = neigh_B(i)
             if (neighbour <= 0) cycle
-            if (.not. in_list(neighbour)) then
+            if (.not. has_value(in_list, neighbour)) then
               possible_size = possible_size + 1
               possibles(possible_size) = neighbour
-              in_list(neighbour) = .true.
+              call insert(in_list, neighbour)
               call insert(seen_list, neighbour)
             end if
           end do
@@ -498,10 +499,10 @@ contains
             do i=1,size(neigh_B)
               neighbour = neigh_B(i)
               if (neighbour <= 0) cycle
-              if (.not. in_list(neighbour)) then
+              if (.not. has_value(in_list, neighbour)) then
                 possible_size = possible_size + 1
                 possibles(possible_size) = neighbour
-                in_list(neighbour) = .true.
+                call insert(in_list, neighbour)
                 call insert(seen_list, neighbour)
               end if
             end do
@@ -511,10 +512,10 @@ contains
 
         seen_ptr => seen_list%firstnode
         do while(associated(seen_ptr))
-          in_list(seen_ptr%value) = .false.
           seen_ptr => seen_ptr%next
         end do
         call flush_list(seen_list)
+        call deallocate(in_list)
 
         possible_size = 0
       end function advance_front
