@@ -53,13 +53,13 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -I../include -c $<
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib

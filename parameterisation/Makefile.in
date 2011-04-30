@@ -50,10 +50,10 @@ iceshelf_meltrate_surf_normal.o
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
