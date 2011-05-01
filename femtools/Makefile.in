@@ -120,7 +120,7 @@ endif
 	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS)  $(GENFLAGS) -c $< || (rm $(LIB) && false)
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
@@ -148,350 +148,1362 @@ Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 test_projections: projections.cpp
 	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
-Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
-                              MeshDiagnostics.o Vector_Tools.o FETools.o Sparsity_Patterns.o Sparse_Tools.o \
-                              Solvers.o Interpolation.o Adjacency_Lists.o Unittest_tools.o qsortd.o Tensors.o Intersection_finder.o \
-                              Sparse_Matrices_Fields.o Bound_field.o Diagnostic_Fields.o Tetrahedron_intersection.o
+Conservative_interpolation.o: Conservative_interpolation.F90 
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
 
-FETools.o: FETools.F90 Elements.o Transform_elements.o Sparse_Tools.o
+FETools.o: FETools.F90 
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
 
 # The refcount template dependencies are not actually needed for
 # Reference_counting.o but they are needed by everything which depends on
 # Reference_counting.o
-Reference_Counting.o: Global_Parameters.o \
+Reference_Counting.o: \
   Refcount_templates.F90 Refcount_interface_templates.F90
 
-test_element_numbering:test_element_numbering.F90 Futils.o \
-	Element_Numbering.o
+test_element_numbering:test_element_numbering.F90 
 	$(FC) $(FCFLAGS) -o $@ $^
 
-testshapefunctions:testshapefunctions.F90 Futils.o Shape_Functions.o \
-	Polynomials.o Elements.o Quadrature.o Element_Numbering.o
+testshapefunctions:testshapefunctions.F90 
 	$(FC) $(FCFLAGS) -o $@ $^
 
-testvectortools:testvectortools.F90 Futils.o Vector_Tools.o
+testvectortools:testvectortools.F90 
 	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
 
-test_laplacian:test_laplacian.F90 Read_Triangle.o Futils.o Shape_Functions.o \
-	Polynomials.o Elements.o Quadrature.o Element_Numbering.o \
-	FETools.o Fields.o
+test_laplacian:test_laplacian.F90 
 	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/element_set.mod: Element_set.o
+	@true
 
-Pseudo_2D.o: Node_boundary.o
-Timers.o: Global_Parameters.o MPI_Interfaces.o
-tictoc.o: Timers.o Parallel_Tools.o 
+Element_set.o ../include/element_set.mod: Element_set.F90
 
-Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
-  Field_Options.o Halos.o Write_Triangle.o Parallel_Tools.o Mesh_Files.o
-Weak_BCs.o: State.o Boundary_Conditions.o Parallel_Tools.o 
+../include/meshdiagnostics.mod: MeshDiagnostics.o
+	@true
 
-Supermesh.o: Fields_Base.o Fields_Allocates.o Fields_Data_Types.o Sparse_Tools.o Futils.o \
-  Metric_tools.o Linked_Lists.o Unify_meshes.o Transform_elements.o \
-  Global_Parameters.o Tetrahedron_intersection.o
-Supermesh_Assembly.o: Adaptive_interpolation.o Elements.o Fields.o \
-  Intersection_finder.o Field_Options.o Interpolation.o Linked_Lists.o \
-  Quadrature.o Sparse_Tools.o Solvers.o State.o State_Fields.o Supermesh.o \
-  Transform_elements.o
-../include/Element_Intersection.h: ../include/MeshDataStream.h ../include/Precision.h
-Element_Intersection.o: ../include/Element_Intersection.h
-../include/Node_Owner_Finder.h: ../include/Element_Intersection.h \
-  ../include/MeshDataStream.h ../include/Precision.h
-Node_Owner_Finder.o: ../include/Node_Owner_Finder.h
-Node_Owner_Finder_Fortran.o: Data_structures.o Fields.o Global_Parameters.o \
-  MPI_Interfaces.o 
-Node_Ownership.o: Adjacency_Lists.o Data_structures.o Fields.o Linked_Lists.o \
- Node_Owner_Finder_Fortran.o Pickers.o Sparse_Tools.o
-Interpolation.o: Fields.o Superconvergence.o Field_derivatives.o State.o \
-  Sparse_Tools.o Supermesh.o Futils.o Transform_elements.o MeshDiagnostics.o \
-  Node_Ownership.o
-Pseudo_Consistent_Interpolation.o: Data_structures.o Field_Options.o Fields.o \
-  Node_Ownership.o State.o
-DG_interpolation.o: Conservative_interpolation.o VTK_interfaces.o
+MeshDiagnostics.o ../include/meshdiagnostics.mod: MeshDiagnostics.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/transform_elements.mod ../include/elements.mod \
+   ../include/spud.mod ../include/fldebug.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/fields_base.mod
 
-Sparsity_Patterns.o: Elements.o Fields_Base.o Linked_Lists.o
+../include/diagnostic_variables.mod: Diagnostic_variables.o
+	@true
 
-Sparsity_Patterns_Meshes.o: Sparsity_Patterns.o Fields.o Sparse_Tools.o State.o Global_Parameters.o
+Diagnostic_variables.o ../include/diagnostic_variables.mod: \
+   Diagnostic_variables.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/fields_base.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/state_module.mod \
+   ../include/futils.mod ../include/fetools.mod ../include/fefields.mod \
+   ../include/meshdiagnostics.mod ../include/spud.mod \
+   ../include/parallel_tools.mod ../include/profiler.mod \
+   ../include/sparsity_patterns.mod ../include/solvers.mod \
+   ../include/write_state_module.mod ../include/surface_integrals.mod \
+   ../include/vtk_interfaces.mod ../include/detector_data_types.mod \
+   ../include/detector_tools.mod ../include/embed_python.mod \
+   ../include/eventcounter.mod ../include/pickers.mod \
+   ../include/sparse_tools.mod ../include/mixing_statistics.mod \
+   ../include/c_interfaces.mod ../include/memory_diagnostics.mod \
+   ../include/data_structures.mod ../include/unittest_tools.mod \
+   ../include/integer_hash_table_module.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/halos_ownership.mod ../include/halos_derivation.mod \
+   ../include/halos_communications.mod ../include/halos_registration.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/fields_manipulation.mod ../include/detector_tools.mod
 
-vtk_read_files.o: ../include/Precision.h
-VTK_interfaces.o: State.o Fields.o Parallel_fields.o Global_Parameters.o Parallel_Tools.o
-MeshDiagnostics.o: Elements.o Fields_Base.o Parallel_fields.o Parallel_Tools.o
+../include/parallel_tools.mod: Parallel_Tools.o
+	@true
 
-Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
-   Write_State.o Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
-   Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
-   State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
-   Memory_Diagnostics.o Parallel_Tools.o Profiler_Fortran.o \
-   Detector_Tools.o Fields_Base.o
-Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
+Parallel_Tools.o ../include/parallel_tools.mod: Parallel_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/mpi_interfaces.mod ../include/global_parameters.mod
 
-Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
-   Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
-   Halos.o MeshDiagnostics.o Unittest_tools.o
+../include/smoothing_module.mod: Smoothing_module.o
+	@true
 
-Streamfunction.o: State.o Fields.o Transform_elements.o Sparse_Tools.o \
-	Vector_Tools.o Global_Parameters.o Sparsity_Patterns.o Solvers.o \
-	EventCounter.o Boundary_Conditions.o Sparsity_Patterns_Meshes.o
+Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/state_module.mod \
+   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/solvers.mod \
+   ../include/global_parameters.mod
 
-Diagnostic_Fields.o: FETools.o Field_derivatives.o State.o\
-   CV_Shape_Functions.o CV_Face_Values.o CV_Upwind_Values.o CV_Options.o \
-   Write_State.o Field_Options.o Boundary_Conditions.o Unittest_tools.o \
-   Halos.o Interpolation.o Parallel_Tools.o Streamfunction.o
+../include/tictoc.mod: tictoc.o
+	@true
 
-State.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o Global_Parameters.o \
-   Halo_Data_Types.o Halos_Allocates.o Fields_Manipulation.o Linked_Lists.o \
-   Sparse_Tools_Petsc.o Halos_Communications.o
+tictoc.o ../include/tictoc.mod: tictoc.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/timers.mod
 
-Bound_field.o: Fields.o Vector_Tools.o FETools.o Field_Options.o qsortd.o Sparse_Matrices_Fields.o \
-  Sparse_Tools.o Transform_elements.o Sparsity_Patterns.o Halos.o Global_Parameters.o Parallel_Tools.o
+../include/colouring.mod: Colouring.o
+	@true
 
-Shape_Functions.o: Polynomials.o Elements.o Element_Numbering.o Superconvergence.o 
+Colouring.o ../include/colouring.mod: Colouring.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fields.mod \
+   ../include/fields_manipulation.mod ../include/fields_base.mod \
+   ../include/data_structures.mod ../include/sparse_tools.mod
 
-Dgtools.o: Elements.o Sparse_Tools.o Vector_Tools.o Fields.o FETools.o \
-   Transform_elements.o Sparsity_Patterns.o Boundary_Conditions.o
+../include/adaptive_timestepping.mod: Adaptive_Timestepping.o
+	@true
 
-Detector_Tools.o: Detector_Data_Types.o
+Adaptive_Timestepping.o ../include/adaptive_timestepping.mod: \
+   Adaptive_Timestepping.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/diagnostic_fields.mod ../include/fields.mod \
+   ../include/fields_data_types.mod ../include/field_options.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/signal_vars.mod ../include/state_module.mod \
+   ../include/spud.mod ../include/unittest_tools.mod
 
-Detector_Data_Types.o: Global_Parameters.o
+../include/conservative_interpolation_module.mod: Conservative_interpolation.o
+	@true
 
-Picker_Data_Types.o: Global_Parameters.o Reference_count_picker_type.F90 \
-  Reference_Counting.o
-Pickers.o: Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o \
-  Pickers_Deallocates.o Pickers_Inquire.o
-Pickers_Allocates.o: Elements.o EventCounter.o Fields_Base.o \
-  Fields_Data_Types.o Global_Parameters.o Node_Owner_Finder_Fortran.o \
-  Picker_Data_Types.o Pickers_Base.o Pickers_Deallocates.o
-Pickers_Base.o: Picker_Data_Types.o
-Pickers_Deallocates.o: Fields_Data_Types.o Global_Parameters.o \
-  Picker_Data_Types.o Pickers_Base.o Reference_Counting.o
-Pickers_Inquire.o: Data_structures.o Detector_Data_Types.o Fields.o \
-  Node_Owner_Finder_Fortran.o Picker_Data_Types.o Pickers_Allocates.o \
-  Pickers_Base.o
+Conservative_interpolation.o \
+   ../include/conservative_interpolation_module.mod: \
+   Conservative_interpolation.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/quadrature.mod ../include/elements.mod \
+   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/supermesh_construction.mod ../include/futils.mod \
+   ../include/transform_elements.mod ../include/meshdiagnostics.mod \
+   ../include/sparsity_patterns.mod ../include/vector_tools.mod \
+   ../include/tensors.mod ../include/fetools.mod \
+   ../include/sparse_tools.mod ../include/interpolation_module.mod \
+   ../include/solvers.mod ../include/adjacency_lists.mod \
+   ../include/vtk_interfaces.mod ../include/unittest_tools.mod \
+   ../include/spud.mod ../include/global_parameters.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/sparse_matrices_fields.mod ../include/bound_field_module.mod \
+   ../include/halos.mod ../include/diagnostic_fields.mod \
+   ../include/tetrahedron_intersection_module.mod \
+   ../include/boundary_conditions.mod ../include/data_structures.mod
 
-Fields.o: Fields_Base.o Fields_Allocates.o Fields_Calculations.o \
-   Fields_Data_Types.o Fields_Manipulation.o
-Fields_Base.o: Shape_Functions.o Tensors.o \
-   Embed_Python_Fortran.o Fields_Data_Types.o Reference_Counting.o 
+../include/ieee_arithmetic.mod: ieee_arithmetic_dummy.o
+	@true
 
-Fields_Allocates.o: Data_structures.o Elements.o Fields_Data_Types.o \
-   Fields_Base.o Reference_count_mesh_type.F90 \
+ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
+   ieee_arithmetic_dummy.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod
+
+../include/pickers_allocates.mod: Pickers_Allocates.o
+	@true
+
+Pickers_Allocates.o ../include/pickers_allocates.mod: \
+   Pickers_Allocates.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/eventcounter.mod \
+   ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/node_owner_finder.mod ../include/picker_data_types.mod \
+   ../include/pickers_base.mod ../include/pickers_deallocates.mod
+
+../include/samplenetcdf.mod: SampleNetCDF_fortran.o
+	@true
+
+SampleNetCDF_fortran.o ../include/samplenetcdf.mod: \
+   SampleNetCDF_fortran.F90 ../include/fldebug.mod
+
+../include/cv_fields.mod: CV_Fields.o
+	@true
+
+CV_Fields.o ../include/cv_fields.mod: CV_Fields.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/spud.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/cvtools.mod \
+   ../include/diagnostic_fields.mod ../include/fields.mod
+
+../include/dynamic_bin_sort_module.mod: Dynamic_Bin_Sort.o
+	@true
+
+Dynamic_Bin_Sort.o ../include/dynamic_bin_sort_module.mod: \
+   Dynamic_Bin_Sort.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod
+
+../include/signal_vars.mod: Signal_Vars.o
+	@true
+
+Signal_Vars.o ../include/signal_vars.mod: Signal_Vars.F90
+
+../include/reference_counting.mod: Reference_Counting.o
+	@true
+
+Reference_Counting.o ../include/reference_counting.mod: \
+   Reference_Counting.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/global_parameters.mod
+
+../include/data_structures.mod: Data_structures.o
+	@true
+
+Data_structures.o ../include/data_structures.mod: Data_structures.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/integer_set_module.mod \
+   ../include/integer_hash_table_module.mod
+
+../include/fields_data_types.mod: Fields_Data_Types.o
+	@true
+
+Fields_Data_Types.o ../include/fields_data_types.mod: \
+   Fields_Data_Types.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/picker_data_types.mod \
+   ../include/shape_functions.mod ../include/sparse_tools.mod \
+   ../include/spud.mod ../include/reference_counting.mod \
+   ../include/halo_data_types.mod
+
+../include/memory_diagnostics.mod: Memory_Diagnostics.o
+	@true
+
+Memory_Diagnostics.o ../include/memory_diagnostics.mod: \
+   Memory_Diagnostics.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/spud.mod ../include/parallel_tools.mod
+
+../include/pickers_inquire.mod: Pickers_Inquire.o
+	@true
+
+Pickers_Inquire.o ../include/pickers_inquire.mod: Pickers_Inquire.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/data_structures.mod \
+   ../include/detector_data_types.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/node_owner_finder.mod \
+   ../include/picker_data_types.mod ../include/pickers_allocates.mod \
+   ../include/pickers_base.mod
+
+../include/grundmann_moeller_quadrature.mod: Grundmann_Moeller_Quadrature.o
+	@true
+
+Grundmann_Moeller_Quadrature.o \
+   ../include/grundmann_moeller_quadrature.mod: \
+   Grundmann_Moeller_Quadrature.F90 ../include/global_parameters.mod
+
+../include/interpolation_module.mod: Interpolation.o
+	@true
+
+Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/superconvergence.mod ../include/field_derivatives.mod \
+   ../include/state_module.mod ../include/sparse_tools.mod \
+   ../include/supermesh_construction.mod ../include/futils.mod \
+   ../include/transform_elements.mod ../include/meshdiagnostics.mod \
+   ../include/field_options.mod ../include/node_ownership.mod
+
+../include/detector_tools.mod: Detector_Tools.o
+	@true
+
+Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/detector_data_types.mod
+
+../include/field_derivatives.mod: Field_derivatives.o
+	@true
+
+Field_derivatives.o ../include/field_derivatives.mod: \
+   Field_derivatives.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/fetools.mod ../include/fields.mod \
+   ../include/halos.mod ../include/eventcounter.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod \
+   ../include/vector_set.mod ../include/node_boundary.mod \
+   ../include/surfacelabels.mod ../include/vtk_interfaces.mod \
+   ../include/superconvergence.mod ../include/state_module.mod
+
+../include/python_state.mod: python_state.o
+	@true
+
+python_state.o ../include/python_state.mod: python_state.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/quadrature.mod ../include/elements.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/state_module.mod
+
+../include/pickers_base.mod: Pickers_Base.o
+	@true
+
+Pickers_Base.o ../include/pickers_base.mod: Pickers_Base.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/picker_data_types.mod
+
+../include/picker_data_types.mod: Picker_Data_Types.o
+	@true
+
+Picker_Data_Types.o ../include/picker_data_types.mod: \
+   Picker_Data_Types.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/reference_counting.mod
+
+../include/quadrature.mod: Quadrature.o
+	@true
+
+Quadrature.o ../include/quadrature.mod: Quadrature.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_quadrature_type.F90 \
+   Reference_count_quadrature_type.F90 ../include/fldebug.mod \
+   ../include/reference_counting.mod ../include/wandzura_quadrature.mod \
+   ../include/grundmann_moeller_quadrature.mod ../include/vector_tools.mod \
+   ../include/unittest_tools.mod ../include/unittest_tools.mod \
+   ../include/unittest_tools.mod
+
+
+testpolynomials.o: testpolynomials.F90 ../include/polynomials.mod
+
+../include/fields_halos.mod: Fields_Halos.o
+	@true
+
+Fields_Halos.o ../include/fields_halos.mod: Fields_Halos.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/halos.mod ../include/data_structures.mod
+
+../include/coordinates.mod: Coordinates.o
+	@true
+
+Coordinates.o ../include/coordinates.mod: Coordinates.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/vector_tools.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/halos.mod ../include/halos_base.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod
+
+../include/global_parameters.mod: Global_Parameters.o
+	@true
+
+Global_Parameters.o ../include/global_parameters.mod: \
+   Global_Parameters.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug_parameters.mod
+
+../include/cv_faces.mod: CV_Faces.o
+	@true
+
+CV_Faces.o ../include/cv_faces.mod: CV_Faces.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod \
+   ../include/shape_functions.mod
+
+../include/linked_lists.mod: Linked_Lists.o
+	@true
+
+Linked_Lists.o ../include/linked_lists.mod: Linked_Lists.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod
+
+../include/timers.mod: Timers.o
+	@true
+
+Timers.o ../include/timers.mod: Timers.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod
+
+../include/intersection_finder_module.mod: Intersection_finder.o
+	@true
+
+Intersection_finder.o ../include/intersection_finder_module.mod: \
+   Intersection_finder.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod \
+   ../include/fields_base.mod ../include/fields_data_types.mod \
+   ../include/fields_allocates.mod ../include/adjacency_lists.mod \
+   ../include/linked_lists.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/supermesh_construction.mod \
+   ../include/transform_elements.mod
+
+../include/profiler.mod: Profiler_Fortran.o
+	@true
+
+Profiler_Fortran.o ../include/profiler.mod: Profiler_Fortran.F90 \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/global_parameters.mod
+
+
+testvectortools.o: testvectortools.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/vector_tools.mod
+
+../include/halos_communications.mod: Halos_Communications.o
+	@true
+
+Halos_Communications.o ../include/halos_communications.mod: \
+   Halos_Communications.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_base.mod ../include/halos_debug.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/linked_lists.mod ../include/quicksort.mod
+
+../include/halos_derivation.mod: Halos_Derivation.o
+	@true
+
+Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/data_structures.mod \
+   ../include/fields_data_types.mod ../include/fields_allocates.mod \
+   ../include/fields_manipulation.mod ../include/fields_base.mod \
+   ../include/fldebug.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/halos_ownership.mod ../include/halos_repair.mod \
+   ../include/halos_communications.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_tools.mod ../include/sparse_tools.mod \
+   ../include/linked_lists.mod ../include/parallel_tools.mod
+
+../include/cv_options.mod: CV_Options.o
+	@true
+
+CV_Options.o ../include/cv_options.mod: CV_Options.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/spud.mod \
+   ../include/fldebug.mod ../include/cvtools.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/element_numbering.mod ../include/futils.mod
+
+../include/state_fields_module.mod: State_Fields.o
+	@true
+
+State_Fields.o ../include/state_fields_module.mod: State_Fields.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/state_module.mod ../include/fefields.mod \
+   ../include/global_parameters.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/dgtools.mod ../include/eventcounter.mod
+
+../include/metric_tools.mod: Metric_tools.o
+	@true
+
+Metric_tools.o ../include/metric_tools.mod: Metric_tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/unittest_tools.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fields_allocates.mod ../include/fields_manipulation.mod \
+   ../include/vector_tools.mod ../include/spud.mod ../include/fldebug.mod
+
+../include/fields_allocates.mod: Fields_Allocates.o
+	@true
+
+Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_mesh_type.F90 \
+   Reference_count_interface_scalar_field.F90 \
+   Reference_count_interface_vector_field.F90 \
+   Reference_count_interface_tensor_field.F90 Reference_count_mesh_type.F90 \
    Reference_count_scalar_field.F90 Reference_count_vector_field.F90 \
-   Reference_count_tensor_field.F90 Halos_Allocates.o Halos_Repair.o \
-   Pickers_Deallocates.o Global_Numbering.o Memory_Diagnostics.o ieee_arithmetic_dummy.o
-
-Fields_Manipulation.o: Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
-  Element_set.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
-  Halos_Debug.o Halos_Ownership.o Halos_Numbering.o Halos_Repair.o qsortd.o \
-	Parallel_Tools.o Vector_Tools.o
-
-Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
-   FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o \
-	 Parallel_Tools.o
-Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
-   Sparse_Tools_Petsc.o
-
-qsortd.o: Global_Parameters.o
-
-Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o Parallel_Tools.o \
-	MPI_Interfaces.o 
-Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
-  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Diagnostics.o \
-  Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
-Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
-  Halos_Debug.o Reference_Counting.o
-Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o MPI_Interfaces.o
-Halos_Communications.o: Fields_Base.o Fields_Data_Types.o Futils.o \
-  Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
-  MPI_Interfaces.o Parallel_Tools.o Linked_Lists.o qsortd.o
-Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
-Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
-  Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
-  Halos_Numbering.o Halos_Ownership.o Halos_Repair.o Sparse_Tools.o \
-  Data_structures.o Fields_Manipulation.o Halos_Communications.o \
-	Linked_Lists.o Parallel_Tools.o
-Halos_IO.o: ../include/Halos_IO.h
-Halos_Ownership.o: Futils.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o Halos_Numbering.o
-Halos_Numbering.o: Data_structures.o Futils.o Halo_Data_Types.o \
-  Halos_Allocates.o Halos_Base.o Halos_Communications.o Halos_Debug.o qsortd.o
-Halos_Registration.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o \
-  Fields_Manipulation.o Futils.o Halo_Data_Types.o Halos_Base.o \
-  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Ownership.o \
-  Halos_Numbering.o
-Halos_Repair.o: Halo_Data_Types.o Halos_Base.o Halos_Debug.o \
-  Halos_Numbering.o Halos_Ownership.o qsortd.o Fields_Base.o
-Halos_Diagnostics.o: VTK_interfaces.o Fields_Base.o Fields_Data_Types.o \
-  Fields_Allocates.o Shape_Functions.o Halos_Numbering.o
+   Reference_count_tensor_field.F90 ../include/elements.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/shape_functions.mod ../include/global_parameters.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_repair.mod ../include/pickers_deallocates.mod \
+   ../include/adjacency_lists.mod ../include/global_numbering.mod \
+   ../include/memory_diagnostics.mod ../include/ieee_arithmetic.mod \
+   ../include/data_structures.mod ../include/parallel_tools.mod
+
+../include/boundary_conditions.mod: Boundary_Conditions.o
+	@true
+
+Boundary_Conditions.o ../include/boundary_conditions.mod: \
+   Boundary_Conditions.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_data_types.mod ../include/fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/state_module.mod ../include/spud.mod \
+   ../include/global_parameters.mod
+
+../include/sparsity_patterns.mod: Sparsity_Patterns.o
+	@true
+
+Sparsity_Patterns.o ../include/sparsity_patterns.mod: \
+   Sparsity_Patterns.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/linked_lists.mod ../include/elements.mod \
+   ../include/fields_base.mod
+
+../include/halos_numbering.mod: Halos_Numbering.o
+	@true
+
+Halos_Numbering.o ../include/halos_numbering.mod: Halos_Numbering.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/data_structures.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_base.mod ../include/halos_communications.mod \
+   ../include/halos_debug.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_tools.mod ../include/quicksort.mod
+
+../include/tensors.mod: Tensors.o
+	@true
+
+Tensors.o ../include/tensors.mod: Tensors.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod
+
+../include/detector_data_types.mod: Detector_Data_Types.o
+	@true
+
+Detector_Data_Types.o ../include/detector_data_types.mod: \
+   Detector_Data_Types.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/global_parameters.mod
+
+../include/cgal_tools.mod: CGAL_Tools.o
+	@true
+
+CGAL_Tools.o ../include/cgal_tools.mod: CGAL_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod
+
+../include/fefields.mod: FEFields.o
+	@true
+
+FEFields.o ../include/fefields.mod: FEFields.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fields.mod ../include/field_options.mod \
+   ../include/elements.mod ../include/fetools.mod \
+   ../include/transform_elements.mod ../include/sparse_tools.mod \
+   ../include/state_module.mod
+
+../include/shape_functions.mod: Shape_Functions.o
+	@true
+
+Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/futils.mod \
+   ../include/fldebug.mod ../include/polynomials.mod \
+   ../include/elements.mod ../include/element_numbering.mod \
+   ../include/superconvergence.mod ../include/spud.mod \
+   ../include/unittest_tools.mod ../include/unittest_tools.mod
+
+../include/fetools.mod: FETools.o
+	@true
+
+FETools.o ../include/fetools.mod: FETools.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/elements.mod \
+   ../include/transform_elements.mod ../include/fields_base.mod
+
+
+signal_handlers.o: signal_handlers.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/signal_vars.mod \
+   ../include/signal_vars.mod ../include/signal_vars.mod \
+   ../include/fldebug.mod ../include/signal_vars.mod
+
+../include/write_gmsh.mod: Write_GMSH.o
+	@true
+
+Write_GMSH.o ../include/write_gmsh.mod: Write_GMSH.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/fields.mod ../include/state_module.mod ../include/futils.mod \
+   ../include/parallel_tools.mod ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/gmsh_common.mod
+
+../include/adaptive_interpolation_module.mod: Adaptive_interpolation.o
+	@true
+
+Adaptive_interpolation.o ../include/adaptive_interpolation_module.mod: \
+   Adaptive_interpolation.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod ../include/fields.mod \
+   ../include/sparse_tools.mod ../include/supermesh_construction.mod \
+   ../include/futils.mod ../include/transform_elements.mod \
+   ../include/meshdiagnostics.mod ../include/sparsity_patterns.mod \
+   ../include/vector_tools.mod ../include/tensors.mod \
+   ../include/fetools.mod ../include/sparse_tools.mod \
+   ../include/solvers.mod ../include/adjacency_lists.mod \
+   ../include/vtk_interfaces.mod ../include/unittest_tools.mod \
+   ../include/spud.mod ../include/quicksort.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/sparse_matrices_fields.mod
+
+../include/c_interfaces.mod: C_Interfaces_Fortran.o
+	@true
+
+C_Interfaces_Fortran.o ../include/c_interfaces.mod: \
+   C_Interfaces_Fortran.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod
+
+../include/node_boundary.mod: Node_boundary.o
+	@true
+
+Node_boundary.o ../include/node_boundary.mod: Node_boundary.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/surfacelabels.mod \
+   ../include/fields.mod ../include/linked_lists.mod \
+   ../include/eventcounter.mod
+
+../include/fields_base.mod: Fields_Base.o
+	@true
+
+Fields_Base.o ../include/fields_base.mod: Fields_Base.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/shape_functions.mod \
+   ../include/tensors.mod ../include/fields_data_types.mod \
+   ../include/reference_counting.mod ../include/global_parameters.mod \
+   ../include/elements.mod ../include/element_numbering.mod \
+   ../include/embed_python.mod ../include/sparse_tools.mod \
+   ../include/vector_tools.mod
+
+../include/supermesh_construction.mod: Supermesh.o
+	@true
+
+Supermesh.o ../include/supermesh_construction.mod: Supermesh.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_data_types.mod ../include/fields_allocates.mod \
+   ../include/fields_base.mod ../include/sparse_tools.mod \
+   ../include/futils.mod ../include/metric_tools.mod \
+   ../include/linked_lists.mod ../include/unify_meshes_module.mod \
+   ../include/transform_elements.mod ../include/global_parameters.mod \
+   ../include/tetrahedron_intersection_module.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod
+
+../include/halos_base.mod: Halos_Base.o
+	@true
+
+Halos_Base.o ../include/halos_base.mod: Halos_Base.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/halo_data_types.mod ../include/mpi_interfaces.mod \
+   ../include/quicksort.mod ../include/parallel_tools.mod
+
+../include/state_module.mod: State.o
+	@true
+
+State.o ../include/state_module.mod: State.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/global_parameters.mod \
+   ../include/fields_data_types.mod ../include/fields_allocates.mod \
+   ../include/fields_base.mod ../include/fields_manipulation.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_communications.mod ../include/sparse_tools.mod \
+   ../include/futils.mod ../include/linked_lists.mod \
+   ../include/sparse_tools_petsc.mod
+
+../include/multigrid.mod: Multigrid.o
+	@true
+
+Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/fdebug.h \
+   ../include/confdefs.h \
+   ../include/petsc_tools.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/fldebug.mod ../include/spud.mod ../include/futils.mod \
+   ../include/parallel_tools.mod
+
+../include/cv_shape_functions.mod: CV_Shape_Functions.o
+	@true
+
+CV_Shape_Functions.o ../include/cv_shape_functions.mod: \
+   CV_Shape_Functions.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/cv_faces.mod \
+   ../include/shape_functions.mod
+
+../include/adjacency_lists.mod: Adjacency_Lists.o
+	@true
+
+Adjacency_Lists.o ../include/adjacency_lists.mod: Adjacency_Lists.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/sparse_tools.mod \
+   ../include/fldebug.mod ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/element_numbering.mod \
+   ../include/futils.mod
+
+../include/bound_field_module.mod: Bound_field.o
+	@true
+
+Bound_field.o ../include/bound_field_module.mod: Bound_field.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/fields.mod ../include/spud.mod \
+   ../include/global_parameters.mod ../include/field_options.mod \
+   ../include/sparse_matrices_fields.mod ../include/quicksort.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/transform_elements.mod ../include/fetools.mod \
+   ../include/halos.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/bound_field_module.mod \
+   ../include/vector_tools.mod ../include/fetools.mod ../include/fields.mod \
+   ../include/bound_field_module.mod ../include/fetools.mod \
+   ../include/bound_field_module.mod ../include/fields.mod \
+   ../include/bound_field_module.mod ../include/fields.mod \
+   ../include/bound_field_module.mod
+
+../include/cvtools.mod: CVTools.o
+	@true
+
+CVTools.o ../include/cvtools.mod: CVTools.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/spud.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/vector_tools.mod ../include/futils.mod \
+   ../include/field_options.mod ../include/global_parameters.mod
+
+../include/diagnostic_fields.mod: Diagnostic_Fields.o
+	@true
+
+Diagnostic_Fields.o ../include/diagnostic_fields.mod: \
+   Diagnostic_Fields.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/halos.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/state_module.mod \
+   ../include/futils.mod ../include/fetools.mod ../include/fefields.mod \
+   ../include/meshdiagnostics.mod ../include/spud.mod \
+   ../include/cv_shape_functions.mod ../include/cv_faces.mod \
+   ../include/cvtools.mod ../include/cv_upwind_values.mod \
+   ../include/cv_face_values.mod ../include/cv_options.mod \
+   ../include/parallel_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/solvers.mod \
+   ../include/boundary_conditions.mod ../include/quicksort.mod \
+   ../include/unittest_tools.mod ../include/boundary_conditions.mod \
+   ../include/state_fields_module.mod ../include/interpolation_module.mod \
+   ../include/vector_tools.mod ../include/streamfunction.mod
+
+../include/dg_interpolation_module.mod: DG_interpolation.o
+	@true
+
+DG_interpolation.o ../include/dg_interpolation_module.mod: \
+   DG_interpolation.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/fields.mod \
+   ../include/sparse_tools.mod ../include/supermesh_construction.mod \
+   ../include/futils.mod ../include/transform_elements.mod \
+   ../include/meshdiagnostics.mod ../include/sparsity_patterns.mod \
+   ../include/vector_tools.mod ../include/tensors.mod \
+   ../include/fetools.mod ../include/sparse_tools.mod \
+   ../include/interpolation_module.mod ../include/solvers.mod \
+   ../include/adjacency_lists.mod ../include/vtk_interfaces.mod \
+   ../include/unittest_tools.mod ../include/spud.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/sparse_matrices_fields.mod
+
+../include/halos_debug.mod: Halos_Debug.o
+	@true
+
+Halos_Debug.o ../include/halos_debug.mod: Halos_Debug.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod
+
+../include/global_numbering.mod: Global_Numbering.o
+	@true
+
+Global_Numbering.o ../include/global_numbering.mod: Global_Numbering.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/adjacency_lists.mod \
+   ../include/elements.mod ../include/sparse_tools.mod \
+   ../include/fldebug.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/halos_ownership.mod ../include/parallel_tools.mod \
+   ../include/linked_lists.mod ../include/mpi_interfaces.mod \
+   ../include/fields_base.mod
+
+../include/fields_calculations.mod: Fields_Calculations.o
+	@true
+
+Fields_Calculations.o ../include/fields_calculations.mod: \
+   Fields_Calculations.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/fields_allocates.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fields_manipulation.mod ../include/fetools.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/vector_tools.mod ../include/supermesh_construction.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod
+
+../include/halos.mod: Halos.o
+	@true
+
+Halos.o ../include/halos.mod: Halos.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_diagnostics.mod \
+   ../include/halos_derivation.mod ../include/halos_communications.mod \
+   ../include/halos_numbering.mod ../include/halos_ownership.mod \
+   ../include/halos_registration.mod ../include/halos_repair.mod
+
+../include/generic_interface.mod: Generic_interface.o
+	@true
+
+Generic_interface.o ../include/generic_interface.mod: \
+   Generic_interface.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields.mod
+
+../include/transform_elements.mod: Transform_elements.o
+	@true
+
+Transform_elements.o ../include/transform_elements.mod: \
+   Transform_elements.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod \
+   ../include/vector_tools.mod ../include/fields_base.mod \
+   ../include/cv_faces.mod ../include/eventcounter.mod \
+   ../include/memory_diagnostics.mod
+
+../include/matrix_norms.mod: Matrix_Norms.o
+	@true
+
+Matrix_Norms.o ../include/matrix_norms.mod: Matrix_Norms.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/vector_tools.mod ../include/node_boundary.mod
+
+../include/read_triangle.mod: Read_Triangle.o
+	@true
+
+Read_Triangle.o ../include/read_triangle.mod: Read_Triangle.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/futils.mod \
+   ../include/elements.mod ../include/fields.mod \
+   ../include/state_module.mod ../include/spud.mod
+
+../include/unify_meshes_module.mod: Unify_meshes.o
+	@true
+
+Unify_meshes.o ../include/unify_meshes_module.mod: Unify_meshes.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_data_types.mod ../include/fields_manipulation.mod \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
+   ../include/fldebug.mod
+
+../include/sparse_matrices_fields.mod: Sparse_Matrices_Fields.o
+	@true
+
+Sparse_Matrices_Fields.o ../include/sparse_matrices_fields.mod: \
+   Sparse_Matrices_Fields.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod
+
+../include/dgtools.mod: Dgtools.o
+	@true
+
+Dgtools.o ../include/dgtools.mod: Dgtools.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/elements.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/vector_tools.mod ../include/fields.mod \
+   ../include/fields_data_types.mod ../include/fetools.mod \
+   ../include/transform_elements.mod ../include/boundary_conditions.mod
+
+../include/rotated_boundary_conditions.mod: Rotated_Boundary_Conditions.o
+	@true
+
+Rotated_Boundary_Conditions.o ../include/rotated_boundary_conditions.mod: \
+   Rotated_Boundary_Conditions.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fields.mod ../include/halos.mod \
+   ../include/boundary_conditions.mod ../include/spud.mod \
+   ../include/global_parameters.mod ../include/halos_base.mod \
+   ../include/sparse_tools_petsc.mod ../include/state_module.mod
+
+../include/gmsh_common.mod: GMSH_Common.o
+	@true
+
+GMSH_Common.o ../include/gmsh_common.mod: GMSH_Common.F90
+
+../include/parallel_fields.mod: Parallel_fields.o
+	@true
+
+Parallel_fields.o ../include/parallel_fields.mod: Parallel_fields.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/parallel_tools.mod \
+   ../include/halos_communications.mod ../include/halos_ownership.mod \
+   ../include/halos_numbering.mod ../include/halo_data_types.mod \
+   ../include/halos_base.mod ../include/fields_manipulation.mod \
+   ../include/mpi_interfaces.mod
+
+../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.o
+	@true
+
+Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: \
+   Sparse_Tools_Petsc.F90 ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_petsc_csr_matrix.F90 \
+   Reference_count_petsc_csr_matrix.F90 \
+   ../include/fldebug.mod \
+   ../include/sparse_tools.mod ../include/reference_counting.mod \
+   ../include/parallel_tools.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/fields_base.mod \
+   ../include/fields_manipulation.mod ../include/petsc_tools.mod
+
+../include/cv_face_values.mod: CV_Face_Values.o
+	@true
+
+CV_Face_Values.o ../include/cv_face_values.mod: CV_Face_Values.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/spud.mod \
+   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/element_numbering.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/cv_shape_functions.mod \
+   ../include/cv_faces.mod ../include/cv_options.mod \
+   ../include/vector_tools.mod ../include/transform_elements.mod \
+   ../include/field_derivatives.mod
+
+../include/unittest_tools.mod: Unittest_tools.o
+	@true
+
+Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/vector_tools.mod \
+   ../include/sparse_tools.mod ../include/fldebug.mod \
+   ../include/reference_counting.mod ../include/ieee_arithmetic.mod
+
+../include/pickers.mod: Pickers.o
+	@true
+
+Pickers.o ../include/pickers.mod: Pickers.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/picker_data_types.mod \
+   ../include/pickers_allocates.mod ../include/pickers_base.mod \
+   ../include/pickers_deallocates.mod ../include/pickers_inquire.mod
+
+
+Pseudo_2D.o: Pseudo_2D.F90 ../include/node_boundary.mod
+
+../include/lagrangian_remap.mod: Lagrangian_Remap.o
+	@true
+
+Lagrangian_Remap.o ../include/lagrangian_remap.mod: Lagrangian_Remap.F90 \
+   ../include/conservative_interpolation_module.mod ../include/fields.mod \
+   ../include/vtk_interfaces.mod ../include/interpolation_module.mod \
+   ../include/solvers.mod ../include/sparsity_patterns.mod \
+   ../include/sparse_tools.mod ../include/sparse_matrices_fields.mod
+
+../include/checkpoint.mod: Checkpoint.o
+	@true
+
+Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/fields_data_types.mod ../include/field_options.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/parallel_tools.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/vtk_interfaces.mod \
+   ../include/mesh_files.mod ../include/detector_data_types.mod \
+   ../include/diagnostic_variables.mod ../include/mpi_interfaces.mod
+
+../include/read_gmsh.mod: Read_GMSH.o
+	@true
+
+Read_GMSH.o ../include/read_gmsh.mod: Read_GMSH.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/futils.mod ../include/elements.mod \
+   ../include/fields.mod ../include/state_module.mod ../include/spud.mod \
+   ../include/gmsh_common.mod ../include/global_parameters.mod
+
+../include/halos_ownership.mod: Halos_Ownership.o
+	@true
+
+Halos_Ownership.o ../include/halos_ownership.mod: Halos_Ownership.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/futils.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/parallel_tools.mod ../include/quicksort.mod
+
+../include/tetrahedron_intersection_module.mod: Tetrahedron_intersection.o
+	@true
+
+Tetrahedron_intersection.o ../include/tetrahedron_intersection_module.mod: \
+   Tetrahedron_intersection.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/vector_tools.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fields_allocates.mod ../include/fields_manipulation.mod \
+   ../include/transform_elements.mod
+
+../include/integer_hash_table_module.mod: Integer_hash_table.o
+	@true
+
+Integer_hash_table.o ../include/integer_hash_table_module.mod: \
+   Integer_hash_table.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod
+
+../include/pickers_deallocates.mod: Pickers_Deallocates.o
+	@true
+
+Pickers_Deallocates.o ../include/pickers_deallocates.mod: \
+   Pickers_Deallocates.F90 ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_picker_type.F90 \
+   Reference_count_picker_type.F90 ../include/fldebug.mod \
+   ../include/fields_data_types.mod ../include/global_parameters.mod \
+   ../include/picker_data_types.mod ../include/pickers_base.mod \
+   ../include/reference_counting.mod
+
+../include/sparsity_patterns_meshes.mod: Sparsity_Patterns_Meshes.o
+	@true
+
+Sparsity_Patterns_Meshes.o ../include/sparsity_patterns_meshes.mod: \
+   Sparsity_Patterns_Meshes.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/shape_functions.mod ../include/fields.mod \
+   ../include/state_module.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod
+
+../include/quicksort.mod: qsortd.o
+	@true
+
+qsortd.o ../include/quicksort.mod: qsortd.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod \
+   ../include/global_parameters.mod
+
+../include/halo_data_types.mod: Halo_Data_Types.o
+	@true
+
+Halo_Data_Types.o ../include/halo_data_types.mod: Halo_Data_Types.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/futils.mod \
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/reference_counting.mod
+
+../include/vtk_interfaces.mod: VTK_interfaces.o
+	@true
+
+VTK_interfaces.o ../include/vtk_interfaces.mod: VTK_interfaces.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/fields.mod ../include/state_module.mod \
+   ../include/sparse_tools.mod ../include/global_numbering.mod \
+   ../include/fetools.mod ../include/global_parameters.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/parallel_fields.mod ../include/spud.mod \
+   ../include/data_structures.mod ../include/vtkfortran.mod
+
+../include/field_options.mod: Field_Options.o
+	@true
+
+Field_Options.o ../include/field_options.mod: Field_Options.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/quadrature.mod \
+   ../include/elements.mod ../include/spud.mod ../include/fldebug.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fields_allocates.mod ../include/fields_manipulation.mod \
+   ../include/fields_calculations.mod ../include/global_parameters.mod \
+   ../include/state_module.mod ../include/futils.mod \
+   ../include/metric_tools.mod ../include/data_structures.mod \
+   ../include/state_module.mod ../include/spud.mod \
+   ../include/global_parameters.mod
+
+../include/write_state_module.mod: Write_State.o
+	@true
+
+Write_State.o ../include/write_state_module.mod: Write_State.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/embed_python.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/timers.mod \
+   ../include/profiler.mod ../include/vtk_interfaces.mod \
+   ../include/field_options.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod
+
+../include/mpi_interfaces.mod: MPI_Interfaces.o
+	@true
+
+MPI_Interfaces.o ../include/mpi_interfaces.mod: MPI_Interfaces.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/global_parameters.mod
+
+../include/sparse_tools.mod: Sparse_Tools.o
+	@true
+
+Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_csr_sparsity.F90 \
+   Reference_count_interface_csr_matrix.F90 \
+   Reference_count_interface_block_csr_matrix.F90 \
+   Reference_count_interface_dynamic_csr_matrix.F90 \
+   Reference_count_interface_block_dynamic_csr_matrix.F90 \
+   Reference_count_csr_matrix.F90 Reference_count_csr_sparsity.F90 \
+   Reference_count_block_csr_matrix.F90 \
+   Reference_count_dynamic_csr_matrix.F90 \
+   Reference_count_block_dynamic_csr_matrix.F90 \
+   ../include/fldebug.mod \
+   ../include/futils.mod ../include/reference_counting.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/memory_diagnostics.mod \
+   ../include/ieee_arithmetic.mod ../include/data_structures.mod
+
+../include/supermesh_assembly.mod: Supermesh_Assembly.o
+	@true
+
+Supermesh_Assembly.o ../include/supermesh_assembly.mod: \
+   Supermesh_Assembly.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod \
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/state_module.mod ../include/adaptive_interpolation_module.mod \
+   ../include/fldebug.mod ../include/field_options.mod \
+   ../include/interpolation_module.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/state_fields_module.mod ../include/solvers.mod \
+   ../include/supermesh_construction.mod ../include/transform_elements.mod
+
+../include/surface_integrals.mod: Surface_Integrals.o
+	@true
+
+Surface_Integrals.o ../include/surface_integrals.mod: \
+   Surface_Integrals.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/quadrature.mod ../include/elements.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/spud.mod \
+   ../include/state_module.mod
+
+../include/mesh_files.mod: Mesh_Files.o
+	@true
+
+Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/futils.mod \
+   ../include/elements.mod ../include/fields.mod \
+   ../include/state_module.mod ../include/global_parameters.mod \
+   ../include/gmsh_common.mod ../include/read_gmsh.mod \
+   ../include/read_triangle.mod ../include/write_gmsh.mod \
+   ../include/write_triangle.mod ../include/spud.mod
+
+../include/merge_tensors.mod: Merge_tensors.o
+	@true
+
+Merge_tensors.o ../include/merge_tensors.mod: Merge_tensors.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/vector_tools.mod ../include/metric_tools.mod \
+   ../include/unittest_tools.mod
+
+../include/pseudo_consistent_interpolation.mod: Pseudo_Consistent_Interpolation.o
+	@true
+
+Pseudo_Consistent_Interpolation.o \
+   ../include/pseudo_consistent_interpolation.mod: \
+   Pseudo_Consistent_Interpolation.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/data_structures.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/node_ownership.mod \
+   ../include/state_module.mod
+
+../include/node_owner_finder.mod: Node_Owner_Finder_Fortran.o
+	@true
+
+Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
+   Node_Owner_Finder_Fortran.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/data_structures.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/mpi_interfaces.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod
+
+../include/surfacelabels.mod: Surface_Labels.o
+	@true
+
+Surface_Labels.o ../include/surfacelabels.mod: Surface_Labels.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/vector_tools.mod \
+   ../include/fldebug.mod ../include/linked_lists.mod \
+   ../include/merge_tensors.mod ../include/parallel_tools.mod \
+   ../include/sparse_tools.mod ../include/adjacency_lists.mod \
+   ../include/fields.mod ../include/elements.mod \
+   ../include/vtk_interfaces.mod ../include/adjacency_lists.mod \
+   ../include/data_structures.mod ../include/halos.mod \
+   ../include/mpi_interfaces.mod
+
+../include/node_ownership.mod: Node_Ownership.o
+	@true
+
+Node_Ownership.o ../include/node_ownership.mod: Node_Ownership.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/adjacency_lists.mod \
+   ../include/data_structures.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/linked_lists.mod \
+   ../include/node_owner_finder.mod ../include/pickers.mod \
+   ../include/sparse_tools.mod
+
+../include/eventcounter.mod: EventCounter.o
+	@true
+
+EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod
+
+../include/streamfunction.mod: Streamfunction.o
+	@true
+
+Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/state_module.mod \
+   ../include/fields.mod ../include/sparse_tools.mod ../include/spud.mod \
+   ../include/global_parameters.mod ../include/sparsity_patterns.mod \
+   ../include/solvers.mod ../include/boundary_conditions.mod \
+   ../include/vector_tools.mod ../include/transform_elements.mod \
+   ../include/eventcounter.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod
+
+../include/integer_set_module.mod: Integer_set.o
+	@true
+
+Integer_set.o ../include/integer_set_module.mod: Integer_set.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod
+
+../include/fields.mod: Fields.o
+	@true
+
+Fields.o ../include/fields.mod: Fields.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fields_data_types.mod \
+   ../include/fields_base.mod ../include/fields_allocates.mod \
+   ../include/fields_manipulation.mod ../include/fields_calculations.mod
+
+../include/halos_repair.mod: Halos_Repair.o
+	@true
+
+Halos_Repair.o ../include/halos_repair.mod: Halos_Repair.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/parallel_tools.mod ../include/fldebug.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/halos_ownership.mod ../include/mpi_interfaces.mod \
+   ../include/quicksort.mod
+
+../include/auxilaryoptions.mod: AuxilaryOptions.o
+	@true
+
+AuxilaryOptions.o ../include/auxilaryoptions.mod: AuxilaryOptions.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/fldebug.mod
+
+../include/cv_upwind_values.mod: CV_Upwind_Values.o
+	@true
+
+CV_Upwind_Values.o ../include/cv_upwind_values.mod: CV_Upwind_Values.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/quadrature.mod \
+   ../include/elements.mod ../include/spud.mod ../include/fields.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/cv_shape_functions.mod \
+   ../include/cv_faces.mod ../include/cvtools.mod ../include/cv_options.mod \
+   ../include/vector_tools.mod ../include/transform_elements.mod \
+   ../include/field_derivatives.mod ../include/global_parameters.mod \
+   ../include/boundary_conditions.mod
+
+../include/weak_bcs.mod: Weak_BCs.o
+	@true
+
+Weak_BCs.o ../include/weak_bcs.mod: Weak_BCs.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/elements.mod \
+   ../include/parallel_tools.mod ../include/transform_elements.mod \
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/sparse_tools_petsc.mod
+
+../include/wandzura_quadrature.mod: Wandzura_Quadrature.o
+	@true
+
+Wandzura_Quadrature.o ../include/wandzura_quadrature.mod: \
+   Wandzura_Quadrature.F90 ../include/global_parameters.mod
+
+../include/solvers.mod: Solvers.o
+	@true
+
+Solvers.o ../include/solvers.mod: Solvers.F90 ../include/fdebug.h \
+   ../include/confdefs.h \
+   ../include/fldebug.mod \
+   ../include/elements.mod ../include/petsc_tools.mod \
+   ../include/signal_vars.mod ../include/multigrid.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/sparse_matrices_fields.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/halos.mod ../include/profiler.mod \
+   ../include/vtk_interfaces.mod ../include/parallel_tools.mod
+
+../include/polynomials.mod: Polynomials.o
+	@true
+
+Polynomials.o ../include/polynomials.mod: Polynomials.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/futils.mod \
+   ../include/fldebug.mod
+
+../include/superconvergence.mod: Superconvergence.o
+	@true
+
+Superconvergence.o ../include/superconvergence.mod: Superconvergence.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/vector_tools.mod
+
+../include/halos_registration.mod: Halos_Registration.o
+	@true
+
+Halos_Registration.o ../include/halos_registration.mod: \
+   Halos_Registration.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
+   ../include/fields_data_types.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/halo_data_types.mod ../include/halos_allocates.mod \
+   ../include/halos_base.mod ../include/halos_debug.mod \
+   ../include/halos_communications.mod ../include/halos_derivation.mod \
+   ../include/halos_ownership.mod ../include/halos_numbering.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/data_structures.mod
+
+../include/vector_tools.mod: Vector_Tools.o
+	@true
+
+Vector_Tools.o ../include/vector_tools.mod: Vector_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod
+
+../include/embed_python.mod: Embed_Python_Fortran.o
+	@true
+
+Embed_Python_Fortran.o ../include/embed_python.mod: \
+   Embed_Python_Fortran.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod \
+   ../include/global_parameters.mod ../include/global_parameters.mod
+
+../include/element_numbering.mod: Element_Numbering.o
+	@true
+
+Element_Numbering.o ../include/element_numbering.mod: \
+   Element_Numbering.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/futils.mod ../include/fldebug.mod
+
+../include/halos_allocates.mod: Halos_Allocates.o
+	@true
+
+Halos_Allocates.o ../include/halos_allocates.mod: Halos_Allocates.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_halo_type.F90 Reference_count_halo_type.F90 \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_tools.mod ../include/reference_counting.mod
+
+../include/write_triangle.mod: Write_Triangle.o
+	@true
+
+Write_Triangle.o ../include/write_triangle.mod: Write_Triangle.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/fields.mod ../include/state_module.mod ../include/futils.mod \
+   ../include/parallel_tools.mod ../include/field_options.mod
+
+../include/elements.mod: Elements.o
+	@true
+
+Elements.o ../include/elements.mod: Elements.F90 ../include/fdebug.h \
+   ../include/confdefs.h Reference_count_interface_element_type.F90 \
+   Reference_count_element_type.F90 ../include/element_numbering.mod \
+   ../include/quadrature.mod ../include/fldebug.mod \
+   ../include/polynomials.mod ../include/reference_counting.mod
+
+../include/halos_diagnostics.mod: Halos_Diagnostics.o
+	@true
+
+Halos_Diagnostics.o ../include/halos_diagnostics.mod: \
+   Halos_Diagnostics.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/vtk_interfaces.mod ../include/fields_data_types.mod \
+   ../include/fields_allocates.mod ../include/fields_base.mod \
+   ../include/shape_functions.mod ../include/halos_numbering.mod \
+   ../include/halo_data_types.mod ../include/fields_manipulation.mod
+
+../include/fields_manipulation.mod: Fields_Manipulation.o
+	@true
+
+Fields_Manipulation.o ../include/fields_manipulation.mod: \
+   Fields_Manipulation.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/element_set.mod \
+   ../include/embed_python.mod ../include/data_structures.mod \
+   ../include/fields_data_types.mod ../include/fields_base.mod \
+   ../include/fields_allocates.mod ../include/halo_data_types.mod \
+   ../include/halos_allocates.mod ../include/halos_base.mod \
+   ../include/halos_debug.mod ../include/halos_numbering.mod \
+   ../include/halos_ownership.mod ../include/halos_repair.mod \
+   ../include/quicksort.mod ../include/parallel_tools.mod \
+   ../include/vector_tools.mod
+
+../include/futils.mod: Futils.o
+	@true
+
+Futils.o ../include/futils.mod: Futils.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod \
+   ../include/global_parameters.mod
+
+../include/petsc_tools.mod: Petsc_Tools.o
+	@true
+
+Petsc_Tools.o ../include/petsc_tools.mod: Petsc_Tools.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   Reference_count_interface_petsc_numbering_type.F90 \
+   Reference_count_petsc_numbering_type.F90 \
+   ../include/fldebug.mod \
+   ../include/sparse_tools.mod ../include/parallel_tools.mod \
+   ../include/fields_base.mod ../include/fields_manipulation.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/halos_communications.mod ../include/halos_numbering.mod \
+   ../include/reference_counting.mod ../include/profiler.mod
+
+../include/vector_set.mod: Vector_set.o
+	@true
+
+Vector_set.o ../include/vector_set.mod: Vector_set.F90
+
+../include/mixing_statistics.mod: Mixing_Statistics.o
+	@true
+
+Mixing_Statistics.o ../include/mixing_statistics.mod: \
+   Mixing_Statistics.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/embed_python.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/state_module.mod ../include/futils.mod ../include/fetools.mod \
+   ../include/fefields.mod ../include/halos.mod \
+   ../include/meshdiagnostics.mod ../include/spud.mod \
+   ../include/unittest_tools.mod
+
+../include/signals.mod: Signals.o
+	@true
+
+Signals.o ../include/signals.mod: Signals.F90 ../include/confdefs.h \
+   ../include/signal_vars.mod
 
-
-Sparse_Tools.o: Futils.o Reference_Counting.o \
-Reference_count_csr_matrix.F90 Reference_count_block_csr_matrix.F90 \
-Reference_count_dynamic_csr_matrix.F90 \
-Reference_count_block_dynamic_csr_matrix.F90 \
-Reference_count_csr_sparsity.F90 \
-Halo_Data_Types.o Halos_Allocates.o Memory_Diagnostics.o \
-ieee_arithmetic_dummy.o Data_structures.o
-
-Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
-  Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
-  Halos_Debug.o Halos_Ownership.o Parallel_Tools.o MPI_Interfaces.o 
-
-Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
-  Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
-  Fields_Base.o Fields_Manipulation.o Parallel_Tools.o 
-
-Adjacency_Lists.o: Fields_Base.o Fields_Data_Types.o Futils.o
-
-Futils.o: Global_Parameters.o
-
-FEFields.o: Fields.o Elements.o FETools.o Transform_elements.o Field_Options.o
-
-Transform_elements.o: Elements.o CV_Faces.o Fields_Base.o EventCounter.o \
-Memory_Diagnostics.o Quadrature.o
-
-Elements.o: Element_Numbering.o Quadrature.o Polynomials.o \
-Reference_count_element_type.F90 Reference_Counting.o
-
-Element_Numbering.o: Futils.o
-
-Signals.o: Signal_Vars.o
-
-signal_handlers.o: Signal_Vars.o
-
-Polynomials.o: Futils.o
-
-Quadrature.o: Unittest_tools.o \
-  Reference_count_quadrature_type.F90 Reference_Counting.o Wandzura_Quadrature.o \
-  Vector_Tools.o Grundmann_Moeller_Quadrature.o
-Grundmann_Moeller_Quadrature.o: Global_Parameters.o
-Wandzura_Quadrature.o: Global_Parameters.o
-
-Solvers.o: Petsc_Tools.o Signal_Vars.o Multigrid.o Fields.o \
-  Sparse_Tools.o Global_Parameters.o Sparse_Tools_Petsc.o \
-  Sparse_Matrices_Fields.o Halos.o Parallel_Tools.o Profiler_Fortran.o
-
-Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
-  Fields_Base.o Reference_count_petsc_numbering_type.F90 Fields_Manipulation.o \
-  Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
-  Halos_Numbering.o Parallel_Tools.o Profiler_Fortran.o
-
-Coordinates.o: Vector_Tools.o Fields.o Halos.o
-
-Superconvergence.o: Elements.o Vector_Tools.o
-
-Unittest_tools.o: Vector_Tools.o Sparse_Tools.o ieee_arithmetic_dummy.o \
-  Reference_Counting.o
-
-
-Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
-  Shape_Functions.o Sparse_Tools.o Reference_Counting.o
-
-Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o Sparse_Tools_Petsc.o
-
-Parallel_fields.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o \
-  Parallel_Tools.o Halos_Communications.o Halos_Ownership.o Halos_Numbering.o \
-  Halo_Data_Types.o Halos_Base.o Fields_Manipulation.o MPI_Interfaces.o
-
-Field_derivatives.o: Vector_set.o Parallel_fields.o Node_boundary.o State.o
-
-Vector_set.o: vecset.o intvecset.o
-
-Element_set.o: eleset.o
-
-Node_boundary.o: Surface_Labels.o 
-
-Matrix_Norms.o: Fields.o Vector_Tools.o Node_boundary.o
-
-Boundary_Conditions.o: Fields_Data_Types.o Fields.o State.o  Global_Parameters.o Sparse_Tools.o Sparse_Tools_Petsc.o
-
-Read_Triangle.o: Fields.o State.o Futils.o Elements.o
-
-Read_GiD_custom.o: Fields.o Futils.o Elements.o VTK_interfaces.o 
-
-Write_Triangle.o: Fields.o Futils.o Elements.o State.o Field_Options.o Parallel_Tools.o
-
-CV_Faces.o: Shape_Functions.o
-
-CV_Shape_Functions.o : CV_Faces.o
-
-CVTools.o : State.o Vector_Tools.o Futils.o Field_Options.o
-
-CV_Options.o : CVTools.o Element_Numbering.o Futils.o
-
-CV_Fields.o : CVTools.o State.o Diagnostic_Fields.o Fields.o
-
-CV_Upwind_Values.o : CV_Options.o Elements.o Quadrature.o Boundary_Conditions.o Field_derivatives.o
-
-CV_Face_Values.o : CV_Options.o Field_derivatives.o
-
-Merge_tensors.o: Metric_tools.o Fields.o
-
-Metric_tools.o: Unittest_tools.o Fields_Data_Types.o Vector_Tools.o Fields_Manipulation.o
-
-Surface_Labels.o: Merge_tensors.o Vector_Tools.o Fields.o Elements.o \
-   VTK_interfaces.o Data_structures.o Halos.o Parallel_Tools.o
-
-Write_State.o: State.o Fields.o Timers.o VTK_interfaces.o \
-  Global_Parameters.o Field_Options.o Halos.o Profiler_Fortran.o
-
-Field_Options.o: Metric_tools.o Fields_Data_Types.o Quadrature.o Elements.o \
-  State.o Fields_Base.o Fields_Allocates.o Fields_Calculations.o Data_structures.o
- 
-Adaptive_Timestepping.o: Field_Options.o State.o Diagnostic_Fields.o \
-  Signal_Vars.o Unittest_tools.o
-
-Surface_Integrals.o: Elements.o Field_Options.o Fields.o Global_Parameters.o \
-  Parallel_fields.o State.o
-
-Lagrangian_Remap.o: Conservative_interpolation.o Fields.o State.o VTK_interfaces.o
-
-Embed_Python_Fortran.o: Global_Parameters.o
-python_state.o: Quadrature.o Elements.o Fields.o Global_Parameters.o State.o
-
-Smoothing_module.o: Solvers.o Sparsity_Patterns.o Sparse_Tools.o Fields.o \
-                    Global_Parameters.o
-
-Adaptive_interpolation.o: Conservative_interpolation.o
-
-Data_structures.o: Integer_hash_table.o Integer_set.o
-
-Intersection_finder.o: Elements.o Fields_Data_Types.o Fields_Base.o Adjacency_Lists.o Linked_Lists.o \
-  Supermesh.o Adjacency_Lists.o Fields_Allocates.o Transform_elements.o \
-  Parallel_fields.o Parallel_Tools.o
-
-State_Fields.o: Fields.o State.o FEFields.o Sparsity_Patterns_Meshes.o Dgtools.o
-
-Unify_meshes.o: Fields_Base.o Fields_Data_Types.o Fields_Allocates.o Fields_Manipulation.o
-
-Profiler_Fortran.o: Fields.o
-
-CGAL_Tools.o: Fields.o
-CGAL_Tools_C.o: ../include/CGAL_Tools_C.h
-
-Rotated_Boundary_Conditions.o: Fields.o Halos.o Boundary_Conditions.o Global_Parameters.o \
-	Sparse_Tools_Petsc.o State.o 
-
-Tetrahedron_intersection.o: Vector_Tools.o Elements.o Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
-   Fields_Manipulation.o Transform_elements.o
-
-test_invert_dg_mass_matrix: test_invert_dg_mass_matrix.F90
-
-MPI_Interfaces.o: Global_Parameters.o
-Parallel_Tools.o: Global_Parameters.o MPI_Interfaces.o
-
-Fields_Halos.o: Fields.o Halos.o Data_structures.o
-
-Mesh_Files.o: Read_Triangle.o Write_Triangle.o Read_GMSH.o Write_GMSH.o \
-	GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o
-
-Read_GMSH.o: GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o \
-	Field_Options.o
-Write_GMSH.o: GMSH_Common.o Elements.o Fields.o Global_Parameters.o State.o \
-	Field_Options.o
-GMSH_Common.o: Futils.o
-
-Colouring.o: Fields.o Fields_Manipulation.o Fields_Base.o Sparse_Tools.o Data_structures.o 
