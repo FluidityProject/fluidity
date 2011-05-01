@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include -J../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 

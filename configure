@@ -655,6 +655,7 @@ ac_ct_CC
 CPPFLAGS
 CFLAGS
 CC
+MOD_FLAG
 FCLIBS
 ac_ct_FC
 FCFLAGS
@@ -4197,6 +4198,17 @@ if test "$fcompiler" = "sunf95" ; then
 else
     MODINC_FLAG="-I"
 fi
+
+# How to specify where .mod files are placed.
+if test "$FC" = "ifort"; then
+   MOD_FLAG="-module "
+elif test "$FC" = "gfortran"; then
+   MOD_FLAG="-J"
+else
+   as_fn_error $? "Don't know how to specify the module output directory for $FC." "$LINENO" 5
+fi
+
+
 
 if test "$F77" = "$FC" ; then
     smart_fortran="yes"
@@ -15524,7 +15536,7 @@ do
     "qg_strat/unittests/Makefile") CONFIG_FILES="$CONFIG_FILES qg_strat/unittests/Makefile" ;;
     "tests/lauwerier/Makefile") CONFIG_FILES="$CONFIG_FILES tests/lauwerier/Makefile" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
-    "multiphase/Makefile") CONFIG_FILES="$CONFIG_FILES multiphase/Makefile" ;;
+    "legacy_reservoir_prototype/Makefile") CONFIG_FILES="$CONFIG_FILES legacy_reservoir_prototype/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5 ;;
   esac
