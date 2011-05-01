@@ -438,10 +438,6 @@ module adjoint_functional_evaluation
         ierr = adj_storage_memory_incref(record, storage)
         call adj_chkierr(ierr)
 
-        assert(.not. have_option("/mesh_adaptivity")) ! if you're adaptive, your meshes are no longer auxiliary, are they?
-        ierr = adj_variable_set_auxiliary(vars(j), .true.)
-        call adj_chkierr(ierr)
-
         ierr = adj_record_variable(adjointer, vars(j), storage)
         if (ierr == ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
           call femtools_vec_destroy_proc(record)
@@ -473,6 +469,7 @@ module adjoint_functional_evaluation
             record = field_to_adj_vector(sfield)
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
+
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)
@@ -487,11 +484,6 @@ module adjoint_functional_evaluation
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
 
-            if (index(trim(field_name), "Coordinate") /= 0) then
-              assert(.not. have_option("/mesh_adaptivity")) ! your coordinate is no longer auxiliary, because you compute it
-              ierr = adj_variable_set_auxiliary(vars(j), .true.)
-              call adj_chkierr(ierr)
-            end if
 
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
@@ -506,6 +498,7 @@ module adjoint_functional_evaluation
             record = field_to_adj_vector(tfield)
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
+
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)

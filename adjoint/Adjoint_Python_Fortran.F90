@@ -30,9 +30,11 @@
 module adjoint_python
 
 #ifdef HAVE_ADJOINT
+#include "libadjoint/adj_fortran.h"
   use libadjoint
   use iso_c_binding
   use fldebug
+  use spud
   implicit none
 
   public :: adj_variables_from_python
@@ -73,6 +75,8 @@ module adjoint_python
     type(c_ptr) :: result_c_ptr
     integer :: result_len_c
     integer :: stat_c
+    character(len=ADJ_NAME_LEN) :: name, material_phase_name, field_name
+    integer :: s_idx, ierr
 
     do j=1,len_trim(fn)
       fn_c(j) = fn(j:j)
@@ -104,6 +108,45 @@ module adjoint_python
 
     do j=1,result_len_c
       result(j) = result_c(j)
+
+      ! We need to set the auxiliary flag on this variable, if it is not prescribed.
+      ierr = adj_variable_get_name(result(j), name)
+      s_idx = scan(trim(name), ":")
+      if (s_idx == 0) then ! no ':', so it must be auxiliary
+        assert(.not. have_option("/mesh_adaptivity")) ! if you're adaptive, your meshes are no longer auxiliary, are they?
+        ierr = adj_variable_set_auxiliary(result(j), .true.)
+        call adj_chkierr(ierr)
+      else
+        material_phase_name = name(1:s_idx - 1)
+        field_name = name(s_idx + 2:len_trim(name))
+
+        if (index(trim(field_name), "Coordinate") /= 0) then
+          assert(.not. have_option("/mesh_adaptivity")) ! your coordinate is no longer auxiliary, because you compute it
+          ierr = adj_variable_set_auxiliary(result(j), .true.)
+          call adj_chkierr(ierr)
+          cycle
+        end if
+
+        ! now we try scalar/vector/tensor
+        if (have_option("/material_phase::" // trim(material_phase_name) // "/scalar_field::" // trim(field_name))) then
+          if (.not. have_option("/material_phase::" // trim(material_phase_name) // "/scalar_field::" // trim(field_name) // "/prognostic")) then
+            ierr = adj_variable_set_auxiliary(result(j), .true.)
+            call adj_chkierr(ierr)
+          end if
+        elseif (have_option("/material_phase::" // trim(material_phase_name) // "/vector_field::" // trim(field_name))) then
+          if (.not. have_option("/material_phase::" // trim(material_phase_name) // "/vector_field::" // trim(field_name) // "/prognostic")) then
+            ierr = adj_variable_set_auxiliary(result(j), .true.)
+            call adj_chkierr(ierr)
+          end if
+        elseif (have_option("/material_phase::" // trim(material_phase_name) // "/tensor_field::" // trim(field_name))) then
+          if (.not. have_option("/material_phase::" // trim(material_phase_name) // "/tensor_field::" // trim(field_name) // "/prognostic")) then
+            ierr = adj_variable_set_auxiliary(result(j), .true.)
+            call adj_chkierr(ierr)
+          end if
+        else
+          FLAbort("Unknown scalar/vector/tensor")
+        end if
+      end if
     end do
     if (present(extras)) then
       do j=1,size(extras)
