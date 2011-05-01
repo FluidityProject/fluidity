@@ -62,19 +62,19 @@ OBJS = mba_analytic.o mba_nodal.o \
 
 .f.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -I../include -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -I../include -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -I../include -c $<
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)

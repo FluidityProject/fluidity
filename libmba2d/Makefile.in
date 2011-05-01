@@ -59,16 +59,16 @@ OBJS = ani2.o auxSE.o auxSF.o auxSP.o calcrv.o clpsF.o delaunay.o dsort.o error.
 
 .f.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -I../include -c $<
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
