@@ -128,8 +128,8 @@ module adjoint_main_loop
 
       do timestep=no_timesteps-1,0,-1
         ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
-        call adj_chkierr(ierr)
-        current_time = end_time
+        call adj_chkierr(ierr) 
+        current_time = start_time ! the usual convention in fluidity: time is what is /about to be/ computed
         call set_option("/timestepping/current_time", current_time)
 
         ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
@@ -138,7 +138,7 @@ module adjoint_main_loop
         ierr = adj_timestep_end_equation(adjointer, timestep, end_timestep)
         call adj_chkierr(ierr)
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=start_time)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         do functional=0,no_functionals-1
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
