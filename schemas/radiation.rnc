@@ -316,14 +316,71 @@ angular_moment_set_diffusivity_field =
          element diagnostic {
             comment,
             
+            ## Calculated via interpolation of a prescribed data set.
             element algorithm {
                comment,
                
                attribute name { "Internal" }
             },
             
+            rotate_diffusivity_tensor*,
+            
             field_exclude_all_output
          }  
+      }
+   )
+
+
+rotate_diffusivity_tensor = 
+   (
+      ##  Apply successive rotations of the diffusivity tensor around a 
+      ##  chosen dimension axis (XYZ). This induces a counter-clockwise
+      ##  rotation when the axis about which they occur points towards an observer  
+      ##  (ie. the right hand rule for positive sign of angles).
+      ##  Intrinsic rotations are applied to the mobile (co-moving) axis frame.
+      ##  In 1 dimension this is pointless, in 2 dimensions only rotations about
+      ##  the Z axis are appropriate. The rotation angle unit is degree.
+      element rotation {
+         comment,
+         
+         attribute name { string },
+                  
+         (
+            ## The axis of the mobile frame to rotate about
+            element axis {
+               comment,
+            
+               attribute name { "X" }
+            }|
+            ## The axis of the mobile frame to rotate about
+            element axis {
+               comment,
+            
+               attribute name { "Y" }
+            }|
+            ## The axis of the mobile frame to rotate about
+            element axis {
+               comment,
+            
+               attribute name { "Z" }
+            }
+         ),
+         
+         ## The rotation angle field in degree units
+         element scalar_field {
+            comment,
+            
+            attribute name { "Angle" },
+            
+            ## Field Type
+            element prescribed {
+               comment,
+         
+               particle_type_material_mesh_choice,
+         
+               prescribed_scalar_field_no_adapt_exclude_all_output
+            }            
+         }
       }
    )
 
@@ -340,6 +397,7 @@ angular_moment_set_absorption_field =
          element diagnostic {
             comment,
             
+            ## Calculated via interpolation of a prescribed data set.
             element algorithm {
                comment,
                
@@ -1429,4 +1487,11 @@ field_exclude_detectors =
             comment
          }
       }
+   )
+
+
+prescribed_scalar_field_no_adapt_exclude_all_output =
+   (
+      prescribed_values_scalar_field,
+      field_exclude_all_output
    )

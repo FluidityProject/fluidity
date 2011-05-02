@@ -139,28 +139,26 @@ contains
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(pv))
     assert(ele_count(velocity) == ele_count(pv))
-    do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i,:))
-    end do
+    ewrite_minmax(velocity)
     
     ! Extract perturbation density
     perturbation_density => extract_scalar_field(state, "PerturbationDensity")
     assert(mesh_dim(perturbation_density) == mesh_dim(pv))
     assert(ele_count(perturbation_density) == ele_count(pv))
-    ewrite_minmax(perturbation_density%val)
+    ewrite_minmax(perturbation_density)
         
     ! Assemble
     call zero(pv)
     do i = 1, ele_count(pv)
       call assemble_potential_vorticity_element(i, pv, positions, velocity, perturbation_density)
     end do
-    ewrite_minmax(pv%val)
+    ewrite_minmax(pv)
     
     masslump => get_lumped_mass(state, pv%mesh)
     
     ! Solve (somewhat trivial)
     pv%val = pv%val / masslump%val
-    ewrite_minmax(pv%val)
+    ewrite_minmax(pv)
     
     ewrite(1, *) "Exiting calculate_potential_vorticity"
   
@@ -246,28 +244,26 @@ contains
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(rel_pv))
     assert(ele_count(velocity) == ele_count(rel_pv))
-    do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i,:))
-    end do
+    ewrite_minmax(velocity)
     
     ! Extract perturbation density
     perturbation_density => extract_scalar_field(state, "PerturbationDensity")
     assert(mesh_dim(perturbation_density) == mesh_dim(rel_pv))
     assert(ele_count(perturbation_density) == ele_count(rel_pv))
-    ewrite_minmax(perturbation_density%val)
+    ewrite_minmax(perturbation_density)
         
     ! Assemble
     call zero(rel_pv)
     do i = 1, ele_count(rel_pv)
       call assemble_relative_potential_vorticity_element(i, rel_pv, positions, velocity, perturbation_density)
     end do
-    ewrite_minmax(rel_pv%val)
+    ewrite_minmax(rel_pv)
     
     masslump => get_lumped_mass(state, rel_pv%mesh)
     
     ! Solve (somewhat trivial)
     rel_pv%val = rel_pv%val / masslump%val
-    ewrite_minmax(rel_pv%val)
+    ewrite_minmax(rel_pv)
     
     ewrite(1, *) "Exiting calculate_relative_potential_vorticity"
   

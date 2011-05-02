@@ -3,6 +3,9 @@ SHELL = sh
 SIM = InputComp2P3C_
 
 input: clean
+
+	../../../scripts/interval --dx=0.1 0 1 1d_mesh
+
 	@echo "compute input for $(SIM)"
 	gfortran -o $(SIM)KComp   $(SIM)KComp.f90
 	gfortran -o $(SIM)permability   $(SIM)permability.f90

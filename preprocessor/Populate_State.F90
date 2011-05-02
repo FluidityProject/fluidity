@@ -1335,7 +1335,7 @@ contains
       type(state_type), intent(inout) :: state    
       
       ! local variables
-      integer :: g,d,p,l,s,g_set,m,m_set
+      integer :: g,d,p,l,s,g_set,m,m_set,r
       integer :: number_of_particle_types
       integer :: number_of_energy_groups 
       integer :: number_of_delayed_groups 
@@ -1346,7 +1346,8 @@ contains
       integer :: start_group, end_group
       integer :: global_group_count  
       integer :: number_of_angular_moment_set, global_moment_count
-      integer :: number_of_angular_moments, start_moment, end_moment  
+      integer :: number_of_angular_moments, start_moment, end_moment
+      integer :: number_of_rotations
       logical, dimension(:), allocatable :: material_phase_number_found
       character(len=OPTION_PATH_LEN) :: field_name, field_path, equation_type_name
       character(len=OPTION_PATH_LEN) :: energy_discretisation_path, energy_group_set_path
@@ -1355,6 +1356,7 @@ contains
       character(len=OPTION_PATH_LEN) :: angular_path, angular_method, angular_method_path
       character(len=OPTION_PATH_LEN) :: angular_parity, angular_parity_path, angular_moment_set_path 
       character(len=OPTION_PATH_LEN) :: current_path, material_fn_space_name, parent_field_name
+      character(len=OPTION_PATH_LEN) :: rotation_path
       type(scalar_field) :: aux_sfield
       type(tensor_field) :: aux_tfield
       type(mesh_type), pointer :: x_mesh
@@ -1477,6 +1479,28 @@ contains
                      call insert(state, aux_tfield, trim(aux_tfield%name))
                      call deallocate(aux_tfield)
 
+                     ! Also insert the Angle value rotation fields that may be children of the Diffusivity
+                     rotation_path = trim(angular_moment_set_path)//'/tensor_field::Diffusivity/diagnostic/rotation'
+                     
+                     number_of_rotations = option_count(trim(rotation_path))
+                     
+                     found_rotations: if (number_of_rotations > 0) then
+                     
+                        rotation_loop: do r = 1,number_of_rotations
+                           
+                           field_path = trim(angular_moment_set_path)//'/tensor_field::Diffusivity/diagnostic/rotation['//int2str(r-1)//']/scalar_field::Angle'
+                                                      
+                           call allocate_and_insert_scalar_field(trim(field_path), &
+                                                                 state, &
+                                                                 parent_mesh = trim(material_fn_space_name), &
+                                                                 parent_name = trim(parent_field_name), &
+                                                                 field_name = 'DiffusivityRotation'//int2str(r), &
+                                                                 dont_allocate_prognostic_value_spaces = dont_allocate_prognostic_value_spaces)
+
+                        end do rotation_loop
+                     
+                     end if found_rotations
+
                      field_path = trim(angular_moment_set_path)//'/scalar_field::Absorption' 
 
                      call allocate_and_insert_scalar_field(trim(field_path), &
@@ -1511,18 +1535,34 @@ contains
                            ! allocate and insert the diffusivity and absorption fields that 
                            ! are actually aliased to corresponding group set moment set fields
                   
-                           aux_tfield             = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
-                           aux_tfield%name        = trim(field_name)//'Diffusivity'
-                           aux_tfield%aliased     = .true.
+                           aux_tfield         = extract_tensor_field(state, trim(parent_field_name)//'Diffusivity')
+                           aux_tfield%name    = trim(field_name)//'Diffusivity'
+                           aux_tfield%aliased = .true.
                   
                            call insert(state, aux_tfield, trim(aux_tfield%name))
 
-                           aux_sfield             = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
-                           aux_sfield%name        = trim(field_name)//'Absorption'
-                           aux_sfield%aliased     = .true.
+                           aux_sfield         = extract_scalar_field(state, trim(parent_field_name)//'Absorption')
+                           aux_sfield%name    = trim(field_name)//'Absorption'
+                           aux_sfield%aliased = .true.
                   
                            call insert(state, aux_sfield, trim(aux_sfield%name))
+                           
+                           ! also allocate and insert the diffusivity rotation angle fields that 
+                           ! are actually aliased to corresponding group set moment set fields
+                           found_rotations_alias: if (number_of_rotations > 0) then
+                           
+                              rotation_loop_alias: do r = 1,number_of_rotations
 
+                                 aux_sfield         = extract_scalar_field(state, trim(parent_field_name)//'DiffusivityRotation'//int2str(r))
+                                 aux_sfield%name    = trim(field_name)//'DiffusivityRotation'//int2str(r)
+                                 aux_sfield%aliased = .true.
+
+                                 call insert(state, aux_sfield, trim(aux_sfield%name))
+
+                              end do rotation_loop_alias
+                              
+                           end if found_rotations_alias
+                           
                         end do moment_loop
                                        
                      end do group_loop
@@ -1937,6 +1977,8 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
+    real :: Pr
+
     ! Prescribed diffusivity
     do i = 1, size(states)
        
@@ -1992,7 +2034,7 @@ contains
     ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
     do i = 1, size(states)
        
-       tfield=extract_tensor_field(states(i), "KEpsEddyDiffusivity", stat)
+       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
 
        if (stat/=0) cycle
 
@@ -2005,7 +2047,14 @@ contains
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
                &::k_epsilon")) then
-             
+
+             ! Get Prandtl number, if specified.
+             call get_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
+
+             ! Scale field by Prandtl number
+             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 

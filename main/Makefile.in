@@ -30,6 +30,10 @@ SHELL = @SHELL@
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
+ifeq (@ENABLE_PSMILE@,yes)
+FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./ -I@FLPSMILE_PATH@/build/lib/psmile_oa4.MPI1
+endif
+
 MPIF90  = @MPIF90@
 
 CC      = @CC@
@@ -50,16 +54,18 @@ OBJS = Fluids.o Usage.o mainfl.o
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -68,3 +74,112 @@ clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+Simple_Shallow_Water.o : Simple_Shallow_Water.F90 \
+   ../include/populate_state_module.mod ../include/vtk_interfaces.mod \
+   ../include/tictoc.mod ../include/sparse_matrices_fields.mod \
+   ../include/timeloop_utilities.mod ../include/diagnostic_fields_new.mod \
+   ../include/reference_counting.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/fields.mod ../include/timers.mod \
+   ../include/memory_diagnostics.mod ../include/state_module.mod \
+   ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
+   ../include/confdefs.h ../include/adapt_state_prescribed_module.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/transform_elements.mod \
+   ../include/signals.mod ../include/write_state_module.mod \
+   ../include/spud.mod ../include/fldebug.mod \
+   ../include/diagnostic_fields_wrapper.mod ../include/coriolis_module.mod \
+   ../include/checkpoint.mod ../include/solvers.mod \
+   ../include/parallel_tools.mod ../include/state_fields_module.mod \
+   ../include/fdebug.h
+
+../include/fluids_module.mod: Fluids.o
+	@true
+
+Fluids.o ../include/fluids_module.mod: Fluids.F90 \
+   ../include/saturation_distribution_search_hookejeeves.mod \
+   ../include/multimaterial_module.mod ../include/populate_state_module.mod \
+   ../include/vtk_interfaces.mod ../include/field_priority_lists.mod \
+   ../include/momentum_equation.mod ../include/goals.mod \
+   ../include/foam_flow_module.mod ../include/solidconfiguration.mod \
+   ../include/synthetic_bc.mod ../include/eventcounter.mod \
+   ../include/timeloop_utilities.mod ../include/auxilaryoptions.mod \
+   ../include/write_triangle.mod ../include/populate_sub_state_module.mod \
+   ../include/diagnostic_fields_new.mod ../include/qmesh_module.mod \
+   ../include/vertical_extrapolation_module.mod \
+   ../include/discrete_properties_module.mod \
+   ../include/adaptive_timestepping.mod \
+   ../include/iceshelf_meltrate_surf_normal.mod \
+   ../include/conformity_measurement.mod ../include/global_parameters.mod \
+   ../include/field_equations_cv.mod ../include/free_surface_module.mod \
+   ../include/sparse_tools.mod ../include/fields.mod ../include/timers.mod \
+   ../include/memory_diagnostics.mod ../include/adjacency_lists.mod \
+   ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
+   ../include/diagnostic_variables.mod ../include/advection_diffusion_cg.mod \
+   ../include/ale_module.mod ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/adapt_state_prescribed_module.mod ../include/meshdiagnostics.mod \
+   ../include/porous_media.mod ../include/gls.mod ../include/elements.mod \
+   ../include/write_state_module.mod ../include/spud.mod \
+   ../include/advection_diffusion_fv.mod ../include/advection_diffusion_dg.mod \
+   ../include/multiphase_module.mod ../include/fldebug.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/spontaneous_potentials.mod ../include/signal_vars.mod \
+   ../include/halos.mod ../include/equation_of_state.mod \
+   ../include/implicit_solids.mod ../include/biology.mod \
+   ../include/k_epsilon.mod ../include/traffic.mod \
+   ../include/diagnostic_children.mod ../include/adapt_state_module.mod \
+   ../include/checkpoint.mod ../include/sediment.mod \
+   ../include/parallel_tools.mod ../include/radiation.mod \
+   ../include/meshmovement.mod ../include/fdebug.h
+
+Burgers_Equation.o : Burgers_Equation.F90 ../include/populate_state_module.mod \
+   ../include/vtk_interfaces.mod ../include/colouring.mod \
+   ../include/sparse_matrices_fields.mod ../include/timeloop_utilities.mod \
+   ../include/diagnostic_fields_new.mod ../include/fields.mod \
+   ../include/memory_diagnostics.mod ../include/fldebug.mod \
+   ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/sparsity_patterns_meshes.mod ../include/elements.mod \
+   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
+   ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
+   ../include/state_module.mod ../include/diagnostic_fields_wrapper.mod \
+   ../include/signal_vars.mod ../include/solvers.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/adjoint_functionals.mod ../include/fdebug.h
+
+Shallow_Water.o : Shallow_Water.F90 ../include/populate_state_module.mod \
+   ../include/vtk_interfaces.mod ../include/sparse_matrices_fields.mod \
+   ../include/timeloop_utilities.mod ../include/diagnostic_fields_new.mod \
+   ../include/assemble_cmc.mod ../include/adapt_state_prescribed_module.mod \
+   ../include/fields.mod ../include/memory_diagnostics.mod \
+   ../include/fldebug.mod ../include/reserve_state_module.mod \
+   ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/linear_shallow_water.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
+   ../include/spud.mod ../include/advection_diffusion_dg.mod \
+   ../include/state_module.mod ../include/diagnostic_fields_wrapper.mod \
+   ../include/manifold_projections.mod ../include/solvers.mod \
+   ../include/global_parameters.mod ../include/advection_diffusion_cg.mod \
+   ../include/fdebug.h
+
+Shallow_Water_Legacy.o : Shallow_Water_Legacy.F90 \
+   ../include/populate_state_module.mod ../include/sparse_matrices_fields.mod \
+   ../include/timeloop_utilities.mod ../include/diagnostic_fields_new.mod \
+   ../include/linear_shallow_water_legacy.mod ../include/assemble_cmc.mod \
+   ../include/fields.mod ../include/memory_diagnostics.mod \
+   ../include/fldebug.mod ../include/reserve_state_module.mod \
+   ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/adapt_state_prescribed_module.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/mangle_options_tree.mod \
+   ../include/write_state_module.mod ../include/spud.mod \
+   ../include/advection_diffusion_dg.mod ../include/state_module.mod \
+   ../include/diagnostic_fields_wrapper.mod ../include/solvers.mod \
+   ../include/global_parameters.mod ../include/advection_diffusion_cg.mod \
+   ../include/fdebug.h
+
+mainfl.o : mainfl.F90 ../include/fluids_module.mod ../include/confdefs.h \
+   ../include/tictoc.mod ../include/signals.mod ../include/spud.mod \
+   ../include/fdebug.h ../include/fldebug.mod
+

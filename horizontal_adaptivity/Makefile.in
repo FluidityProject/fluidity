@@ -53,71 +53,73 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -I../include -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 clean:
 	rm -f *.o *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/hadapt_advancing_front.mod: Advancing_front.o
+	@true
 
-mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Extrude_radially.F90 || (rm ../lib/libfluidity.a && false)
-   Extrude_radially.o ../include/hadapt_extrude_radially.mod: \
-   Extrude_radially.F90 ../include/fdebug.h ../include/confdefs.h \
-   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
-   ../include/quadrature.mod ../include/global_parameters.mod \
-   ../include/sparse_tools.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod ../include/linked_lists.mod \
-   ../include/hadapt_combine_meshes.mod ../include/halos.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
-
-
-mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Advancing_front.F90 || (rm ../lib/libfluidity.a && false)
-   Advancing_front.o ../include/hadapt_advancing_front.mod: \
-   Advancing_front.F90 ../include/fdebug.h ../include/confdefs.h \
-   ../include/fields.mod ../include/sparse_tools.mod \
-   ../include/quicksort.mod ../include/linked_lists.mod \
-   ../include/adjacency_lists.mod ../include/meshdiagnostics.mod \
-   ../include/data_structures.mod ../include/spud.mod ../include/halos.mod \
-   ../include/halos_derivation.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
-
-
-mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Combine_Meshes.F90 || (rm ../lib/libfluidity.a && false)
-   Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
-   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
-   ../include/fields.mod ../include/spud.mod ../include/quadrature.mod \
-   ../include/global_parameters.mod ../include/sparse_tools.mod \
-   ../include/hadapt_advancing_front.mod ../include/linked_lists.mod \
-   ../include/halos.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
-
-
-mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Metric_based_extrude.F90 || (rm ../lib/libfluidity.a && false)
-   Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
-   Metric_based_extrude.F90 ../include/fdebug.h ../include/confdefs.h \
-   ../include/elements.mod ../include/fields.mod \
-   ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/metric_tools.mod ../include/vector_tools.mod \
+Advancing_front.o ../include/hadapt_advancing_front.mod: Advancing_front.F90 \
+   ../include/confdefs.h ../include/quicksort.mod \
    ../include/meshdiagnostics.mod ../include/halos.mod \
-   ../include/vtk_interfaces.mod ../include/hadapt_combine_meshes.mod \
-   ../include/global_parameters.mod ../include/quicksort.mod \
-   ../include/data_structures.mod ../include/interpolation_module.mod \
-   ../include/hadapt_advancing_front.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+   ../include/linked_lists.mod ../include/halos_derivation.mod \
+   ../include/sparse_tools.mod ../include/fields.mod ../include/spud.mod \
+   ../include/adjacency_lists.mod ../include/data_structures.mod \
+   ../include/fdebug.h
 
+../include/hadapt_combine_meshes.mod: Combine_Meshes.o
+	@true
 
-mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Extrude.F90 || (rm ../lib/libfluidity.a && false)
-   Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/fdebug.h \
-   ../include/confdefs.h ../include/elements.mod ../include/fields.mod \
-   ../include/spud.mod ../include/quadrature.mod \
-   ../include/global_parameters.mod ../include/sparse_tools.mod \
+Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
+   ../include/confdefs.h ../include/quadrature.mod \
+   ../include/hadapt_advancing_front.mod ../include/halos.mod \
+   ../include/linked_lists.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/fdebug.h
+
+../include/hadapt_extrude_radially.mod: Extrude_radially.o
+	@true
+
+Extrude_radially.o ../include/hadapt_extrude_radially.mod: \
+   Extrude_radially.F90 ../include/halos.mod ../include/confdefs.h \
+   ../include/quadrature.mod ../include/hadapt_combine_meshes.mod \
    ../include/vtk_interfaces.mod ../include/linked_lists.mod \
-   ../include/hadapt_combine_meshes.mod ../include/halos.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+   ../include/vector_tools.mod ../include/sparse_tools.mod \
+   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
+   ../include/global_parameters.mod ../include/fdebug.h
+
+../include/hadapt_metric_based_extrude.mod: Metric_based_extrude.o
+	@true
+
+Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
+   Metric_based_extrude.F90 ../include/hadapt_advancing_front.mod \
+   ../include/quicksort.mod ../include/confdefs.h \
+   ../include/vtk_interfaces.mod ../include/hadapt_combine_meshes.mod \
+   ../include/meshdiagnostics.mod ../include/halos.mod \
+   ../include/interpolation_module.mod ../include/global_parameters.mod \
+   ../include/vector_tools.mod ../include/sparse_tools.mod \
+   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/metric_tools.mod
+
+../include/hadapt_extrude.mod: Extrude.o
+	@true
+
+Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/halos.mod \
+   ../include/confdefs.h ../include/quadrature.mod \
+   ../include/hadapt_combine_meshes.mod ../include/vtk_interfaces.mod \
+   ../include/linked_lists.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/fdebug.h
 

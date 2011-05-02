@@ -46,20 +46,22 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 OBJS = Diagnostic_Fields_Wrapper_New.o
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -68,16 +70,12 @@ clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/diagnostic_fields_wrapper_new.mod: Diagnostic_Fields_Wrapper_New.o
+	@true
 
-mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Diagnostic_Fields_Wrapper_New.F90 || (rm ../lib/libfluidity.a && false)
-   Diagnostic_Fields_Wrapper_New.o \
-   ../include/diagnostic_fields_wrapper_new.mod: \
-   Diagnostic_Fields_Wrapper_New.F90 ../include/fdebug.h \
-   ../include/confdefs.h ../include/fields.mod \
-   ../include/global_parameters.mod ../include/state_module.mod \
-   ../include/state_module.mod ../include/fields_data_types.mod \
-   ../include/state_module.mod ../include/fields_data_types.mod \
-   ../include/state_module.mod ../include/fields_data_types.mod \
+Diagnostic_Fields_Wrapper_New.o ../include/diagnostic_fields_wrapper_new.mod: \
+   Diagnostic_Fields_Wrapper_New.F90 ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/fields_data_types.mod ../include/fdebug.h \
    ../include/state_module.mod
-   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/forward_interfaces'
 

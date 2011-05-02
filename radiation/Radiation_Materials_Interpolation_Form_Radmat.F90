@@ -34,8 +34,10 @@ module radiation_materials_interpolation_form_radmat
 
    use futils   
    use global_parameters, only : OPTION_PATH_LEN
+   use spud
    use fields
-  
+   use state_module
+     
    use radiation_materials  
    use radiation_materials_interpolation_data_types
 
@@ -55,7 +57,8 @@ contains
 
    ! --------------------------------------------------------------------------
    
-   subroutine form_radiation_material_diffusivity_field(energy_group_set_ii, &
+   subroutine form_radiation_material_diffusivity_field(state, &
+                                                        energy_group_set_ii, &
                                                         particle_radmat, &
                                                         diffusivity_field, &                                                   
                                                         g, &
@@ -63,6 +66,7 @@ contains
 
       !!< Form a radiation material diffusivity field for group g
 
+      type(state_type), intent(in) :: state
       type(energy_group_set_ii_type), intent(in) :: energy_group_set_ii  
       type(particle_radmat_type), intent(in) :: particle_radmat  
       type(tensor_field), intent(inout) :: diffusivity_field
@@ -70,21 +74,74 @@ contains
       integer, intent(in) :: geom_dim
       
       ! local variables
-      integer :: inode
-      real, dimension(:,:), allocatable :: node_values
+      integer :: status
+      integer :: inode,r
+      integer :: number_of_rotations
+      real :: cos_angle_node_val, sin_angle_node_val
+      real, dimension(:,:), allocatable :: diff_node_values
+      real, dimension(:,:), allocatable :: rotation_matrix
+      character(len=OPTION_PATH_LEN) :: rotation_path
+      character(len=OPTION_PATH_LEN) :: field_name
+      character, dimension(:), allocatable :: rotation_dimension
+      type(scalar_field_pointer), dimension(:), pointer :: angle
       
-      allocate(node_values(geom_dim,geom_dim))
+      number_of_rotations = 0
+      
+      ! determine if the diffusivity tensor is to be rotated
+      not_1d: if (geom_dim > 1) then
+      
+         rotation_path = trim(diffusivity_field%option_path)//'/diagnostic/rotation'
+      
+         number_of_rotations = option_count(trim(rotation_path))
+      
+         rotations_extract: if (number_of_rotations > 0) then
+         
+            allocate(rotation_matrix(geom_dim,geom_dim))
+
+            allocate(rotation_dimension(geom_dim))
+         
+            allocate(angle(number_of_rotations))
+         
+            rotation_extract_loop: do r = 1,number_of_rotations
+            
+               allocate(angle(r)%ptr)
+
+               field_name = trim(diffusivity_field%name)//'Rotation'//int2str(r)
+
+               angle(r)%ptr => extract_scalar_field(state, &
+                                                    trim(field_name), &
+                                                    stat=status)
+
+               if (status /= 0) FLAbort('Failed to extract angle rotation field from state')
+            
+               ! find the rotation dimension (or axis) for this angle field
+               call get_option(trim(diffusivity_field%option_path)//'/diagnostic/rotation['//int2str(r-1)//']/axis/name', &
+                               rotation_dimension(r))
+            
+               only_Z_2d: if ((trim(rotation_dimension(r)) /= 'Z') .and. (geom_dim == 2)) then
+               
+                  FLAbort('For 2 dimension geometry only a Z axis rotation is appropriate')
+               
+               end if only_Z_2d
+            
+            end do rotation_extract_loop
+                        
+         end if rotations_extract
+      
+      end if not_1d
+            
+      allocate(diff_node_values(geom_dim,geom_dim))
       
       node_loop: do inode = 1,node_count(diffusivity_field)                                                                      
          
-         node_values = 0.0
-         
+         diff_node_values = 0.0
+                  
          ! get the inode diffusionx data for this energy group
          call form(energy_group_set_ii, &
                    particle_radmat, &
                    inode, &
                    g, &
-                   node_values(1,1), &
+                   diff_node_values(1,1), &
                    component = 'diffusionx')
 
          second: if (geom_dim > 1) then
@@ -94,7 +151,7 @@ contains
                       particle_radmat, &
                       inode, &
                       g, &
-                      node_values(2,2), &
+                      diff_node_values(2,2), &
                       component = 'diffusiony')
 
          end if second
@@ -106,23 +163,87 @@ contains
                       particle_radmat, &
                       inode, &
                       g, &
-                      node_values(3,3), &
+                      diff_node_values(3,3), &
                       component = 'diffusionz')
 
          end if third
          
          ! rotate the diffusivity tensor for this node if required
          
+         rotations_apply: if (number_of_rotations > 0) then
          
+            rotation_apply_loop: do r = 1,number_of_rotations
+               
+               cos_angle_node_val = cos(node_val(angle(r)%ptr,inode))
+               sin_angle_node_val = sin(node_val(angle(r)%ptr,inode))
+               
+               dim: if (geom_dim == 2) then
+                  
+                  rotation_matrix(1,1) =  cos_angle_node_val
+                  rotation_matrix(1,2) = -sin_angle_node_val
+                  rotation_matrix(2,1) =  sin_angle_node_val
+                  rotation_matrix(2,2) =  cos_angle_node_val
+               
+               else dim
+
+                  axis: if (trim(rotation_dimension(r)) == 'X') then
+
+                     rotation_matrix(1,1) =  1.0
+                     rotation_matrix(1,2) =  0.0
+                     rotation_matrix(1,3) =  0.0
+                     rotation_matrix(2,1) =  0.0
+                     rotation_matrix(2,2) =  cos_angle_node_val
+                     rotation_matrix(2,3) = -sin_angle_node_val
+                     rotation_matrix(3,1) =  0.0
+                     rotation_matrix(3,2) =  sin_angle_node_val
+                     rotation_matrix(3,3) =  cos_angle_node_val
+
+                  else if (trim(rotation_dimension(r)) == 'Y') then axis
+
+                     rotation_matrix(1,1) =  cos_angle_node_val
+                     rotation_matrix(1,2) =  0.0
+                     rotation_matrix(1,3) =  sin_angle_node_val
+                     rotation_matrix(2,1) =  0.0
+                     rotation_matrix(2,2) =  1.0
+                     rotation_matrix(2,3) =  0.0
+                     rotation_matrix(3,1) = -sin_angle_node_val
+                     rotation_matrix(3,2) =  0.0
+                     rotation_matrix(3,3) =  cos_angle_node_val
+
+                  else if (trim(rotation_dimension(r)) == 'Z') then axis
+                 
+                     rotation_matrix(1,1) =  cos_angle_node_val
+                     rotation_matrix(1,2) = -sin_angle_node_val
+                     rotation_matrix(1,3) =  0.0
+                     rotation_matrix(2,1) =  sin_angle_node_val
+                     rotation_matrix(2,2) =  cos_angle_node_val
+                     rotation_matrix(2,3) =  0.0
+                     rotation_matrix(3,1) =  0.0
+                     rotation_matrix(3,2) =  0.0
+                     rotation_matrix(3,3) =  1.0
+                 
+                  end if axis
+               
+               end if dim
+               
+               diff_node_values = matmul(rotation_matrix,matmul(diff_node_values,transpose(rotation_matrix)))
+               
+            end do rotation_apply_loop
+            
+         end if rotations_apply
                
          ! set the interpolated node values into the tensor field
          call set(diffusivity_field, &
                   inode, &
-                  node_values)
+                  diff_node_values)
                
       end do node_loop
       
-      if (allocated(node_values)) deallocate(node_values)
+      if (allocated(diff_node_values))   deallocate(diff_node_values)
+      if (allocated(rotation_matrix))    deallocate(rotation_matrix)
+      if (allocated(rotation_dimension)) deallocate(rotation_dimension)
+      
+      if (associated(angle)) deallocate(angle)
    
    end subroutine form_radiation_material_diffusivity_field
    
@@ -135,7 +256,8 @@ contains
                                                    component, &
                                                    g_dash) 
       
-      !!< Form a radiation material scalar field for the component for group g (and perhaps associated with g_dash)
+      !!< Form a radiation material scalar field for the component for group g 
+      !!< (and perhaps associated with g_dash)
       
       type(energy_group_set_ii_type), intent(in) :: energy_group_set_ii  
       type(particle_radmat_type), intent(in) :: particle_radmat  
@@ -185,7 +307,7 @@ contains
       type(particle_radmat_type), intent(in) :: particle_radmat 
       integer, intent(in) :: inode 
       integer, intent(in) :: g
-      real, intent(inout) :: value 
+      real, intent(out) :: value 
       character(len=*), intent(in) :: component  
       integer, intent(in), optional :: g_dash   
       
@@ -193,7 +315,7 @@ contains
       integer :: dmat
       integer :: pmat
       
-      ! initialise values
+      ! initialise value
       value = 0.0
       
       ! use the region id ii

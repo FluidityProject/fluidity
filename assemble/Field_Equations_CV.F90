@@ -202,7 +202,7 @@ contains
       ! extract lots of fields:
       ! the actual thing we're trying to solve for
       tfield=>extract_scalar_field(state(1), trim(field_name))
-      ewrite_minmax(tfield%val)
+      ewrite_minmax(tfield)
       option_path=tfield%option_path
       ! its previous timelevel - if we're doing more than one iteration per timestep!
       oldtfield=>extract_scalar_field(state(1), "Old"//trim(field_name))
@@ -213,8 +213,8 @@ contains
       it_tfield=>extract_scalar_field(state(1), "Iterated"//trim(field_name))
       ! and set tfield to them:
       call set(tfield, it_tfield)
-      ewrite_minmax(tfield%val)
-      ewrite_minmax(oldtfield%val)
+      ewrite_minmax(tfield)
+      ewrite_minmax(oldtfield)
 
       ! allocate dummy scalar in case density/source/absorption fields aren't needed (this can be a constant field!)
       allocate(dummyscalar)
@@ -253,11 +253,11 @@ contains
         ! ?? are there circumstances where this should be "Iterated"... need to be
         ! careful with priority ordering
         tdensity=>extract_scalar_field(state(1), trim(tmpstring))
-        ewrite_minmax(tdensity%val)
+        ewrite_minmax(tdensity)
         ! halo exchange? - not currently necessary when suboptimal halo exchange if density
         ! is solved for with this subroutine and the correct priority ordering.
         oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
-        ewrite_minmax(oldtdensity%val)
+        ewrite_minmax(oldtdensity)
       end select
 
       ! get the density option path
@@ -287,9 +287,7 @@ contains
       include_advection = .not.(tfield_options%facevalue==CV_FACEVALUE_NONE)
       if(include_advection) then
         nu=>extract_vector_field(state(1), "NonlinearVelocity")
-        do i = 1, nu%dim
-          ewrite_minmax(nu%val(i,:))
-        end do
+        ewrite_minmax(nu)
         ! find relative velocity
         allocate(advu)
         call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
@@ -308,9 +306,7 @@ contains
           ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
           call addto(advu, gravity, scale=sink)
         end if
-        do i = 1, advu%dim
-          ewrite_minmax(advu%val(i,:))
-        end do
+        ewrite_minmax(advu)
       else
         ewrite(2,*) 'Excluding advection'
         advu => dummyvector
@@ -328,11 +324,7 @@ contains
       if(.not.include_diffusion) then
         diffusivity => dummytensor
       else
-        do i = 1, mesh_dim(diffusivity)
-          do j = 1, mesh_dim(diffusivity)
-            ewrite_minmax(diffusivity%val(i,j,:))
-          end do
-        end do
+        ewrite_minmax(diffusivity)
       end if
       
       ! do we have a source?
@@ -341,7 +333,7 @@ contains
       if(.not.include_source) then
         source=>dummyscalar
       else
-        ewrite_minmax(source%val)
+        ewrite_minmax(source)
       end if
       
       ! do we have an absorption?
@@ -350,7 +342,7 @@ contains
       if(.not.include_absorption) then
         absorption=>dummyscalar
       else
-        ewrite_minmax(absorption%val)
+        ewrite_minmax(absorption)
       end if
 
       ! create control volume shape functions
@@ -502,7 +494,7 @@ contains
         ! (this replaces hart2/3d etc. in old code!!)
         t_lumpedmass => get_lumped_mass(state, tfield%mesh)
       end if
-      ewrite_minmax(t_lumpedmass%val)
+      ewrite_minmax(t_lumpedmass)
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
       if(move_mesh) then
@@ -520,13 +512,11 @@ contains
           call compute_lumped_mass(x_old, t_lumpedmass_old)
           call compute_lumped_mass(x_new, t_lumpedmass_new)
         end if
-        ewrite_minmax(t_lumpedmass_old%val)
-        ewrite_minmax(t_lumpedmass_new%val)
+        ewrite_minmax(t_lumpedmass_old)
+        ewrite_minmax(t_lumpedmass_new)
         
         ug=>extract_vector_field(state(1), "GridVelocity")
-        do i = 1, ug%dim
-          ewrite_minmax(ug%val(i,:))
-        end do
+        ewrite_minmax(ug)
 
         ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
         ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
@@ -1071,7 +1061,7 @@ contains
 
         ! construct rhs
         p=>extract_scalar_field(state(1), "Pressure")
-        ewrite_minmax(p%val)
+        ewrite_minmax(p)
         assert(p%mesh==tfield%mesh)
         ! halo exchange not necessary as it is done straight after solve
         call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
@@ -2368,7 +2358,7 @@ contains
         ! (this replaces hart2/3d etc. in old code!!)
         t_lumpedmass => get_lumped_mass(state, tfield(1)%ptr%mesh)
       end if
-      ewrite_minmax(t_lumpedmass%val)
+      ewrite_minmax(t_lumpedmass)
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
       if(move_mesh) then
@@ -2387,13 +2377,11 @@ contains
           call compute_lumped_mass(x_old, t_lumpedmass_old)
           call compute_lumped_mass(x_new, t_lumpedmass_new)
         end if
-        ewrite_minmax(t_lumpedmass_old%val)
-        ewrite_minmax(t_lumpedmass_new%val)
+        ewrite_minmax(t_lumpedmass_old)
+        ewrite_minmax(t_lumpedmass_new)
         
         ug=>extract_vector_field(state(1), "GridVelocity")
-        do i = 1, ug%dim
-          ewrite_minmax(ug%val(i,:))
-        end do
+        ewrite_minmax(ug)
 
         ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
         ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
@@ -2535,7 +2523,7 @@ contains
               call petsc_solve(delta_tfield(f), M(f), rhs(f), state(1))
             end if
 
-            ewrite_minmax(delta_tfield(f)%val)
+            ewrite_minmax(delta_tfield(f))
 
             ! reset tfield to l_old_tfield before applying change
             call set(tfield(f)%ptr, l_old_tfield(f)%ptr)
@@ -2556,7 +2544,7 @@ contains
         end do advection_iteration_loop
 
         do f = 1, nfields
-          ewrite_minmax(tfield(f)%ptr%val)
+          ewrite_minmax(tfield(f)%ptr)
           ! update the local old field to the new values and start again
           call set(l_old_tfield(f)%ptr, tfield(f)%ptr)
         end do

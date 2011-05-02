@@ -17,6 +17,8 @@ input: clean
 	gfortran -o $(SIM)wic_vol_bc    $(SIM)wic_vol_bc.f90
 	gfortran -o $(SIM)EOSCoeff      $(SIM)EOSCoeff.f90
 	gfortran -o $(SIM)Comp          $(SIM)Comp.f90
+	gfortran -o $(SIM)Comp2		$(SIM)Comp2.f90
+	gfortran -o $(SIM)suf_comp_bc   $(SIM)suf_comp_bc.f90
 
 clean:
 	rm -f $(SIM)KComp 
@@ -29,6 +31,8 @@ clean:
 	rm -f $(SIM)wic_vol_bc
 	rm -f $(SIM)EOSCoeff
 	rm -f $(SIM)Comp
+	rm -f $(SIM)Comp2
+	rm -f $(SIM)suf_comp_bc
 	rm -f gmon.out
 	rm -f *.d.*   
 	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*

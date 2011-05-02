@@ -144,7 +144,7 @@ def forcing_eps(XX):
    nut = 1./4.*numax*etav**4*exp(2.-etav**2)
 
    # Need to prevent k=0:
-   kmin = 1.e-5
+   kmin = 1.e-3
    k = max(tke(XX), kmin)
    e = eps(XX)
 

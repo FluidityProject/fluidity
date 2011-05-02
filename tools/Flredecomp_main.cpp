@@ -42,9 +42,8 @@
 using namespace std;
 
 extern "C"{
-#define flredecomp F77_FUNC(flredecomp, FLREDECOMP)
-  void flredecomp(const char* input_basename, const int* input_basename_len, const char* output_basename, const int* output_basename_len,
-                  const int* input_nprocs, const int* target_nprocs);
+  void flredecomp(const char* input_basename, size_t input_basename_len, const char* output_basename, size_t output_basename_len,
+                  int input_nprocs, int target_nprocs);
 }
 
 void Usage(){
@@ -156,10 +155,10 @@ int main(int argc, char** argv){
   }
   int target_nprocs = atoi(args['o'].c_str());
     
-  int input_basename_len = input_basename.size();
-  int output_basename_len = output_basename.size();
-  flredecomp(input_basename.c_str(), &input_basename_len, output_basename.c_str(), &output_basename_len,
-             &input_nprocs, &target_nprocs);
+  size_t input_basename_len = input_basename.size();
+  size_t output_basename_len = output_basename.size();
+  flredecomp(input_basename.c_str(), input_basename_len, output_basename.c_str(), output_basename_len,
+             input_nprocs, target_nprocs);
 
 #ifdef HAVE_MPI
   MPI::Finalize();

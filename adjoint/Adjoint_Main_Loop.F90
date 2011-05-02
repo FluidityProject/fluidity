@@ -99,10 +99,12 @@ module adjoint_main_loop
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .true.
 
-      ! Switch the html output on if you are interested what the adjointer has registered
-      ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
-      ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
-      call adj_chkierr(ierr)
+      if (have_option("/adjoint/html_output")) then
+        ! Switch the html output on if you are interested what the adjointer has registered
+        ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
+        ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
+        call adj_chkierr(ierr)
+      end if
 
       no_functionals = option_count("/adjoint/functional")
 

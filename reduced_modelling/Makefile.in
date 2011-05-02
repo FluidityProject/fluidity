@@ -50,18 +50,35 @@ OBJS    = snapsvd.o\
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/snapsvd_module.mod: snapsvd.o
+	@true
+
+snapsvd.o ../include/snapsvd_module.mod: snapsvd.F90 \
+   ../include/vector_tools.mod ../include/confdefs.h ../include/fdebug.h \
+   ../include/fldebug.mod
+
+Form_Pod_Basis_Main.o : Form_Pod_Basis_Main.F90 ../include/snapsvd_module.mod \
+   ../include/confdefs.h ../include/vtk_interfaces.mod \
+   ../include/write_state_module.mod ../include/spud.mod \
+   ../include/timeloop_utilities.mod ../include/state_module.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/memory_diagnostics.mod ../include/fldebug.mod \
+   ../include/fdebug.h
+

@@ -49,16 +49,21 @@ OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard 
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+default: $(LIB)
+
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -67,4 +72,86 @@ clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/adjoint_python.mod: Adjoint_Python_Fortran.o
+	@true
+
+Adjoint_Python_Fortran.o ../include/adjoint_python.mod: \
+   Adjoint_Python_Fortran.F90 ../include/confdefs.h ../include/fdebug.h
+
+../include/mangle_dirichlet_rows_module.mod: Mangle_Dirichlet_Rows_Module.o
+	@true
+
+Mangle_Dirichlet_Rows_Module.o ../include/mangle_dirichlet_rows_module.mod: \
+   Mangle_Dirichlet_Rows_Module.F90 ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/sparse_matrices_fields.mod ../include/fdebug.h
+
+../include/shallow_water_adjoint_callbacks.mod: \
+   Shallow_Water_Adjoint_Callbacks.o
+	@true
+
+Shallow_Water_Adjoint_Callbacks.o \
+   ../include/shallow_water_adjoint_callbacks.mod: \
+   Shallow_Water_Adjoint_Callbacks.F90 ../include/confdefs.h \
+   ../include/fdebug.h
+
+../include/adjoint_functional_evaluation.mod: Adjoint_Functional_Evaluation.o
+	@true
+
+Adjoint_Functional_Evaluation.o ../include/adjoint_functional_evaluation.mod: \
+   Adjoint_Functional_Evaluation.F90 ../include/confdefs.h ../include/fdebug.h
+
+../include/adjoint_global_variables.mod: Adjoint_Global_Variables.o
+	@true
+
+Adjoint_Global_Variables.o ../include/adjoint_global_variables.mod: \
+   Adjoint_Global_Variables.F90 ../include/confdefs.h ../include/fdebug.h
+
+Libadjoint_Data_Callbacks.o : Libadjoint_Data_Callbacks.F90 \
+   ../include/confdefs.h
+
+../include/mangle_options_tree.mod: Mangle_Options_Tree.o
+	@true
+
+Mangle_Options_Tree.o ../include/mangle_options_tree.mod: \
+   Mangle_Options_Tree.F90 ../include/confdefs.h ../include/futils.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/spud.mod ../include/fdebug.h ../include/fldebug.mod
+
+../include/burgers_adjoint_callbacks.mod: Burgers_Adjoint_Callbacks.o
+	@true
+
+Burgers_Adjoint_Callbacks.o ../include/burgers_adjoint_callbacks.mod: \
+   Burgers_Adjoint_Callbacks.F90 ../include/confdefs.h ../include/fdebug.h
+
+../include/forward_main_loop.mod: Forward_Main_Loop.o
+	@true
+
+Forward_Main_Loop.o ../include/forward_main_loop.mod: Forward_Main_Loop.F90 \
+   ../include/diagnostic_fields_new.mod ../include/confdefs.h \
+   ../include/adjoint_functional_evaluation.mod ../include/sparse_tools.mod \
+   ../include/signal_vars.mod ../include/adjoint_global_variables.mod \
+   ../include/write_state_module.mod ../include/diagnostic_fields_wrapper.mod \
+   ../include/solvers.mod ../include/populate_state_module.mod \
+   ../include/global_parameters.mod ../include/fields.mod ../include/fdebug.h \
+   ../include/spud.mod ../include/mangle_options_tree.mod \
+   ../include/sparse_matrices_fields.mod \
+   ../include/mangle_dirichlet_rows_module.mod \
+   ../include/diagnostic_variables.mod ../include/state_module.mod
+
+../include/adjoint_main_loop.mod: Adjoint_Main_Loop.o
+	@true
+
+Adjoint_Main_Loop.o ../include/adjoint_main_loop.mod: Adjoint_Main_Loop.F90 \
+   ../include/adjoint_functional_evaluation.mod ../include/confdefs.h \
+   ../include/sparse_tools.mod ../include/signal_vars.mod \
+   ../include/adjoint_global_variables.mod \
+   ../include/diagnostic_fields_new.mod ../include/write_state_module.mod \
+   ../include/diagnostic_fields_wrapper.mod ../include/solvers.mod \
+   ../include/populate_state_module.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/fdebug.h ../include/spud.mod \
+   ../include/mangle_options_tree.mod ../include/sparse_matrices_fields.mod \
+   ../include/mangle_dirichlet_rows_module.mod \
+   ../include/diagnostic_variables.mod ../include/state_module.mod
 
