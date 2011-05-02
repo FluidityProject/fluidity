@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@
 
 UTFC    = ../scripts/unittest_f90
 
@@ -49,29 +49,75 @@ TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 # These are all the objects that are supposed to go into the makefile
 OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Combine_Meshes.o
 
-.SUFFIXES: .f90 .F90 .c .o .a
+.SUFFIXES: .F90 .c .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 .cpp.o:
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
 
 clean:
 	rm -f *.o *.mod
 
-Combine_Meshes.o: Advancing_front.o
+#####Automatically generated dependencies. Do not edit below this line#####
 
-Extrude.o: Combine_Meshes.o
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Extrude_radially.F90 || (rm ../lib/libfluidity.a && false)
+   Extrude_radially.o ../include/hadapt_extrude_radially.mod: \
+   Extrude_radially.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
+   ../include/quadrature.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod ../include/linked_lists.mod \
+   ../include/hadapt_combine_meshes.mod ../include/halos.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
 
-Metric_based_extrude.o: Combine_Meshes.o Advancing_front.o
 
-Extrude_radially.o: Combine_Meshes.o
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Advancing_front.F90 || (rm ../lib/libfluidity.a && false)
+   Advancing_front.o ../include/hadapt_advancing_front.mod: \
+   Advancing_front.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields.mod ../include/sparse_tools.mod \
+   ../include/quicksort.mod ../include/linked_lists.mod \
+   ../include/adjacency_lists.mod ../include/meshdiagnostics.mod \
+   ../include/data_structures.mod ../include/spud.mod ../include/halos.mod \
+   ../include/halos_derivation.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+
+
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Combine_Meshes.F90 || (rm ../lib/libfluidity.a && false)
+   Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/fields.mod ../include/spud.mod ../include/quadrature.mod \
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/hadapt_advancing_front.mod ../include/linked_lists.mod \
+   ../include/halos.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+
+
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Metric_based_extrude.F90 || (rm ../lib/libfluidity.a && false)
+   Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
+   Metric_based_extrude.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/fields.mod \
+   ../include/sparse_tools.mod ../include/spud.mod \
+   ../include/metric_tools.mod ../include/vector_tools.mod \
+   ../include/meshdiagnostics.mod ../include/halos.mod \
+   ../include/vtk_interfaces.mod ../include/hadapt_combine_meshes.mod \
+   ../include/global_parameters.mod ../include/quicksort.mod \
+   ../include/data_structures.mod ../include/interpolation_module.mod \
+   ../include/hadapt_advancing_front.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+
+
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -M -c Extrude.F90 || (rm ../lib/libfluidity.a && false)
+   Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/quadrature.mod \
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/vtk_interfaces.mod ../include/linked_lists.mod \
+   ../include/hadapt_combine_meshes.mod ../include/halos.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/horizontal_adaptivity'
+

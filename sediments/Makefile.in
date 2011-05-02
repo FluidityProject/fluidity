@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@ -I/usr/local/include -I./
 
 CC      = @CC@
 CFLAGS  = @CFLAGS@ -I../include -I/usr/local/include
@@ -50,13 +50,33 @@ OBJS = Sediment.o Sediment_Diagnostics.o \
 	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
-
-Sediment_Diagnostics.o: Sediment.o
 
 clean:
 	rm -f *.o *.d *.mod
+
+#####Automatically generated dependencies. Do not edit below this line#####
+
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Sediment_Diagnostics.F90 || (rm ../lib/libfluidity.a && false)
+   Sediment_Diagnostics.o ../include/sediment_diagnostics.mod: \
+   Sediment_Diagnostics.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/state_module.mod \
+   ../include/fields.mod ../include/vector_tools.mod ../include/spud.mod \
+   ../include/fetools.mod ../include/sediment.mod \
+   ../include/boundary_conditions.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/sediments'
+
+
+mpif90 -I../include -J../include -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Sediment.F90 || (rm ../lib/libfluidity.a && false)
+   Sediment.o ../include/sediment.mod: Sediment.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/quadrature.mod ../include/elements.mod \
+   ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/sparse_matrices_fields.mod ../include/state_module.mod \
+   ../include/spud.mod ../include/global_parameters.mod \
+   ../include/state_fields_module.mod ../include/boundary_conditions.mod \
+   ../include/fldebug.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/sediments'
+

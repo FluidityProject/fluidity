@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -46,14 +46,11 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 OBJS = Fluids.o Usage.o mainfl.o 
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
@@ -62,15 +59,12 @@ OBJS = Fluids.o Usage.o mainfl.o
 	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
 
 default: $(OBJS)
-	cp *.mod ../include/
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Usage.o: ../include/Usage.h ../include/confdefs.h
-mainfl.o: Fluids.o 
-
 clean:
 	rm -f *.o *.d *.mod
 
+#####Automatically generated dependencies. Do not edit below this line#####

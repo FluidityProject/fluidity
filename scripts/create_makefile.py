@@ -7,7 +7,9 @@ import glob
 exceptions=set(["Refcount_interface_templates.F90",
                 "Refcount_templates.F90",
                 "testshapefunctions.F90",
-                "test_element_numbering.F90"])
+                "test_element_numbering.F90",
+                "Residual_estimation.F90",
+                "mmpde.F90"])
 
 def trysystem(command):
     if not(os.system(command)==0):
@@ -19,7 +21,8 @@ def create_refcounts():
 
     refcounts=re.findall(r'"Reference_count.*?"',refcounts_raw)
 
-    trysystem("make "+" ".join(refcounts))
+    if len(refcounts)>0:
+        trysystem("make "+" ".join(refcounts))
 
 def strip_makefile(filename):
     
@@ -80,12 +83,9 @@ def split_module_dependency(dependencies):
         if targets[1].endswith(".mod:"):
             return [targets[1]+" "+targets[0]+"\n",
                     "	@true\n"]+dependencies
-        else:
-            return dependencies
-
-    raise TypeError
-
     
+    return dependencies
+        
 
 def generate_dependencies(fortran):
     import os.path

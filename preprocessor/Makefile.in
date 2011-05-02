@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -59,12 +59,9 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
@@ -75,14 +72,6 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 default: $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS) >/dev/null 2>&1
-	cp *.mod ../include/
-
-Populate_State.o: Reserve_State.o VTK_Cache.o Initialise_Fields.o \
-   Boundary_Conditions_From_Options.o Field_Priority_Lists.o
-Populate_Sub_State.o: Populate_State.o
-Boundary_Conditions_From_Options.o: Initialise_Fields.o synthetic_bc.o Tidal_Modelling.o
-Initialise_Fields.o: VTK_Cache.o  Physics_From_Options.o
-
 
 .PHONY:check_options
 
@@ -97,7 +86,163 @@ check_options: check_options.o
 register_diagnostics: register_diagnostics.o
 	mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(LIB) register_diagnostics.o &> register_diagnostics.log
-	
+
 clean:
 	rm -f *.o *.d *.mod
+
+#####Automatically generated dependencies. Do not edit below this line#####
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c VTK_Cache.F90 || (rm ../lib/libfluidity.a && false)
+   VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/state_module.mod ../include/vtk_interfaces.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c check_options.F90 || (rm ../lib/libfluidity.a && false)
+   check_options.o: check_options.F90 ../include/gls.mod \
+   ../include/fluids_module.mod ../include/hadapt_extrude.mod \
+   ../include/radiation_check_options_module.mod \
+   ../include/vertical_extrapolation_module.mod \
+   ../include/momentum_equation.mod ../include/sam_integration.mod \
+   ../include/momentum_dg.mod ../include/geostrophic_pressure.mod \
+   ../include/field_equations_cv.mod ../include/implicit_solids.mod \
+   ../include/advection_diffusion_fv.mod \
+   ../include/adapt_state_prescribed_module.mod \
+   ../include/advection_diffusion_cg.mod ../include/qmesh_module.mod \
+   ../include/turbine.mod ../include/adapt_state_module.mod \
+   ../include/adaptivity_1d.mod ../include/free_surface_module.mod \
+   ../include/mba3d_integration.mod ../include/mba2d_integration.mod \
+   ../include/adapt_integration.mod ../include/biology.mod \
+   ../include/bulk_parameterisations.mod \
+   ../include/diagnostic_variables.mod ../include/adaptive_timestepping.mod \
+   ../include/write_state_module.mod ../include/field_options.mod \
+   ../include/checkpoint.mod ../include/coordinates.mod \
+   ../include/shape_functions.mod ../include/diagnostic_fields_new.mod \
+   ../include/populate_state_module.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Populate_Sub_State.F90 || (rm ../lib/libfluidity.a && false)
+   Populate_Sub_State.o ../include/populate_sub_state_module.mod: \
+   Populate_Sub_State.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/elements.mod ../include/state_module.mod \
+   ../include/fldebug.mod ../include/spud.mod ../include/mesh_files.mod \
+   ../include/vtk_cache_module.mod ../include/vtk_interfaces.mod \
+   ../include/global_parameters.mod ../include/field_options.mod \
+   ../include/reserve_state_module.mod ../include/fields_manipulation.mod \
+   ../include/field_options.mod ../include/surfacelabels.mod \
+   ../include/climatology.mod ../include/metric_tools.mod \
+   ../include/coordinates.mod ../include/halos.mod \
+   ../include/halos_registration.mod ../include/tictoc.mod \
+   ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
+   ../include/initialise_fields_module.mod \
+   ../include/transform_elements.mod ../include/parallel_tools.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/nemo_states_module.mod ../include/data_structures.mod \
+   ../include/fields_halos.mod ../include/read_triangle.mod \
+   ../include/populate_state_module.mod ../include/diagnostic_variables.mod \
+   ../include/profiler.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Boundary_Conditions_From_Options.F90 || (rm ../lib/libfluidity.a && false)
+   Boundary_Conditions_From_Options.o \
+   ../include/boundary_conditions_from_options.mod: \
+   Boundary_Conditions_From_Options.F90 ../include/fdebug.h \
+   ../include/confdefs.h ../include/fldebug.mod ../include/quadrature.mod \
+   ../include/elements.mod ../include/fields.mod \
+   ../include/field_options.mod ../include/state_module.mod \
+   ../include/sparse_tools_petsc.mod ../include/boundary_conditions.mod \
+   ../include/initialise_fields_module.mod ../include/global_parameters.mod \
+   ../include/tidal_module.mod ../include/samplenetcdf.mod \
+   ../include/coordinates.mod ../include/synthetic_bc.mod \
+   ../include/spud.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod ../include/pickers_inquire.mod \
+   ../include/bulk_parameterisations.mod ../include/integer_set_module.mod \
+   ../include/fields_base.mod ../include/fields.mod ../include/sediment.mod \
+   ../include/halos_numbering.mod ../include/halos_base.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Physics_From_Options.F90 || (rm ../lib/libfluidity.a && false)
+   Physics_From_Options.o ../include/physics_from_options.mod: \
+   Physics_From_Options.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields.mod ../include/state_module.mod ../include/spud.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Field_Priority_Lists.F90 || (rm ../lib/libfluidity.a && false)
+   Field_Priority_Lists.o ../include/field_priority_lists.mod: \
+   Field_Priority_Lists.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/state_module.mod ../include/spud.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Reserve_State.F90 || (rm ../lib/libfluidity.a && false)
+   Reserve_State.o ../include/reserve_state_module.mod: Reserve_State.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fields.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c synthetic_bc.F90 || (rm ../lib/libfluidity.a && false)
+   synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
+   ../include/fdebug.h ../include/confdefs.h \
+   ../include/fldebug.mod \
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/elements.mod ../include/parallel_tools.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Initialise_Fields.F90 || (rm ../lib/libfluidity.a && false)
+   Initialise_Fields.o ../include/initialise_fields_module.mod: \
+   Initialise_Fields.F90 ../include/fdebug.h ../include/confdefs.h \
+   ../include/fields.mod ../include/spud.mod ../include/coordinates.mod \
+   ../include/futils.mod ../include/tictoc.mod \
+   ../include/global_parameters.mod ../include/vtk_cache_module.mod \
+   ../include/climatology.mod ../include/nemo_states_module.mod \
+   ../include/physics_from_options.mod ../include/load_netcdf_module.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c register_diagnostics.F90 || (rm ../lib/libfluidity.a && false)
+   register_diagnostics.o: register_diagnostics.F90 \
+   ../include/radiation_diagnostics.mod ../include/implicit_solids.mod \
+   ../include/linear_shallow_water.mod ../include/adjoint_main_loop.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Tidal_Modelling.F90 || (rm ../lib/libfluidity.a && false)
+   Tidal_Modelling.o ../include/tidal_module.mod: Tidal_Modelling.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/fldebug.mod \
+   ../include/fields.mod ../include/state_module.mod ../include/spud.mod \
+   ../include/coordinates.mod ../include/sparse_matrices_fields.mod \
+   ../include/state_module.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Populate_State.F90 || (rm ../lib/libfluidity.a && false)
+   Populate_State.o ../include/populate_state_module.mod: Populate_State.F90 \
+   ../include/fdebug.h ../include/confdefs.h ../include/elements.mod \
+   ../include/state_module.mod ../include/fldebug.mod ../include/spud.mod \
+   ../include/mesh_files.mod ../include/vtk_cache_module.mod \
+   ../include/global_parameters.mod ../include/field_options.mod \
+   ../include/reserve_state_module.mod ../include/fields_manipulation.mod \
+   ../include/diagnostic_variables.mod ../include/field_options.mod \
+   ../include/surfacelabels.mod ../include/climatology.mod \
+   ../include/metric_tools.mod ../include/coordinates.mod \
+   ../include/halos.mod ../include/tictoc.mod ../include/hadapt_extrude.mod \
+   ../include/hadapt_extrude_radially.mod \
+   ../include/initialise_fields_module.mod \
+   ../include/transform_elements.mod ../include/parallel_tools.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/nemo_states_module.mod ../include/data_structures.mod \
+   ../include/fields_halos.mod ../include/read_triangle.mod \
+   ../include/sediment.mod ../include/profiler.mod \
+   ../include/global_parameters.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/preprocessor'
 

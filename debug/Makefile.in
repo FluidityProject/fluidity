@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -57,7 +57,7 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
@@ -68,16 +68,34 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 default: $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS) >/dev/null 2>&1
-	cp *.mod ../include/
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(F90LIB).a $(F90LIB_OBJS)
-	cp *.mod ../include/
 
 clean:
 	rm -f *.o *.mod
-	
-Debug.o: Debug_Parameters.o
 
-Diagnostic_Output.o: Debug_Parameters.o
+#####Automatically generated dependencies. Do not edit below this line#####
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Diagnostic_Output.F90 || (rm ../lib/libfluidity.a && false)
+   Diagnostic_Output.o: Diagnostic_Output.F90 \
+   ../include/fldebug_parameters.mod ../include/fldebug_parameters.mod \
+   ../include/fldebug_parameters.mod ../include/fldebug_parameters.mod \
+   ../include/fldebug_parameters.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/debug'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Debug.F90 || (rm ../lib/libfluidity.a && false)
+   Debug.o ../include/fldebug.mod: Debug.F90 ../include/fdebug.h \
+   ../include/confdefs.h \
+   ../include/fldebug_parameters.mod \
+   ../include/fldebug_parameters.mod
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/debug'
+
+
+mpif90 -I../include -J../include -I/usr/include/vtk-5.2 -I/usr/include/python2.6 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/pymodules/python2.6/numpy/core/include -ffree-line-length-none -ffixed-line-length-none -O3 -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/lib -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -fdefault-real-8 -I/usr/local/include -I./ -M -c Debug_Parameters.F90 || (rm ../lib/libfluidity.a && false)
+   Debug_Parameters.o ../include/fldebug_parameters.mod: \
+   Debug_Parameters.F90
+   make[1]: Leaving directory `/home/dham/src/fluidity/makefile-experiments/debug'
+

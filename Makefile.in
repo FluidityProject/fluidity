@@ -473,3 +473,46 @@ schema:
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
+.PHONY: makefiles
+
+makefiles: 
+	@echo "    Generating debug dependencies"
+	@cd debug; 	../scripts/create_makefile.py
+	@echo "    Generating libwm dependencies"
+	@cd libwm; ../scripts/create_makefile.py
+	@echo "    Generating femtools dependencies"
+	@cd femtools;	../scripts/create_makefile.py
+	@echo "    Generating bathymetry dependencies"
+	@cd bathymetry; ../scripts/create_makefile.py
+	@echo "    Generating ocean_forcing dependencies"
+	@cd ocean_forcing; ../scripts/create_makefile.py
+ifeq (@HYPERLIGHT@,yes)
+	@echo "    Generating hyperlight dependencies"
+	@cd hyperlight; ../scripts/create_makefile.py
+endif
+	@echo "    Generating sediments dependencies"
+	@cd sediments; ../scripts/create_makefile.py
+	@echo "    Generating parameterisation dependencies"
+	@cd parameterisation; ../scripts/create_makefile.py
+	@echo "    Generating forward_interfaces dependencies"
+	@cd forward_interfaces;	../scripts/create_makefile.py
+	@echo "    Generating horizontal_adaptivity dependencies"
+	@cd horizontal_adaptivity;   	../scripts/create_makefile.py
+	@echo "    Generating preprocessor dependencies"
+	@cd preprocessor; ../scripts/create_makefile.py
+	@echo "    Generating error_measures dependencies"
+	@cd error_measures;   	../scripts/create_makefile.py
+	@echo "    Generating decomp dependencies"
+	@cd decomp;   	../scripts/create_makefile.py
+	@echo "    Generating assemble dependencies"
+	@cd assemble;   	../scripts/create_makefile.py
+	@echo "    Generating diagnostics dependencies"
+	@cd diagnostics;   	../scripts/create_makefile.py
+	@echo "    Generating radiation dependencies"
+	@cd radiation; ../scripts/create_makefile.py
+	@echo "    Generating reduced_modelling dependencies"
+	@cd reduced_modelling;   	../scripts/create_makefile.py
+	@echo "    Generating adjoint dependencies"
+	@cd adjoint; ../scripts/create_makefile.py
+	@echo "    Generating main dependencies"
+	@cd main; ../scripts/create_makefile.py
