@@ -1,6 +1,6 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
-RE=1290
+RE=4700
 JOB=high
 preprocess: 
 	@echo **********Generating a 2D mesh:

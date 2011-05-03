@@ -95,7 +95,7 @@ def reattachment_length(filelist):
     print file, ', elapsed time = ', t
 
     ##### points near bottom surface, 0 < x < 20
-    pts=[]; no_pts = 82; offset = 0.1
+    pts=[]; no_pts = 82; offset = 0.001
     x = 5.0
     for i in range(1, no_pts):
       pts.append((x, offset, 0.0))
