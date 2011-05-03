@@ -373,14 +373,9 @@ for ele in range(coord.ele_count):
           <string_value lines="20" type="python">import fluidity.state_types
 import numpy
 
-coord = state.vector_fields["Coordinate"]
-local_adj_delta_u = state.vector_fields["AdjointLocalVelocityDelta"]
-adj_u = state.vector_fields["AdjointVelocity"]
-adj_delta_eta = state.scalar_fields["AdjointLayerThicknessDelta"]
 deta_src = state.scalar_fields["LayerThicknessSource"]
 adj_eta = state.scalar_fields["AdjointLayerThickness"]
 
-J = 0.0
 J = numpy.dot(adj_eta.val, deta_src.val)
     
 field.val[:] = J</string_value>
@@ -444,11 +439,10 @@ field.val[:] = J</string_value>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
-  if t == 1.0:
-    return 1.0
-  else:
-    return 0</string_value>
+            <string_value lines="20" type="python">def val(X, t):
+  from math import sin, pi
+  return sin(2*pi*X[0])+t
+</string_value>
           </python>
         </value>
         <output/>
@@ -518,15 +512,13 @@ derivative.val[:] = 0.0
 if derivative.name == "Fluid::LayerThickness":
   functional_vector = states[n]["Fluid"].scalar_fields["FunctionalVector"]
   assert(len(derivative.val[:]) == len(functional_vector.val[:]))
-  derivative.val[:] = functional_vector.val[:]
-</string_value>
+  derivative.val[:] = functional_vector.val[:]</string_value>
         </algorithm>
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  return { "Fluid::LayerThickness": [timestep], "Fluid::FunctionalVector": [timestep]}
-</string_value>
+  return { "Fluid::LayerThickness": [timestep], "Fluid::FunctionalVector": [timestep]}</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
