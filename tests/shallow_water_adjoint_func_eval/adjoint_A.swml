@@ -516,20 +516,17 @@ field.val[:] = J</string_value>
           <string_value lines="20" type="python">import numpy
 derivative.val[:] = 0.0
 if derivative.name == "Fluid::LayerThickness":
-  # lets think of something nontrivial:
-  derivative.val[:] = 1.0
-  import fluidity_tools
-  fluidity_tools.shell()()</string_value>
+  functional_vector = states[n]["Fluid"].scalar_fields["FunctionalVector"]
+  assert(len(derivative.val[:]) == len(functional_vector.val[:]))
+  derivative.val[:] = functional_vector.val[:]
+</string_value>
         </algorithm>
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  T = 1.0
-  if times[0] &lt;= T &lt; times[1]:
-    return { "Fluid::LayerThickness": [timestep], "Fluid::FunctionalVector": [timestep]}
-  else:
-    return {}</string_value>
+  return { "Fluid::LayerThickness": [timestep], "Fluid::FunctionalVector": [timestep]}
+</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
