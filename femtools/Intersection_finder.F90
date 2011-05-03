@@ -367,15 +367,15 @@ contains
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
     integer, optional, intent(in) :: seed
 
-    ! A list to store where next to go in the A mesh.
-    ! This list stores 2-tuples: the first is the resolved
-    ! element, and the second is a neighbour of the first.
-    type(elist) :: active_eles
+    ! An element is 'available' if a) it has not yet been processed and b) all necessary data to process it (a clue)
+    ! has been found
+    type(integer_set) :: available
+    ! processed_neighbour maps an element to a neighbour that has already been processed (i.e. its clue)
+    type(integer_hash_table) :: processed_neighbour
 
     integer :: ele_A
     type(mesh_type), pointer :: mesh_A, mesh_B
     integer :: i, neighbour
-    integer, dimension(2) :: edge
     real, dimension(ele_count(positionsB), positionsB%dim, 2) :: bboxes_B
     integer, dimension(:), pointer :: neigh_A
     type(csr_sparsity), pointer :: eelist_A, eelist_B
@@ -401,24 +401,33 @@ contains
     end if
     map_AB(ele_A) = brute_force_search(ele_val(positionsA, ele_A), positionsB, bboxes_B)
 
+    call allocate(available)
+    call allocate(processed_neighbour)
+
     neigh_A => row_m_ptr(eelist_A, ele_A)
     do i=1,size(neigh_A)
       neighbour = neigh_A(i)
       if (neighbour <= 0) cycle
-      call insert(active_eles, ele_A, neighbour)
+      call insert(available, neighbour)
+      call insert(processed_neighbour, neighbour, ele_A)
     end do
 
-    do while (active_eles%length /= 0)
-      edge = pop(active_eles)
-      ele_A = edge(2)
-      if (map_AB(ele_A)%length > 0) then
-        ! We've already seen it
-        cycle
-      end if
-      clues = clueful_search(ele_val(positionsA, ele_A), map_AB(edge(1)), &
-                           & bboxes_B, ele_A, edge(1))
+    do while (key_count(available) > 0)
+      ele_A = fetch(available, 1) ! to be computed
+      neighbour = fetch(processed_neighbour, ele_A) ! what's already been computed
+
+      ! try to keep our memory footprint low
+      call remove(processed_neighbour, ele_A)
+      call remove(available, ele_A)
+
+      assert(map_AB(ele_A)%length == 0) ! we haven't seen it yet
+
+      clues = clueful_search(ele_val(positionsA, ele_A), map_AB(neighbour), &
+                           & bboxes_B, ele_A, neighbour)
       map_AB(ele_A) = advance_front(ele_val(positionsA, ele_A), positionsB, clues, bboxes_B, eelist_B)
       call deallocate(clues)
+
+      ! Now that ele_A has been computed, make its clues available to anyone who needs them
       neigh_A => row_m_ptr(eelist_A, ele_A)
       do i=1,size(neigh_A)
         neighbour = neigh_A(i)
@@ -427,9 +436,13 @@ contains
           ! We've already seen it
           cycle
         end if
-        call insert(active_eles, ele_A, neighbour)
+        call insert(available, neighbour)
+        call insert(processed_neighbour, neighbour, ele_A)
       end do
     end do
+
+    assert(key_count(available) == 0)
+    assert(key_count(processed_neighbour) == 0)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
 
