@@ -367,9 +367,6 @@ contains
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
     integer, optional, intent(in) :: seed
 
-    ! An element is 'available' if a) it has not yet been processed and b) all necessary data to process it (a clue)
-    ! has been found
-    type(integer_set) :: available
     ! processed_neighbour maps an element to a neighbour that has already been processed (i.e. its clue)
     type(integer_hash_table) :: processed_neighbour
 
@@ -401,24 +398,19 @@ contains
     end if
     map_AB(ele_A) = brute_force_search(ele_val(positionsA, ele_A), positionsB, bboxes_B)
 
-    call allocate(available)
     call allocate(processed_neighbour)
 
     neigh_A => row_m_ptr(eelist_A, ele_A)
     do i=1,size(neigh_A)
       neighbour = neigh_A(i)
       if (neighbour <= 0) cycle
-      call insert(available, neighbour)
       call insert(processed_neighbour, neighbour, ele_A)
     end do
 
-    do while (key_count(available) > 0)
-      ele_A = fetch(available, 1) ! to be computed
-      neighbour = fetch(processed_neighbour, ele_A) ! what's already been computed
-
+    do while (key_count(processed_neighbour) > 0)
+      call fetch_pair(processed_neighbour, 1, ele_A, neighbour)
       ! try to keep our memory footprint low
       call remove(processed_neighbour, ele_A)
-      call remove(available, ele_A)
 
       assert(map_AB(ele_A)%length == 0) ! we haven't seen it yet
 
@@ -436,13 +428,12 @@ contains
           ! We've already seen it
           cycle
         end if
-        call insert(available, neighbour)
         call insert(processed_neighbour, neighbour, ele_A)
       end do
     end do
 
-    assert(key_count(available) == 0)
     assert(key_count(processed_neighbour) == 0)
+    call deallocate(processed_neighbour)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
 
