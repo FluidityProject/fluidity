@@ -660,7 +660,7 @@ contains
       end do
       
       call element_quality_pain_p0(output_positions, new_metric, quality)
-      ewrite_minmax(quality%val)
+      ewrite_minmax(quality)
       call vtk_write_fields("adapted_quality", index = output_quality_index, &
         & position = output_positions, model = output_positions%mesh, &
         & sfields = (/quality/), tfields = (/new_metric/))

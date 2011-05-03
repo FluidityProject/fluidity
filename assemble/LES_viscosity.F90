@@ -143,17 +143,13 @@ contains
     ewrite(2,*) "path: ", trim(lpath)
     ewrite(2,*) "alpha: ", alpha
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+    ewrite_minmax(mnu)
+    ewrite_minmax(tnu)
 
     call anisotropic_smooth_vector(mnu, positions, tnu, alpha, lpath)
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+    ewrite_minmax(mnu)
+    ewrite_minmax(tnu)
 
     ! Velocity products (ui*uj)
     allocate(ui_uj); allocate(tui_tuj)

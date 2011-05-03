@@ -114,24 +114,25 @@ endif
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
+$(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+	@cp *.mod ../include/
+default: $(LIB)
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
@@ -157,7 +158,7 @@ Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconve
                               Solvers.o Interpolation.o Adjacency_Lists.o Unittest_tools.o qsortd.o Tensors.o Intersection_finder.o \
                               Sparse_Matrices_Fields.o Bound_field.o Diagnostic_Fields.o Tetrahedron_intersection.o
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $<
 
 Supermesh.o: Fields_Base.o Fields_Allocates.o Fields_Data_Types.o Sparse_Tools.o Futils.o \
   Metric_tools.o Linked_Lists.o Unify_meshes.o Transform_elements.o \
@@ -261,7 +262,7 @@ Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
    FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o \
 	 Parallel_Tools.o
 Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
-   Sparse_Tools_Petsc.o
+   Sparse_Tools_Petsc.o C_Interfaces_Fortran.o
 
 qsortd.o: Global_Parameters.o
 
@@ -318,7 +319,7 @@ Futils.o: Global_Parameters.o
 
 FETools.o: FETools.F90 Elements.o Transform_elements.o Sparse_Tools.o
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $<
 
 FEFields.o: Fields.o Elements.o FETools.o Transform_elements.o Field_Options.o
 

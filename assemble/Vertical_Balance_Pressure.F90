@@ -84,7 +84,7 @@ module vertical_balance_pressure
     
     call deallocate(rhs)
 
-    ewrite_minmax(vbp%val)
+    ewrite_minmax(vbp)
 
   end subroutine calculate_vertical_balance_pressure
   
@@ -111,7 +111,7 @@ module vertical_balance_pressure
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
     assert(ele_count(buoyancy) == ele_count(vbp))
-    ewrite_minmax(buoyancy%val)
+    ewrite_minmax(buoyancy)
     call allocate(lbuoyancy, buoyancy%mesh, "VerticalBalancePressureBuoyancy")
     call set(lbuoyancy, buoyancy)
     call scale(lbuoyancy, gravity_magnitude)
@@ -132,7 +132,7 @@ module vertical_balance_pressure
     ! boundary condition stuff
     call apply_dirichlet_conditions(matrix, rhs, vbp)
 
-    ewrite_minmax(rhs%val)
+    ewrite_minmax(rhs)
     
     call deallocate(lbuoyancy)
     
@@ -261,9 +261,7 @@ module vertical_balance_pressure
     assert(positions%dim == mom_rhs%dim)
     assert(ele_count(positions) == ele_count(mom_rhs))
 
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i,:))
-    end do
+    ewrite_minmax(mom_rhs)
     
     do i = 1, ele_count(mom_rhs)
       if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
@@ -271,9 +269,7 @@ module vertical_balance_pressure
       end if
     end do
 
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i,:))
-    end do
+    ewrite_minmax(mom_rhs)
     
     ewrite(1, *) "Exiting subtract_vertical_balance_pressure_gradient"
 

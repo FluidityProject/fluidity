@@ -106,7 +106,7 @@ module hydrostatic_pressure
       FLAbort("Unknown spatial_discretisation option for HydrostaticPressure")
     end if
 
-    ewrite_minmax(hp%val)
+    ewrite_minmax(hp)
 
   end subroutine calculate_hydrostatic_pressure
   
@@ -129,9 +129,7 @@ module hydrostatic_pressure
         FLAbort("Unrecognised mesh continuity")
     end select
     
-    do i = 1, hpg%dim
-      ewrite_minmax(hpg%val(i,:))
-    end do
+    ewrite_minmax(hpg)
     
   end subroutine calculate_hydrostatic_pressure_gradient
 
@@ -158,7 +156,7 @@ module hydrostatic_pressure
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
     assert(ele_count(buoyancy) == ele_count(hp))
-    ewrite_minmax(buoyancy%val)
+    ewrite_minmax(buoyancy)
     call allocate(lbuoyancy, buoyancy%mesh, "Buoyancy")
     call set(lbuoyancy, buoyancy)
     call scale(lbuoyancy, gravity_magnitude)
@@ -212,7 +210,7 @@ module hydrostatic_pressure
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
     assert(ele_count(buoyancy) == ele_count(hpg))
-    ewrite_minmax(buoyancy%val)
+    ewrite_minmax(buoyancy)
     
     gravity => extract_vector_field(state, "GravityDirection")
     assert(gravity%dim == mesh_dim(hpg))
@@ -241,9 +239,7 @@ module hydrostatic_pressure
       call calculate_grad_h_ele(i, positions, buoyancy, grad_buoyancy, gravity)
     end do
     call scale(grad_buoyancy, gravity_magnitude)
-    do i = 1, grad_buoyancy%dim
-      ewrite_minmax(grad_buoyancy%val(i,:))
-    end do
+    ewrite_minmax(grad_buoyancy)
     
     topdis => extract_scalar_field(state, "DistanceToTop")
     call get_boundary_condition(topdis, 1, surface_mesh = surface_mesh, surface_element_list = surface_element_list) 
@@ -354,7 +350,7 @@ module hydrostatic_pressure
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
     assert(ele_count(buoyancy) == ele_count(hp))
-    ewrite_minmax(buoyancy%val)
+    ewrite_minmax(buoyancy)
     call allocate(lbuoyancy, buoyancy%mesh, "HydrostaticPressureCGBuoyancy")
     call set(lbuoyancy, buoyancy)
     call scale(lbuoyancy, gravity_magnitude)
@@ -399,7 +395,7 @@ module hydrostatic_pressure
       end do
     end if
     
-    ewrite_minmax(rhs%val)
+    ewrite_minmax(rhs)
     
     call deallocate(lbuoyancy)
     
@@ -611,9 +607,7 @@ module hydrostatic_pressure
       assert(positions%dim == mom_rhs%dim)
       assert(ele_count(positions) == ele_count(mom_rhs))
 
-      do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i,:))
-      end do
+      ewrite_minmax(mom_rhs)
       
       if(have_option(trim(hp%option_path)// &
          "/prognostic/spatial_discretisation/continuous_galerkin/do_not_integrate_gradient_by_parts")) then
@@ -634,9 +628,7 @@ module hydrostatic_pressure
       
       end if
       
-      do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i,:))
-      end do
+      ewrite_minmax(mom_rhs)
     end if
     
     hpg => extract_vector_field(state, hpg_name, stat)
@@ -647,17 +639,13 @@ module hydrostatic_pressure
       assert(positions%dim == mom_rhs%dim)
       assert(ele_count(positions) == ele_count(mom_rhs))
       
-      do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i,:))
-      end do
+      ewrite_minmax(mom_rhs)
       
       do i = 1, ele_count(mom_rhs)
         call subtract_given_hydrostatic_pressure_gradient_element(i, positions, hpg, mom_rhs)
       end do
       
-      do i = 1, mom_rhs%dim
-        ewrite_minmax(mom_rhs%val(i,:))
-      end do
+      ewrite_minmax(mom_rhs)
     end if
     
     ewrite(1, *) "Exiting subtract_hydrostatic_pressure_gradient"

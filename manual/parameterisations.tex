@@ -260,7 +260,8 @@ Available under \option{\ldots/subgridscale\_parameterisations/k-epsilon}.
 
 The widely-used $k-\epsilon$ turbulence model has been implemented in \fluidity\ based on the description given in
 \citet{mathieu2000}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
-Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry.
+Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry. The eddy viscosity is added to the user-specified molecular (background) viscosity when solving for velocity, and if solving for additional prognostic scalar fields, it is scaled by a user-specified Prandtl number to obtain the field eddy diffusivity.
+
 The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in which the velocity is decomposed into quasi-steady (moving average) and fluctuating (turbulent) components:
 
 \begin{equation}\label{RANS}
@@ -294,21 +295,14 @@ where $\nu_T$ is the isotropic tensor eddy viscosity $\nu_T$ and $\Pi$ is the tu
 where $:$ denotes the double-dot product, defined for two tensors $t, s$ as:
 
 \begin{equation}\label{doubledot}
-t : s = t_{11} s_{11} + t_{12} s_{21} + t_{13} s_{31} + t_{21} s_{12} + t_{22} s_{22} + t_{23} s_{32} + t_{31} s_{13} + t_{32} s_{23} + t_{33} s_{33}.
+t:s = \sum_{i,j=1}^{n} t_{ij} \times s_{ji}.
 \end{equation}
 
-A length scale is associated with the dissipation of turbulent kinetic energy by molecular viscosity. It is defined as:
+A turbulence length scale is associated with the dissipation of turbulent kinetic energy by the subgridscale motions:
 
 \begin{equation}\label{lengthscale}
 l = \frac{k^{3/2}}{\epsilon}.
 \end{equation}
-
-A length scale limiter has been included in the model (see \citet{yap1987, craft1996}):
-
-\begin{equation}\label{yap}
-l = \text{max} \left ( 0.83 \frac{\epsilon^2}{k} \left [ \frac{k^{1.5}}{2.5 \epsilon y} -1 \right ] \left [ \frac{k^{1.5}}{2.5 \epsilon y} \right ]^2, 0 \right ),
-\end{equation}
-where $y$ is the wall-normal distance. The limiter, if switched on, operates only in the wall-adjacent elements. However, it has no effect on the solution since the length scale is purely diagnostic [pending revision].
 
 The five model coefficients are in Table \ref{tab:kepsco}. These are the default values but they can be changed in Diamond.
 
@@ -329,23 +323,23 @@ $\sigma_k$ & 1.0 \\ \hline
 
 \subsection{Initial and Boundary Conditions}
 
-Low- and high-Reynolds-number wall functions are available under the option \linebreak \option{\ldots/k\_epsilon/wall\_functions} (see \ref{Sect:kepsilon}). When simulating low Reynolds number flows the following boundary conditions are recommended \citep{wilcox1998turbulence}:
+Low- and high-Reynolds-number wall functions are available under the option \linebreak \option{\ldots/boundary\_conditions/type::k\_epsilon/} (see \ref{Sect:kepsilon}). When simulating low Reynolds numbers ($Re<10^4$) the \option{low\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
 
 \begin{align}
 \bmu &= 0, \label{ubc1}\\
 k &= 0, \label{kbc1}\\
-\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \label{epsbc1}
+\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[n]{k^{1/2}} \right ). \label{epsbc1}
 \end{align}
 
-For high Reynolds numbers, the following boundary conditions are recommended \citep{wilcox1998turbulence}:
+For high Reynolds numbers ($Re>10^4$), the \option{low\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
 
 \begin{align}
 \bmu &= u_* \left [ \frac{1}{\kappa} \ln (u_* y / \nu) + B \right ], \label{ubc2}\\
 k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{kbc2}\\
 \epsilon &= \frac{u_*^3}{\kappa y}, \label{epsbc2}\\
-u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu \ppx[n]{U} \right )^{1/2}. \label{ustar}
+u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu_T \ppx[n]{U_S} \right )^{1/2}, \label{ustar}
 \end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $\kappa=0.41$ is Von Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\nu$ is the kinematic laminar viscosity, $\rho$ is the density and $\ppx[n]{U}$ is the gradient of the velocity in the wall-normal direction. For implementation details see \ref{Sect:kepsilon_usage}.
+where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient operator in the wall-normal direction. For implementation details see \ref{Sect:kepsilon_usage}.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}

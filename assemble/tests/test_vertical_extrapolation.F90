@@ -78,7 +78,7 @@ real, intent(out):: l2error
   ! map values of from_surface_field on faces of from_field
   call allocate(from_field, dg_quad_mesh, name="FromField")
   ! make sure other values are not used:
-  call set(from_field, 1e123)
+  call set(from_field, huge(0.0))
   do i=1, size(surface_element_list)
     sele=surface_element_list(i)
     call set(from_field, face_global_nodes(dg_quad_mesh, i), &

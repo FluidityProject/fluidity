@@ -51,10 +51,19 @@ module c_interfaces
       integer, intent(in) :: bytes
     end subroutine memcpy
   end interface
+
+  interface
+    function compare_pointers(ptr1, ptr2) result(cmp) bind(c, name='compare_pointers')
+      use iso_c_binding
+      type(c_ptr), intent(in), value :: ptr1
+      type(c_ptr), intent(in), value :: ptr2
+      logical(kind=c_bool) :: cmp
+    end function compare_pointers
+  end interface
   
   private
   
-  public :: get_environment_variable, memcpy
+  public :: get_environment_variable, memcpy, compare_pointers
   
 contains
 

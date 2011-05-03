@@ -126,7 +126,7 @@ module mp_prototype
 
       real, dimension( :, :, :, : ), allocatable :: udiffusion, tdiffusion
       real, dimension( : ), allocatable :: u, v, w
-  
+
       real, dimension( : ), allocatable :: den, satura, volfra, comp, t, p, cv_p, volfra_pore, &
            cv_one, Viscosity
       real, dimension( :, :, : ), allocatable :: perm
@@ -167,7 +167,8 @@ module mp_prototype
 !!!!!    - for this we need to list everything that's read in and not derived
 !!!!!    - although some derived stuff might be available through state as well
 !!!!!!!!
-      call copy_outof_state(state)
+      call copy_outof_state(state, dt, current_time, finish_time, &
+                            nonlinear_iterations, nonlinear_iteration_tolerance)
 
       call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
@@ -694,6 +695,8 @@ module mp_prototype
               mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
 
       end Select
+      
+      call copy_into_state(state, satura, p)
 
       ewrite(3,*) 'Leaving multiphase_prototype'
       close( 357 )
