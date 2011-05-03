@@ -92,7 +92,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">1.5</real_value>
+      <real_value rank="0">1.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -351,7 +351,6 @@ for ele in range(coord.ele_count):
       source += numpy.dot(cT[:,:,dim], Linv_Musrc[:,dim]) * (dt**2 * constants.d0 * constants.theta)
     #print "Final eta_src: ", source
   field.addto(field.ele_nodes(ele), source)</string_value>
-          <comment/>
         </algorithm>
         <mesh name="PressureMesh"/>
         <output/>
@@ -517,14 +516,14 @@ for ele in range(coord.ele_count):
         <algorithm name="functional_value">
           <string_value lines="20" type="python">J = 0.0
 T = 1.0 # the time at which to evaluate
-if time &lt;= T &lt; time+dt:
+if time &lt; T &lt;= time+dt:
   import numpy
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
   eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
   
   # We want to temporally interpolate to evaluate eta at t=1.0
   alpha = (time + dt - T) / dt
-  assert 0 &lt; alpha &lt;= 1
+  assert 0 &lt;= alpha &lt; 1
   tmp_eta = alpha * eta_prev.val + (1-alpha) * eta.val
   
   # Now we want to integrate that over space
@@ -544,7 +543,7 @@ if time &lt;= T &lt; time+dt:
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  if times[0] &lt;= 1.0 &lt; times[1]:
+  if times[0] &lt; 1.0 &lt;= times[1]:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep-1, timestep]}
   else:
