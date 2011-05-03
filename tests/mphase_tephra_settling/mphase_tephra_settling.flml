@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.0</real_value>
+        <real_value rank="0">0.02</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -60,7 +60,7 @@
       <real_value rank="0">0.0001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">100.0</real_value>
+      <real_value rank="0">5.0</real_value>
     </finish_time>
     <steady_state>
       <tolerance>
@@ -133,12 +133,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin>
+              <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind_petrov_galerkin>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -240,7 +240,7 @@
         <vector_field name="Source" rank="1">
           <diagnostic>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="python" lines="20">## Calculates the fluid-particle drag force interaction term
+              <string_value lines="20" type="python">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
@@ -419,12 +419,12 @@ for i in range(field.node_count):
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin>
+              <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind_petrov_galerkin>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -526,7 +526,7 @@ for i in range(field.node_count):
         <vector_field name="Source" rank="1">
           <diagnostic>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="python" lines="20">## Calculates the fluid-particle drag force interaction term
+              <string_value lines="20" type="python">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
@@ -564,7 +564,7 @@ for i in range(field.node_count):
 
   Force = K*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
 
-  print "i = %d, Force = %f", (i, Force, velocity_tephra.node_val(i))
+  #print "i = %d, Force = %f", (i, Force, velocity_tephra.node_val(i))
 
   field.set(i, -Force)</string_value>
               <depends>
@@ -646,9 +646,19 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.05</real_value>
+            <real_value rank="0">0.0005</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.1</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -756,7 +766,7 @@ for i in range(field.node_count):
     <vector_field name="BuoyancyForce" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value type="python" lines="20">## Calculates the fluid-particle drag force interaction term
+          <string_value lines="20" type="python">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
