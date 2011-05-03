@@ -475,6 +475,7 @@ import numpy, numpy.linalg
 coord  = state.vector_fields["Coordinate"]
 u_mesh = state.meshes["VelocityMesh"]
 timeprime = time + constants.theta*dt   
+field.val[:] = 0.0
 
 for ele in range(coord.ele_count):
   t = Transform(ele, coord)
@@ -515,7 +516,7 @@ for ele in range(coord.ele_count):
       <functional_value>
         <algorithm name="functional_value">
           <string_value lines="20" type="python">J = 0.0
-T = 0.0 # the time at which to evaluate
+T = 1.0 # the time at which to evaluate
 if time &lt;= T &lt; time+dt:
   import numpy
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
@@ -543,7 +544,7 @@ if time &lt;= T &lt; time+dt:
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  if times[0] &lt;= 0.0 &lt; times[1]:
+  if times[0] &lt;= 1.0 &lt; times[1]:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep-1, timestep]}
   else:
