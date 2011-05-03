@@ -11,12 +11,12 @@
     <variable name="mms_u_passed" language="python">
 import eta_adjoint_convergence_rate as convergence_rate
 convergence_rate.print_convergence_rates("wave_[A-E].stat", ["VelocityError%1"])
-mms_u_passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E].stat", ["VelocityError%1"])
+mms_u_passed = convergence_rate.test_convergence_rates(1.88, "wave_[A-E].stat", ["VelocityError%1"])
     </variable>
     <variable name="mms_eta_passed" language="python">
 import eta_adjoint_convergence_rate as convergence_rate
 convergence_rate.print_convergence_rates("wave_[A-E].stat", ["LayerThicknessError"])
-mms_eta_passed = convergence_rate.test_convergence_rates(1.9, "wave_[A-E].stat", ["LayerThicknessError"])
+mms_eta_passed = convergence_rate.test_convergence_rates(1.88, "wave_[A-E].stat", ["LayerThicknessError"])
     </variable>
     <variable name="functional_convergence" language="python">
 import numpy
@@ -43,6 +43,8 @@ import constants
 
 files = glob.glob("wave_[A-E]_adjoint_integral_eta_t1.stat")
 dJdh = [sum(stat_parser(file)["Fluid"]["dJdh"]["min"]) for file in sorted(files)]
+
+print 'dJdh', dJdh
 
 errors = abs(numpy.array(dJdh) - constants.dfunctional)
 dJdh_convergence = numpy.zeros(len(errors)-1)
