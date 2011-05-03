@@ -413,11 +413,9 @@ import numpy
 
 coord = state.vector_fields["Coordinate"]
 eta = state.scalar_fields["LayerThickness"]
+functional_vector = state.scalar_fields["FunctionalVector"]
 
-J = 0.0
-
-if time == 1.0:
-  J = numpy.dot(numpy.ones(len(eta.val[:])), eta.val)
+J = numpy.dot(functional_vector.val, eta.val)
     
 field.val[:] = J</string_value>
           <depends>
@@ -440,6 +438,28 @@ field.val[:] = J</string_value>
           <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="FunctionalVector" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+  if t == 1.0:
+    return 1.0
+  else:
+    return 0</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
     </scalar_field>
     <vector_field name="AnalyticalVelocity" rank="1">
       <prescribed>
@@ -496,6 +516,7 @@ field.val[:] = J</string_value>
           <string_value lines="20" type="python">import numpy
 derivative.val[:] = 0.0
 if derivative.name == "Fluid::LayerThickness":
+  # lets think of something nontrivial:
   derivative.val[:] = 1.0</string_value>
         </algorithm>
       </functional_derivative>
