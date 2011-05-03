@@ -86,7 +86,7 @@ module diagnostic_variables
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
-       & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime, &
+       & set_detector_coords_from_python, initialise_walltime, &
        & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic, &
        & get_diagnostic
 
@@ -107,10 +107,6 @@ module diagnostic_variables
 
   interface detector_field
      module procedure detector_field_scalar, detector_field_vector
-  end interface
-
-  interface detector_value
-     module procedure detector_value_scalar, detector_value_vector
   end interface
 
   type stringlist
@@ -4327,118 +4323,7 @@ contains
 
     end if
 
-  end subroutine check_if_det_gone_through_domain_boundary
-
-  subroutine remove_det_from_current_det_list(detector_list,node)
-
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer :: node
-
-    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-         !!this checks if the current node that we are going to remove from the list is the first 
-         !!one in the list but not the only node in the list
-
-            node%next%previous => null()
-
-            detector_list%firstnode => node%next
-
-            detector_list%firstnode%previous => null()
- 
-            detector_list%length = detector_list%length-1
-
-     else 
-
-          if ((.not.associated(node%next)).and.(associated(node%previous))) then
-          !!this takes into account the case when the node is the last one in the list but not the only one
-
-               node%previous%next => null()
-
-               detector_list%lastnode => node%previous
-
-               detector_list%lastnode%next => null()
-
-               detector_list%length = detector_list%length-1
-
-          else 
-
-               if (detector_list%length==1) then
-
-                  detector_list%firstnode => null()
-                  detector_list%lastnode => null()
-
-                  detector_list%length = detector_list%length-1 
-
-              else
-
-                  node%previous%next => node%next
-                  node%next%previous => node%previous
-
-                  detector_list%length = detector_list%length-1 
-
-              end if
-
-          end if
-
-     end if
-
-  end subroutine remove_det_from_current_det_list
-
-  subroutine move_det_to_send_list(detector_list,node,send_list)
-
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer :: node
-    type(detector_linked_list), intent(inout) :: send_list
-
-    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-         !!this checks if the current node that we are going to remove from the list is the first 
-         !!one in the list but not the only node in the list
-
-            node%next%previous => null()
-
-            detector_list%firstnode => node%next
-
-            detector_list%firstnode%previous => null()
- 
-            detector_list%length = detector_list%length-1
-
-     else 
-
-          if ((.not.associated(node%next)).and.(associated(node%previous))) then
-          !!this takes into account the case when the node is the last one in the list but not the only one
-
-               node%previous%next => null()
-
-               detector_list%lastnode => node%previous
-
-               detector_list%lastnode%next => null()
-
-               detector_list%length = detector_list%length-1
-
-          else 
-
-               if (detector_list%length==1) then
-
-                  detector_list%firstnode => null()
-                  detector_list%lastnode => null()
-
-                  detector_list%length = detector_list%length-1 
-
-              else
-
-                  node%previous%next => node%next
-                  node%next%previous => node%previous
-
-                  detector_list%length = detector_list%length-1 
-
-              end if
-
-          end if
-
-     end if
-
-    call insert(send_list,node)  
-
-  end subroutine move_det_to_send_list            
+  end subroutine check_if_det_gone_through_domain_boundary       
 
   subroutine move_detectors_subtime_step(this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, previous_element,index_next_face)
@@ -5154,42 +5039,6 @@ contains
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
   end subroutine update_detector_position_bisect
-
- function detector_value_scalar(sfield, detector) result(value)
-    !!< Evaluate field at the location of the detector.
-    real :: value
-    type(scalar_field), intent(in) :: sfield
-    type(detector_type), intent(in) :: detector
-
-    value=0.0
-    
-    if(detector%element>0) then
-       if(detector%element > 0) then
-         value = eval_field(detector%element, sfield, detector%local_coords)
-       end if
-    end if
-
-    if (.not. detector%local) call allsum(value)
-
-  end function detector_value_scalar
-
-  function detector_value_vector(vfield, detector) result(value)
-    !!< Evaluate field at the location of the detector.
-    type(vector_field), intent(in) :: vfield
-    type(detector_type), intent(in) :: detector
-    real, dimension(vfield%dim) :: value
-
-    value=0.0
-    
-    if(detector%element>0) then
-      if(detector%element > 0) then
-        value = eval_field(detector%element, vfield, detector%local_coords)
-      end if
-    end if
-
-    if(.not. detector%local) call allsum(value)
-
-  end function detector_value_vector
 
   subroutine set_detector_coords_from_python(values, ndete, func, time)
     !!< Given a list of positions and a time, evaluate the python function
