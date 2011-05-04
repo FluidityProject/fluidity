@@ -60,14 +60,14 @@
 
       type(vector_field), pointer:: velocity, old_velocity, nl_velocity
       type(vector_field), pointer:: position, normal_nodes
-      type(scalar_field), pointer:: density
+      type(scalar_field), pointer:: density, dummydensity
       type(tensor_field), pointer:: viscosity
 
       integer                       :: nbcs, i, j, ele, sele, stat
       integer, dimension(:), pointer:: surface_element_list, surface_node_list
       integer, dimension(:), allocatable:: out_ele !, u_nodes_bdy
       character(len=OPTION_PATH_LEN):: bc_type, bc_path_i, bc_name
-
+      character(len=FIELD_NAME_LEN) :: equation_type
       real:: tolerance, Cb, Cf, theta
 
       logical:: have_Cb
@@ -85,8 +85,26 @@
       old_velocity => extract_vector_field(state, "OldVelocity")
 
       position     => extract_vector_field(state, "Coordinate")
-      density      => extract_scalar_field(state, "Density")
       viscosity    => extract_tensor_field(state, "Viscosity")
+
+      allocate(dummydensity)
+      call allocate(dummydensity, position%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+      call set(dummydensity, 1.0)
+      dummydensity%option_path = ""
+
+      ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+      call get_option(trim(velocity%option_path)//"/prognostic/equation[0]/name", equation_type)
+      select case(equation_type)
+        case("LinearMomentum")
+          density=>extract_scalar_field(state, "Density")
+        case("Boussinesq")
+          density=>dummydensity
+        case("Drainage")
+          density=>dummydensity
+        case default
+          ! developer error... out of sync options input and code
+          FLAbort("Unknown equation type for velocity")
+      end select
 
       call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", &
            theta)
@@ -174,6 +192,7 @@
       end do
 
       if (rm_out) deallocate(out_ele)
+      call deallocate(dummydensity); deallocate(dummydensity)
 
       return
     end subroutine wall_functions

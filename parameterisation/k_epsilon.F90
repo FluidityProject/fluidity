@@ -845,29 +845,29 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
        do i=1,u%dim
          do j=1,u%dim
            qq(i,j,:) = matmul(invmass,qq(i,j,:))
-           ewrite(3,*) "qq: ", qq(i,j,:)
+           !ewrite(3,*) "qq: ", qq(i,j,:)
 
            ! Pick surface nodes (dim,dim,sloc)
            qq_s(i,j,:) = qq(i,j,face_local_nodes(field1,sele))
-           ewrite(3,*) "qq_s: ", qq_s(i,j,:)
+           !ewrite(3,*) "qq_s: ", qq_s(i,j,:)
 
            ! Get values at surface quadrature (dim,dim,sgi)
            qq_sgi(i,j,:) = matmul(qq_s(i,j,:), fshape%n)
-           ewrite(3,*) "qq_sgi: ", qq_sgi(i,j,:)
+           !ewrite(3,*) "qq_sgi: ", qq_sgi(i,j,:)
          end do
        end do
 
        do gi = 1, sgi
           !dot with surface normal (dim,sgi)
           qq_sgin(:,gi) = matmul(qq_sgi(:,:,gi),normal_bdy(:,gi))
-          ewrite(3,*) "qq_sgin: ", qq_sgin(:,gi)
+          !ewrite(3,*) "qq_sgin: ", qq_sgin(:,gi)
 
           ! Subtract normal component of velocity, leaving tangent components:
           qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
 
           ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
           ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi)
-          ewrite(3,*) "ustar: ", ustar(gi)
+          !ewrite(3,*) "ustar: ", ustar(gi)
        end do
 
        if (index==1) then
@@ -881,7 +881,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
           n(:,1) = normal_bdy(:,1)
           hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
           h  = hb(1,1)
-          ewrite(3,*) "h: ", h
+          !ewrite(3,*) "h: ", h
           ! Von Karman's constant
           kappa = 0.43
 
