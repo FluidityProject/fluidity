@@ -2913,6 +2913,23 @@ contains
        deallocate(receive_list_array)
     end if
 
+    !!! at the end of write_detectors subroutine I need to loop over all the detectors in the list and check that I own them (the element where they are). 
+    !!! If not, they need to be sent to the processor owner before adaptivity happens
+    if (timestep/=0) then
+       call distribute_detectors(state, default_stat%detector_list, ihash)
+    end if
+
+    if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
+         &ta_guided_search"))&
+         & then       
+       call deallocate_rk_guided_search(default_stat%detector_list)
+    end if
+
+    call deallocate(ihash) 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! After we're finished moving the detectors we write them to disc
+
     if ((.not.isparallel()).and.(.not. default_stat%binary_detector_output)) then
 
        if(getprocno() == 1) then
@@ -2927,11 +2944,8 @@ contains
        end if
 
        ! Next columns contain the positions of all the detectors.
-
        detector => default_stat%detector_list%firstnode
-
        positionloop: do i=1, default_stat%detector_list%length
-
           if(getprocno() == 1) then
              if(default_stat%binary_detector_output) then
                 write(default_stat%detector_unit) detector%position
@@ -2943,7 +2957,6 @@ contains
           end if
 
           detector => detector%next
-
        end do positionloop
 
        phaseloop: do phase=1,size(state)
@@ -2961,20 +2974,16 @@ contains
 
              do j=1, default_stat%detector_list%length
                 value =  detector_value(sfield, detector)
-
                 if(getprocno() == 1) then
-
                    if(default_stat%binary_detector_output) then
                       write(default_stat%detector_unit) value
                    else
                       format_buffer=reals_format(1)
                       write(default_stat%detector_unit, format_buffer, advance="no") value
                    end if
-
                 end if
 
                 detector => detector%next
-
              end do
           end do
 
@@ -2998,35 +3007,27 @@ contains
              detector => default_stat%detector_list%firstnode
 
              do j=1, default_stat%detector_list%length
-
                 vvalue =  detector_value(vfield, detector)
 
                 ! Only the first process should write statistics information
-
                 if(getprocno() == 1) then
-
                    if(default_stat%binary_detector_output) then
                       write(default_stat%detector_unit) vvalue
                    else
                       format_buffer=reals_format(vfield%dim)
                       write(default_stat%detector_unit, format_buffer, advance="no") vvalue
                    end if
-
                 end if
 
                 detector => detector%next
-
              end do
-
           end do
 
           deallocate(vvalue)
-
        end do phaseloop
 
        ! Output end of line
        ! Only the first process should write statistics information
-
        if(getprocno() == 1) then
           if(.not. default_stat%binary_detector_output) then
              ! Output end of line
@@ -3040,21 +3041,6 @@ contains
        call write_mpi_out(state,time,dt)
 
     end if
-    
-!!! at the end of write_detectors subroutine I need to loop over all the detectors in the list and check that I own them (the element where they are). 
-!!! If not, they need to be sent to the processor owner before adaptivity happens
-
-    if (timestep/=0) then
-       call distribute_detectors(state, default_stat%detector_list, ihash)
-    end if
-
-    if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
-         &ta_guided_search"))&
-         & then       
-       call deallocate_rk_guided_search(default_stat%detector_list)
-    end if
-
-    call deallocate(ihash) 
 
     totaldet_global=default_stat%detector_list%length
 
