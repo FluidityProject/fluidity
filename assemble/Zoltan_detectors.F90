@@ -12,7 +12,8 @@ module zoltan_detectors
 
   use detector_data_types
   use detector_tools
-  use diagnostic_variables, only: default_stat, remove_det_from_current_det_list
+  use diagnostic_variables, only: remove_det_from_current_det_list
+  use detector_distribution
 
   use fields
 
@@ -65,7 +66,7 @@ module zoltan_detectors
        detector%initial_owner=getprocno()
     end if
     detector%local_coords=local_coords(positions,detector%element,detector%position)
-    detector%name=default_stat%name_of_detector_in_read_order(detector%id_number)    
+    detector%name=name_of_detector_in_read_order(detector%id_number)    
     
   end subroutine update_detector
 
