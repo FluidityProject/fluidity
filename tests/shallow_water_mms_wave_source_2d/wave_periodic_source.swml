@@ -45,6 +45,34 @@
     <mesh name="PeriodicMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <periodic_boundary_conditions name="periodic_x">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">10</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value type="python" lines="20">def val(X,t):
+  result = list(X)
+  result[0]=result[0]-1.0
+  return result</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
+        <periodic_boundary_conditions name="periodic_y">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">7</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">9</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value type="python" lines="20">def val(X,t):
+  result = list(X)
+  result[1]=result[1]-1.0
+  return result</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
         <stat>
           <exclude_from_stat/>
         </stat>
