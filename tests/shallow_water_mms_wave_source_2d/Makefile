@@ -15,6 +15,9 @@ run_dt:
 run_dt_dx:
 	shallow_water wave_dt_dx_A.swml; shallow_water wave_dt_dx_B.swml; shallow_water wave_dt_dx_C.swml; shallow_water wave_dt_dx_D.swml
 
+run_parallel:
+	(../../bin/shallow_water wave_dt_A.swml &); (../../bin/shallow_water wave_dt_B.swml &); (../../bin/shallow_water wave_dt_C.swml &); (../../bin/shallow_water wave_dt_D.swml &); (../../bin/shallow_water wave_dt_dx_A.swml &); (../../bin/shallow_water wave_dt_dx_B.swml &); (../../bin/shallow_water wave_dt_dx_C.swml &); (../../bin/shallow_water wave_dt_dx_D.swml &); wait
+
 copy_tests:
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_A)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_A/' | sed 's/src\/mesh/src\/mesh_D/' > wave_dt_A.swml
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_B)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_B/' | sed 's/src\/mesh/src\/mesh_D/' > wave_dt_B.swml
