@@ -38,7 +38,8 @@ module detector_tools
   private
 
   public :: insert, allocate, deallocate, copy, remove, &
-            detector_value, move_det_to_send_list, remove_det_from_current_det_list
+            detector_value, flush_det, move_det_to_send_list, &
+            remove_det_from_current_det_list, move_det_from_receive_list_to_det_list
 
   interface insert
      module procedure insert_into_detector_list
@@ -307,6 +308,30 @@ contains
 
   end subroutine move_det_to_send_list 
 
+  subroutine move_det_from_receive_list_to_det_list(detector_list,receive_list)
+   
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), intent(inout) :: receive_list
+
+    type(detector_type), pointer :: node
+    integer :: i
+
+    do i=1, receive_list%length
+
+       node => receive_list%firstnode
+       receive_list%firstnode => node%next
+
+       if (associated(receive_list%firstnode)) then    
+          receive_list%firstnode%previous => null()
+       end if
+
+       call insert(detector_list,node) 
+
+       receive_list%length = receive_list%length-1  
+    end do
+
+  end subroutine move_det_from_receive_list_to_det_list
+
   subroutine remove_det_from_current_det_list(detector_list,node)
 
     type(detector_linked_list), intent(inout) :: detector_list
@@ -344,6 +369,26 @@ contains
           end if
      end if
 
-  end subroutine remove_det_from_current_det_list    
-  
+  end subroutine remove_det_from_current_det_list
+
+  subroutine flush_det(det_list)
+  !Removes and deallocates all the nodes in a detector list, starting from the first node.
+   
+    type(detector_linked_list), intent(inout) :: det_list
+    type(detector_type), pointer :: node
+    integer :: i
+
+    do i=1, det_list%length
+       node => det_list%firstnode
+       det_list%firstnode => node%next
+       if (associated(det_list%firstnode)) then    
+          det_list%firstnode%previous => null()
+       end if
+
+       call deallocate(node)
+       det_list%length = det_list%length-1  
+    end do
+
+  end subroutine flush_det
+
 end module detector_tools

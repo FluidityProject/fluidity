@@ -2601,20 +2601,20 @@ contains
     logical, intent(in) :: move_detectors
 
     character(len=10) :: format_buffer
-    integer :: i, j, k, phase, ele, processor_number, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, processor_owner
+    integer :: i, j, k, phase, ele, processor_number, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs
     real :: value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
     logical :: any_lagrangian
 
-    type(detector_type), pointer :: detector, temp_node, node_to_send, node_duplicated
+    type(detector_type), pointer :: detector, temp_node, node_duplicated
     type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
 
     integer, dimension(:), allocatable :: global_det_count
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
-    integer :: target_proc_a, mapped_val_a, halo_level, list_neigh_processor, check_no_det
+    integer :: target_proc_a, mapped_val_a, halo_level, check_no_det
 
     type(halo_type), pointer :: ele_halo 
 
@@ -3045,75 +3045,7 @@ contains
 !!! If not, they need to be sent to the processor owner before adaptivity happens
 
     if (timestep/=0) then
-
-       allocate(send_list_array(number_neigh_processors))
-       allocate(receive_list_array(number_neigh_processors))
-
-       detector => default_stat%detector_list%firstnode
-       do i = 1, default_stat%detector_list%length
-
-          if (detector%element>0) then
-             processor_owner=element_owner(vfield%mesh,detector%element)
-
-             if (processor_owner/= getprocno()) then
-
-                list_neigh_processor=fetch(ihash,processor_owner)
-                node_to_send => detector
-                detector => detector%next
-
-                call move_det_to_send_list(default_stat%detector_list,node_to_send,send_list_array(list_neigh_processor))
-             else
-                detector => detector%next
-             end if
-          else
-             detector => detector%next
-          end if
-
-       end do
-
-       all_send_lists_empty=number_neigh_processors
-       do k=1, number_neigh_processors
-
-          if (send_list_array(k)%length==0) then
-             all_send_lists_empty=all_send_lists_empty-1
-          end if
-
-       end do
-
-       call allmax(all_send_lists_empty)
-
-       if (all_send_lists_empty/=0) then
-          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
-       end if
-
-       do i=1, number_neigh_processors
-
-          if  (receive_list_array(i)%length/=0) then      
-             call move_det_from_receive_list_to_det_list(default_stat%detector_list,receive_list_array(i))
-          end if
-
-       end do
-
-!!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
-       do k=1, number_neigh_processors
-
-          if (send_list_array(k)%length/=0) then 
-             call flush_det(send_list_array(k))
-          end if
-
-       end do
-
-       do k=1, number_neigh_processors
-
-          if (receive_list_array(k)%length/=0) then  
-             call flush_det(receive_list_array(k))
-          end if
-
-       end do
-
-       deallocate(send_list_array)
-       deallocate(receive_list_array)
-
+       call distribute_detectors(state, default_stat%detector_list, ihash)
     end if
 
     if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
@@ -3363,32 +3295,6 @@ contains
 
   end subroutine write_detectors
 
-  subroutine flush_det(det_list)
-  !Removes and deallocates all the nodes in a detector list, starting from the first node.
-   
-    type(detector_linked_list), intent(inout) :: det_list
-    type(detector_type), pointer :: node
-    integer :: i
-
-    do i=1, det_list%length
-
-       node => det_list%firstnode
-
-       det_list%firstnode => node%next
-
-       if (associated(det_list%firstnode)) then
-    
-          det_list%firstnode%previous => null()
-
-       end if
-
-       call deallocate(node)
-       det_list%length = det_list%length-1  
-
-    end do
-
-  end subroutine flush_det
-
   subroutine write_mpi_out(state,time,dt)
     !!< Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.       
@@ -3568,30 +3474,6 @@ contains
     ewrite(1, *) "Exiting write_mpi_out"
    
   end subroutine write_mpi_out
-
-  subroutine move_det_from_receive_list_to_det_list(detector_list,receive_list)
-   
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_linked_list), intent(inout) :: receive_list
-
-    type(detector_type), pointer :: node
-    integer :: i
-
-    do i=1, receive_list%length
-
-       node => receive_list%firstnode
-       receive_list%firstnode => node%next
-
-       if (associated(receive_list%firstnode)) then    
-          receive_list%firstnode%previous => null()
-       end if
-
-       call insert(detector_list,node) 
-
-       receive_list%length = receive_list%length-1  
-    end do
-
-  end subroutine move_det_from_receive_list_to_det_list
 
   subroutine list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 !! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out 

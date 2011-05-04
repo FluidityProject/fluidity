@@ -229,6 +229,8 @@ Detector_Tools.o: Detector_Data_Types.o
 
 Detector_Data_Types.o: Global_Parameters.o
 
+Detector_Distribution.o: Detector_Tools.o
+
 Picker_Data_Types.o: Global_Parameters.o Reference_count_picker_type.F90 \
   Reference_Counting.o
 Pickers.o: Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o \

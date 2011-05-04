@@ -42,12 +42,86 @@ module detector_distribution
   
   private
 
-  public :: serialise_lists_exchange_receive, name_of_detector_in_read_order
+  public :: distribute_detectors, serialise_lists_exchange_receive, name_of_detector_in_read_order
 
   ! Global dictionary of detector names from which we can restore det_name from det_id after serialisation
   character(len = FIELD_NAME_LEN), dimension(:), allocatable, save, target :: name_of_detector_in_read_order
 
 contains
+
+  subroutine distribute_detectors(state, detector_list, ihash)
+    ! Loop over all the detectors in the list and check that I own them (the element where they are). 
+    ! If not, they need to be sent to the processor owner before adaptivity happens
+    type(state_type), dimension(:), intent(in) :: state
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(integer_hash_table), intent(in) :: ihash
+
+    type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
+    type(detector_type), pointer :: detector, node_to_send
+    type(vector_field), pointer :: vfield
+    integer :: i, k, all_send_lists_empty, list_neigh_processor, number_neigh_processors, processor_owner
+
+    vfield => extract_vector_field(state(1),"Velocity")
+    number_neigh_processors=key_count(ihash)
+    allocate(send_list_array(number_neigh_processors))
+    allocate(receive_list_array(number_neigh_processors))
+
+    detector => detector_list%firstnode
+    do i = 1, detector_list%length
+       if (detector%element>0) then
+          processor_owner=element_owner(vfield%mesh,detector%element)
+
+          if (processor_owner/= getprocno()) then
+
+             list_neigh_processor=fetch(ihash,processor_owner)
+             node_to_send => detector
+             detector => detector%next
+
+             call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+          else
+             detector => detector%next
+          end if
+       else
+          detector => detector%next
+       end if
+    end do
+
+    all_send_lists_empty=number_neigh_processors
+    do k=1, number_neigh_processors
+       if (send_list_array(k)%length==0) then
+          all_send_lists_empty=all_send_lists_empty-1
+       end if
+    end do
+
+    call allmax(all_send_lists_empty)
+
+    if (all_send_lists_empty/=0) then
+       call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+    end if
+
+    do i=1, number_neigh_processors
+       if  (receive_list_array(i)%length/=0) then      
+          call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+       end if
+    end do
+
+!!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
+    do k=1, number_neigh_processors
+       if (send_list_array(k)%length/=0) then 
+          call flush_det(send_list_array(k))
+       end if
+    end do
+
+    do k=1, number_neigh_processors
+       if (receive_list_array(k)%length/=0) then  
+          call flush_det(receive_list_array(k))
+       end if
+    end do
+
+    deallocate(send_list_array)
+    deallocate(receive_list_array)
+
+  end subroutine distribute_detectors
 
   subroutine serialise_lists_exchange_receive(&
        state,send_list_array,receive_list_array,number_neigh_processors,ihash)
