@@ -7,12 +7,16 @@
     <command_line>shallow_water wave_dt_A.swml; shallow_water wave_dt_B.swml; shallow_water wave_dt_C.swml; shallow_water wave_dt_D.swml; shallow_water wave_dt_E.swml; shallow_water wave_dt_dx_A.swml; shallow_water wave_dt_dx_B.swml; shallow_water wave_dt_dx_C.swml; shallow_water wave_dt_dx_D.swml; shallow_water wave_dt_dx_E.swml</command_line>
   </problem_definition>
   <variables>
-    <variable name="replay_convergence_pass" language="python">import convergence_rate_replay
-convergence_rate_replay.print_convergence_rates()
-replay_convergence_pass = convergence_rate_replay.test_convergence_rates(1.8, False)</variable>
     <variable name="convergence_pass" language="python">import convergence_rate
+print "Forward model convergence"      
 convergence_rate.print_convergence_rates()
-convergence_pass = convergence_rate.test_convergence_rates(1.8, False)</variable>
+convergence_pass = convergence_rate.test_convergence_rates(1.8, False)
+    </variable>
+    <variable name="replay_convergence_pass" language="python">import convergence_rate_replay
+print "Replay convergence"      
+convergence_rate_replay.print_convergence_rates()
+replay_convergence_pass = convergence_rate_replay.test_convergence_rates(1.8, False)
+    </variable>
   </variables>
   <pass_tests>
     <test name="convergence" language="python">assert(convergence_pass)
