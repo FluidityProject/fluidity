@@ -373,4 +373,15 @@
       </diagnostic>
     </vector_field>
   </material_phase>
+  <adjoint>
+    <replay_forward_run/>
+    <functional name="dummy">
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value lines="20" type="python">def dependencies(times, timestep):
+   return {}</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
+  </adjoint>
 </shallow_water_options>
