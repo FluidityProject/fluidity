@@ -501,6 +501,14 @@ at the first timestep or not.</a:documentation>
             <data type="string"/>
           </attribute>
           <optional>
+            <element name="is_multiphase_component">
+              <a:documentation>Flag to identify components in multiphase modelling
+
+Pressure and velocity fields must be aliased</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
             <element name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
               <choice>
@@ -2243,6 +2251,146 @@ Required in porous_media and multiphase problem types</a:documentation>
         </attribute>
         <attribute name="name">
           <value>PhaseVolumeFraction</value>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Phase1ComponentMassFraction
+Optional in multiphase problem types</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Phase1ComponentMassFraction</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Phase2ComponentMassFraction
+Optional in multiphase problem types</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Phase2ComponentMassFraction</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Phase3ComponentMassFraction
+Optional in multiphase problem types</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Phase3ComponentMassFraction</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <optional>
+              <ref name="cap_option"/>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Phase4ComponentMassFraction
+Optional in multiphase problem types</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Phase4ComponentMassFraction</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
         </attribute>
         <choice>
           <element name="prognostic">

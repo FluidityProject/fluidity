@@ -424,6 +424,12 @@ start =
          ## The material or phase options
          element material_phase {
             attribute name { xsd:string },
+            ## Flag to identify components in multiphase modelling
+            ## 
+            ## Pressure and velocity fields must be aliased
+            element is_multiphase_component {
+               comment
+            }?,
             ## The equation of state
             element equation_of_state {
                (
@@ -1853,6 +1859,118 @@ scalar_field_choice =
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PhaseVolumeFraction" },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field,
+                  cap_option?
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  cap_option?
+               }
+            )
+         }|
+         ## Phase1ComponentMassFraction
+         ## Optional in multiphase problem types
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Phase1ComponentMassFraction" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field,
+                  cap_option?
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  cap_option?
+               }
+            )
+         }|
+         ## Phase2ComponentMassFraction
+         ## Optional in multiphase problem types
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Phase2ComponentMassFraction" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field,
+                  cap_option?
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  cap_option?
+               }
+            )
+         }|
+         ## Phase3ComponentMassFraction
+         ## Optional in multiphase problem types
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Phase3ComponentMassFraction" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field,
+                  cap_option?
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  cap_option?
+               }
+            )
+         }|
+         ## Phase4ComponentMassFraction
+         ## Optional in multiphase problem types
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Phase4ComponentMassFraction" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
             (
                element prognostic {
                   velocity_mesh_choice,
