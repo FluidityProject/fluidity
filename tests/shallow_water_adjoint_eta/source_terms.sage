@@ -1,13 +1,15 @@
 t = var('t')
 h = var('h')
+g = var('g')
+H = var('H')
 
 # --------------------------------------------------
 
 u = (t+1)*h*sin(2*pi*x)
 eta = (t+1)*h*cos(2*pi*x)
 
-u_src = diff(u, t) + diff(eta, x)
-eta_src = diff(eta, t) + diff(u, x)
+u_src = diff(u, t) + g*diff(eta, x)
+eta_src = diff(eta, t) + diff(H*u, x)
 
 print "u: ", u
 print "eta: ", eta

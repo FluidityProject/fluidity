@@ -61,7 +61,7 @@ assert mms_u_passed
     </test>
     <test name="functional_convergence" language="python">
 for order in functional_convergence[1:]:
-  assert order &gt; 2.0
+  assert order &gt; 1.95
     </test>
     <test name="dJdh" language="python">
 for order in dJdh_convergence[1:]:
