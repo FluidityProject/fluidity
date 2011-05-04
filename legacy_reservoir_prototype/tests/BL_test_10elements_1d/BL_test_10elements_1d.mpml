@@ -40,7 +40,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>discontinuous</string_value>
+          <string_value>continuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -177,6 +177,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <overlapping/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -282,7 +283,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -528,7 +529,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>

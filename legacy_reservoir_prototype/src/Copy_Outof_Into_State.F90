@@ -38,6 +38,7 @@ module copy_outof_into_state
   use spud
   use populate_state_module
   use diagnostic_variables
+  use diagnostic_fields
   use diagnostic_fields_wrapper
   use global_parameters, only: option_path_len
   use diagnostic_fields_wrapper_new
@@ -161,11 +162,13 @@ module copy_outof_into_state
            
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
-      integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, shape_option(2)
+      integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, &
+                 component_bc_type, shape_option(2)
       real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, &
-              Pressure_Suf_BC, density_suf_bc
+              Pressure_Suf_BC, density_suf_bc, component_suf_bc
               
-      integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc
+      integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc, &
+           component_sufid_bc
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
@@ -218,16 +221,20 @@ module copy_outof_into_state
       call get_option("/geometry/dimension",ndim)
     
     ! nlev = 
-      u_nloc = vmesh%shape%loc ! 6, but only when we've got the right options in the schema
       xu_nloc = cmesh%shape%loc
       cv_nloc = pmesh%shape%loc
       x_nloc = 3*ndim
       p_nloc = pmesh%shape%loc ! 3
-      if (vmesh%continuity>=0) then
-        ! Continuous velocity mesh
+      u_nloc = vmesh%shape%loc
+      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
+                      "spatial_discretisation/discontinuous_galerkin/overlapping")) then
+        u_nloc=u_nloc*p_nloc
+      endif
+      if (pmesh%continuity>=0) then
+        ! Continuous pressure mesh
         cv_nonods = ( cv_nloc - 1 ) * totele + 1
       else
-        ! Discontinuous velocity mesh
+        ! Discontinuous pressure mesh
         cv_nonods = cv_nloc * totele
       endif
     ! cv_snloc = 1
@@ -284,6 +291,7 @@ module copy_outof_into_state
     
     !! These two are always equal to 3 except for the 2phase, 3comp, non-equilibrium test, where they are 1
     !! Change in schema ??
+    !! still need to do this!
     ! nits_flux_lim_volfra = 
     ! nits_flux_lim_comp = 
 
@@ -466,11 +474,14 @@ module copy_outof_into_state
       ewrite(3,*) 'sorted mobility'
 
 !!!
-!!! Options below are for the multi-component flow model, still needed to be added into the schema
+!!! Options below are for the multi-component flow model
 !!! 
-      alpha_beta = 1.
-      KComp_Sigmoid = .true. 
-      Comp_Sum2One = .false.
+      call get_option("/material_phase[" // int2str(nstates-ncomps) // &
+                      "]/is_multiphase_component/alpha_beta", alpha_beta, default=1.0)
+      KComp_Sigmoid = have_option("/material_phase[" // int2str(nstates-ncomps) // &
+                                  "]/is_multiphase_component/KComp_Sigmoid")
+      Comp_Sum2One = have_option("/material_phase[" // int2str(nstates-ncomps) // &
+                                 "]/is_multiphase_component/Comp_Sum2One")
 
 !!!
 !!! Porosity and Permeability: it WILL be necessary to change the permeability as it
@@ -644,6 +655,44 @@ module copy_outof_into_state
   
       endif Conditional_Density_BC
       
+     ! Still need to do this properly, I'm too tired now to sort out where the boundary condition
+     ! information is going!
+      Conditional_Component_BC: do i=nstates-ncomps, nstates-1
+        do j=1,nphases
+          if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
+                          "ComponentMassFraction/prognostic/" // &
+                          "boundary_conditions[0]/type::dirichlet" )) then
+            if (.not.allocated(wic_comp_bc)) then
+              allocate( wic_comp_bc( stotel * nphases ))
+              allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
+            endif
+            
+            shape_option=option_shape("/material_phase[" // int2str(i) // &
+                                      "]/scalar_field::Phase" // int2str(j) // &
+                                      "ComponentMassFraction/prognostic/boundary_conditions[0]/surface_ids")
+            allocate(component_sufid_bc(1:shape_option(1)))
+            Component_BC_Type = 1
+            call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
+                             "ComponentMassFraction/prognostic" // &
+                             "boundary_conditions[0]/surface_ids", component_sufid_bc )
+            call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
+                             "ComponentMassFraction/prognostic" // &
+                             "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
+
+            wic_comp_bc = 0
+            suf_comp_bc = 0.
+            do k=1,shape_option(1)
+              wic_comp_bc( component_sufid_bc(1) ) = Component_BC_Type
+              suf_comp_bc( component_sufid_bc(1)*(k-nstates+1) ) = Component_Suf_BC
+            enddo
+            deallocate(Component_sufid_bc)
+          endif
+        enddo
+
+      enddo Conditional_Component_BC
+      
+      
+      
       ewrite(3,*) 'Done with boundary conditions'
 
 !!!
@@ -672,10 +721,6 @@ module copy_outof_into_state
       suf_comp_bc_rob1 = 0.
       suf_comp_bc_rob2 = 0.
 
-!!!==============================================!!!
-!!! wic_comp_bc ==> These still need to be done  !!!
-!!! suf_comp_bc                                  !!!
-!!!==============================================!!!
 
 !!!
 !!! Initial conditions for all fields
@@ -700,8 +745,6 @@ module copy_outof_into_state
          p(i)=pressure%val(i)
       enddo
       
-!!! Need to add cv_p (the cv representation of pressure field used in the interpolation
-!!! (overlapping) formulation
       ewrite(3,*) 'phasevolumefraction...'
       do i=1,nphases
         phasevolumefraction => extract_scalar_field(state(i), "PhaseVolumeFraction")
@@ -800,6 +843,10 @@ module copy_outof_into_state
       ug=0.
       vg=0.
       wg=0.
+      
+      ewrite(3,*) 'cv_nonods, u_nonods: ', &
+                   cv_nonods, u_nonods
+      ewrite(3,*) 'x_nonods, xu_nonods: ', x_nonods, xu_nonods
 
       ewrite(3,*) 'Getting source terms'
       do i=1,nphases
@@ -870,7 +917,6 @@ module copy_outof_into_state
 
       allocate(comp_source(cv_nonods*nphases))
       comp_source=0.
-      !! STILL NEED TO DO THIS !!
       ! comp is stored in the order
       !   comp1 phase1
       !   comp1 phase2
@@ -933,7 +979,9 @@ module copy_outof_into_state
       ewrite(3,*) 'Leaving copy_outof_state'
 
     end subroutine copy_outof_state
-  
+
+
+
     subroutine copy_into_state(state, saturations, proto_pressure)
   
       type(state_type), dimension(:), pointer :: state
@@ -950,24 +998,28 @@ module copy_outof_into_state
       ewrite(3,*) 'saturations:', saturations ! This is cv_nonods * nphases long, and in order
 
       positions => extract_vector_field(state, "Coordinate")
+      allocate(elenodes(3*positions%dim))
     
       ! The plan is to copy the first half of saturations into PhaseVolumeFraction:
       phasevolumefraction => extract_scalar_field(state(1), "PhaseVolumeFraction")
       ewrite(3,*) 'size of pvf:', node_count(phasevolumefraction)
-      do i=1,node_count(phasevolumefraction)
-        call set(phasevolumefraction, i, saturations(i))
-      enddo
+      do i=1,ele_count(phasevolumefraction)
+        elenodes = ele_nodes(phasevolumefraction,i)
+        do j=1,size(elenodes)
+          call set(phasevolumefraction, elenodes(j), saturations(2*(i-1)+j))
+        end do
+      end do  
     
       ! Then to get the projection of PhaseVolumeFraction onto the CoordinateMesh
       ! so that it can be compared to the analytical solution
       galerkinprojection => extract_scalar_field(state(1), "GalerkinProjection")
-      call calculate_diagnostic_variable(state, 1, galerkinprojection)
+      call calculate_galerkin_projection(state(1), galerkinprojection)
+      ewrite(3,*) 'galerkinprojection: ', galerkinprojection%val(1:node_count(galerkinprojection))
 
 
       ! Let's practice with getting the pressure out
       ! This is designed for the quadratic elements
       pressure => extract_scalar_field(state(1), "Pressure")    
-      allocate(elenodes(3*positions%dim))
       do i=1,ele_count(pressure)
         elenodes = ele_nodes(pressure,i)
         do j=1,size(elenodes)

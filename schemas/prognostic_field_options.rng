@@ -969,6 +969,12 @@ suggested value 0.1</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="overlapping">
+              <a:documentation>DG overlapping CV method</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">

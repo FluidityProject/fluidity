@@ -266,7 +266,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -520,7 +520,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -583,13 +583,18 @@
     </multiphase_properties>
   </material_phase>
   <material_phase name="component1">
-    <is_multiphase_component/>
+    <is_multiphase_component>
+      <alpha_beta>
+        <real_value rank="0">1.</real_value>
+      </alpha_beta>
+      <KComp_Sigmoid/>
+    </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
     </vector_field>
     <scalar_field material_phase_name="phase1" name="Phase1ComponentMassFraction" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">0.83721</real_value>
@@ -604,7 +609,7 @@
     </scalar_field>
     <scalar_field material_phase_name="phase2" name="Phase2ComponentMassFraction" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">0.18604</real_value>
@@ -619,7 +624,12 @@
     </scalar_field>
   </material_phase>
   <material_phase name="component2">
-    <is_multiphase_component/>
+    <is_multiphase_component>
+      <alpha_beta>
+        <real_value rank="0">1.</real_value>
+      </alpha_beta>
+      <KComp_Sigmoid/>
+    </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
     </vector_field>

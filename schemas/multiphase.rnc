@@ -428,7 +428,16 @@ start =
             ## 
             ## Pressure and velocity fields must be aliased
             element is_multiphase_component {
-               comment
+               (
+                  ## Specify the weighting for the component equation
+                  ## between 0 and 1. Test cases have 1.
+                  element alpha_beta { real },
+                  ## Enable this option to use sigmoid method for finding equilibrium
+                  element KComp_Sigmoid { comment }?,
+                  ## Enable this option to force component mass fractions
+                  ## to sum to 1. Oddly set to false (ie not set) in the test cases
+                  element Comp_Sum2One { comment }?
+               )
             }?,
             ## The equation of state
             element equation_of_state {
@@ -2416,7 +2425,7 @@ scalar_field_choice =
                   }?,
                   element solver {
                     linear_solver_options_sym
-                  }?,
+                  },
                   diagnostic_scalar_field
                }|
                element aliased {

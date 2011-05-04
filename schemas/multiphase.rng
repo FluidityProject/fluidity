@@ -505,7 +505,24 @@ at the first timestep or not.</a:documentation>
               <a:documentation>Flag to identify components in multiphase modelling
 
 Pressure and velocity fields must be aliased</a:documentation>
-              <ref name="comment"/>
+              <element name="alpha_beta">
+                <a:documentation>Specify the weighting for the component equation
+between 0 and 1. Test cases have 1.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="KComp_Sigmoid">
+                  <a:documentation>Enable this option to use sigmoid method for finding equilibrium</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="Comp_Sum2One">
+                  <a:documentation>Enable this option to force component mass fractions
+to sum to 1. Oddly set to false (ie not set) in the test cases</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -2276,7 +2293,10 @@ Required in porous_media and multiphase problem types</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Phase1ComponentMassFraction
-Optional in multiphase problem types</a:documentation>
+Optional in multiphase problem types
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2311,7 +2331,10 @@ Optional in multiphase problem types</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Phase2ComponentMassFraction
-Optional in multiphase problem types</a:documentation>
+Optional in multiphase problem types
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2346,7 +2369,10 @@ Optional in multiphase problem types</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Phase3ComponentMassFraction
-Optional in multiphase problem types</a:documentation>
+Optional in multiphase problem types
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2381,7 +2407,10 @@ Optional in multiphase problem types</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Phase4ComponentMassFraction
-Optional in multiphase problem types</a:documentation>
+Optional in multiphase problem types
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2942,11 +2971,9 @@ less accurate but faster and might give smoother result.                  </a:do
                 <empty/>
               </element>
             </optional>
-            <optional>
-              <element name="solver">
-                <ref name="linear_solver_options_sym"/>
-              </element>
-            </optional>
+            <element name="solver">
+              <ref name="linear_solver_options_sym"/>
+            </element>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
