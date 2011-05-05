@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -67,7 +67,7 @@
             <integer_value shape="1" rank="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   result = list(X)
   result[1]=result[1]-1.0
   return result</string_value>
@@ -497,8 +497,8 @@ field.val[:] = J</string_value>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-  from math import sin, pi
-  return X[0]*(X[0]-1)+t</string_value>
+  import constants_func_eval_2d
+  return constants_func_eval_2d.functional_vector_eta(X,t)</string_value>
           </python>
         </value>
         <output/>
@@ -607,8 +607,8 @@ for ele in range(coord.ele_count):
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-  from math import sin, pi
-  return [sin(2*pi*X)+t, 0.0, 0.0]</string_value>
+  import constants_func_eval_2d
+  return constants_func_eval_2d.functional_vector_u(X,t)</string_value>
           </python>
         </value>
         <output/>

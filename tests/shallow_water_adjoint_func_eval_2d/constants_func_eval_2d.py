@@ -19,3 +19,9 @@ def u_exact(X, t):
 
 def eta_exact(X, t):
   return -sin(2*pi*X[0] + t)
+
+def functional_vector_eta(X,t):
+  return X[0]*(X[0]-1)+t
+
+def functional_vector_u(X,t):
+  return [sin(2*pi*X[0])+t, 0.0, 0.0]
