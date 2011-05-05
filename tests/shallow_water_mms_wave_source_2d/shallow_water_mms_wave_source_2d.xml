@@ -4,7 +4,7 @@
   <owner userid="sf1409"/>
   <tags>swml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>shallow_water wave_dt_A.swml; shallow_water wave_dt_B.swml; shallow_water wave_dt_C.swml; shallow_water wave_dt_D.swml; shallow_water wave_dt_dx_A.swml; shallow_water wave_dt_dx_B.swml; shallow_water wave_dt_dx_C.swml; shallow_water wave_dt_dx_D.swml</command_line>
+    <command_line>shallow_water wave_dt_dx_A.swml; shallow_water wave_dt_dx_B.swml; shallow_water wave_dt_dx_C.swml; shallow_water wave_dt_dx_D.swml</command_line>
   </problem_definition>
   <variables>
     <variable name="convergence_pass" language="python">import convergence_rate_2d
