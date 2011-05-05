@@ -83,60 +83,6 @@ clean:
 	rm -f $(AUTO_WRAPPER).F90
 
 #####Automatically generated dependencies. Do not edit below this line#####
-../include/multiphase_diagnostics.mod: Multiphase_Diagnostics.o
-	@true
-
-Multiphase_Diagnostics.o ../include/multiphase_diagnostics.mod: \
-   Multiphase_Diagnostics.F90 ../include/confdefs.h \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/fdebug.h ../include/fldebug.mod
-
-../include/simple_diagnostics.mod: Simple_Diagnostics.o
-	@true
-
-Simple_Diagnostics.o ../include/simple_diagnostics.mod: Simple_Diagnostics.F90 \
-   ../include/vtk_cache_module.mod ../include/diagnostic_source_fields.mod \
-   ../include/confdefs.h ../include/fields_manipulation.mod \
-   ../include/spud.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/fields.mod \
-   ../include/initialise_fields_module.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
-
-../include/field_copies_diagnostics.mod: Field_Copies.o
-	@true
-
-Field_Copies.o ../include/field_copies_diagnostics.mod: Field_Copies.F90 \
-   ../include/diagnostic_source_fields.mod ../include/confdefs.h \
-   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/transform_elements.mod ../include/solvers.mod \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/sparse_matrices_fields.mod \
-   ../include/state_module.mod ../include/smoothing_module.mod \
-   ../include/fdebug.h ../include/fldebug.mod
-
-../include/tidal_diagnostics.mod: Tidal_Diagnostics.o
-	@true
-
-Tidal_Diagnostics.o ../include/tidal_diagnostics.mod: Tidal_Diagnostics.F90 \
-   ../include/diagnostic_source_fields.mod ../include/confdefs.h \
-   ../include/fields_manipulation.mod ../include/spud.mod \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/tidal_module.mod \
-   ../include/initialise_fields_module.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
-
-../include/surface_diagnostics.mod: Surface.o
-	@true
-
-Surface.o ../include/surface_diagnostics.mod: Surface.F90 \
-   ../include/surface_integrals.mod ../include/diagnostic_source_fields.mod \
-   ../include/confdefs.h ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
-
 ../include/adjoint_functionals.mod: Adjoint_Functionals.o
 	@true
 
@@ -146,14 +92,23 @@ Adjoint_Functionals.o ../include/adjoint_functionals.mod: \
    ../include/embed_python.mod ../include/spud.mod ../include/state_module.mod \
    ../include/python_state.mod ../include/fdebug.h ../include/fldebug.mod
 
-../include/mesh_diagnostics.mod: Mesh_Diagnostics.o
+../include/binary_operators.mod: Binary_Operators.o
 	@true
 
-Mesh_Diagnostics.o ../include/mesh_diagnostics.mod: Mesh_Diagnostics.F90 \
+Binary_Operators.o ../include/binary_operators.mod: Binary_Operators.F90 \
    ../include/diagnostic_source_fields.mod ../include/confdefs.h \
    ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/halos_numbering.mod \
-   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/fields.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/fdebug.h ../include/fldebug.mod
+
+../include/diagnostic_source_fields.mod: Diagnostic_Source_Fields.o
+	@true
+
+Diagnostic_Source_Fields.o ../include/diagnostic_source_fields.mod: \
+   Diagnostic_Source_Fields.F90 ../include/confdefs.h \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod ../include/fdebug.h \
+   ../include/state_module.mod
 
 ../include/differential_operator_diagnostics.mod: Differential_Operators.o
 	@true
@@ -171,12 +126,39 @@ Differential_Operators.o ../include/differential_operator_diagnostics.mod: \
    ../include/state_fields_module.mod ../include/fdebug.h \
    ../include/state_module.mod
 
-../include/parallel_diagnostics.mod: Parallel_Diagnostics.o
+../include/field_copies_diagnostics.mod: Field_Copies.o
 	@true
 
-Parallel_Diagnostics.o ../include/parallel_diagnostics.mod: \
-   Parallel_Diagnostics.F90 ../include/confdefs.h ../include/halos.mod \
-   ../include/fields.mod ../include/fdebug.h ../include/fldebug.mod
+Field_Copies.o ../include/field_copies_diagnostics.mod: Field_Copies.F90 \
+   ../include/diagnostic_source_fields.mod ../include/confdefs.h \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/transform_elements.mod ../include/solvers.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/sparse_matrices_fields.mod \
+   ../include/state_module.mod ../include/smoothing_module.mod \
+   ../include/fdebug.h ../include/fldebug.mod
+
+../include/mesh_diagnostics.mod: Mesh_Diagnostics.o
+	@true
+
+Mesh_Diagnostics.o ../include/mesh_diagnostics.mod: Mesh_Diagnostics.F90 \
+   ../include/diagnostic_source_fields.mod ../include/confdefs.h \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod ../include/halos_numbering.mod \
+   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
+
+../include/metric_diagnostics.mod: Metric_Diagnostics.o
+	@true
+
+Metric_Diagnostics.o ../include/metric_diagnostics.mod: Metric_Diagnostics.F90 \
+   ../include/form_metric_field.mod ../include/diagnostic_source_fields.mod \
+   ../include/confdefs.h ../include/quicksort.mod \
+   ../include/conformity_measurement.mod ../include/vector_tools.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/metric_tools.mod ../include/spud.mod \
+   ../include/field_derivatives.mod ../include/edge_length_module.mod \
+   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
 
 ../include/momentum_diagnostics.mod: Momentum_Diagnostics.o
 	@true
@@ -192,6 +174,23 @@ Momentum_Diagnostics.o ../include/momentum_diagnostics.mod: \
    ../include/field_derivatives.mod ../include/state_module.mod \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/multiphase_diagnostics.mod: Multiphase_Diagnostics.o
+	@true
+
+Multiphase_Diagnostics.o ../include/multiphase_diagnostics.mod: \
+   Multiphase_Diagnostics.F90 ../include/confdefs.h \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/fdebug.h ../include/fldebug.mod
+
+../include/parallel_diagnostics.mod: Parallel_Diagnostics.o
+	@true
+
+Parallel_Diagnostics.o ../include/parallel_diagnostics.mod: \
+   Parallel_Diagnostics.F90 ../include/confdefs.h ../include/halos.mod \
+   ../include/fields.mod ../include/fdebug.h ../include/fldebug.mod
+
 ../include/python_diagnostics.mod: Python_Diagnostics.o
 	@true
 
@@ -200,33 +199,34 @@ Python_Diagnostics.o ../include/python_diagnostics.mod: Python_Diagnostics.F90 \
    ../include/fields.mod ../include/spud.mod ../include/state_module.mod \
    ../include/python_state.mod ../include/fdebug.h ../include/fldebug.mod
 
-../include/metric_diagnostics.mod: Metric_Diagnostics.o
+../include/simple_diagnostics.mod: Simple_Diagnostics.o
 	@true
 
-Metric_Diagnostics.o ../include/metric_diagnostics.mod: Metric_Diagnostics.F90 \
-   ../include/form_metric_field.mod ../include/diagnostic_source_fields.mod \
-   ../include/confdefs.h ../include/quicksort.mod \
-   ../include/conformity_measurement.mod ../include/vector_tools.mod \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/metric_tools.mod ../include/spud.mod \
-   ../include/field_derivatives.mod ../include/edge_length_module.mod \
+Simple_Diagnostics.o ../include/simple_diagnostics.mod: Simple_Diagnostics.F90 \
+   ../include/vtk_cache_module.mod ../include/diagnostic_source_fields.mod \
+   ../include/confdefs.h ../include/fields_manipulation.mod \
+   ../include/spud.mod ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/initialise_fields_module.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
 
-../include/diagnostic_source_fields.mod: Diagnostic_Source_Fields.o
+../include/surface_diagnostics.mod: Surface.o
 	@true
 
-Diagnostic_Source_Fields.o ../include/diagnostic_source_fields.mod: \
-   Diagnostic_Source_Fields.F90 ../include/confdefs.h \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/fdebug.h \
-   ../include/state_module.mod
+Surface.o ../include/surface_diagnostics.mod: Surface.F90 \
+   ../include/surface_integrals.mod ../include/diagnostic_source_fields.mod \
+   ../include/confdefs.h ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
 
-../include/binary_operators.mod: Binary_Operators.o
+../include/tidal_diagnostics.mod: Tidal_Diagnostics.o
 	@true
 
-Binary_Operators.o ../include/binary_operators.mod: Binary_Operators.F90 \
+Tidal_Diagnostics.o ../include/tidal_diagnostics.mod: Tidal_Diagnostics.F90 \
    ../include/diagnostic_source_fields.mod ../include/confdefs.h \
+   ../include/fields_manipulation.mod ../include/spud.mod \
    ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/fdebug.h ../include/fldebug.mod
+   ../include/fields.mod ../include/tidal_module.mod \
+   ../include/initialise_fields_module.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/fdebug.h ../include/fldebug.mod
 

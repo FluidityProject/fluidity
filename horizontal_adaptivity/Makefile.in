@@ -88,6 +88,16 @@ Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
    ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
    ../include/spud.mod ../include/fdebug.h
 
+../include/hadapt_extrude.mod: Extrude.o
+	@true
+
+Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/halos.mod \
+   ../include/confdefs.h ../include/quadrature.mod \
+   ../include/hadapt_combine_meshes.mod ../include/vtk_interfaces.mod \
+   ../include/linked_lists.mod ../include/global_parameters.mod \
+   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/fdebug.h
+
 ../include/hadapt_extrude_radially.mod: Extrude_radially.o
 	@true
 
@@ -112,14 +122,4 @@ Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
    ../include/elements.mod ../include/fields.mod ../include/spud.mod \
    ../include/data_structures.mod ../include/fdebug.h \
    ../include/metric_tools.mod
-
-../include/hadapt_extrude.mod: Extrude.o
-	@true
-
-Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/halos.mod \
-   ../include/confdefs.h ../include/quadrature.mod \
-   ../include/hadapt_combine_meshes.mod ../include/vtk_interfaces.mod \
-   ../include/linked_lists.mod ../include/global_parameters.mod \
-   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
-   ../include/spud.mod ../include/fdebug.h
 

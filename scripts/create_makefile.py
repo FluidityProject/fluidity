@@ -123,8 +123,9 @@ def generate_dependencies(fortran):
     import os.path
     
     setsize=len(fortran)+1 # Make sure loop executes once.
+
     
-    dependencies=[]
+    dependencies={}
     # Loop as long as we are making progress.
     while len(fortran)<setsize and len(fortran)>0:
         print("Generating dependencies, "+`len(fortran)`+" to go.")
@@ -153,7 +154,7 @@ def generate_dependencies(fortran):
                 this_deps.remove_dep_by_rule(lambda x:
                     x.startswith("../confdefs.h"))
 
-                dependencies+=this_deps.as_strings()
+                dependencies[f]=this_deps
                 #split_module_dependency(
                 #    strip_absolute_paths(this_deps))+["\n"]
                 discards.add(f)
@@ -166,7 +167,16 @@ def generate_dependencies(fortran):
         print str(fortran)
         raise OSError
 
-    return dependencies
+    dep_strings=[]
+    
+    # Sort the output by filename.
+    files=dependencies.keys()
+    files.sort()
+
+    for f in files:       
+        dep_strings+=dependencies[f].as_strings()
+    
+    return dep_strings
 
 def handle_options():
     from optparse import OptionParser
@@ -186,6 +196,9 @@ def handle_options():
 if __name__=='__main__':
     options=handle_options()
 
+    sys.stderr.write("Stripping Makefile\n")
+    strip_makefile("Makefile")
+
     sys.stderr.write("Making clean\n")
     trysystem("make clean")
 
@@ -195,9 +208,6 @@ if __name__=='__main__':
 
     sys.stderr.write("Creating reference counts\n")
     create_refcounts()
-
-    sys.stderr.write("Stripping Makefile\n")
-    strip_makefile("Makefile")
 
     dependencies=generate_dependencies(fortran)
 

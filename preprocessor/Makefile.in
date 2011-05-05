@@ -92,64 +92,6 @@ clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
-../include/vtk_cache_module.mod: VTK_Cache.o
-	@true
-
-VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 \
-   ../include/confdefs.h ../include/vtk_interfaces.mod ../include/fields.mod \
-   ../include/fdebug.h ../include/state_module.mod
-
-../include/synthetic_bc.mod: synthetic_bc.o
-	@true
-
-synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
-   ../include/state_module.mod ../include/parallel_tools.mod \
-   ../include/spud.mod ../include/elements.mod \
-   ../include/global_parameters.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/fdebug.h ../include/confdefs.h
-
-../include/physics_from_options.mod: Physics_From_Options.o
-	@true
-
-Physics_From_Options.o ../include/physics_from_options.mod: \
-   Physics_From_Options.F90 ../include/confdefs.h ../include/fields.mod \
-   ../include/spud.mod ../include/fdebug.h ../include/state_module.mod
-
-../include/field_priority_lists.mod: Field_Priority_Lists.o
-	@true
-
-Field_Priority_Lists.o ../include/field_priority_lists.mod: \
-   Field_Priority_Lists.F90 ../include/confdefs.h \
-   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
-   ../include/fdebug.h ../include/state_module.mod
-
-../include/reserve_state_module.mod: Reserve_State.o
-	@true
-
-Reserve_State.o ../include/reserve_state_module.mod: Reserve_State.F90 \
-   ../include/confdefs.h ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/fdebug.h \
-   ../include/state_module.mod
-
-../include/tidal_module.mod: Tidal_Modelling.o
-	@true
-
-Tidal_Modelling.o ../include/tidal_module.mod: Tidal_Modelling.F90 \
-   ../include/confdefs.h ../include/fields.mod ../include/spud.mod \
-   ../include/sparse_matrices_fields.mod ../include/fldebug.mod \
-   ../include/coordinates.mod ../include/fdebug.h ../include/state_module.mod
-
-../include/initialise_fields_module.mod: Initialise_Fields.o
-	@true
-
-Initialise_Fields.o ../include/initialise_fields_module.mod: \
-   Initialise_Fields.F90 ../include/vtk_cache_module.mod \
-   ../include/climatology.mod ../include/tictoc.mod ../include/futils.mod \
-   ../include/physics_from_options.mod ../include/load_netcdf_module.mod \
-   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
-   ../include/nemo_states_module.mod ../include/coordinates.mod \
-   ../include/fdebug.h ../include/confdefs.h
-
 ../include/boundary_conditions_from_options.mod: \
    Boundary_Conditions_From_Options.o
 	@true
@@ -169,6 +111,32 @@ Boundary_Conditions_From_Options.o \
    ../include/samplenetcdf.mod ../include/k_epsilon.mod \
    ../include/field_options.mod ../include/global_parameters.mod \
    ../include/sediment.mod ../include/coordinates.mod ../include/fdebug.h
+
+../include/field_priority_lists.mod: Field_Priority_Lists.o
+	@true
+
+Field_Priority_Lists.o ../include/field_priority_lists.mod: \
+   Field_Priority_Lists.F90 ../include/confdefs.h \
+   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
+   ../include/fdebug.h ../include/state_module.mod
+
+../include/initialise_fields_module.mod: Initialise_Fields.o
+	@true
+
+Initialise_Fields.o ../include/initialise_fields_module.mod: \
+   Initialise_Fields.F90 ../include/vtk_cache_module.mod \
+   ../include/climatology.mod ../include/tictoc.mod ../include/futils.mod \
+   ../include/physics_from_options.mod ../include/load_netcdf_module.mod \
+   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
+   ../include/nemo_states_module.mod ../include/coordinates.mod \
+   ../include/fdebug.h ../include/confdefs.h
+
+../include/physics_from_options.mod: Physics_From_Options.o
+	@true
+
+Physics_From_Options.o ../include/physics_from_options.mod: \
+   Physics_From_Options.F90 ../include/confdefs.h ../include/fields.mod \
+   ../include/spud.mod ../include/fdebug.h ../include/state_module.mod
 
 ../include/populate_state_module.mod: Populate_State.o
 	@true
@@ -211,4 +179,36 @@ Populate_Sub_State.o ../include/populate_sub_state_module.mod: \
    ../include/field_options.mod ../include/global_parameters.mod \
    ../include/diagnostic_variables.mod ../include/parallel_tools.mod \
    ../include/coordinates.mod ../include/fdebug.h
+
+../include/reserve_state_module.mod: Reserve_State.o
+	@true
+
+Reserve_State.o ../include/reserve_state_module.mod: Reserve_State.F90 \
+   ../include/confdefs.h ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod ../include/fdebug.h \
+   ../include/state_module.mod
+
+../include/tidal_module.mod: Tidal_Modelling.o
+	@true
+
+Tidal_Modelling.o ../include/tidal_module.mod: Tidal_Modelling.F90 \
+   ../include/confdefs.h ../include/fields.mod ../include/spud.mod \
+   ../include/sparse_matrices_fields.mod ../include/fldebug.mod \
+   ../include/coordinates.mod ../include/fdebug.h ../include/state_module.mod
+
+../include/vtk_cache_module.mod: VTK_Cache.o
+	@true
+
+VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 \
+   ../include/confdefs.h ../include/vtk_interfaces.mod ../include/fields.mod \
+   ../include/fdebug.h ../include/state_module.mod
+
+../include/synthetic_bc.mod: synthetic_bc.o
+	@true
+
+synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
+   ../include/state_module.mod ../include/parallel_tools.mod \
+   ../include/spud.mod ../include/elements.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/fdebug.h ../include/confdefs.h
 

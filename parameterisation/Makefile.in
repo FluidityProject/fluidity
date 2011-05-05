@@ -61,12 +61,33 @@ clean:
 	rm -f *.o *.d *.mod
 
 #####Automatically generated dependencies. Do not edit below this line#####
+../include/equation_of_state.mod: Equation_of_State.o
+	@true
+
+Equation_of_State.o ../include/equation_of_state.mod: Equation_of_State.F90 \
+   ../include/confdefs.h ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod ../include/sediment.mod \
+   ../include/fldebug.mod ../include/fdebug.h ../include/state_module.mod
+
 ../include/gent_mcwilliams.mod: Gent_McWilliams.o
 	@true
 
 Gent_McWilliams.o ../include/gent_mcwilliams.mod: Gent_McWilliams.F90 \
    ../include/confdefs.h ../include/fetools.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fldebug.mod
+
+../include/gls.mod: Gls_vertical_turbulence_model.o
+	@true
+
+Gls_vertical_turbulence_model.o ../include/gls.mod: \
+   Gls_vertical_turbulence_model.F90 ../include/boundary_conditions.mod \
+   ../include/confdefs.h ../include/quadrature.mod \
+   ../include/global_parameters.mod ../include/state_fields_module.mod \
+   ../include/elements.mod ../include/fields.mod ../include/fefields.mod \
+   ../include/spud.mod ../include/equation_of_state.mod \
+   ../include/field_derivatives.mod ../include/sparse_matrices_fields.mod \
+   ../include/fldebug.mod ../include/coordinates.mod ../include/fdebug.h \
+   ../include/state_module.mod
 
 ../include/iceshelf_meltrate_surf_normal.mod: iceshelf_meltrate_surf_normal.o
 	@true
@@ -83,14 +104,6 @@ iceshelf_meltrate_surf_normal.o ../include/iceshelf_meltrate_surf_normal.mod: \
    ../include/state_module.mod ../include/state_fields_module.mod \
    ../include/field_derivatives.mod ../include/fdebug.h
 
-../include/equation_of_state.mod: Equation_of_State.o
-	@true
-
-Equation_of_State.o ../include/equation_of_state.mod: Equation_of_State.F90 \
-   ../include/confdefs.h ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/sediment.mod \
-   ../include/fldebug.mod ../include/fdebug.h ../include/state_module.mod
-
 ../include/k_epsilon.mod: k_epsilon.o
 	@true
 
@@ -103,17 +116,4 @@ k_epsilon.o ../include/k_epsilon.mod: k_epsilon.F90 \
    ../include/spud.mod ../include/state_fields_module.mod \
    ../include/field_derivatives.mod ../include/fields_manipulation.mod \
    ../include/fdebug.h ../include/state_module.mod
-
-../include/gls.mod: Gls_vertical_turbulence_model.o
-	@true
-
-Gls_vertical_turbulence_model.o ../include/gls.mod: \
-   Gls_vertical_turbulence_model.F90 ../include/boundary_conditions.mod \
-   ../include/confdefs.h ../include/quadrature.mod \
-   ../include/global_parameters.mod ../include/state_fields_module.mod \
-   ../include/elements.mod ../include/fields.mod ../include/fefields.mod \
-   ../include/spud.mod ../include/equation_of_state.mod \
-   ../include/field_derivatives.mod ../include/sparse_matrices_fields.mod \
-   ../include/fldebug.mod ../include/coordinates.mod ../include/fdebug.h \
-   ../include/state_module.mod
 
