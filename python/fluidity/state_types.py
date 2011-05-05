@@ -278,6 +278,7 @@ class Transform:
 
     # Quadrature weights for physical coordinates.
     self.detwei = numpy.zeros(element.ngi)
+    self.det = numpy.zeros(element.ngi)
     dim = field.dimension     # Dimension of space
     ldim = element.dimension  # Dimension of element
     if(dim == ldim):
@@ -306,18 +307,22 @@ class Transform:
           J[:,0] = numpy.dot(X, element.dn[:,gi,0])
           det = numpy.linalg.norm(J[:,0])
           self.detwei[gi] = det * element.quadrature.weights[gi]
+          self.det[gi] = det
           self.set_J(J,gi)
 
       # 1-dim element embedded in 'dim'-dimensional space:
       elif(ldim==2):
         # J is 2 columns of 2 'dim'-dimensional vectors:
         for gi in range(element.ngi):
-          J = numpy.dot(X, element.dn[:,gi,:])
+          J = numpy.zeros([dim, ldim])
+          for i in range(ldim):
+            J[:,i] = numpy.dot(X, element.dn[:,gi,i])
+
           # Outer product times quad. weight
-          self.detwei[gi] = abs( J[1,0]*J[2,1]-J[2,0]*J[1,1]
-                          - J[2,0]*J[0,1]+J[0,0]*J[2,1]
-                          + J[0,0]*J[1,1]-J[1,0]*J[0,1]) * element.quadrature.weights[gi]
-          self.set_J(numpy.transpose(J),gi)
+          det = abs( J[1,0]*J[2,1]-J[2,0]*J[1,1] - J[2,0]*J[0,1]+J[0,0]*J[2,1] + J[0,0]*J[1,1]-J[1,0]*J[0,1])
+          self.detwei[gi] = det * element.quadrature.weights[gi]
+          self.det[gi] = det
+          self.set_J(J,gi)
 
     else:
       sys.exit("Dimension of shape exceeds dimension of coordinate field.")
@@ -341,12 +346,9 @@ class Transform:
           a = numpy.array(numpy.dot(shape.dn[i,gi], self.invJ[gi]))
           newshape.dn[i,gi,:] = a
       else:
-        if shape.dimension == 1:
-          invdetJ = 1.0/numpy.linalg.norm(self.J[gi][0,:])
-          for i in range(shape.loc):
-            newshape.dn[i,gi,:] = numpy.dot(self.J[gi], shape.dn[i, gi, :] * invdetJ**2)
-        else:
-          raise Exception, "Sorry, haven't worked out how to do this yet"
+        invdetJ = 1.0/self.det[gi]
+        for i in range(shape.loc):
+          newshape.dn[i,gi,:] = numpy.dot(self.J[gi], shape.dn[i, gi, :] * invdetJ**2)
     return newshape
 
 
