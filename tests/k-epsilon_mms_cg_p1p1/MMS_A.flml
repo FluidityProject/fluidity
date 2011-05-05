@@ -97,15 +97,6 @@
     </steady_state>
   </timestepping>
   <material_phase name="NS">
-    <equation_of_state>
-      <fluids>
-        <linear>
-          <reference_density>
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
     <subgridscale_parameterisations>
       <k-epsilon>
         <scalar_field name="TurbulentKineticEnergy" rank="0">

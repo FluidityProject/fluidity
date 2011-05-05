@@ -1,7 +1,7 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=1290
-JOB=high
+JOB=high-log
 preprocess: 
 	@echo **********Generating a 2D mesh:
 	@$(foreach NN,coarse med fine, \

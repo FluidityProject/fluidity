@@ -182,8 +182,9 @@ subroutine keps_tke(state)
 
     lumped_mass => get_lumped_mass(state, kk%mesh)
 
-    ! This allows user-specified source term, so that an MMS test can be set up.
-    if(have_option(trim(source_kk%option_path)//"/diagnostic/internal")) then
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                    &scalar_field::TurbulentKineticEnergy/prognostic/&
+                    &scalar_field::Source/diagnostic/algorithm::Internal")) then
       ewrite(2,*) "Calculating k source and absorption"
       do i = 1, node_count(kk)
         select case (src_abs)
@@ -198,7 +199,10 @@ subroutine keps_tke(state)
           FLAbort("Invalid implicitness option for k")
         end select
       end do
-    else if(have_option(trim(source_kk%option_path)//"/prescribed")) then
+    ! This allows user-specified source term, so that an MMS test can be set up.
+    else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                         &scalar_field::TurbulentKineticEnergy/prognostic/&
+                         &scalar_field::Source/prescribed")) then
       ewrite(2,*) "Prescribed k source"
       do i = 1, node_count(kk)
         select case (src_abs)
@@ -283,8 +287,9 @@ subroutine keps_eps(state)
 
     lumped_mass => get_lumped_mass(state, eps%mesh)
 
-    ! This allows user-specified source term, so that an MMS test can be set up.
-    if(have_option(trim(source_eps%option_path)//"/diagnostic/internal")) then
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                    &scalar_field::TurbulentDissipation/prognostic/&
+                    &scalar_field::Source/diagnostic/algorithm::Internal")) then
       ewrite(2,*) "Calculating epsilon source and absorption"
       do i = 1, node_count(eps)
         select case (src_abs)
@@ -299,7 +304,10 @@ subroutine keps_eps(state)
           FLAbort("Invalid implicitness option for epsilon")
         end select
       end do
-    else if(have_option(trim(source_kk%option_path)//"/prescribed")) then
+    ! This allows user-specified source term, so that an MMS test can be set up.
+    else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                         &scalar_field::TurbulentDissipation/prognostic/&
+                         &scalar_field::Source/prescribed")) then
       ewrite(2,*) "Prescribed epsilon source"
       do i = 1, node_count(eps)
         select case (src_abs)
@@ -340,7 +348,7 @@ end subroutine keps_eps
 subroutine keps_eddyvisc(state)
 
     type(state_type), intent(inout)  :: state
-    type(tensor_field), pointer      :: eddy_visc, viscosity, diffusivity, bg_visc
+    type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
     type(vector_field), pointer      :: positions
     type(scalar_field), pointer      :: kk, eps, EV, scalarField, lumped_mass
     type(scalar_field)               :: ev_rhs
@@ -420,7 +428,7 @@ subroutine keps_eddyvisc(state)
     ! Set output on optional fields
     scalarField => extract_scalar_field(state, "LengthScale", stat)
     if(stat == 0) then
-        call set(scalarField, ll) 
+        call set(scalarField, ll)
     end if
     scalarField => extract_scalar_field(state, "TKEOverEpsilon", stat)
     if(stat == 0) then
@@ -466,6 +474,7 @@ subroutine keps_bcs(state)
 
     ! THIS IS NOT AVAILABLE BEFORE KEPS_INIT HAS BEEN CALLED!
     call get_option(trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon/C_mu", cmu, default = 0.09)
+    ewrite(2,*) "cmu: ", cmu
 
     field_loop: do index=1,2
 
@@ -478,6 +487,7 @@ subroutine keps_bcs(state)
       end if
 
       bc_path=trim(field1%option_path)//'/prognostic/boundary_conditions'
+      ewrite(2,*) "bc_path: ", trim(bc_path)
       nbcs=option_count(trim(bc_path))
 
       ! Loop over boundary conditions for field1
@@ -835,29 +845,29 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
        do i=1,u%dim
          do j=1,u%dim
            qq(i,j,:) = matmul(invmass,qq(i,j,:))
-           ewrite(3,*) "qq: ", qq(i,j,:)
+           !ewrite(3,*) "qq: ", qq(i,j,:)
 
            ! Pick surface nodes (dim,dim,sloc)
            qq_s(i,j,:) = qq(i,j,face_local_nodes(field1,sele))
-           ewrite(3,*) "qq_s: ", qq_s(i,j,:)
+           !ewrite(3,*) "qq_s: ", qq_s(i,j,:)
 
            ! Get values at surface quadrature (dim,dim,sgi)
            qq_sgi(i,j,:) = matmul(qq_s(i,j,:), fshape%n)
-           ewrite(3,*) "qq_sgi: ", qq_sgi(i,j,:)
+           !ewrite(3,*) "qq_sgi: ", qq_sgi(i,j,:)
          end do
        end do
 
        do gi = 1, sgi
           !dot with surface normal (dim,sgi)
           qq_sgin(:,gi) = matmul(qq_sgi(:,:,gi),normal_bdy(:,gi))
-          ewrite(3,*) "qq_sgin: ", qq_sgin(:,gi)
+          !ewrite(3,*) "qq_sgin: ", qq_sgin(:,gi)
 
           ! Subtract normal component of velocity, leaving tangent components:
           qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
 
           ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
           ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi)
-          ewrite(3,*) "ustar: ", ustar(gi)
+          !ewrite(3,*) "ustar: ", ustar(gi)
        end do
 
        if (index==1) then
@@ -871,7 +881,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
           n(:,1) = normal_bdy(:,1)
           hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
           h  = hb(1,1)
-          ewrite(3,*) "h: ", h
+          !ewrite(3,*) "h: ", h
           ! Von Karman's constant
           kappa = 0.43
 
