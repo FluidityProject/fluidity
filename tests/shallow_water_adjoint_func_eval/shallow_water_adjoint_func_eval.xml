@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Shallow Water Equation MMS</name>
-  <owner userid="pef"/>
+  <owner userid="sf1409"/>
   <tags>swml</tags>
   <problem_definition length="special" nprocs="1">
     <command_line> time shallow_water adjoint_A.swml; time shallow_water adjoint_B.swml; time shallow_water adjoint_C.swml</command_line>
