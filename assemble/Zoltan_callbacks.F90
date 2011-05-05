@@ -32,7 +32,7 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: default_stat, remove_det_from_current_det_list
+  use diagnostic_variables, only: default_stat
   use state_module
   use zoltan_detectors
 

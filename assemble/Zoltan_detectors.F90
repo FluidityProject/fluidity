@@ -12,7 +12,6 @@ module zoltan_detectors
 
   use detector_data_types
   use detector_tools
-  use diagnostic_variables, only: remove_det_from_current_det_list
   use detector_distribution
 
   use fields

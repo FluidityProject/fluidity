@@ -45,6 +45,7 @@ module detector_distribution
   public :: distribute_detectors, serialise_lists_exchange_receive, name_of_detector_in_read_order
 
   ! Global dictionary of detector names from which we can restore det_name from det_id after serialisation
+  ! Comment ml805: This should become a dynamic data structure to register detectors at runtime
   character(len = FIELD_NAME_LEN), dimension(:), allocatable, save, target :: name_of_detector_in_read_order
 
 contains

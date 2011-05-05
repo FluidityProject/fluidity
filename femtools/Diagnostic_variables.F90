@@ -49,8 +49,6 @@ module diagnostic_variables
   use write_state_module, only: vtk_write_state_new_options
   use surface_integrals
   use vtk_interfaces
-  use detector_data_types
-  use detector_tools
   use embed_python
   use eventcounter
   use pickers
@@ -74,8 +72,10 @@ module diagnostic_variables
   use mpi_interfaces
   use parallel_tools
   use fields_manipulation
+  use detector_data_types
   use detector_tools
   use detector_move_bisection
+  use detector_move_rk_guided_search
   use detector_distribution
 
   implicit none
@@ -2822,7 +2822,7 @@ contains
 
        if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_&
             &kutta_guided_search")) then
-          call initialise_rk_guided_search(default_stat%detector_list)
+          call initialise_rk_guided_search(default_stat%detector_list, n_stages, xfield%dim)
        end if
        subcycling_loop: do cycle = 1, n_subcycles
        RKstages_loop: do stage = 1, n_stages
@@ -3081,53 +3081,6 @@ contains
       check_any_lagrangian = .false.
       if(checkint>0) check_any_lagrangian = .true.
     end function check_any_lagrangian
-
-    !Subroutine to allocate the RK stages, and update vector
-    subroutine initialise_rk_guided_search(detector_list0)
-      type(detector_linked_list), intent(inout) :: detector_list0
-      !
-      type(detector_type), pointer :: det0
-      integer :: j0
-      !
-      det0 => detector_list0%firstnode
-      do j0=1, detector_list0%length
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            if(allocated(det0%k)) then
-               deallocate(det0%k)
-            end if
-            if(allocated(det0%update_vector)) then
-               deallocate(det0%update_vector)
-            end if
-            allocate(det0%k(n_stages,xfield%dim))
-            det0%k = 0.
-            allocate(det0%update_vector(xfield%dim))
-            det0%update_vector=0.
-         end if
-         det0 => det0%next
-      end do
-    end subroutine initialise_rk_guided_search
-
-    !Subroutine to deallocate the RK stages and update vector - CJC
-    subroutine deallocate_rk_guided_search(detector_list0)
-      !
-      type(detector_linked_list), intent(inout) :: detector_list0
-      !
-      type(detector_type), pointer :: det0
-      integer :: j0
-      !
-      det0 => detector_list0%firstnode
-      do j0=1, detector_list0%length
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            if(allocated(det0%k)) then
-               deallocate(det0%k)
-            end if
-            if(allocated(det0%update_vector)) then
-               deallocate(det0%update_vector)
-            end if
-         end if
-         det0 => det0%next
-      end do
-    end subroutine deallocate_rk_guided_search
 
     !Subroutine to compute the vector to search for the next RK stage
     !cjc
