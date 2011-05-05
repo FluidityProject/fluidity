@@ -112,7 +112,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">9.81</real_value>
+        <real_value rank="0">0.43</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -259,7 +259,7 @@
           </python>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">1.0</real_value>
+          <real_value rank="0">0.1</real_value>
         </mean_layer_thickness>
         <scalar_field name="Source">
           <prescribed>

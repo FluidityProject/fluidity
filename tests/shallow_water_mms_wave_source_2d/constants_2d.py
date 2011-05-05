@@ -1,10 +1,10 @@
 from math import sin, cos, pi
 import numpy
 
-d0 = 1.0
+d0 = 0.1
 theta = 0.5
 h = 1.0
-g = 9.81
+g = 0.43
 functional = 2
 dfunctional = 4
 
