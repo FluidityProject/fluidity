@@ -12,7 +12,7 @@ b = _sage_const_1
 
 eta = -sin(_sage_const_2 *pi*x+t)
 u_x = sin(_sage_const_2 *pi*x+t)
-u_y = cos(_sage_const_2 *pi*x+t)
+u_y = cos(_sage_const_2 *pi*y+t)
 
 print "u_x: ", u_x
 print "u_y: ", u_y

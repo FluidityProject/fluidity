@@ -9,7 +9,7 @@ b = 1
 
 eta = -sin(2*pi*x+t)
 u_x = sin(2*pi*x+t)
-u_y = cos(2*pi*x+t)
+u_y = cos(2*pi*y+t)
 
 print "u_x: ", u_x
 print "u_y: ", u_y

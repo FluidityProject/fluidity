@@ -9,13 +9,21 @@ functional = 2
 dfunctional = 4
 
 def eta_src(X, t):
-  return 2*pi*d0*cos(2*pi*X[0] + t) - cos(2*pi*X[0] + t)
+  x = X[0]
+  y = X[1]
+  return -2*pi*d0*sin(2*pi*y + t) + 2*pi*d0*cos(2*pi*x + t) - cos(2*pi*x + t)
 
 def u_src(X, t):
-  return numpy.array([-g*2*pi*cos(2*pi*X[0] + t) + cos(2*pi*X[0] + t),0,0])
+  x = X[0]
+  y = X[1]
+  return numpy.array([-2*pi*g*cos(2*pi*x + t) + cos(2*pi*x + t), -sin(2*pi*y + t), 0])
 
 def u_exact(X, t):
-  return numpy.array([sin(2*pi*X[0] + t), 0.0, 0.0])
+  x = X[0]
+  y = X[1]
+  return numpy.array([sin(2*pi*x + t), cos(2*pi*y + t), 0.0])
 
 def eta_exact(X, t):
-  return -sin(2*pi*X[0] + t)
+  x = X[0]
+  y = X[1]
+  return -sin(2*pi*x + t)
