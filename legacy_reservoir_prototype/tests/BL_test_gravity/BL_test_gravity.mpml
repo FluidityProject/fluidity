@@ -8,7 +8,7 @@
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file>
+      <from_file file_name="1d_mesh">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -40,7 +40,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>discontinuous</string_value>
+          <string_value>continuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -54,12 +54,15 @@
     </quadrature>
   </geometry>
   <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
     <dump_period_in_timesteps>
       <constant>
         <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -70,8 +73,11 @@
       <real_value rank="0">3.125e-3</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.</real_value>
+      <real_value rank="0">20.</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">3</integer_value>
+    </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -80,7 +86,7 @@
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
-          <mesh name="VelocityMesh"/>
+          <mesh name="PressureMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="1" dim1="dim" rank="1">-1.</real_value>
@@ -101,9 +107,9 @@
     <equation_of_state>
       <incompressible>
         <linear>
-          <specify_all>
-            <real_value shape="9" rank="1">1. 0. 0. 0. 0. 0. 0. 0. 0.</real_value>
-          </specify_all>
+          <all_equal>
+            <real_value rank="0">1.</real_value>
+          </all_equal>
         </linear>
       </incompressible>
     </equation_of_state>
@@ -113,9 +119,6 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <reference_node>
-          <integer_value rank="0"/>
-        </reference_node>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
@@ -171,7 +174,7 @@
             <real_value rank="0">1.05</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions>
+        <boundary_conditions name="BC1">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -226,7 +229,7 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0"/>
+              <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
@@ -380,7 +383,7 @@
             <real_value rank="0">0.</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions>
+        <boundary_conditions name="BC1">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -453,7 +456,7 @@
       </incompressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
-      <aliased field_name="Pressure"/>
+      <aliased material_phase_name="Phase_1" field_name="Pressure"/>
     </scalar_field>
     <scalar_field name="Density" rank="0">
       <prognostic>
@@ -480,7 +483,7 @@
             <real_value rank="0">0.71</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions>
+        <boundary_conditions name="BC2">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -535,7 +538,7 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0"/>
+              <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
@@ -555,7 +558,7 @@
             <real_value shape="1" dim1="dim" rank="1">1.</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions>
+        <boundary_conditions name="BC2">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -644,7 +647,7 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0"/>
+              <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
@@ -664,7 +667,7 @@
             <real_value rank="0">1.</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions>
+        <boundary_conditions name="BC2">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
