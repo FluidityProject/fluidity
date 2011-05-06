@@ -2625,11 +2625,7 @@ contains
     !RK stuff - cjc
     integer :: stage, n_stages, n_subcycles, cycle
     real :: rk_dt
-    integer, dimension(2) :: option_rank
-    real, allocatable, dimension(:) :: stage_weights, timestep_weights
-    real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
-    logical :: first_loop
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2775,59 +2771,21 @@ contains
           call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
                &h/n&
                &_stages",n_stages)
-          allocate(stage_weights(n_stages*(n_stages-1)/2))
-          option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
-               &uid&
-               &ed_search/stage_weights")
-          if(option_rank(2).ne.-1) then
-             FLExit('Stage Array wrong rank')
-          end if
-          if(option_rank(1).ne.size(stage_weights)) then
-             ewrite(-1,*) 'size expected was', size(stage_weights)
-             ewrite(-1,*) 'size actually was', option_rank(1)
-             FLExit('Stage Array wrong size')
-          end if
-          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
-               &ed_search/stage_weights",stage_weights)
-          allocate(stage_matrix(n_stages,n_stages))
-          stage_matrix = 0.
-          k = 0
-          do i = 1, n_stages
-             do j = 1, n_stages
-                if(i>j) then
-                   k = k + 1
-                   stage_matrix(i,j) = stage_weights(k)
-                end if
-             end do
-          end do
-          allocate(timestep_weights(n_stages))
-          option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
-               &uid&
-               &ed_search/timestep_weights")
-          if(option_rank(2).ne.-1) then
-             FLExit('Timestep Array wrong rank')
-          end if
-          if(option_rank(1).ne.size(timestep_weights)) then
-             FLExit('Timestep Array wrong size')
-          end if
-          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
-               &ed_search/timestep_weights",timestep_weights)
+          
           call get_option("/io/detectors/lagrangian_timestepping/explicit_ru&
                &nge_kutta_guided_search/subcycles",n_subcycles)
           rk_dt = dt/n_subcycles
+
+          call initialise_rk_guided_search(default_stat%detector_list, n_stages, xfield%dim)
        else
           n_subcycles = 1
           n_stages = 1
        end if
 
-       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_&
-            &kutta_guided_search")) then
-          call initialise_rk_guided_search(default_stat%detector_list, n_stages, xfield%dim)
-       end if
        subcycling_loop: do cycle = 1, n_subcycles
        RKstages_loop: do stage = 1, n_stages
           if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
-             call set_stage(default_stat%detector_list,rk_dt,stage)
+             call set_stage(default_stat%detector_list,vfield,xfield,rk_dt,stage,n_stages)
           end if
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -2913,7 +2871,8 @@ contains
        deallocate(receive_list_array)
     end if
 
-    !!! at the end of write_detectors subroutine I need to loop over all the detectors in the list and check that I own them (the element where they are). 
+    !!! at the end of write_detectors subroutine I need to loop over all the detectors 
+    !!! in the list and check that I own them (the element where they are). 
     !!! If not, they need to be sent to the processor owner before adaptivity happens
     if (timestep/=0) then
        call distribute_detectors(state, default_stat%detector_list, ihash)
@@ -3081,52 +3040,6 @@ contains
       check_any_lagrangian = .false.
       if(checkint>0) check_any_lagrangian = .true.
     end function check_any_lagrangian
-
-    !Subroutine to compute the vector to search for the next RK stage
-    !cjc
-    subroutine set_stage(detector_list0,dt0,stage0)
-      type(detector_linked_list), intent(inout) :: detector_list0
-      real, intent(in) :: dt0
-      integer, intent(in) :: stage0
-      !
-      type(detector_type), pointer :: det0
-      integer :: det_count,j0
-      real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
-      !
-      det0 => detector_list0%firstnode
-      do det_count=1, detector_list0%length 
-         if(det0%type==LAGRANGIAN_DETECTOR) then
-            det0%search_complete = .false.
-            if(stage0.eq.1) then
-               det0%update_vector = det0%position
-            end if
-            !stage vector is computed by evaluating velocity at current
-            !position
-            stage_local_coords=&
-                 local_coords(xfield,det0%element,det0%update_vector)
-            det0%k(stage0,:) = &
-                 & eval_field(det0%element, vfield, stage_local_coords)
-            if(stage0<n_stages) then
-               !update vector maps from current position to place required
-               !for computing next stage vector
-               det0%update_vector = det0%position
-               do j0 = 1, stage0
-                  det0%update_vector = det0%update_vector + &
-                       dt0*stage_matrix(stage0+1,j0)*det0%k(j0,:)
-               end do
-            else
-               !update vector maps from current position to final position
-               det0%update_vector = det0%position
-               do j0 = 1, n_stages
-                  det0%update_vector = det0%update_vector + &
-                       dt0*timestep_weights(j0)*det0%k(j0,:)
-               end do
-               det0%position = det0%update_vector
-            end if
-         end if
-         det0 => det0%next
-      end do
-    end subroutine set_stage
 
     !Subroutine to find the element containing 
     !detector%update_vector -- CJC

@@ -45,13 +45,13 @@ module detector_distribution
   public :: distribute_detectors, serialise_lists_exchange_receive, name_of_detector_in_read_order
 
   ! Global dictionary of detector names from which we can restore det_name from det_id after serialisation
-  ! Comment ml805: This should become a dynamic data structure to register detectors at runtime
+  ! Comment ml805: This should become a dynamic data structure to register/delete detectors at runtime
   character(len = FIELD_NAME_LEN), dimension(:), allocatable, save, target :: name_of_detector_in_read_order
 
 contains
 
   subroutine distribute_detectors(state, detector_list, ihash)
-    ! Loop over all the detectors in the list and check that I own them (the element where they are). 
+    ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
@@ -242,7 +242,9 @@ contains
                 univ_ele = halo_universal_number(ele_halo, global_ele)
              else
 
-!!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
+!!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. 
+!!! In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., 
+!!! this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
                 univ_ele =-1
 
              end if
