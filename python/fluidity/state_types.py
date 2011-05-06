@@ -248,107 +248,36 @@ class Transform:
     self.field = field
     # Jacobian matrix and its inverse at each quadrature point (dim x dim x field.mesh.shape.ngi)
     # Facilitates access to this information externally
-    self.J = [ [] for i in range(field.mesh.shape.ngi) ]
-    self.invJ = [ [] for i in range(field.mesh.shape.ngi) ]
-    
+    self.J = [numpy.zeros((field.dimension, self.element.dimension)) for gi in range(self.element.ngi)]
+    self.invJ = [numpy.zeros((self.element.dimension, field.dimension)) for gi in range(self.element.ngi)]
+    self.detwei = numpy.zeros(self.element.ngi)
+    self.det = numpy.zeros(self.element.ngi)
     # Calculate detwei, i.e. the gauss weights transformed by the coordinate transform
     # from real to computational space
     self.transform_to_physical_detwei(field)
 
   def set_J(self,J,gi):
     # Set J for the specified quadrature point and calculate its inverse
-    self.J[gi] = numpy.matrix(J)
-    if max(J.shape) != min(J.shape):
-      # we don't have a square Jacobian, i.e. mesh_dim < coord_dim
-      if hasattr(self, "invJ"):
-        del self.invJ
-    else:
-      self.invJ[gi] = numpy.matrix(numpy.linalg.inv(self.J[gi]))
+    self.J[gi] = J
+    S = numpy.linalg.svd(J, compute_uv=False)
+    self.det[gi] = abs(reduce(lambda x,y: x*y, [s for s in S if s > 0], 1))
+    self.detwei[gi] = self.det[gi] * self.element.quadrature.weights[gi]
+    self.invJ[gi] = numpy.linalg.pinv(J)
 
   def transform_to_physical_detwei(self,field):
-     # field is the Coordinate Field
-
-    # Column n of X is the position of the nth node. (dim x n%loc)
-    # only need position of n nodes since Jacobian is only calculated once
-
-    # element is the referenced velocity Element
-    ele_num = self.ele_num
-    X = numpy.transpose(numpy.matrix(field.ele_val(ele_num)))
-    element = field.mesh.shape 
-
-    # Quadrature weights for physical coordinates.
-    self.detwei = numpy.zeros(element.ngi)
-    self.det = numpy.zeros(element.ngi)
-    dim = field.dimension     # Dimension of space
-    ldim = element.dimension  # Dimension of element
-    if(dim == ldim):
-      if(dim==1):
-        for gi in range(element.ngi):
-          J = numpy.zeros([dim, ldim])
-          J[0,0] = numpy.dot(X[0,:],element.dn[:,gi,0])  # Still wrong probably!
-          self.detwei[gi] = abs(J[0,0])*element.quadrature.weights[gi]
-          # The Jacobian is the transpose of the J that was calculated
-          self.set_J(numpy.transpose(J),gi)
-      elif(dim==2 or dim == 3):
-        for gi in range(element.ngi):
-          J = numpy.dot(X, element.dn[:,gi,:])
-          self.detwei[gi] = abs( numpy.linalg.det(J)) * element.quadrature.weights[gi]
-          # The Jacobian is the transpose of the J that was calculated
-          self.set_J(numpy.transpose(J),gi)
-      else:
-        sys.exit("More than 3 dimensions!")
-
-    # Lower dimensional element (ldim) embedded in higher dimensional space (dim)
-    elif(ldim<dim):
-      # 1-dim element embedded in 'dim'-dimensional space:
-      if(ldim==1):
-        for gi in range(element.ngi):
-          J = numpy.zeros([dim, ldim])
-          J[:,0] = numpy.dot(X, element.dn[:,gi,0])
-          det = numpy.linalg.norm(J[:,0])
-          self.detwei[gi] = det * element.quadrature.weights[gi]
-          self.det[gi] = det
-          self.set_J(J,gi)
-
-      # 2-dim element embedded in 'dim'-dimensional space:
-      elif(ldim==2):
-        # J is 2 columns of 2 'dim'-dimensional vectors:
-        for gi in range(element.ngi):
-          J = numpy.zeros([dim, ldim])
-          J[:,:] = numpy.dot(X, element.dn[:,gi,:])
-
-          # Outer product times quad. weight
-          det = numpy.sqrt((J[1,0]*J[2,1]-J[2,0]*J[1,1])**2 + (J[2,0]*J[0,1]-J[0,0]*J[2,1])**2 + (J[0,0]*J[1,1]-J[1,0]*J[0,1])**2)
-          self.detwei[gi] = det * element.quadrature.weights[gi]
-          self.det[gi] = det
-          self.set_J(J,gi)
-
-    else:
-      sys.exit("Dimension of shape exceeds dimension of coordinate field.")
-    numpy.matrix(self.detwei)
-
+    X = numpy.transpose(numpy.matrix(field.ele_val(self.ele_num)))
+    for gi in range(self.element.ngi):
+      J = numpy.dot(X, self.element.dn[:, gi, :])
+      self.set_J(J, gi)
 
   def grad(self,shape):
-    # Evaluate derivatives in physical space
-
-    # dn is loc x ngi x dim
-
-    # Derivatives (dm_t and dn_t in Fortran)
-
-    # Create a new object with the same values of 
     newshape = copy.copy(shape)
     newshape.dn = numpy.zeros((shape.loc,shape.ngi,self.field.dimension))
 
     for gi in range(self.field.mesh.shape.ngi):
-      if (shape.dimension == self.field.dimension):
-        for i in range(shape.loc):
-          a = numpy.array(numpy.dot(shape.dn[i,gi], self.invJ[gi]))
-          newshape.dn[i,gi,:] = a
-      else:
-        for i in range(shape.loc):
-          newshape.dn[i,gi,:] = numpy.dot(shape.dn[i, gi, :], numpy.linalg.pinv(self.J[gi]))
+      for i in range(shape.loc):
+        newshape.dn[i,gi,:] = numpy.dot(shape.dn[i, gi, :], self.invJ[gi])
     return newshape
-
 
   def shape_shape(self,shape1,shape2):
     # For each node in each element shape1, shape2 calculate the
