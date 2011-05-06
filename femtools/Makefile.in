@@ -824,7 +824,8 @@ Intersection_finder.o ../include/intersection_finder_module.mod: \
    ../include/parallel_fields.mod ../include/fields_base.mod \
    ../include/elements.mod ../include/fields_allocates.mod \
    ../include/fields_data_types.mod ../include/adjacency_lists.mod \
-   ../include/fdebug.h ../include/transform_elements.mod
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/transform_elements.mod
 
 ../include/lagrangian_remap.mod: Lagrangian_Remap.o
 	@true
