@@ -88,7 +88,7 @@ module diagnostic_variables
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
-       & set_detector_coords_from_python, initialise_walltime, &
+       & initialise_walltime, &
        & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic, &
        & get_diagnostic
 
@@ -2625,7 +2625,6 @@ contains
     !RK stuff - cjc
     integer :: stage, n_stages, n_subcycles, cycle
     real :: rk_dt
-    real :: search_tolerance
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2767,8 +2766,6 @@ contains
        if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
             & then
           call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
-               &h/search_tolerance",search_tolerance)
-          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
                &h/n&
                &_stages",n_stages)
           
@@ -2808,7 +2805,7 @@ contains
                 if(have_option("/io/detectors/lagrangian_timestepping/explici&
                      &t_runge_kutta_guided_search")) then
                    call move_detectors_guided_search(&
-                        &default_stat%detector_list)
+                        &default_stat%detector_list,vfield,xfield,ihash,send_list_array)
                 else
                    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
                    call move_detectors_bisection_method(&
@@ -3040,102 +3037,6 @@ contains
       check_any_lagrangian = .false.
       if(checkint>0) check_any_lagrangian = .true.
     end function check_any_lagrangian
-
-    !Subroutine to find the element containing 
-    !detector%update_vector -- CJC
-    !before leaving the processor or computational domain
-    !detectors leaving the computational domain are set to STATIC
-    !detectors leaving the processor domain are added to the list 
-    !of detectors to communicate to the other processor
-    !This works by searching for the element containing the next point 
-    !in the RK through element faces
-    !This is done by computing the local coordinates of the target point,
-    !finding the local coordinate closest to -infinity
-    !and moving to the element through that face
-    subroutine move_detectors_guided_search(detector_list0)
-      type(detector_linked_list), intent(inout) :: detector_list0
-      !
-      type(detector_type), pointer :: det0, det_send
-      integer :: det_count
-      logical :: owned
-      real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
-      integer, dimension(:), pointer :: neigh_list
-      integer :: neigh, proc_local_number
-      logical :: make_static
-      !
-      !Loop over all the detectors
-      det0 => detector_list0%firstnode
-      do det_count=1, detector_list0%length
-         !Only move Lagrangian detectors
-         if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
-            search_loop: do
-               !compute the local coordinates of the arrival point
-               !with respect to this element
-               arrival_local_coords=&
-                    local_coords(xfield,det0%element,det0%update_vector)
-               if(minval(arrival_local_coords)>-search_tolerance) then
-                  !the arrival point is in this element
-                  det0%search_complete = .true.
-                  !move on to the next detector
-                  det0 => det0%next
-                  exit search_loop
-               end if
-               !the arrival point is not in this element, try to get
-               ! closer to
-               !it by searching in the coordinate direction in which it is
-               !furthest away
-               neigh = minval(minloc(arrival_local_coords))
-               neigh_list=>ele_neigh(xfield,det0%element)
-               if(neigh_list(neigh)>0) then
-                  !the neighbouring element is also on this domain
-                  !so update the element and try again
-                  det0%element = neigh_list(neigh)
-               else
-                  !check if this element is owned (to decide where
-                  !to send particles leaving the processor domain)
-                  if(element_owned(vfield,det0%element)) then
-                     !this face goes outside of the computational domain
-                     !try all of the faces with negative local coordinate
-                     !just in case we went through a corner
-                     make_static=.true.
-                     face_search: do neigh = 1, size(arrival_local_coords)
-                        if(arrival_local_coords(neigh)<-search_tolerance&
-                             & .and. &
-                             & neigh_list(neigh)>0) then
-                           make_static = .false.
-                           det0%element = neigh_list(neigh)
-                           exit face_search
-                        end if
-                     end do face_search
-                     if (make_static) then
-                        det0%type=STATIC_DETECTOR
-                        !move on to the next detector
-                        det0%position = det0%update_vector
-                        !move on to the next detector
-                        det0 => det0%next
-                        exit search_loop
-                     end if
-                  else
-                     det_send => det0
-                     det0 => det0%next
-                     !this face goes into another computational domain
-                     proc_local_number=fetch(ihash,&
-                          &element_owner(vfield%mesh,det_send%element))
-
-                     call move_det_to_send_list(detector_list0&
-                          &,det_send&
-                          &,send_list_array(proc_local_number))
-                     !move on to the next detector
-                     exit search_loop
-                  end if
-               end if
-            end do search_loop
-         else
-            !move on to the next detector
-            det0 => det0%next
-         end if
-      end do
-    end subroutine move_detectors_guided_search
 
     function reals_format(reals)
       character(len=10) :: reals_format
@@ -3418,45 +3319,6 @@ contains
     end if
 
   end subroutine list_det_into_csr_sparsity
-
-  subroutine set_detector_coords_from_python(values, ndete, func, time)
-    !!< Given a list of positions and a time, evaluate the python function
-    !!< specified in the string func at those points. 
-    real, dimension(:,:), target, intent(inout) :: values
-    !! Func may contain any python at all but the following function must
-    !! be defiled:
-    !!  def val(t)
-    !! where t is the time. The result must be a float. 
-    character(len=*), intent(in) :: func
-    real :: time
-    
-    real, dimension(:), pointer :: lvx,lvy,lvz
-    real, dimension(0), target :: zero
-    integer :: stat, dim, ndete
-
-    call get_option("/geometry/dimension",dim)
-
-    lvx=>values(1,:)
-    lvy=>zero
-    lvz=>zero
-    if(dim>1) then
-       lvy=>values(2,:)
-       if(dim>2) then
-          lvz => values(3,:)
-       end if
-    end if
-
-    call set_detectors_from_python(func, len(func), dim, &
-         ndete, time, dim,                               &
-         lvx, lvy, lvz, stat)
-
-    if (stat/=0) then
-      ewrite(-1, *) "Python error, Python string was:"
-      ewrite(-1 , *) trim(func)
-      FLExit("Dying")
-    end if
-
-  end subroutine set_detector_coords_from_python
     
   subroutine close_diagnostic_files()
     !! Closes .stat, .convergence and .detector file (if openened)

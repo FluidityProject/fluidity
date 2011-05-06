@@ -33,16 +33,18 @@ module detector_move_rk_guided_search
   use spud
   use detector_data_types
   use detector_tools
+  use integer_hash_table_module
 
   implicit none
   
   private
 
   public :: initialise_rk_guided_search, deallocate_rk_guided_search, &
-            set_stage
+            set_stage, move_detectors_guided_search
 
   real, allocatable, dimension(:) :: timestep_weights
   real, allocatable, dimension(:,:) :: stage_matrix
+  real :: search_tolerance
 
 contains
 
@@ -93,6 +95,9 @@ contains
     end if
     call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
          &ed_search/timestep_weights",timestep_weights)
+
+    call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+         &h/search_tolerance",search_tolerance)
       
     det0 => detector_list0%firstnode
     do j0=1, detector_list0%length
@@ -186,5 +191,104 @@ contains
        det0 => det0%next
     end do
   end subroutine set_stage
+
+    !Subroutine to find the element containing 
+    !detector%update_vector -- CJC
+    !before leaving the processor or computational domain
+    !detectors leaving the computational domain are set to STATIC
+    !detectors leaving the processor domain are added to the list 
+    !of detectors to communicate to the other processor
+    !This works by searching for the element containing the next point 
+    !in the RK through element faces
+    !This is done by computing the local coordinates of the target point,
+    !finding the local coordinate closest to -infinity
+    !and moving to the element through that face
+    subroutine move_detectors_guided_search(detector_list0,vfield,xfield,ihash,send_list_array)
+      type(detector_linked_list), intent(inout) :: detector_list0
+      type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+      type(vector_field), pointer, intent(in) :: vfield,xfield
+      type(integer_hash_table), intent(in) :: ihash
+
+      type(detector_type), pointer :: det0, det_send
+      integer :: det_count
+      logical :: owned
+      real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
+      integer, dimension(:), pointer :: neigh_list
+      integer :: neigh, proc_local_number
+      logical :: make_static
+      !
+      !Loop over all the detectors
+      det0 => detector_list0%firstnode
+      do det_count=1, detector_list0%length
+         !Only move Lagrangian detectors
+         if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
+            search_loop: do
+               !compute the local coordinates of the arrival point
+               !with respect to this element
+               arrival_local_coords=&
+                    local_coords(xfield,det0%element,det0%update_vector)
+               if(minval(arrival_local_coords)>-search_tolerance) then
+                  !the arrival point is in this element
+                  det0%search_complete = .true.
+                  !move on to the next detector
+                  det0 => det0%next
+                  exit search_loop
+               end if
+               !the arrival point is not in this element, try to get
+               ! closer to
+               !it by searching in the coordinate direction in which it is
+               !furthest away
+               neigh = minval(minloc(arrival_local_coords))
+               neigh_list=>ele_neigh(xfield,det0%element)
+               if(neigh_list(neigh)>0) then
+                  !the neighbouring element is also on this domain
+                  !so update the element and try again
+                  det0%element = neigh_list(neigh)
+               else
+                  !check if this element is owned (to decide where
+                  !to send particles leaving the processor domain)
+                  if(element_owned(vfield,det0%element)) then
+                     !this face goes outside of the computational domain
+                     !try all of the faces with negative local coordinate
+                     !just in case we went through a corner
+                     make_static=.true.
+                     face_search: do neigh = 1, size(arrival_local_coords)
+                        if(arrival_local_coords(neigh)<-search_tolerance&
+                             & .and. &
+                             & neigh_list(neigh)>0) then
+                           make_static = .false.
+                           det0%element = neigh_list(neigh)
+                           exit face_search
+                        end if
+                     end do face_search
+                     if (make_static) then
+                        det0%type=STATIC_DETECTOR
+                        !move on to the next detector
+                        det0%position = det0%update_vector
+                        !move on to the next detector
+                        det0 => det0%next
+                        exit search_loop
+                     end if
+                  else
+                     det_send => det0
+                     det0 => det0%next
+                     !this face goes into another computational domain
+                     proc_local_number=fetch(ihash,&
+                          &element_owner(vfield%mesh,det_send%element))
+
+                     call move_det_to_send_list(detector_list0&
+                          &,det_send&
+                          &,send_list_array(proc_local_number))
+                     !move on to the next detector
+                     exit search_loop
+                  end if
+               end if
+            end do search_loop
+         else
+            !move on to the next detector
+            det0 => det0%next
+         end if
+      end do
+    end subroutine move_detectors_guided_search
 
 end module detector_move_rk_guided_search

@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module detector_tools
-
+  use spud
   use fldebug
   use detector_data_types
   use fields
@@ -38,8 +38,9 @@ module detector_tools
   private
 
   public :: insert, allocate, deallocate, copy, remove, &
-            detector_value, flush_det, move_det_to_send_list, &
-            remove_det_from_current_det_list, move_det_from_receive_list_to_det_list
+            detector_value, flush_det, set_detector_coords_from_python, &
+            move_det_to_send_list, remove_det_from_current_det_list, &
+            move_det_from_receive_list_to_det_list
 
   interface insert
      module procedure insert_into_detector_list
@@ -390,5 +391,44 @@ contains
     end do
 
   end subroutine flush_det
+
+  subroutine set_detector_coords_from_python(values, ndete, func, time)
+    !!< Given a list of positions and a time, evaluate the python function
+    !!< specified in the string func at those points. 
+    real, dimension(:,:), target, intent(inout) :: values
+    !! Func may contain any python at all but the following function must
+    !! be defiled:
+    !!  def val(t)
+    !! where t is the time. The result must be a float. 
+    character(len=*), intent(in) :: func
+    real :: time
+    
+    real, dimension(:), pointer :: lvx,lvy,lvz
+    real, dimension(0), target :: zero
+    integer :: stat, dim, ndete
+
+    call get_option("/geometry/dimension",dim)
+
+    lvx=>values(1,:)
+    lvy=>zero
+    lvz=>zero
+    if(dim>1) then
+       lvy=>values(2,:)
+       if(dim>2) then
+          lvz => values(3,:)
+       end if
+    end if
+
+    call set_detectors_from_python(func, len(func), dim, &
+         ndete, time, dim,                               &
+         lvx, lvy, lvz, stat)
+
+    if (stat/=0) then
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
+    end if
+
+  end subroutine set_detector_coords_from_python
 
 end module detector_tools
