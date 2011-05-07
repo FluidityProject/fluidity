@@ -152,7 +152,7 @@ def generate_dependencies(fortran):
                 # Remove dependencies on ../confdefs.h because it causes
                 # lots of spurious rebuilds.
                 this_deps.remove_dep_by_rule(lambda x:
-                    x.startswith("../confdefs.h"))
+                    x.startswith("../include/confdefs.h"))
 
                 dependencies[f]=this_deps
                 #split_module_dependency(

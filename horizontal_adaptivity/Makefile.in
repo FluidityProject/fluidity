@@ -71,55 +71,52 @@ clean:
 	@true
 
 Advancing_front.o ../include/hadapt_advancing_front.mod: Advancing_front.F90 \
-   ../include/confdefs.h ../include/quicksort.mod \
-   ../include/meshdiagnostics.mod ../include/halos.mod \
-   ../include/linked_lists.mod ../include/halos_derivation.mod \
-   ../include/sparse_tools.mod ../include/fields.mod ../include/spud.mod \
-   ../include/adjacency_lists.mod ../include/data_structures.mod \
-   ../include/fdebug.h
+   ../include/quicksort.mod ../include/meshdiagnostics.mod \
+   ../include/halos.mod ../include/linked_lists.mod \
+   ../include/halos_derivation.mod ../include/sparse_tools.mod \
+   ../include/fields.mod ../include/spud.mod ../include/adjacency_lists.mod \
+   ../include/data_structures.mod ../include/fdebug.h
 
 ../include/hadapt_combine_meshes.mod: Combine_Meshes.o
 	@true
 
 Combine_Meshes.o ../include/hadapt_combine_meshes.mod: Combine_Meshes.F90 \
-   ../include/confdefs.h ../include/quadrature.mod \
-   ../include/hadapt_advancing_front.mod ../include/halos.mod \
-   ../include/linked_lists.mod ../include/global_parameters.mod \
-   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
-   ../include/spud.mod ../include/fdebug.h
+   ../include/quadrature.mod ../include/hadapt_advancing_front.mod \
+   ../include/halos.mod ../include/linked_lists.mod \
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
+   ../include/fdebug.h
 
 ../include/hadapt_extrude.mod: Extrude.o
 	@true
 
 Extrude.o ../include/hadapt_extrude.mod: Extrude.F90 ../include/halos.mod \
-   ../include/confdefs.h ../include/quadrature.mod \
-   ../include/hadapt_combine_meshes.mod ../include/vtk_interfaces.mod \
-   ../include/linked_lists.mod ../include/global_parameters.mod \
-   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
-   ../include/spud.mod ../include/fdebug.h
+   ../include/quadrature.mod ../include/hadapt_combine_meshes.mod \
+   ../include/vtk_interfaces.mod ../include/linked_lists.mod \
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
+   ../include/fdebug.h
 
 ../include/hadapt_extrude_radially.mod: Extrude_radially.o
 	@true
 
 Extrude_radially.o ../include/hadapt_extrude_radially.mod: \
-   Extrude_radially.F90 ../include/halos.mod ../include/confdefs.h \
-   ../include/quadrature.mod ../include/hadapt_combine_meshes.mod \
-   ../include/vtk_interfaces.mod ../include/linked_lists.mod \
-   ../include/vector_tools.mod ../include/sparse_tools.mod \
-   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
-   ../include/global_parameters.mod ../include/fdebug.h
+   Extrude_radially.F90 ../include/halos.mod ../include/quadrature.mod \
+   ../include/hadapt_combine_meshes.mod ../include/vtk_interfaces.mod \
+   ../include/linked_lists.mod ../include/vector_tools.mod \
+   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/global_parameters.mod ../include/fdebug.h
 
 ../include/hadapt_metric_based_extrude.mod: Metric_based_extrude.o
 	@true
 
 Metric_based_extrude.o ../include/hadapt_metric_based_extrude.mod: \
    Metric_based_extrude.F90 ../include/hadapt_advancing_front.mod \
-   ../include/quicksort.mod ../include/confdefs.h \
-   ../include/vtk_interfaces.mod ../include/hadapt_combine_meshes.mod \
-   ../include/meshdiagnostics.mod ../include/halos.mod \
-   ../include/interpolation_module.mod ../include/global_parameters.mod \
-   ../include/vector_tools.mod ../include/sparse_tools.mod \
-   ../include/elements.mod ../include/fields.mod ../include/spud.mod \
-   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/quicksort.mod ../include/vtk_interfaces.mod \
+   ../include/hadapt_combine_meshes.mod ../include/meshdiagnostics.mod \
+   ../include/halos.mod ../include/interpolation_module.mod \
+   ../include/global_parameters.mod ../include/vector_tools.mod \
+   ../include/sparse_tools.mod ../include/elements.mod ../include/fields.mod \
+   ../include/spud.mod ../include/data_structures.mod ../include/fdebug.h \
    ../include/metric_tools.mod
 

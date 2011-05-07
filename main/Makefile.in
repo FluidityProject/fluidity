@@ -81,7 +81,7 @@ Burgers_Equation.o : Burgers_Equation.F90 ../include/populate_state_module.mod \
    ../include/memory_diagnostics.mod ../include/fldebug.mod \
    ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
    ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/boundary_conditions_from_options.mod \
    ../include/sparsity_patterns_meshes.mod ../include/elements.mod \
    ../include/mangle_options_tree.mod ../include/write_state_module.mod \
    ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
@@ -114,7 +114,7 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
    ../include/diagnostic_variables.mod ../include/advection_diffusion_cg.mod \
    ../include/ale_module.mod ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/boundary_conditions_from_options.mod \
    ../include/adapt_state_prescribed_module.mod ../include/meshdiagnostics.mod \
    ../include/porous_media.mod ../include/gls.mod ../include/elements.mod \
    ../include/write_state_module.mod ../include/spud.mod \
@@ -137,7 +137,7 @@ Shallow_Water.o : Shallow_Water.F90 ../include/populate_state_module.mod \
    ../include/fields.mod ../include/memory_diagnostics.mod \
    ../include/fldebug.mod ../include/reserve_state_module.mod \
    ../include/diagnostic_variables.mod \
-   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/boundary_conditions_from_options.mod \
    ../include/linear_shallow_water.mod ../include/sparsity_patterns_meshes.mod \
    ../include/mangle_options_tree.mod ../include/write_state_module.mod \
    ../include/spud.mod ../include/advection_diffusion_dg.mod \
@@ -153,7 +153,7 @@ Shallow_Water_Legacy.o : Shallow_Water_Legacy.F90 \
    ../include/fields.mod ../include/memory_diagnostics.mod \
    ../include/fldebug.mod ../include/reserve_state_module.mod \
    ../include/diagnostic_variables.mod \
-   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/boundary_conditions_from_options.mod \
    ../include/adapt_state_prescribed_module.mod \
    ../include/sparsity_patterns_meshes.mod ../include/mangle_options_tree.mod \
    ../include/write_state_module.mod ../include/spud.mod \
@@ -170,7 +170,7 @@ Simple_Shallow_Water.o : Simple_Shallow_Water.F90 \
    ../include/sparse_tools.mod ../include/fields.mod ../include/timers.mod \
    ../include/memory_diagnostics.mod ../include/state_module.mod \
    ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
-   ../include/confdefs.h ../include/adapt_state_prescribed_module.mod \
+   ../include/adapt_state_prescribed_module.mod \
    ../include/sparsity_patterns_meshes.mod ../include/transform_elements.mod \
    ../include/signals.mod ../include/write_state_module.mod \
    ../include/spud.mod ../include/fldebug.mod \
@@ -179,7 +179,7 @@ Simple_Shallow_Water.o : Simple_Shallow_Water.F90 \
    ../include/parallel_tools.mod ../include/state_fields_module.mod \
    ../include/fdebug.h
 
-mainfl.o : mainfl.F90 ../include/fluids_module.mod ../include/confdefs.h \
-   ../include/tictoc.mod ../include/signals.mod ../include/spud.mod \
-   ../include/fdebug.h ../include/fldebug.mod
+mainfl.o : mainfl.F90 ../include/fluids_module.mod ../include/tictoc.mod \
+   ../include/signals.mod ../include/spud.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
