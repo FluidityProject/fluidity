@@ -106,10 +106,16 @@ else
     MODINC_FLAG="-I"
 fi
 
+if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+  USING_GFORTRAN="yes"
+else
+  USING_GFORTRAN="no"
+fi
+
 # How to specify where .mod files are placed.
 if test "$FC" = "ifort"; then
    MOD_FLAG="-module "
-elif test "$FC" = "gfortran"; then
+elif test "$USING_GFORTRAN" = "yes"; then
    MOD_FLAG="-J"
 else
    AC_MSG_ERROR(Don't know how to specify the module output directory for $FC.)
@@ -339,12 +345,6 @@ AC_COMPILE_IFELSE(
 FFLAGS="$OLD_FFLAGS"
 AC_SUBST(UNROLL_LOOPS)
 AC_LANG_POP()
-
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
-  USING_GFORTRAN="yes"
-else
-  USING_GFORTRAN="no"
-fi
 
 if test "$USING_GFORTRAN" = "yes"; then
     if test "$enable_debugging" = "yes" ; then
