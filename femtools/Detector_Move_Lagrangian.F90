@@ -48,12 +48,13 @@ module detector_move_lagrangian
 
 contains
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, move_detectors)
+  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, move_detectors, detector_names)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
     logical, intent(in) :: move_detectors
+    character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
 
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector
@@ -181,12 +182,15 @@ contains
                 !This call serialises send_list_array,
                 !sends it, receives serialised receive_list_array,
                 !unserialises that.
-                do i = 1, number_neigh_processors
-                   ewrite (3,*) send_list_array(i)%length, 'CJC'
-                end do
-                call serialise_lists_exchange_receive(&
+                if (present(detector_names)) then
+                   call serialise_lists_exchange_receive(&
+                     state,send_list_array,receive_list_array,&
+                     number_neigh_processors,ihash,detector_names)
+                else
+                   call serialise_lists_exchange_receive(&
                      state,send_list_array,receive_list_array,&
                      number_neigh_processors,ihash)
+                end if
 
                 !This call moves detectors into the detector_list
                 !I'm still unsure about how detectors are removed

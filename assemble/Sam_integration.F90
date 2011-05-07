@@ -1586,7 +1586,7 @@ module sam_integration
         node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
         
         ! Recoverable data, not communicated
-        node%name = name_of_detector_in_read_order(node%id_number)
+        node%name = default_stat%name_of_detector_in_read_order(node%id_number)
         node%local = .true.
         allocate(node%local_coords(new_positions%dim + 1))
         node%initial_owner = procno

@@ -42,20 +42,17 @@ module detector_distribution
   
   private
 
-  public :: distribute_detectors, serialise_lists_exchange_receive, name_of_detector_in_read_order
-
-  ! Global dictionary of detector names from which we can restore det_name from det_id after serialisation
-  ! Comment ml805: This should become a dynamic data structure to register/delete detectors at runtime
-  character(len = FIELD_NAME_LEN), dimension(:), allocatable, save, target :: name_of_detector_in_read_order
+  public :: distribute_detectors, serialise_lists_exchange_receive
 
 contains
 
-  subroutine distribute_detectors(state, detector_list, ihash)
+  subroutine distribute_detectors(state, detector_list, ihash, detector_names)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(integer_hash_table), intent(in) :: ihash
+    character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
     type(detector_type), pointer :: detector, node_to_send
@@ -97,7 +94,11 @@ contains
     call allmax(all_send_lists_empty)
 
     if (all_send_lists_empty/=0) then
-       call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+       if (present(detector_names)) then
+          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash,detector_names)
+       else
+          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+       end if
     end if
 
     do i=1, number_neigh_processors
@@ -125,7 +126,7 @@ contains
   end subroutine distribute_detectors
 
   subroutine serialise_lists_exchange_receive(&
-       state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+       state,send_list_array,receive_list_array,number_neigh_processors,ihash,detector_names)
     !This subroutine serialises send_list_array,
     !sends it, receives serialised receive_list_array,
     !unserialises that.
@@ -134,6 +135,7 @@ contains
          &intent(inout) :: send_list_array, receive_list_array
     integer, intent(inout) :: number_neigh_processors
     type(integer_hash_table), intent(in) :: ihash
+    character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
 
     type array_ptr
        real, dimension(:,:), pointer :: ptr
@@ -361,7 +363,12 @@ contains
               detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
           end if
 
-          detector_received%name=name_of_detector_in_read_order(detector_received%id_number)
+          if (present(detector_names)) then
+             detector_received%name=detector_names(detector_received%id_number)
+          else
+             detector_received%name=int2str(detector_received%id_number)
+          end if
+
           call insert(receive_list_array(i),detector_received) 
           
        end do
