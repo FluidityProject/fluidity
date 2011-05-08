@@ -1371,12 +1371,12 @@ contains
     integer, dimension(2) :: shape_option
     character(len = 254) :: buffer, material_phase_name, fmt
     type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
+    type(vector_field), pointer :: vfield, xfield
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
 
-    type(detector_type), pointer :: node
+    type(detector_type), pointer :: node, detector
 
     type(element_type), pointer :: shape
     logical :: detectors_from_file_initially
@@ -1720,19 +1720,14 @@ contains
            
                     end do
 
-                 else 
-                    
-                    cycle  
-                 
+                 else                     
+                    cycle                   
                  end if
              
              end do
+          end do       
 
-          end do
- 
-        !!IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET end if
-
-    end if
+    end if !!IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET end if
 
 
     allocate (default_stat%detector_sfield_list(size(state)))
@@ -1888,6 +1883,26 @@ contains
     assert(ierror == MPI_SUCCESS)
 
     end if 
+
+
+    ! After initialising all detectors and the detector output file
+    ! we let the picker determine detector%element and
+    ! delete all detectors whose element we don't own
+    if (default_stat%detector_list%length/=0) then
+       xfield=>extract_vector_field(state(1), "Coordinate")
+       call search_for_detectors(default_stat%detector_list, xfield)
+
+       detector => default_stat%detector_list%firstnode
+       do i = 1, default_stat%detector_list%length
+          if (element_owner(xfield%mesh,detector%element)/=getprocno() .or. detector%element<0) then 
+             call remove(default_stat%detector_list,detector)
+          else
+             detector%local=.true.
+             detector%initial_owner=getprocno()            
+             detector => detector%next
+          end if
+       end do
+    end if
 
   end subroutine initialise_detectors
 
@@ -2604,9 +2619,8 @@ contains
     real :: value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
-    integer, dimension(:), allocatable :: global_det_count
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2620,85 +2634,6 @@ contains
     if (check_no_det==0) then
        return
     end if
-
-    !Pull some information from state
-    xfield=>extract_vector_field(state(1), "Coordinate")
-
-    ! Calculate the location of the detectors in the mesh.
-    ! CJC comment: I think this is unnecessary as the detectors should 
-    ! know where they are
-    if (default_stat%detector_list%length/=0) then
-       if ((.not.default_stat%zoltan_drive_call).or.(timestep<=1)) then
-          call search_for_detectors(default_stat%detector_list, xfield)
-       end if
-    end if
-
-    ! (CJC comment): This section of code is very strange. detector%local is set
-    ! to true in both cases, and the initial_owner is getting changed, not
-    ! sure what initial_owner really means. I think this means that 
-    ! 
-    detector => default_stat%detector_list%firstnode
-    do i = 1, default_stat%detector_list%length
-       if (detector%element<0) then
-          detector%local = .true.
-       else
-          detector%initial_owner=getprocno()
-          detector%local = .true.
-       end if
-       detector => detector%next
-    end do
-
-    !Code to distribute the detectors amongst the processors.
-    !This is only called after initialisation.
-    !THIS TASK SHOULD PROBABLY BE PERFORMED IN INITIALISE DETECTORS THEREFORE!
-    !Several processors may lay claim to a detector, so make a list which 
-    !gives the processor number that owns the detector, this is then
-    !allmax-ed so that the processor with the largest processor number gets
-    !the detector.
-
-    if (default_stat%detector_list%length/=0) then
-       if (timestep==1) then
-
-          allocate(global_det_count(default_stat%detector_list%length))
-          global_det_count = -1
-          detector => default_stat%detector_list%firstnode
-          do i = 1, default_stat%detector_list%length
-             if(detector%element>0) then
-                global_det_count(i)=getprocno()
-             end if
-             detector => detector%next
-          end do
-
-          do i = 1, size(global_det_count)
-             call allmax(global_det_count(i))
-          end do
-
-          detector => default_stat%detector_list%firstnode
-          do i = 1, size(global_det_count)
-             if (global_det_count(i)/=getprocno()) then
-                call remove(default_stat%detector_list,detector)
-             else 
-                detector => detector%next
-             end if
-
-          end do
-
-          !Any detectors that have the -1 as owner means that 
-          !nobody owns that detector. Make it static.
-          detector => default_stat%detector_list%firstnode
-          do i = 1, default_stat%detector_list%length
-             if (global_det_count(i)==-1) then
-                ewrite(-1,*) 'Warning: converting detector to static'
-                detector%type = STATIC_DETECTOR
-             end if
-             detector => detector%next
-          end do
-
-          deallocate(global_det_count)
-
-       end if
-
-    end if  ! end of if (default_stat%detector_list%length/=0)
 
     call move_lagrangian_detectors(state, default_stat%detector_list, dt, &
             timestep, move_detectors, default_stat%name_of_detector_in_read_order)
