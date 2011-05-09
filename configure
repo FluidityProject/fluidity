@@ -4204,10 +4204,16 @@ else
     MODINC_FLAG="-I"
 fi
 
+if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+  USING_GFORTRAN="yes"
+else
+  USING_GFORTRAN="no"
+fi
+
 # How to specify where .mod files are placed.
 if test "$FC" = "ifort"; then
    MOD_FLAG="-module "
-elif test "$FC" = "gfortran"; then
+elif test "$USING_GFORTRAN" = "yes"; then
    MOD_FLAG="-J"
 else
    as_fn_error $? "Don't know how to specify the module output directory for $FC." "$LINENO" 5
@@ -10332,12 +10338,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
-  USING_GFORTRAN="yes"
-else
-  USING_GFORTRAN="no"
-fi
 
 if test "$USING_GFORTRAN" = "yes"; then
     if test "$enable_debugging" = "yes" ; then
