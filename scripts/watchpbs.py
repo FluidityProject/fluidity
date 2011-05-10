@@ -97,7 +97,7 @@ def fetch_pbs_info(host, filter):
     raw = os.popen("ssh %s 'qstat -an | grep ^[0-9]'" % (host))
 
   c = {}
-  r = raw.read()
+  r = raw.read().strip()
   if not r: raise Exeption
   print r
   for line in r.split('\n'):
