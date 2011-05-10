@@ -1019,19 +1019,6 @@ module copy_outof_into_state
                    cv_nonods, u_nonods
       ewrite(3,*) "x_nonods, xu_nonods: ", x_nonods, xu_nonods
 
-      ewrite(3,*) "Getting source terms"
-      do i=1,nphases
-        velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
-        if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphases))
-        if (stat==0) then
-          do j=1,node_count(velocity_source)
-            u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
-          enddo
-        else
-          u_source = 0.
-        endif
-      enddo
-
       ewrite(3,*) 'Getting source terms -- gravity '
       ! Gravity is associated with the u_source term
       call get_option( "/physical_parameters/gravity/magnitude", gravity_magnitude, stat )
@@ -1055,8 +1042,7 @@ module copy_outof_into_state
       !    gravity_magnitude = 0.0
       ! end if
 
-      ewrite(3, *)'Getting source terms '
-
+      ewrite(3, *)"Getting source terms -- velocity "
       if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
            'prognostic/vector_field::Source' )) then 
          ! This is still not working as the length of node_count(velocity_source) =

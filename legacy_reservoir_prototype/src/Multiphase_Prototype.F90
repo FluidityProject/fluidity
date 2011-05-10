@@ -223,7 +223,13 @@ module mp_prototype
            cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods)
            
       ! Going to move to here a load of random things
+      mat_nloc = cv_nloc
+      mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
+      ! This should really be in the coy routine, but it isn't used
+      ! anyway
+      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
+      opt_vel_upwind_coefs = 0.
 
 
       ! Mirroring Input dat
@@ -294,7 +300,6 @@ module mp_prototype
 
       u_nonods = u_nloc * totele
       p_nonods = cv_nonods
-      mat_nonods = mat_nloc * totele
       cv_pha_nonods = cv_nonods * nphase
       u_pha_nonods = u_nonods * nphase
       ncp_coefs = nphase
@@ -336,8 +341,6 @@ module mp_prototype
       allocate( suf_vol_bc_rob2( stotel * cv_snloc * nphase ))
       allocate( suf_comp_bc_rob1( stotel * cv_snloc * nphase ))
       allocate( suf_comp_bc_rob2( stotel * cv_snloc * nphase ))
-
-      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
 
       allocate( x( x_nonods ))
       allocate( y( x_nonods ))
