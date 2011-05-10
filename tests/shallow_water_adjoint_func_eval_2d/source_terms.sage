@@ -2,11 +2,11 @@ t = var('t')
 x = var('x')
 y = var('y')
 g = var('g')
-H = var('H')
+H = var('d0')
 
-eta = -sin(2*pi*x+t)
-u_x = sin(2*pi*x+t)
-u_y = 0.0
+eta = -sin(2*pi*(x+t)) -sin(2*pi*(y+t))
+u_x = g*sin(2*pi*(x+t))
+u_y = g*sin(2*pi*(y+t))
 
 u_x_src = g*diff(eta, x) + diff(u_x, t)
 u_y_src = g*diff(eta, y) + diff(u_y, t)

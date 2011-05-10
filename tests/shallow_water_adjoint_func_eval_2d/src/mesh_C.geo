@@ -1,15 +1,14 @@
-Point(1) = {0, 0, 0, 0.025};
-Point(2) = {1, 0, 0, 0.025};
-Point(3) = {1, 1, 0, 0.025};
-Point(4) = {0, 1, 0, 0.025};
-Line(1) = {1, 2};
-Line(2) = {2, 3};
-Line(3) = {3, 4};
-Line(4) = {4, 1};
-Line Loop(5) = {3, 4, 1, 2};
-Plane Surface(6) = {5};
+cl1 = 0.1;
+cl2 = 16;
+Point(1) = {0, 0, 0, cl1};
+Extrude {1,0,0} {
+  Point{1}; Layers{cl2};
+}
+Extrude {0,1,0} {
+  Line{1}; Layers{cl2};
+}
 Physical Line(7) = {1};
-Physical Line(8) = {2};
-Physical Line(9) = {3};
-Physical Line(10) = {4};
-Physical Surface(11) = {6};
+Physical Line(8) = {4};
+Physical Line(9) = {2};
+Physical Line(10) = {3};
+Physical Surface(11) = {5};
