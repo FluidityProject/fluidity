@@ -4,9 +4,10 @@ SIM = BL_test_1d
 
 input: clean
 
-	../../../scripts/interval --dx=0.1 0 1 1d_mesh
+	../../../scripts/interval --dx=0.2 0 4 1d_mesh
 
 	@echo "compute input for $(SIM)"
+
 	gfortran -o input_wic_vol_bc_BL1_fcn input_wic_vol_bc_BL1_fcn.f90
 	gfortran -o input_wic_d_bc_BL1_fcn   input_wic_d_bc_BL1_fcn.f90
 	gfortran -o input_wic_u_bc_BL1_fcn   input_wic_u_bc_BL1_fcn.f90
@@ -38,5 +39,6 @@ clean:
 	rm -f input_eos_coef_BL1_func       
 	rm -f input_usource_BL1_func
 	rm -f gmon.out
-	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
+	rm -f *.d.*
+	rm -f flog.dat time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
+	rm -f *.node *.bound *.ele *.face *.stat *.vtu
