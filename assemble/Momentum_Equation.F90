@@ -724,10 +724,6 @@
 
                else
                   ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenar
-                  ! even with the compressible projection and prognostic momentum
-                  ! ctp_m doesn't change, still need to reassemble cmc_m because of the mass term 
-                  ! (this could be optimised by not reassembling the actual CMC part)
-                  assemble_cmc_m=assemble_cmc_m .or. use_compressible_projection 
                end if
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
@@ -943,8 +939,9 @@
                                      mom_rhs, subcycle_m, inverse_mass)
 
                if(prognostic_p) then
-                  call assemble_projection(state, istate, u, old_u, p, cmc_m, assemble_cmc_m, cmc_global, ctp_m, &
-                                           ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
+                  call assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, &
+                                           assemble_cmc_m, have_prognostic_momentum(istate), &
+                                           ctp_m, ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
                end if
 
                ! Deallocate the old velocity field
@@ -1433,7 +1430,6 @@
 
          ewrite(1,*) 'Entering advance_velocity'
 
-
          ! Allocate the momentum solution vector
          call profiler_tic(u, "assembly")
          call allocate(delta_u, u%dim, u%mesh, "DeltaU")
@@ -1493,8 +1489,9 @@
       end subroutine advance_velocity
 
 
-      subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, assemble_cmc_m, cmc_global, ctp_m, &
-                                     ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
+      subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, &
+                                     assemble_cmc_m, have_prognostic_momentum, &
+                                     ctp_m, ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
          !!< Assembles the RHS for the projection solve step and, if required, the 'global' CMC matrix for multi-phase simulations.
          !!< Note that in the case of multi-phase simulations, projec_rhs contains the sum of ct_m*u over each prognostic velocity field,
          !!< and cmc_global contains the sum of the individual phase CMC matrices.
@@ -1510,7 +1507,8 @@
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m, cmc_global
-         logical, intent(in) :: assemble_cmc_m
+         logical, intent(in) :: assemble_cmc_m ! is cmc being reassembled?
+         logical, intent(in) :: have_prognostic_momentum
 
          type(scalar_field), dimension(:), intent(inout) :: ct_rhs
          type(scalar_field), intent(inout) :: projec_rhs
@@ -1521,6 +1519,7 @@
          ! Local variables
          type(scalar_field) :: kmk_rhs, temp_projec_rhs, compress_projec_rhs
          type(vector_field) :: delta_u
+         logical :: reuse_cmc_m
          integer :: stat
 
          ewrite(1,*) 'Entering assemble_projection'
@@ -1586,8 +1585,14 @@
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, assemble_cmc_m)
             else if(cg_pressure) then
+               ! if have_prognostic_momentum, we could potentially reuse
+               ! div-grad terms of cmc - provided there is no mesh_movement,
+               ! assemble_cmc will be .false. after the first nonlinear iteration
+               ! and cmc will be reused by first subtracting the mass term from the
+               ! previous iteration before adding the new one
+               reuse_cmc_m = have_prognostic_momentum
                call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, &
-                                                      theta_pg, theta_divergence, assemble_cmc_m)
+                                                      theta_pg, theta_divergence, assemble_cmc_m, reuse_cmc_m)
             else
                ! Developer error... out of sync options input and code
                FLAbort("Unknown pressure discretisation for compressible projection.")

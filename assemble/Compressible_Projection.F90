@@ -38,6 +38,7 @@ module compressible_projection
   use global_parameters, only: new_options, OPTION_PATH_LEN
   use fefields, only: compute_lumped_mass
   use state_fields_module
+  use sparsity_patterns_meshes
   use upwind_stabilisation
   implicit none 
 
@@ -381,10 +382,11 @@ contains
 
   end subroutine assemble_mmat_compressible_projection_cv
   
-  subroutine assemble_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
+  subroutine assemble_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, theta_divergence, assemble_cmc, reuse_cmc)
 
-    ! inputs:
-    ! bucket full of fields
+    ! assemble the "compressible parts" of the projection equation
+    ! i.e. add in the drhodp mass term to cmc (C^T M^-1 C has been assembled before)
+    ! and assemble the right hand side terms; rhs here starts from zero, any additional terms (e.g. weak bcs) need to be added in outside this routine 
     type(state_type), dimension(:), intent(inout) :: state
 
     type(csr_matrix), intent(inout) :: cmc
@@ -392,12 +394,19 @@ contains
 
     real, intent(in) :: dt
     real, intent(in) :: theta_pg, theta_divergence
-    logical, intent(in) :: cmcget
+    ! this indicates whether cmc has just been reassembled and the mass terms
+    ! are added directly. If .false. (only in combination with reuse_cmc==.true.)
+    ! cmc is reused from a previous non-linear iteration. The mass terms
+    ! from this previous iteration are subtracted first
+    logical, intent(in) :: assemble_cmc
+    ! if .true. store the mass terms also separately in state, so we can
+    ! subtract them out the next time
+    logical, intent(in) :: reuse_cmc
 
     if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
     
       call assemble_1mat_compressible_projection_cg(state(1), cmc, rhs, dt, &
-                                                    theta_pg, theta_divergence, cmcget)
+                                                    theta_pg, theta_divergence, assemble_cmc, reuse_cmc)
       
     else
       
@@ -409,18 +418,27 @@ contains
   end subroutine assemble_compressible_projection_cg
 
   subroutine assemble_1mat_compressible_projection_cg(state, cmc, rhs, dt, &
-                                                      theta_pg, theta_divergence, cmcget)
+                                                      theta_pg, theta_divergence, &
+                                                      assemble_cmc, reuse_cmc)
 
-    ! inputs:
-    ! bucket full of fields
+    ! assemble the "compressible parts" of the projection equation
+    ! i.e. add in the drhodp mass term to cmc (C^T M^-1 C has been assembled before)
+    ! and assemble the right hand side terms; rhs here starts from zero, any additional terms (e.g. weak bcs) need to be added in outside this routine 
     type(state_type), intent(inout) :: state
 
-    type(csr_matrix), intent(inout) :: cmc
+    type(csr_matrix), intent(inout), target :: cmc
     type(scalar_field), intent(inout) :: rhs
 
     real, intent(in) :: dt
     real, intent(in) :: theta_pg, theta_divergence
-    logical, intent(in) :: cmcget
+    ! this indicates whether cmc has just been reassembled and the mass terms
+    ! are added directly. If .false. (only in combination with reuse_cmc==.true.)
+    ! cmc is reused from a previous non-linear iteration. The mass terms
+    ! from this previous iteration are subtracted first
+    logical, intent(in) :: assemble_cmc
+    ! if .true. store the mass terms also separately in state, so we can
+    ! subtract them out the next time
+    logical, intent(in) :: reuse_cmc
 
     ! local
     type(mesh_type), pointer :: test_mesh
@@ -440,169 +458,199 @@ contains
                                       drhodp_at_quad, eosp_at_quad, abs_at_quad
     real, dimension(:,:), allocatable :: nlvelocity_at_quad
 
-    ! loop integers
-    integer :: ele
-
-    ! pointer to coordinates
+    ! pointer to fields in state
     type(vector_field), pointer :: coordinate, nonlinearvelocity, velocity
     type(scalar_field), pointer :: pressure, density, olddensity
     type(scalar_field), pointer :: source, absorption
+
+    type(csr_matrix), pointer:: projection_mass
+    type(csr_sparsity), pointer:: projection_mass_sparsity
     type(scalar_field) :: eospressure, drhodp
     real :: theta, atmospheric_pressure
 
     real, dimension(:,:), allocatable :: ele_mat
+    integer :: ele
     
-    logical :: have_absorption, have_source
+    logical :: have_absorption, have_source 
     integer :: stat
-
-    ! =============================================================
-    ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
-    ! =============================================================
 
     ewrite(1,*) 'Entering assemble_1mat_compressible_projection_cg'
     
     call zero(rhs)
 
-    ! only do all this if we need to make cmc (otherwise we'd be adding repeatedly)
-    if(cmcget) then
-      coordinate=> extract_vector_field(state, "Coordinate")
-      
-      density => extract_scalar_field(state, "Density")
-      olddensity => extract_scalar_field(state, "OldDensity")
-      
-      absorption => extract_scalar_field(state, "DensityAbsorption", stat=stat)
-      have_absorption = (stat==0)
-      if(have_absorption) then
-        ewrite(2,*) 'Have DensityAbsorption'
-      end if
-      
-      source => extract_scalar_field(state, "DensitySource", stat=stat)
-      have_source = (stat==0)
-      if(have_source) then
-        ewrite(2,*) 'Have DensitySource'
-      end if
-  
-      velocity=>extract_vector_field(state, "Velocity")
-      nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
-      
-      pressure => extract_scalar_field(state, "Pressure")
-  
-      call get_option(trim(pressure%option_path)//'/prognostic/atmospheric_pressure', &
-                      atmospheric_pressure, default=0.0)
-
-      ! these are put on the density mesh, which should be of sufficient order to represent
-      ! the multiplication of the eos (of course that may not be possible in which case
-      ! something should be done at the gauss points instead)
-      call allocate(eospressure, density%mesh, 'EOSPressure')
-      call allocate(drhodp, density%mesh, 'DerivativeDensityWRTBulkPressure')
-  
-      call zero(eospressure)
-      call zero(drhodp)
-  
-      ! this needs to be changed to be evaluated at the quadrature points!
-      call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
-  
-      ewrite_minmax(density)
-      ewrite_minmax(olddensity)
-
-      if(have_option(trim(density%option_path) // &
-                          "/prognostic/spatial_discretisation/continuous_galerkin/&
-                          &stabilisation/streamline_upwind_petrov_galerkin")) then
-        ewrite(2, *) "SUPG stabilisation"
-        stabilisation_scheme = STABILISATION_SUPG
-        call get_upwind_options(trim(density%option_path) // & 
-                                "/prognostic/spatial_discretisation/continuous_galerkin/&
-                                &stabilisation/streamline_upwind_petrov_galerkin", &
-                                & nu_bar_scheme, nu_bar_scale)
-      else
-        ewrite(2, *) "No stabilisation"
-        stabilisation_scheme = STABILISATION_NONE
-      end if
-  
-      call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", theta)
-      
-      test_mesh => pressure%mesh
-      field => velocity
-      
-      allocate(dtest_t(ele_loc(test_mesh, 1), ele_ngi(test_mesh, 1), field%dim), &
-              detwei(ele_ngi(field, 1)), &
-              ele_mat(ele_loc(test_mesh, 1), ele_loc(test_mesh, 1)), &
-              ele_rhs(ele_loc(test_mesh, 1)), &
-              density_at_quad(ele_ngi(density, 1)), &
-              olddensity_at_quad(ele_ngi(density, 1)), &
-              nlvelocity_at_quad(field%dim, ele_ngi(field, 1)), &
-              j_mat(field%dim, field%dim, ele_ngi(density, 1)), &
-              drhodp_at_quad(ele_ngi(drhodp, 1)), &
-              eosp_at_quad(ele_ngi(eospressure, 1)), &
-              abs_at_quad(ele_ngi(density, 1)), &
-              p_at_quad(ele_ngi(pressure, 1)))
-      
-      do ele=1, element_count(test_mesh)
-      
-        test_nodes=>ele_nodes(test_mesh, ele)
-  
-        test_shape_ptr => ele_shape(test_mesh, ele)
-        
-        density_at_quad = ele_val_at_quad(density, ele)
-        olddensity_at_quad = ele_val_at_quad(olddensity, ele)
-        
-        p_at_quad = ele_val_at_quad(pressure, ele) + atmospheric_pressure
-                          
-        nlvelocity_at_quad = ele_val_at_quad(nonlinearvelocity, ele)
-        
-        drhodp_at_quad = ele_val_at_quad(drhodp, ele)
-        eosp_at_quad = ele_val_at_quad(eospressure, ele)
-        
-        select case(stabilisation_scheme)
-          case(STABILISATION_SUPG)
-            call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei, j=j_mat)
-            test_shape = make_supg_shape(test_shape_ptr, dtest_t, nlvelocity_at_quad, j_mat, &
-              & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
-          case default
-            call transform_to_physical(coordinate, ele, detwei=detwei)
-            test_shape = test_shape_ptr
-            call incref(test_shape)
-        end select
-        ! Important note: with SUPG the test function derivatives have not been
-        ! modified.
-  
-        ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
-        !       /
-        ! rhs = |test_shape* &
-        !       /
-        !      ((1./dt)*(drhodp*(eospressure - (pressure + atmospheric_pressure)) + olddensity - density)
-        ! +(absorption)*(drhodp*theta*(eospressure - (pressure + atmospheric_pressure)) 
-        !                - theta*density - (1-theta)*olddensity)
-        ! +source)dV
-        ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
-                                                       +(olddensity_at_quad - density_at_quad)))
-        
-        if(have_source) then
-          ele_rhs = ele_rhs + shape_rhs(test_shape, detwei*ele_val_at_quad(source, ele))
-        end if
-        
-        if(have_absorption) then
-          abs_at_quad = ele_val_at_quad(absorption, ele)
-          ele_mat = ele_mat + &
-                    (theta/(dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, &
-                                                                       detwei*drhodp_at_quad*abs_at_quad)
-          ele_rhs = ele_rhs + &
-                    shape_rhs(test_shape, detwei*abs_at_quad*(theta*(drhodp_at_quad*(eosp_at_quad - p_at_quad)-density_at_quad) &
-                                                             -(1-theta)*olddensity_at_quad))
-        end if
-        
-        call addto(cmc, test_nodes, test_nodes, ele_mat)
-        
-        call addto(rhs, test_nodes, ele_rhs)
-        
-        call deallocate(test_shape)
-        
-      end do
-  
-      call deallocate(drhodp)
-      call deallocate(eospressure)
+    coordinate=> extract_vector_field(state, "Coordinate")
     
+    density => extract_scalar_field(state, "Density")
+    olddensity => extract_scalar_field(state, "OldDensity")
+    
+    absorption => extract_scalar_field(state, "DensityAbsorption", stat=stat)
+    have_absorption = (stat==0)
+    if(have_absorption) then
+      ewrite(2,*) 'Have DensityAbsorption'
     end if
+    
+    source => extract_scalar_field(state, "DensitySource", stat=stat)
+    have_source = (stat==0)
+    if(have_source) then
+      ewrite(2,*) 'Have DensitySource'
+    end if
+
+    velocity=>extract_vector_field(state, "Velocity")
+    nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
+    
+    pressure => extract_scalar_field(state, "Pressure")
+
+    call get_option(trim(pressure%option_path)//'/prognostic/atmospheric_pressure', &
+                    atmospheric_pressure, default=0.0)
+
+    ! these are put on the density mesh, which should be of sufficient order to represent
+    ! the multiplication of the eos (of course that may not be possible in which case
+    ! something should be done at the gauss points instead)
+    call allocate(eospressure, density%mesh, 'EOSPressure')
+    call allocate(drhodp, density%mesh, 'DerivativeDensityWRTBulkPressure')
+
+    call zero(eospressure)
+    call zero(drhodp)
+
+    ! this needs to be changed to be evaluated at the quadrature points!
+    call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
+
+    ewrite_minmax(density)
+    ewrite_minmax(olddensity)
+
+    if(have_option(trim(density%option_path) // &
+                        "/prognostic/spatial_discretisation/continuous_galerkin/&
+                        &stabilisation/streamline_upwind_petrov_galerkin")) then
+      ewrite(2, *) "SUPG stabilisation"
+      stabilisation_scheme = STABILISATION_SUPG
+      call get_upwind_options(trim(density%option_path) // & 
+                              "/prognostic/spatial_discretisation/continuous_galerkin/&
+                              &stabilisation/streamline_upwind_petrov_galerkin", &
+                              & nu_bar_scheme, nu_bar_scale)
+    else
+      ewrite(2, *) "No stabilisation"
+      stabilisation_scheme = STABILISATION_NONE
+    end if
+
+    call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", theta)
+
+    if (reuse_cmc) then
+      ewrite(2,*) "Trying to reuse cmc"
+      projection_mass => extract_csr_matrix(state, "CompressibleProjectionMassMatrix", stat=stat)
+      
+      if (stat/=0) then
+        ewrite(2,*) "New assembly of cmc, creating separate mass matrix"
+        ! no mass matrix left from previous iteration
+        if (.not. assemble_cmc) then
+          FLAbort("Told to reuse cmc but can't find mass matrix from previous iteration")
+        end if
+        projection_mass_sparsity => get_csr_sparsity_firstorder(state, pressure%mesh, pressure%mesh)
+        call allocate(projection_mass, projection_mass_sparsity, name="CompressibleProjectionMassMatrix")
+        call insert(state, projection_mass, "CompressibleProjectionMassMatrix")
+        call deallocate(projection_mass)
+        projection_mass => extract_csr_matrix(state, "CompressibleProjectionMassMatrix", stat=stat)
+      else if (.not. assemble_cmc) then
+        ewrite(2,*) "Subtracting mass terms from previous iteration"
+        ! cmc has not been reassembled, so we need to subtract the mass matrix from the previous iteration
+        call addto(cmc, projection_mass, scale=-1.0)
+      end if
+
+      ! we can now forget about the mass from previous iteration, and start assembling
+      ! in the current mass term in the matrix
+      call zero(projection_mass)
+
+    else
+      ! not reusing cmc, so we can add the mass term straight into cmc
+      projection_mass => cmc
+    end if
+
+    test_mesh => pressure%mesh
+    field => velocity
+    
+    allocate(dtest_t(ele_loc(test_mesh, 1), ele_ngi(test_mesh, 1), field%dim), &
+            detwei(ele_ngi(field, 1)), &
+            ele_mat(ele_loc(test_mesh, 1), ele_loc(test_mesh, 1)), &
+            ele_rhs(ele_loc(test_mesh, 1)), &
+            density_at_quad(ele_ngi(density, 1)), &
+            olddensity_at_quad(ele_ngi(density, 1)), &
+            nlvelocity_at_quad(field%dim, ele_ngi(field, 1)), &
+            j_mat(field%dim, field%dim, ele_ngi(density, 1)), &
+            drhodp_at_quad(ele_ngi(drhodp, 1)), &
+            eosp_at_quad(ele_ngi(eospressure, 1)), &
+            abs_at_quad(ele_ngi(density, 1)), &
+            p_at_quad(ele_ngi(pressure, 1)))
+    
+    do ele=1, element_count(test_mesh)
+    
+      test_nodes=>ele_nodes(test_mesh, ele)
+
+      test_shape_ptr => ele_shape(test_mesh, ele)
+      
+      density_at_quad = ele_val_at_quad(density, ele)
+      olddensity_at_quad = ele_val_at_quad(olddensity, ele)
+      
+      p_at_quad = ele_val_at_quad(pressure, ele) + atmospheric_pressure
+                        
+      nlvelocity_at_quad = ele_val_at_quad(nonlinearvelocity, ele)
+      
+      drhodp_at_quad = ele_val_at_quad(drhodp, ele)
+      eosp_at_quad = ele_val_at_quad(eospressure, ele)
+      
+      select case(stabilisation_scheme)
+        case(STABILISATION_SUPG)
+          call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei, j=j_mat)
+          test_shape = make_supg_shape(test_shape_ptr, dtest_t, nlvelocity_at_quad, j_mat, &
+            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+        case default
+          call transform_to_physical(coordinate, ele, detwei=detwei)
+          test_shape = test_shape_ptr
+          call incref(test_shape)
+      end select
+      ! Important note: with SUPG the test function derivatives have not been
+      ! modified.
+
+      ele_mat = 1./(dt*dt*theta_divergence*theta_pg) * shape_shape(test_shape, test_shape_ptr, &
+          detwei*drhodp_at_quad)
+      !       /
+      ! rhs = |test_shape* &
+      !       /
+      !      ((1./dt)*(drhodp*(eospressure - (pressure + atmospheric_pressure)) + olddensity - density)
+      ! +(absorption)*(drhodp*theta*(eospressure - (pressure + atmospheric_pressure)) 
+      !                - theta*density - (1-theta)*olddensity)
+      ! +source)dV
+      ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
+                                                     +(olddensity_at_quad - density_at_quad)))
+      
+      if(have_source) then
+        ele_rhs = ele_rhs + shape_rhs(test_shape, detwei*ele_val_at_quad(source, ele))
+      end if
+      
+      if(have_absorption) then
+        abs_at_quad = ele_val_at_quad(absorption, ele)
+        ele_mat = ele_mat + (theta/(theta_divergence*theta_pg))* &
+            shape_shape(test_shape, test_shape_ptr,detwei*drhodp_at_quad*dt*abs_at_quad)
+        ele_rhs = ele_rhs + &
+                  shape_rhs(test_shape, detwei*abs_at_quad*(theta*(drhodp_at_quad*(eosp_at_quad - p_at_quad)-density_at_quad) &
+                                                           -(1-theta)*olddensity_at_quad))
+      end if
+      
+      call addto(projection_mass, test_nodes, test_nodes, ele_mat)
+      
+      call addto(rhs, test_nodes, ele_rhs)
+
+      call deallocate(test_shape)
+      
+    end do
+
+    if (reuse_cmc) then
+      ! we've been adding into projection_mass seperately
+      ! so now add this into cmc itself
+      ewrite(2,*) "Adding mass terms from separate mass matrix into cmc"
+      call addto(cmc, projection_mass)
+    end if
+
+    call deallocate(drhodp)
+    call deallocate(eospressure)
 
   end subroutine assemble_1mat_compressible_projection_cg
 
