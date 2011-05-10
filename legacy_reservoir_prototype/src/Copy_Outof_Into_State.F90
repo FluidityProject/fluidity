@@ -172,7 +172,7 @@ module copy_outof_into_state
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
-      real :: gravity_magnitude, delta_den
+      real :: gravity_magnitude, gravity_direction, delta_den
       type( vector_field ), pointer :: gravity
       type(vector_field), pointer :: dummyvector
 
@@ -859,23 +859,36 @@ module copy_outof_into_state
            cv_nonods, u_nonods
       ewrite(3,*) 'x_nonods, xu_nonods: ', x_nonods, xu_nonods
 
+
       ewrite(3,*) 'Getting source terms -- gravity '
       ! Gravity is associated with the u_source term
       call get_option( "/physical_parameters/gravity/magnitude", gravity_magnitude, stat )
       have_gravity = ( stat == 0 )
-      ewrite(3, *)'Getting source terms -- grav magn:', gravity_magnitude
+
 
       if( have_gravity ) then
-         gravity = extract_vector_field( state, "GravityDirection", stat)
-      else
-         gravity=>dummyvector
-         gravity_magnitude = 0.0
+         if( have_option( '/physical_parameters/gravity/vector_field::' // &
+              'GravityDirection/prescribed/value::WholeMesh' ))then
+            call get_option( '/physical_parameters/gravity/vector_field::' // &
+                 'GravityDirection/prescribed/value::WholeMesh/constant', &
+                 gravity_direction, stat )
+         end if
       end if
 
-      ewrite(3, *)'Getting source terms -- grav magn2:', gravity_magnitude
+      ! if( have_gravity ) then
+      !    gravity = extract_vector_field( state, "GravityDirection", stat)
+      ! ewrite(3, *)'GravityDirection', stat
+      ! else
+      !    gravity=>dummyvector
+      !    gravity_magnitude = 0.0
+      ! end if
+
+      ewrite(3, *)'Getting source terms '
 
       if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
-           'prognostic/vector_field::Source' )) then
+           'prognostic/vector_field::Source' )) then 
+         ! This is still not working as the length of node_count(velocity_source) =
+         ! node_count(velocity) /= u_nonods
          do i=1,nphases
             velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
             if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphases))
@@ -891,25 +904,21 @@ module copy_outof_into_state
       else
 
          if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
+         u_source = 0.
          delta_den = 0.
-         ewrite(3,*)'node_veloc:',  node_count( velocity )
          do i = 1, nphases - 1, 1
-           do j = 1,  node_count( density )
-             delta_den = delta_den + den((i)*node_count(density)+j) - &
-                     den((i-1)*node_count(density)+j) / &
-                     real( node_count( density ) * max( 1, ( nphases - 1 )))
-           end do
-            u_source( 1 : node_count( velocity )) = delta_den * gravity_magnitude * &
-                   domain_length / real( totele )
-           ! u_source( 1 : u_nonods ) = delta_den * gravity_magnitude !* & !&
-!                      gravity( 1 : u_nonods ) * domain_length / real( totele )
-          !            gravity( 1 : node_count( velocity )) * domain_length / real( totele )
-           ! do j = 1, node_count( velocity )
-           !    u_source( ( i - 1 ) * node_count( velocity ) + j ) =
-           ! end do
+            do j = 1, node_count( density )
+               delta_den = delta_den + ( den((i)*node_count(density)+j) - &
+                    den((i-1)*node_count(density)+j) ) / &
+                    real( node_count( density ) * max( 1, ( nphases - 1 )))
+            end do
+            do j = 1, u_nonods
+               u_source( ( i - 1 ) * u_nonods + j  ) = &
+                   delta_den * gravity_magnitude * domain_length / real( totele )
+            end do
          end do
-      end if
 
+      end if
 
       do i=1,nphases
          pvf_source => extract_scalar_field(state(i), "PhaseVolumeFractionSource", stat)
@@ -922,6 +931,7 @@ module copy_outof_into_state
             v_source = 0.
          endif
       enddo
+
       if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
          ! Limiting to one extra field for now although it's easy to extend as/when we
          ! need to
