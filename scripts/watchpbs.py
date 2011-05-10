@@ -98,7 +98,7 @@ def fetch_pbs_info(host, filter):
 
   c = {}
   r = raw.read().strip()
-  if not r: raise Exeption
+  if not r: raise Exception
   print r
   for line in r.split('\n'):
     if not line: continue
