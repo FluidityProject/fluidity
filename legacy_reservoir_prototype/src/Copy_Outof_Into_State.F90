@@ -833,43 +833,6 @@ module copy_outof_into_state
       enddo Conditional_Temperature_BC
 
 
-
-      do i = 1, nphases
-         Conditional_VolumeFraction: if( have_option( '/material_phase[' // &
-              int2str(i-1) // ']//scalar_field::' // &
-              'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
-              'type::dirichlet/constant' )) then
-
-            shape_option = option_shape( '/material_phase[' // &
-                 int2str(i-1) // ']//scalar_field::' // &
-                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
-                 'surface_ids' )
-
-            if( .not. allocated( VolFrac_SufID_BC )) then
-               allocate( VolFrac_SufID_BC( 1 : shape_option(1) ))
-               VolFrac_SufID_BC = 0
-            endif
-
-            VolFrac_BC_Type = 1
-
-            call get_option( '/material_phase[' // &
-                 int2str(i-1) // ']//scalar_field::' // &
-                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
-                 'surface_ids', VolFrac_SufID_BC )
-
-            call get_option( '/material_phase[' // &
-                 int2str(i-1) // ']//scalar_field::' // &
-                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
-                 'type::dirichlet/constant', VolFrac_Suf_BC )
-
-            allocate( wic_vol_bc( stotel * nphases ))
-
-         end if Conditional_VolumeFraction
-      end do
-
-      ! Still need to do this properly, I'm too tired now to sort out where the boundary condition
-      ! information is going!
-
       Conditional_Component_BC: do i=nstates-ncomps, nstates-1
         do j=1,nphases
           if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
@@ -963,6 +926,10 @@ module copy_outof_into_state
       do i=1,node_count(pressure)
          p(i)=pressure%val(i)
       enddo
+      
+      !! Control-volume pressure used for shock tube initialisation
+      allocate(cv_p(node_count(pressure)))
+      cv_p = p
       
       ewrite(3,*) "phasevolumefraction..."
       do i=1,nphases

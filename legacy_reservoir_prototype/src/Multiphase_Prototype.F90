@@ -231,6 +231,38 @@ module mp_prototype
       allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
 
+      ! Set up Global node number for velocity and scalar fields
+      allocate( u_ndgln( totele * u_nloc ))
+      allocate( xu_ndgln( totele * xu_nloc ))
+      allocate( cv_ndgln( totele * cv_nloc ))
+      allocate( x_ndgln( totele * cv_nloc ))
+      allocate( p_ndgln( totele * p_nloc ))
+      allocate( mat_ndgln( totele * mat_nloc ))
+      allocate( u_sndgln( stotel * u_snloc ))
+      allocate( cv_sndgln( stotel * cv_snloc ))
+      allocate( x_sndgln( stotel * cv_snloc ))
+      allocate( p_sndgln( stotel * p_snloc ))
+
+      u_ndgln = 0
+      xu_ndgln = 0
+      cv_ndgln = 0
+      x_ndgln = 0
+      p_ndgln = 0
+      mat_ndgln =0
+      u_sndgln = 0
+      cv_sndgln =0
+      x_sndgln = 0
+      p_sndgln = 0
+
+      call allocating_global_nodes( ndim, totele, domain_length, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
+           cv_nonods, u_nonods, x_nonods, xu_nonods, &
+           u_ele_type, cv_ele_type, &
+           x, xu,  &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
+
 
       ! Mirroring Input dat
 
@@ -310,98 +342,10 @@ module mp_prototype
       if( ndpset < 0 ) ndpset = cv_nonods
 
       ! Variables in which the dimensions depend upon input data
-      allocate( wic_vol_bc( stotel * nphase ))
-      allocate( wic_d_bc( stotel * nphase ))
-      allocate( wic_u_bc( stotel * nphase ))
-      allocate( wic_p_bc( stotel * nphase ))
-      allocate( wic_t_bc( stotel * nphase ))
-      allocate( wic_comp_bc( stotel * nphase ))
-
-      allocate( suf_vol_bc( stotel * cv_snloc * nphase ))
-      allocate( suf_d_bc( stotel * cv_snloc * nphase ))
-      allocate( suf_cpd_bc( stotel * cv_snloc * nphase ))
-      allocate( suf_t_bc( stotel * cv_snloc * nphase ))
-
-      allocate( suf_p_bc( stotel * p_snloc * nphase ))
-      allocate( suf_u_bc( stotel * u_snloc * nphase ))
-      allocate( suf_v_bc( stotel * u_snloc * nphase ))
-      allocate( suf_w_bc( stotel * u_snloc * nphase ))
-      allocate( suf_one_bc( stotel * cv_snloc * nphase ))
-      allocate( suf_comp_bc( stotel * cv_snloc * nphase * ncomp ))
-
-      allocate( suf_u_bc_rob1( stotel * u_snloc * nphase ))
-      allocate( suf_v_bc_rob1( stotel * u_snloc * nphase ))
-      allocate( suf_w_bc_rob1( stotel * u_snloc * nphase ))
-      allocate( suf_u_bc_rob2( stotel * u_snloc * nphase ))
-      allocate( suf_v_bc_rob2( stotel * u_snloc * nphase ))
-      allocate( suf_w_bc_rob2( stotel * u_snloc * nphase ))
-      allocate( suf_t_bc_rob1( stotel * cv_snloc * nphase ))
-      allocate( suf_t_bc_rob2( stotel * cv_snloc * nphase ))
-      allocate( suf_vol_bc_rob1( stotel * cv_snloc * nphase ))
-      allocate( suf_vol_bc_rob2( stotel * cv_snloc * nphase ))
-      allocate( suf_comp_bc_rob1( stotel * cv_snloc * nphase ))
-      allocate( suf_comp_bc_rob2( stotel * cv_snloc * nphase ))
-
-      allocate( x( x_nonods ))
-      allocate( y( x_nonods ))
-      allocate( z( x_nonods ))
-      allocate( xu( xu_nonods ))
-      allocate( yu( xu_nonods ))
-      allocate( zu( xu_nonods ))
-      allocate( nu( u_nonods * nphase ))
-      allocate( nv( u_nonods * nphase ))
-      allocate( nw( u_nonods * nphase ))
-      allocate( ug( u_nonods * nphase ))
-      allocate( vg( u_nonods * nphase ))
-      allocate( wg( u_nonods * nphase ))
-
-      allocate( uabs_option( nphase ))
-      allocate( uabs_coefs( nphase, nuabs_coefs ))
-      allocate( u_abs_stab( mat_nonods, ndim * nphase, ndim * nphase ))
-      allocate( u_absorb( mat_nonods, ndim * nphase, ndim * nphase ))
-      allocate( t_absorb( cv_nonods, nphase, nphase ))
-      allocate( v_absorb( cv_nonods, nphase, nphase ))
-      allocate( comp_absorb( cv_nonods, nphase, nphase ))
-      allocate( u_source( u_pha_nonods ))
-      allocate( t_source( cv_pha_nonods ))
-      allocate( v_source( cv_pha_nonods ))
-      allocate( comp_source( cv_pha_nonods ))
-
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
       allocate( tdiffusion( mat_nonods, ndim, ndim, nphase ))
 
-      ! Now initialising remaining prognostic and diagnostic velocity fields
-      allocate( u( u_pha_nonods ))
-      allocate( v( u_pha_nonods ))
-      allocate( w( u_pha_nonods ))
-
-      ! Now initialising remaining prognostic and diagnostic scalar fields
-      allocate( den( cv_pha_nonods ))
-      allocate( satura( cv_pha_nonods ))
-      allocate( comp( cv_pha_nonods * ncomp ))
-      allocate( volfra( cv_pha_nonods ))
-      allocate( t( cv_pha_nonods ))
-      allocate( cv_one( cv_pha_nonods ))
-      allocate( Viscosity( cv_pha_nonods ))
-      allocate( p( cv_nonods ))
-      allocate( cv_p( cv_nonods ))
-
-      allocate( volfra_pore( totele ))
-
-      allocate( perm( totele, ndim, ndim ))
-
-      ! Input of EOS and Absorption coefficients
-      allocate( eos_option( nphase ))
-      allocate( cp_option( nphase ))
-      allocate( eos_coefs( nphase, ncoef ))
-      allocate( cp_coefs( nphase, ncp_coefs ))
-
-      allocate( capil_pres_coef( ncapil_pres_coef, nphase, nphase ))
-      allocate( comp_diffusion( mat_nonods, ndim, ndim, nphase ))
-      allocate( comp_diff_coef( ncomp, ncomp_diff_coef, nphase ))
-
       nkcomp = Combination( ncomp, 2 )
-      allocate( K_Comp( ncomp, nphase, nphase ))
 
       call read_all( unit_input, nphase, ncomp, totele, ndim, &
            cv_snloc, u_snloc, p_snloc, stotel, &
@@ -518,16 +462,16 @@ module mp_prototype
       nwold = 0.
 
       ! Set up Global node number for velocity and scalar fields
-      allocate( u_ndgln( totele * u_nloc ))
-      allocate( xu_ndgln( totele * xu_nloc ))
-      allocate( cv_ndgln( totele * cv_nloc ))
-      allocate( x_ndgln( totele * cv_nloc ))
-      allocate( p_ndgln( totele * p_nloc ))
-      allocate( mat_ndgln( totele * mat_nloc ))
-      allocate( u_sndgln( stotel * u_snloc ))
-      allocate( cv_sndgln( stotel * cv_snloc ))
-      allocate( x_sndgln( stotel * cv_snloc ))
-      allocate( p_sndgln( stotel * p_snloc ))
+!      allocate( u_ndgln( totele * u_nloc ))
+!      allocate( xu_ndgln( totele * xu_nloc ))
+!      allocate( cv_ndgln( totele * cv_nloc ))
+!      allocate( x_ndgln( totele * cv_nloc ))
+!      allocate( p_ndgln( totele * p_nloc ))
+!      allocate( mat_ndgln( totele * mat_nloc ))
+!      allocate( u_sndgln( stotel * u_snloc ))
+!      allocate( cv_sndgln( stotel * cv_snloc ))
+!      allocate( x_sndgln( stotel * cv_snloc ))
+!      allocate( p_sndgln( stotel * p_snloc ))
 
       u_ndgln = 0
       xu_ndgln = 0
