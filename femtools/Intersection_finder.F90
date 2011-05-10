@@ -369,6 +369,10 @@ contains
 
     ! processed_neighbour maps an element to a neighbour that has already been processed (i.e. its clue)
     type(integer_hash_table) :: processed_neighbour
+    ! we also need to keep a set of the elements we've seen: this is different to
+    ! the elements that have map_AB(ele)%length > 0 in the case where the domain
+    ! is not simply connected!
+    type(integer_set) :: seen_elements
 
     integer :: ele_A
     type(mesh_type), pointer :: mesh_A, mesh_B
@@ -399,6 +403,7 @@ contains
     map_AB(ele_A) = brute_force_search(ele_val(positionsA, ele_A), positionsB, bboxes_B)
 
     call allocate(processed_neighbour)
+    call allocate(seen_elements)
 
     neigh_A => row_m_ptr(eelist_A, ele_A)
     do i=1,size(neigh_A)
@@ -406,11 +411,13 @@ contains
       if (neighbour <= 0) cycle
       call insert(processed_neighbour, neighbour, ele_A)
     end do
+    call insert(seen_elements, ele_A)
 
     do while (key_count(processed_neighbour) > 0)
       call fetch_pair(processed_neighbour, 1, ele_A, neighbour)
       ! try to keep our memory footprint low
       call remove(processed_neighbour, ele_A)
+      call insert(seen_elements, ele_A)
 
       assert(map_AB(ele_A)%length == 0) ! we haven't seen it yet
 
@@ -424,7 +431,7 @@ contains
       do i=1,size(neigh_A)
         neighbour = neigh_A(i)
         if (neighbour <= 0) cycle
-        if (map_AB(neighbour)%length > 0) then
+        if (has_value(seen_elements, neighbour)) then
           ! We've already seen it
           cycle
         end if
@@ -434,6 +441,7 @@ contains
 
     assert(key_count(processed_neighbour) == 0)
     call deallocate(processed_neighbour)
+    call deallocate(seen_elements)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
 
