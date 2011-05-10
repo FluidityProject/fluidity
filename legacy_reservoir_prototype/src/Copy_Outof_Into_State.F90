@@ -583,7 +583,6 @@ module copy_outof_into_state
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
 
-<<<<<<< TREE
            Loop_Velocity_BC_U: do i=1, nphases
         have_velocity_bcs=.false.
         if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/prognostic/" // &
@@ -724,8 +723,8 @@ module copy_outof_into_state
               'boundary_conditions[0]/type::dirichlet' )) then
 
             shape_option=option_shape('/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Pressure/&
-                 prognostic/boundary_conditions[0]/surface_ids')
+                 ']/scalar_field::Pressure/' // &
+                 'prognostic/boundary_conditions[0]/surface_ids')
 
             allocate(pressure_sufid_bc(1:shape_option(1)))
 
@@ -846,7 +845,7 @@ module copy_outof_into_state
                  'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
                  'surface_ids' )
 
-            if( .not. allocated( VolFrac_SufID_BC ) then
+            if( .not. allocated( VolFrac_SufID_BC )) then
                allocate( VolFrac_SufID_BC( 1 : shape_option(1) ))
                VolFrac_SufID_BC = 0
             endif
