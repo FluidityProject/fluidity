@@ -37,17 +37,40 @@ module detector_tools
   
   private
 
-  public :: insert, allocate, deallocate, copy, remove, &
-            detector_value, flush_det, set_detector_coords_from_python, &
-            move_det_to_send_list, remove_det_from_current_det_list, &
-            move_det_from_receive_list_to_det_list
+  public :: insert, allocate, deallocate, copy, move, move_all, remove, &
+            delete, delete_all, detector_value, set_detector_coords_from_python
 
   interface insert
      module procedure insert_into_detector_list
   end interface
 
+  ! Removes detector from a list without deallocating it
   interface remove
-     module procedure remove_from_detector_list
+     module procedure remove_detector_from_list
+  end interface
+
+  ! Removes detector from a list and deallocates it
+  interface delete
+     module procedure delete_detector
+  end interface
+
+  ! Deletes all detectors from a given list
+  interface delete_all
+     module procedure delete_all_detectors
+  end interface
+
+  ! Move detector from one list to another
+  interface move
+     module procedure move_detector
+  end interface
+
+  ! Move all detectors in a list from one that list to another
+  interface move_all
+     module procedure move_all_detectors
+  end interface
+
+  interface copy
+     module procedure detector_copy
   end interface
 
   interface allocate
@@ -58,10 +81,7 @@ module detector_tools
      module procedure detector_deallocate
   end interface
 
-  interface copy
-     module procedure detector_copy
-  end interface
-
+  ! Evaluate field at the location of the detector.
   interface detector_value
      module procedure detector_value_scalar, detector_value_vector
   end interface
@@ -127,7 +147,6 @@ contains
     type(detector_type), pointer, intent(in) :: old_detector
     type(detector_type),  pointer, intent(out) :: new_detector
       
-    ! copy all the information from the old detector to the new
     new_detector%position = old_detector%position
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
@@ -137,83 +156,9 @@ contains
     new_detector%local_coords=old_detector%local_coords
       
   end subroutine detector_copy
-    
-  subroutine remove_from_detector_list(detector_list,detector)
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer, intent(inout) :: detector
-    !
-    type(detector_type), pointer :: temp_detector
-      
-    !we need to remove the detector from this processor
-    temp_detector => detector
-    if ((.not.associated(detector%previous))&
-         &.and.(detector_list%length/=1)) then
-       !!this checks if the current node that we are going to remove
-       !!from the list is the first one in the list but not the only
-       !!node in the list
-         
-       detector%next%previous => null()         
-       detector => detector%next
-         
-       temp_detector%previous => null()
-       temp_detector%next => null()
-       call deallocate(temp_detector)
-
-       detector_list%firstnode => detector
-       detector_list%firstnode%previous => null()         
-       detector_list%length = detector_list%length-1   
-
-    else 
-         
-       if (.not.(associated(detector%next))&
-            &.and.(associated(detector%previous))) then
-          !!this takes into account the case when the node is the last one in the list but not the only one
-            
-          detector%previous%next => null()            
-          detector_list%lastnode => detector%previous
-            
-          temp_detector%previous => null()
-          temp_detector%next => null()
-          call deallocate(temp_detector)
-            
-          detector_list%lastnode%next => null()            
-          detector_list%length = detector_list%length-1   
-            
-       else    
-            
-          if (detector_list%length==1) then
-!!!This case takes into account if the list has only one node. 
-               
-             temp_detector%previous => null()
-             temp_detector%next => null()
-             call deallocate(temp_detector)
-               
-             detector_list%firstnode => null()
-             detector_list%lastnode => null()
-               
-             detector_list%length = detector_list%length-1    
-               
-          else
-             !!case when the node is in the middle of the double linked list
-
-             detector%previous%next => detector%next               
-             detector%next%previous => detector%previous               
-             detector => detector%next
-               
-             temp_detector%previous => null()
-             temp_detector%next => null()
-             call deallocate(temp_detector)               
-
-             detector_list%length = detector_list%length-1    
-               
-          end if
-       end if         
-    end if
-      
-  end subroutine remove_from_detector_list
 
   subroutine insert_into_detector_list(current_list,node)
-
+    ! Inserts detector at the end of a list
     type(detector_linked_list), intent(inout) :: current_list
     type(detector_type), pointer :: node
 
@@ -232,6 +177,84 @@ contains
     end if
 
   end subroutine insert_into_detector_list
+
+  subroutine remove_detector_from_list(detector_list,node)
+    !! Removes the detector from the list, 
+    !! but does not deallocated it
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer, intent(inout) :: node
+
+    if (detector_list%length==1) then
+       detector_list%firstnode => null()
+       detector_list%lastnode => null()
+    else
+       if (associated(node%previous)) then
+          node%previous%next => node%next
+       else
+          detector_list%firstnode => node%next
+       end if
+
+       if (associated(node%next)) then
+          node%next%previous => node%previous
+       else
+          detector_list%lastnode => node%previous
+       end if
+    end if
+
+    detector_list%length = detector_list%length-1
+
+  end subroutine remove_detector_from_list
+
+  subroutine delete_detector(detector_list,node)
+    ! Removes and deallocates the given detector 
+    ! and outputs the next detector in the list as detector
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer, intent(inout) :: node
+    
+    type(detector_type), pointer :: temp_node
+      
+    temp_node => node
+    node => node%next
+    call remove(detector_list,temp_node)
+    call deallocate(temp_node)    
+      
+  end subroutine delete_detector
+
+  subroutine move_detector(from_list,node,to_list)
+    ! Move detector from one list to the other
+    type(detector_linked_list), intent(inout) :: from_list
+    type(detector_type), pointer, intent(inout) :: node
+    type(detector_linked_list), intent(inout) :: to_list
+
+    call remove(from_list,node)
+    call insert(to_list,node)  
+
+  end subroutine move_detector
+
+  subroutine move_all_detectors(from_list,to_list)
+    ! Move all detectors from one list to the other
+    type(detector_linked_list), intent(inout) :: from_list
+    type(detector_linked_list), intent(inout) :: to_list
+    type(detector_type), pointer :: node
+
+    do while (associated(from_list%firstnode))
+       node => from_list%firstnode
+       call move(from_list,node,to_list)   
+    end do
+
+  end subroutine move_all_detectors
+
+  subroutine delete_all_detectors(detector_list)
+    ! Remove and deallocate all detectors in a list   
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: node
+
+    node => detector_list%firstnode
+    do while (associated(node))
+       call delete(detector_list,node) 
+    end do
+
+  end subroutine delete_all_detectors
 
   function detector_value_scalar(sfield, detector) result(value)
     !!< Evaluate field at the location of the detector.
@@ -268,129 +291,6 @@ contains
     if(.not. detector%local) call allsum(value)
 
   end function detector_value_vector
-
-  subroutine move_det_to_send_list(detector_list,node,send_list)
-
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer :: node
-    type(detector_linked_list), intent(inout) :: send_list
-
-    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-         !!this checks if the current node that we are going to remove from the list is the first 
-         !!one in the list but not the only node in the list
-
-            node%next%previous => null()
-            detector_list%firstnode => node%next
-            detector_list%firstnode%previous => null() 
-            detector_list%length = detector_list%length-1
-
-     else 
-          if ((.not.associated(node%next)).and.(associated(node%previous))) then
-          !!this takes into account the case when the node is the last one in the list but not the only one
-
-               node%previous%next => null()
-               detector_list%lastnode => node%previous
-               detector_list%lastnode%next => null()
-               detector_list%length = detector_list%length-1
-          else 
-               if (detector_list%length==1) then
-                  detector_list%firstnode => null()
-                  detector_list%lastnode => null()
-                  detector_list%length = detector_list%length-1 
-              else
-                  node%previous%next => node%next
-                  node%next%previous => node%previous
-                  detector_list%length = detector_list%length-1 
-              end if
-          end if
-     end if
-
-    call insert(send_list,node)  
-
-  end subroutine move_det_to_send_list 
-
-  subroutine move_det_from_receive_list_to_det_list(detector_list,receive_list)
-   
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_linked_list), intent(inout) :: receive_list
-
-    type(detector_type), pointer :: node
-    integer :: i
-
-    do i=1, receive_list%length
-
-       node => receive_list%firstnode
-       receive_list%firstnode => node%next
-
-       if (associated(receive_list%firstnode)) then    
-          receive_list%firstnode%previous => null()
-       end if
-
-       call insert(detector_list,node) 
-
-       receive_list%length = receive_list%length-1  
-    end do
-
-  end subroutine move_det_from_receive_list_to_det_list
-
-  subroutine remove_det_from_current_det_list(detector_list,node)
-
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer :: node
-
-    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-         !!this checks if the current node that we are going to remove from the list is the first 
-         !!one in the list but not the only node in the list
-
-            node%next%previous => null()
-            detector_list%firstnode => node%next
-            detector_list%firstnode%previous => null() 
-            detector_list%length = detector_list%length-1
-
-     else 
-          if ((.not.associated(node%next)).and.(associated(node%previous))) then
-          !!this takes into account the case when the node is the last one in the list but not the only one
-
-               node%previous%next => null()
-               detector_list%lastnode => node%previous
-               detector_list%lastnode%next => null()
-               detector_list%length = detector_list%length-1
-          else 
-               if (detector_list%length==1) then
-                  detector_list%firstnode => null()
-                  detector_list%lastnode => null()
-                  detector_list%length = detector_list%length-1 
-
-              else
-                  node%previous%next => node%next
-                  node%next%previous => node%previous
-                  detector_list%length = detector_list%length-1 
-
-              end if
-          end if
-     end if
-
-  end subroutine remove_det_from_current_det_list
-
-  subroutine flush_det(det_list)
-  !Removes and deallocates all the nodes in a detector list, starting from the first node.
-   
-    type(detector_linked_list), intent(inout) :: det_list
-    type(detector_type), pointer :: node
-    integer :: i
-
-    do i=1, det_list%length
-       node => det_list%firstnode
-       det_list%firstnode => node%next
-       if (associated(det_list%firstnode)) then    
-          det_list%firstnode%previous => null()
-       end if
-
-       call deallocate(node)
-       det_list%length = det_list%length-1  
-    end do
-
-  end subroutine flush_det
 
   subroutine set_detector_coords_from_python(values, ndete, func, time)
     !!< Given a list of positions and a time, evaluate the python function

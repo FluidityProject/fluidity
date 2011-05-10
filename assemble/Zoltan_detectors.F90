@@ -132,11 +132,8 @@ module zoltan_detectors
                 ! so we can unpack to new element number
                 detector_to_move%element = old_universal_element_number
                
-                ! remove the detector from detector_list
-                call remove_det_from_current_det_list(detector_list, detector_to_move)
-
-                ! add detector to list of detectors we need to pack
-                call insert(to_pack_detectors_list, detector_to_move)
+                ! Move detector to list of detectors we need to pack
+                call move(detector_list, detector_to_move, to_pack_detectors_list)
 
                 ewrite(3,*) "Detector ", detector_to_move%id_number, "(ID) removed from detector_list and added to to_pack_detectors_list."
 

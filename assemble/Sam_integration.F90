@@ -1510,9 +1510,8 @@ module sam_integration
                     
           data_index(owner) = data_index(owner) + 1
                     
-          ! Remove this node from the detector list
-          call remove_det_from_current_det_list(default_stat%detector_list, node)
-          deallocate(node)
+          ! Delete this node from the detector list
+          call delete(default_stat%detector_list, node)
         end if
       end if      
     

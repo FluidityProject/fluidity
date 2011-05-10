@@ -1893,9 +1893,9 @@ contains
        call search_for_detectors(default_stat%detector_list, xfield)
 
        detector => default_stat%detector_list%firstnode
-       do i = 1, default_stat%detector_list%length
+       do while (associated(detector))
           if (element_owner(xfield%mesh,detector%element)/=getprocno() .or. detector%element<0) then 
-             call remove(default_stat%detector_list,detector)
+             call delete(default_stat%detector_list,detector)
           else
              detector%local=.true.
              detector%initial_owner=getprocno()            

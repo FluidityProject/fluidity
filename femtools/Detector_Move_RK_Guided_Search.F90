@@ -276,8 +276,7 @@ contains
                      proc_local_number=fetch(ihash,&
                           &element_owner(vfield%mesh,det_send%element))
 
-                     call move_det_to_send_list(detector_list0&
-                          &,det_send&
+                     call move(detector_list0,det_send&
                           &,send_list_array(proc_local_number))
                      !move on to the next detector
                      exit search_loop

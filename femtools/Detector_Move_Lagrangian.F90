@@ -197,21 +197,19 @@ contains
                 !from the detector list if they are sent.
                 do i=1, number_neigh_processors
                    if  (receive_list_array(i)%length/=0) then      
-                      call move_det_from_receive_list_to_det_list(&
-                           detector_list,receive_list_array(i))
+                      call move_all(receive_list_array(i),detector_list)
                    end if
                 end do
 
                 !Flush the detector lists
-                !We need to put proper deallocates in these flushes
                 do k=1, number_neigh_processors
                    if (send_list_array(k)%length/=0) then  
-                      call flush_det(send_list_array(k))
+                      call delete_all(send_list_array(k))
                    end if
                 end do
                 do k=1, number_neigh_processors
                    if (receive_list_array(k)%length/=0) then  
-                      call flush_det(receive_list_array(k))
+                      call delete_all(receive_list_array(k))
                    end if
                 end do
              end if

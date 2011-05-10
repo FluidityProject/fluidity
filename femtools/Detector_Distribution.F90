@@ -75,7 +75,7 @@ contains
              node_to_send => detector
              detector => detector%next
 
-             call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+             call move(detector_list,node_to_send,send_list_array(list_neigh_processor))
           else
              detector => detector%next
           end if
@@ -103,20 +103,20 @@ contains
 
     do i=1, number_neigh_processors
        if  (receive_list_array(i)%length/=0) then      
-          call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+          call move_all(receive_list_array(i),detector_list)
        end if
     end do
 
 !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
     do k=1, number_neigh_processors
        if (send_list_array(k)%length/=0) then 
-          call flush_det(send_list_array(k))
+          call delete_all(send_list_array(k))
        end if
     end do
 
     do k=1, number_neigh_processors
        if (receive_list_array(k)%length/=0) then  
-          call flush_det(receive_list_array(k))
+          call delete_all(receive_list_array(k))
        end if
     end do
 

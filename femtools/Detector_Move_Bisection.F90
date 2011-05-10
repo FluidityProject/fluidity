@@ -568,7 +568,7 @@ contains
 
          this_det => this_det%next
 
-         call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+         call move(detector_list,node_to_send,send_list_array(list_neigh_processor))
 
       end if
 
