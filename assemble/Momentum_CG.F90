@@ -966,9 +966,16 @@
               relu_gi = relu_gi - face_val_at_quad(ug, sele)
             end if
             
-            adv_mat_bdy = shape_shape(u_shape, u_shape, &
-                 detwei_bdy*sum(relu_gi*normal_bdy,1)*&
-                 face_val_at_quad(density, sele))
+            if(multiphase) then
+               adv_mat_bdy = shape_shape(u_shape, u_shape, &
+                  detwei_bdy*sum(relu_gi*normal_bdy,1)*&
+                  face_val_at_quad(density, sele)*face_val_at_quad(nvfrac, sele))
+            else
+               adv_mat_bdy = shape_shape(u_shape, u_shape, &
+                  detwei_bdy*sum(relu_gi*normal_bdy,1)*&
+                  face_val_at_quad(density, sele))
+            end if
+
             do dim = 1, u%dim
                
                if(velocity_bc_type(dim, sele)==1) then
