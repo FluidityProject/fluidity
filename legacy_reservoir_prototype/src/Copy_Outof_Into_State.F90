@@ -215,14 +215,14 @@ module copy_outof_into_state
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
       integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, &
-                 component_bc_type, pvf_bc_type, temperaure_bc_type, shape_option(2)
+           VolFrac_BC_Type, component_bc_type, pvf_bc_type, temperaure_bc_type, shape_option(2)
 
       real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, &
-              Pressure_Suf_BC, density_suf_bc, component_suf_bc, pvf_suf_bc, &
+           Pressure_Suf_BC, density_suf_bc, VolFrac_Suf_BC, component_suf_bc, pvf_suf_bc, &
               Temperature_suf_bc
               
       integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc, &
-           component_sufid_bc, pvf_sufid_bc, Temperature_sufid_bc
+           VolFrac_SufID_BC, component_sufid_bc, pvf_sufid_bc, Temperature_sufid_bc
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
@@ -583,7 +583,8 @@ module copy_outof_into_state
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
 
-      Conditional_Velocity_BC_U: do i=1, nphases
+<<<<<<< TREE
+           Loop_Velocity_BC_U: do i=1, nphases
         have_velocity_bcs=.false.
         if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/prognostic/" // &
            "boundary_conditions[0]/type::dirichlet" )) then
@@ -678,10 +679,10 @@ module copy_outof_into_state
         ewrite(3,*) 'wic_u_bc', wic_u_bc
         ewrite(3,*) 'suf_u_bc', suf_u_bc
 
-      enddo Conditional_Velocity_BC_U
+      enddo Loop_Velocity_BC_U
       
       ewrite(3,*) "Done with velocity boundary conditions"
-      
+
       Conditional_VolumeFraction_BC: do i=1,nphases
         if( have_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::PhaseVolumeFraction/" // &
                 "prognostic/boundary_conditions[0]/type::dirichlet" )) then
@@ -716,77 +717,87 @@ module copy_outof_into_state
         endif
         
       enddo Conditional_VolumeFraction_BC
-      
-      Conditional_Pressure_BC: do i=1,nphases
-        if( have_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::Pressure/" // &
-                "prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
-          shape_option=option_shape("/material_phase[" // int2str(i-1) //"]/scalar_field::Pressure/&
-                                  &prognostic/boundary_conditions[0]/surface_ids")
-          allocate(pressure_sufid_bc(1:shape_option(1)))
-          pressure_bc_type = 1
-          call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Pressure/prognostic/" // &
-                "boundary_conditions[0]/surface_ids", pressure_sufid_bc )
-          call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Pressure/prognostic/" // &
-                "boundary_conditions[0]/type::dirichlet/constant", pressure_suf_bc )
+      do i = 1, nphases
+         Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+              ']/scalar_field::Pressure/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet' )) then
 
-          if (.not. allocated(wic_p_bc)) then
-            allocate( wic_p_bc( stotel * nphases ))
-            wic_p_bc = 0.
-          endif
-          if (.not. allocated(suf_p_bc)) then
-            allocate( suf_p_bc( stotel * 1 * nphases ))
-            suf_p_bc = 0.
-          endif
+            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Pressure/&
+                 prognostic/boundary_conditions[0]/surface_ids')
+
+            allocate(pressure_sufid_bc(1:shape_option(1)))
+
+            Pressure_BC_Type = 1
+
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Pressure/prognostic/' // &
+                 'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Pressure/prognostic/' // &
+                 'boundary_conditions[0]/type::dirichlet/constant', Pressure_Suf_BC )
+
+            if( .not. ( allocated( wic_p_bc ) .and. allocated( suf_p_bc ))) then
+               allocate( wic_p_bc( stotel * nphases ))
+               allocate( suf_p_bc( stotel * 1 * nphases ))
+               wic_p_bc = 0
+               suf_p_bc = 0.
+            end if
+
           do j=1,shape_option(1)
             wic_p_bc( pressure_sufid_bc(1) + (i-1)*nphases ) = pressure_bc_type
             suf_p_bc( pressure_sufid_bc(1) + (i-1)*nphases ) = pressure_suf_bc
           enddo
-          
+
           ewrite(3,*) 'wic_p_bc', wic_p_bc
           ewrite(3,*) 'suf_p_bc', suf_p_bc
 
-          deallocate(pressure_sufid_bc)
+            deallocate(pressure_sufid_bc)
 
-        endif
-        
-      enddo Conditional_Pressure_BC
-      
-      Conditional_Density_BC: do i=1,nphases
-        if( have_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::Density/" // &
-                "prognostic/boundary_conditions[0]/type::dirichlet" )) then
+         endif Conditional_Pressure_BC
 
-          shape_option=option_shape("/material_phase[" // int2str(i-1) //"]/scalar_field::Density/&
-                                  &prognostic/boundary_conditions[0]/surface_ids")
-          allocate(density_sufid_bc(1:shape_option(1)))
-          density_bc_type = 1
-          call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Density/prognostic/" // &
-                "boundary_conditions[0]/surface_ids", density_sufid_bc )
-          call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Density/prognostic/" // &
-                "boundary_conditions[0]/type::dirichlet/constant", density_suf_bc )
+      end do
 
-          if (.not. allocated(wic_d_bc)) then
-            allocate( wic_d_bc( stotel * nphases ))
-            wic_d_bc = 0.
-          endif
-          if (.not. allocated(suf_d_bc)) then
-            allocate( suf_d_bc( stotel * 1 * nphases ))
-            suf_d_bc = 0.
-          endif
+      do i = 1, nphases
+
+         Conditional_Density_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+              ']/scalar_field::Density/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet' )) then
+
+            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Density/prognostic/boundary_conditions[0]/' // &
+                 'surface_ids' )
+            allocate(density_sufid_bc(1:shape_option(1)))
+            Density_BC_Type = 1
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Density/prognostic/' // &
+                 'boundary_conditions[0]/surface_ids', Density_SufID_BC )
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Density/prognostic/' // &
+                 'boundary_conditions[0]/type::dirichlet/constant', Density_Suf_BC )
+
+            if( .not. ( allocated( wic_d_bc ) .and. allocated( suf_d_bc ))) then 
+               allocate( wic_d_bc( stotel * nphases ))
+               allocate( suf_d_bc( stotel * 1 * nphases ))
+               wic_d_bc = 0
+               suf_d_bc = 0.
+            end if
+
           do j=1,shape_option(1)
             wic_d_bc( density_sufid_bc(1) + (i-1)*nphases ) = density_bc_type
             suf_d_bc( density_sufid_bc(1) + (i-1)*nphases ) = density_suf_bc
           enddo
-          
+
           ewrite(3,*) 'wic_d_bc', wic_d_bc
           ewrite(3,*) 'suf_d_bc', suf_d_bc
 
-          deallocate(density_sufid_bc)
+            deallocate(density_sufid_bc)
 
-        endif
-        
-      enddo Conditional_Density_BC
+         endif Conditional_Density_BC
 
+      end do
+      
       Conditional_Temperature_BC: do i=1,nphases
         if( have_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::Temperature/" // &
                 "prognostic/boundary_conditions[0]/type::dirichlet" )) then
@@ -821,6 +832,44 @@ module copy_outof_into_state
         endif
         
       enddo Conditional_Temperature_BC
+
+
+
+      do i = 1, nphases
+         Conditional_VolumeFraction: if( have_option( '/material_phase[' // &
+              int2str(i-1) // ']//scalar_field::' // &
+              'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
+              'type::dirichlet/constant' )) then
+
+            shape_option = option_shape( '/material_phase[' // &
+                 int2str(i-1) // ']//scalar_field::' // &
+                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
+                 'surface_ids' )
+
+            if( .not. allocated( VolFrac_SufID_BC ) then
+               allocate( VolFrac_SufID_BC( 1 : shape_option(1) ))
+               VolFrac_SufID_BC = 0
+            endif
+
+            VolFrac_BC_Type = 1
+
+            call get_option( '/material_phase[' // &
+                 int2str(i-1) // ']//scalar_field::' // &
+                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
+                 'surface_ids', VolFrac_SufID_BC )
+
+            call get_option( '/material_phase[' // &
+                 int2str(i-1) // ']//scalar_field::' // &
+                 'PhaseVolumeFraction/prognostic/boundary_conditions[0]/' // &
+                 'type::dirichlet/constant', VolFrac_Suf_BC )
+
+            allocate( wic_vol_bc( stotel * nphases ))
+
+         end if Conditional_VolumeFraction
+      end do
+
+      ! Still need to do this properly, I'm too tired now to sort out where the boundary condition
+      ! information is going!
 
       Conditional_Component_BC: do i=nstates-ncomps, nstates-1
         do j=1,nphases
@@ -942,7 +991,6 @@ module copy_outof_into_state
             if (ndim>2) w((i-1)*node_count(velocity)+j)=velocity%val(Z_, j)
          enddo
       enddo
-
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
@@ -1072,7 +1120,7 @@ module copy_outof_into_state
             end do
             do j = 1, u_nonods
                u_source( ( i - 1 ) * u_nonods + j  ) = &
-                   delta_den * gravity_magnitude * domain_length / real( totele )
+                    delta_den * gravity_magnitude * domain_length / real( totele )
             end do
          end do
 
