@@ -1490,9 +1490,10 @@
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
     
-      integer :: dim
+      integer :: dim, i
       real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
-      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, relu_dot_grad_nvfrac_gi
+      real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: advection_mat
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
@@ -1513,6 +1514,7 @@
 
       if(multiphase) then
          nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, du_t)
       end if
 
       if(integrate_advection_by_parts) then
@@ -1520,8 +1522,25 @@
         !    /                                            /
         !  - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
         !    /                                            /
-        advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi)  &
-                      -(1.-beta)*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
+        if(multiphase) then
+            ! element advection matrix
+            !    /                                                  /
+            !  - | (grad N_A dot nu) N_B rho vfrac dV - (1. - beta) | N_A ( div(nu vfrac) ) N_B rho dV
+            !    /                                                  /
+
+            ! We need to compute \int{N_A div(nu vfrac) N_B},
+            ! so split up the div using the product rule and compute
+            ! \int{N_A vfrac div(nu) N_B} + \int{N_A nu grad(vfrac) N_B}
+            do i = 1, ele_ngi(u, ele)
+               relu_dot_grad_nvfrac_gi(i) = dot_product(relu_gi(:,i), grad_nvfrac_gi(:,i))
+            end do
+            advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi*nvfrac_gi)  &
+                            -(1.-beta)*(shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi*nvfrac_gi) + &
+                                       shape_shape(test_function, u_shape, detwei*density_gi*relu_dot_grad_nvfrac_gi))
+        else
+            advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi)  &
+                           -(1.-beta)*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
+        end if
       else
         ! element advection matrix
         !  /                                     /
