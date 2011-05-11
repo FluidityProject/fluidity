@@ -964,6 +964,8 @@
       if (.not. balanced) then ! we just read in u from file
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
+!        ierr = adj_block_set_test_hermitian(I, ADJ_TRUE, 10, 0e-14)
+!        call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
         call adj_chkierr(ierr)
