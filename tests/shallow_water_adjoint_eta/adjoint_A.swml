@@ -510,7 +510,6 @@ for ele in range(coord.ele_count):
     </vector_field>
   </material_phase>
   <adjoint>
-    <html_output/>
     <functional name="integral_eta_t1">
       <functional_value>
         <algorithm name="functional_value">
@@ -551,5 +550,8 @@ if time &lt; T &lt;= time+dt:
         </algorithm>
       </functional_dependencies>
     </functional>
+    <debug>
+      <html_output/>
+    </debug>
   </adjoint>
 </shallow_water_options>

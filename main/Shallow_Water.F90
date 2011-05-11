@@ -260,7 +260,7 @@
 
 #ifdef HAVE_ADJOINT
     if (adjoint) then
-      if (have_option("/adjoint/replay_forward_run")) then
+      if (have_option("/adjoint/debug/replay_forward_run")) then
         ! Let's run the forward model through libadjoint, too, for the craic
         ewrite(1,*) "Entering forward computation through libadjoint"
         call clear_options
@@ -957,15 +957,18 @@
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: local_u0, cartesian_u0, eta0
+      logical :: check_transposes
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
 
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
+
       if (.not. balanced) then ! we just read in u from file
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
-!        ierr = adj_block_set_test_hermitian(I, ADJ_TRUE, 10, 0e-14)
-!        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 1000, 1.0d-15)
+        call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
         call adj_chkierr(ierr)
@@ -983,7 +986,11 @@
 
         ierr = adj_create_block("LocalVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 1000, 1.0d-15)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(P, check_transposes, 1000, 1.0d-15)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -1006,7 +1013,11 @@
         ! The equation we have to register is the derivation of u0 from geostrophic balance
         ierr = adj_create_block("Coriolis", block=L, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(L, check_transposes, 1000, 1.0d-15)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("Grad", block=gC, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(gC, check_transposes, 1000, 1.0d-15)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
@@ -1030,8 +1041,12 @@
 
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 1000, 1.0d-15)
+        call adj_chkierr(ierr)
 
         ierr = adj_create_block("MassCartesianProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(P, check_transposes, 1000, 1.0d-15)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -1073,6 +1088,9 @@
       type(scalar_field), pointer :: eta_ptr
       type(vector_field), pointer :: u_ptr
       type(adj_vector) :: u_vec, eta_vec
+      logical :: check_transposes
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
 
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
@@ -1095,11 +1113,17 @@
       ! Blocks for delta eta equation
       ierr = adj_create_block("WaveMatrix", context=c_loc(matrices), block=W)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(W, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("DivBigMatGrad", context=c_loc(matrices), block=CTMC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CTMC, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
       call adj_chkierr(ierr)
       ierr = adj_create_block("DivMinusDivBigMatCoriolisProjection", context=c_loc(matrices), block=CTML)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CTML, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTML, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1107,7 +1131,11 @@
       ! Blocks for eta_n equation
       ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=Meta)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(Meta, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=minusMeta)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(minusMeta, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusMeta, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1115,13 +1143,19 @@
       ! Blocks for delta u equation
       ierr = adj_create_block("MassBigMatGrad", context=c_loc(matrices), block=MBCdelta)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBCdelta, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBCdelta, coefficient=theta * dt * g)
       call adj_chkierr(ierr)
       ierr = adj_create_block("MassBigMatCoriolisProjection", context=c_loc(matrices), block=MBL)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBL, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBL, coefficient=dt)
       call adj_chkierr(ierr)
       ierr = adj_create_block("MassBigMatGrad", context=c_loc(matrices), block=MBC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBC, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBC, coefficient=dt * g)
       call adj_chkierr(ierr)
@@ -1129,11 +1163,17 @@
       ! Blocks for u_n equation
       ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=Mu)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(Mu, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=minusMu)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(minusMu, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusMu, coefficient=-1.0)
       call adj_chkierr(ierr)
       ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(P, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(P, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1141,9 +1181,13 @@
       ! Blocks for embedded manifold business
       ierr = adj_create_block("MassCartesianProjection", context=c_loc(matrices), block=CP)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CP, check_transposes, 1000, 1.0d-15)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(CP, coefficient=-1.0)
       call adj_chkierr(ierr)
       ierr = adj_create_block("CartesianVelocityMassMatrix", context=c_loc(matrices), block=CI)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CI, check_transposes, 1000, 1.0d-15)
       call adj_chkierr(ierr)
 
       ! Ahah! Now we can register our lovely equations. 
@@ -1241,7 +1285,7 @@
         call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
 
-      if (have_option("/adjoint/replay_forward_run")) then
+      if (have_option("/adjoint/debug/replay_forward_run")) then
         u_ptr => extract_vector_field(states(1), "Velocity")
         u_vec = field_to_adj_vector(u_ptr)
         ierr = adj_storage_memory_copy(u_vec, storage_u)

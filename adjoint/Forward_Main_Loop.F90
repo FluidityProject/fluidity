@@ -99,7 +99,7 @@ module forward_main_loop
       running_adjoint = .false.
 
       ! Switch the html output on if you are interested what the adjointer has registered
-      if (have_option("/adjoint/html_output")) then
+      if (have_option("/adjoint/debug/html_output")) then
         ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
         call adj_chkierr(ierr)
         ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)

@@ -7,20 +7,6 @@
 To compute the adjoint you must specify code for the functional
 derivative. If the functional is also specified, then it will be
 output in the .stat file.</a:documentation>
-      <optional>
-        <element name="replay_forward_run">
-          <a:documentation>Rerun the forward equation using libadjoint. 
-This is a debugging option to check if the libadjoint callbacks are implemented correctly.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="html_output">
-          <a:documentation>Activate the visualisation of the forward and adjoint equations solved. 
-This option creates an html file for both the forward and adjoint system.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
       <oneOrMore>
         <element name="functional">
           <a:documentation>A functional to be computed.
@@ -148,6 +134,31 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
           </element>
         </element>
       </oneOrMore>
+      <optional>
+        <element name="debug">
+          <a:documentation>Debugging options for adjoint model development</a:documentation>
+          <optional>
+            <element name="replay_forward_run">
+              <a:documentation>Rerun the forward equation using libadjoint. 
+This is a debugging option to check if the libadjoint callbacks are implemented correctly.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="html_output">
+              <a:documentation>Activate the visualisation of the forward and adjoint equations solved. 
+This option creates an html file for both the forward and adjoint system.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_action_transposes">
+              <a:documentation>Check the transposes of all action callbacks.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="adjoint_storage">

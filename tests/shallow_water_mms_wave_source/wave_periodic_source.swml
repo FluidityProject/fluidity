@@ -383,7 +383,6 @@
     </vector_field>
   </material_phase>
   <adjoint>
-    <replay_forward_run/>
     <functional name="dummy">
       <functional_dependencies>
         <algorithm name="functional_dependencies">
@@ -392,5 +391,8 @@
         </algorithm>
       </functional_dependencies>
     </functional>
+    <debug>
+      <replay_forward_run/>
+    </debug>
   </adjoint>
 </shallow_water_options>

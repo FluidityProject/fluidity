@@ -608,8 +608,6 @@ for ele in range(coord.ele_count):
     </vector_field>
   </material_phase>
   <adjoint>
-    <replay_forward_run/>
-    <html_output/>
     <functional name="integral_eta_t1">
       <functional_derivative>
         <algorithm name="functional_derivative">
@@ -632,5 +630,8 @@ elif derivative.name == "Fluid::Velocity":
         </algorithm>
       </functional_dependencies>
     </functional>
+    <debug>
+      <replay_forward_run/>
+    </debug>
   </adjoint>
 </shallow_water_options>
