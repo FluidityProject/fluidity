@@ -598,7 +598,7 @@ contains
 
     ewrite(3,*) 'In mirror_data'
 
-    write( unit_debug, 201 ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
+    write( unit_debug, 200 ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
          problem, nphase, ncomp, totele, ndim, nlev
 
     write( unit_debug, 201 ) 'u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc: ' , &
@@ -763,7 +763,7 @@ contains
 
     write( unit_debug, * ) '############################################'
 
-
+200 format( a, 1x, 6i5 )
 201 format( a, 1x, 5i5 )
 202 format( a, 1x, 3i5 )
 203 format( a, 1x, 4g10.4 )

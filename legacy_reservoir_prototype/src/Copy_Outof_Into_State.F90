@@ -241,7 +241,11 @@ module copy_outof_into_state
       !! Shuffle the order as necessary, but it would be worth keeping
       !! related items together as much as possible. JHS
 
-      ! problem = 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! these does not matter -- most of them can be deleted quite soon
+       problem = 2 
+       nlev = 3
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       nstates = option_count("/material_phase")
       ewrite(3,*) ' nstates:', nstates
       !! Assume there are the same number of components in each phase (will need to check this eventually)
@@ -395,9 +399,9 @@ module copy_outof_into_state
       endif
 
       t_dg_vel_int_opt = 0
-      ! u_dg_vel_int_opt =  ! Not used
+      u_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       v_dg_vel_int_opt = 4
-      ! w_dg_vel_int_opt =  ! Not used
+      w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
 
       ewrite(3,*) ' Getting capillary pressure options'
       if (have_option('/porous_media/multiphase_parameters/cp_A')) then
@@ -825,8 +829,10 @@ module copy_outof_into_state
 
             shape_option=option_shape("/material_phase[" // int2str(i-1) //"]/scalar_field::Temperature/&
                  &prognostic/boundary_conditions[0]/surface_ids")
-            allocate(Temperature_sufid_bc(1:shape_option(1)))
+
+            if( .not. allocated( Temperature_sufid_bc )) allocate( Temperature_sufid_bc( 1 : shape_option( 1 )))
             Temperature_bc_type = 1
+
             call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Temperature/prognostic/" // &
                  "boundary_conditions[0]/surface_ids", Temperature_sufid_bc )
             call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Temperature/prognostic/" // &

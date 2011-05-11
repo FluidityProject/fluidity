@@ -153,6 +153,7 @@ module mp_prototype
 
       integer :: option_debug
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
+      integer :: i
 
 
       open( unit_input, file = 'input.dat', status = 'unknown' )
@@ -226,6 +227,16 @@ module mp_prototype
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
+
+      if( u_snloc < 0 ) u_snloc = 1 * nlev
+      mat_nloc = cv_nloc
+      cv_pha_nonods = cv_nonods * nphase
+      u_pha_nonods = u_nonods * nphase
+      ncp_coefs = nphase
+      nlenmcy = u_pha_nonods + cv_nonods
+
+      if( ndpset < 0 ) ndpset = cv_nonods
+
       ! This should really be in the coy routine, but it isn't used
       ! anyway
       allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
@@ -263,7 +274,6 @@ module mp_prototype
            u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
            mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
 
-
       ! Mirroring Input dat
 
       if( .true. ) call mirror_data( new_unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
@@ -295,7 +305,7 @@ module mp_prototype
            den, satura, comp, p, cv_p, volfra_pore, perm )
 
            
-      call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+      if( .false. ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
            ncoef, nuabs_coefs, &
@@ -312,34 +322,13 @@ module mp_prototype
            capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
            domain_length )
 
+stop 981
       if( option_debug == 357 )then
          open( 357, file = 'flog.dat', status = 'unknown')
       else
          open( 357, file = '/dev/null', status = 'unknown')
       endif
 
-      if( u_snloc < 0 ) u_snloc = 1 * nlev
-      mat_nloc = cv_nloc
-
-      select case( problem )
-      case( -1 ); ! CV-Adv DG
-         cv_nonods = cv_nloc * totele
-      case( 2 ); ! BL DG
-         cv_nonods = cv_nloc * totele
-      case default ;
-         cv_nonods = ( cv_nloc - 1 ) * totele + 1
-      end select
-
-      u_nonods = u_nloc * totele
-      p_nonods = cv_nonods
-      cv_pha_nonods = cv_nonods * nphase
-      u_pha_nonods = u_nonods * nphase
-      ncp_coefs = nphase
-      x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
-      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
-      nlenmcy = u_pha_nonods + cv_nonods
-
-      if( ndpset < 0 ) ndpset = cv_nonods
 
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
