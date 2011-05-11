@@ -39,28 +39,37 @@ module detector_move_rk_guided_search
   
   private
 
-  public :: initialise_rk_guided_search, deallocate_rk_guided_search, &
+  public :: initialise_rk_guided_search, allocate_rk_guided_search, deallocate_rk_guided_search, &
             set_stage, move_detectors_guided_search
 
-  real, allocatable, dimension(:) :: timestep_weights
-  real, allocatable, dimension(:,:) :: stage_matrix
-  real :: search_tolerance
+  public :: rk_gs_param
+
+  ! Parameter type for Runk-Kutta Guided Search algorithm
+  type rk_gs_param
+    integer :: n_stages, n_subcycles
+    real, allocatable, dimension(:) :: timestep_weights
+    real, allocatable, dimension(:,:) :: stage_matrix
+    real :: search_tolerance
+  end type rk_gs_param
 
 contains
 
   ! Subroutine to allocate the RK stages, and update vector
-  subroutine initialise_rk_guided_search(detector_list0, n_stages, dim)
-    type(detector_linked_list), intent(inout) :: detector_list0
-    integer, intent(in) :: n_stages, dim
-      
-    type(detector_type), pointer :: det0
-    integer :: i,j,k,j0
+  subroutine initialise_rk_guided_search(params)
+    type(rk_gs_param), pointer, intent(inout) :: params
 
+    integer :: i,j,k
     real, allocatable, dimension(:) :: stage_weights
     integer, dimension(2) :: option_rank
 
-    ! First allocate and read stage_matrix and timestep_weights from options
-    allocate(stage_weights(n_stages*(n_stages-1)/2))
+    call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+         h/n_stages",params%n_stages)
+
+    call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+         h/subcycles",params%n_subcycles)
+
+    ! Allocate and read stage_matrix from options
+    allocate(stage_weights(params%n_stages*(params%n_stages-1)/2))
     option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
          &uided_search/stage_weights")
     if(option_rank(2).ne.-1) then
@@ -73,34 +82,44 @@ contains
     end if
     call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
         &ed_search/stage_weights",stage_weights)
-    allocate(stage_matrix(n_stages,n_stages))
-    stage_matrix = 0.
+    allocate(params%stage_matrix(params%n_stages,params%n_stages))
+    params%stage_matrix = 0.
     k = 0
-    do i = 1, n_stages
-       do j = 1, n_stages
+    do i = 1, params%n_stages
+       do j = 1, params%n_stages
           if(i>j) then
              k = k + 1
-             stage_matrix(i,j) = stage_weights(k)
+             params%stage_matrix(i,j) = stage_weights(k)
           end if
        end do
     end do
-    allocate(timestep_weights(n_stages))
+
+    ! Allocate and read timestep_weights from options
+    allocate(params%timestep_weights(params%n_stages))
     option_rank = option_shape("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_g&
          &uided_search/timestep_weights")
     if(option_rank(2).ne.-1) then
        FLExit('Timestep Array wrong rank')
     end if
-    if(option_rank(1).ne.size(timestep_weights)) then
+    if(option_rank(1).ne.size(params%timestep_weights)) then
        FLExit('Timestep Array wrong size')
     end if
     call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guid&
-         &ed_search/timestep_weights",timestep_weights)
+         &ed_search/timestep_weights",params%timestep_weights)
 
     call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
-         &h/search_tolerance",search_tolerance)
-      
+         &h/search_tolerance",params%search_tolerance)
+
+    end subroutine initialise_rk_guided_search  
+
+  subroutine allocate_rk_guided_search(detector_list0, dim, params)
+    type(detector_linked_list), intent(inout) :: detector_list0
+    type(rk_gs_param), pointer, intent(in) :: params
+    integer, intent(in) :: dim
+    type(detector_type), pointer :: det0
+
     det0 => detector_list0%firstnode
-    do j0=1, detector_list0%length
+    do while (associated(det0))
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
              deallocate(det0%k)
@@ -108,28 +127,29 @@ contains
           if(allocated(det0%update_vector)) then
              deallocate(det0%update_vector)
           end if
-          allocate(det0%k(n_stages,dim))
+          allocate(det0%k(params%n_stages,dim))
           det0%k = 0.
           allocate(det0%update_vector(dim))
           det0%update_vector=0.
        end if
        det0 => det0%next
     end do
-  end subroutine initialise_rk_guided_search
+  end subroutine allocate_rk_guided_search
 
   ! Subroutine to deallocate the RK stages and update vector - CJC
-  subroutine deallocate_rk_guided_search(detector_list0)
+  subroutine deallocate_rk_guided_search(detector_list0,params)
     type(detector_linked_list), intent(inout) :: detector_list0
+    type(rk_gs_param), pointer, intent(in) :: params
       
     type(detector_type), pointer :: det0
     integer :: j0
 
-    if (allocated(stage_matrix)) then
-       deallocate(stage_matrix)
+    if (allocated(params%stage_matrix)) then
+       deallocate(params%stage_matrix)
     end if
 
-    if (allocated(timestep_weights)) then
-       deallocate(timestep_weights)
+    if (allocated(params%timestep_weights)) then
+       deallocate(params%timestep_weights)
     end if
       
     det0 => detector_list0%firstnode
@@ -147,11 +167,12 @@ contains
   end subroutine deallocate_rk_guided_search
 
   !Subroutine to compute the vector to search for the next RK stage
-  subroutine set_stage(detector_list0,vfield,xfield,dt0,stage0,n_stages)
+  subroutine set_stage(detector_list0,vfield,xfield,dt0,stage0,params)
     type(detector_linked_list), intent(inout) :: detector_list0
     type(vector_field), pointer, intent(in) :: vfield, xfield
     real, intent(in) :: dt0
-    integer, intent(in) :: stage0, n_stages
+    integer, intent(in) :: stage0
+    type(rk_gs_param), pointer, intent(in) :: params
     
     type(detector_type), pointer :: det0
     integer :: det_count,j0
@@ -170,20 +191,20 @@ contains
                local_coords(xfield,det0%element,det0%update_vector)
           det0%k(stage0,:) = &
                & eval_field(det0%element, vfield, stage_local_coords)
-          if(stage0<n_stages) then
+          if(stage0<params%n_stages) then
              !update vector maps from current position to place required
              !for computing next stage vector
              det0%update_vector = det0%position
              do j0 = 1, stage0
                 det0%update_vector = det0%update_vector + &
-                     dt0*stage_matrix(stage0+1,j0)*det0%k(j0,:)
+                     dt0*params%stage_matrix(stage0+1,j0)*det0%k(j0,:)
              end do
           else
              !update vector maps from current position to final position
              det0%update_vector = det0%position
-             do j0 = 1, n_stages
+             do j0 = 1, params%n_stages
                 det0%update_vector = det0%update_vector + &
-                     dt0*timestep_weights(j0)*det0%k(j0,:)
+                     dt0*params%timestep_weights(j0)*det0%k(j0,:)
              end do
              det0%position = det0%update_vector
           end if
@@ -203,11 +224,12 @@ contains
     !This is done by computing the local coordinates of the target point,
     !finding the local coordinate closest to -infinity
     !and moving to the element through that face
-    subroutine move_detectors_guided_search(detector_list0,vfield,xfield,ihash,send_list_array)
+    subroutine move_detectors_guided_search(detector_list0,vfield,xfield,ihash,send_list_array,params)
       type(detector_linked_list), intent(inout) :: detector_list0
       type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
       type(vector_field), pointer, intent(in) :: vfield,xfield
       type(integer_hash_table), intent(in) :: ihash
+      type(rk_gs_param), pointer, intent(in) :: params
 
       type(detector_type), pointer :: det0, det_send
       integer :: det_count
@@ -227,7 +249,7 @@ contains
                !with respect to this element
                arrival_local_coords=&
                     local_coords(xfield,det0%element,det0%update_vector)
-               if(minval(arrival_local_coords)>-search_tolerance) then
+               if(minval(arrival_local_coords)>-params%search_tolerance) then
                   !the arrival point is in this element
                   det0%search_complete = .true.
                   !move on to the next detector
@@ -253,9 +275,8 @@ contains
                      !just in case we went through a corner
                      make_static=.true.
                      face_search: do neigh = 1, size(arrival_local_coords)
-                        if(arrival_local_coords(neigh)<-search_tolerance&
-                             & .and. &
-                             & neigh_list(neigh)>0) then
+                        if(arrival_local_coords(neigh)<-params%search_tolerance&
+                             & .and. neigh_list(neigh)>0) then
                            make_static = .false.
                            det0%element = neigh_list(neigh)
                            exit face_search

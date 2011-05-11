@@ -66,8 +66,11 @@ contains
     logical :: any_lagrangian
 
     !RK stuff - cjc
-    integer :: stage, n_stages, n_subcycles, cycle
+    integer :: stage, cycle
     real :: rk_dt
+    type(rk_gs_param), pointer :: params
+
+    allocate(params)
 
     !Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -97,7 +100,7 @@ contains
     end if
 
     !set value of dt in each detector
-    !this is used in bisection method
+    !this is only used in bisection method
     detector => detector_list%firstnode
     do j=1, detector_list%length
        detector%dt=dt
@@ -116,26 +119,20 @@ contains
        allocate(receive_list_array(number_neigh_processors))
 
        !Get RK guided options
-       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search"))&
-            & then
-          call get_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
-               &h/n&
-               &_stages",n_stages)
-          
-          call get_option("/io/detectors/lagrangian_timestepping/explicit_ru&
-               &nge_kutta_guided_search/subcycles",n_subcycles)
-          rk_dt = dt/n_subcycles
+       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
 
-          call initialise_rk_guided_search(detector_list, n_stages, xfield%dim)
+          call initialise_rk_guided_search(params)
+          call allocate_rk_guided_search(detector_list, xfield%dim, params)
+          rk_dt = dt/params%n_subcycles
        else
-          n_subcycles = 1
-          n_stages = 1
+          params%n_subcycles = 1
+          params%n_stages = 1
        end if
 
-       subcycling_loop: do cycle = 1, n_subcycles
-       RKstages_loop: do stage = 1, n_stages
+       subcycling_loop: do cycle = 1, params%n_subcycles
+       RKstages_loop: do stage = 1, params%n_stages
           if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
-             call set_stage(detector_list,vfield,xfield,rk_dt,stage,n_stages)
+             call set_stage(detector_list,vfield,xfield,rk_dt,stage,params)
           end if
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -157,8 +154,8 @@ contains
                 !and added to the send_list_array
                 if(have_option("/io/detectors/lagrangian_timestepping/explici&
                      &t_runge_kutta_guided_search")) then
-                   call move_detectors_guided_search(&
-                        &detector_list,vfield,xfield,ihash,send_list_array)
+                   call move_detectors_guided_search(detector_list,&
+                        vfield,xfield,ihash,send_list_array,params)
                 else
                    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
                    call move_detectors_bisection_method(&
@@ -233,10 +230,12 @@ contains
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
          &ta_guided_search")) then       
-       call deallocate_rk_guided_search(detector_list)
+       call deallocate_rk_guided_search(detector_list,params)
     end if
 
     call deallocate(ihash) 
+
+    deallocate(params)
 
   end subroutine move_lagrangian_detectors
 
