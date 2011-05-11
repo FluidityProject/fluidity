@@ -720,7 +720,7 @@ contains
     !!<
     real, dimension(:,:,:), intent(in) :: dshape
     real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
-    real, dimension(:,:,size(dshape,2)), intent(in) :: tensor
+    real, dimension(:,:,:), intent(in) :: tensor
     type(element_type), intent(in) :: shape
     real, dimension(size(dshape,2)) :: detwei
 
@@ -732,20 +732,17 @@ contains
     integer :: iloc,jloc,i,j
 
     assert(size(tensor,3)==shape%ngi)
-
-    dshape_dot_vector=matmul(dshape,vector)
-
-    forall(iloc=1:shape1%loc,jloc=1:shape2%loc,i=1:size(tensor,1),j=1:size(tensor,2))
-       ! Main mass matrix.
-       shape_shape_tensor(i,j,iloc,jloc)=&
-            sum(shape1%n(iloc,:)*shape2%n(jloc,:)*tensor(i,j,:)*detwei)
-    end forall
-
     dshape_loc=size(dshape,1)
 
-    forall(iloc=1:dshape_loc,jloc=1:shape%loc)
-       R(iloc,jloc)= dot_product(sum(dshape(iloc,:,:)*transpose(vector),2) &
-            *shape%n(jloc,:), detwei)
+    dshape_dot_vector=0.
+    forall(iloc=1:dshape_loc)
+       dshape_dot_vector(iloc,:)=sum(dshape(iloc,:,:)*transpose(vector(:,:)),2)
+    end forall
+
+    forall(iloc=1:dshape_loc,jloc=1:shape%loc,i=1:size(tensor,1),j=1:size(tensor,2))
+       ! Main mass matrix.
+       R(i,j,iloc,jloc)=&
+            sum(dshape_dot_vector(iloc,:)*shape%n(jloc,:)*tensor(i,j,:)*detwei)
     end forall
 
   end function dshape_dot_vector_tensor_shape
