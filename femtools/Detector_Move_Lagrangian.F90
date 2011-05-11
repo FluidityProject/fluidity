@@ -44,13 +44,95 @@ module detector_move_lagrangian
   
   private
 
-  public :: move_lagrangian_detectors
+  public :: move_lagrangian_detectors, read_detector_move_options
+
+  public :: detector_params
+
+  ! Parameters for lagrangian detector movement
+  type detector_params
+    ! Type of lagrangian advection algorithm
+    logical :: use_rk_gs
+
+    ! Runk-Kutta Guided Search parameters
+    integer :: n_stages, n_subcycles
+    real, allocatable, dimension(:) :: timestep_weights
+    real, allocatable, dimension(:,:) :: stage_matrix
+    real :: search_tolerance
+  end type detector_params
 
 contains
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, move_detectors, detector_names)
+  ! Subroutine to allocate the RK stages, and update vector
+  subroutine read_detector_move_options(detector_path, params)
+    character(len=*), intent(in) :: detector_path
+    type(detector_params), intent(out) :: params
+
+    integer :: i,j,k
+    real, allocatable, dimension(:) :: stage_weights
+    integer, dimension(2) :: option_rank
+
+    if(have_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
+
+       params%use_rk_gs=.true.
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+            h/n_stages",params%n_stages)
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+            h/subcycles",params%n_subcycles)
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
+            &h/search_tolerance",params%search_tolerance)
+
+       ! Allocate and read stage_matrix from options
+       allocate(stage_weights(params%n_stages*(params%n_stages-1)/2))
+       option_rank = option_shape(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_g&
+            &uided_search/stage_weights")
+       if(option_rank(2).ne.-1) then
+          FLExit('Stage Array wrong rank')
+       end if
+       if(option_rank(1).ne.size(stage_weights)) then
+          ewrite(-1,*) 'size expected was', size(stage_weights)
+          ewrite(-1,*) 'size actually was', option_rank(1)
+          FLExit('Stage Array wrong size')
+       end if
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guid&
+            &ed_search/stage_weights",stage_weights)
+       allocate(params%stage_matrix(params%n_stages,params%n_stages))
+       params%stage_matrix = 0.
+       k = 0
+       do i = 1, params%n_stages
+          do j = 1, params%n_stages
+             if(i>j) then
+                k = k + 1
+                params%stage_matrix(i,j) = stage_weights(k)
+             end if
+          end do
+       end do
+
+       ! Allocate and read timestep_weights from options
+       allocate(params%timestep_weights(params%n_stages))
+       option_rank = option_shape(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_g&
+            &uided_search/timestep_weights")
+       if(option_rank(2).ne.-1) then
+          FLExit('Timestep Array wrong rank')
+       end if
+       if(option_rank(1).ne.size(params%timestep_weights)) then
+          FLExit('Timestep Array wrong size')
+       end if
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guid&
+            &ed_search/timestep_weights",params%timestep_weights)
+
+    else
+       ! Setup for legacy bisection method
+       params%use_rk_gs=.false.
+       params%n_subcycles = 1
+       params%n_stages = 1
+    end if
+
+  end subroutine read_detector_move_options
+
+  subroutine move_lagrangian_detectors(state, detector_list, params, dt, timestep, move_detectors, detector_names)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_params), intent(in) :: params
     real, intent(in) :: dt
     integer, intent(in) :: timestep
     logical, intent(in) :: move_detectors
@@ -68,9 +150,6 @@ contains
     !RK stuff - cjc
     integer :: stage, cycle
     real :: rk_dt
-    type(rk_gs_param), pointer :: params
-
-    allocate(params)
 
     !Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -118,21 +197,16 @@ contains
        allocate(send_list_array(number_neigh_processors))
        allocate(receive_list_array(number_neigh_processors))
 
-       !Get RK guided options
-       if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
-
-          call initialise_rk_guided_search(params)
-          call allocate_rk_guided_search(detector_list, xfield%dim, params)
+       if (params%use_rk_gs) then
+          call allocate_rk_guided_search(detector_list, xfield%dim, params%n_stages)
           rk_dt = dt/params%n_subcycles
-       else
-          params%n_subcycles = 1
-          params%n_stages = 1
        end if
 
        subcycling_loop: do cycle = 1, params%n_subcycles
        RKstages_loop: do stage = 1, params%n_stages
-          if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
-             call set_stage(detector_list,vfield,xfield,rk_dt,stage,params)
+          if (params%use_rk_gs) then
+             call set_stage(detector_list,vfield,xfield,rk_dt,stage,params%n_stages, &
+                       params%stage_matrix,params%timestep_weights)
           end if
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -152,10 +226,9 @@ contains
                 !than leaving the physical domain. In this subroutine
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
-                if(have_option("/io/detectors/lagrangian_timestepping/explici&
-                     &t_runge_kutta_guided_search")) then
+                if (params%use_rk_gs) then
                    call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,ihash,send_list_array,params)
+                        vfield,xfield,ihash,send_list_array,params%search_tolerance)
                 else
                    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
                    call move_detectors_bisection_method(&
@@ -228,14 +301,11 @@ contains
 
     ! This needs to be called after distribute_detectors because, since the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
-    if(have_option("/io/detectors/lagrangian_timestepping/explicit_runge_kut&
-         &ta_guided_search")) then       
-       call deallocate_rk_guided_search(detector_list,params)
+    if (params%use_rk_gs) then       
+       call deallocate_rk_guided_search(detector_list)
     end if
 
     call deallocate(ihash) 
-
-    deallocate(params)
 
   end subroutine move_lagrangian_detectors
 

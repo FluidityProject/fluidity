@@ -172,9 +172,9 @@ module diagnostic_variables
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
     integer, dimension(:), allocatable :: number_det_in_each_group
 
-  ! type(detector_type), dimension(:), allocatable :: detector_list
-
     type(detector_linked_list) :: detector_list
+    ! Parameter object defining how to move the lagrangian detectors
+    type(detector_params) :: detector_move_params
 
     type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
     
@@ -1904,6 +1904,9 @@ contains
        end do
     end if
 
+    !Get options for lagrangian detector movement
+    call read_detector_move_options("/io/detectors",default_stat%detector_move_params)
+
   end subroutine initialise_detectors
 
   function field_tag(name, column, statistic, material_phase_name, components)
@@ -2635,8 +2638,9 @@ contains
        return
     end if
 
-    call move_lagrangian_detectors(state, default_stat%detector_list, dt, &
-            timestep, move_detectors, default_stat%name_of_detector_in_read_order)
+    call move_lagrangian_detectors(state, default_stat%detector_list, &
+            default_stat%detector_move_params, dt, timestep, move_detectors, &
+            default_stat%name_of_detector_in_read_order)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! After we're finished moving the detectors we write them to disc
