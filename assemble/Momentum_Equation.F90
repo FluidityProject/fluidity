@@ -1370,7 +1370,6 @@
          !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
-         integer :: i
 
          ewrite(1,*) 'Entering advance_velocity'
 
