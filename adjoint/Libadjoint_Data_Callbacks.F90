@@ -85,6 +85,10 @@ implicit none
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_GET_NORM_CB, c_funloc(femtools_vec_getnorm_proc))
     call adj_chkierr(ierr)
+    ierr = adj_register_data_callback(adjointer, ADJ_VEC_DOT_PRODUCT_CB, c_funloc(femtools_vec_dot_product_proc))
+    call adj_chkierr(ierr)
+    ierr = adj_register_data_callback(adjointer, ADJ_VEC_SET_RANDOM_CB, c_funloc(femtools_vec_set_random_proc))
+    call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_MAT_AXPY_CB, c_funloc(femtools_mat_axpy_proc))
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_MAT_DESTROY_CB, c_funloc(femtools_mat_destroy_proc))
@@ -262,6 +266,53 @@ end subroutine
       FLAbort("adj_vector class not supported.")
     end if
   end subroutine femtools_vec_getnorm_proc
+
+  subroutine femtools_vec_dot_product_proc(x, y, val) bind(c)
+    use libadjoint_data_structures
+    type(adj_vector), intent(in), value :: x, y
+    adj_scalar_f, intent(out) :: val
+    type(scalar_field), pointer :: x_s, y_s
+    type(vector_field), pointer :: x_v, y_v
+    type(tensor_field), pointer :: x_t, y_t
+
+    assert(x%klass == y%klass)
+    if (x%klass == ADJ_SCALAR_FIELD) then
+      call c_f_pointer(x%ptr, x_s)
+      call c_f_pointer(y%ptr, y_s)
+      val = dot_product(x_s%val, y_s%val)
+    else if (x%klass == ADJ_VECTOR_FIELD) then
+      call c_f_pointer(x%ptr, x_v)
+      call c_f_pointer(y%ptr, y_v)
+      val = sum(x_v%val * y_v%val)
+    else if (x%klass == ADJ_TENSOR_FIELD) then
+      call c_f_pointer(x%ptr, x_t)
+      call c_f_pointer(y%ptr, y_t)
+      val = sum(x_t%val * y_t%val)
+    else
+      FLAbort("adj_vector class not supported.")
+    end if
+  end subroutine femtools_vec_dot_product_proc
+
+  subroutine femtools_vec_set_random_proc(vec) bind(c)
+    use libadjoint_data_structures
+    type(adj_vector), intent(inout) :: vec
+    type(scalar_field), pointer :: scalar
+    type(vector_field), pointer :: vector
+    type(tensor_field), pointer :: tensor
+
+    if (vec%klass == ADJ_SCALAR_FIELD) then
+      call c_f_pointer(vec%ptr, scalar)
+      call random_number(scalar%val)
+    else if (vec%klass == ADJ_VECTOR_FIELD) then
+      call c_f_pointer(vec%ptr, vector)
+      call random_number(vector%val)
+    else if (vec%klass == ADJ_TENSOR_FIELD) then
+      call c_f_pointer(vec%ptr, tensor)
+      call random_number(tensor%val)
+    else
+      FLAbort("adj_vector class not supported.")
+    end if
+  end subroutine femtools_vec_set_random_proc
 
   subroutine femtools_mat_axpy_proc(Y, alpha, X) bind(c)  
     ! Computes Y = alpha*X + Y.
