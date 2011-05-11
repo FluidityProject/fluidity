@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
   program shallow_water
-    use advection_diffusion_dg
+    use advection_local_DG
     use advection_diffusion_cg
     use linear_shallow_water
     use spud
@@ -102,6 +102,7 @@
                                          ! them
     real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
+    logical :: prescribed_velocity
     integer :: timestep, nonlinear_iterations
     integer :: ierr
 
@@ -213,7 +214,9 @@
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
-       call project_local_to_cartesian(state(1))
+       if(.not. prescribed_velocity) then
+          call project_local_to_cartesian(state(1))
+       end if
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
@@ -352,10 +355,11 @@
            have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
            &/exclude_advection_terms")
+      prescribed_velocity=have_option("/material_phase::Fluid/vector_field::Velocity/prescribed")
       exclude_velocity_advection = &
            have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
            &ic/spatial_discretisation/discontinuous_galerkin/advection_scheme/&
-           &none")
+           &none" ).or. prescribed_velocity
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
       ! Geostrophic balanced initial condition, if required
@@ -477,6 +481,7 @@
       type(scalar_field) :: d_rhs, delta_d, old_d, md_src
       type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
       type(scalar_field) :: velocity_cpt, old_velocity_cpt
+      type(scalar_field), pointer ::passive_tracer, old_passive_tracer
       integer :: dim, nit, d1
       real :: energy
       logical :: have_source
@@ -512,13 +517,21 @@
                old_velocity_cpt = extract_scalar_field(old_u,d1)
                call insert(state,velocity_cpt,"VelocityComponent")
                call insert(state,old_velocity_cpt,"VelocityComponentOld")
-               call solve_advection_diffusion_dg("VelocityComponent", state)
+               call solve_advection_dg_subcycle("VelocityComponent", state, "NonlinearVelocity")
             end do
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
             call solve_field_equation_cg("LayerThickness", state, dt, &
                  "NonlinearVelocity")
+         end if
+
+         if(has_scalar_field(state,"PassiveTracer")) then
+            ewrite(1,*) "Solving for PassiveTracer"
+            old_passive_tracer=>extract_scalar_field(state, 'OldPassiveTracer')
+            passive_tracer=>extract_scalar_field(state, 'PassiveTracer')
+            call set(old_passive_tracer, passive_tracer)
+            call solve_advection_dg_subcycle("PassiveTracer", state, "NonlinearVelocity")
          end if
 
          !Wave equation step
@@ -558,26 +571,29 @@
          delta_d%option_path = d%option_path
          call petsc_solve(delta_d, wave_mat, d_rhs)
 
-         !Add the new D contributions into the RHS for u
-         call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
+         if(.not. prescribed_velocity) then
+            !Add the new D contributions into the RHS for u
+            call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
 
-         !Solve momentum equation for U update
-         call zero(delta_u)
-         call mult(delta_u, big_mat, u_rhs)
+            !Solve momentum equation for U update
+            call zero(delta_u)
+            call mult(delta_u, big_mat, u_rhs)
 
-         !Check the equation was solved correctly
-         if(have_option("/debug/check_solution")) then
-            call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
-                 &,h_mass_mat, coriolis_mat,div_mat)
+            !Check the equation was solved correctly
+            if(have_option("/debug/check_solution")) then
+               call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
+                    &,h_mass_mat, coriolis_mat,div_mat)
+            end if
+
+
+            call addto(u,delta_u)
+            call set(advecting_u,old_u)
+            call scale(advecting_u,(1-itheta))
+            call addto(advecting_u,u,scale=itheta)
          end if
 
-
-         call addto(u,delta_u)
          call addto(d,delta_d)
 
-         call set(advecting_u,old_u)
-         call scale(advecting_u,(1-itheta))
-         call addto(advecting_u,u,scale=itheta)
 
       end do
 
@@ -629,15 +645,17 @@
     end subroutine execute_timestep_setup
 
     subroutine allocate_and_insert_additional_fields(state, adjoint)
-      !!< Allocate and insert fields not specified in schema
+      !!< Allocate and insert fields not specified under material_phase
+      !!< in schema
       type(state_type), intent(inout) :: state
       logical, intent(in), optional :: adjoint
 
-      ! coriolis
-      type(scalar_field) :: f
+      ! coriolis, old passive tracer
+      type(scalar_field) :: f, old_T
       ! velocity in local coordinates
       type(vector_field) :: U_local
 
+      type(scalar_field), pointer :: T
       type(vector_field), pointer :: X, U
       character(len=PYTHON_FUNC_LEN) :: coriolis
       integer :: stat
@@ -667,7 +685,6 @@
       else
         call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
         call zero(U_local)
-        U_local%option_path=U%option_path
         call insert(state, U_local, "LocalVelocity")
         call deallocate(U_local)
       endif
@@ -677,6 +694,13 @@
         call zero(U_local)
         call insert(state, U_local, "LocalVelocitySource")
         call deallocate(U_local)
+      end if
+
+      if(has_scalar_field(state, "PassiveTracer")) then
+         T=>extract_scalar_field(state, "PassiveTracer")
+         call allocate(old_T, T%mesh, "OldPassiveTracer")
+         call zero(old_T)
+         call insert(state, old_T, "OldPassiveTracer")
       end if
 
     end subroutine allocate_and_insert_additional_fields
@@ -754,8 +778,9 @@
       logical, intent(in), optional :: adjoint
 
       ! project the local velocity to cartesian coordinates
-      call project_local_to_cartesian(state(1), adjoint)
-
+      if(.not. prescribed_velocity) then
+         call project_local_to_cartesian(state(1), adjoint)
+      end if
       ! Now we're ready to call write_state
 
       call write_state(dump_no, state, adjoint)

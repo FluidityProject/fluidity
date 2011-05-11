@@ -714,6 +714,42 @@ contains
 
   end function dshape_dot_vector_shape
 
+  function dshape_dot_vector_tensor_shape(dshape, vector, tensor, shape, detwei) result (R)
+    !!< 
+    !!< Evaluate ((Grad N1 dot vector) x tensor) (N2)
+    !!<
+    real, dimension(:,:,:), intent(in) :: dshape
+    real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
+    real, dimension(:,:,size(dshape,2)), intent(in) :: tensor
+    type(element_type), intent(in) :: shape
+    real, dimension(size(dshape,2)) :: detwei
+
+    real, dimension(size(tensor,1),size(tensor,2),size(dshape,1),shape%loc) ::&
+         & R
+    real, dimension(size(dshape,1),size(dshape,2)) :: dshape_dot_vector
+
+    integer :: dshape_loc
+    integer :: iloc,jloc,i,j
+
+    assert(size(tensor,3)==shape%ngi)
+
+    dshape_dot_vector=matmul(dshape,vector)
+
+    forall(iloc=1:shape1%loc,jloc=1:shape2%loc,i=1:size(tensor,1),j=1:size(tensor,2))
+       ! Main mass matrix.
+       shape_shape_tensor(i,j,iloc,jloc)=&
+            sum(shape1%n(iloc,:)*shape2%n(jloc,:)*tensor(i,j,:)*detwei)
+    end forall
+
+    dshape_loc=size(dshape,1)
+
+    forall(iloc=1:dshape_loc,jloc=1:shape%loc)
+       R(iloc,jloc)= dot_product(sum(dshape(iloc,:,:)*transpose(vector),2) &
+            *shape%n(jloc,:), detwei)
+    end forall
+
+  end function dshape_dot_vector_tensor_shape
+
   function dshape_dot_tensor_shape(dshape, tensor, shape, detwei) result (R)
     !!<          /
     !!< Evaluate | (Grad N1 dot tensor) (N2)
