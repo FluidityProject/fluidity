@@ -300,10 +300,10 @@ endif
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
 	@./scripts/make_check_options
-	@cd preprocessor; $(MAKE) check_options
+	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
-	@cd preprocessor; $(MAKE) register_diagnostics
+	@cd preprocessor; $(MAKE) register_diagnostics.o
 
 fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"

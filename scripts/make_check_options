@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+from __future__ import with_statement
 import re
 import glob
+import hashlib
+import StringIO
+
 
 # File header
 header="""
@@ -11,9 +15,23 @@ footer="""
 end subroutine check_options
 """
 
-outfile=file("preprocessor/check_options.F90", "w")
+outfile='preprocessor/check_options.F90'
 
-outfile.write(header)
+# get sha1 digest of existing generated file.  Can't use 'rw' here
+# because it updates the modtime of the file, which we're trying to
+# avoid doing.
+orig=hashlib.sha1()
+try:
+    f=open(outfile, 'r')
+    orig.update(f.read())
+except IOError:
+    pass
+else:
+    f.close()
+
+# Now read module files to generate potential new data
+output=StringIO.StringIO()
+output.write(header)
 
 # List of fortran source files.
 fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
@@ -23,7 +41,7 @@ module_re=re.compile(r"^\s*module\s+(\w+)\s*$",re.IGNORECASE|re.MULTILINE)
 module_list=[]
 
 for filename in fortran_files:
-    
+
     fortran=file(filename,"r").read()
 
     modules=module_re.findall(fortran)
@@ -31,21 +49,30 @@ for filename in fortran_files:
     for module in modules:
 
         if re.search(r"^\s*subroutine\s+"+module+"_check_options\s*$",\
-                     fortran,\
-                     re.IGNORECASE|re.MULTILINE):
+                         fortran,\
+                         re.IGNORECASE|re.MULTILINE):
             module_list.append(module)
 
 for module in module_list:
 
-        outfile.write("  use "+module+", only: "+module+"_check_options\n")
+    output.write("  use "+module+", only: "+module+"_check_options\n")
 
 # Ensure that the subroutine is legal in the trivial case.
-outfile.write("""
+output.write("""
    continue
    """)
 
 for module in module_list:
 
-    outfile.write("  call "+module+"_check_options\n")
+    output.write("  call "+module+"_check_options\n")
 
-outfile.write(footer)
+output.write(footer)
+
+new=hashlib.sha1()
+new.update(output.getvalue())
+
+# Only write file if sha1sums differ
+if new.digest() != orig.digest():
+    with open(outfile, 'w') as f:
+        f.write(output.getvalue())
+output.close()
