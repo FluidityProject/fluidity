@@ -63,7 +63,7 @@ ARFLAGS	= r
 
 EVAL = scripts/silenteval
 
-VERSION = $(shell svnversion .)
+VERSION = $(shell bzr version-info --check-clean --custom --template="{revno} (revid {revision_id}) {clean}\n" | sed 's/0$$/dirty/; s/1$$//')
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
@@ -254,8 +254,7 @@ python_clean:
 fluidity_library: lib/lib@FLUIDITY@.a
 lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h
-	@echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h
+	@grep "$(VERSION)" include/confdefs.h >/dev/null 2>&1 || (echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h && echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h)
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
