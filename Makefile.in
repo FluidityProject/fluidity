@@ -135,7 +135,7 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-bin/@FLUIDITY@: main.o fluidity_library
+bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
