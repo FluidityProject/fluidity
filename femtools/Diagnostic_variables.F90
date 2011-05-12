@@ -2221,9 +2221,15 @@ contains
       flush(default_stat%diag_unit)
     end if
 
-    ! Now output any detectors.
-    
-    call write_detectors(state, time, dt, timestep, l_move_detectors)
+    ! Move lagrangian detectors
+    if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
+       call move_lagrangian_detectors(state, default_stat%detector_list, &
+            default_stat%detector_move_params, dt, timestep, &
+            default_stat%name_of_detector_in_read_order)
+    end if
+
+    ! Now output any detectors.    
+    call write_detectors(state, default_stat%detector_list, default_stat%detector_unit, time, dt)
 
     call profiler_toc("I/O")
   
@@ -2610,12 +2616,12 @@ contains
 
   end subroutine test_and_write_steady_state
 
-  subroutine write_detectors(state, time, dt, timestep, move_detectors)
+  subroutine write_detectors(state, detector_list, detector_unit, time, dt)
     !!< Write the field values at detectors to the previously opened detectors file.
     type(state_type), dimension(:), intent(in) :: state
+    type(detector_linked_list), intent(in) :: detector_list
+    integer, intent(in) :: detector_unit
     real, intent(in) :: time, dt
-    integer, intent(in) :: timestep
-    logical, intent(in) :: move_detectors
 
     character(len=10) :: format_buffer
     integer :: i, j, k, phase, ele, check_no_det, totaldet_global
@@ -2630,7 +2636,7 @@ contains
     !Computing the global number of detectors. This is to prevent hanging
     !when there are no detectors on any processor
     check_no_det=1
-    if (default_stat%detector_list%length==0) then
+    if (detector_list%length==0) then
        check_no_det=0
     end if
     call allmax(check_no_det)
@@ -2638,35 +2644,28 @@ contains
        return
     end if
 
-    call move_lagrangian_detectors(state, default_stat%detector_list, &
-            default_stat%detector_move_params, dt, timestep, move_detectors, &
-            default_stat%name_of_detector_in_read_order)
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! After we're finished moving the detectors we write them to disc
-
     if ((.not.isparallel()).and.(.not. default_stat%binary_detector_output)) then
 
        if(getprocno() == 1) then
           if(default_stat%binary_detector_output) then
-             write(default_stat%detector_unit) time
-             write(default_stat%detector_unit) dt
+             write(detector_unit) time
+             write(detector_unit) dt
           else
              format_buffer=reals_format(1)
-             write(default_stat%detector_unit, format_buffer, advance="no") time
-             write(default_stat%detector_unit, format_buffer, advance="no") dt
+             write(detector_unit, format_buffer, advance="no") time
+             write(detector_unit, format_buffer, advance="no") dt
           end if
        end if
 
        ! Next columns contain the positions of all the detectors.
-       detector => default_stat%detector_list%firstnode
-       positionloop: do i=1, default_stat%detector_list%length
+       detector => detector_list%firstnode
+       positionloop: do i=1, detector_list%length
           if(getprocno() == 1) then
              if(default_stat%binary_detector_output) then
-                write(default_stat%detector_unit) detector%position
+                write(detector_unit) detector%position
              else
                 format_buffer=reals_format(size(detector%position))
-                write(default_stat%detector_unit, format_buffer, advance="no") &
+                write(detector_unit, format_buffer, advance="no") &
                      detector%position
              end if
           end if
@@ -2685,16 +2684,16 @@ contains
                 cycle
              end if
 
-             detector => default_stat%detector_list%firstnode
+             detector => detector_list%firstnode
 
-             do j=1, default_stat%detector_list%length
+             do j=1, detector_list%length
                 value =  detector_value(sfield, detector)
                 if(getprocno() == 1) then
                    if(default_stat%binary_detector_output) then
-                      write(default_stat%detector_unit) value
+                      write(detector_unit) value
                    else
                       format_buffer=reals_format(1)
-                      write(default_stat%detector_unit, format_buffer, advance="no") value
+                      write(detector_unit, format_buffer, advance="no") value
                    end if
                 end if
 
@@ -2719,18 +2718,18 @@ contains
                 allocate(vvalue(vfield%dim))
              end if
 
-             detector => default_stat%detector_list%firstnode
+             detector => detector_list%firstnode
 
-             do j=1, default_stat%detector_list%length
+             do j=1, detector_list%length
                 vvalue =  detector_value(vfield, detector)
 
                 ! Only the first process should write statistics information
                 if(getprocno() == 1) then
                    if(default_stat%binary_detector_output) then
-                      write(default_stat%detector_unit) vvalue
+                      write(detector_unit) vvalue
                    else
                       format_buffer=reals_format(vfield%dim)
-                      write(default_stat%detector_unit, format_buffer, advance="no") vvalue
+                      write(detector_unit, format_buffer, advance="no") vvalue
                    end if
                 end if
 
@@ -2746,9 +2745,9 @@ contains
        if(getprocno() == 1) then
           if(.not. default_stat%binary_detector_output) then
              ! Output end of line
-             write(default_stat%detector_unit,'(a)') ""
+             write(detector_unit,'(a)') ""
           end if
-          flush(default_stat%detector_unit)
+          flush(detector_unit)
        end if
 
     else
@@ -2757,7 +2756,7 @@ contains
 
     end if
 
-    totaldet_global=default_stat%detector_list%length
+    totaldet_global=detector_list%length
 
     call allsum(totaldet_global)
 

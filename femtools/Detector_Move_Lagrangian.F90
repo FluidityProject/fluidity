@@ -44,7 +44,7 @@ module detector_move_lagrangian
   
   private
 
-  public :: move_lagrangian_detectors, read_detector_move_options
+  public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian
 
   public :: detector_params
 
@@ -129,13 +129,12 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, params, dt, timestep, move_detectors, detector_names)
+  subroutine move_lagrangian_detectors(state, detector_list, params, dt, timestep, detector_names)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_params), intent(in) :: params
     real, intent(in) :: dt
     integer, intent(in) :: timestep
-    logical, intent(in) :: move_detectors
     character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
 
     type(vector_field), pointer :: vfield, xfield
@@ -144,11 +143,8 @@ contains
     type(integer_hash_table) :: ihash
     type(halo_type), pointer :: ele_halo
     integer :: i, j, k, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, &
-               halo_level
+               halo_level, stage, cycle
     logical :: any_lagrangian
-
-    !RK stuff - cjc
-    integer :: stage, cycle
     real :: rk_dt
 
     !Pull some information from state
@@ -186,23 +182,15 @@ contains
        detector => detector%next
     end do
 
-    !this loop continues until all detectors have completed their timestep
-    !this is measured by checking if the send and receive lists are empty
-    !in all processors
+    allocate(send_list_array(number_neigh_processors))
+    allocate(receive_list_array(number_neigh_processors))
 
-    !check if detectors any are Lagrangian
-    any_lagrangian=check_any_lagrangian(detector_list)
-    
-    if (move_detectors.and.(timestep/=0).and.any_lagrangian) then
-       allocate(send_list_array(number_neigh_processors))
-       allocate(receive_list_array(number_neigh_processors))
+    if (params%use_rk_gs) then
+       call allocate_rk_guided_search(detector_list, xfield%dim, params%n_stages)
+       rk_dt = dt/params%n_subcycles
+    end if
 
-       if (params%use_rk_gs) then
-          call allocate_rk_guided_search(detector_list, xfield%dim, params%n_stages)
-          rk_dt = dt/params%n_subcycles
-       end if
-
-       subcycling_loop: do cycle = 1, params%n_subcycles
+    subcycling_loop: do cycle = 1, params%n_subcycles
        RKstages_loop: do stage = 1, params%n_stages
           if (params%use_rk_gs) then
              call set_stage(detector_list,vfield,xfield,rk_dt,stage,params%n_stages, &
@@ -286,11 +274,10 @@ contains
 
           end do detector_timestepping_loop
        end do RKstages_loop
-       end do subcycling_loop
+    end do subcycling_loop
 
-       deallocate(send_list_array)
-       deallocate(receive_list_array)
-    end if
+    deallocate(send_list_array)
+    deallocate(receive_list_array)
 
     !!! at the end of write_detectors subroutine I need to loop over all the detectors 
     !!! in the list and check that I own them (the element where they are). 
@@ -309,26 +296,26 @@ contains
 
   end subroutine move_lagrangian_detectors
 
-    !function to check if there are any lagrangian particles in the given list
-    function check_any_lagrangian(detector_list0)
-      logical :: check_any_lagrangian
-      type(detector_linked_list), intent(inout) :: detector_list0
-      type(detector_type), pointer :: det0
-      integer :: i
-      integer :: checkint 
+  !function to check if there are any lagrangian particles in the given list
+  function check_any_lagrangian(detector_list0)
+    logical :: check_any_lagrangian
+    type(detector_linked_list), intent(inout) :: detector_list0
+    type(detector_type), pointer :: det0
+    integer :: i
+    integer :: checkint 
       
-      checkint = 0
-      det0 => detector_list0%firstnode
-      do i = 1, detector_list0%length         
-         if (det0%type==LAGRANGIAN_DETECTOR) then
-            checkint = 1
-            exit
-         end if
-         det0 => det0%next
-      end do
-      call allmax(checkint)
-      check_any_lagrangian = .false.
-      if(checkint>0) check_any_lagrangian = .true.
-    end function check_any_lagrangian
+    checkint = 0
+    det0 => detector_list0%firstnode
+    do i = 1, detector_list0%length         
+       if (det0%type==LAGRANGIAN_DETECTOR) then
+          checkint = 1
+          exit
+       end if
+       det0 => det0%next
+    end do
+    call allmax(checkint)
+    check_any_lagrangian = .false.
+    if(checkint>0) check_any_lagrangian = .true.
+  end function check_any_lagrangian
 
 end module detector_move_lagrangian
