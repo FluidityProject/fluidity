@@ -768,7 +768,7 @@ contains
     type(vector_field) :: U_nl_cartesian
 
     !! Change in U over one timestep.
-    type(scalar_field) :: delta_U
+    type(vector_field) :: delta_U
 
     !! DG Courant number field
     type(scalar_field), pointer :: s_field
@@ -783,7 +783,7 @@ contains
     type(csr_sparsity) :: mass_sparsity
 
     !! Right hand side vector.
-    type(scalar_field) :: rhs
+    type(vector_field) :: rhs
 
     !! Whether to invoke the slope limiter
     logical :: limit_slope
@@ -816,9 +816,9 @@ contains
     call allocate(inv_mass, mass_sparsity, (/dim,dim/))
 
     ! Ensure delta_U inherits options from U.
-    call allocate(delta_U, U%mesh, "delta_U")
+    call allocate(delta_U, U%dim, U%mesh, "delta_U")
     delta_U%option_path = U%option_path
-    call allocate(rhs, U%mesh, trim(field_name)//" RHS")
+    call allocate(rhs, U%dim, U%mesh, trim(field_name)//" RHS")
    
     call construct_vector_advection_dg(matrix, rhs, field_name, state, &
          mass, velocity_name=velocity_name)
@@ -927,7 +927,7 @@ contains
     !! Main advection matrix.    
     type(block_csr_matrix), intent(inout) :: big_m
     !! Right hand side vector.
-    type(scalar_field), intent(inout) :: rhs
+    type(vector_field), intent(inout) :: rhs
     
     !! Name of the field to be advected.
     character(len=*), intent(in) :: field_name
@@ -1020,7 +1020,7 @@ contains
     !! Main advection matrix.
     type(block_csr_matrix), intent(inout) :: big_m
     !! Right hand side vector.
-    type(scalar_field), intent(inout) :: rhs
+    type(vector_field), intent(inout) :: rhs
     !! Field over the entire surface mesh containing bc values:
     type(vector_field), intent(in):: bc_value
     !! Integer array of all surface elements indicating bc type
@@ -1215,7 +1215,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2
     type(block_csr_matrix), intent(inout) :: big_m
-    type(scalar_field), intent(inout) :: rhs
+    type(vector_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
    !! Field over the entire surface mesh containing bc values:
