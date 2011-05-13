@@ -1,5 +1,5 @@
 cl1 = 0.1;
-cl2 = 8;
+cl2 = 10;
 Point(1) = {0, 0, 0, cl1};
 Extrude {1,0,0} {
   Point{1}; Layers{cl2};

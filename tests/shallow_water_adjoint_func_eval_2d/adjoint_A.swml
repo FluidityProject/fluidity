@@ -135,6 +135,10 @@
         </prescribed>
       </vector_field>
     </gravity>
+    <coriolis>
+      <string_value type="python" lines="20">def val(X,t):
+  return 1.0</string_value>
+    </coriolis>
   </physical_parameters>
   <material_phase name="Fluid">
     <vector_field name="Velocity" rank="1">
@@ -336,6 +340,8 @@ import numpy, numpy.linalg
 coord  = state.vector_fields["Coordinate"]
 eta_mesh = state.meshes["PressureMesh"]
 u_mesh = state.meshes["VelocityMesh"]
+coriolis = state.scalar_fields["Coriolis"]
+gravity = state.vector_fields["GravityDirection"]
 timeprime = time + constants_func_eval_2d.theta*dt
 
 field.val[:] = 0.0
@@ -346,22 +352,42 @@ for ele in range(coord.ele_count):
   eta_mass = t.shape_shape(shape, shape)
   u_shape = u_mesh.shape
   u_mass = t.shape_shape(u_shape, u_shape)
-     
+
+  l_mat = t.shape_shape(u_shape, u_shape, coeff=coriolis.ele_val_at_quad(ele))
+  
   if time == 0.0:
     source = numpy.dot(eta_mass, [constants_func_eval_2d.eta_exact(x, 0.0) for x in coord.remap_ele(ele, field.mesh)])
   else:
     # First, the eta source term contribution
     source = numpy.dot(eta_mass, [constants_func_eval_2d.eta_src(x, timeprime)*abs(dt) for x in coord.remap_ele(ele, field.mesh)])
-      
+    
+    xdim = 3
+    loc = u_mass.shape[0]
+    big_mat = numpy.zeros((xdim * loc, xdim * loc))
+    for i in range(xdim):
+      big_mat[i*loc : (i+1)*loc, i*loc : (i+1)*loc] = u_mass
+    # now add in the coriolis term; here we've hardcoded what we know about the up direction
+    big_mat[0:loc, loc:2*loc] = -1 * l_mat
+    big_mat[loc:2*loc, 0:loc] = +1 * l_mat
+    
     # Now, the u source term contribution
-    #####Linv_Musrc = numpy.dot(numpy.linalg.inv(u_mass), # + coriolis matrix in here!!!!
-    #####            numpy.dot(u_mass, [constants_func_eval_2d.u_src(x, timeprime) for x in coord.remap_ele(ele, u_mesh)]))
-    Linv_Musrc = numpy.array([constants_func_eval_2d.u_src(x, timeprime) for x in coord.remap_ele(ele, u_mesh)])
+    Mu_src = numpy.dot(u_mass, [constants_func_eval_2d.u_src(x, timeprime) for x in coord.remap_ele(ele, u_mesh)])
+    reshaped_Mu_src = numpy.zeros(loc*xdim)
+    assert(Mu_src.shape[1] == xdim)
+    for i in range(Mu_src.shape[1]):
+       reshaped_Mu_src[i*loc:(i+1)*loc] = Mu_src[:,i]
+    
+    Linv_Mu_src = numpy.dot(numpy.linalg.inv(big_mat), reshaped_Mu_src)
+
+    reshaped_Linv_src = numpy.zeros((loc, xdim))
+    assert(Mu_src.shape[1] == xdim)
+    for i in range(xdim):
+      reshaped_Linv_src[:,i] = Linv_Mu_src[i*loc:(i+1)*loc]
 
     u_dshape = t.grad(u_mesh.shape)
     cT = t.shape_dshape(shape, u_dshape)
     for dim in range(cT.shape[2]):
-      source += numpy.dot(cT[:,:,dim], Linv_Musrc[:,dim]) * (dt**2 * constants_func_eval_2d.d0 * constants_func_eval_2d.theta)
+      source += numpy.dot(cT[:,:,dim], reshaped_Linv_src[:,dim]) * (dt**2 * constants_func_eval_2d.d0 * constants_func_eval_2d.theta)
   field.addto(field.ele_nodes(ele), source)</string_value>
         </algorithm>
         <mesh name="PressureMesh"/>

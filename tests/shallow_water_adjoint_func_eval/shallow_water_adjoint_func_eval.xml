@@ -3,8 +3,8 @@
 <testproblem>
   <name>Shallow Water Equation MMS</name>
   <owner userid="sf1409"/>
-  <tags>swml</tags>
-  <problem_definition length="special" nprocs="1">
+  <tags>swml adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
     <command_line> time shallow_water adjoint_A.swml; time shallow_water adjoint_B.swml; time shallow_water adjoint_C.swml</command_line>
   </problem_definition>
   <variables>
