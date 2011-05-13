@@ -498,137 +498,119 @@ at the first timestep or not.</a:documentation>
             <element name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
               <choice>
-                <element name="fluids">
-                  <a:documentation>Equations of state for ocean (and simple fluid) applications</a:documentation>
-                  <choice>
-                    <element name="linear">
-                      <a:documentation>Incompressible linear equation of state
+                <element name="incompressible">
+                  <a:documentation>Equations of state</a:documentation>
+                  <element name="linear">
+                    <a:documentation>Incompressible linear equation of state
 
-(e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))</a:documentation>
+(DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
++ EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
++ EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )</a:documentation>
+                    <choice>
+                      <element name="all_equal">
+                        <a:documentation>All eos_coefficients equal as in most of
+the test cases (=1)</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="specify_all">
+                        <a:documentation>Specify the coefficients separately
+There should probably be at least 9
+see multi_eos.F90 lines 132-140</a:documentation>
+                        <ref name="real_vector"/>
+                      </element>
+                    </choice>
+                    <optional>
                       <element name="reference_density">
                         <a:documentation>The reference or background density</a:documentation>
                         <ref name="real"/>
                       </element>
-                      <optional>
-                        <element name="temperature_dependency">
-                          <a:documentation>Enable to add temperature dependency
+                    </optional>
+                    <optional>
+                      <element name="temperature_dependency">
+                        <a:documentation>Enable to add temperature dependency
 to the equation of state.</a:documentation>
-                          <element name="reference_temperature">
-                            <a:documentation>The reference or background
+                        <element name="reference_temperature">
+                          <a:documentation>The reference or background
 temperature (actual temperature =
 calculated temperature plus this
 value).</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                          <element name="thermal_expansion_coefficient">
-                            <a:documentation>The thermal expansion coefficient</a:documentation>
-                            <ref name="real"/>
-                          </element>
+                          <ref name="real"/>
                         </element>
-                      </optional>
-                      <optional>
-                        <element name="salinity_dependency">
-                          <a:documentation>Enable to add salinity dependency to
+                        <element name="thermal_expansion_coefficient">
+                          <a:documentation>The thermal expansion coefficient</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="salinity_dependency">
+                        <a:documentation>Enable to add salinity dependency to
 the equation of state.</a:documentation>
-                          <element name="reference_salinity">
-                            <a:documentation>The reference or background
+                        <element name="reference_salinity">
+                          <a:documentation>The reference or background
 salinity (actual salinity =
 calculated salinity plus this
 value).</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                          <element name="saline_contraction_coefficient">
-                            <a:documentation>The haline contraction coefficient</a:documentation>
-                            <ref name="real"/>
-                          </element>
+                          <ref name="real"/>
                         </element>
-                      </optional>
-                      <optional>
-                        <element name="subtract_out_hydrostatic_level">
-                          <a:documentation>Enable this option to subtract out
+                        <element name="saline_contraction_coefficient">
+                          <a:documentation>The haline contraction coefficient</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="subtract_out_hydrostatic_level">
+                        <a:documentation>Enable this option to subtract out
 the hydrostatic level</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="ocean_pade_approximation">
-                      <a:documentation>2002 McDougall, Jackett, Wright and
-Feistel equation of state using Pade
-approximation</a:documentation>
-                      <optional>
-                        <element name="include_depth_below_surface">
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </choice>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
                 </element>
                 <element name="compressible">
                   <a:documentation>Equations of state for compressible applications</a:documentation>
-                  <choice>
-                    <element name="stiffened_gas">
-                      <a:documentation>Stiffened Gas EoS
+                  <element name="stiffened_gas">
+                    <a:documentation>Stiffened Gas EoS
 
-Used with compressible simulations</a:documentation>
-                      <optional>
-                        <element name="reference_density">
-                          <a:documentation>reference uncompressed density
+Used with compressible simulations
+
+DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T</a:documentation>
+                    <element name="eos_option1">
+                      <ref name="real"/>
+                    </element>
+                    <element name="eos_option2">
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="reference_density">
+                        <a:documentation>reference uncompressed density
 
 if activated then either Liquid EoS or
 full Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="ratio_specific_heats">
-                          <a:documentation>Ratio of specific heats at constant
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="ratio_specific_heats">
+                        <a:documentation>Ratio of specific heats at constant
 pressure to that at constant volume
 
 Requires an energy field.
 If activated then a full Stiffened Gas EoS </a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="bulk_sound_speed_squared">
-                          <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="bulk_sound_speed_squared">
+                        <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
 
 if activated then either full or partial Liquid EoS or full
 Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="giraldo">
-                      <a:documentation>Giraldo et. al. 2008, J. Comp. Phys.
-
-Used with compressible simulations</a:documentation>
-                      <element name="reference_pressure">
-                        <a:documentation>reference pressure
-
-The pressure at which potential temperature
-equals actual temperature. Normally taken to
-be the surface pressure, 1.0e05.</a:documentation>
                         <ref name="real"/>
                       </element>
-                      <element name="C_P">
-                        <a:documentation>Heat capacity at constant pressure</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="C_V">
-                        <a:documentation>Heat capacity at constant volume</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </element>
-                    <element name="foam">
-                      <a:documentation>Foam EoS
-Used with compressible simulations of liquid drainage in foams.
-It describes the liquid content in the foam as the product of the 
-Plateau border cross sectional area and the local Plateau 
-border length per unit volume (lambda). </a:documentation>
-                      <empty/>
-                    </element>
-                  </choice>
+                    </optional>
+                  </element>
                 </element>
               </choice>
             </element>
@@ -748,18 +730,42 @@ via a compressible equation of state.</a:documentation>
           </zeroOrMore>
           <optional>
             <element name="multiphase_properties">
-              <a:documentation>Parameters required to model multiphase flow in porous media</a:documentation>
-              <element name="relperm_max">
-                <a:documentation>Relative permeability end point relperm_max
+              <a:documentation>Parameters required to model multiphase flow</a:documentation>
+              <element name="relperm_option">
+                <a:documentation>Option for rel perms in prototype code
+Usually 3 except for the CompModel Non-equilibrium
+test cases where it is 6</a:documentation>
+                <ref name="integer"/>
+              </element>
+              <optional>
+                <element name="relperm_max">
+                  <a:documentation>Relative permeability end point relperm_max
 in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
 Value between 0 and 1</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="relperm_exponent">
-                <a:documentation>Relative permeability exponent relperm_exponent
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="relperm_exponent">
+                  <a:documentation>Relative permeability exponent relperm_exponent
 in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
-                <ref name="real"/>
-              </element>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="cp_A">
+                  <a:documentation>Capillary pressure multiplier cp_A
+in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="cp_expo">
+                  <a:documentation>Capillary pressure exponent cp_expo
+in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
               <optional>
                 <element name="immobile_fraction">
                   <a:documentation>Immobile volume of fluid phase</a:documentation>
@@ -826,24 +832,6 @@ in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
               </element>
             </element>
           </choice>
-          <optional>
-            <element name="multiphase_parameters">
-              <optional>
-                <element name="cp_A">
-                  <a:documentation>Capillary pressure multiplier cp_A
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="cp_expo">
-                  <a:documentation>Capillary pressure exponent cp_expo
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-            </element>
-          </optional>
         </element>
       </optional>
     </element>

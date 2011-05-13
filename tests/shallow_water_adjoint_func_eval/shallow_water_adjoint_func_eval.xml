@@ -19,19 +19,35 @@ convergence_rate.print_convergence_rates("wave_[A-C].stat", ["LayerThicknessErro
 mms_eta_passed = convergence_rate.test_convergence_rates(1.8, "wave_[A-C].stat", ["LayerThicknessError"])
     </variable>
     <variable name="time_integrals_forward" language="python">
-import time_integral
 import glob
+from fluidity_tools import stat_parser
+
+def time_integral(filename, field):
+  stat = stat_parser(filename)
+  values = stat["Fluid"][field]["max"]
+
+  J = sum(values)
+  return J
+
 files_forward = glob.glob("wave_[A-C].stat")
 field_forward = 'J'
-time_integrals_forward = [time_integral.time_integral(file, field_forward) for file in sorted(files_forward)]
+time_integrals_forward = [time_integral(file, field_forward) for file in sorted(files_forward)]
 print 'time_integrals_forward', time_integrals_forward
     </variable>
     <variable name="time_integrals_adjoint" language="python">
-import time_integral
 import glob
+from fluidity_tools import stat_parser
+
+def time_integral(filename, field):
+  stat = stat_parser(filename)
+  values = stat["Fluid"][field]["max"]
+
+  J = sum(values)
+  return J
+
 files_adjoint = glob.glob("wave_[A-C]_adjoint_integral_eta_t1.stat")
 field_adjoint = 'adj_J'
-time_integrals_adjoint = [time_integral.time_integral(file, field_adjoint) for file in sorted(files_adjoint)]
+time_integrals_adjoint = [time_integral(file, field_adjoint) for file in sorted(files_adjoint)]
 print 'time_integrals_adjoint', time_integrals_adjoint
     </variable>
   </variables>

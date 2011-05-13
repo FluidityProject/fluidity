@@ -267,7 +267,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
-	@rm -f lib/lib@FLUIDITY@.a 
 	@echo "    MAKE debug"
 	@cd debug; 	$(MAKE)
 	@echo '    MAKE libwm'

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from fluidity_tools import stat_parser
 import matplotlib.pyplot as plt

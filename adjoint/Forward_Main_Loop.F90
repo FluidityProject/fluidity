@@ -182,7 +182,7 @@ module forward_main_loop
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
 
-              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
               call adj_chkierr(ierr)
               ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)
@@ -237,7 +237,7 @@ module forward_main_loop
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
 
-              ierr = adj_storage_set_compare(storage, .true., 0.0)
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
               call adj_chkierr(ierr)
               ierr = adj_storage_set_overwrite(storage, .true.)
               call adj_chkierr(ierr)

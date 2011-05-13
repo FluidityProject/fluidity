@@ -205,7 +205,9 @@ subroutine keps_tke(state)
         case ("explicit")
           call set(absorption_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
         case ("implicit")
-          FLExit("Can't set an implicit source with a prescribed source field")
+          residual = node_val(abs_rhs,i)/node_val(lumped_mass,i) - node_val(source_kk,i)
+          call set(source_kk, i, -min(0.0, residual) )
+          call set(absorption_kk, i, max(0.0, residual) )
         case default
           FLAbort("Invalid implicitness option for k")
         end select
@@ -281,21 +283,37 @@ subroutine keps_eps(state)
 
     lumped_mass => get_lumped_mass(state, eps%mesh)
 
-    ! Node loop: set src/abs values at nodes
-    do i = 1, node_count(eps)
-      select case (src_abs)
-      case ("explicit")
-        call set(source_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
-        call set(absorption_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-      case ("implicit")
-        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
-        ! Puts source into absorption. Ensures positivity of terms.
-        call set(source_eps, i, -min(0.0, residual) )
-        call set(absorption_eps, i, max(0.0, residual) )
-      case default
-        FLAbort("Invalid implicitness option for k")
-      end select
-    end do
+    ! This allows user-specified source term, so that an MMS test can be set up.
+    if(have_option(trim(source_eps%option_path)//"/diagnostic/internal")) then
+      ewrite(2,*) "Calculating epsilon source and absorption"
+      do i = 1, node_count(eps)
+        select case (src_abs)
+        case ("explicit")
+          call set(source_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
+          call set(absorption_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+        case ("implicit")
+          residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
+          call set(source_eps, i, -min(0.0, residual) )
+          call set(absorption_eps, i, max(0.0, residual) )
+        case default
+          FLAbort("Invalid implicitness option for epsilon")
+        end select
+      end do
+    else if(have_option(trim(source_kk%option_path)//"/prescribed")) then
+      ewrite(2,*) "Prescribed epsilon source"
+      do i = 1, node_count(eps)
+        select case (src_abs)
+        case ("explicit")
+          call set(absorption_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+        case ("implicit")
+          residual = node_val(abs_rhs,i)/node_val(lumped_mass,i) - node_val(source_eps,i)
+          call set(source_eps, i, -min(0.0, residual) )
+          call set(absorption_eps, i, max(0.0, residual) )
+        case default
+          FLAbort("Invalid implicitness option for k")
+        end select
+      end do
+    end if
 
     call deallocate(src_rhs); call deallocate(abs_rhs)
 
@@ -648,10 +666,13 @@ subroutine keps_check_options(state)
                           &scalar_field::Source")) then
         FLExit("You need TurbulentDissipation Source field for k-epsilon")
     end if
-    if (.not.have_option(trim(option_path)//"/&
+    if (.not. have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Source/diagnostic/algorithm::Internal")) then
-        FLExit("You need TurbulentDissipation Source field set to diagnostic/internal")
+                          &scalar_field::Source/diagnostic/algorithm::Internal")&
+        .or. .not. have_option(trim(option_path)//"/&
+                          &scalar_field::TurbulentDissipation/prognostic/&
+                          &scalar_field::Source/prescribed")) then
+        FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
     end if
     ! absorption terms
     if (.not.have_option(trim(option_path)//"/&
