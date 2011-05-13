@@ -353,7 +353,7 @@ contains
     call allocate(test_function, dim = dim, loc = loc, ngi = ngi, coords = coords)
     
     test_function%degree = degree
-    test_function%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
+    test_function%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
     test_function%quadrature = quad
     call incref(quad)
     

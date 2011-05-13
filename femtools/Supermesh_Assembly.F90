@@ -207,7 +207,7 @@ contains
       call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
-      shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
+      shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
       shapes_c(i)%quadrature = quad
       call incref(quad)
       
@@ -296,7 +296,7 @@ contains
       call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
-      shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
+      shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
       shapes_c(i)%quadrature = quad
       call incref(quad)
       
@@ -471,7 +471,7 @@ contains
     call allocate_element(shape_surf_ext, dim = dim, loc = loc, ngi = ngi, coords = coords)
 
     shape_surf_ext%degree = degree
-    shape_surf_ext%numbering => find_element_numbering(loc = loc, dimension = dim - 1, degree = degree)
+    shape_surf_ext%numbering => find_element_numbering(vertices = loc, dimension = dim - 1, degree = degree)
     shape_surf_ext%quadrature = quad
     call incref(quad)
 

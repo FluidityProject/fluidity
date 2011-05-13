@@ -50,7 +50,8 @@ module element_numbering
 
   integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
                         ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
-                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6
+                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6, &
+                        ELEMENT_TRACE=7
 
   integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
@@ -86,6 +87,8 @@ module element_numbering
        & tet_numbering_bubble
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering
+  type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
+       & tri_numbering_trace
   type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
        & tri_numbering_bubble
   type(ele_numbering_type), target, save :: tri_numbering_nc
@@ -161,13 +164,13 @@ module element_numbering
 
 contains
 
-  function find_element_numbering(loc, dimension, degree, type) result (ele_num)
+  function find_element_numbering(vertices, dimension, degree, type) result (ele_num)
     ! Return the element numbering type for an element in dimension
-    ! dimensions with loc vertices and degree polynomial bases.
+    ! dimensions with vertices vertices and degree polynomial bases.
     !
     ! If no suitable numbering is available, return a null pointer.
     type(ele_numbering_type), pointer :: ele_num
-    integer, intent(in) :: loc, dimension, degree
+    integer, intent(in) :: vertices, dimension, degree
     integer, intent(in), optional :: type
 
     integer :: ltype
@@ -184,7 +187,7 @@ contains
     case (ELEMENT_LAGRANGIAN)
        select case(dimension)
        case (0)
-          select case(loc)
+          select case(vertices)
           case(1)
              ! The point element always has degree 0
              ele_num=>point_numbering(0)
@@ -195,7 +198,7 @@ contains
           end select
 
        case (1)
-          select case(loc)
+          select case(vertices)
           case(2) 
              ! Intervals - the only possibility.
              if (degree>INTERVAL_MAX_DEGREE) then
@@ -213,7 +216,7 @@ contains
 
        case(2)
           
-          select case(loc)
+          select case(vertices)
           case(3)
              !Triangles.
              
@@ -243,7 +246,7 @@ contains
           
        case(3)
           
-          select case (loc)
+          select case (vertices)
           case (4)
              !Tets
              
@@ -278,24 +281,31 @@ contains
        
     case (ELEMENT_NONCONFORMING)
 
-       assert(loc==3)
+       assert(vertices==3)
        assert(dimension==2)
        assert(degree==1)
        ele_num=>tri_numbering_nc
 
 !    case (ELEMENT_NONCONFORMING_FACE)
 
-!       assert(loc==3)
+!       assert(vertices==3)
 !       assert(dimension==2)
 !       assert(degree==1)
 !       ele_num=>tri_numbering_nc
-      
+       
+    case (ELEMENT_TRACE)
+
+       assert(vertices==3)
+       assert(dimension==2)
+
+       ele_num=>tri_numbering_trace(degree)
+
     case (ELEMENT_BUBBLE)
 
        select case(dimension)
        case(1)
          
-          select case(loc)
+          select case(vertices)
           case(2) 
              ! Intervals - the only possibility.
              if (degree/=1) then
@@ -313,7 +323,7 @@ contains
           
        case(2)
           
-          select case(loc)
+          select case(vertices)
           case(3)
              !Triangles.
              
@@ -332,7 +342,7 @@ contains
 
        case(3)
           
-          select case(loc)
+          select case(vertices)
           case(4)
              !Tets.
              
@@ -373,6 +383,7 @@ contains
     call number_tets_bubble
     call number_triangles_lagrange
     call number_triangles_bubble
+    call number_triangles_trace
     call number_triangles_nc
     call number_intervals_lagrange
     call number_intervals_bubble
@@ -780,6 +791,78 @@ contains
     ele%boundary_val=0
     
   end subroutine number_triangles_nc
+
+  subroutine number_triangles_trace
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt, ll
+    integer, dimension(3) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    tri_numbering_trace%faces=1
+    tri_numbering_trace%vertices=3
+    tri_numbering_trace%edges=3
+    tri_numbering_trace%dimension=2
+    tri_numbering_trace%boundaries=3
+    tri_numbering_trace%family=FAMILY_SIMPLEX
+    tri_numbering_trace%type=ELEMENT_TRACE
+
+    ! Degree 0 elements are a special case.
+    ele=>tri_numbering_trace(0)
+    ele%degree=0
+    
+    degree_loop: do i=0,TRI_MAX_DEGREE
+       ele=>tri_numbering_trace(i)
+       ele%degree=i 
+
+       ! Allocate mappings:
+
+       ele%nodes=(ele%dimension+1)*(ele%degree+1)
+       
+       ! For trace elements, the first index is the facet number.
+       allocate(ele%count2number(1:ele%dimension,0:i,0:i))
+       allocate(ele%number2count(ele%dimension+1,ele%nodes))
+       allocate(ele%boundary_coord(ele%vertices))
+       allocate(ele%boundary_val(ele%vertices))
+
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=ele%degree
+       
+       cnt=0
+       
+       
+       facet_loop: do ll=1,ele%dimension+1
+          
+          l=0
+          l(1)=ll
+          number_loop: do j=0,ele%degree
+             
+             cnt=cnt+1
+             l(2:3)=(/ele%degree-j,j/)
+             
+             ele%count2number(l(1), l(2), l(3))=cnt
+             ele%number2count(:,cnt)=l
+             
+          end do number_loop
+       end do facet_loop
+
+       ! Sanity test
+       if (ele%nodes/=cnt) then
+          ewrite(3,*) 'Counting error', i, ele%nodes, cnt
+          stop
+       end if
+       
+       ! For trace elements, the first local_coordinate is the face number.
+       ele%boundary_coord=1
+       forall(j=1:ele%vertices)
+          ! The first local coordinate labels the face.
+          ele%boundary_val(j)=j
+       end forall
+    end do degree_loop
+    
+  end subroutine number_triangles_trace
 
   subroutine number_intervals_lagrange
     ! Fill the values in in element_numbering.
@@ -1222,6 +1305,8 @@ contains
        case(ELEMENT_BUBBLE)
          l=0
          l(svertex_num)=ele_num%degree*(ele_num%dimension+1)
+       case(ELEMENT_TRACE)
+         FLAbort("Trace elements do not have well defined vertices")
        case default
          FLAbort("Unknown element type")
        end select
@@ -1327,6 +1412,9 @@ contains
 
       end select
 
+    case (ELEMENT_TRACE)
+       FLAbort("Trace elements do not have well-defined vertices")
+       
     case default
       FLAbort("Unknown element type")
     end select
@@ -1368,7 +1456,7 @@ contains
     type(ele_numbering_type), intent(in) :: ele_num
     logical, intent(in) :: interior
 
-    if (interior) then
+    if (interior.and.ele_num%type/=ELEMENT_TRACE) then
        edge_num_length=ele_num%degree-1
     else
        edge_num_length=ele_num%degree+1
@@ -1384,7 +1472,7 @@ contains
 
     select case (ele_num%family)
     case (FAMILY_SIMPLEX)
-       if (interior) then
+       if (interior.and.ele_num%type/=ELEMENT_TRACE) then
           face_num_length=tr(ele_num%degree-2)
        else
           face_num_length=tr(ele_num%degree+1)
@@ -1445,7 +1533,7 @@ contains
              l=1
              i=size(numbering)
              do
-                numbering(i:i+l-1)=numbering(i+l-1:i:-1)
+               numbering(i:i+l-1)=numbering(i+l-1:i:-1)
                 l=l+1
                 i=i-l
                 if (i<1) exit
@@ -1514,8 +1602,8 @@ contains
     
     ! Special case: degree 0 elements to not have edge nodes and elements
     ! with degree <2 do not have interior edge nodes.
-    if (ele_num%degree==0 .or. &
-         present_and_true(interior).and.ele_num%degree<2) return 
+    if (ele_num%type/=ELEMENT_TRACE .and.(ele_num%degree==0 .or. &
+         present_and_true(interior).and.ele_num%degree<2)) return 
 
     ! Find the vertex numbers on the tet.
     lnodes(1)=minloc(array=element, dim=1, mask=(nodes(1)==element))
@@ -1553,6 +1641,8 @@ contains
 
     integer, dimension(4) :: l
     integer :: cnt, i, j, k, inc
+    ! Local edge vertices for trace elements. 
+    integer, dimension(2) :: ln
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -1643,9 +1733,47 @@ contains
           FLAbort("Unknown element family.")
       end select
 
-    case default
+   case (ELEMENT_TRACE)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+         l=0
+
+         do i=1,3
+            if(.not.any(nodes==i)) l(1)=i
+         end do
+         assert(l(1)/=0)
+
+         if (nodes(2)>nodes(1)) then
+            ! Counting forward
+            ln = (/2,3/)
+         else
+            ! Counting backwards
+            ln = (/3,2/)
+         end if
+
+         l(ln(1))=ele_num%degree
+         cnt=0         
+         trace_number_loop: do
+            cnt=cnt+1
+                
+            edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
+
+            ! Advance the index:
+            l(ln)=l(ln)+(/-1,1/)
+            
+            ! Check for completion
+            if (any(l<0)) exit trace_number_loop
+
+         end do trace_number_loop
+         assert(cnt==size(edge_local_num))
+
+      case default
+         FLAbort("Unknown element family.")
+      end select
+      
+   case default
       FLAbort("Unknown element type")
-    end select
+   end select
 
   end function edge_local_num
 
@@ -1693,7 +1821,7 @@ contains
     if (present(stat)) stat=0
 
     ! Special case: degree 0 elements to not have face nodes 
-    if (ele_num%degree==0) return
+    if (ele_num%degree==0.and.ele_num%type/=ELEMENT_TRACE) return
 
     do i=1, 3
        lnodes(i)=minloc(array=element, dim=1, mask=(element==nodes(i)))
@@ -1988,6 +2116,10 @@ contains
       FLAbort("ele_local_num currently only works for simplices")
     end if
     
+    if (ele_num%type==ELEMENT_TRACE) then
+       FLAbort("ele_local_num doesn't know about trace elements yet")
+    end if
+
     do i=1, ele_num%nodes
       
       do j=1, size(ele_num%number2count,1)
@@ -2013,6 +2145,9 @@ contains
     type(ele_numbering_type), intent(in) :: ele_num    
     real, dimension(size(ele_num%number2count, 1)) :: coords
     
+    integer, dimension(size(ele_num%number2count, 1)) :: count_coords
+    integer :: i
+
     select case(ele_num%type)
     case (ELEMENT_LAGRANGIAN)
 
@@ -2064,6 +2199,37 @@ contains
     case (ELEMENT_NONCONFORMING)
        
        coords=real(ele_num%number2count(:,n))/2.0
+
+    case (ELEMENT_TRACE)
+
+       select case (ele_num%family)
+       case (FAMILY_SIMPLEX)
+
+          count_coords=ele_num%number2count(:,n)
+          
+          do i=1,ele_num%dimension+1
+             if (i<count_coords(1)) then
+                coords(i)=count_coords(i+1)/real(ele_num%degree)
+             else if (i==count_coords(1)) then
+                coords(i)=0.0
+             else
+                coords(i)=count_coords(i)/real(ele_num%degree)
+             end if
+          end do
+
+          if (ele_num%degree>0) then
+             coords=real(ele_num%number2count(:,n))/real(ele_num%degree)
+          else
+             ! Degree 0 elements have a single node in the centre of the
+             ! element. 
+             coords=1.0/ele_num%vertices
+          end if
+
+       case default
+          
+          FLAbort('Unknown element family.')
+
+       end select
 
     case default
 
