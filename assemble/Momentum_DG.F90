@@ -1088,6 +1088,7 @@ contains
 
     if(multiphase) then
       nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, du_t)
     end if
 
     les_tensor_gi=0.0
