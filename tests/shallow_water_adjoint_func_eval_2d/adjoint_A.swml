@@ -112,7 +112,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">1</real_value>
+        <real_value rank="0">0.8</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -259,7 +259,7 @@
           </python>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">1</real_value>
+          <real_value rank="0">0.9</real_value>
         </mean_layer_thickness>
         <scalar_field name="Source">
           <prescribed>
@@ -401,7 +401,7 @@ else:
   adj_u_delta = state.vector_fields["AdjointLocalVelocityDelta"]
   J = numpy.dot(adj_eta_delta.val, eta_src.val) 
   if u_src.val.any() != 0.0:
-     print "Error: The -1.0* trick for the velocity source term does not work in 2d. If you need it, you will have to implement the manifold projection!" 
+     print "Error: The -1.0* trick for the velocity source term does not work in 2d. If you need it, you will have to implement the manifold projection in python!" 
   #J = J + numpy.dot([-1.0*component[0] for component in adj_u_delta.val], [component[0] for component in u_src.val]) 
     
 field.val[:] = J</string_value>
@@ -631,7 +631,6 @@ elif derivative.name == "Fluid::Velocity":
       </functional_dependencies>
     </functional>
     <debug>
-      <replay_forward_run/>
       <check_action_transposes/>
     </debug>
   </adjoint>
