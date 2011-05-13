@@ -792,11 +792,15 @@ if test "$enable_mpi" != "no"
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
   fi
 fi
+AC_SUBST(HAVE_ADJOINT)
 
 AC_ARG_ENABLE(petsc-fortran-modules,
     [AC_HELP_STRING([--disable-petsc-fortran-modules],
