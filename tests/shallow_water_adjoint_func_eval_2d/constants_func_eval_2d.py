@@ -31,8 +31,8 @@ def eta_exact(X, t):
 def functional_vector_eta(X,t):
   x = X[0]
   y = X[1]
-  #return sin(2*pi*x)  
-  return 1.0 
+  return sin(2*pi*x)  
+  #return 1.0 
 
 def functional_vector_u(X,t):
   x = X[0]

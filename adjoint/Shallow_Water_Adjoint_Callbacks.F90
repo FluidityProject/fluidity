@@ -347,7 +347,11 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, u_input)
       call allocate(u_output, u_input%dim, u_input%mesh, "LocalVelocityMassOutput")
       u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
-      call mult(u_output, u_mass_mat, u_input)
+      if (hermitian == ADJ_FALSE) then
+        call mult(u_output, u_mass_mat, u_input)
+      else
+        call mult_T(u_output, u_mass_mat, u_input)
+      end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
@@ -528,7 +532,7 @@ module shallow_water_adjoint_callbacks
         call scale(u_output, -1.0*dt*d0)
         call deallocate(u_tmp)
         call allocate(u_tmp, cartesian_u%dim, cartesian_u%mesh, "CallbackOutput")
-        call project_local_to_cartesian(positions, u_output, u_tmp)
+        call project_cartesian_to_local(positions, u_tmp, u_output, transpose=.true.)
         output = field_to_adj_vector(u_tmp)
         call deallocate(u_tmp)
         call deallocate(u_output)
@@ -752,7 +756,7 @@ module shallow_water_adjoint_callbacks
         call zero(u_output)
         ! So, we'll project from local space to cartesian space
         call mult_T(tmp_u, local_mass_matrix, u_input)
-        call project_local_to_cartesian(X, tmp_u, u_output)
+        call project_cartesian_to_local(X, u_output, tmp_u, transpose=.true.)
         call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)
@@ -797,7 +801,7 @@ module shallow_water_adjoint_callbacks
         call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         call mult_T(tmp_u, cartesian_mass_matrix, u_input)
-        call project_cartesian_to_local(X, tmp_u, u_output)
+        call project_local_to_cartesian(X, u_output, tmp_u, transpose=.true.)
         call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)

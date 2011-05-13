@@ -632,6 +632,7 @@ elif derivative.name == "Fluid::Velocity":
     </functional>
     <debug>
       <replay_forward_run/>
+      <check_action_transposes/>
     </debug>
   </adjoint>
 </shallow_water_options>
