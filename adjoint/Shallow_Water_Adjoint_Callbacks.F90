@@ -504,7 +504,7 @@ module shallow_water_adjoint_callbacks
 
         call mult(u_tmp, coriolis_mat, u_input)
         call mult(u_tmp_2, big_mat, u_tmp)
-        call scale(u_tmp_2, dt*theta)
+        call scale(u_tmp_2, -1*dt*theta)
         call addto(u_tmp_2, u_input)
         call mult(eta_output, div_mat, u_tmp_2)
         call scale(eta_output, -1.0*dt*d0)
@@ -527,7 +527,7 @@ module shallow_water_adjoint_callbacks
         call mult_T(u_tmp, div_mat, eta_input)
         call mult_T(u_tmp_2, big_mat, u_tmp)
         call mult_T(u_output, coriolis_mat, u_tmp_2)
-        call scale(u_output, dt*theta)
+        call scale(u_output, -1*dt*theta)
         call addto(u_output, u_tmp)
         call scale(u_output, -1.0*dt*d0)
         call deallocate(u_tmp)
@@ -709,7 +709,7 @@ module shallow_water_adjoint_callbacks
         call set(u_tmp, u_output)
         call deallocate(u_output)
         call allocate(u_output, cartesian_dummy_u%dim, cartesian_dummy_u%mesh, "AdjointBigMatCoriolisOutput")
-        call project_local_to_cartesian(positions, u_tmp, u_output)
+        call project_cartesian_to_local(positions, u_output, u_tmp, transpose=.true.)
       end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
