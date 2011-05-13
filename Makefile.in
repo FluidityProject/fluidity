@@ -63,7 +63,7 @@ ARFLAGS	= r
 
 EVAL = scripts/silenteval
 
-VERSION = $(shell bzr version-info --custom --template="{revno} (revid {revision_id})\n")
+VERSION = $(shell bzr revision-info)
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
