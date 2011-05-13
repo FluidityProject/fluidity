@@ -86,11 +86,11 @@ class Field:
 
   def ele_val_at_quad(self,ele_number):
     # Return the values of field at the quadrature points of ele_number
-    shape_n = numpy.matrix(self.ele_shape(ele_number).n)
-    ele_val = numpy.matrix(self.ele_val(ele_number))
+    shape_n = self.ele_shape(ele_number).n
+    ele_val = self.ele_val(ele_number)
     #print "ele_val:",ele_val.shape
     #print "shape_n:",shape_n.shape
-    return numpy.array(ele_val*shape_n)
+    return numpy.array(numpy.dot(ele_val, shape_n))
 
   def ele_region_id(self,ele_number):
     return self.mesh.ele_region_id(ele_number)
@@ -279,18 +279,23 @@ class Transform:
         newshape.dn[i,gi,:] = numpy.dot(shape.dn[i, gi, :], self.invJ[gi])
     return newshape
 
-  def shape_shape(self,shape1,shape2):
+  def shape_shape(self,shape1,shape2, coeff=None):
     # For each node in each element shape1, shape2 calculate the
     # coefficient of the integral int(shape1shape2)dV.
     #
     # In effect, this calculates a mass matrix.
     m = numpy.zeros((shape1.loc,shape2.loc))
 
-    for i in range(shape1.loc):
-      for j in range(shape2.loc):
-        m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], self.detwei)
+    if coeff is None:
+      for i in range(shape1.loc):
+        for j in range(shape2.loc):
+          m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], self.detwei)
+    else:
+      assert len(coeff) == len(self.detwei)
+      for i in range(shape1.loc):
+        for j in range(shape2.loc):
+          m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], numpy.array(self.detwei) * coeff)
     return m
-
 
   def shape_dshape(self,shape,dshape):
     # For each node in element shape and transformed gradient dshape
