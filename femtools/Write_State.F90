@@ -481,6 +481,7 @@ contains
   
     type(vector_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
+    character(len=FIELD_NAME_LEN) l_field_name
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
     integer :: stat
@@ -496,40 +497,51 @@ contains
     is_iterated_field=.false.
     
     field => extract_vector_field(state(istate), field_name)
-    if (len_trim(field%option_path)==0) then
+    ! so that goto below works
+    l_field_name=field_name
+49  if (len_trim(field%option_path)==0) then
       ! fields without option paths
-      if (field_name=="OldCoordinate") then
+      if (l_field_name=="OldCoordinate") then
         include_vector_field_in_vtu=.false.
         return
-      else if (field_name=="IteratedCoordinate") then
+      else if (l_field_name=="IteratedCoordinate") then
         include_vector_field_in_vtu=.false.
         return
-      else if (field_name=="OldGridVelocity") then
+      else if (l_field_name=="OldGridVelocity") then
         include_vector_field_in_vtu=.false.
         return
-      else if (field_name=="IteratedGridVelocity") then
+      else if (l_field_name=="IteratedGridVelocity") then
         include_vector_field_in_vtu=.false.
         return
-      else if (starts_with(field_name, 'Old')) then
+      else if (starts_with(l_field_name, 'Old')) then
         is_old_field=.true.
+        l_field_name=trim(field_name(4:))
         field => extract_vector_field(state(istate), field_name(4:), stat=stat)
         if (stat /= 0) then
-          include_vector_field_in_vtu = .false.
-          return
+           include_vector_field_in_vtu = .false.
+           return
+        else
+           goto 49
         end if
-      else if (starts_with(field_name, 'Nonlinear')) then
+      else if (starts_with(l_field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
+        l_field_name=trim(field_name(10:))
         field => extract_vector_field(state(istate), field_name(10:), stat=stat)
         if (stat /= 0) then
           include_vector_field_in_vtu = .false.
           return
+        else
+           goto 49
         end if
-      else if (starts_with(field_name, 'Iterated')) then
+      else if (starts_with(l_field_name, 'Iterated')) then
         is_iterated_field=.true.
+        l_field_name=trim(field_name(9:))
         field => extract_vector_field(state(istate), field_name(9:), stat=stat)
         if (stat /= 0) then
           include_vector_field_in_vtu = .false.
           return
+        else
+           goto 49
         end if
       else
         include_vector_field_in_vtu=.false.

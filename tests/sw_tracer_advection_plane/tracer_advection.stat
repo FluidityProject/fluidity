@@ -1,0 +1,73 @@
+<header>
+<constant name="FluidityVersion" type="string" value="exported" />
+<constant name="CompileTime" type="string" value="May 13 2011 17:27:03" />
+<constant name="StartTime" type="string" value="20110513 223641.536+0100" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="ElapsedWallTime" statistic="value"/>
+<field column="4" name="CoordinateMesh" statistic="nodes"/>
+<field column="5" name="CoordinateMesh" statistic="elements"/>
+<field column="6" name="CoordinateMesh" statistic="surface_elements"/>
+<field column="7" name="TotalMemory" statistic="current" material_phase="Memory"/>
+<field column="8" name="TotalMemory" statistic="min" material_phase="Memory"/>
+<field column="9" name="TotalMemory" statistic="max" material_phase="Memory"/>
+<field column="10" name="MeshMemory" statistic="current" material_phase="Memory"/>
+<field column="11" name="MeshMemory" statistic="min" material_phase="Memory"/>
+<field column="12" name="MeshMemory" statistic="max" material_phase="Memory"/>
+<field column="13" name="ScalarFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="14" name="ScalarFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="15" name="ScalarFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="16" name="VectorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="17" name="VectorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="18" name="VectorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="19" name="TensorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="20" name="TensorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="21" name="TensorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="22" name="MatrixSparsityMemory" statistic="current" material_phase="Memory"/>
+<field column="23" name="MatrixSparsityMemory" statistic="min" material_phase="Memory"/>
+<field column="24" name="MatrixSparsityMemory" statistic="max" material_phase="Memory"/>
+<field column="25" name="MatrixMemory" statistic="current" material_phase="Memory"/>
+<field column="26" name="MatrixMemory" statistic="min" material_phase="Memory"/>
+<field column="27" name="MatrixMemory" statistic="max" material_phase="Memory"/>
+<field column="28" name="TransformCacheMemory" statistic="current" material_phase="Memory"/>
+<field column="29" name="TransformCacheMemory" statistic="min" material_phase="Memory"/>
+<field column="30" name="TransformCacheMemory" statistic="max" material_phase="Memory"/>
+<field column="31" name="LayerThickness" statistic="min" material_phase="Fluid"/>
+<field column="32" name="LayerThickness" statistic="max" material_phase="Fluid"/>
+<field column="33" name="LayerThickness" statistic="l2norm" material_phase="Fluid"/>
+<field column="34" name="LayerThickness" statistic="integral" material_phase="Fluid"/>
+<field column="35" name="PassiveTracer" statistic="min" material_phase="Fluid"/>
+<field column="36" name="PassiveTracer" statistic="max" material_phase="Fluid"/>
+<field column="37" name="PassiveTracer" statistic="l2norm" material_phase="Fluid"/>
+<field column="38" name="PassiveTracer" statistic="integral" material_phase="Fluid"/>
+<field column="39" name="GravityDirection%magnitude" statistic="min" material_phase="Fluid"/>
+<field column="40" name="GravityDirection%magnitude" statistic="max" material_phase="Fluid"/>
+<field column="41" name="GravityDirection%magnitude" statistic="l2norm" material_phase="Fluid"/>
+<field column="42" name="GravityDirection%1" statistic="min" material_phase="Fluid"/>
+<field column="43" name="GravityDirection%1" statistic="max" material_phase="Fluid"/>
+<field column="44" name="GravityDirection%1" statistic="l2norm" material_phase="Fluid"/>
+<field column="45" name="GravityDirection%1" statistic="integral" material_phase="Fluid"/>
+<field column="46" name="GravityDirection%2" statistic="min" material_phase="Fluid"/>
+<field column="47" name="GravityDirection%2" statistic="max" material_phase="Fluid"/>
+<field column="48" name="GravityDirection%2" statistic="l2norm" material_phase="Fluid"/>
+<field column="49" name="GravityDirection%2" statistic="integral" material_phase="Fluid"/>
+<field column="50" name="GravityDirection%3" statistic="min" material_phase="Fluid"/>
+<field column="51" name="GravityDirection%3" statistic="max" material_phase="Fluid"/>
+<field column="52" name="GravityDirection%3" statistic="l2norm" material_phase="Fluid"/>
+<field column="53" name="GravityDirection%3" statistic="integral" material_phase="Fluid"/>
+<field column="54" name="OldLocalVelocity%magnitude" statistic="min" material_phase="Fluid"/>
+<field column="55" name="OldLocalVelocity%magnitude" statistic="max" material_phase="Fluid"/>
+<field column="56" name="OldLocalVelocity%magnitude" statistic="l2norm" material_phase="Fluid"/>
+<field column="57" name="OldLocalVelocity%1" statistic="min" material_phase="Fluid"/>
+<field column="58" name="OldLocalVelocity%1" statistic="max" material_phase="Fluid"/>
+<field column="59" name="OldLocalVelocity%1" statistic="l2norm" material_phase="Fluid"/>
+<field column="60" name="OldLocalVelocity%1" statistic="integral" material_phase="Fluid"/>
+<field column="61" name="OldLocalVelocity%2" statistic="min" material_phase="Fluid"/>
+<field column="62" name="OldLocalVelocity%2" statistic="max" material_phase="Fluid"/>
+<field column="63" name="OldLocalVelocity%2" statistic="l2norm" material_phase="Fluid"/>
+<field column="64" name="OldLocalVelocity%2" statistic="integral" material_phase="Fluid"/>
+<field column="65" name="LinearEnergy" statistic="value"/>
+</header>
+  0.10000000000000000E+001  0.10000000000000000E+001                 +Infinity 44 60 26  0.33846800000000000E+006  0.00000000000000000E+000  0.43879200000000000E+006  0.15092000000000000E+005  0.00000000000000000E+000  0.15092000000000000E+005  0.43600000000000000E+004  0.00000000000000000E+000  0.11016000000000000E+005  0.26560000000000000E+005  0.00000000000000000E+000  0.40960000000000000E+005  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.27000000000000000E+005  0.00000000000000000E+000  0.29884000000000000E+005  0.26144000000000000E+006  0.00000000000000000E+000  0.34400000000000000E+006  0.40160000000000000E+004  0.00000000000000000E+000  0.40160000000000000E+004  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000                       NaN                       NaN  0.10000000000000000E+001  0.10000000000000000E+001  0.99999999999999989E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000 -0.10000000000000000E+001 -0.10000000000000000E+001  0.99999999999999989E+000 -0.99999999999999978E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000                       NaN

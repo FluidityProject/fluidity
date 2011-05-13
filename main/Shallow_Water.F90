@@ -512,13 +512,7 @@
 
          !velocity advection step
          if(.not.exclude_velocity_advection) then
-            do d1 = 1, dim
-               velocity_cpt = extract_scalar_field(u,d1)
-               old_velocity_cpt = extract_scalar_field(old_u,d1)
-               call insert(state,velocity_cpt,"VelocityComponent")
-               call insert(state,old_velocity_cpt,"VelocityComponentOld")
-               call solve_advection_dg_subcycle("VelocityComponent", state, "NonlinearVelocity")
-            end do
+            call solve_vector_advection_dg_subcycle("LocalVelocity", state, "NonlinearVelocity")
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
@@ -653,7 +647,7 @@
       ! coriolis, old passive tracer
       type(scalar_field) :: f, old_T
       ! velocity in local coordinates
-      type(vector_field) :: U_local
+      type(vector_field) :: U_local, U_local_old
 
       type(scalar_field), pointer :: T
       type(vector_field), pointer :: X, U
@@ -685,8 +679,13 @@
       else
         call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
         call zero(U_local)
+        U_local%option_path=U%option_path
         call insert(state, U_local, "LocalVelocity")
         call deallocate(U_local)
+        call allocate(U_local_old, mesh_dim(U), U%mesh, "OldLocalVelocity")
+        call zero(U_local_old)
+        call insert(state, U_local_old, "OldLocalVelocity")
+        call deallocate(U_local_old)
       endif
 
       if (has_vector_field(state, "VelocitySource")) then
