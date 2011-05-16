@@ -8,6 +8,7 @@ include "stabilisation.rnc"
 include "adjoint_options.rnc"
 include "physical_parameters.rnc"
 include "mesh_options.rnc"
+include "prognostic_field_options.rnc"
 
 start =
    (
@@ -542,145 +543,6 @@ input_choice_real_dim_tensor =
       }
    )
 
-prognostic_velocity_field =
-   (
-      velocity_equation_choice,
-      ## Spatial discretisation options
-      element spatial_discretisation {
-         (
-            ## A new version of continuous galerkin assembly.
-            element continuous_galerkin {
-               ## Stabilisation options for the galerkin discretisation
-               element stabilisation{
-                  (
-                     no_stabilisation|
-                     su_stabilisation|
-                     supg_stabilisation
-                  )
-               },
-               ## Discretisation options for the mass terms in the velocity equation.
-               element mass_terms{
-                  ## Lump the mass matrix - currently required if solving for pressure
-                  element lump_mass_matrix {
-                     ## Lump on the submesh.
-                     ## This only works for simplex meshes and is only
-                     ## strictly valid on 2d meshes.
-                     element use_submesh {
-                       empty
-                     }?
-                  }?,
-                  ## Remove the mass terms from the equation.
-                  element exclude_mass_terms {
-                     empty
-                  }?
-               },
-               ## Discretisation options for the advection terms in the velocity equation.
-               element advection_terms {
-                  ## Integrate the advection terms of the momentum equation by parts.
-                  ## This allows for the imposition of weak boundary conditions.
-                  ## If activated the element advection matrix takes the form:
-                  ##    /                                            /
-                  ##  - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
-                  ##    /                                            /
-                  ## otherwise it takes the standard form:
-                  ##    /                                     /
-                  ##    | N_A (nu dot grad N_B) rho dV + beta | N_A ( div nu ) N_B rho dV
-                  ##    /                                     /
-                  ## where beta is set in conservative_advection, N is
-                  ## a shape function and nu is the relative nonlinear
-                  ## velocity.
-                  element integrate_advection_by_parts {
-                     empty
-                  }?,
-                  ## Remove the advection terms (u.grad u rho + beta
-                  ## div u rho u) from the equation.
-                  ## This overrides any other advection term options
-                  ## (including conservative_advection below).
-                  element exclude_advection_terms {
-                     empty
-                  }?
-               }
-            }|
-            ## Discontinuous galerkin formulation. This causes Momentum_DG to be
-            ## called instead of diff3d. Confusingly it is not necessary to provide
-            ## a discontinuous velocity field for this to work!
-            element discontinuous_galerkin {
-               element advection_scheme {
-                  (
-                     ## Disable advection
-                     element none {
-                        empty
-                     }| 
-                     ## Straightforward upwinding of the nonlinear velocity
-                     element upwind {
-                        empty
-                     }
-                  )
-               }
-            }
-         ),
-         ## Conservative discretisation of field advection equation
-         ##  TBETA=1. -- conservative (divergence form)
-         ##  TBETA=0. -- non-conservative
-         ##  0. < TBETA < 1.
-         element conservative_advection {
-            real
-         }         
-      },
-      ## Solver
-      element solver {
-         linear_solver_options_asym
-      },
-      (
-         ## Initial condition for WholeMesh
-         ##
-         ## Only specify one condition if not using mesh regions.
-         ## Otherwise select other initial_condition option, specify region_ids
-         ## and distinct names.  Then add extra intial conditions for other regions.
-         element initial_condition {
-            attribute name { "WholeMesh" },
-            input_choice_initial_condition_vector
-         }|
-         ## Multiple initial_conditions are allowed if specifying
-         ## different values in different
-         ## regions of the mesh (defined by region_ids).  In this case
-         ## each initial_condition
-         ## requires a distinct name for the options dictionary.
-         element initial_condition {
-            attribute name { string },
-            region_ids,
-            input_choice_initial_condition_vector
-         }
-      )+,
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
-         velocity_boundary_conditions
-      }*,
-      ## Source
-      element vector_field {
-         attribute name { "Source" },
-         attribute rank { "1" },
-         (
-            element prescribed {
-               prescribed_vector_field_no_adapt
-            }
-         )
-      }?,  
-      prognostic_vector_output_options,
-      prognostic_vector_stat_options,
-      vector_convergence_options,
-      prognostic_detector_options,
-      vector_steady_state_options,
-      adaptivity_options_prognostic_vector_field,
-      interpolation_algorithm_vector,
-      discrete_properties_algorithm_vector?
-   )
-
 prognostic_layerthickness_field =
    (
       ## Spatial discretisation options
@@ -769,48 +631,6 @@ prognostic_layerthickness_field =
       prognostic_scalar_stat_options,
       adaptivity_options_prognostic_scalar_field,
       interpolation_algorithm_scalar
-   )
-
-
-prognostic_scalar_field =
-   (
-      ## Solver
-      element solver {
-         linear_solver_options_sym
-      },
-      (
-         ## Initial condition for WholeMesh
-         ##
-         ## Only specify one condition if not using mesh regions.
-         ## Otherwise select other initial_condition option, specify region_ids
-         ## and distinct names.  Then add extra intial conditions for other regions.
-         element initial_condition {
-            attribute name { "WholeMesh" },
-            input_choice_initial_condition_real
-         }|
-         ## Multiple initial_conditions are allowed if specifying
-         ## different values in different
-         ## regions of the mesh (defined by region_ids).  In this case
-         ## each initial_condition
-         ## requires a distinct name for the options dictionary.
-         element initial_condition {
-            attribute name { string },
-            region_ids,
-            input_choice_initial_condition_real
-         }
-      ),
-      ## Diffusivity for field
-      element tensor_field {
-         attribute name { "Diffusivity" },
-         attribute rank { "2" },
-         element prescribed {
-            mesh_choice?,
-            prescribed_values_tensor_field
-         }
-      }?,
-      prognostic_scalar_output_options,
-      prognostic_scalar_stat_options,
-      adjoint_storage
    )
 
 # Default child of diagnostic scalar field

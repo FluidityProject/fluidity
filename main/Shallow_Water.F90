@@ -184,8 +184,8 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
-    call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state)
+!    call calculate_diagnostic_variables(state)
+!    call calculate_diagnostic_variables_new(state)
 
     ! Always output the initial conditions.
     call output_state(state)
@@ -217,10 +217,10 @@
        if(.not. prescribed_velocity) then
           call project_local_to_cartesian(state(1))
        end if
-       call calculate_diagnostic_variables(state,&
-            & exclude_nonrecalculated = .true.)
-       call calculate_diagnostic_variables_new(state,&
-            & exclude_nonrecalculated = .true.)
+!       call calculate_diagnostic_variables(state,&
+!            & exclude_nonrecalculated = .true.)
+!       call calculate_diagnostic_variables_new(state,&
+!            & exclude_nonrecalculated = .true.)
        call adjoint_register_timestep(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
@@ -489,6 +489,8 @@
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "LocalVelocity")
+      old_U=extract_vector_field(state, "OldLocalVelocity")
+
       have_source = .false.
       if (has_vector_field(state, "LocalVelocitySource")) then
         have_source = .true.
@@ -579,7 +581,6 @@
                     &,h_mass_mat, coriolis_mat,div_mat)
             end if
 
-
             call addto(u,delta_u)
             call set(advecting_u,old_u)
             call scale(advecting_u,(1-itheta))
@@ -600,7 +601,6 @@
       call deallocate(u_rhs)
       call deallocate(delta_d)
       call deallocate(delta_u)
-      call deallocate(old_u)
       call deallocate(old_d)
       call deallocate(advecting_u)
 
@@ -633,8 +633,6 @@
       !allocate previous timestep variables
       call allocate(old_d, D%mesh, "LayerThickness_old")
       call zero(old_d)
-      call allocate(old_u, U%dim, U%mesh, "Velocity_old")
-      call zero(old_u)
 
     end subroutine execute_timestep_setup
 

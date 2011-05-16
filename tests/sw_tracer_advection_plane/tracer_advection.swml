@@ -182,15 +182,6 @@
           </constant>
         </initial_condition>
         <output/>
-        <stat>
-          <exclude_from_stat/>
-          <previous_time_step>
-            <include_in_stat/>
-          </previous_time_step>
-          <nonlinear_field>
-            <include_in_stat/>
-          </nonlinear_field>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -225,12 +216,8 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -258,7 +245,7 @@
     <scalar_field name="PassiveTracer" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="Advection"/>
+        <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
             <advection_scheme>
@@ -272,17 +259,17 @@
             </diffusion_scheme>
           </discontinuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">0.</real_value>
+            <real_value rank="0"/>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0"/>
           </theta>
           <discontinuous_galerkin>
-            <number_advection_subcycles>
-              <integer_value rank="0">5</integer_value>
-            </number_advection_subcycles>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.8</real_value>
+            </maximum_courant_number_per_subcycle>
           </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
@@ -321,6 +308,26 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="DG_CourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
     </scalar_field>
   </material_phase>
   <debug>

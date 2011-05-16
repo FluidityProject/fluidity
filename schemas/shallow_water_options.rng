@@ -9,6 +9,9 @@
   <include href="adjoint_options.rng"/>
   <include href="physical_parameters.rng"/>
   <include href="mesh_options.rng"/>
+  <include href="prognostic_field_options.rng"/>
+  <include href="spatial_discretisation.rng"/>
+  <include href="temporal_discretisation.rng"/>
   <start>
     <element name="shallow_water_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -670,169 +673,6 @@ An example that returns the three-dimensional identity:
       </element>
     </choice>
   </define>
-  <define name="prognostic_velocity_field">
-    <ref name="velocity_equation_choice"/>
-    <element name="spatial_discretisation">
-      <a:documentation>Spatial discretisation options</a:documentation>
-      <choice>
-        <element name="continuous_galerkin">
-          <a:documentation>A new version of continuous galerkin assembly.</a:documentation>
-          <element name="stabilisation">
-            <a:documentation>Stabilisation options for the galerkin discretisation</a:documentation>
-            <choice>
-              <ref name="no_stabilisation"/>
-              <ref name="su_stabilisation"/>
-              <ref name="supg_stabilisation"/>
-            </choice>
-          </element>
-          <element name="mass_terms">
-            <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
-            <optional>
-              <element name="lump_mass_matrix">
-                <a:documentation>Lump the mass matrix - currently required if solving for pressure</a:documentation>
-                <optional>
-                  <element name="use_submesh">
-                    <a:documentation>Lump on the submesh.
-This only works for simplex meshes and is only
-strictly valid on 2d meshes.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <optional>
-              <element name="exclude_mass_terms">
-                <a:documentation>Remove the mass terms from the equation.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-          <element name="advection_terms">
-            <a:documentation>Discretisation options for the advection terms in the velocity equation.</a:documentation>
-            <optional>
-              <element name="integrate_advection_by_parts">
-                <a:documentation>Integrate the advection terms of the momentum equation by parts.
-This allows for the imposition of weak boundary conditions.
-If activated the element advection matrix takes the form:
-   /                                            /
- - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
-   /                                            /
-otherwise it takes the standard form:
-   /                                     /
-   | N_A (nu dot grad N_B) rho dV + beta | N_A ( div nu ) N_B rho dV
-   /                                     /
-where beta is set in conservative_advection, N is
-a shape function and nu is the relative nonlinear
-velocity.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="exclude_advection_terms">
-                <a:documentation>Remove the advection terms (u.grad u rho + beta
-div u rho u) from the equation.
-This overrides any other advection term options
-(including conservative_advection below).</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </element>
-        <element name="discontinuous_galerkin">
-          <a:documentation>Discontinuous galerkin formulation. This causes Momentum_DG to be
-called instead of diff3d. Confusingly it is not necessary to provide
-a discontinuous velocity field for this to work!</a:documentation>
-          <element name="advection_scheme">
-            <choice>
-              <element name="none">
-                <a:documentation>Disable advection</a:documentation>
-                <empty/>
-              </element>
-              <element name="upwind">
-                <a:documentation>Straightforward upwinding of the nonlinear velocity</a:documentation>
-                <empty/>
-              </element>
-            </choice>
-          </element>
-        </element>
-      </choice>
-      <element name="conservative_advection">
-        <a:documentation>Conservative discretisation of field advection equation
- TBETA=1. -- conservative (divergence form)
- TBETA=0. -- non-conservative
- 0. &lt; TBETA &lt; 1.</a:documentation>
-        <ref name="real"/>
-      </element>
-    </element>
-    <element name="solver">
-      <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
-    </element>
-    <oneOrMore>
-      <choice>
-        <element name="initial_condition">
-          <a:documentation>Initial condition for WholeMesh
-
-Only specify one condition if not using mesh regions.
-Otherwise select other initial_condition option, specify region_ids
-and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
-          <attribute name="name">
-            <value>WholeMesh</value>
-          </attribute>
-          <ref name="input_choice_initial_condition_vector"/>
-        </element>
-        <element name="initial_condition">
-          <a:documentation>Multiple initial_conditions are allowed if specifying
-different values in different
-regions of the mesh (defined by region_ids).  In this case
-each initial_condition
-requires a distinct name for the options dictionary.</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <ref name="region_ids"/>
-          <ref name="input_choice_initial_condition_vector"/>
-        </element>
-      </choice>
-    </oneOrMore>
-    <zeroOrMore>
-      <element name="boundary_conditions">
-        <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
-        <ref name="velocity_boundary_conditions"/>
-      </element>
-    </zeroOrMore>
-    <optional>
-      <element name="vector_field">
-        <a:documentation>Source</a:documentation>
-        <attribute name="name">
-          <value>Source</value>
-        </attribute>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <element name="prescribed">
-          <ref name="prescribed_vector_field_no_adapt"/>
-        </element>
-      </element>
-    </optional>
-    <ref name="prognostic_vector_output_options"/>
-    <ref name="prognostic_vector_stat_options"/>
-    <ref name="vector_convergence_options"/>
-    <ref name="prognostic_detector_options"/>
-    <ref name="vector_steady_state_options"/>
-    <ref name="adaptivity_options_prognostic_vector_field"/>
-    <ref name="interpolation_algorithm_vector"/>
-    <optional>
-      <ref name="discrete_properties_algorithm_vector"/>
-    </optional>
-  </define>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
@@ -926,57 +766,6 @@ Will be replaced by a field in due course</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
-  </define>
-  <define name="prognostic_scalar_field">
-    <element name="solver">
-      <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
-    </element>
-    <choice>
-      <element name="initial_condition">
-        <a:documentation>Initial condition for WholeMesh
-
-Only specify one condition if not using mesh regions.
-Otherwise select other initial_condition option, specify region_ids
-and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
-        <attribute name="name">
-          <value>WholeMesh</value>
-        </attribute>
-        <ref name="input_choice_initial_condition_real"/>
-      </element>
-      <element name="initial_condition">
-        <a:documentation>Multiple initial_conditions are allowed if specifying
-different values in different
-regions of the mesh (defined by region_ids).  In this case
-each initial_condition
-requires a distinct name for the options dictionary.</a:documentation>
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-        <ref name="region_ids"/>
-        <ref name="input_choice_initial_condition_real"/>
-      </element>
-    </choice>
-    <optional>
-      <element name="tensor_field">
-        <a:documentation>Diffusivity for field</a:documentation>
-        <attribute name="name">
-          <value>Diffusivity</value>
-        </attribute>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <element name="prescribed">
-          <optional>
-            <ref name="mesh_choice"/>
-          </optional>
-          <ref name="prescribed_values_tensor_field"/>
-        </element>
-      </element>
-    </optional>
-    <ref name="prognostic_scalar_output_options"/>
-    <ref name="prognostic_scalar_stat_options"/>
-    <ref name="adjoint_storage"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field">

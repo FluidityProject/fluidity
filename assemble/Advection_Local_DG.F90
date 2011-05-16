@@ -165,8 +165,6 @@ contains
     
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
-    call get_option(trim(T%option_path)//&
-         &"/prognostic/temporal_discretisation/theta", theta)
     call get_option("/timestepping/timestep", dt)
     
     if(have_option(trim(T%option_path)//&
@@ -181,7 +179,7 @@ contains
             &/maximum_courant_number_per_subcycle", Max_Courant_number)
        
        s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
+       call calculate_diagnostic_variable(state, "DG_CourantNumber_Local", &
             & s_field)
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
@@ -671,15 +669,15 @@ contains
        inner_advection_integral = (1.-income)*u_nl_q_dotn
        nnAdvection_out=shape_shape(T_shape, T_shape,  &
             &                     inner_advection_integral*T_shape%quadrature%weight)
-       print*, 'js:nnAdvection_out:'
-       print*, nnAdvection_out
+!       print*, 'js:nnAdvection_out:'
+!       print*, nnAdvection_out
        ! now the integral around the outside of the element
        ! (this is the flux *in* to the element)
        outer_advection_integral = income*u_nl_q_dotn
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral*T_shape%quadrature%weight)
-       print*, 'js:nnAdvection_in:'
-       print*, nnAdvection_in
+!       print*, 'js:nnAdvection_in:'
+!       print*, nnAdvection_in
        
     else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
 
@@ -816,6 +814,8 @@ contains
     mass_sparsity=make_sparsity_dg_mass(U%mesh)
     call allocate(mass, mass_sparsity, (/dim,dim/))
     call allocate(inv_mass, mass_sparsity, (/dim,dim/))
+    call zero(mass)
+    call zero(inv_mass)
 
     ! Ensure delta_U inherits options from U.
     call allocate(delta_U, U%dim, U%mesh, "delta_U")
@@ -831,27 +831,27 @@ contains
     ! come after construct_advection_diffusion_dg.
     call get_option("/timestepping/timestep", dt)
     
-!    if(have_option(trim(U%option_path)//&
-!         &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-!         &/number_advection_subcycles")) then
-!       call get_option(trim(U%option_path)//&
-!            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-!            &/number_advection_subcycles", subcycles)
-!    else
-!       call get_option(trim(U%option_path)//&
-!            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-!            &/maximum_courant_number_per_subcycle", Max_Courant_number)
-!       
-!       s_field => extract_scalar_field(state, "DG_CourantNumber")
-!       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
-!            & s_field)
+    if(have_option(trim(U%option_path)//&
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
+         &/number_advection_subcycles")) then
+       call get_option(trim(U%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
+            &/number_advection_subcycles", subcycles)
+    else
+       call get_option(trim(U%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
+            &/maximum_courant_number_per_subcycle", Max_Courant_number)
        
-!       subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
-!       call allmax(subcycles)
-!       ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
-!    end if
+       s_field => extract_scalar_field(state, "DG_CourantNumber")
+       call calculate_diagnostic_variable(state, "DG_CourantNumber_Local", &
+            & s_field)
+       ewrite_minmax(s_field)
+       
+       subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
+       call allmax(subcycles)
+       ewrite(2,*) 'Number of subcycles for velocity eqn: ', subcycles
+    end if
 
-    subcycles=2
     limit_slope=.false.
     if (have_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
@@ -884,22 +884,30 @@ contains
 
     U_nl=>extract_vector_field(state, velocity_name)
     ! Allocate and zero cartesian velocity field
-    call allocate(U_cartesian, U_nl%dim, U_nl%mesh, "U_cartesian")
+    call allocate(U_cartesian, X%dim, U_nl%mesh, "U_cartesian")
     call zero(U_cartesian)
 
     do i=1, subcycles
 
+       print*, 'subcycle=', i
+
        ! dU = Advection * U
        call mult(delta_U, matrix, U)
+       ewrite_minmax(delta_U)
        ! dU = dU + RHS
        call addto(delta_U, RHS, -1.0)
+       ewrite_minmax(delta_U)
        ! dU = M^(-1) dU
        call dg_apply_mass(inv_mass, delta_U)
+       ewrite_minmax(delta_U)
+       ewrite_minmax(inv_mass)
        
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
        call halo_update(U)
        ewrite_minmax(delta_U)
+!       limit_slope=.true.
+!       limiter=LIMITER_VB
        if (limit_slope) then
           call project_local_to_cartesian(X, U, U_cartesian)
           ! Filter wiggles from U
@@ -922,7 +930,7 @@ contains
   end subroutine solve_vector_advection_dg_subcycle
 
   subroutine construct_vector_advection_dg(big_m, rhs, field_name,&
-       & state, mass, inverse_mass, velocity_name) 
+       & state, mass, inv_mass, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -940,7 +948,7 @@ contains
     !! Collection of fields defining system state.
     type(state_type), intent(inout) :: state
     !! Optional separate mass matrix.
-    type(block_csr_matrix), intent(inout), optional :: mass, inverse_mass
+    type(block_csr_matrix), intent(inout), optional :: mass, inv_mass
     !! Optional velocity name
     character(len = *), intent(in), optional :: velocity_name
 
@@ -1007,7 +1015,7 @@ contains
        
        call construct_vector_adv_element_dg(ele, big_m, rhs,&
             & X, U, U_nl, &
-            bc_value, bc_type, mass, inverse_mass)
+            bc_value, bc_type, mass, inv_mass)
        
     end do element_loop
     
@@ -1021,7 +1029,7 @@ contains
   subroutine construct_vector_adv_element_dg(ele, big_m, rhs,&
        & X, U, U_nl, &
        & bc_value, bc_type, &
-       & mass, inverse_mass)
+       & mass, inv_mass)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1037,7 +1045,7 @@ contains
     !! (see above call to get_entire_boundary_condition):
     integer, dimension(:,:), intent(in):: bc_type
     !! Optional separate mass matrix.
-    type(block_csr_matrix), intent(inout), optional :: mass, inverse_mass
+    type(block_csr_matrix), intent(inout), optional :: mass, inv_mass
     
     !! Position, velocity and advecting velocity.
     type(vector_field), intent(in) :: X, U, U_nl
@@ -1112,19 +1120,13 @@ contains
     do gi=1,ele_ngi(X,ele)
        G(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
     end do
-    print*, 'G'
-    print*, G
 
     mass_mat=shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, G)
 
-    print*, 'mass mat'
-    print*, mass_mat
-
     ! Advecting velocity at quadrature points.
     U_quad=ele_val_at_quad(U_nl,ele)
     U_nl_q=U_quad
-
     U_nl_div_q=ele_div_at_quad(U_nl, ele, U_shape%dn)
 
     ! Element advection matrix
@@ -1133,17 +1135,17 @@ contains
     !    /                           /
 
     Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)
-    print*, 'U_shape%quadrature%weight'
-    print*, U_shape%quadrature%weight
-    print*, 'U_nl_q'
-    print*, U_nl_q
-    print*, 'Ad_mat1'
-    print*, Ad_mat1
+!    print*, 'U_shape%quadrature%weight'
+!    print*, U_shape%quadrature%weight
+!    print*, 'U_nl_q'
+!    print*, U_nl_q
+!    print*, 'Ad_mat1'
+!    print*, Ad_mat1
     Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
-    print*, 'U_nl_div_q'
-    print*, U_nl_div_q
-    print*, 'Ad_mat2'
-    print*, Ad_mat2
+!    print*, 'U_nl_div_q'
+!    print*, U_nl_div_q
+!    print*, 'Ad_mat2'
+!    print*, Ad_mat2
     Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)  &
            -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
 
@@ -1173,13 +1175,18 @@ contains
                  mass_mat(dim1,dim2,:,:)
          end do
       end do
+!      print*, 'l_mass'
+!      print*, l_mass
       call invert(l_mass)
+!      print*, 'inverse l_mass'
+!      print*, l_mass
       do dim1 = 1,dim
          do dim2 = 1,dim
-            call addto(inverse_mass, dim1, dim2, U_ele, U_ele, &
+            call addto(inv_mass, dim1, dim2, U_ele, U_ele, &
                  l_mass(nloc*(dim1-1)+1:nloc*dim1,nloc*(dim2-1)+1:nloc*dim2))
          end do
       end do
+      ewrite_minmax(inv_mass)
    else
       if(include_mass) then
          ! Put mass in the matrix.
@@ -1320,8 +1327,8 @@ contains
     u_nl_q_dotn1 = sum(U_nl_f_q*n1,1)
     u_nl_q_dotn2 = -sum(U_nl_f2_q*n2,1)
     U_nl_q_dotn=0.5*(u_nl_q_dotn1+u_nl_q_dotn2)
-    print*, 'U_nl_q_dotn'
-    print*, U_nl_q_dotn
+!    print*, 'U_nl_q_dotn'
+!    print*, U_nl_q_dotn
 
     ! Inflow is true if the flow at this gauss point is directed
     ! into this element.
@@ -1341,8 +1348,8 @@ contains
     do gi=1,face_ngi(X,ele)
        G(:,:,gi)=matmul(J_f(:,:), transpose(J_f(:,:)))/detJ_f
     end do
-    print*, 'G'
-    print*, G
+!    print*, 'G'
+!    print*, G
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -1357,15 +1364,15 @@ contains
     inner_advection_integral = (1.-income)*u_nl_q_dotn
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
          &            inner_advection_integral*U_shape%quadrature%weight, G)
-    print*, 'js:nnAdvection_out:'
-    print*, nnAdvection_out
+!    print*, 'js:nnAdvection_out:'
+!    print*, nnAdvection_out
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
          &            outer_advection_integral*U_shape%quadrature%weight, G)
-    print*, 'js:nnAdvection_in:'
-    print*, nnAdvection_in
+!    print*, 'js:nnAdvection_in:'
+!    print*, nnAdvection_in
        
     !----------------------------------------------------------------------
     ! Perform global assembly.
