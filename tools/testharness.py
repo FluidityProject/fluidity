@@ -314,7 +314,7 @@ if __name__ == "__main__":
     parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem (default=serial)",
                       default="serial")
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
-    parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default="")
+    parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default=[], action="append")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
     parser.add_option("-n", "--threads", dest="thread_count", type="int",
                       help="number of tests to run at the same time", default=1)
@@ -345,10 +345,11 @@ if __name__ == "__main__":
       exclude_tags = None
     else:
       exclude_tags = options.exclude_tags
+
     if len(options.tags) == 0:
       tags = None
     else:
-      tags = options.tags.split()
+      tags = options.tags
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
         justtest=options.justtest, valgrind=options.valgrind)
