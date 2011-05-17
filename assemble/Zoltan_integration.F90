@@ -1625,12 +1625,8 @@ module zoltan_integration
           send_detector%element = old_universal_element_number
 
           ! Remove detector from detector list
-          ewrite(3,*) "Removing detector ", send_detector%id_number, "(ID) from the detector_list"
-          call remove_det_from_current_det_list(detector_list, send_detector)
-
-          ! Add allocated detector to send list
-          ewrite(3,*) "Adding detector ", send_detector%id_number, "(ID) to the detector_send_list"
-          call insert(detector_send_list, send_detector)
+          ewrite(3,*) "Moving detector ", send_detector%id_number, "(ID) from the detector_list to the detector_send_list"
+          call move(detector_list, send_detector, detector_send_list)
 
        end if
     end do
@@ -1662,8 +1658,7 @@ module zoltan_integration
 
        delete_detector => detector
        detector => detector%next
-       call remove_det_from_current_det_list(detector_send_list, delete_detector)
-       call deallocate(delete_detector)
+       call delete(detector_send_list, delete_detector)
     end do
 
     ewrite(3,*) "Packed the ", send_count, " detectors to be sent"
@@ -1848,8 +1843,7 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, add_detector)
-       call insert(default_stat%detector_list, add_detector)
+       call move(zoltan_global_unpacked_detectors_list, add_detector, default_stat%detector_list)
 
     end do
 

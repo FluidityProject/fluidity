@@ -32,7 +32,7 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: default_stat, remove_det_from_current_det_list
+  use diagnostic_variables, only: default_stat
   use state_module
   use zoltan_detectors
 
@@ -1080,11 +1080,8 @@ contains
           ! move on our iterating pointer so it's not left on a deleted node
           detector => detector%next
           
-          ! remove the detector we just packed from the to_pack list
-          call remove_det_from_current_det_list(zoltan_global_to_pack_detectors_list, detector_to_delete)          
-
-          ! deallocate the memory of the packed detector
-          call deallocate(detector_to_delete)
+          ! delete the detector we just packed from the to_pack list
+          call delete(zoltan_global_to_pack_detectors_list, detector_to_delete)
 
           rhead = rhead + zoltan_global_ndata_per_det
        end do
