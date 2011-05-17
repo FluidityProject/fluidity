@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>random_walk_agents</name>
+  <owner userid="mlange"/>
+  <tags>flml parallel</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>
+mpirun -n 4 ../../bin/fluidity -v3 -l random_walk_agents.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="last_locations_error" language="python">
+from readtool_3d import readstat_3d
+last_locations_error = readstat_3d()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="CorrectLagrangianTrajectory" language="python">
+assert abs(last_locations_error).max() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
