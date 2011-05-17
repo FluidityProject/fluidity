@@ -813,11 +813,9 @@ contains
 
   end subroutine allocate_csr_sparsity
 
-  subroutine allocate_csr_matrix(matrix, sparsity, val, type, name, stat)
+  subroutine allocate_csr_matrix(matrix, sparsity, type, name, stat)
     type(csr_matrix), intent(out) :: matrix
     type(csr_sparsity), intent(in) :: sparsity
-    !! Val can be used to not allocate the values.
-    logical, intent(in), optional :: val
     !! Real or integer matrix.
     integer, intent(in), optional :: type
     character(len=*), intent(in), optional :: name
@@ -4762,7 +4760,7 @@ contains
     type(csr_sparsity), intent(in):: sparsity
     
     integer, dimension(:), pointer:: cols
-    integer i, j, col
+    integer i, j 
     logical sorted
     
     do i=1, size(sparsity,1)
@@ -4863,6 +4861,84 @@ contains
     sparsityC%sorted_rows=.true.
         
   end function sparsity_merge
+
+  function sparsity_duplicate_rows(sparsity_in, rows, name) result (sparsity_out)
+  !!< function that returns a new sparsity based on sparsity_in
+  !!< that has all the rows in the set 'rows' duplicated and appended
+  !!< at the end (as extra rows).
+    type(csr_sparsity):: sparsity_out
+    type(csr_sparsity), intent(in):: sparsity_in
+    type(integer_set), intent(in):: rows
+    character(len=*), intent(in):: name
+
+    integer:: i, k, l, row, new_row, extra_entries
+
+    extra_entries=0
+    do i=1, key_count(rows)
+      row=fetch(rows, i)
+      extra_entries=extra_entries+row_length(sparsity_in, row)
+    end do
+
+    call allocate(sparsity_out, size(sparsity_in,1)+key_count(rows), size(sparsity_in,2), &
+      entries=size(sparsity_in%colm)+extra_entries, name=name)
+
+    sparsity_out%findrm(1:size(sparsity_in%findrm))=sparsity_in%findrm
+
+    do i=1, key_count(rows)
+      row=fetch(rows, i)
+      new_row=size(sparsity_in,1)+i
+      l=row_length(sparsity_in, row)
+      k=sparsity_out%findrm(new_row)
+      sparsity_out%colm(k:k+l-1)=row_m(sparsity_in, row)
+      sparsity_out%findrm(new_row+1)=k+l
+    end do
+
+  end function sparsity_duplicate_rows
+
+  function sparsity_duplicate_columns(sparsity_in, columns, name) result (sparsity_out)
+  !!< function that returns a new sparsity based on sparsity_in
+  !!< that has all the columns in the set 'cols' duplicated and appended
+  !!< at the end (as extra columns).
+    type(csr_sparsity):: sparsity_out
+    type(csr_sparsity), intent(in):: sparsity_in
+    type(integer_set), intent(in):: columns
+    character(len=*), intent(in):: name
+
+    type(integer_hash_table):: column_index
+    integer, dimension(:), pointer:: row_in
+    integer:: i, j, k, l, extra_entries
+
+    extra_entries=0
+    do i=1, size(sparsity_in%colm)
+      if (has_value(columns, sparsity_in%colm(i))) then
+        extra_entries=extra_entries+1
+      end if
+    end do
+
+    call allocate(sparsity_out, size(sparsity_in,1), size(sparsity_in,2)+key_count(columns), &
+      entries=size(sparsity_in%colm)+extra_entries, name=name)
+
+    ! column index maps from a column index in sparsity_in to an index in columns
+    call invert_set(columns, column_index)
+
+    k=1
+    do i=1, size(sparsity_in, 1)
+      sparsity_out%findrm(i)=k
+      row_in => row_m_ptr(sparsity_in, i)
+      l=size(row_in)
+      sparsity_out%colm(k:k+l-1)=row_in
+      k=k+l
+      do j=1, l
+        if (has_value(columns, row_in(j))) then
+          sparsity_out%colm(k)=size(sparsity_in,2)+fetch(column_index, row_in(j))
+          k=k+1
+        end if
+      end do
+    end do
+    ! fill in the usual last row
+    sparsity_out%findrm(i)=k
+
+  end function sparsity_duplicate_columns
   
   subroutine csr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.
