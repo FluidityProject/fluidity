@@ -66,6 +66,7 @@ implicit none
   public :: femtools_mat_destroy_proc
   public :: ADJ_SCALAR_FIELD, ADJ_VECTOR_FIELD, ADJ_TENSOR_FIELD, ADJ_CSR_MATRIX, ADJ_BLOCK_CSR_MATRIX, ADJ_MESH_TYPE
   public :: ADJ_IDENTITY_MATRIX, ADJ_MATRIX_INVERTED
+  public :: femtools_vec_axpy_proc
 
   contains
 
