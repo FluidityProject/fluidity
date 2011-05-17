@@ -322,7 +322,6 @@ module mp_prototype
            capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
            domain_length )
 
-stop 981
       if( option_debug == 357 )then
          open( 357, file = 'flog.dat', status = 'unknown')
       else
@@ -336,7 +335,7 @@ stop 981
 
       nkcomp = Combination( ncomp, 2 )
 
-      call read_all( unit_input, nphase, ncomp, totele, ndim, &
+      if( .false. ) call read_all( unit_input, nphase, ncomp, totele, ndim, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, ncp_coefs, & 
            cv_nonods, u_nonods, &
@@ -450,77 +449,9 @@ stop 981
       nvold = 0.
       nwold = 0.
 
-      ! Set up Global node number for velocity and scalar fields
-!      allocate( u_ndgln( totele * u_nloc ))
-!      allocate( xu_ndgln( totele * xu_nloc ))
-!      allocate( cv_ndgln( totele * cv_nloc ))
-!      allocate( x_ndgln( totele * cv_nloc ))
-!      allocate( p_ndgln( totele * p_nloc ))
-!      allocate( mat_ndgln( totele * mat_nloc ))
-!      allocate( u_sndgln( stotel * u_snloc ))
-!      allocate( cv_sndgln( stotel * cv_snloc ))
-!      allocate( x_sndgln( stotel * cv_snloc ))
-!      allocate( p_sndgln( stotel * p_snloc ))
-
-      u_ndgln = 0
-      xu_ndgln = 0
-      cv_ndgln = 0
-      x_ndgln = 0
-      p_ndgln = 0
-      mat_ndgln =0
-      u_sndgln = 0
-      cv_sndgln =0
-      x_sndgln = 0
-      p_sndgln = 0
-
-      call allocating_global_nodes( ndim, totele, domain_length, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
-           cv_snloc, u_snloc, p_snloc, stotel, &
-           cv_nonods, u_nonods, x_nonods, xu_nonods, &
-           u_ele_type, cv_ele_type, &
-           x, xu,  &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
-
-      ! Initialising T and Told. This should be properly initialised through a generic function
-      call initialise_scalar_fields( &
-           problem, ndim, nphase, totele, domain_length, &
-           x_nloc, cv_nloc, x_nonods, cv_nonods,  &
-           x_ndgln, cv_ndgln, &
-           x, told, t )
+      told = t
 
       close( unit_input )
-
-      ! Mirroring Input dat
-
-      if( .true. ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc,  p_snloc, stotel, &
-           ncoef, nuabs_coefs, &
-           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type, &
-           ntime, nits, ndpset, &
-           dt, patmos, p_ini, t_ini, &
-           t_beta, v_beta, t_theta, v_theta, u_theta, &
-           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
-           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
-           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
-           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
-           nlenmcy, &
-           nopt_vel_upwind_coefs, &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
-           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
-           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-           suf_u_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, &
-           opt_vel_upwind_coefs, &
-           x, xu, nu, ug, &
-           uabs_option, u_abs_stab, u_absorb, &
-           u_source, &
-           u,  &
-           den, satura, comp, p, cv_p, volfra_pore, perm )
-
 
       ! Sparsity patterns
       allocate( finmcy( nlenmcy + 1 )) ! Force balance plus cty multi-phase eqns

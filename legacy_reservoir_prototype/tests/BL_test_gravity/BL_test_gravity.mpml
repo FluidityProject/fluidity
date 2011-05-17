@@ -40,7 +40,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>continuous</string_value>
+          <string_value>discontinuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -62,6 +62,9 @@
         <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
+    <max_dump_file_count>
+      <integer_value rank="0">160</integer_value>
+    </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
@@ -75,6 +78,9 @@
     <finish_time>
       <real_value rank="0">10.0</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">3</integer_value>
+    </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -331,7 +337,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -677,7 +687,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>

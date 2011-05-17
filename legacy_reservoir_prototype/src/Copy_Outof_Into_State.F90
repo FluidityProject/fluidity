@@ -318,6 +318,8 @@ module copy_outof_into_state
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
       call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
+
+      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
       !! Sufficient to set this to 1 for now? It is 1 in all test cases
       mat_ele_type = 1
       !! Sufficient to set this to 2 for now? It is 2 in all test cases
@@ -399,7 +401,7 @@ module copy_outof_into_state
       endif
 
       t_dg_vel_int_opt = 0
-      u_dg_vel_int_opt = 0 ! Not used -- it can be deleted
+      u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
       v_dg_vel_int_opt = 4
       w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
 
