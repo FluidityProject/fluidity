@@ -2738,6 +2738,14 @@ velocity_boundary_conditions =
          element type {
            attribute name { "free_surface" },
            (
+              ## The default free_surface implements the physical boundary
+              ## condition p=0 (this is full pressure without subtracting the hydrostatic component)
+              ## For viscous fluids the correct boundary condition is a no normal
+              ## stress condition, which includes a viscosity term. When using
+              ## this option a prognostic FreeSurface field is required.
+              element no_normal_stress {
+                 empty
+              }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT
@@ -3441,10 +3449,10 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## NOTE: if you are using the free_surface boundary condition
-         ## applied to the Velocity field (recommended), you should not 
-         ## use the prognostic FreeSurface field. In this case you may 
-         ## (optionally) add a diagnostic FreeSurface field.
+         ## Use in combination with a free_surface boundary condition on velocity
+         ## Without the no_normal_stress option, this field should be diagnostic
+         ## and is optional. With the no_normal_stress option this field is required
+         ## and should be prognostic.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FreeSurface" },
@@ -3452,16 +3460,53 @@ scalar_field_choice =
                ## Free Surface
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
-               ## field. It gives you a 3D field (constant over the vertical)
+               ## field, without the no_normal_stress_option.
+               ## It gives you a 3D field (constant over the vertical)
                ## of the free surface elevation.
                element diagnostic {
                   internal_algorithm,
-                  # this is hard-coded on the PressureMesh as long as the Pressure is
-                  # if this is no longer true, it should be option-checked to be on the
-                  # same mesh as Pressure
                   ## Must be on the same mesh as Pressure
                   pressure_mesh_choice,
                   diagnostic_scalar_field
+               }|
+               ## Free Surface
+               ## NOTE: the prognostic FreeSurface field only works in combination
+               ## with the free_surface boundary condition applied to the Velocity
+               ## field in combination with the no_normal_stress_option.
+               ## It gives you a 3D field (constant over the vertical)
+               ## of the free surface elevation. Initial and boundary conditions
+               ## for free surface should be set on this field.
+               element prognostic {
+                  ## Must be on the same mesh as Pressure
+                  pressure_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  prognostic_scalar_output_options,
+                  prognostic_scalar_stat_options,
+                  scalar_convergence_options,
+                  prognostic_detector_options,
+                  scalar_steady_state_options,
+                  adaptivity_options_prognostic_scalar_field,
+                  interpolation_algorithm_scalar
                }
                
             )

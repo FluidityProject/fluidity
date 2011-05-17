@@ -3687,17 +3687,29 @@ on the Velocity field.</a:documentation>
         <attribute name="name">
           <value>free_surface</value>
         </attribute>
-        <optional>
-          <element name="surface_stabilisation">
-            <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
+        <group>
+          <optional>
+            <element name="no_normal_stress">
+              <a:documentation>The default free_surface implements the physical boundary
+condition p=0 (this is full pressure without subtracting the hydrostatic component)
+For viscous fluids the correct boundary condition is a no normal
+stress condition, which includes a viscosity term. When using
+this option a prognostic FreeSurface field is required.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="surface_stabilisation">
+              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
 Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
 IN DEVELOPMENT</a:documentation>
-            <element name="scale_factor">
-              <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
-              <ref name="real"/>
+              <element name="scale_factor">
+                <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
+                <ref name="real"/>
+              </element>
             </element>
-          </element>
-        </optional>
+          </optional>
+        </group>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you
@@ -4495,33 +4507,79 @@ i.e. excluding the components</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Free Surface
-NOTE: if you are using the free_surface boundary condition
-applied to the Velocity field (recommended), you should not 
-use the prognostic FreeSurface field. In this case you may 
-(optionally) add a diagnostic FreeSurface field.</a:documentation>
+Use in combination with a free_surface boundary condition on velocity
+Without the no_normal_stress option, this field should be diagnostic
+and is optional. With the no_normal_stress option this field is required
+and should be prognostic.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
           <value>FreeSurface</value>
         </attribute>
-        <element name="diagnostic">
-          <a:documentation>Free Surface
+        <choice>
+          <element name="diagnostic">
+            <a:documentation>Free Surface
 NOTE: the diagnostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
-field. It gives you a 3D field (constant over the vertical)
+field, without the no_normal_stress_option.
+It gives you a 3D field (constant over the vertical)
 of the free surface elevation.</a:documentation>
-          <ref name="internal_algorithm"/>
-          <!--
-            this is hard-coded on the PressureMesh as long as the Pressure is
-            if this is no longer true, it should be option-checked to be on the
-            same mesh as Pressure
-          -->
-          <ref name="pressure_mesh_choice">
-            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-          </ref>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
+            <ref name="internal_algorithm"/>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prognostic">
+            <a:documentation>Free Surface
+NOTE: the prognostic FreeSurface field only works in combination
+with the free_surface boundary condition applied to the Velocity
+field in combination with the no_normal_stress_option.
+It gives you a 3D field (constant over the vertical)
+of the free surface elevation. Initial and boundary conditions
+for free surface should be set on this field.</a:documentation>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <ref name="prognostic_scalar_output_options"/>
+            <ref name="prognostic_scalar_stat_options"/>
+            <ref name="scalar_convergence_options"/>
+            <ref name="prognostic_detector_options"/>
+            <ref name="scalar_steady_state_options"/>
+            <ref name="adaptivity_options_prognostic_scalar_field"/>
+            <ref name="interpolation_algorithm_scalar"/>
+          </element>
+        </choice>
       </element>
       <element name="scalar_field">
         <a:documentation>Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions.</a:documentation>
