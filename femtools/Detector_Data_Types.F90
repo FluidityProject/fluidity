@@ -36,7 +36,8 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_linked_list, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+  public :: detector_type, detector_parameters, detector_linked_list, &
+            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
 
@@ -71,10 +72,25 @@ module detector_data_types
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
 
+  ! Parameters for lagrangian detector movement
+  type detector_parameters
+    ! Type of lagrangian advection algorithm
+    logical :: use_rk_gs
+
+    ! Runk-Kutta Guided Search parameters
+    integer :: n_stages, n_subcycles
+    real, allocatable, dimension(:) :: timestep_weights
+    real, allocatable, dimension(:,:) :: stage_matrix
+    real :: search_tolerance
+  end type detector_parameters
+
   type detector_linked_list
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
+
+     ! Detector list parameters for lagrangian movement
+     type(detector_parameters), pointer :: move_parameters
   end type detector_linked_list
 
 end module detector_data_types

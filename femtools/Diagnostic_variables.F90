@@ -173,8 +173,6 @@ module diagnostic_variables
     integer, dimension(:), allocatable :: number_det_in_each_group
 
     type(detector_linked_list) :: detector_list
-    ! Parameter object defining how to move the lagrangian detectors
-    type(detector_params) :: detector_move_params
 
     type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
     
@@ -1905,7 +1903,7 @@ contains
     end if
 
     !Get options for lagrangian detector movement
-    call read_detector_move_options("/io/detectors",default_stat%detector_move_params)
+    call read_detector_move_options(default_stat%detector_list, "/io/detectors")
 
   end subroutine initialise_detectors
 
@@ -2224,8 +2222,7 @@ contains
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
        call move_lagrangian_detectors(state, default_stat%detector_list, &
-            default_stat%detector_move_params, dt, timestep, &
-            default_stat%name_of_detector_in_read_order)
+            dt, timestep, default_stat%name_of_detector_in_read_order)
     end if
 
     ! Now output any detectors.    
