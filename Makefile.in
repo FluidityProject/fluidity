@@ -78,7 +78,7 @@ endif
 # Thread count for make test.
 THREADS=1
 
-EXCLUDE_TAGS = -e diamond_validation
+EXCLUDE_TAGS =
 ifneq (@ZOLTAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
 endif
@@ -441,8 +441,7 @@ else
 endif
 
 mediumtest:
-	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS) # diamond_validation is in EXCLUDE_TAGS already
-	@cd tests; ../tools/testharness.py -f diamond_validation.xml # we run diamond_validation last, as tests may generate .flml files
+	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
