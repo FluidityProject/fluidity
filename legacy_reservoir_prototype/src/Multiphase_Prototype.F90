@@ -332,6 +332,10 @@ module mp_prototype
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
       allocate( tdiffusion( mat_nonods, ndim, ndim, nphase ))
+! These can later be added into the schema, but as we are not solving for diffusion now,
+! these can be done latter. For now, we are just allocating memory and initialise them
+      udiffusion = 0.
+      tdiffusion = 0.
 
       nkcomp = Combination( ncomp, 2 )
 

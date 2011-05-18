@@ -40,7 +40,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>discontinuous</string_value>
+          <string_value>continuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -144,7 +144,7 @@
         </solver>
         <boundary_conditions name="BC_Pressure_Ph1">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -193,7 +193,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">0.71</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -261,7 +261,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="BC_velocity_Ph1">
@@ -350,7 +350,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -383,7 +383,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -480,7 +480,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">0.5</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -538,16 +538,6 @@
             <real_value rank="0">1.05</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_dens_Ph2">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">1.</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -611,7 +601,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="BC_velocity_Ph2">
@@ -622,7 +612,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
-                  <real_value rank="0">1.</real_value>
+                  <real_value rank="0">0.</real_value>
                 </constant>
               </x_component>
             </align_bc_with_cartesian>
@@ -700,7 +690,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -733,7 +723,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -798,7 +788,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">0.5</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -828,7 +818,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value rank="0">0.2</real_value>
+            <real_value rank="0">0.5</real_value>
           </constant>
         </value>
         <output/>

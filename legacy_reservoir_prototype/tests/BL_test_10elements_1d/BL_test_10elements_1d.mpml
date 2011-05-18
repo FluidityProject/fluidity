@@ -40,7 +40,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>continuous</string_value>
+          <string_value>discontinuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -112,16 +112,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="Outlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -157,16 +147,6 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -197,7 +177,6 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
-            <overlapping/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -303,7 +282,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -343,16 +322,6 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">1</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -399,74 +368,6 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <prognostic>
-        <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">300</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="Inlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">3</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
     <multiphase_properties>
       <relperm_option>
         <integer_value rank="0">3</integer_value>
@@ -474,15 +375,6 @@
     </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
-    <equation_of_state>
-      <incompressible>
-        <linear>
-          <all_equal>
-            <real_value rank="0">1.</real_value>
-          </all_equal>
-        </linear>
-      </incompressible>
-    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <aliased material_phase_name="phase1" field_name="Pressure"/>
     </scalar_field>
@@ -572,20 +464,6 @@
             <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.</real_value>
-                </constant>
-              </x_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
@@ -641,7 +519,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -681,16 +559,6 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inlet">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -705,14 +573,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <aliased material_phase_name="phase1" field_name="Temperature"/>
-    </scalar_field>
-    <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
-    </multiphase_properties>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">

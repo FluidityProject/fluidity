@@ -243,8 +243,8 @@ module copy_outof_into_state
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! these does not matter -- most of them can be deleted quite soon
-       problem = 2 
-       nlev = 3
+      problem = 2 
+      nlev = 3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       nstates = option_count("/material_phase")
       ewrite(3,*) ' nstates:', nstates
@@ -767,17 +767,21 @@ module copy_outof_into_state
             do j=1,shape_option(1)
                wic_p_bc( pressure_sufid_bc(1) + (i-1)*nphases ) = pressure_bc_type
                suf_p_bc( pressure_sufid_bc(1) + (i-1)*nphases ) = pressure_suf_bc
+               ! The bellow is done as prssure for phase 2 is aliased therefore the same info for nodes
+               ! for the phase 1 should be copied for phase 2. This need to be changed later.
+               wic_p_bc( pressure_sufid_bc(1) + i*nphases ) = pressure_bc_type
+               suf_p_bc( pressure_sufid_bc(1) + i*nphases ) = pressure_suf_bc
             enddo
 
-            ewrite(3,*) 'wic_p_bc', wic_p_bc
-            ewrite(3,*) 'suf_p_bc', suf_p_bc
+
+            ewrite(3,*) 'wic_p_bc', i, wic_p_bc
+            ewrite(3,*) 'suf_p_bc', i, suf_p_bc
 
             deallocate(pressure_sufid_bc)
 
          endif Conditional_Pressure_BC
 
       end do Loop_Pressure_BC
-
 !!!
 !!! Density Boundary Conditions
 !!!
@@ -1112,20 +1116,21 @@ module copy_outof_into_state
 
          if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
          u_source = 0.
-         delta_den = 0.
          do i = 1, nphases - 1, 1
-            do j = 1, node_count( density )
+            delta_den = 0.
+            do j = 2, node_count( density )
                delta_den = delta_den + ( den((i)*node_count(density)+j) - &
                     den((i-1)*node_count(density)+j) ) / &
-                    real( node_count( density ) * max( 1, ( nphases - 1 )))
+                    real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
             end do
             do j = 1, u_nonods
                u_source( ( i - 1 ) * u_nonods + j  ) = &
-                    delta_den * gravity_magnitude * domain_length / real( totele )
+                    delta_den * gravity_magnitude * 0.2 * domain_length / real( totele )
             end do
          end do
 
       end if Conditional_VelocitySource
+
 
       do i=1,nphases
          pvf_source => extract_scalar_field(state(i), "PhaseVolumeFractionSource", stat)
