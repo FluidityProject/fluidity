@@ -443,6 +443,7 @@ contains
       call get_nonlinear_volume_fraction(state, nvfrac)
 
       ewrite_minmax(nvfrac)
+
     else
       multiphase = .false.
       nullify(vfrac)
@@ -728,7 +729,7 @@ contains
             & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs,&
             & alpha_u_field=alpha_u_field,&
             & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad,&
-            & nvfrac=nvfrac, nvfrac_mesh=nvfrac%mesh)
+            & nvfrac=nvfrac)
       
       end do element_loop
       !$OMP END PARALLEL DO
@@ -794,7 +795,7 @@ contains
        &u_cg, u_nl_cg, &
        &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
        &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
-       vvr_sf, ib_min_grad, nvfrac, nvfrac_mesh)
+       vvr_sf, ib_min_grad, nvfrac)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -963,10 +964,9 @@ contains
 
     ! Non-linear approximation to the PhaseVolumeFraction field
     type(scalar_field), intent(in) :: nvfrac
-    type(mesh_type), intent(in) :: nvfrac_mesh
     type(element_type), pointer :: nvfrac_shape
     ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
-    real, dimension(ele_loc(nvfrac_mesh,ele), ele_ngi(nvfrac_mesh,ele), mesh_dim(u)) :: dnvfrac_t
+    real, dimension(:, :, :), allocatable :: dnvfrac_t
     ! nvfrac at quadrature points.
     real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, u_nl_dot_grad_nvfrac_gi
     real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
@@ -1089,10 +1089,12 @@ contains
     Rho_q=ele_val_at_quad(Rho, ele)
 
     if(multiphase) then
+      allocate(dnvfrac_t(ele_loc(nvfrac%mesh,ele), ele_ngi(nvfrac%mesh,ele), mesh_dim(u)))
+
       ! If the Velocity and PhaseVolumeFraction meshes are different, then we need to
       ! compute the derivatives of the PhaseVolumeFraction shape functions.
-      if(.not.(nvfrac_mesh == u%mesh)) then
-         nvfrac_shape => ele_shape(nvfrac_mesh, ele)
+      if(.not.(nvfrac%mesh == u%mesh)) then
+         nvfrac_shape => ele_shape(nvfrac%mesh, ele)
          call transform_to_physical(X, ele, nvfrac_shape, dshape=dnvfrac_t)
       else
          dnvfrac_t = du_t
@@ -1100,6 +1102,8 @@ contains
 
       nvfrac_gi = ele_val_at_quad(nvfrac, ele)
       grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
+
+      deallocate(dnvfrac_t)
     end if
 
     les_tensor_gi=0.0
@@ -1954,7 +1958,8 @@ contains
        end if
          
     end if
-  
+
+
   contains
  
     subroutine local_assembly_arbitrary_upwind
