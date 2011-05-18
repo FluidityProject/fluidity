@@ -218,9 +218,6 @@ contains
     end if
 
     U_nl=>extract_vector_field(state, velocity_name)
-    ! Allocate and zero cartesian velocity field
-    call allocate(U_nl_cartesian, U_nl%dim, U_nl%mesh, "U_nl_cartesian")
-    call zero(U_nl_cartesian)
 
     do i=1, subcycles
 
@@ -469,6 +466,9 @@ contains
     !  / 
     mass_mat = shape_shape(T_shape, T_shape, detwei)
 
+!    print*, 'mass_mat'
+!    print*, mass_mat
+
     if (include_advection) then
 
       ! Advecting velocity at quadrature points.
@@ -484,6 +484,10 @@ contains
 
       Ad_mat1 = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)
       Ad_mat2 = -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
+!      print*, 'Ad_mat1'
+!      print*, Ad_mat1
+!      print*, 'Ad_mat2'
+!      print*, Ad_mat2
       Advection_mat = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)  &
            -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
    else
@@ -758,7 +762,7 @@ contains
     character(len = *), intent(in) :: velocity_name
 
     !! Velocity to be solved for.
-    type(vector_field), pointer :: U, U_old
+    type(vector_field), pointer :: U, U_old, Vel
 
     !! Coordinate and advecting velocity fields
     type(vector_field), pointer :: X, U_nl
@@ -777,7 +781,7 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrix.
-    type(block_csr_matrix) :: matrix, mass, inv_mass
+    type(block_csr_matrix) :: matrix, mass, inv_mass, test
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -797,9 +801,13 @@ contains
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i, j, dim
 
+    print*, field_name
+
     U=>extract_vector_field(state, field_name)
     U_old=>extract_vector_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
+    Vel=>extract_vector_field(state, "Velocity")
+    U%option_path=Vel%option_path
 
     dim=mesh_dim(U)
 
@@ -813,9 +821,11 @@ contains
 
     mass_sparsity=make_sparsity_dg_mass(U%mesh)
     call allocate(mass, mass_sparsity, (/dim,dim/))
-    call allocate(inv_mass, mass_sparsity, (/dim,dim/))
     call zero(mass)
+    call allocate(inv_mass, mass_sparsity, (/dim,dim/))
     call zero(inv_mass)
+    call allocate(test, mass_sparsity, (/dim,dim/))
+    call zero(test)
 
     ! Ensure delta_U inherits options from U.
     call allocate(delta_U, U%dim, U%mesh, "delta_U")
@@ -826,7 +836,9 @@ contains
          mass, inv_mass, velocity_name=velocity_name)
 
 !    call get_dg_inverse_mass_matrix(inv_mass, mass)
-    
+    test=matmul(inv_mass, mass)
+    ewrite_minmax(test)
+       
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
     call get_option("/timestepping/timestep", dt)
@@ -882,9 +894,8 @@ contains
        
     end if
 
-    U_nl=>extract_vector_field(state, velocity_name)
     ! Allocate and zero cartesian velocity field
-    call allocate(U_cartesian, X%dim, U_nl%mesh, "U_cartesian")
+    call allocate(U_cartesian, X%dim, U%mesh, "U_cartesian")
     call zero(U_cartesian)
 
     do i=1, subcycles
@@ -893,21 +904,15 @@ contains
 
        ! dU = Advection * U
        call mult(delta_U, matrix, U)
-       ewrite_minmax(delta_U)
        ! dU = dU + RHS
        call addto(delta_U, RHS, -1.0)
-       ewrite_minmax(delta_U)
        ! dU = M^(-1) dU
        call dg_apply_mass(inv_mass, delta_U)
-       ewrite_minmax(delta_U)
-       ewrite_minmax(inv_mass)
-       
+
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
-       call halo_update(U)
        ewrite_minmax(delta_U)
-!       limit_slope=.true.
-!       limiter=LIMITER_VB
+       call halo_update(U)
        if (limit_slope) then
           call project_local_to_cartesian(X, U, U_cartesian)
           ! Filter wiggles from U
@@ -1123,6 +1128,8 @@ contains
 
     mass_mat=shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, G)
+    print*, 'mass_mat'
+    print*, mass_mat
 
     ! Advecting velocity at quadrature points.
     U_quad=ele_val_at_quad(U_nl,ele)
@@ -1134,18 +1141,20 @@ contains
     !  - | (grad W dot U_nl) T dV -  | W ( div U_nl ) G W dV
     !    /                           /
 
+    ! This assumes X is linear
+
     Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)
 !    print*, 'U_shape%quadrature%weight'
 !    print*, U_shape%quadrature%weight
 !    print*, 'U_nl_q'
 !    print*, U_nl_q
-!    print*, 'Ad_mat1'
-!    print*, Ad_mat1
+    print*, 'Ad_mat1'
+    print*, Ad_mat1
     Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
 !    print*, 'U_nl_div_q'
 !    print*, U_nl_div_q
-!    print*, 'Ad_mat2'
-!    print*, Ad_mat2
+    print*, 'Ad_mat2'
+    print*, Ad_mat2
     Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)  &
            -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
 
@@ -1186,7 +1195,6 @@ contains
                  l_mass(nloc*(dim1-1)+1:nloc*dim1,nloc*(dim2-1)+1:nloc*dim2))
          end do
       end do
-      ewrite_minmax(inv_mass)
    else
       if(include_mass) then
          ! Put mass in the matrix.
@@ -1364,15 +1372,15 @@ contains
     inner_advection_integral = (1.-income)*u_nl_q_dotn
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
          &            inner_advection_integral*U_shape%quadrature%weight, G)
-!    print*, 'js:nnAdvection_out:'
-!    print*, nnAdvection_out
+    print*, 'js:nnAdvection_out:'
+    print*, nnAdvection_out
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
          &            outer_advection_integral*U_shape%quadrature%weight, G)
-!    print*, 'js:nnAdvection_in:'
-!    print*, nnAdvection_in
+    print*, 'js:nnAdvection_in:'
+    print*, nnAdvection_in
        
     !----------------------------------------------------------------------
     ! Perform global assembly.

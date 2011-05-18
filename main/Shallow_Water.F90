@@ -677,7 +677,7 @@
       else
         call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
         call zero(U_local)
-        U_local%option_path=U%option_path
+!        U_local%option_path=U%option_path
         call insert(state, U_local, "LocalVelocity")
         call deallocate(U_local)
         call allocate(U_local_old, mesh_dim(U), U%mesh, "OldLocalVelocity")

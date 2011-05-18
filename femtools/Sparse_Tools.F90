@@ -4451,7 +4451,7 @@ contains
       
     type(csr_sparsity):: sparsity
 
-    ewrite(1,*) 'Entering csr_matmul'
+    ewrite(1,*) 'Entering block_csr_matmul'
 
     assert(size(A,2)==size(B,1))
     assert(blocks(A,2)==blocks(B,1))
@@ -4480,7 +4480,7 @@ contains
     type(block_csr_matrix), intent(in) :: B
     type(block_csr_matrix), intent(inout) :: product
     
-    ewrite(1,*) 'Entering csr_matmul_preallocated'
+    ewrite(1,*) 'Entering block_csr_matmul_preallocated'
     
     call zero(product)
     call matmul_addto(A, B, product=product)
@@ -4502,7 +4502,7 @@ contains
     integer, dimension(:), pointer:: rowA_i, rowB_k
     integer:: blocki, blockj, blockk, i, j, k
     
-    ewrite(1,*) 'Entering csr_matmul_preallocated_addto'
+    ewrite(1,*) 'Entering block_csr_matmul_preallocated_addto'
 
     assert(size(A,2)==size(B,1))
     assert(blocks(A,2)==blocks(B,1))
@@ -4512,23 +4512,22 @@ contains
     assert(blocks(product,2)==blocks(B,2))
     
     ! perform C_ij=C_ij+\sum_k A_ik B_kj
-    
     do blocki=1, blocks(A,1)
       do blockk=1, blocks(A,2)
         do blockj=1, blocks(B,2)
         
-          
-          do i=1, size(A, 1)
-           A_i = row_val_ptr(A, blocki, blockk, i)
-           rowA_i => row_m_ptr(A, i)
-           do k=1, size(rowA_i)
-             B_k => row_val_ptr(B, blockk, blockj, rowA_i(k))
-             rowB_k => row_m_ptr(B, rowA_i(k))
-             do j=1, size(rowB_k)
-               call addto(product, i, blocki, blockj, rowB_k(j), A_i(k)*B_k(j))
-             end do
+           do i=1, block_size(A,1)
+              A_i => row_val_ptr(A, blocki, blockk, i)
+              rowA_i => row_m_ptr(A, i)
+              do k=1, size(rowA_i)
+                 B_k => row_val_ptr(B, blockk, blockj, rowA_i(k))
+                 rowB_k => row_m_ptr(B, rowA_i(k))
+                 do j=1, size(rowB_k)
+                    call addto(product, blocki, blockj, i, rowB_k(j), &
+                         A_i(k)*B_k(j))
+                 end do
+              end do
            end do
-          end do
         
         end do
       end do
