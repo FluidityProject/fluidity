@@ -537,7 +537,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-         field%val = ieee_get_value(0.0, ieee_quiet_nan)
+         field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
          deallocate(field%val)
       end if
@@ -548,7 +548,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-      field%val = ieee_get_value(0.0, ieee_quiet_nan)
+      field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
       deallocate(field%val)
     case(FIELD_TYPE_PYTHON)
@@ -599,7 +599,7 @@ contains
       select case(field%field_type)
       case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT)
 #ifdef DDEBUG
-        field%val = ieee_get_value(0.0, ieee_quiet_nan)
+        field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif          
 #ifdef HAVE_MEMORY_STATS
            call register_deallocation("vector_field", "real", &
@@ -659,7 +659,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-         field%val = ieee_get_value(0.0, ieee_quiet_nan)
+         field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
          deallocate(field%val)
       case(FIELD_TYPE_DEFERRED)

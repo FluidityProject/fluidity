@@ -24,7 +24,6 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-
 #include "fdebug.h"
 module shape_functions
   !!< Generate shape functions for elements of arbitrary polynomial degree.
@@ -34,6 +33,8 @@ module shape_functions
   use elements
   use element_numbering
   use Superconvergence
+  use ieee_arithmetic, only: ieee_quiet_nan, ieee_value
+
   use spud, only: option_count, get_option
   
   implicit none
@@ -160,16 +161,6 @@ contains
        end if
     end if    
 
-    ! The number of local coordinates depends on the element family.
-    select case(ele_num%family)
-    case (FAMILY_SIMPLEX)
-       coords=dim+1
-    case (FAMILY_CUBE)
-       coords=dim
-    case default
-       FLAbort('Illegal element family.')
-    end select
-
     shape%numbering=>ele_num
     shape%quadrature=quad
     call incref(quad)
@@ -188,11 +179,21 @@ contains
               FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
         end select
     else
-       call allocate(shape, dim, ele_num%nodes, quad%ngi, coords)
+       call allocate(shape, ele_num, quad%ngi)
     end if
     shape%degree=degree
     shape%n=0.0
     shape%dn=0.0
+
+    ! The number of local coordinates depends on the element family.
+    select case(ele_num%family)
+    case (FAMILY_SIMPLEX)
+       coords=dim+1
+    case (FAMILY_CUBE)
+       coords=dim
+    case default
+       FLAbort('Illegal element family.')
+    end select
 
     ! Construct shape for each node
     do i=1,shape%loc
@@ -217,6 +218,9 @@ contains
                        origin=-1.0)
 
              end select
+
+          case(ELEMENT_TRACE)
+             shape%spoly(j,i) = (/ieee_value(0.0,ieee_quiet_nan)/)
 
           case(ELEMENT_BUBBLE)
              if(i==shape%loc) then
@@ -251,46 +255,54 @@ contains
 
        end do
 
+       if(ele_num%type==ELEMENT_TRACE) then
+          !No interior functions, hence NaNs
+          shape%n = ieee_value(0.0,ieee_quiet_nan)
+          shape%dn = ieee_value(0.0,ieee_quiet_nan)
+          shape%n_s = ieee_value(0.0,ieee_quiet_nan)
+          shape%dn_s = ieee_value(0.0,ieee_quiet_nan)
+       else
        ! Loop over all the quadrature points.
-       do j=1,quad%ngi
-
-          ! Raw shape function
-          shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
-
-          ! Directional derivatives.
-          shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
-       end do
-
-       if (present(quad_s)) then
-          shape%surface_quadrature=>quad_s
-          select case(ltype)
-          case(FAMILY_SIMPLEX)
-          allocate(g(dim+1))
-           do k=1,dim+1
-              do j=1,quad_s%ngi
-                 if (dim==2) then
-                    g(mod(k+2,3)+1)=0.0
-                    g(mod(k,3)+1)=quad_s%l(j,1)
-                    g(mod(k+1,3)+1)=quad_s%l(j,2)
-                 else if (dim==3) then
-                    ! Not checked !!
-                    g(mod(k+3,4)+1)=0.0
-                    g(mod(k,4)+1)=quad_s%l(j,1)
-                    g(mod(k+1,4)+1)=quad_s%l(j,2)
-                    g(mod(k+2,4)+1)=quad_s%l(j,3)
-                 end if
-                 shape%n_s(i,j,k)=eval_shape(shape, i,g)
-                 shape%dn_s(i,j,k,:)=eval_dshape(shape, i,g)
-             end do
+          do j=1,quad%ngi
+             
+             ! Raw shape function
+             shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
+             
+             ! Directional derivatives.
+             shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
           end do
-          deallocate(g)
-          end select
-      end if
 
+          if (present(quad_s)) then
+             shape%surface_quadrature=>quad_s
+             select case(ltype)
+             case(FAMILY_SIMPLEX)
+                allocate(g(dim+1))
+                do k=1,dim+1
+                   do j=1,quad_s%ngi
+                      if (dim==2) then
+                         g(mod(k+2,3)+1)=0.0
+                         g(mod(k,3)+1)=quad_s%l(j,1)
+                         g(mod(k+1,3)+1)=quad_s%l(j,2)
+                      else if (dim==3) then
+                         ! Not checked !!
+                         g(mod(k+3,4)+1)=0.0
+                         g(mod(k,4)+1)=quad_s%l(j,1)
+                         g(mod(k+1,4)+1)=quad_s%l(j,2)
+                         g(mod(k+2,4)+1)=quad_s%l(j,3)
+                      end if
+                      shape%n_s(i,j,k)=eval_shape(shape, i,g)
+                      shape%dn_s(i,j,k,:)=eval_dshape(shape, i,g)
+                   end do
+                end do
+                deallocate(g)
+             end select
+          end if
+       end if
     end do
 
-    shape%superconvergence => get_superconvergence(shape)
-
+    if(ele_num%type.ne.ELEMENT_TRACE) then
+       shape%superconvergence => get_superconvergence(shape)
+    end if
   end function make_element_shape
 
   function lagrange_polynomial(n,degree,dx, origin) result (poly)

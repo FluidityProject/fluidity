@@ -119,44 +119,49 @@ module elements
 
 contains
 
-  subroutine allocate_element(element, dim, loc, ngi, coords, type, stat)
+  subroutine allocate_element(element, ele_num, ngi, stat)
     !!< Allocate memory for an element_type. 
     type(element_type), intent(inout) :: element
-    !! Dim is the dimension of the element, loc is number of nodes, ngi is
-    !! number of gauss points. 
-    integer, intent(in) :: dim,loc,ngi    
-    !! Number of local coordinates.
-    integer, intent(in) :: coords
+    !! Number of quadrature points
+    integer, intent(in) :: ngi    
+    !! Element numbering
+    type(ele_numbering_type), intent(in) :: ele_num
     !! Stat returns zero for success and nonzero otherwise.
     integer, intent(out), optional :: stat
-    !! define element type
-    integer, intent(in), optional :: type
+    !
+    integer :: lstat, coords
 
-    integer :: lstat, ltype
+    select case(ele_num%family)
+    case (FAMILY_SIMPLEX)
+       coords=ele_num%dimension+1
+    case (FAMILY_CUBE)
+       coords=ele_num%dimension
+    case default
+       FLAbort('Illegal element family.')
+    end select
 
-    if (present(type)) then
-       ltype=type
-    else
-       ltype=ELEMENT_LAGRANGIAN
-    end if
+    select case(ele_num%type)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, &
+         &ELEMENT_BUBBLE, ELEMENT_TRACE)
 
-    select case(ltype)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
-
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
-          element%spoly(coords,loc), element%dspoly(coords,loc), stat=lstat)
+       allocate(element%n(ele_num%nodes,ngi),&
+            &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
+            &element%spoly(coords,ele_num%nodes), &
+            &element%dspoly(coords,ele_num%nodes), stat=lstat)
 
     case(ELEMENT_CONTROLVOLUME_SURFACE)
 
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim-1), &
-          stat=lstat)
+       allocate(element%n(ele_num%nodes,ngi),&
+            &element%dn(ele_num%nodes,ngi,ele_num%dimension-1), &
+            stat=lstat)
 
       element%spoly=>null()
       element%dspoly=>null()
 
     case(ELEMENT_CONTROLVOLUMEBDY_SURFACE)
 
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
+      allocate(element%n(ele_num%nodes,ngi),&
+           &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
           stat=lstat)
 
       element%spoly=>null()
@@ -168,9 +173,9 @@ contains
 
     end select
 
-    element%loc=loc
+    element%loc=ele_num%nodes
     element%ngi=ngi
-    element%dim=dim
+    element%dim=ele_num%dimension
 
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.

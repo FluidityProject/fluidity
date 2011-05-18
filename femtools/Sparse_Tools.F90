@@ -961,7 +961,7 @@ contains
               size(matrix%val), name=matrix%name)
 #endif
 #ifdef DDEBUG
-         matrix%val=ieee_get_value(0.0, ieee_quiet_nan)
+         matrix%val=ieee_value(0.0, ieee_quiet_nan)
 #endif
 
          deallocate(matrix%val, stat=lstat)
@@ -1157,7 +1157,7 @@ contains
                     size(matrix%val(1,1)%ptr), name=matrix%name)
 #endif
 #ifdef DDEBUG
-          matrix%val(1,1)%ptr=ieee_get_value(0.0, ieee_quiet_nan)
+          matrix%val(1,1)%ptr=ieee_value(0.0, ieee_quiet_nan)
 #endif
           deallocate(matrix%val(1,1)%ptr, stat=lstat)
           if (lstat/=0) goto 42
@@ -1168,7 +1168,7 @@ contains
                     size(matrix%val(i,i)%ptr), name=matrix%name)
 #endif
 #ifdef DDEBUG
-            matrix%val(i,i)%ptr=ieee_get_value(0.0, ieee_quiet_nan)
+            matrix%val(i,i)%ptr=ieee_value(0.0, ieee_quiet_nan)
 #endif
             deallocate(matrix%val(i,i)%ptr, stat=lstat)
           end do
@@ -1180,7 +1180,7 @@ contains
                     size(matrix%val(i,j)%ptr), name=matrix%name)
 #endif
 #ifdef DDEBUG
-               matrix%val(i,j)%ptr=ieee_get_value(0.0, ieee_quiet_nan)
+               matrix%val(i,j)%ptr=ieee_value(0.0, ieee_quiet_nan)
 #endif
                deallocate(matrix%val(i,j)%ptr, stat=lstat)
                if (lstat/=0) goto 42
@@ -1313,7 +1313,7 @@ contains
     
     do i=1,size(matrix%colm)
 #ifdef DDEBUG
-       matrix%val(i)%ptr=ieee_get_value(0.0, ieee_quiet_nan)
+       matrix%val(i)%ptr=ieee_value(0.0, ieee_quiet_nan)
 #endif
        deallocate(matrix%colm(i)%ptr, matrix%val(i)%ptr, stat=lstat)
        if (lstat/=0) goto 666
@@ -2620,7 +2620,7 @@ contains
        end if
        ! Destroy old memory.
 #ifdef DDEBUG
-       val=ieee_get_value(0.0, ieee_quiet_nan)
+       val=ieee_value(0.0, ieee_quiet_nan)
 #endif
        deallocate(row, val)
 
