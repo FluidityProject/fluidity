@@ -819,7 +819,7 @@ contains
        ele%nodes=(ele%dimension+1)*(ele%degree+1)
        
        ! For trace elements, the first index is the facet number.
-       allocate(ele%count2number(1:ele%dimension,0:i,0:i))
+       allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,ele%nodes))
        allocate(ele%boundary_coord(ele%vertices))
        allocate(ele%boundary_val(ele%vertices))
