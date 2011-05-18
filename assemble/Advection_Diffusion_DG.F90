@@ -37,7 +37,6 @@ module advection_diffusion_DG
   use fefields
   use state_module
   use shape_functions
-  use global_numbering
   use transform_elements
   use vector_tools
   use fldebug
