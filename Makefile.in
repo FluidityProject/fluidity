@@ -143,6 +143,7 @@ bin/@FLUIDITY@: main.o fluidity_library
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
 sw: bin/shallow_water
+test_sw: bin/test_sw_advection
 be: bin/burgers_equation
 mp: bin/multiphase_prototype
 
@@ -153,6 +154,14 @@ bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@mkdir -p bin
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
+
+bin/test_sw_advection: fluidity_library main/test_sw_advection.F90
+	@cd main; $(MAKE) test_sw_advection.o
+	@echo "BUILD test_sw_advection"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD test_sw_advection"
+	@$(EVAL) $(LINKER) -o bin/test_sw_advection main/test_sw_advection.o $(LIBS)
 
 bin/shallow_water_legacy: fluidity_library main/Shallow_Water_Legacy.F90
 	@cd main; $(MAKE) Shallow_Water_Legacy.o

@@ -503,6 +503,7 @@
 
       call insert(state,advecting_u,"NonlinearVelocity")
 
+      ! advecting velocity in local coordinates
       call set(advecting_u,u)
       call set(old_u,u)
       call set(old_d,d)
