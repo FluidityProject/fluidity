@@ -6711,7 +6711,7 @@ biology =
             ),
             element agents {
                ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
-               element detector_array {
+               element agent_array {
                   attribute name { xsd:string },
                   ## The number of detectors prescribed by the python function.
                   element number_of_agents {

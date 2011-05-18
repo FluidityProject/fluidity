@@ -104,6 +104,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
+  use lagrangian_biology
 
   implicit none
 
@@ -396,6 +397,11 @@ contains
     ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
        call calculate_biology_terms(state(1))
+    end if
+
+    ! Initialise lagrangian biology agents
+    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+       call initialise_lagrangian_biology(state(1))
     end if
 
     ! Initialise radiation specific data types and register radiation diagnostics
@@ -969,6 +975,11 @@ contains
     ! cleanup k_epsilon
     if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/')) then
         call keps_cleanup()
+    end if
+
+    ! cleanup lagrangian biology
+    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+        call lagrangian_biology_cleanup()
     end if
 
     if (have_option("/material_phase[0]/sediment")) then

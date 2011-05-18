@@ -126,20 +126,20 @@
     <lagrangian_ensemble>
       <disable_biology/>
       <agents>
-        <detector_array name="Bob">
+        <agent_array name="Bob">
           <number_of_agents>
             <integer_value rank="0">100</integer_value>
           </number_of_agents>
           <lagrangian/>
           <initial_position>
-            <string_value lines="20" type="python">def val(t):
+            <string_value type="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.5+0.25*arange(0,100.)/100.
   y = zeros(100) + 0.5
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
-        </detector_array>
+        </agent_array>
         <lagrangian_timestepping>
           <explicit_runge_kutta_guided_search>
             <subcycles>

@@ -8524,7 +8524,7 @@ This option is generally only useful for testing. </a:documentation>
           <optional>
             <element name="agents">
               <zeroOrMore>
-                <element name="detector_array">
+                <element name="agent_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
