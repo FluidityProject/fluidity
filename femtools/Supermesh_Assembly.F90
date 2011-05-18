@@ -184,6 +184,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_a, 1), ele_ngi(positions_a, 1), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type) :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -203,8 +204,11 @@ contains
     end if
     
     allocate(shapes_c(ele_count(positions_c)))
-    do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
+    do i = 1, size(shapes_c)
+       ele_num = find_element_numbering(vertices = loc, &
+            &dimension = dim, degree =&
+            & degree)    
+      call allocate(shapes_c(i), ele_num=ele_num, ngi = ngi)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
@@ -275,6 +279,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_b, ele_b), ele_ngi(positions_b, ele_b), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type) :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -292,8 +297,11 @@ contains
     end if
     
     allocate(shapes_c(ele_count(positions_c)))
-    do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
+    do i = 1, size(shapes_c)
+       ele_num = find_element_numbering(&
+            vertices = loc, dimension = dim, degree =&
+            & degree)    
+      call allocate(shapes_c(i), ele_num, ngi = ngi)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)

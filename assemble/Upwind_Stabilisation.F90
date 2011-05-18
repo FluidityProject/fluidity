@@ -339,6 +339,7 @@ contains
     !! u_nl \dot dshape
     real, dimension(base_shape%loc, size(u_nl_q, 2)) :: u_nl_dn
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type) :: ele_num
         
     quad => base_shape%quadrature
     
@@ -349,11 +350,15 @@ contains
     degree = base_shape%degree
         
     ! Step 1: Generate a new shape
-    
-    call allocate(test_function, dim = dim, loc = loc, ngi = ngi, coords = coords)
+    ele_num = &
+         &find_element_numbering(&
+         &vertices = loc, dimension = dim, degree = degree)
+    call allocate(test_function, ele_num=ele_num,ngi=ngi)
     
     test_function%degree = degree
-    test_function%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
+    test_function%numbering => &
+         &find_element_numbering(&
+         &vertices = loc, dimension = dim, degree = degree)
     test_function%quadrature = quad
     call incref(quad)
     
