@@ -61,10 +61,14 @@ endif
 	$(CXX) $(CXXFLAGS) -c $< 
 
 
-default: $(OBJS)
 ifeq (@HYPERLIGHT@,yes)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	@cp *.mod ../include/
+default: $(LIB)
+else
+default:
 endif
 
 clean:

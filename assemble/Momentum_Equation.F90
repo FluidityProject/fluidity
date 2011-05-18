@@ -403,7 +403,7 @@
  
                else
                  ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
-                 cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=get_cmc_m(istate)) ! ...and similarly for get_cmc_m
+                 cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for get_cmc_m
                end if
                
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
@@ -718,7 +718,7 @@
                  full_ct_rhs(istate) = ct_rhs(istate)
                  
                  call get_lumped_continuity_equation(state(istate), surface_p%mesh, &
-                   full_ct_m(istate)%ptr, full_ct_rhs(istate), get_ct_m, &
+                   full_ct_m(istate)%ptr, full_ct_rhs(istate), reassemble_ct_m, &
                    ! returns lumped ct_m (pointer to state) and lumped ct_rhs (allocated)
                    ct_m(istate)%ptr, ct_rhs(istate))
                  
@@ -1043,7 +1043,8 @@
                      end if
                      
                      if(use_hydrostatic_projection) then
-                        call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate))
+                        FLAbort("FIXME: deal with reassemble_ct_m here.")
+                        call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate), reassemble_ct_m)
                         call deallocate(full_ct_rhs(istate))
                      end if
 
