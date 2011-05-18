@@ -466,9 +466,6 @@ contains
     !  / 
     mass_mat = shape_shape(T_shape, T_shape, detwei)
 
-!    print*, 'mass_mat'
-!    print*, mass_mat
-
     if (include_advection) then
 
       ! Advecting velocity at quadrature points.
@@ -804,8 +801,6 @@ contains
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i, j, dim
 
-    print*, field_name
-
     U=>extract_vector_field(state, field_name)
     U_old=>extract_vector_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
@@ -820,7 +815,9 @@ contains
 
     ! Add data space to the sparsity pattern.
     call allocate(A, sparsity, (/dim,X%dim/))
+    call zero(A)
     call allocate(L, sparsity, (/dim,X%dim/))
+    call zero(L)
 
     mass_sparsity=make_sparsity_dg_mass(U%mesh)
     call allocate(mass_local, mass_sparsity, (/dim,dim/))
@@ -1035,7 +1032,7 @@ contains
        call construct_vector_adv_element_dg(ele, A, L,&
             & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
             & X, U, U_nl, &
-            bc_value, bc_type)
+            & bc_value, bc_type)
        
     end do element_loop
     
@@ -1074,9 +1071,10 @@ contains
     type(vector_field), intent(in) :: X, U, U_nl
 
     ! Bilinear forms.
-    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: local_mass_mat, l_mat
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: local_mass_mat
+    real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: l_mat
     real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: cartesian_mass_mat
-    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: &
+    real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: &
          Advection_mat, Ad_mat1, Ad_mat2
 
     ! Local assembly matrices.
@@ -1211,18 +1209,22 @@ contains
    ! calculate inverse_mass_cartesian
    call invert(cartesian_mass_mat)
 
-   call addto(inv_mass_cartesian, dim1, dim2, U_ele, U_ele, cartesian_mass_mat)
+   do dim1 = 1,X%dim
+      do dim2 = 1,X%dim
+         call addto(inv_mass_cartesian, dim1, dim2, U_ele, U_ele, cartesian_mass_mat)
+      end do
+   end do
 
    ! advection matrix
    do dim1 = 1,dim
-      do dim2 = 1,dim
+      do dim2 = 1,X%dim
          call addto(A, dim1, dim2, U_ele, U_ele, Advection_mat(dim1,dim2,:,:))
       end do
    end do
 
    ! transformation matrix
    do dim1 = 1,dim
-      do dim2 = 1,dim
+      do dim2 = 1,X%dim
          call addto(L, dim1, dim2, U_ele, U_ele, l_mat(dim1,dim2,:,:))
       end do
    end do
@@ -1309,7 +1311,7 @@ contains
     real, dimension(face_ngi(X,face)) :: detwei_f, detJ_f
     real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: J_f
     real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(face_ngi(U,face)) :: inner_advection_integral, outer_advection_integral
+    real, dimension(face_ngi(X,face)) :: inner_advection_integral, outer_advection_integral
 
     ! Bilinear forms
     real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face)) :: nnAdvection_out
@@ -1364,6 +1366,7 @@ contains
     forall(gi=1:face_ngi(X,face))
        J_f(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
+    print*, J_f
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -1380,6 +1383,7 @@ contains
          &            inner_advection_integral*U_shape%quadrature%weight, J_f)
     print*, 'js:nnAdvection_out:'
     print*, nnAdvection_out
+
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn
@@ -1396,14 +1400,14 @@ contains
     
     ! Outflow boundary integral.
     do dim1 = 1, dim
-       do dim2 = 1, dim
+       do dim2 = 1, X%dim
           call addto(A, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
        end do
     end do
 
     ! Inflow boundary integral.
     do dim1 = 1, dim
-       do dim2 = 1, dim
+       do dim2 = 1, X%dim
           call addto(A, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
        end do
     end do
