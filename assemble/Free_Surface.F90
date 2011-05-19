@@ -577,18 +577,83 @@ contains
     
   end subroutine copy_poisson_solution_to_interior
 
-  subroutine extend_matrices_with_fs_nodes(state, cmc_m, ct_m, u, fs)
+  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs, &
+      assemble_ct_m, assemble_cmc_m)
+    ! extend ct_m with some extra rows to enforce the kinematic bc
+    ! in the transpose of this the extra columns are used to enforce the
+    ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
+    ! add_viscous_free_surface_integrals). Also cmc_m needs to be extended
+    ! in both rows and columns to store the extra entries as a result 
+    ! of extending ct_m, for the mass matrix of the time derivative in the 
+    ! kinematic bc.
     type(state_type), intent(inout):: state
     type(csr_matrix), pointer:: cmc_m
     type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: fs
+    logical, intent(in):: assemble_ct_m, assemble_cmc_m
 
+    type(integer_set):: fs_nodes
+    type(block_csr_matrix):: new_ct_m
+    type(csr_matrix):: new_cmc_m
+    type(csr_sparsity):: new_sparsity, new_sparsity2
+    integer, dimension(:), pointer:: fs_surface_node_list
 
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
 
-  end subroutine extend_matrices_with_fs_nodes
+    ! nothing to see here, go away
+    if (.not. (assemble_ct_m .or. assemble_cmc_m)) return
 
+    if (.not. has_boundary_condition_name(fs, "_free_surface")) then
+      call initialise_prognostic_free_surface(fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_node_list=fs_surface_node_list)
+    call allocate(fs_nodes)
+    call insert(fs_nodes, fs_surface_node_list)
+
+    if (assemble_ct_m) then
+      new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
+      call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_m%name)
+      call deallocate(new_sparsity)
+
+      call insert(state, new_ct_m, ct_m%name)
+      call deallocate(ct_m)
+
+      ct_m => extract_csr_matrix(state, new_ct_m%name)
+
+      call deallocate(new_ct_m)
+    end if
+
+    if (assemble_cmc_m) then
+      new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
+      new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
+      call deallocate(new_sparsity)
+      call allocate(new_cmc_m, new_sparsity2, name=cmc_m%name)
+      call deallocate(new_sparsity2)
+
+      call insert(state, new_cmc_m, cmc_m%name)
+      call deallocate(cmc_m)
+     
+      cmc_m => extract_csr_matrix(state, new_cmc_m%name)
+      call deallocate(new_cmc_m)
+    end if
+
+    call deallocate(fs_nodes)
+
+  end subroutine extend_matrices_for_viscous_free_surface
+  
   subroutine add_viscous_free_surface_integrals(state, ct_m, u, p, fs)
+    ! This routine adds in the boundary conditions for the viscous free surface
+    ! (that is the free_surface bc with the no_normal_stress option)
+    ! ct_m has been extended with some extra rows (corresponding to free surface
+    ! nodes) that are used to enforce the kinematic bc, the transpose of that
+    ! will produce the \rho_0 g\eta term in the no_normal_stress boundary condition:
+    !   n\cdot\tau\cdot n + p - \rho_0 g\eta = 0
+    ! if pressure is also extended to contain \rho g\eta in the extra nodes.
+    
     type(state_type), intent(in):: state
     type(block_csr_matrix), intent(inout):: ct_m
     type(vector_field), intent(in):: u

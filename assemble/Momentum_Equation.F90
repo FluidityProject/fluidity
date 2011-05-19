@@ -372,22 +372,24 @@
                call profiler_tic(p, "assembly")
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
-               reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
-               reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
 
                free_surface => extract_scalar_field(state(istate), "FreeSurface", stat=stat)
                if (stat==0) then
                  prognostic_fs = have_option(trim(free_surface%option_path)//"/prognostic")
                  if (prognostic_fs) then
-                   call extend_matrices(state(istate), cmc_m, ct_m, fs)
+                   call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m, fs, &
+                           reassemble_ct_m, reassemble_cmc_m)
                  end if
                else
                  prognostic_fs = .false.
                end if
+
+               reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
+               reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
             end if
             ewrite_minmax(p)
