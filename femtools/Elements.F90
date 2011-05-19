@@ -119,7 +119,7 @@ module elements
 
 contains
 
-  subroutine allocate_element(element, ele_num, ngi, stat)
+  subroutine allocate_element(element, ele_num, ngi, type, stat)
     !!< Allocate memory for an element_type. 
     type(element_type), intent(inout) :: element
     !! Number of quadrature points
@@ -127,9 +127,16 @@ contains
     !! Element numbering
     type(ele_numbering_type), intent(in) :: ele_num
     !! Stat returns zero for success and nonzero otherwise.
+    integer, intent(in), optional :: type
     integer, intent(out), optional :: stat
     !
-    integer :: lstat, coords
+    integer :: lstat, coords, ltype
+
+    if(present(type)) then
+       ltype = type
+    else
+       ltype = ele_num%type
+    end if
 
     select case(ele_num%family)
     case (FAMILY_SIMPLEX)

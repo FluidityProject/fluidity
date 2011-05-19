@@ -165,6 +165,16 @@ contains
     shape%quadrature=quad
     call incref(quad)
 
+    ! The number of local coordinates depends on the element family.
+    select case(ele_num%family)
+    case (FAMILY_SIMPLEX)
+       coords=dim+1
+    case (FAMILY_CUBE)
+       coords=dim
+    case default
+       FLAbort('Illegal element family.')
+    end select
+
     if (present(quad_s)) then
        select case(dim)
           case(2)
@@ -184,16 +194,6 @@ contains
     shape%degree=degree
     shape%n=0.0
     shape%dn=0.0
-
-    ! The number of local coordinates depends on the element family.
-    select case(ele_num%family)
-    case (FAMILY_SIMPLEX)
-       coords=dim+1
-    case (FAMILY_CUBE)
-       coords=dim
-    case default
-       FLAbort('Illegal element family.')
-    end select
 
     ! Construct shape for each node
     do i=1,shape%loc

@@ -130,7 +130,7 @@ contains
           end if
         end if
 
-        call allocate(element=shape, ele_num=ele_num, ngi=ngi)
+        call allocate(element=shape, ele_num=ele_num, ngi=ngi, type = ELEMENT_CONTROLVOLUME_SURFACE)
 
         shape%numbering=>ele_num
 
@@ -262,7 +262,7 @@ contains
           end if
         end if
 
-        call allocate(element=shape, ele_num=ele_num,  ngi=ngi)
+        call allocate(element=shape, ele_num=ele_num,  ngi=ngi, type=ELEMENT_CONTROLVOLUMEBDY_SURFACE)
 
         shape%numbering=>ele_num
 
