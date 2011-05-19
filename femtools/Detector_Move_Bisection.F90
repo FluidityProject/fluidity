@@ -51,7 +51,7 @@ contains
     !coordinate. Sometimes going through the minimum coordinate is not right (does not follow the flow direction) and in 
     !that case the detector has been placed back into the previous position and previous element and care has been taken for the 
     !detector to follow the flow until the next boundary face
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     type(integer_hash_table), intent(in) :: ihash
@@ -68,9 +68,9 @@ contains
 
     ewrite(1,*) "Inside move_detectors_bisection_method subroutine"
 
-    vfield => extract_vector_field(state(1),"Velocity")
-    old_vfield => extract_vector_field(state(1),"OldVelocity")
-    xfield => extract_vector_field(state(1),"Coordinate")
+    vfield => extract_vector_field(state,"Velocity")
+    old_vfield => extract_vector_field(state,"OldVelocity")
+    xfield => extract_vector_field(state,"Coordinate")
 
     allocate(vel(vfield%dim))
     allocate(old_vel(old_vfield%dim))
@@ -340,7 +340,7 @@ contains
                                          vel, old_vel, vfield, old_vfield, index_next_face, current_element, &
                                          cont_repeated_situation,detector_list,send_list_array,ihash,processor_number)
 
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), intent(in) :: state
 
     type(detector_type), pointer :: this_det, node_to_send
     type(vector_field), intent(inout) :: xfield
@@ -370,7 +370,7 @@ contains
     cont_fff=0.0
     cont_ggg=0.0
 
-    vfield => extract_vector_field(state(1),"Velocity")
+    vfield => extract_vector_field(state,"Velocity")
     halo_level = element_halo_count(vfield%mesh)
 
     if (halo_level /= 0) then

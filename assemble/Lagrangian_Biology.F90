@@ -139,6 +139,8 @@ contains
     real, intent(in) :: dt
     integer, intent(in) :: timestep
 
+    integer :: i, n_agent_arrays
+
     n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
     do i = 1, n_agent_arrays
        ! Move lagrangian detectors

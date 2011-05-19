@@ -42,14 +42,39 @@ module detector_distribution
   
   private
 
-  public :: distribute_detectors, serialise_lists_exchange_receive
+  public :: distribute_detectors, serialise_lists_exchange_receive, register_detector_list
+
+  type(detector_linked_list), dimension(:), allocatable, save, target :: detector_list_array
 
 contains
+
+  subroutine register_detector_list(detector_list_ptr)
+    type(detector_linked_list), pointer, intent(out) :: detector_list_ptr
+
+    type(detector_linked_list), dimension(:), allocatable :: temp_list_array
+    integer :: i, old_size
+
+    ! Allocate a new detector list
+    if (allocated(detector_list_array)) then
+       old_size = size(detector_list_array)
+       allocate(temp_list_array(old_size+1))
+       do i=1, old_size
+          temp_list_array(i)=detector_list_array(i)
+       end do
+       detector_list_array=temp_list_array
+       detector_list_ptr=>detector_list_array(old_size+1)
+    else
+       ! Allocate and return first detector list
+       allocate(detector_list_array(1))
+       detector_list_ptr=>detector_list_array(1)
+    end if
+
+  end subroutine register_detector_list
 
   subroutine distribute_detectors(state, detector_list, ihash, detector_names)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(integer_hash_table), intent(in) :: ihash
     character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
@@ -59,7 +84,7 @@ contains
     type(vector_field), pointer :: vfield
     integer :: i, k, all_send_lists_empty, list_neigh_processor, number_neigh_processors, processor_owner
 
-    vfield => extract_vector_field(state(1),"Velocity")
+    vfield => extract_vector_field(state,"Velocity")
     number_neigh_processors=key_count(ihash)
     allocate(send_list_array(number_neigh_processors))
     allocate(receive_list_array(number_neigh_processors))
@@ -130,7 +155,7 @@ contains
     !This subroutine serialises send_list_array,
     !sends it, receives serialised receive_list_array,
     !unserialises that.
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), intent(in) :: state
     type(detector_linked_list), dimension(:), &
          &intent(inout) :: send_list_array, receive_list_array
     integer, intent(inout) :: number_neigh_processors
@@ -168,9 +193,9 @@ contains
     logical :: have_update_vector
     integer :: update_start, k_start,n_stages
 
-    xfield => extract_vector_field(state(1),"Coordinate")
+    xfield => extract_vector_field(state,"Coordinate")
     shape=>ele_shape(xfield,1)
-    vfield => extract_vector_field(state(1),"Velocity")
+    vfield => extract_vector_field(state,"Velocity")
     dim=vfield%dim
  
     !set up sendrequest tags because we are going to do an MPI_Isend
