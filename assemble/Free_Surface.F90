@@ -81,7 +81,7 @@ contains
   
   subroutine add_free_surface_to_cmc_projection(state, cmc, dt, &
                                                 theta_pressure_gradient, theta_divergence, &
-                                                get_cmc, rhs)
+                                                assemble_cmc, rhs)
   !!< Adds a boundary integral to the continuity equation
   !!< that weakly enforces the kinematic boundary condition.
   !!<
@@ -111,23 +111,27 @@ contains
     real, intent(in) :: dt
     real, intent(in) :: theta_pressure_gradient
     real, intent(in) :: theta_divergence
-    !! only add in to the matrix if get_cmc==.true.
-    logical, intent(in):: get_cmc
+    !! only add in to the matrix if assemble_cmc==.true.
+    !! if .not. assemble_cmc we still need to add in a correction 
+    !! if the timestep has changed since last call
+    logical, intent(in):: assemble_cmc
     type(scalar_field), optional, intent(inout) :: rhs
     
-      type(integer_hash_table):: sele_to_surface_p_ele
+      type(integer_hash_table):: sele_to_fs_ele
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp, original_bottomdist, topdis
+      type(scalar_field), pointer:: p, prevp, original_bottomdist, free_surface
       type(scalar_field) :: original_bottomdist_remap
-      type(mesh_type), pointer:: surface_p_mesh
+      type(mesh_type), pointer:: fs_mesh
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, coef, d0
-      integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
-      integer:: i, j, grav_stat
+      integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
+      integer:: fs_node_offset
+      integer:: i, j, grav_stat, fs_stat
       logical:: include_normals, move_mesh
-      logical:: addto_cmc, use_hydrostatic_projection
+      logical:: addto_cmc 
       logical:: have_wd, have_wd_node_int
+      logical:: prognostic_fs, use_fs_mesh
       
       real, save :: coef_old = 0.0
       
@@ -136,10 +140,13 @@ contains
 
       ! gravity acceleration
       call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
+      if (grav_stat/=0) then
+        FLExit("For a free surface you need gravity")
+      end if
         
       ! if we've assembled cmc from scratch then this should be zeroed
       ! so that the addition to the matrix isn't incremental
-      if(get_cmc) coef_old = 0.0
+      if(assemble_cmc) coef_old = 0.0
       ! if we haven't assembled cmc from scratch then the addition involves
       ! the change in the timestep (i.e. it increments from the previous timestep)
       
@@ -147,15 +154,23 @@ contains
       p => extract_scalar_field(state, "Pressure")
       prevp => extract_scalar_field(state, "OldPressure")
       u => extract_vector_field(state, "Velocity")
-      
-      use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
-      if (use_hydrostatic_projection) then
-        ! if we get here cmc and its rhs are already lumped, we need to translate surface
-        ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
-        surface_p_mesh => extract_mesh(state, "Lumped"//trim(p%mesh%name))
-        topdis => extract_scalar_field(state, "DistanceToTop")
-        call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
-        call invert_set(surface_p_element_list, sele_to_surface_p_ele)
+
+      ! the prognostic free surface can only be used with the no_normal_stress option
+      prognostic_fs=.false.
+      free_surface => extract_scalar_field(state, "FreeSurface", stat=fs_stat)
+      if (fs_stat==0) then
+        if (have_option(trim(free_surface%option_path)//"/prognostic")) then
+          prognostic_fs=.true.
+          if (.not. has_boundary_condition_name(free_surface, "_free_surface")) then
+            call initialise_prognostic_free_surface(free_surface, u)
+          end if
+          ! obtain the f.s. surface mesh that has been stored under the
+          ! "_free_surface" boundary condition
+          call get_boundary_condition(free_surface, "_free_surface", &
+             surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
+          ! create a map from face numbers to element numbers in fs_mesh
+          call invert_set(surface_element_list, sele_to_fs_ele)
+        end if
       end if
       
       ! reference density
@@ -163,7 +178,7 @@ contains
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/conserve_geometric_volume")
       if (have_wd) then
-        if (.not. get_cmc) then
+        if (.not. assemble_cmc) then
              FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in &
                    & diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
         end if
@@ -173,7 +188,6 @@ contains
         call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
         call remap_field(original_bottomdist, original_bottomdist_remap)
       end if
-
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
       ! only include the inner product of gravity and surface normal
@@ -200,20 +214,29 @@ contains
       
       alpha=1.0/g/rho0/dt
       coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
-      addto_cmc = .false. ! assume we don't need to add to cmc
-      ! but it will be set to true if we have adaptive timestepping turned
-      ! on and that results in a different coefficient
+
+      ! only add to cmc if we're reassembling it (assemble_cmc = .true.)
+      ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
+      addto_cmc = assemble_cmc.or.&
+        (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
-           surface_element_list=surface_element_list,option_path=fs_option_path)
+           surface_element_list=surface_element_list, &
+           option_path=fs_option_path)
         if (bctype=="free_surface") then
-          if (grav_stat/=0) then
-             FLExit("For a free surface you need gravity")
+
+          if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+            if (.not. prognostic_fs) then
+              ! this should have been options checked
+              FLAbort("No normal stress free surface without prognostic free surface")
+            end if
+            use_fs_mesh=.true.
+            ! node i in the fs_mesh will be associated with row/column i+fs_node_offset in cmc
+            fs_node_offset=node_count(p)
+          else
+            use_fs_mesh=.false.
           end if
-          ! only add to cmc if we're reassembling it (get_cmc = .true.)
-          ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
-          addto_cmc = get_cmc.or.&
-                      (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
+
           do j=1, size(surface_element_list)
             call add_free_surface_element(surface_element_list(j))
           end do
@@ -224,8 +247,8 @@ contains
         ! therefore we need to invalidate the solver context
         call destroy_solver_cache(cmc)
       end if
-      if (use_hydrostatic_projection) then
-        call deallocate(sele_to_surface_p_ele)
+      if (prognostic_fs) then
+        call deallocate(sele_to_fs_ele)
       end if      
       
       ! save the coefficient with the current timestep for the next time round
@@ -286,8 +309,8 @@ contains
         end if
       end if
       
-      if (use_hydrostatic_projection) then
-        nodes = ele_nodes(surface_p_mesh, fetch(sele_to_surface_p_ele, sele))
+      if (use_fs_mesh) then
+        nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
       else
         nodes = face_global_nodes(p, sele)
       end if
@@ -375,7 +398,6 @@ contains
       end do
     end subroutine compute_alpha_wetdry_quad
  
-    
   end subroutine add_free_surface_to_cmc_projection
     
   subroutine add_free_surface_to_poisson_rhs(poisson_rhs, state, dt, theta_pg)
@@ -384,34 +406,48 @@ contains
     type(state_type), intent(in) :: state
     real, intent(in) :: dt, theta_pg
 
-    type(integer_hash_table):: sele_to_surface_p_ele
+    type(integer_hash_table):: sele_to_fs_ele
     type(vector_field), pointer:: positions, u, gravity_normal
-    type(scalar_field), pointer:: p, topdis
-    type(mesh_type), pointer:: surface_p_mesh
+    type(scalar_field), pointer:: p, free_surface
+    type(mesh_type), pointer:: fs_mesh
     character(len=FIELD_NAME_LEN):: bctype
+    character(len=OPTION_PATH_LEN):: fs_option_path
     real g, coef, rho0
-    integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
-    integer i, j, grav_stat
-    logical:: include_normals, use_hydrostatic_projection
+    integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
+    integer:: fs_node_offset
+    integer i, j, grav_stat, fs_stat
+    logical:: include_normals
+    logical:: prognostic_fs, use_fs_mesh
 
     ewrite(1,*) 'Entering assemble_masslumped_poisson_rhs_free_surface'
 
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
-      
+    if (grav_stat/=0) then
+      FLExit("For a free surface you need gravity")
+    end if
+
     ! with a free surface the initial condition prescribed for pressure
     ! is used at the free surface nodes only
     p => extract_scalar_field(state, "Pressure")
     u => extract_vector_field(state, "Velocity")
     
-    use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
-    if (use_hydrostatic_projection) then
-      ! if we get here cmc and its rhs are already lumped, we need to translate surface
-      ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
-      surface_p_mesh => extract_mesh(state, "Lumped"//trim(p%mesh%name))
-      topdis => extract_scalar_field(state, "DistanceToTop")
-      call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
-      call invert_set(surface_p_element_list, sele_to_surface_p_ele)
+    ! the prognostic free surface can only be used with the no_normal_stress option
+    prognostic_fs=.false.
+    free_surface => extract_scalar_field(state, "FreeSurface", stat=fs_stat)
+    if (fs_stat==0) then
+      if (have_option(trim(free_surface%option_path)//"/prognostic")) then
+        prognostic_fs=.true.
+        if (.not. has_boundary_condition_name(free_surface, "_free_surface")) then
+          call initialise_prognostic_free_surface(free_surface, u)
+        end if
+        ! obtain the f.s. surface mesh that has been stored under the
+        ! "_free_surface" boundary condition
+        call get_boundary_condition(free_surface, "_free_surface", &
+          surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
+        ! create a map from face numbers to element numbers in fs_mesh
+        call invert_set(surface_element_list, sele_to_fs_ele)
+      end if
     end if
     
     ! reference density
@@ -434,10 +470,19 @@ contains
       
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
-          surface_element_list=surface_element_list)
+          surface_element_list=surface_element_list, &
+          option_path=fs_option_path)
       if (bctype=="free_surface") then
-        if (grav_stat/=0) then
-           FLExit("For a free surface you need gravity")
+        if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+          if (.not. prognostic_fs) then
+            ! this should have been options checked
+            FLAbort("No normal stress free surface without prognostic free surface")
+          end if
+          use_fs_mesh=.true.
+          ! node i in the fs_mesh will be associated with row/column i+fs_node_offset in cmc
+          fs_node_offset=node_count(p)
+        else
+          use_fs_mesh=.false.
         end if
         do j=1, size(surface_element_list)
           call add_free_surface_element(surface_element_list(j))
@@ -445,8 +490,8 @@ contains
       end if
     end do
       
-    if (use_hydrostatic_projection) then
-      call deallocate(sele_to_surface_p_ele)
+    if (prognostic_fs) then
+      call deallocate(sele_to_fs_ele)
     end if
       
     contains
@@ -469,8 +514,8 @@ contains
       end if
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
       
-      if (use_hydrostatic_projection) then
-        nodes = ele_nodes(surface_p_mesh, fetch(sele_to_surface_p_ele, sele))
+      if (use_fs_mesh) then
+        nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
       else
         nodes = face_global_nodes(p, sele)
       end if
@@ -484,40 +529,42 @@ contains
     
   subroutine copy_poisson_solution_to_interior(state, p_theta, p, old_p, u)
   type(state_type), intent(in):: state
-  type(scalar_field), intent(inout):: p_theta, p, old_p
+  type(scalar_field), intent(inout), target:: p_theta, p, old_p
   type(vector_field), intent(in):: u
     
-    type(scalar_field), pointer:: topdis
+    type(scalar_field), pointer:: free_surface, copy_from
     character(len=FIELD_NAME_LEN):: bctype
-    type(integer_hash_table):: sele_to_surface_p_ele
-    integer, dimension(:), pointer:: surface_element_list, surface_p_element_list
-    logical:: use_hydrostatic_projection
-    integer:: i, j, sele, ele
+    character(len=OPTION_PATH_LEN):: fs_option_path
+    integer, dimension(:), pointer:: surface_element_list 
+    integer:: fs_stat
+    integer:: i, j, sele 
     
-    use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
-    if (use_hydrostatic_projection) then
-      ! if we get here p, old and p_theta are on the surface mesh, we need to translate surface
-      ! element numbers in the velocity mesh, to element numbers in the lumped top mesh
-      topdis => extract_scalar_field(state, "DistanceToTop")
-      call get_boundary_condition(topdis, 1, surface_element_list=surface_p_element_list)
-      call invert_set(surface_p_element_list, sele_to_surface_p_ele)
-    end if
+    ! the prognostic free surface can only be used with the no_normal_stress option
+    free_surface => extract_scalar_field(state, "FreeSurface", stat=fs_stat)
     
     ! first copy initial free surface elevations (p/g) at free surface nodes
     ! to p_theta
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
-          surface_element_list=surface_element_list)
+          surface_element_list=surface_element_list, &
+          option_path=fs_option_path)
       if (bctype=="free_surface") then
+
+        if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+          if (fs_stat/=0) then
+            ! this should have been options checked
+            FLAbort("No normal stress free surface without prognostic free surface")
+          end if
+          copy_from => free_surface
+        else
+          copy_from => p
+        end if
+
         do j=1, size(surface_element_list)
           sele=surface_element_list(j)
-          if (use_hydrostatic_projection) then
-            ele = fetch(sele_to_surface_p_ele, sele)
-            call set(p_theta, ele_nodes(p,ele), ele_val(p, ele))
-          else
-            call set(p_theta, face_global_nodes(p,sele), face_val(p, sele))
-          end if
+          call set(p_theta, face_global_nodes(p_theta,sele), face_val(copy_from, sele))
         end do
+
       end if
     end do
       
@@ -528,11 +575,14 @@ contains
     ! but they might be different fields (if #nonlinear iterations>1)
     call set(old_p, p_theta)
     
-    if (use_hydrostatic_projection) then
-      call deallocate(sele_to_surface_p_ele)
-    end if
-      
   end subroutine copy_poisson_solution_to_interior
+
+  subroutine extend_matrices_with_fs_nodes(state, cmc_m, ct_m, u, fs)
+    type(state_type), intent(inout):: state
+
+
+
+  end subroutine extend_matrices_with_fs_nodes
   
   subroutine move_mesh_free_surface(states, initialise, nonlinear_iteration)
     type(state_type), dimension(:), intent(inout) :: states
@@ -1072,7 +1122,7 @@ contains
      end if
   end subroutine calculate_diagnostic_free_surface
 
- subroutine update_wettingdrying_alpha(state)
+  subroutine update_wettingdrying_alpha(state)
   !!< calculates and updates the alpha coefficients for wetting and drying.
   type(state_type), intent(in):: state
   type(scalar_field), pointer:: scalar_surface_field
@@ -1134,7 +1184,7 @@ contains
           end if
         end do
     end subroutine calculate_alpha
- end subroutine update_wettingdrying_alpha
+  end subroutine update_wettingdrying_alpha
 
 
   subroutine calculate_diagnostic_wettingdrying_alpha(state, wettingdrying_alpha)
@@ -1185,7 +1235,7 @@ contains
         gravity_normal, surface_element_list = surface_element_list)
     end if
 
-end subroutine calculate_diagnostic_wettingdrying_alpha
+  end subroutine calculate_diagnostic_wettingdrying_alpha
 
 
   function calculate_volume_by_surface_integral(state) result(volume)

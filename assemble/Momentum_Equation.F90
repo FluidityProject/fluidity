@@ -378,6 +378,17 @@
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
+
+               free_surface => extract_scalar_field(state(istate), "FreeSurface", stat=stat)
+               if (stat==0) then
+                 prognostic_fs = have_option(trim(free_surface%option_path)//"/prognostic")
+                 if (prognostic_fs) then
+                   call extend_matrices(state(istate), cmc_m, ct_m, fs)
+                 end if
+               else
+                 prognostic_fs = .false.
+               end if
+
             end if
             ewrite_minmax(p)
 
@@ -722,7 +733,7 @@
                         ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
                         call add_free_surface_to_cmc_projection(state(istate), &
                                           schur_auxiliary_matrix, dt, theta_pg, &
-                                          theta_divergence, get_cmc=.true., rhs=ct_rhs(istate))
+                                          theta_divergence, assemble_cmc=.true., rhs=ct_rhs(istate))
                      end if
                   end if
                end if
@@ -760,7 +771,7 @@
                if (has_boundary_condition(u, "free_surface")) then
                   call add_free_surface_to_cmc_projection(state(istate), &
                            cmc_m, dt, theta_pg, theta_divergence, &
-                           get_cmc=reassemble_cmc_m, rhs=ct_rhs(istate))
+                           assemble_cmc=reassemble_cmc_m, rhs=ct_rhs(istate))
                end if
                
                if(get_diag_schur) then
@@ -774,7 +785,7 @@
                   if (has_boundary_condition(u, "free_surface")) then
                      ewrite(2,*) "Adding free surface to diagonal schur complement preconditioner matrix"
                      call add_free_surface_to_cmc_projection(state(istate), &
-                           cmc_m, dt, theta_pg, theta_divergence, get_cmc=.true.)
+                           cmc_m, dt, theta_pg, theta_divergence, assemble_cmc=.true.)
                   end if
                end if
 
@@ -1329,7 +1340,8 @@
          if (has_boundary_condition(u, "free_surface")) then
             ! Use this as initial pressure guess, except at the free surface
             ! where we use the prescribed initial condition
-            call copy_poisson_solution_to_interior(p_theta, p, old_p, u)
+            call copy_poisson_solution_to_interior(state(prognostic_p_istate), &
+               p_theta, p, old_p, u)
          end if
 
          if (pressure_debugging_vtus) then
