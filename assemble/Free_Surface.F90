@@ -579,10 +579,87 @@ contains
 
   subroutine extend_matrices_with_fs_nodes(state, cmc_m, ct_m, u, fs)
     type(state_type), intent(inout):: state
+    type(csr_matrix), pointer:: cmc_m
+    type(block_csr_matrix), pointer:: ct_m
+    type(vector_field), intent(in):: u
+    type(scalar_field), intent(in):: fs
 
 
 
   end subroutine extend_matrices_with_fs_nodes
+
+  subroutine add_viscous_free_surface_integrals(state, ct_m, u, p, fs)
+    type(state_type), intent(in):: state
+    type(block_csr_matrix), intent(inout):: ct_m
+    type(vector_field), intent(in):: u
+    type(scalar_field), intent(in):: p, fs
+
+    type(vector_field), pointer:: x
+    type(mesh_type), pointer:: fs_mesh
+    type(integer_hash_table):: sele_to_fs_ele
+    character(len=FIELD_NAME_LEN):: bc_type
+    character(len=OPTION_PATH_LEN):: bc_option_path
+    integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
+    integer:: i, j
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    if (.not. has_boundary_condition_name(fs, "_free_surface")) then
+      call initialise_prognostic_free_surface(fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
+    ! create a map from face numbers to element numbers in fs_mesh
+    call invert_set(surface_element_list, sele_to_fs_ele)
+
+    x => extract_vector_field(state, "Coordinate")
+
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bc_type)
+      if (bc_type=="free_surface") then
+        call get_boundary_condition(u, i, option_path=bc_option_path, &
+          surface_element_list=surface_element_list)
+        if (have_option(trim(bc_option_path)//"/no_normal_stress")) then
+          do j=1, size(surface_element_list)
+            call add_boundary_integral(surface_element_list(j))
+          end do
+        end if
+      end if
+    end do
+
+  contains
+
+    subroutine add_boundary_integral_sele(sele)
+      integer, intent(in):: sele
+
+      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(face_ngi(u, sele)) :: detwei_bdy
+      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
+      integer:: dim
+      
+      call transform_facet_to_physical(x, sele, &
+           detwei_f=detwei_bdy, normal=normal_bdy)
+      ct_mat_bdy = shape_shape_vector(face_shape(p, sele), face_shape(u, sele), &
+           detwei_bdy, normal_bdy)
+      do dim=1, u%dim
+        ! we've integrated continuity by parts, but not yet added in the resulting
+        ! surface integral - for the non-viscous free surface this is namely left
+        ! out to enforce the kinematic bc
+        call addto(ct_m, 1, dim, face_global_nodes(p,sele), &
+             face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
+        ! for the viscous bc however we add this bc in the extra rows at the bottom of ct_m
+        ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
+        !   n\cdot\tau\cdot n + p - \rho_0 g\eta = 0
+        call addto(ct_m, 1, dim, ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+             face_global_nodes(u,sele), -ct_mat_bdy(dim,:,:))
+      end do
+
+    end subroutine add_boundary_integral_sele
+
+  end subroutine add_viscous_free_surface_integrals
+
   
   subroutine move_mesh_free_surface(states, initialise, nonlinear_iteration)
     type(state_type), dimension(:), intent(inout) :: states
