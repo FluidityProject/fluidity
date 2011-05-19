@@ -127,8 +127,7 @@
     ! the ids have to correspond to the order of the arguments in
     ! the calls to get_entire_boundary_condition below
     integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
-                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
-                          BC_TYPE_VISCOUS_FREE_SURFACE = 5
+                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4
     integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
@@ -697,9 +696,6 @@
              "free_surface       " &
            & /), velocity_bc, velocity_bc_type)
 
-         ! expand out BC_TYPE_FREE_SURFACE into BC_TYPE_FREE_SURFACE or BC_TYPE_VISCOUS_FREE_SURFACE
-         call get_free_surface_bcs(u, velocity_bc_type)
-           
          allocate(pressure_bc_type(surface_element_count(p)))
          call get_entire_boundary_condition(p, &
            & (/ &
@@ -1014,9 +1010,8 @@
                 call addto(ct_rhs, p_nodes_bdy, &
                      -matmul(ct_mat_bdy(dim,:,:), ele_val(velocity_bc, dim, sele)))
              else if (assemble_ct_matrix) then
-                ! for open boundaries and viscous fs add in the boundary integral from integrating
-                ! by parts - for other bcs leaving this out enforces a dirichlet-type restriction in the normal direction
-                ! for viscous fs the normal velocity is not left free, but a kinematic bc is enforced in additional rows of ct_m
+                ! for open boundaries add in the boundary integral from integrating by parts - for 
+                ! other bcs leaving this out enforces a dirichlet-type restriction in the normal direction
                 call addto(ct_m, 1, dim, p_nodes_bdy, u_nodes_bdy, ct_mat_bdy(dim,:,:))
              end if
              if(pressure_bc_type(sele)>0) then
@@ -2422,31 +2417,6 @@
       end if
       
     end subroutine deallocate_cg_mass
-
-    subroutine get_free_surface_bcs(u, velocity_bc_type)
-      ! expand out BC_TYPE_FREE_SURFACE into BC_TYPE_FREE_SURFACE or BC_TYPE_VISCOUS_FREE_SURFACE
-      type(vector_field), intent(in):: u
-      integer, dimension(:,:), intent(inout):: velocity_bc_type
-
-      character(len=FIELD_NAME_LEN):: bc_type
-      character(len=OPTION_PATH_LEN):: bc_option_path
-      integer, dimension(:), pointer:: surface_element_list
-      integer:: i
-
-      do i=1, get_boundary_condition_count(u)
-        call get_boundary_condition(u, i, type=bc_type)
-        if (bc_type=="free_surface") then
-          call get_boundary_condition(u, i, option_path=bc_option_path, &
-          surface_element_list=surface_element_list)
-          if (have_option(trim(bc_option_path)//"/no_normal_stress")) then
-            ! free surface bc "applies" in 1st direction only
-            velocity_bc_type(surface_element_list,1)=BC_TYPE_VISCOUS_FREE_SURFACE
-            ! faces without no_normal_stress should already have BC_TYPE_FREE_SURFACE
-          end if
-        end if
-      end do
-
-    end subroutine get_free_surface_bcs
 
     subroutine correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
       !!< Given the pressure correction delta_p, correct the velocity.
