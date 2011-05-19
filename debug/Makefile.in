@@ -76,17 +76,4 @@ $(F90LIB): $(F90LIB_OBJS)
 clean:
 	rm -f *.o *.mod
 
-#####Automatically generated dependencies. Do not edit below this line#####
-../include/fldebug.mod: Debug.o
-	@true
-
-Debug.o ../include/fldebug.mod: Debug.F90 ../include/fldebug_parameters.mod \
-   ../include/fdebug.h
-
-../include/fldebug_parameters.mod: Debug_Parameters.o
-	@true
-
-Debug_Parameters.o ../include/fldebug_parameters.mod: Debug_Parameters.F90
-
-Diagnostic_Output.o : Diagnostic_Output.F90 ../include/fldebug_parameters.mod
-
+include Makefile.dependencies
