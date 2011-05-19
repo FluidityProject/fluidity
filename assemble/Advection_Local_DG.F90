@@ -1302,10 +1302,12 @@ contains
 
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
-    real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: n1, n2, normal, U_nl_q,&
+    real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: n1_l, n2_l, U_nl_q,&
          & U_nl_f_q, U_nl_f2_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
-    real, dimension(face_ngi(U_nl, face)) :: U_nl_q_dotn1, U_nl_q_dotn2, U_nl_q_dotn, income
+    real, dimension(face_ngi(U_nl, face)) :: U_nl_q_dotn1_l, U_nl_q_dotn2_l, U_nl_q_dotn_l, income
+    real, dimension(X%dim, face_ngi(X,face)) :: n1, n2
+    real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: B
     ! Variable transform times quadrature weights.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(face_ngi(X,face)) :: detwei_f, detJ_f
@@ -1332,8 +1334,8 @@ contains
     !face number. This is so that the normal is identical on both sides.
     ! Jemma: need to be more careful here - actually have to calculate normal for face2
 
-    n1=get_normal(local_face_number(U%mesh,face))
-    n2=get_normal(local_face_number(U%mesh,face_2))
+    n1_l=get_normal(local_face_number(U%mesh,face))
+    n2_l=get_normal(local_face_number(U%mesh,face_2))
     
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
@@ -1350,15 +1352,15 @@ contains
        U_nl_f2_q=sqrt(2.)*U_nl_f2_q
     end if
 
-    u_nl_q_dotn1 = sum(U_nl_f_q*n1,1)
-    u_nl_q_dotn2 = -sum(U_nl_f2_q*n2,1)
-    U_nl_q_dotn=0.5*(u_nl_q_dotn1+u_nl_q_dotn2)
+    u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
+    u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
+    U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
 !    print*, 'U_nl_q_dotn'
 !    print*, U_nl_q_dotn
 
     ! Inflow is true if the flow at this gauss point is directed
     ! into this element.
-    inflow = u_nl_q_dotn<0.0
+    inflow = u_nl_q_dotn_l<0.0
     income = merge(1.0,0.0,inflow)
 
     ! Calculate tensor on face
@@ -1367,6 +1369,17 @@ contains
        J_f(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
     print*, J_f
+
+    ! Get outward pointing normals for each element
+    call transform_facet_to_physical(X, face, normal=n1)
+    call transform_facet_to_physical(X, face_2, normal=n2)
+
+    ! Form 'bending' tensor
+    forall(gi=1:face_ngi(X,face))
+       B(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
+       forall(i=1:size(B,1)) B(i,i,gi)=B(i,i,gi)+1.0
+       B(:,:,gi)=transpose(transpose(J_f(:,:,gi))*B(:,:,gi))
+    end forall
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -1378,7 +1391,7 @@ contains
 
     ! first the integral around the inside of the element
     ! (this is the flux *out* of the element)
-    inner_advection_integral = (1.-income)*u_nl_q_dotn
+    inner_advection_integral = (1.-income)*u_nl_q_dotn_l
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
          &            inner_advection_integral*U_shape%quadrature%weight, J_f)
     print*, 'js:nnAdvection_out:'
@@ -1386,7 +1399,7 @@ contains
 
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
-    outer_advection_integral = income*u_nl_q_dotn
+    outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
          &            outer_advection_integral*U_shape%quadrature%weight, J_f)
     print*, 'js:nnAdvection_in:'
@@ -1441,6 +1454,23 @@ contains
 
       end function get_normal
 
-    end subroutine construct_vector_adv_interface_dg
+      ! copy of outer_product in vector tools, but now as function
+      pure function outer_product(x, y) result (M)
+        !!< Give two column vectors x, y
+        !!< compute the matrix xy*
+
+        real, dimension(:), intent(in) :: x, y
+        real, dimension(size(x), size(y)) :: M
+        integer :: i, j
+
+        forall (i=1:size(x))
+           forall (j=1:size(y))
+              M(i, j) = x(i) * y(j)
+           end forall
+        end forall
+      
+      end function outer_product
+    
+  end subroutine construct_vector_adv_interface_dg
 
 end module advection_local_DG
