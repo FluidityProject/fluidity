@@ -2553,7 +2553,29 @@ Note: Only works for continuous galerkin or control volume discretisations.</a:d
           <value>KEpsilon</value>
         </attribute>
       </element>
+      <ref name="ufl_equation"/>
     </choice>
+  </define>
+  <define name="ufl_equation">
+    <element name="equation">
+      <a:documentation>Option to specify the equation in the Unified Form Language (UFL)
+
+An example:
+
+f = state.scalar_fields["Tracer"]
+
+v=TestFunction(f)
+u=TrialFunction(f)
+
+A = v*u*dx
+RHS = v*f*dx
+
+solve(A, f, RHS)</a:documentation>
+      <attribute name="name">
+        <value>UFL</value>
+      </attribute>
+      <ref name="python_code"/>
+    </element>
   </define>
   <define name="equation_coefficients">
     <choice>
@@ -2649,6 +2671,7 @@ Drainage only works for continuous_galerkin and discontinuous_galerkin.</a:docum
           <value>Drainage</value>
         </attribute>
       </element>
+      <ref name="ufl_equation"/>
     </choice>
   </define>
 </grammar>

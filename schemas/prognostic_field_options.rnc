@@ -2068,8 +2068,30 @@ scalar_equation_choice =
          ## Note: Only works for continuous galerkin or control volume discretisations.
          element equation {
             attribute name { "KEpsilon" }
-         }
+         }|
+         ufl_equation
       )
+   )
+
+ufl_equation =
+   (
+         ## Option to specify the equation in the Unified Form Language (UFL)
+         ##
+         ## An example:
+         ##
+         ## f = state.scalar_fields["Tracer"]
+         ##
+         ## v=TestFunction(f)
+         ## u=TrialFunction(f)
+         ##
+         ## A = v*u*dx
+         ## RHS = v*f*dx
+         ##
+         ## solve(A, f, RHS)
+         element equation { 
+            attribute name { "UFL" },
+            python_code
+         }
    )
 
 equation_coefficients =
@@ -2147,5 +2169,6 @@ velocity_equation_choice =
       ## Drainage only works for continuous_galerkin and discontinuous_galerkin.
       element equation {
          attribute name { "Drainage" }
-      }
+      }|
+      ufl_equation
    )
