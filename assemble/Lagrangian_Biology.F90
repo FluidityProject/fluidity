@@ -43,7 +43,8 @@ implicit none
 
   private
 
-  public :: initialise_lagrangian_biology, lagrangian_biology_cleanup
+  public :: initialise_lagrangian_biology, lagrangian_biology_cleanup, &
+            calculate_lagrangian_biology
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
 
@@ -132,5 +133,20 @@ contains
     deallocate(agent_arrays)
 
   end subroutine lagrangian_biology_cleanup
+
+  subroutine calculate_lagrangian_biology(state, dt, timestep)
+    type(state_type), intent(in) :: state
+    real, intent(in) :: dt
+    integer, intent(in) :: timestep
+
+    n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
+    do i = 1, n_agent_arrays
+       ! Move lagrangian detectors
+       if (check_any_lagrangian(agent_arrays(i))) then
+          call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
+       end if
+    end do
+
+  end subroutine calculate_lagrangian_biology
 
 end module lagrangian_biology

@@ -851,6 +851,11 @@ contains
           end if
        end if
 
+       ! Call lagrangian biology after the non-linear iterations
+       if (have_option("/ocean_biology/lagrangian_ensemble")) then
+          call calculate_lagrangian_biology(state(1), dt, timestep)
+       end if
+
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then
           ewrite(1,*) 'Entering vertical_ale routine'
           !move the mesh and calculate the grid velocity
