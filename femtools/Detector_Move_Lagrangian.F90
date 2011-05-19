@@ -141,6 +141,8 @@ contains
     logical :: any_lagrangian
     real :: rk_dt
 
+    ewrite(2,*) "In move_lagrangian_detectors,", detector_list%length, "local detectors before moving"
+
     parameters => detector_list%move_parameters
 
     !Pull some information from state

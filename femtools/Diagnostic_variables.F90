@@ -172,7 +172,7 @@ module diagnostic_variables
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
     integer, dimension(:), allocatable :: number_det_in_each_group
 
-    type(detector_linked_list) :: detector_list
+    type(detector_linked_list), pointer :: detector_list => NULL()
 
     type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
     
@@ -1085,6 +1085,9 @@ contains
     deallocate(default_stat%mesh_list)
     deallocate(default_stat%sfield_list)
     deallocate(default_stat%vfield_list)
+
+    call delete_all(default_stat%detector_list)
+    deallocate(default_stat%detector_list)
     
     ! The diagnostics are registered under initialise_diagnostics so they need to be destroyed here.
     call destroy_registered_diagnostics
@@ -1401,6 +1404,8 @@ contains
 
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
  
+    call register_detector_list(default_stat%detector_list)
+
     allocate(default_stat%name_of_detector_groups_in_read_order(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
     allocate(default_stat%name_of_detector_in_read_order(total_dete))
@@ -1901,6 +1906,8 @@ contains
           end if
        end do
     end if
+
+    ewrite(2,*) "Found", default_stat%detector_list%length, "local detectors in initialise_detectors"
 
     !Get options for lagrangian detector movement
     call read_detector_move_options(default_stat%detector_list, "/io/detectors")

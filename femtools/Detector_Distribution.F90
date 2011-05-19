@@ -42,9 +42,34 @@ module detector_distribution
   
   private
 
-  public :: distribute_detectors, serialise_lists_exchange_receive
+  public :: distribute_detectors, serialise_lists_exchange_receive, register_detector_list
+
+  type(detector_linked_list), dimension(:), allocatable, save, target :: detector_list_array
 
 contains
+
+  subroutine register_detector_list(detector_list_ptr)
+    type(detector_linked_list), pointer, intent(out) :: detector_list_ptr
+
+    type(detector_linked_list), dimension(:), allocatable :: temp_list_array
+    integer :: i, old_size
+
+    ! Allocate a new detector list
+    if (allocated(detector_list_array)) then
+       old_size = size(detector_list_array)
+       allocate(temp_list_array(old_size+1))
+       do i=1, old_size
+          temp_list_array(i)=detector_list_array(i)
+       end do
+       detector_list_array=temp_list_array
+       detector_list_ptr=>detector_list_array(old_size+1)
+    else
+       ! Allocate and return first detector list
+       allocate(detector_list_array(1))
+       detector_list_ptr=>detector_list_array(1)
+    end if
+
+  end subroutine register_detector_list
 
   subroutine distribute_detectors(state, detector_list, ihash, detector_names)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
