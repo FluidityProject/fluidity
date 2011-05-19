@@ -2228,7 +2228,7 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
-       call move_lagrangian_detectors(state, default_stat%detector_list, &
+       call move_lagrangian_detectors(state(1), default_stat%detector_list, &
             dt, timestep, default_stat%name_of_detector_in_read_order)
     end if
 
