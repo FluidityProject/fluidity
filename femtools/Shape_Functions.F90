@@ -160,7 +160,7 @@ contains
           FLAbort('Element numbering unavailable.')
        end if
     end if    
-
+    
     shape%numbering=>ele_num
     shape%quadrature=quad
     call incref(quad)
@@ -251,8 +251,11 @@ contains
           end select
 
           ! Derivative
-          shape%dspoly(j,i)=ddx(shape%spoly(j,i))
-
+          if(ele_num%type==ELEMENT_TRACE) then
+             shape%dspoly(j,i) = (/ieee_value(0.0,ieee_quiet_nan)/)
+          else
+             shape%dspoly(j,i)=ddx(shape%spoly(j,i))
+          end if
        end do
 
        if(ele_num%type==ELEMENT_TRACE) then
