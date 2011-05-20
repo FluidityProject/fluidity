@@ -488,7 +488,7 @@ right hand end of the geometry.
 Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
 This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
 generate turbulence over the step and resolve its passage downstream. More information on running
-Fluidity in parallel is found in \ref{sect:running_fluidity_in_parallel}.
+/fluidity/ in parallel is found in \ref{sect:running_fluidity_in_parallel}.
 
 In practice the example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
@@ -1165,7 +1165,7 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 \end{figure}
 
 
-The mesh used is a layered mesh, which is created within fluidity from the two dimensional input mesh circle.*. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
+The mesh used is a layered mesh, which is created within \fluidity\ from the two dimensional input mesh circle.*. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
 
 
 The velocity is solved for using a discontinuous galerkin discretisation to make the results more accurate. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature.  This discretisation is sometimes referred to as p1dgp2. For this discretisation, the quadrature degree has to be set to 4.   To make it more stable, subcycling is switched on under velocity with a maximum courant number per subcycle of 0.1. There is a diagnostic free surface field which requires a free surface boundary condition under Velocity.
@@ -1327,13 +1327,17 @@ positive correlation closely delineating $y=x$.
 \label{sect: hokkaido-nansei-oki_tsunami}
 
 \subsection{Overview}
-The Okushiri tsunami in 1993 is a tsunami event which produced run-up heights of up to $30$m in Okushiri island, Japan. 
-The Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{androsov2008tsunami}, which is used here as a benchmark problem. 
+This examples demonstrates the capabilities of simulating wetting and drying processes in \fluidity\ .
+The event of interest is the Okushiri tsunami in 1993 caused by the Hokkaido Nansei-Oki earthquake offshore of southwestern Hokkaido Island, Japan. 
+This earthquake reached a magnitude of 7.8 (Mw) and the resulting tsunami hit a lightly populated part of the Okushiri island, Japan with a runup height of up to 30m.
+
+To investigate the danger of such events, the Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{androsov2008tsunami}. 
+The following configuration simulates this laboratory setup and uses the experimental measurements to benchmark \fluidity\ .
 
 \subsection{Configuration}
-The considered domain measures $5.448\mbox{m} \times 3.402\mbox{m}$  and the bathymetry and coastal topography of the experimental setup closely correspond to measurement data, see Figure \ref{pic:monai_inputwave} (a). 
-On the left boundary, a prescribed surface elevation profile was enforced resembling a tsunami wave (Figure \ref{fig:monai_inputwave} (a)). 
-The remaining boundaries were solid.
+The configuration resembles the experimental setup as close as possible. 
+The considered domain is a basin with walls on the sides but the left where the water level can be enforced. 
+The basin measures $5.448\mbox{m} \times 3.402\mbox{m}$ and the bathymetry and coastal topography closely correspond to measurement data, see Figure.
 Three surface elevation gauge stations, marked as dots in Figure \ref{fic:monai_inputwave} (a), were deployed in the experiment.
 \begin{figure}
 \begin{center}
@@ -1342,35 +1346,31 @@ Three surface elevation gauge stations, marked as dots in Figure \ref{fic:monai_
 \caption{The bathymetry and the three gauge stations (a) and the horizontal mesh (b) used for the Okushiri tsunami test case.}\label{fig:monai_inputwave}
 \end{figure}
 
-The numerical simulation uses the same domain dimensions and bathymetry as the experiment. 
-The vertically aligned, one element deep and horizontally unstructured mesh consists of $19,464$ tetrahedral elements with increased resolution near the inundation areas, see Figure \ref{pic:monai_inputwave} (b). 
-The equations are solved with the $P_1-P_1$ finite element pair, a backward Euler time discretisation with a time-step of $0.1$s and $d_0=0.5$mm. 
+The mesh used for the simulation is vertically aligned, one element deep and horizontally unstructured mesh consisting of $19,464$ tetrahedral elements with increased resolution near the inundation areas, see Figure \ref{fic:monai_inputwave} (b). 
+The equations are solved with the $P_1-P_1$ finite element pair, a backward Euler time discretisation with a time-step of $0.1$s.
+The wetting and drying algorithm in \fluidity\ requires the user to set a minimal water level thickness, which is here set to $d_0=0.5$mm. If the water surface reaches that level at a point, this point is defined to be dry.
 The isotropic kinematic viscosity and gravity magnitude are set to $0.01\mbox{m}^{2}\mbox{s}^{-1}$ and $9.81\mbox{ms}^{-2}$, respectively.
 On the left boundary the tsunami wave shown in \ref{pic:monai_results} (a) is prescribed and no-normal flow boundary conditions are applied at the other sides of the domain and the bottom to resemble the solid boundaries in the experiment.
 In addition, a Manning-Strickler drag is used at the bottom with $n=0.002\mbox{sm}^{-\frac{1}{3}}$.
 To prevent wave breaking in the simulation, this coefficient is increased to $0.2\mbox{sm}^{-\frac{1}{3}}$ in a rectangular area with a side length of $0.5$m centred at $3.4$m $\times 1.7$m (which is the centre of the island in the domain) and a fourth order stabilization is applied, see \cite{pain2001tetrahedral, piggott2008new}.
 
 \subsection{Results}
-The results at the gauge station plotted against the laboratory measurements are shown in Figure \ref{fic:monai_results} (b). 
+The result of this example is shown in Figure \ref{fig:monai_results}. 
+The plot shows the measurements of the laboratory experiment compared to the values from the simulation.
+  at the gauge station plotted against the laboratory measurements are shown in Figure \ref{fic:monai_results} (b). 
 \begin{figure}
 \begin{center}
-\includegraphics[width=\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValley_C_p1p1_nu0_01_kmkstab_drag0_002_butcircularoundisland0_2-crop-crop_final2.pdf}
+\includegraphics[width=0.7\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValley_C_p1p1_nu0_01_kmkstab_drag0_002_butcircularoundisland0_2-crop-crop_final2.pdf}
 \caption{The input wave elevation of the Okushiri tsunami test case (a) and the numerical and experimental results at ``Gauge 1'' (top), ``Gauge 2'' (middle) and ``Gauge 3'' (bottom) (b).}\label{fig:monai_results}
 \end{center}
 \end{figure}
 
 \subsection{Exercises}
 \begin{enumerate}
-\item Examine the way that the $u=1$ lid condition is applied in the flml file. Why has it not been set as simply a constant?
-Try changing it to a constant and see what happens to the errors that you achieve. [Hint: some people consider the "regularised" 
-lid-driven cavity problem. Try finding some papers that discuss this, and update the boundary condition so it matches the 
-regularised problem. Compare to benchmark data if you can find it].
-\item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the post-processing script which computes
-the errors for a higher Reynolds number.
-\item Try switching on mesh adaptivity (you will need to ensure that you have configured your \fluidity\ executable with \texttt{--enable-2d-adaptivity}). 
-Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
-differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
-sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
-error for the same number of nodes compared to the fixed mesh (hint: it may be easier to achieve this at higher Reynolds numbers)?.
+\item Add more detectors to the simulation.
+\item Change the viscosity parameter. If we had honey oceans would that makes any difference to the danger of tsunamis events?
+\item Remove the fourth order stabilization (active the "remove\_stabilisation\_term" in /material\_phase::water/scalar\_field::Pressure/prognostic/reference\_node). 
+      The simulation will run for some while and the terminate. If you look at the results, can you figure out what the reason is why blows up? 
+      (Hint: In \fluidity\ the water elevation is a function from the horizontal position to the height, i.e. in a plane each x, y coordinate has a water elevation values assigned to it)
 \end{enumerate}
 
