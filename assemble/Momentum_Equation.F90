@@ -213,6 +213,8 @@
          type(mesh_type), pointer :: p_mesh
          ! Velocity and space
          type(vector_field), pointer :: u, x
+         ! with a no_normal_stress free_surface we use a prognostic free surface
+         type(scalar_field), pointer:: free_surface, old_free_surface
 
          ! with free-surface or compressible pressure projection pressures 
          ! are at integer time levels and we apply a theta weighting to the
@@ -301,6 +303,7 @@
            p => dummypressure
            p_mesh => u%mesh
            old_p => dummypressure
+           free_surface => dummypressure
 
            prognostic_p=.false.
            prognostic_fs=.false.
@@ -326,6 +329,10 @@
              prognostic_fs = .false.
            end if
            if (prognostic_fs) then
+             old_free_surface => extract_scalar_field(state(istate), "OldFreeSurface", stat=stat)
+             if (stat/=0) then
+               old_free_surface => free_surface
+             end if
              allocate(p_mesh)
              call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
                 p%mesh, free_surface, p_mesh)
@@ -401,7 +408,7 @@
                call profiler_toc(p, "assembly")
 
                if (prognostic_fs) then
-                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m, fs, &
+                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, free_surface, &
                            reassemble_ct_m, reassemble_cmc_m)
                end if
 
@@ -515,11 +522,8 @@
                allocate(p_theta)
                ! allocate p_theta on the extended mesh:
                call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
-               old_free_surface => extract_scalar_field("OldFreeSurface", stat=stat)
-               if (stat/=0) then
-                 old_free_surface => free_surface
-               end if
-               call copy_to_extended_p(p, free_surface, old_free_surface, theta_pg)
+               call copy_to_extended_p(state(istate), p, free_surface, old_free_surface, &
+                   theta_pg, p_theta)
             else if (use_theta_pg) then
                allocate(p_theta)
                call allocate(p_theta, p_mesh, "PressureTheta")
@@ -968,8 +972,8 @@
                end if
 
                call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
-                                    p_theta, theta_pg, theta_divergence, cmc_m, &
-                                    ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
+                                    p_theta, free_surface, theta_pg, theta_divergence, prognostic_fs, &
+                                    cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
                call deallocate(projec_rhs)
@@ -1132,7 +1136,11 @@
          end do finalisation_loop
          call profiler_toc("finalisation_loop")
 
-         if(use_theta_pg) then
+         if (prognostic_fs) then
+           deallocate(p_mesh)
+           call deallocate(p_mesh)
+         end if
+         if(prognostic_fs .or. use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)
          end if
@@ -1323,7 +1331,7 @@
 
          ewrite(1,*) 'Entering solve_poisson_pressure'
 
-         call allocate(poisson_rhs, p_mesh, "PoissonRHS")
+         call allocate(poisson_rhs, p_theta%mesh, "PoissonRHS")
 
          if (full_schur) then
             call assemble_poisson_rhs(poisson_rhs, ctp_m(prognostic_p_istate)%ptr, mom_rhs(prognostic_p_istate), ct_rhs(prognostic_p_istate), inner_m(prognostic_p_istate)%ptr, u, dt, theta_pg)
@@ -1374,7 +1382,7 @@
          end if
 
          if (pressure_debugging_vtus) then
-            if (prognostic_fs) then
+            if (.not. p_theta%mesh==p%mesh) then
               FLAbort("FIXME")
             end if
             call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
@@ -1414,7 +1422,6 @@
          !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
-         integer :: i
 
          ewrite(1,*) 'Entering advance_velocity'
 
@@ -1519,7 +1526,7 @@
          ! Despite multiplying velocity by a nonlocal operator
          ! a halo_update isn't necessary as this is just a rhs
          ! contribution
-         call allocate(temp_projec_rhs, p_mesh, "TempProjectionRHS")
+         call allocate(temp_projec_rhs, p_theta%mesh, "TempProjectionRHS")
          call zero(temp_projec_rhs)
 
          if (.not. use_theta_divergence) then
@@ -1547,7 +1554,7 @@
          end if
 
          ! Allocate the RHS
-         call allocate(kmk_rhs, p_mesh, "KMKRHS")
+         call allocate(kmk_rhs, p_theta%mesh, "KMKRHS")
          call zero(kmk_rhs)
 
          if (apply_kmk) then
@@ -1565,7 +1572,7 @@
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
 
          if(use_compressible_projection) then
-            call allocate(compress_projec_rhs, p_mesh, "CompressibleProjectionRHS")
+            call allocate(compress_projec_rhs, p_theta%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
@@ -1608,21 +1615,23 @@
       end subroutine assemble_projection
 
       subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
-                                 p_theta, theta_pg, theta_divergence, cmc_m, &
-                                 ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
+                                 p_theta, free_surface, theta_pg, theta_divergence, prognostic_fs, &
+                                 cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                  schur_auxiliary_matrix, stiff_nodes_list)
          !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
 
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
          type(vector_field), pointer :: x, u
-         type(scalar_field), pointer :: p, old_p, p_theta
+         type(scalar_field), pointer :: p, old_p, p_theta, free_surface
          type(scalar_field), intent(inout) :: delta_p
 
          integer, intent(in) :: prognostic_p_istate
 
          real, intent(inout) :: theta_pg
          real, intent(inout) :: theta_divergence
+
+         logical, intent(in) :: prognostic_fs
 
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
@@ -1660,7 +1669,7 @@
          call impose_reference_pressure_node(cmc_m, projec_rhs, positions, trim(p%option_path))
 
          ! Allocate the change in pressure field
-         call allocate(delta_p, p_mesh, "DeltaP")
+         call allocate(delta_p, p_theta%mesh, "DeltaP")
          delta_p%option_path = trim(p%option_path)
          call zero(delta_p)
 
@@ -1688,7 +1697,7 @@
          if (pressure_debugging_vtus) then
             ! Writes out the pressure and velocity before the correction is added in
             ! (as the corrected fields are already available in the convergence files)
-            if (prognostic_fs) then
+            if (.not. p%mesh==p_theta%mesh) then
               FLAbort("FIXME")
             end if
             call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
@@ -1705,9 +1714,13 @@
             call scale(delta_p, 1.0/theta_divergence)
          end if
 
-         ! Add the change in pressure to the pressure
-         ! (if .not. use_theta_pg then theta_pg is 1.0)
-         call addto(p, delta_p, scale=1.0/(theta_pg*dt))
+         if (prognostic_fs) then
+           call update_pressure_and_viscous_free_surface(state(prognostic_p_istate), p, free_surface, delta_p, theta_pg)
+         else
+           ! Add the change in pressure to the pressure
+           ! (if .not. use_theta_pg then theta_pg is 1.0)
+           call addto(p, delta_p, scale=1.0/(theta_pg*dt))
+         end if
          ewrite_minmax(p)
 
          if(use_compressible_projection) then

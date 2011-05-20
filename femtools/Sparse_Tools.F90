@@ -813,9 +813,11 @@ contains
 
   end subroutine allocate_csr_sparsity
 
-  subroutine allocate_csr_matrix(matrix, sparsity, type, name, stat)
+  subroutine allocate_csr_matrix(matrix, sparsity, val, type, name, stat)
     type(csr_matrix), intent(out) :: matrix
     type(csr_sparsity), intent(in) :: sparsity
+    !! Val can be used to not allocate the values.
+    logical, intent(in), optional :: val
     !! Real or integer matrix.
     integer, intent(in), optional :: type
     character(len=*), intent(in), optional :: name

@@ -53,6 +53,9 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior, &
   calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom, &
   calculate_volume_by_surface_integral
+public extend_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
+  update_pressure_and_viscous_free_surface, extend_matrices_for_viscous_free_surface, &
+  add_viscous_free_surface_integrals
   
 
 public free_surface_module_check_options
@@ -577,6 +580,35 @@ contains
     
   end subroutine copy_poisson_solution_to_interior
 
+  subroutine initialise_prognostic_free_surface(fs, u)
+    type(scalar_field), intent(inout):: fs
+    type(vector_field), intent(in):: u
+
+    type(integer_set):: surface_elements
+    character(len=FIELD_NAME_LEN):: bctype
+    character(len=OPTION_PATH_LEN):: fs_option_path
+    integer, dimension(:), pointer:: surface_element_list
+    integer:: i
+
+    call allocate(surface_elements)
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bctype, &
+          surface_element_list=surface_element_list, &
+          option_path=fs_option_path)
+      if (bctype=="free_surface" .and. &
+             have_option(trim(fs_option_path)//"/no_normal_stress")) then
+         call insert(surface_elements, surface_element_list)
+      end if
+    end do
+
+   allocate(surface_element_list(1:key_count(surface_elements)))
+   surface_element_list=set2vector(surface_elements)
+   call add_boundary_condition_surface_elements(fs, "_free_surface", "free_surface", &
+      surface_element_list)
+   deallocate(surface_element_list)
+
+  end subroutine initialise_prognostic_free_surface
+
   subroutine extend_pressure_mesh_for_viscous_free_surface(state, pressure_mesh, fs, extended_mesh)
     ! extend the pressure mesh to contain the extra free surface dofs
     ! (doubling the pressure nodes at the free surface)
@@ -584,7 +616,7 @@ contains
     ! this must be the state containing the prognostic pressure and free surface
     type(state_type), intent(in):: state
     type(mesh_type), intent(in):: pressure_mesh
-    type(scalar_field), intent(in):: fs
+    type(scalar_field), intent(inout):: fs
     type(mesh_type), intent(out):: extended_mesh
 
     type(vector_field), pointer:: u
@@ -605,10 +637,23 @@ contains
 
   end subroutine extend_pressure_mesh_for_viscous_free_surface
   
-  subroutine copy_to_extended_p(p, fs, oldfs, theta_pg, p_theta)
+  subroutine copy_to_extended_p(state, p, fs, oldfs, theta_pg, p_theta)
+    type(state_type), intent(in):: state
+    type(scalar_field), intent(in):: p, fs, oldfs
+    real, intent(in):: theta_pg
+    type(scalar_field), intent(inout):: p_theta
     ! copy p and fs into p_theta that is allocated on the extended pressure mesh
 
     integer, dimension(:), pointer:: fs_surface_node_list
+    real:: g, rho0
+    integer:: grav_stat
+
+    call get_reference_density_from_options(rho0, state%option_path)
+    ! gravity acceleration
+    call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
+    if (grav_stat/=0) then
+      FLExit("For a free surface you need gravity")
+    end if
 
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
@@ -621,7 +666,38 @@ contains
     p_theta%val(node_count(p)+1:) = (1.-theta_pg)*oldfs%val(fs_surface_node_list) + &
         theta_pg*fs%val(fs_surface_node_list)
 
-  end subroutine extend_pressure_mesh_for_viscous_free_surface
+  end subroutine copy_to_extended_p
+
+  subroutine update_pressure_and_viscous_free_surface(state, p, fs, delta_p, theta_pg)
+    type(state_type), intent(in):: state
+    ! after the pressure+fs projection add in the solved for delta_p
+    ! into the pressure and prognostic fs
+    type(scalar_field), intent(inout):: p, fs
+    type(scalar_field), intent(in):: delta_p
+    real, intent(in):: theta_pg
+
+    integer, dimension(:), pointer:: fs_surface_node_list
+    real:: g, rho0, dt
+    integer:: grav_stat
+
+    call get_reference_density_from_options(rho0, state%option_path)
+    ! gravity acceleration
+    call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
+    if (grav_stat/=0) then
+      FLExit("For a free surface you need gravity")
+    end if
+    call get_option('/timestepping/timestep', dt)
+
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_node_list=fs_surface_node_list)
+
+    p%val=p%val+delta_p%val(1:node_count(p))/dt
+
+    call addto(fs, fs_surface_node_list, delta_p%val(node_count(p)+1:)/(dt*rho0*g*theta_pg))
+
+  end subroutine update_pressure_and_viscous_free_surface
 
   subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs, &
       assemble_ct_m, assemble_cmc_m)
@@ -636,7 +712,7 @@ contains
     type(csr_matrix), pointer:: cmc_m
     type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: fs
+    type(scalar_field), intent(inout):: fs
     logical, intent(in):: assemble_ct_m, assemble_cmc_m
 
     type(integer_set):: fs_nodes
@@ -703,7 +779,8 @@ contains
     type(state_type), intent(in):: state
     type(block_csr_matrix), intent(inout):: ct_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: p, fs
+    type(scalar_field), intent(in):: p
+    type(scalar_field), intent(inout):: fs
 
     type(vector_field), pointer:: x
     type(mesh_type), pointer:: fs_mesh
