@@ -619,6 +619,7 @@ X_LIBS
 X_PRE_LIBS
 X_CFLAGS
 XMKMF
+HAVE_ADJOINT
 ZOLTAN
 MPICXX
 MPICC
@@ -11804,8 +11805,11 @@ echo $LIBS
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
 
 # Set variables...
 
@@ -11916,6 +11920,7 @@ echo $LIBS
     fi
   fi
 fi
+
 
 # Check whether --enable-petsc-fortran-modules was given.
 if test "${enable_petsc_fortran_modules+set}" = set; then :
