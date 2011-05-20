@@ -676,14 +676,16 @@ contains
     type(scalar_field), intent(in):: delta_p
     real, intent(in):: theta_pg
 
-    integer, dimension(:), pointer:: fs_surface_node_list
+    type(vector_field), pointer:: x, vertical_normal
+    type(scalar_field), pointer:: topdis
+    integer, dimension(:), pointer:: fs_surface_node_list, surface_element_list
     real:: g, rho0, dt
-    integer:: grav_stat
+    integer:: stat
 
     call get_reference_density_from_options(rho0, state%option_path)
     ! gravity acceleration
-    call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
-    if (grav_stat/=0) then
+    call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
+    if (stat/=0) then
       FLExit("For a free surface you need gravity")
     end if
     call get_option('/timestepping/timestep', dt)
@@ -696,6 +698,25 @@ contains
     p%val=p%val+delta_p%val(1:node_count(p))/dt
 
     call addto(fs, fs_surface_node_list, delta_p%val(node_count(p)+1:)/(dt*rho0*g*theta_pg))
+
+    ! if /geometry/ocean_boundaries are specified take the new fs values
+    ! at the top and extrapolate them downwards
+    topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+    if (stat==0) then
+       ! note we're not using the actual free_surface bc here, as 
+       ! that may be specified in parts, or not cover the whole area
+       call get_boundary_condition(topdis, 1, &
+         surface_element_list=surface_element_list)
+         
+       x => extract_vector_field(state, "Coordinate")
+       vertical_normal => extract_vector_field(state, "GravityDirection")
+ 
+       ! vertically extrapolate pressure values at the free surface downwards
+       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+       call VerticalExtrapolation(fs, fs, x, &
+         vertical_normal, surface_element_list=surface_element_list, &
+         surface_name="DistanceToTop")
+    end if
 
   end subroutine update_pressure_and_viscous_free_surface
 
@@ -1309,8 +1330,8 @@ contains
      integer:: i, j, sele, stat
      logical :: have_wd
 
-     ! the prognostic free surface is calculated elsewhere (this is the
-     ! separate free surface equation approach in the old code path)
+     ! the prognostic free surface is calculated elsewhere (this is used
+     ! in combination with the viscous free surface)
      if (have_option(trim(free_surface%option_path)//'/prognostic')) return
      
      x => extract_vector_field(state, "Coordinate")
@@ -1625,7 +1646,7 @@ contains
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
-    logical:: have_free_surface
+    logical:: have_free_surface, have_viscous_free_surface
     integer i, p
     
     do p=1, option_count('/material_phase')
@@ -1639,7 +1660,12 @@ contains
         do i=1, option_count(trim(option_path)//'/boundary_conditions')
           call get_option(trim(option_path)//'/boundary_conditions['// &
              int2str(i-1)//']/type[0]/name', bctype)
-          have_free_surface=have_free_surface .or. (bctype=='free_surface')
+          if (bctype=='free_surface') then
+            have_free_surface=.true.
+            have_viscous_free_surface=have_option(trim(option_path)//'/boundary_conditions['// &
+                 int2str(i-1)//']/no_normal_stess')
+            exit
+          end if
         end do
       else
         ! no prognostic velocity, no free_surface bc
@@ -1692,12 +1718,28 @@ contains
         end if
       end if
       
-      ! check we're not combining old and new free surface method
+      ! check prognostic FreeSurface options:
       option_path=trim(phase_path)//'/scalar_field::FreeSurface/prognostic'
-      if (have_free_surface .and. have_option(trim(option_path))) then
-        ewrite(-1,*) "Trying to combine free_surface boundary condition (new method) " // &
-          "with prognostic FreeSurface (old method)."
-        FLExit("Cannot use both old and new free surface method")
+      if (have_viscous_free_surface .and. .not. have_option(option_path)) then
+        FLExit("For a free surface with no_normal_stress you need a prognostic FreeSurface")
+      end if
+      if (have_option(trim(option_path))) then
+        call get_option(trim(option_path)//'/mesh[0]/name', fs_meshname)
+        call get_option(trim(pressure_path)//'/mesh[0]/name', p_meshname)
+        if (.not. have_free_surface) then
+          ewrite(-1,*) "The prognostic FreeSurface field has to be used in combination " // &
+            "with the free_surface boundary condition under Velocity with the." //&
+            "no_normal_stress option underneath it."
+          FLExit("Exit")
+        end if
+        if (.not. fs_meshname==p_meshname) then
+          FLExit("The prognostic FreeSurface field and the Pressure field have to be on the same mesh")
+        end if
+        if (.not. have_option('/geometry/ocean_boundaries')) then
+          ewrite(0,*) "Warning: your prognostic free surface will only be " // &
+            "defined at the free surface nodes and not extrapolated downwards, " // &
+            "because you didn't specify geometry/ocean_boundaries."
+        end if
       end if
       
       option_path=trim(phase_path)//'/equation_of_state/fluids/linear/subtract_out_hydrostatic_level'
@@ -1719,5 +1761,6 @@ contains
     end do
     
   end subroutine free_surface_module_check_options
+
 end module free_surface_module
 
