@@ -513,7 +513,7 @@ endif
 	@cd libwm; ../scripts/create_makefile.py
 	@echo "    Generating femtools dependencies"
 	@cd femtools;	../scripts/create_makefile.py --exclude \
-	Refcount_interface_templates.F90 Refcount_templates.F90
+	"Refcount_interface_templates.F90 Refcount_templates.F90"
 	@echo "    Generating bathymetry dependencies"
 	@cd bathymetry; ../scripts/create_makefile.py
 	@echo "    Generating ocean_forcing dependencies"
