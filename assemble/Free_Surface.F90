@@ -172,7 +172,7 @@ contains
           call get_boundary_condition(free_surface, "_free_surface", &
              surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
           ! create a map from face numbers to element numbers in fs_mesh
-          call invert_set(surface_element_list, sele_to_fs_ele)
+          call invert_set(fs_surface_element_list, sele_to_fs_ele)
         end if
       end if
       
@@ -228,7 +228,7 @@ contains
            option_path=fs_option_path)
         if (bctype=="free_surface") then
 
-          if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+          if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
             if (.not. prognostic_fs) then
               ! this should have been options checked
               FLAbort("No normal stress free surface without prognostic free surface")
@@ -449,7 +449,7 @@ contains
         call get_boundary_condition(free_surface, "_free_surface", &
           surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
         ! create a map from face numbers to element numbers in fs_mesh
-        call invert_set(surface_element_list, sele_to_fs_ele)
+        call invert_set(fs_surface_element_list, sele_to_fs_ele)
       end if
     end if
     
@@ -476,7 +476,7 @@ contains
           surface_element_list=surface_element_list, &
           option_path=fs_option_path)
       if (bctype=="free_surface") then
-        if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+        if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
           if (.not. prognostic_fs) then
             ! this should have been options checked
             FLAbort("No normal stress free surface without prognostic free surface")
@@ -553,7 +553,7 @@ contains
           option_path=fs_option_path)
       if (bctype=="free_surface") then
 
-        if (have_option(trim(fs_option_path)//"/no_normal_stress")) then
+        if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
           if (fs_stat/=0) then
             ! this should have been options checked
             FLAbort("No normal stress free surface without prognostic free surface")
@@ -565,7 +565,8 @@ contains
 
         do j=1, size(surface_element_list)
           sele=surface_element_list(j)
-          call set(p_theta, face_global_nodes(p_theta,sele), face_val(copy_from, sele))
+          ! note we cannot use face_global_nodes(p_theta,sele) as its mesh doesn't have %faces
+          call set(p_theta, face_global_nodes(p,sele), face_val(copy_from, sele))
         end do
 
       end if
@@ -596,7 +597,7 @@ contains
           surface_element_list=surface_element_list, &
           option_path=fs_option_path)
       if (bctype=="free_surface" .and. &
-             have_option(trim(fs_option_path)//"/no_normal_stress")) then
+             have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
          call insert(surface_elements, surface_element_list)
       end if
     end do
@@ -740,6 +741,7 @@ contains
     type(block_csr_matrix):: new_ct_m
     type(csr_matrix):: new_cmc_m
     type(csr_sparsity):: new_sparsity, new_sparsity2
+    character(len=FIELD_NAME_LEN):: ct_name, cmc_name
     integer, dimension(:), pointer:: fs_surface_node_list
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
@@ -759,29 +761,38 @@ contains
 
     if (assemble_ct_m) then
       new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
-      call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_m%name)
+      ! only thing we want to keep from the original ct_m before deallocating
+      ! (ct_m is just a borrowed reference so we don't need to allocate ourselves, this is done by the insert)
+      ct_name=ct_m%name
+
+      call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_name)
       call deallocate(new_sparsity)
 
-      call insert(state, new_ct_m, ct_m%name)
-      call deallocate(ct_m)
-
-      ct_m => extract_block_csr_matrix(state, new_ct_m%name)
-
+      call insert(state, new_ct_m, ct_name)
       call deallocate(new_ct_m)
+
+      ct_m => extract_block_csr_matrix(state, ct_name)
+
     end if
 
     if (assemble_cmc_m) then
+      ! first add some columns
       new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
+      ! only thing we want to keep from the original cmc_m before deallocating
+      cmc_name=cmc_m%name
+      ! (cmc_m is just a borrowed reference so we don't need to allocate ourselves, this is done by the insert)
+
+      ! now add the rows
       new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
       call deallocate(new_sparsity)
-      call allocate(new_cmc_m, new_sparsity2, name=cmc_m%name)
+
+      call allocate(new_cmc_m, new_sparsity2, name=cmc_name)
       call deallocate(new_sparsity2)
 
-      call insert(state, new_cmc_m, cmc_m%name)
-      call deallocate(cmc_m)
-     
-      cmc_m => extract_csr_matrix(state, new_cmc_m%name)
+      call insert(state, new_cmc_m, cmc_name)
       call deallocate(new_cmc_m)
+     
+      cmc_m => extract_csr_matrix(state, cmc_name)
     end if
 
     call deallocate(fs_nodes)
@@ -821,7 +832,7 @@ contains
     call get_boundary_condition(fs, "_free_surface", &
         surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
     ! create a map from face numbers to element numbers in fs_mesh
-    call invert_set(surface_element_list, sele_to_fs_ele)
+    call invert_set(fs_surface_element_list, sele_to_fs_ele)
 
     x => extract_vector_field(state, "Coordinate")
 
@@ -830,7 +841,7 @@ contains
       if (bc_type=="free_surface") then
         call get_boundary_condition(u, i, option_path=bc_option_path, &
           surface_element_list=surface_element_list)
-        if (have_option(trim(bc_option_path)//"/no_normal_stress")) then
+        if (have_option(trim(bc_option_path)//"/type[0]/no_normal_stress")) then
           do j=1, size(surface_element_list)
             call add_boundary_integral_sele(surface_element_list(j))
           end do
@@ -1663,8 +1674,7 @@ contains
           if (bctype=='free_surface') then
             have_free_surface=.true.
             have_viscous_free_surface=have_option(trim(option_path)//'/boundary_conditions['// &
-                 int2str(i-1)//']/no_normal_stess')
-            exit
+                int2str(i-1)//']/type[0]/no_normal_stress')
           end if
         end do
       else

@@ -522,6 +522,7 @@
                allocate(p_theta)
                ! allocate p_theta on the extended mesh:
                call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
+               p_theta%option_path=p%option_path ! Use p's solver options
                call copy_to_extended_p(state(istate), p, free_surface, old_free_surface, &
                    theta_pg, p_theta)
             else if (use_theta_pg) then

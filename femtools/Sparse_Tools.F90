@@ -4885,6 +4885,7 @@ contains
       entries=size(sparsity_in%colm)+extra_entries, name=name)
 
     sparsity_out%findrm(1:size(sparsity_in%findrm))=sparsity_in%findrm
+    sparsity_out%colm(1:size(sparsity_in%colm))=sparsity_in%colm
 
     do i=1, key_count(rows)
       row=fetch(rows, i)
@@ -4894,6 +4895,8 @@ contains
       sparsity_out%colm(k:k+l-1)=row_m(sparsity_in, row)
       sparsity_out%findrm(new_row+1)=k+l
     end do
+
+    sparsity_out%sorted_rows=sparsity_in%sorted_rows
 
   end function sparsity_duplicate_rows
 
@@ -4939,6 +4942,10 @@ contains
     end do
     ! fill in the usual last row
     sparsity_out%findrm(i)=k
+
+    ! because 1) columns are specified as a set, so the map column_index preserves the order
+    ! and 2) the new columns are added at the end - the new rows should be sorted as well
+    sparsity_out%sorted_rows=sparsity_in%sorted_rows
 
   end function sparsity_duplicate_columns
   

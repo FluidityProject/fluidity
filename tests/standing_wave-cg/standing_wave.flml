@@ -283,7 +283,9 @@
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
-          <type name="free_surface"/>
+          <type name="free_surface">
+            <no_normal_stress/>
+          </type>
         </boundary_conditions>
         <boundary_conditions name="Bottom">
           <surface_ids>
@@ -314,18 +316,15 @@
       </prognostic>
     </vector_field>
     <scalar_field name="FreeSurface" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+      <prognostic>
         <mesh name="CoordinateMesh"/>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0</real_value>
+          </constant>
+        </initial_condition>
         <output/>
-        <stat>
-          <surface_integral type="value" name="horizontal_integral">
-            <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
-              <comment>Evaluate over the bottom as we want a horizontal integral, not an integral</comment>
-            </surface_ids>
-          </surface_integral>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -335,7 +334,8 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-      </diagnostic>
+        <consistent_interpolation/>
+      </prognostic>
     </scalar_field>
   </material_phase>
 </fluidity_options>
