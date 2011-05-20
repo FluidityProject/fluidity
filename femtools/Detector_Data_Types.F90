@@ -37,9 +37,15 @@ module detector_data_types
   private
   
   public :: detector_type, detector_parameters, detector_linked_list, &
-            detector_list_ptr, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+            detector_list_ptr, stringlist, &
+            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
+
+  type stringlist
+     !!< Container type for a list of strings.
+     character(len=FIELD_NAME_LEN), dimension(:), pointer :: ptr
+  end type stringlist
 
   !! Type for caching detector position and search information.
   type detector_type
@@ -89,8 +95,19 @@ module detector_data_types
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
 
-     ! Detector list parameters for lagrangian movement
+     ! Parameters for lagrangian movement
      type(detector_parameters), pointer :: move_parameters
+
+     ! List of scalar/vector fields to include in detector output
+     type(stringlist), dimension(:), allocatable :: sfield_list
+     type(stringlist), dimension(:), allocatable :: vfield_list
+
+     !! I/O parameters
+     logical :: binary_output = .false.
+     integer :: output_unit = 0          ! Assumed non-opened as long this is 0
+     integer :: mpi_fh = 0               ! MPI filehandle
+     integer :: mpi_write_count = 0      ! Offset in MPI file
+     integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
 
   type detector_list_ptr
