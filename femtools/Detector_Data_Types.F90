@@ -37,7 +37,7 @@ module detector_data_types
   private
   
   public :: detector_type, detector_parameters, detector_linked_list, &
-            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+            detector_list_ptr, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
 
@@ -92,5 +92,9 @@ module detector_data_types
      ! Detector list parameters for lagrangian movement
      type(detector_parameters), pointer :: move_parameters
   end type detector_linked_list
+
+  type detector_list_ptr
+     type(detector_linked_list), pointer :: ptr
+  end type detector_list_ptr
 
 end module detector_data_types

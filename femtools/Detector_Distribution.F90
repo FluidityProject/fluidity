@@ -44,29 +44,33 @@ module detector_distribution
 
   public :: distribute_detectors, serialise_lists_exchange_receive, register_detector_list
 
-  type(detector_linked_list), dimension(:), allocatable, save, target :: detector_list_array
+  type(detector_list_ptr), dimension(:), allocatable, save :: detector_list_array
 
 contains
 
-  subroutine register_detector_list(detector_list_ptr)
-    type(detector_linked_list), pointer, intent(out) :: detector_list_ptr
+  subroutine register_detector_list(detector_list)
+    type(detector_linked_list), target, intent(inout) :: detector_list
 
-    type(detector_linked_list), dimension(:), allocatable :: temp_list_array
+    type(detector_list_ptr), dimension(:), allocatable :: tmp_list_array
     integer :: i, old_size
 
     ! Allocate a new detector list
     if (allocated(detector_list_array)) then
        old_size = size(detector_list_array)
-       allocate(temp_list_array(old_size+1))
+       allocate(tmp_list_array(old_size+1))
        do i=1, old_size
-          temp_list_array(i)=detector_list_array(i)
+          tmp_list_array(i)%ptr=>detector_list_array(i)%ptr
        end do
-       detector_list_array=temp_list_array
-       detector_list_ptr=>detector_list_array(old_size+1)
+       deallocate(detector_list_array)
+       allocate(detector_list_array(old_size+1))
+       do i=1, old_size
+          detector_list_array(i)%ptr=>tmp_list_array(i)%ptr
+       end do
+       detector_list_array(old_size+1)%ptr=>detector_list
     else
        ! Allocate and return first detector list
        allocate(detector_list_array(1))
-       detector_list_ptr=>detector_list_array(1)
+       detector_list_array(1)%ptr=>detector_list
     end if
 
   end subroutine register_detector_list
