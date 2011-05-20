@@ -658,6 +658,7 @@ CPPFLAGS
 CFLAGS
 CC
 MOD_FLAG
+GFORTRAN_4_5_OR_NEWER
 FCLIBS
 ac_ct_FC
 FCFLAGS
@@ -4206,6 +4207,12 @@ fi
 
 if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
   USING_GFORTRAN="yes"
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
+    GFORTRAN_4_5_OR_NEWER="yes"
+
+  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -11900,6 +11907,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 echo $LIBS
 
+    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+      # test really is so retarded that it can't lexicographically compare strings
+      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
+      fi
+    fi
   fi
 fi
 

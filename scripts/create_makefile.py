@@ -4,12 +4,22 @@ import os
 import sys
 import glob
 
-exceptions=set(["Refcount_interface_templates.F90",
-                "Refcount_templates.F90",
-                "testshapefunctions.F90",
-                "test_element_numbering.F90",
-                "Residual_estimation.F90",
-                "mmpde.F90"])
+# List of dependencies we don't want in makefiles. Dependencies starting
+# with these strings will be dropped.
+dep_exclusions=[\
+    # Because switching on and off mba changes the module files loaded, these
+    # are special-cased in the Makefiles.
+    "../../include/mba2d_module.mod",
+    "../include/mba3d_mba_nodal.mod",
+    # Remove dependencies on confdefs.h because it causes
+    # lots of spurious rebuilds.
+    "../include/confdefs.mod",
+    # Get rid of absolute paths.
+    # We are only interested in dependencies from within the
+    # Fluidity tree  so we dump the ones from outside.  
+    "/"
+    ]
+
 
 class dependency_list(object):
     '''Class to store and process the dependencies of a single .o and its
@@ -113,7 +123,7 @@ def trysystem(command):
 def create_refcounts():
     '''create_refcounts()
 
-    produce all the generated reference counting Fortran source. This
+    Produce all the generated reference counting Fortran source. This
     currently only has effect in the femtools directory.
     '''
 
@@ -125,11 +135,15 @@ def create_refcounts():
         trysystem("make "+" ".join(refcounts))
 
 def generate_dependencies(fortran):
+    '''generate_dependencies(fortran)
+
+    Given a list of Fortran source files, generate the actual list of
+    makefile dependencies.
+    '''
     import os.path
     
     setsize=len(fortran)+1 # Make sure loop executes once.
 
-    
     dependencies={}
     # Loop as long as we are making progress.
     while len(fortran)<setsize and len(fortran)>0:
@@ -150,15 +164,11 @@ def generate_dependencies(fortran):
                     obj,
                     f,
                     file(obj+"_dependencies","r").readlines())
-                # Get rid of absolute paths.
-                # We are only interested in dependencies from within the
-                # Fluidity tree  so we dump the ones from outside.  
-                this_deps.remove_dep_by_rule(lambda x: x.startswith("/"))
-                # Remove dependencies on ../confdefs.h because it causes
-                # lots of spurious rebuilds.
-                this_deps.remove_dep_by_rule(lambda x:
-                    x.startswith("../include/confdefs.h"))
-
+                
+                # Remove unwanted dependencies
+                for dep in dep_exclusions:
+                    this_deps.remove_dep_by_rule(lambda x:
+                                                     x.startswith(dep))
                 dependencies[f]=this_deps
                 #split_module_dependency(
                 #    strip_absolute_paths(this_deps))+["\n"]
@@ -209,11 +219,12 @@ if __name__=='__main__':
     trysystem("make clean")
 
     sys.stderr.write("Listing F90 files\n")
-    fortran=set(glob.glob("*.F90")).difference(exceptions)\
+    fortran=set(glob.glob("*.F90"))\
         .difference(set(options.exclude.split()))
 
     sys.stderr.write("Creating reference counts\n")
     create_refcounts()
 
     dependencies=generate_dependencies(fortran)
+
     file("Makefile.dependencies",'w').writelines(dependencies)        

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import matplotlib as m
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
