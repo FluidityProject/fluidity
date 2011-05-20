@@ -52,6 +52,15 @@ module adjoint_functional_evaluation
 
   contains
 
+  ! This function is used by libadjoint during the adjoint assembly.
+  ! It computes the right-hand side of the adjoint system, which is
+  ! \frac{\partial J}{\partial u}.
+  ! 
+  ! This is computed one of two ways, depending on what the user has
+  ! supplied us with. If the user has supplied a functional_derivative python
+  ! function, then we just use that. Otherwise, if they have supplied a
+  ! functional_value python function, then we apply automatic differentiation
+  ! to that.
   subroutine libadjoint_functional_derivative(adjointer, var, ndepends, dependencies, values, functional_name_c, output) bind(c)
     type(adj_adjointer), intent(in) :: adjointer
     type(adj_variable), intent(in), value :: var

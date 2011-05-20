@@ -88,8 +88,6 @@ class Field:
     # Return the values of field at the quadrature points of ele_number
     shape_n = self.ele_shape(ele_number).n
     ele_val = self.ele_val(ele_number)
-    #print "ele_val:",ele_val.shape
-    #print "shape_n:",shape_n.shape
     return numpy.array(numpy.dot(ele_val, shape_n))
 
   def ele_region_id(self,ele_number):
