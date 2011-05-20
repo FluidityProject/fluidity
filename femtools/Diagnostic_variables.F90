@@ -172,7 +172,7 @@ module diagnostic_variables
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
     integer, dimension(:), allocatable :: number_det_in_each_group
 
-    type(detector_linked_list), pointer :: detector_list => NULL()
+    type(detector_linked_list) :: detector_list
 
     type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
     
@@ -1086,9 +1086,6 @@ contains
     deallocate(default_stat%sfield_list)
     deallocate(default_stat%vfield_list)
 
-    call delete_all(default_stat%detector_list)
-    deallocate(default_stat%detector_list)
-    
     ! The diagnostics are registered under initialise_diagnostics so they need to be destroyed here.
     call destroy_registered_diagnostics
 
@@ -1404,6 +1401,7 @@ contains
 
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
  
+    ! Register this I/O detector list with a global list of detector lists
     call register_detector_list(default_stat%detector_list)
 
     allocate(default_stat%name_of_detector_groups_in_read_order(total_dete_groups))

@@ -38,6 +38,7 @@ module lagrangian_biology
   use detector_data_types
   use detector_tools
   use detector_move_lagrangian
+  use detector_distribution
 
 implicit none
 
@@ -83,6 +84,8 @@ contains
        call get_option(trim(buffer)//"/initial_position", func)
        allocate(coords(dim,n_agents))
        call set_detector_coords_from_python(coords, n_agents, func, current_time)
+
+       call register_detector_list(agent_arrays(i))
 
        ! Create agent and insert into list
        do j = 1, n_agents
