@@ -594,6 +594,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 HYPERLIGHT
+HAVE_ZOLTAN
 MEMORY_STATS
 ALGENCAN
 MBA3D
@@ -11799,7 +11800,7 @@ ZOLTAN="yes"
 
 echo $LIBS
 
-     fi
+      fi
     fi
 fi
 
@@ -14639,7 +14640,11 @@ fi
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
 if test "$with_zoltan" != "no" ; then
 	LIBS="$LIBS $ZOLTAN_DEPS"
+    HAVE_ZOLTAN=yes
+else
+    HAVE_ZOLTAN=no
 fi
+
 
 # Check whether --enable-hyperlight was given.
 if test "${enable_hyperlight+set}" = set; then :
