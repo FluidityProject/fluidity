@@ -207,6 +207,9 @@
 
          ! Pressure and density
          type(scalar_field), pointer :: p, density
+         ! this is the mesh on which the pressure projection is performed
+         ! usually just p%mesh, but in case of a no_normal_stress free_surface
+         ! (and in future hydrostatic projection) these are different
          type(mesh_type), pointer :: p_mesh
          ! Velocity and space
          type(vector_field), pointer :: u, x
@@ -245,7 +248,10 @@
          !! Variables for multi-phase flow model
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
-         logical :: prognostic_p = .false.
+         logical :: prognostic_p
+         ! Do we have a prognostic free surface (currently only in 
+         ! combination with a no_normal_stress free_surface)
+         logical :: prognostic_fs
          ! Prognostic pressure field's state index (if present)
          integer :: prognostic_p_istate 
          ! The 'global' CMC matrix (the sum of all individual phase CMC matrices)
@@ -296,6 +302,9 @@
            p_mesh => u%mesh
            old_p => dummypressure
 
+           prognostic_p=.false.
+           prognostic_fs=.false.
+
          else
 
            p_mesh => p%mesh
@@ -308,6 +317,20 @@
            if (prognostic_p) then
              prognostic_p_istate = istate
            end if
+
+
+           free_surface => extract_scalar_field(state(istate), "FreeSurface", stat=stat)
+           if (stat==0) then
+             prognostic_fs = have_option(trim(free_surface%option_path)//"/prognostic")
+           else
+             prognostic_fs = .false.
+           end if
+           if (prognostic_fs) then
+             allocate(p_mesh)
+             call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
+                p%mesh, free_surface, p_mesh)
+           end if
+
          end if
 
          !! Get some pressure options
@@ -377,15 +400,9 @@
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
                call profiler_toc(p, "assembly")
 
-               free_surface => extract_scalar_field(state(istate), "FreeSurface", stat=stat)
-               if (stat==0) then
-                 prognostic_fs = have_option(trim(free_surface%option_path)//"/prognostic")
-                 if (prognostic_fs) then
-                   call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m, fs, &
+               if (prognostic_fs) then
+                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m, fs, &
                            reassemble_ct_m, reassemble_cmc_m)
-                 end if
-               else
-                 prognostic_fs = .false.
                end if
 
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
@@ -491,11 +508,21 @@
                use_theta_pg=.false.
                use_theta_divergence=.false.
                theta_divergence=1.0
+               theta_pg=1.0
             end if
 
-            if (use_theta_pg) then
+            if (prognostic_fs) then
                allocate(p_theta)
-               call allocate(p_theta, p%mesh, "PressureTheta")
+               ! allocate p_theta on the extended mesh:
+               call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
+               old_free_surface => extract_scalar_field("OldFreeSurface", stat=stat)
+               if (stat/=0) then
+                 old_free_surface => free_surface
+               end if
+               call copy_to_extended_p(p, free_surface, old_free_surface, theta_pg)
+            else if (use_theta_pg) then
+               allocate(p_theta)
+               call allocate(p_theta, p_mesh, "PressureTheta")
 
                ! p_theta = theta*p + (1-theta)*old_p
                call set(p_theta, p, old_p, theta_pg)
@@ -851,7 +878,7 @@
 
 
             ! Allocate RHS for pressure correction step
-            call allocate(projec_rhs, p%mesh, "ProjectionRHS")
+            call allocate(projec_rhs, p_mesh, "ProjectionRHS")
             call zero(projec_rhs)
 
          end if ! end of prognostic pressure
@@ -1040,7 +1067,7 @@
                                        &/discontinuous_galerkin")) then
 
                   ! Allocate the change in pressure field
-                  call allocate(delta_p, p%mesh, "DeltaP")
+                  call allocate(delta_p, p_mesh, "DeltaP")
                   delta_p%option_path = trim(p%option_path)
                   call zero(delta_p)
 
@@ -1296,7 +1323,7 @@
 
          ewrite(1,*) 'Entering solve_poisson_pressure'
 
-         call allocate(poisson_rhs, p%mesh, "PoissonRHS")
+         call allocate(poisson_rhs, p_mesh, "PoissonRHS")
 
          if (full_schur) then
             call assemble_poisson_rhs(poisson_rhs, ctp_m(prognostic_p_istate)%ptr, mom_rhs(prognostic_p_istate), ct_rhs(prognostic_p_istate), inner_m(prognostic_p_istate)%ptr, u, dt, theta_pg)
@@ -1347,6 +1374,9 @@
          end if
 
          if (pressure_debugging_vtus) then
+            if (prognostic_fs) then
+              FLAbort("FIXME")
+            end if
             call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
                   sfields=(/ p_theta, p, old_p /))
          end if
@@ -1489,7 +1519,7 @@
          ! Despite multiplying velocity by a nonlocal operator
          ! a halo_update isn't necessary as this is just a rhs
          ! contribution
-         call allocate(temp_projec_rhs, p%mesh, "TempProjectionRHS")
+         call allocate(temp_projec_rhs, p_mesh, "TempProjectionRHS")
          call zero(temp_projec_rhs)
 
          if (.not. use_theta_divergence) then
@@ -1517,7 +1547,7 @@
          end if
 
          ! Allocate the RHS
-         call allocate(kmk_rhs, p%mesh, "KMKRHS")
+         call allocate(kmk_rhs, p_mesh, "KMKRHS")
          call zero(kmk_rhs)
 
          if (apply_kmk) then
@@ -1535,7 +1565,7 @@
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
 
          if(use_compressible_projection) then
-            call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
+            call allocate(compress_projec_rhs, p_mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
@@ -1630,7 +1660,7 @@
          call impose_reference_pressure_node(cmc_m, projec_rhs, positions, trim(p%option_path))
 
          ! Allocate the change in pressure field
-         call allocate(delta_p, p%mesh, "DeltaP")
+         call allocate(delta_p, p_mesh, "DeltaP")
          delta_p%option_path = trim(p%option_path)
          call zero(delta_p)
 
@@ -1658,6 +1688,9 @@
          if (pressure_debugging_vtus) then
             ! Writes out the pressure and velocity before the correction is added in
             ! (as the corrected fields are already available in the convergence files)
+            if (prognostic_fs) then
+              FLAbort("FIXME")
+            end if
             call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
                   sfields=(/ delta_p, p, old_p, p_theta /))
             ! same thing but now on velocity mesh:

@@ -577,6 +577,52 @@ contains
     
   end subroutine copy_poisson_solution_to_interior
 
+  subroutine extend_pressure_mesh_for_viscous_free_surface(state, pressure_mesh, fs, extended_mesh)
+    ! extend the pressure mesh to contain the extra free surface dofs
+    ! (doubling the pressure nodes at the free surface)
+
+    ! this must be the state containing the prognostic pressure and free surface
+    type(state_type), intent(in):: state
+    type(mesh_type), intent(in):: pressure_mesh
+    type(scalar_field), intent(in):: fs
+    type(mesh_type), intent(out):: extended_mesh
+
+    type(vector_field), pointer:: u
+    integer, dimension(:), pointer:: fs_surface_node_list
+    if (.not. has_boundary_condition_name(fs, "_free_surface")) then
+      u => extract_vector_field(state, "Velocity")
+      assert(have_option(trim(u%option_path)//"/prognostic"))
+      call initialise_prognostic_free_surface(fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_node_list=fs_surface_node_list)
+
+    call allocate(extended_mesh, node_count(pressure_mesh)+size(fs_surface_node_list), &
+        element_count(pressure_mesh), pressure_mesh%shape, &
+        "Extended"//trim(pressure_mesh%name))
+
+  end subroutine extend_pressure_mesh_for_viscous_free_surface
+  
+  subroutine copy_to_extended_p(p, fs, oldfs, theta_pg, p_theta)
+    ! copy p and fs into p_theta that is allocated on the extended pressure mesh
+
+    integer, dimension(:), pointer:: fs_surface_node_list
+
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_node_list=fs_surface_node_list)
+
+    ! p is not theta weighted (as usual for incompressible)
+    p_theta%val(1:node_count(p)) = p%val
+
+    p_theta%val(node_count(p)+1:) = (1.-theta_pg)*oldfs%val(fs_surface_node_list) + &
+        theta_pg*fs%val(fs_surface_node_list)
+
+  end subroutine extend_pressure_mesh_for_viscous_free_surface
+
   subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs, &
       assemble_ct_m, assemble_cmc_m)
     ! extend ct_m with some extra rows to enforce the kinematic bc
@@ -622,7 +668,7 @@ contains
       call insert(state, new_ct_m, ct_m%name)
       call deallocate(ct_m)
 
-      ct_m => extract_csr_matrix(state, new_ct_m%name)
+      ct_m => extract_block_csr_matrix(state, new_ct_m%name)
 
       call deallocate(new_ct_m)
     end if
@@ -688,7 +734,7 @@ contains
           surface_element_list=surface_element_list)
         if (have_option(trim(bc_option_path)//"/no_normal_stress")) then
           do j=1, size(surface_element_list)
-            call add_boundary_integral(surface_element_list(j))
+            call add_boundary_integral_sele(surface_element_list(j))
           end do
         end if
       end if

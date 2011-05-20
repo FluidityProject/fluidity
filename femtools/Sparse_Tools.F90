@@ -452,7 +452,7 @@ module sparse_tools
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
        & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted, &
-       & write_minmax
+       & write_minmax, sparsity_duplicate_rows, sparsity_duplicate_columns
        
   public :: posinm
 
