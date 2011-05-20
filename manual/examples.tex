@@ -44,6 +44,7 @@ examples plots are created and put in the directory.
   \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 18 hr. \\
   \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \ref{sect:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 3 & 0 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -1317,4 +1318,59 @@ positive correlation closely delineating $y=x$.
 \caption{Scatter diagrams plotting harmonic amplitudes from ICOM at each gauge location against tide gauge data.} 
 \label{plots}
 \end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------HOKKAIDO-NANSEI-OKI TSUNAMI-----------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Hokkaido-Nansei-Oki tsunami}
+\label{sect: hokkaido-nansei-oki_tsunami}
+
+\subsection{Overview}
+The Okushiri tsunami in 1993 is a tsunami event which produced run-up heights of up to $30$m in Okushiri island, Japan. 
+The Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{androsov2008tsunami}, which is used here as a benchmark problem. 
+
+\subsection{Configuration}
+The considered domain measures $5.448\mbox{m} \times 3.402\mbox{m}$  and the bathymetry and coastal topography of the experimental setup closely correspond to measurement data, see Figure \ref{pic:monai_inputwave} (a). 
+On the left boundary, a prescribed surface elevation profile was enforced resembling a tsunami wave (Figure \ref{fig:monai_inputwave} (a)). 
+The remaining boundaries were solid.
+Three surface elevation gauge stations, marked as dots in Figure \ref{fic:monai_inputwave} (a), were deployed in the experiment.
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.7\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValleyDomainWithInputWave2_png.pdf}
+\end{center}
+\caption{The bathymetry and the three gauge stations (a) and the horizontal mesh (b) used for the Okushiri tsunami test case.}\label{fig:monai_inputwave}
+\end{figure}
+
+The numerical simulation uses the same domain dimensions and bathymetry as the experiment. 
+The vertically aligned, one element deep and horizontally unstructured mesh consists of $19,464$ tetrahedral elements with increased resolution near the inundation areas, see Figure \ref{pic:monai_inputwave} (b). 
+The equations are solved with the $P_1-P_1$ finite element pair, a backward Euler time discretisation with a time-step of $0.1$s and $d_0=0.5$mm. 
+The isotropic kinematic viscosity and gravity magnitude are set to $0.01\mbox{m}^{2}\mbox{s}^{-1}$ and $9.81\mbox{ms}^{-2}$, respectively.
+On the left boundary the tsunami wave shown in \ref{pic:monai_results} (a) is prescribed and no-normal flow boundary conditions are applied at the other sides of the domain and the bottom to resemble the solid boundaries in the experiment.
+In addition, a Manning-Strickler drag is used at the bottom with $n=0.002\mbox{sm}^{-\frac{1}{3}}$.
+To prevent wave breaking in the simulation, this coefficient is increased to $0.2\mbox{sm}^{-\frac{1}{3}}$ in a rectangular area with a side length of $0.5$m centred at $3.4$m $\times 1.7$m (which is the centre of the island in the domain) and a fourth order stabilization is applied, see \cite{pain2001tetrahedral, piggott2008new}.
+
+\subsection{Results}
+The results at the gauge station plotted against the laboratory measurements are shown in Figure \ref{fic:monai_results} (b). 
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValley_C_p1p1_nu0_01_kmkstab_drag0_002_butcircularoundisland0_2-crop-crop_final2.pdf}
+\caption{The input wave elevation of the Okushiri tsunami test case (a) and the numerical and experimental results at ``Gauge 1'' (top), ``Gauge 2'' (middle) and ``Gauge 3'' (bottom) (b).}\label{fig:monai_results}
+\end{center}
+\end{figure}
+
+\subsection{Exercises}
+\begin{enumerate}
+\item Examine the way that the $u=1$ lid condition is applied in the flml file. Why has it not been set as simply a constant?
+Try changing it to a constant and see what happens to the errors that you achieve. [Hint: some people consider the "regularised" 
+lid-driven cavity problem. Try finding some papers that discuss this, and update the boundary condition so it matches the 
+regularised problem. Compare to benchmark data if you can find it].
+\item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the post-processing script which computes
+the errors for a higher Reynolds number.
+\item Try switching on mesh adaptivity (you will need to ensure that you have configured your \fluidity\ executable with \texttt{--enable-2d-adaptivity}). 
+Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
+differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
+sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
+error for the same number of nodes compared to the fixed mesh (hint: it may be easier to achieve this at higher Reynolds numbers)?.
+\end{enumerate}
 
