@@ -1312,9 +1312,9 @@ contains
              do i = 1, ele_ngi(u, ele)
                 u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
              end do
-             Advection_mat = - dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q*nvfrac_gi) &
+             Advection_mat = -dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q*nvfrac_gi) &
                  - (1.-beta) * (shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q*nvfrac_gi) + &
-                 shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q*u_nl_dot_grad_nvfrac_gi))
+                 shape_shape(u_shape, u_shape, detwei*Rho_q*u_nl_dot_grad_nvfrac_gi))
           else
              ! Element advection matrix
              !    /                                          /
@@ -1325,14 +1325,31 @@ contains
           end if
           
         else
-          ! Element advection matrix
-          !  /                                   /
-          !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
-          !  /                                   /
-          Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei&
-              &*Rho_q)  &
-              + beta * shape_shape(u_shape, u_shape, U_nl_div_q * detwei &
-              &*Rho_q)
+       
+          if(multiphase) then
+             ! Element advection matrix
+             !  /                                         /
+             !  | T (vfrac U_nl dot grad T) Rho dV + beta | T ( div (vfrac U_nl) ) T Rho dV
+             !  /                                         /
+             
+             ! We need to compute \int{T div(vfrac u_nl) T},
+             ! so split up the div using the product rule and compute
+             ! \int{T vfrac div(u_nl) T} + \int{T u_nl grad(vfrac) T}
+             do i = 1, ele_ngi(u, ele)
+                u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
+             end do
+             Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q*nvfrac_gi) &
+                 + beta * (shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q*nvfrac_gi) + &
+                 shape_shape(u_shape, u_shape, detwei*Rho_q*u_nl_dot_grad_nvfrac_gi))
+          else
+             ! Element advection matrix
+             !  /                                   /
+             !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
+             !  /                                   /
+             Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q) &
+                 + beta * shape_shape(u_shape, u_shape, U_nl_div_q * detwei*Rho_q)
+          end if 
+          
           if(move_mesh) then
             Advection_mat = Advection_mat &
                   - shape_shape(u_shape, u_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei * Rho_q)
