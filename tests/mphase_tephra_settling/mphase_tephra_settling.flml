@@ -278,7 +278,7 @@ for i in range(field.node_count):
     
   Force = K*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
 
-  field.set(i, Force)</string_value>
+  field.set(i, Force/density_water.node_val(i))</string_value>
               <depends>
                 <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::PhaseVolumeFraction,Tephra::PhaseVolumeFraction,Water::Density,Tephra::Density</string_value>
               </depends>
@@ -566,7 +566,7 @@ for i in range(field.node_count):
 
   #print "i = %d, Force = %f", (i, Force, velocity_tephra.node_val(i))
 
-  field.set(i, -Force)</string_value>
+  field.set(i, -Force/density_tephra.node_val(i))</string_value>
               <depends>
                 <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::PhaseVolumeFraction,Tephra::PhaseVolumeFraction,Water::Density,Tephra::Density</string_value>
               </depends>
