@@ -2635,18 +2635,21 @@ diagnostic_fe_divergence_scalar_field =
 # three optional input vectors for user-specified rotation matrix
 rotation_matrix_components =
    (
-      ## Select if you want to specify the normal direction
+      ## Select if you want to specify the unit normal direction
       ## of the rotation matrix.
-      ## If off then fluidity computes the normal
-      ## If on the tangents vectors must also be specified.
+      ## If off then fluidity computes the normal.  
       element normal_direction {
          input_choice_real_dim_vector
       }?,
-      ## specify first unit tangent vector to boundary
+      ## Select if you want to specify the first unit tangent direction
+      ## of the rotation matrix (in dim > 1 simulations).
+      ## If off then fluidity computes the tangent.  
       element tangent_direction_1 {
          input_choice_real_dim_vector
       }?,
-      ## specify second (if exists, i.e. if 3d) unit tangent vector to boundary
+      ## Select if you want to specify the second unit tangent direction
+      ## of the rotation matrix (in dim > 2 simulations).
+      ## If off then fluidity computes the tangent.  
       element tangent_direction_2 {
          input_choice_real_dim_vector
       }?
@@ -2655,6 +2658,17 @@ rotation_matrix_components =
 velocity_components_choice =
    (
       (
+         element align_bc_with_cartesian {
+            element x_component {
+               input_choice_real_bc_component
+            }?,
+            element y_component {
+               input_choice_real_bc_component
+            }?,
+            element z_component {
+               input_choice_real_bc_component
+            }?
+         }|
          element align_bc_with_surface {
             element normal_component {
                input_choice_real
@@ -2671,17 +2685,6 @@ velocity_components_choice =
             ## and dump a vtu with the node 
             ## normals and tangenials 1/2
             element debugging_mode{empty}?
-         }|
-         element align_bc_with_cartesian {
-            element x_component {
-               input_choice_real_bc_component
-            }?,
-            element y_component {
-               input_choice_real_bc_component
-            }?,
-            element z_component {
-               input_choice_real_bc_component
-            }?
          }
       )
    )

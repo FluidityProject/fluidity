@@ -3555,28 +3555,48 @@ formulations</a:documentation>
   <define name="rotation_matrix_components">
     <optional>
       <element name="normal_direction">
-        <a:documentation>Select if you want to specify the normal direction
+        <a:documentation>Select if you want to specify the unit normal direction
 of the rotation matrix.
-If off then fluidity computes the normal
-If on the tangents vectors must also be specified.</a:documentation>
+If off then fluidity computes the normal.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_1">
-        <a:documentation>specify first unit tangent vector to boundary</a:documentation>
+        <a:documentation>Select if you want to specify the first unit tangent direction
+of the rotation matrix (in dim &gt; 1 simulations).
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_2">
-        <a:documentation>specify second (if exists, i.e. if 3d) unit tangent vector to boundary</a:documentation>
+        <a:documentation>Select if you want to specify the second unit tangent direction
+of the rotation matrix (in dim &gt; 2 simulations).
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
   </define>
   <define name="velocity_components_choice">
     <choice>
+      <element name="align_bc_with_cartesian">
+        <optional>
+          <element name="x_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="y_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="z_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+      </element>
       <element name="align_bc_with_surface">
         <optional>
           <element name="normal_component">
@@ -3601,23 +3621,6 @@ rotation matrix for every boundary node
 and dump a vtu with the node 
 normals and tangenials 1/2</a:documentation>
             <empty/>
-          </element>
-        </optional>
-      </element>
-      <element name="align_bc_with_cartesian">
-        <optional>
-          <element name="x_component">
-            <ref name="input_choice_real_bc_component"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="y_component">
-            <ref name="input_choice_real_bc_component"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="z_component">
-            <ref name="input_choice_real_bc_component"/>
           </element>
         </optional>
       </element>
