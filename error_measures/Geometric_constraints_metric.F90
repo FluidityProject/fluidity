@@ -37,7 +37,6 @@ module geometric_constraints_metric
 
     integer :: dim
     integer :: stat, stat2
-    real :: gradation_parameter
 
     real, dimension(error_metric%dim(1) * error_metric%dim(2) * node_count(error_metric)) :: geometric_edge_lengths_raw
     type(tensor_field) :: geometric_edge_lengths
@@ -73,8 +72,6 @@ module geometric_constraints_metric
     deallocate(lsenlist)
 
     geometric_edge_lengths = wrap_tensor_field(error_metric%mesh, geometric_edge_lengths_raw, "GeometricEdgeLengths")
-    call get_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter", gradation_parameter, stat=stat)
-    call set_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter", 1.1, stat=stat2)
 
     call bound_metric(geometric_edge_lengths, state)
     if (.not. isparallel()) then
@@ -91,12 +88,6 @@ module geometric_constraints_metric
          noits = noits_max
 #endif
       end do
-    end if
-
-    if (stat == 0) then
-      call set_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter", gradation_parameter)
-    else
-      call delete_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter")
     end if
 
     if (debug_metric) then
