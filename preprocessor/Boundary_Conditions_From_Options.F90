@@ -1908,6 +1908,7 @@ contains
 
     real, dimension(x%dim, face_ngi(x, 1)):: normal_bdy
     real, dimension(face_ngi(x, 1))       :: detwei_bdy
+    real, dimension(x%dim)                :: normal_av
 
     integer                       :: i, bcnod
     integer                       :: sele
@@ -1923,8 +1924,10 @@ contains
        call transform_facet_to_physical(x, sele, &
             detwei_f=detwei_bdy, normal=normal_bdy)
        
-       call addto(normal, ele_nodes(normal, i), &
-         shape_vector_rhs(ele_shape(normal, i), normal_bdy, detwei_bdy))
+       normal_av = matmul(normal_bdy, detwei_bdy)
+       
+       call addto(normal, ele_nodes(normal, i), spread(normal_av, 2, ele_loc(normal, i)))
+       
     end do ! surface_element_list
 
     t1 = 0.0
