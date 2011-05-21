@@ -342,7 +342,7 @@ contains
     type(scalar_field) :: scalar_surface_field, scalar_surface_field2
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
     character(len=FIELD_NAME_LEN) bc_name, bc_type
-    logical applies(3), have_sem_bc, debugging_mode
+    logical applies(3), have_sem_bc, debugging_mode, prescribed(3)
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer i, j, nbcs, shape_option(2)
@@ -539,9 +539,12 @@ contains
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
               .or. bc_type=="log_law_of_wall") then
 
+             prescribed = .false.
+
              call allocate(normal, field%dim, surface_mesh, name="normal")
              bc_component_path=trim(bc_type_path)//"/normal_direction"
              if (have_option(bc_component_path)) then
+                prescribed(1) = .true.
                 call initialise_field(normal, bc_component_path, bc_position)
              else
                 call zero(normal)
@@ -551,6 +554,7 @@ contains
              call allocate(tangent_1, field%dim, surface_mesh, name="tangent1")
              bc_component_path=trim(bc_type_path)//"/tangent_direction_1"
              if (have_option(bc_component_path)) then
+                prescribed(2) = .true.
                 call initialise_field(tangent_1, bc_component_path, bc_position)
              else
                 call zero(tangent_1)
@@ -560,6 +564,7 @@ contains
              call allocate(tangent_2, field%dim, surface_mesh, name="tangent2")
              bc_component_path=trim(bc_type_path)//"/tangent_direction_2"
              if (have_option(bc_component_path)) then
+                prescribed(3) = .true.
                 call initialise_field(tangent_2, bc_component_path, bc_position)
              else
                 call zero(tangent_2)
@@ -570,7 +575,7 @@ contains
             
              ! calculate the normal, tangent_1 and tangent_2 on every boundary node
              call initialise_rotated_bcs(surface_element_list, &
-                  position, debugging_mode, normal, tangent_1, tangent_2)
+                  position, debugging_mode, normal, tangent_1, tangent_2, prescribed)
              call deallocate(normal)
              call deallocate(tangent_1)
              call deallocate(tangent_2)
@@ -1894,12 +1899,13 @@ contains
 
 
   subroutine initialise_rotated_bcs(surface_element_list, x, & 
-    debugging_mode, normal, tangent_1, tangent_2)
+    debugging_mode, normal, tangent_1, tangent_2, prescribed)
     
     integer, dimension(:),intent(in):: surface_element_list
     ! vector fields on the surface mesh
     type(vector_field),intent(inout):: normal
-    type(vector_field),intent(inout), optional::tangent_1, tangent_2
+    type(vector_field),intent(inout)::tangent_1, tangent_2
+    logical, dimension(3) :: prescribed
     ! positions on the entire mesh (may not be same order as surface mesh!!)
     type(vector_field),intent(in)   :: x
     logical, intent(in):: debugging_mode
@@ -1916,80 +1922,88 @@ contains
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
 
+    if(.not.all(prescribed)) then
 
-    do i=1, size(surface_element_list)
-       
-       sele = surface_element_list(i)
-       
-       call transform_facet_to_physical(x, sele, &
-            detwei_f=detwei_bdy, normal=normal_bdy)
-       
-       normal_av = matmul(normal_bdy, detwei_bdy)
-       
-       call addto(normal, ele_nodes(normal, i), spread(normal_av, 2, ele_loc(normal, i)))
-       
-    end do ! surface_element_list
+      if(.not.prescribed(1)) then
+        do i=1, size(surface_element_list)
+         
+           sele = surface_element_list(i)
+         
+           call transform_facet_to_physical(x, sele, &
+                detwei_f=detwei_bdy, normal=normal_bdy)
+         
+           normal_av = matmul(normal_bdy, detwei_bdy)
+         
+           call addto(normal, ele_nodes(normal, i), spread(normal_av, 2, ele_loc(normal, i)))
+         
+        end do ! surface_element_list
+      end if
 
-    t1 = 0.0
-    t2 = 0.0
+      t1 = 0.0
+      t2 = 0.0
 
-    bcnod=normal%mesh%nodes
-    do i=1, bcnod
+      bcnod=normal%mesh%nodes
+      do i=1, bcnod
 
-       ! get node normal
-       n=node_val(normal,i)
+         ! get node normal
+         n=node_val(normal,i)
 
-       ! normalise it
-       n=n/sqrt(sum(n**2))
-
-       call set(normal, i, n)
-       if (x%dim>1) then
-       
-         assert(present(tangent_1))
+         if(.not.prescribed(1)) then
+           ! normalise it
+           n=n/sqrt(sum(n**2))
            
-         t1_max=minloc( abs(n), dim=1 )
-         t1_norm=0.
-         t1_norm(t1_max)=1.
-       
-         proj1=dot_product(n, t1_norm)
-         t1= t1_norm - proj1 * n
-       
-         ! normalise it
-         t1=t1/sqrt(sum(t1**2))
-
-         call set( tangent_1, i, t1 )
-
-         if (x%dim>2)then
-          
-            assert(present(tangent_2))
-            
-            t2 = cross_product(n, t1)
-          
-            call set( tangent_2, i, t2 )
-          
+           call set(normal, i, n)
          end if
          
-       endif
+         if (x%dim>1) then
+         
+           if(prescribed(2)) then
+             t1=node_val(tangent_1,i)
+           else
+             t1_max=minloc( abs(n), dim=1 )
+             t1_norm=0.
+             t1_norm(t1_max)=1.
+         
+             proj1=dot_product(n, t1_norm)
+             t1= t1_norm - proj1 * n
+         
+             ! normalise it
+             t1=t1/sqrt(sum(t1**2))
 
-       ! dump normals when debugging
-       if (debugging_mode) then
-        
-          det = abs( &
-                n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
-                t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
-                t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
-          if (  abs( det - 1.) > 1.e-5) then
-            call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-            call remap_field_to_surface(x, bc_position, surface_element_list)
-            call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
-                  vfields=(/ normal, tangent_1, tangent_2/))
-            call deallocate(bc_position)
-            ewrite(-1,*) "rotation matrix determinant", det
-            FLAbort("rotation matrix is messed up, rotated bcs have exploded...")
-          end if
-       end if
-       
-    end do ! bcnod
+             call set( tangent_1, i, t1 )
+           end if
+
+           if ((x%dim>2).and.(.not.prescribed(3))) then
+            
+              t2 = cross_product(n, t1)
+            
+              call set( tangent_2, i, t2 )
+            
+           end if
+           
+         endif
+
+         ! dump normals when debugging
+         if (debugging_mode) then
+          
+            det = abs( &
+                  n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
+                  t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
+                  t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
+            if (  abs( det - 1.) > 1.e-5) then
+              call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
+              call remap_field_to_surface(x, bc_position, surface_element_list)
+              call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
+                    vfields=(/ normal, tangent_1, tangent_2/))
+              call deallocate(bc_position)
+              ewrite(-1,*) "rotation matrix determinant", det
+              FLAbort("rotation matrix is messed up, rotated bcs have exploded...")
+            end if
+         end if
+         
+      end do ! bcnod
+
+    end if
 
     ! dump normals when debugging
     if (debugging_mode) then
