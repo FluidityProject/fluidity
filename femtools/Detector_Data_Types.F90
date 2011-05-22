@@ -96,7 +96,7 @@ module detector_data_types
      TYPE (detector_type), POINTER :: lastnode => null()
 
      ! Parameters for lagrangian movement
-     type(detector_parameters), pointer :: move_parameters
+     type(detector_parameters), pointer :: move_parameters => null()
 
      ! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list
