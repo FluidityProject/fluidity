@@ -618,6 +618,7 @@ X_LIBS
 X_PRE_LIBS
 X_CFLAGS
 XMKMF
+HAVE_ADJOINT
 ZOLTAN
 MPICXX
 MPICC
@@ -10323,6 +10324,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
   USING_GFORTRAN="yes"
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
 else
   USING_GFORTRAN="no"
 fi
@@ -11784,8 +11786,11 @@ echo $LIBS
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
 
 # Set variables...
 
@@ -11888,8 +11893,15 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 echo $LIBS
 
+    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+      # test really is so retarded that it can't lexicographically compare strings
+      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
+      fi
+    fi
   fi
 fi
+
 
 # Check whether --enable-petsc-fortran-modules was given.
 if test "${enable_petsc_fortran_modules+set}" = set; then :
