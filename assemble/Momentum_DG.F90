@@ -1680,17 +1680,33 @@ contains
 
        else
           ! Tau Q = grad(u)
-          Q_inv= shape_shape(q_shape, q_shape, detwei)
+          if(multiphase) then
+            Q_inv= shape_shape(q_shape, q_shape, detwei*nvfrac_gi)
+          else
+            Q_inv= shape_shape(q_shape, q_shape, detwei)
+          end if
+
           call invert(Q_inv)
           call cholesky_factor(Q_inv)
           
           Grad_U_mat_q=0.0
           Div_U_mat_q=0.0
           if(.not.p0) then
-             Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, U_shape, detwei)
+
+             if(multiphase) then
+               ! For multiphase simulations, we need to compute -\int{grad(N_A vfrac) N_B},
+               ! so split up grad(N_A vfrac) using the product rule and compute
+               ! -\int{grad(N_A) vfrac N_B} - \int{N_A grad(vfrac) N_B}
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*ele_val_at_quad(nvfrac, ele)) - &
+                                         shape_shape_vector(q_shape, u_shape, detwei, grad_nvfrac_gi)
+             else
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, U_shape, detwei)
+             end if
+
              if(viscosity_scheme==ARBITRARY_UPWIND) then
                 Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
              end if
+
           end if
        end if
     end if
@@ -2444,21 +2460,42 @@ contains
       do dim=1,mesh_dim(U)
 
          if(.not.boundary) then
-            ! Internal face.
-            Grad_U_mat(dim, q_face_l, U_face_l)=&
-                 Grad_U_mat(dim, q_face_l, U_face_l) &
-                 +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:))
-            
-            ! External face.
-            Grad_U_mat(dim, q_face_l, start:finish)=&
-                 +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+
+            if(multiphase) then
+               ! Include the PhaseVolumeFraction for multiphase simulations.
+
+               ! Internal face.
+               Grad_U_mat(dim, q_face_l, U_face_l)=&
+                  Grad_U_mat(dim, q_face_l, U_face_l) &
+                  +0.5*shape_shape(q_shape, U_shape, detwei*nvfrac_gi*normal(dim,:))
+               
+               ! External face.
+               Grad_U_mat(dim, q_face_l, start:finish)=&
+                  +0.5*shape_shape(q_shape, U_shape_2, detwei*nvfrac_gi*normal(dim,:))
+            else
+               ! Internal face.
+               Grad_U_mat(dim, q_face_l, U_face_l)=&
+                  Grad_U_mat(dim, q_face_l, U_face_l) &
+                  +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:))
+               
+               ! External face.
+               Grad_U_mat(dim, q_face_l, start:finish)=&
+                  +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+            end if
            
          else
             ! Boundary case. Put the whole integral in the external bit.
-            
-            ! External face.
-            Grad_U_mat(dim, q_face_l, start:finish)=&
-                 +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+
+            if(multiphase) then
+               ! Include the PhaseVolumeFraction for multiphase simulations.
+               ! External face.
+               Grad_U_mat(dim, q_face_l, start:finish)=&
+                 +shape_shape(q_shape, U_shape_2, detwei*nvfrac_gi*normal(dim,:))
+            else
+               ! External face.
+               Grad_U_mat(dim, q_face_l, start:finish)=&
+                  +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+            end if
  
          end if
       end do
