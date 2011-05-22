@@ -34,11 +34,13 @@ module lagrangian_biology
   use fields
   use global_parameters, only: PYTHON_FUNC_LEN
   use parallel_tools
+  use mpi_interfaces
   use pickers_inquire
   use detector_data_types
   use detector_tools
   use detector_move_lagrangian
   use detector_distribution
+  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag
 
 implicit none
 
@@ -58,10 +60,10 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len = 254) :: buffer
+    character(len = 254) :: buffer, agent_array_name
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
@@ -80,6 +82,7 @@ contains
     do i = 1, n_agent_arrays
        write(buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
        call get_option(trim(buffer)//"/number_of_agents", n_agents)
+       call get_option(trim(buffer)//"/name", agent_array_name)
 
        call get_option(trim(buffer)//"/initial_position", func)
        allocate(coords(dim,n_agents))
@@ -106,6 +109,46 @@ contains
        ! Determine elements for current agent list
        call search_for_detectors(agent_arrays(i), xfield)
 
+       ! Create simple position-only agent I/O header 
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       if (getprocno() == 1) then
+          agent_arrays(i)%output_unit=free_unit()
+          open(unit=agent_arrays(i)%output_unit, file=trim(agent_array_name)//'.detectors', action="write")
+          write(agent_arrays(i)%output_unit, '(a)') "<header>"
+          call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = .false.)
+
+          ! Initial columns are elapsed time and dt.
+          column=1
+          buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
+          write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
+          column=column+1
+          buffer=field_tag(name="dt", column=column, statistic="value")
+          write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
+
+          ! Next columns contain the positions of all the detectors.
+          agent => agent_arrays(i)%firstnode
+          positionloop: do j=1, agent_arrays(i)%length
+             buffer=field_tag(name=agent%name, column=column+1, statistic="position",components=size(agent%position))
+             write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
+             column=column+size(agent%position)
+             agent => agent%next
+          end do positionloop
+
+          write(agent_arrays(i)%output_unit, '(a)') "</header>"
+          flush(agent_arrays(i)%output_unit)
+          close(agent_arrays(i)%output_unit)
+       end if
+
+       ! bit of hack to delete any existing .detectors.dat file
+       ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+       ! gradually overwritten, mixing detector output from the current with that of a previous run
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_array_name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+       call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)
+    
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_array_name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+       assert(ierror == MPI_SUCCESS)
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
        ! Delete all agents whose element we don't own
        if (isparallel()) then
           agent => agent_arrays(i)%firstnode
@@ -127,11 +170,16 @@ contains
   end subroutine initialise_lagrangian_biology
 
   subroutine lagrangian_biology_cleanup()
-    integer :: i, n_agent_arrays
+    integer :: i, ierror
 
-    n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
-    do i = 1, n_agent_arrays
+    do i = 1, size(agent_arrays)
        call delete_all(agent_arrays(i))
+       if (agent_arrays(i)%mpi_fh/=0) then
+          call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror) 
+          if(ierror /= MPI_SUCCESS) then
+             ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+          end if
+       end if
     end do
     deallocate(agent_arrays)
 
