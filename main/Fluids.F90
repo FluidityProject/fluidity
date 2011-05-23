@@ -853,7 +853,7 @@ contains
 
        ! Call lagrangian biology after the non-linear iterations
        if (have_option("/ocean_biology/lagrangian_ensemble")) then
-          call calculate_lagrangian_biology(state(1), dt, timestep)
+          call calculate_lagrangian_biology(state, current_time, dt, timestep)
        end if
 
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then

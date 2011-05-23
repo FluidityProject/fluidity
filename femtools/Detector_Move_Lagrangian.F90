@@ -124,7 +124,7 @@ contains
   end subroutine read_detector_move_options
 
   subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, detector_names)
-    type(state_type), intent(in) :: state
+    type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
@@ -146,8 +146,8 @@ contains
     parameters => detector_list%move_parameters
 
     !Pull some information from state
-    xfield=>extract_vector_field(state, "Coordinate")
-    vfield => extract_vector_field(state,"Velocity")
+    xfield=>extract_vector_field(state(1), "Coordinate")
+    vfield => extract_vector_field(state(1),"Velocity")
     halo_level = element_halo_count(vfield%mesh)
 
     !making a hash table of {processor_number,count}
@@ -218,7 +218,7 @@ contains
                 else
                    ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
                    call move_detectors_bisection_method(&
-                        state, detector_list, dt, ihash, send_list_array)
+                        state(1), detector_list, dt, ihash, send_list_array)
                 end if
 
                 !Work out whether all send lists are empty,
@@ -240,11 +240,11 @@ contains
                 !unserialises that.
                 if (present(detector_names)) then
                    call serialise_lists_exchange_receive(&
-                     state,send_list_array,receive_list_array,&
+                     state(1),send_list_array,receive_list_array,&
                      number_neigh_processors,ihash,detector_names)
                 else
                    call serialise_lists_exchange_receive(&
-                     state,send_list_array,receive_list_array,&
+                     state(1),send_list_array,receive_list_array,&
                      number_neigh_processors,ihash)
                 end if
 

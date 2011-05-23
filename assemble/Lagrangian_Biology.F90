@@ -40,7 +40,7 @@ module lagrangian_biology
   use detector_tools
   use detector_move_lagrangian
   use detector_distribution
-  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag
+  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, write_detectors
 
 implicit none
 
@@ -63,7 +63,7 @@ contains
     character(len = 254) :: buffer, agent_array_name
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
@@ -90,6 +90,19 @@ contains
 
        call register_detector_list(agent_arrays(i))
 
+       if (have_option(trim(buffer)//"/binary_output")) then
+          agent_arrays(i)%binary_output=.true.
+       else
+          agent_arrays(i)%binary_output=.false.
+       end if
+       if (have_option(trim(buffer)//"/lagrangian")) then
+          det_type=LAGRANGIAN_DETECTOR
+       else
+          det_type=STATIC_DETECTOR
+       end if
+       agent_arrays(i)%total_num_det=n_agents
+
+
        ! Create agent and insert into list
        do j = 1, n_agents
           allocate(agent)
@@ -103,6 +116,7 @@ contains
           agent%id_number=j
           agent%name=int2str(j)
           agent%local=.true.
+          agent%type=det_type
        end do
        deallocate(coords)
 
@@ -115,7 +129,8 @@ contains
           agent_arrays(i)%output_unit=free_unit()
           open(unit=agent_arrays(i)%output_unit, file=trim(agent_array_name)//'.detectors', action="write")
           write(agent_arrays(i)%output_unit, '(a)') "<header>"
-          call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = .false.)
+
+          call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = agent_arrays(i)%binary_output)
 
           ! Initial columns are elapsed time and dt.
           column=1
@@ -165,6 +180,8 @@ contains
 
        ! Get options for lagrangian detector movement
        call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
+
+       ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
     end do 
 
   end subroutine initialise_lagrangian_biology
@@ -185,19 +202,21 @@ contains
 
   end subroutine lagrangian_biology_cleanup
 
-  subroutine calculate_lagrangian_biology(state, dt, timestep)
-    type(state_type), intent(in) :: state
-    real, intent(in) :: dt
+  subroutine calculate_lagrangian_biology(state, time, dt, timestep)
+    type(state_type), dimension(:), intent(in) :: state
+    real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
-    integer :: i, n_agent_arrays
+    integer :: i
 
-    n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
-    do i = 1, n_agent_arrays
+    do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
+       ewrite(3,*) "ml805 check_any_lagrangian", check_any_lagrangian(agent_arrays(i))
        if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
+
+       call write_detectors(state, agent_arrays(i), time, dt)
     end do
 
   end subroutine calculate_lagrangian_biology

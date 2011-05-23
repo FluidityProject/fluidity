@@ -8537,6 +8537,10 @@ This option is generally only useful for testing. </a:documentation>
                     <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
                     <empty/>
                   </element>
+                  <element name="binary_output">
+                    <a:documentation>Enable to write detector output in binary format</a:documentation>
+                    <empty/>
+                  </element>
                   <element name="initial_position">
                     <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 

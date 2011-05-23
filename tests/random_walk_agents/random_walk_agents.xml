@@ -15,10 +15,17 @@ mpirun -n 4 ../../bin/fluidity -v3 -l random_walk_agents.flml
 from readtool_3d import readstat_3d
 last_locations_error = readstat_3d()
     </variable>
+    <variable name="last_locations_error_bob" language="python">
+from readtool_3d import readstat_3d
+last_locations_error_bob = readstat_3d(filename="Bob.detectors", prefix='', do_padding=False)
+    </variable>
   </variables>
   <pass_tests>
     <test name="CorrectLagrangianTrajectory" language="python">
 assert abs(last_locations_error).max() &lt; 1.0e-6
+    </test>
+    <test name="CorrectLagrangianTrajectory_Bob" language="python">
+assert abs(last_locations_error_bob).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

@@ -122,40 +122,16 @@
       </prescribed>
     </vector_field>
   </material_phase>
-  <mesh_adaptivity>
-    <hr_adaptivity>
-      <period>
-        <real_value rank="0">4.0</real_value>
-      </period>
-      <maximum_number_of_nodes>
-        <integer_value rank="0">20000</integer_value>
-      </maximum_number_of_nodes>
-      <enable_gradation/>
-      <tensor_field name="MinimumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.05 0.0 0.0 0.0 0.05 0.0 0.0 0.0 0.05</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <tensor_field name="MaximumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.06 0.0 0.0 0.0 0.06 0.0 0.0 0.0 0.06</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-    </hr_adaptivity>
-  </mesh_adaptivity>
   <ocean_biology>
     <lagrangian_ensemble>
       <disable_biology/>
       <agents>
         <agent_array name="Bob">
           <number_of_agents>
-            <integer_value rank="0">99</integer_value>
+            <integer_value rank="0">100</integer_value>
           </number_of_agents>
           <lagrangian/>
+          <binary_output/>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
@@ -167,9 +143,10 @@
         </agent_array>
         <agent_array name="Carl">
           <number_of_agents>
-            <integer_value rank="0">98</integer_value>
+            <integer_value rank="0">100</integer_value>
           </number_of_agents>
           <lagrangian/>
+          <binary_output/>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
@@ -181,9 +158,10 @@
         </agent_array>
         <agent_array name="Dave">
           <number_of_agents>
-            <integer_value rank="0">97</integer_value>
+            <integer_value rank="0">100</integer_value>
           </number_of_agents>
           <lagrangian/>
+          <binary_output/>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate

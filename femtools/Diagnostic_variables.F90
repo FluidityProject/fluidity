@@ -2213,7 +2213,7 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
-       call move_lagrangian_detectors(state(1), default_stat%detector_list, &
+       call move_lagrangian_detectors(state, default_stat%detector_list, &
             dt, timestep, default_stat%name_of_detector_in_read_order)
     end if
 
@@ -2798,19 +2798,23 @@ contains
 
     number_of_scalar_det_fields = 0
     do phase = 1, size(state)
-      do i = 1, size(detector_list%sfield_list(phase)%ptr)
-         sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))   
-         if(detector_field(sfield)) number_of_scalar_det_fields = number_of_scalar_det_fields + 1
-      end do 
+      if (allocated(detector_list%sfield_list)) then 
+         do i = 1, size(detector_list%sfield_list(phase)%ptr)
+            sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))   
+            if(detector_field(sfield)) number_of_scalar_det_fields = number_of_scalar_det_fields + 1
+         end do 
+      end if
     end do 
     ewrite(2, *) "Number of detector scalar fields = ", number_of_scalar_det_fields
 
     number_of_vector_det_fields = 0
     do phase = 1, size(state)   
-      do i = 1, size(detector_list%vfield_list(phase)%ptr)
-        vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
-        if(detector_field(vfield)) number_of_vector_det_fields = number_of_vector_det_fields + 1
-      end do 
+      if (allocated(detector_list%vfield_list)) then 
+         do i = 1, size(detector_list%vfield_list(phase)%ptr)
+            vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
+            if(detector_field(vfield)) number_of_vector_det_fields = number_of_vector_det_fields + 1
+         end do 
+      end if
     end do
     ewrite(2, *) "Number of detector vector fields = ", number_of_vector_det_fields
 
@@ -2841,6 +2845,7 @@ contains
     location_to_write = location_to_write + 2 * realsize
 
     node => detector_list%firstnode
+    ewrite(3,*) "ml805 binary", detector_list%binary_output
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
       
@@ -2862,16 +2867,17 @@ contains
     state_loop: do phase = 1, size(state)
 
       number_of_scalar_det_fields = 0
-      scalar_loop: do i = 1, size(detector_list%sfield_list(phase)%ptr)
-        ! Output statistics for each scalar field
+      if (allocated(detector_list%sfield_list)) then
+        scalar_loop: do i = 1, size(detector_list%sfield_list(phase)%ptr)
+          ! Output statistics for each scalar field
         
-        sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
+          sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
 
-        if(.not. detector_field(sfield)) cycle scalar_loop
-        number_of_scalar_det_fields = number_of_scalar_det_fields + 1
+          if(.not. detector_field(sfield)) cycle scalar_loop
+          number_of_scalar_det_fields = number_of_scalar_det_fields + 1
 
-        node => detector_list%firstnode
-        scalar_node_loop: do j = 1, detector_list%length
+          node => detector_list%firstnode
+          scalar_node_loop: do j = 1, detector_list%length
           if(node%initial_owner /= -1 .or. procno == 1) then
             value =  detector_value(sfield, node)
 
@@ -2885,40 +2891,43 @@ contains
         end do scalar_node_loop
         assert(.not. associated(node))
 
-      end do scalar_loop
+        end do scalar_loop
+      end if
       location_to_write = location_to_write + detector_list%total_num_det * number_of_scalar_det_fields * realsize
       
       number_of_vector_det_fields = 0
-      vector_loop: do i = 1, size(detector_list%vfield_list(phase)%ptr)
-         ! Output statistics for each vector field
+      if (allocated(detector_list%sfield_list)) then
+        vector_loop: do i = 1, size(detector_list%vfield_list(phase)%ptr)
+          ! Output statistics for each vector field
      
-         vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
+          vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
      
-         if(.not. detector_field(vfield)) cycle vector_loop
-         number_of_vector_det_fields = number_of_vector_det_fields + 1
+          if(.not. detector_field(vfield)) cycle vector_loop
+          number_of_vector_det_fields = number_of_vector_det_fields + 1
 
-         ! We currently don't have enough information for mixed dimension
-         ! vector fields (see below)
-         assert(vfield%dim == dim)
+          ! We currently don't have enough information for mixed dimension
+          ! vector fields (see below)
+          assert(vfield%dim == dim)
 
-         node => detector_list%firstnode
-         vector_node_loop: do j = 1, detector_list%length
-           if(node%initial_owner /= -1 .or. procno == 1) then
-             vvalue =  detector_value(vfield, node)
+          node => detector_list%firstnode
+          vector_node_loop: do j = 1, detector_list%length
+            if(node%initial_owner /= -1 .or. procno == 1) then
+              vvalue =  detector_value(vfield, node)
 
-             ! Currently have to assume single dimension vector fields in
-             ! order to compute the offset
-             offset = location_to_write + (detector_list%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
+              ! Currently have to assume single dimension vector fields in
+              ! order to compute the offset
+              offset = location_to_write + (detector_list%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
 
-             call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-             assert(ierror == MPI_SUCCESS)
-           end if  
+              call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+              assert(ierror == MPI_SUCCESS)
+            end if  
 
-           node => node%next
-         end do vector_node_loop
-        assert(.not. associated(node))
+            node => node%next
+          end do vector_node_loop
+          assert(.not. associated(node))
         
-      end do vector_loop
+        end do vector_loop
+      end if
       location_to_write = location_to_write + detector_list%total_num_det * number_of_vector_det_fields * dim * realsize
         
     end do state_loop

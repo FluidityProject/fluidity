@@ -1,19 +1,20 @@
 from fluidity_tools import stat_parser
 from numpy import zeros,fromfile, ones, shape
-def readstat_3d():
-    s = stat_parser("random_walk_agents.detectors")
+def readstat_3d(filename="random_walk_agents.detectors", prefix='Steve_', do_padding=True):
+    s = stat_parser(filename)
 
     last_locations_error = zeros((3,100))
     for i in range(100):
         n = i + 1
         padding = ''
-        if(n<100):
-            padding = '0'
-            if(n<10):
-                padding ='00'
-        last_locations_error[0,i] = s['Steve_'+padding+str(n)]['position'][0][-1]
-        last_locations_error[1,i] = s['Steve_'+padding+str(n)]['position'][1][-1]
-        last_locations_error[2,i] = s['Steve_'+padding+str(n)]['position'][2][-1]
+        if(do_padding):
+            if(n<100):
+                padding = '0'
+                if(n<10):
+                    padding ='00'
+        last_locations_error[0,i] = s[prefix+padding+str(n)]['position'][0][-1]
+        last_locations_error[1,i] = s[prefix+padding+str(n)]['position'][1][-1]
+        last_locations_error[2,i] = s[prefix+padding+str(n)]['position'][2][-1]
     X = fromfile('Xvals.txt',sep=' ')
     Y = fromfile('Yvals.txt',sep=' ')
     Z = 0.5*ones(shape(X))
