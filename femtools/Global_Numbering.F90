@@ -50,7 +50,8 @@ module global_numbering
   private
   
   public :: make_global_numbering_DG, make_boundary_numbering,&
-       & make_global_numbering, element_halo_communicate_visibility
+       & make_global_numbering, element_halo_communicate_visibility &
+       & make_global_numbering_trace
 
 contains
   
@@ -141,6 +142,39 @@ contains
 
 
   end subroutine make_global_numbering_DG
+
+  subroutine make_global_numbering_trace(mesh)
+    ! Construct a global node numbering for a trace mesh
+    !
+    ! Note that this code is broken for mixed element meshes.
+    type(mesh_type), intent(inout) :: mesh
+    !
+    integer :: ele, totele, ni, ele_2, current_global_index
+    integer, pointer, dimension(:) :: neigh
+
+    totele = mesh%totele
+
+    new_nonods=totele*mesh%shape%loc
+    current_global_index = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele_1) then
+             need to get faces
+             mesh%ndglno((ele_1-1)*nloc+face_local_nodes(mesh,face_1))&
+                  &=current_global_index+(/i, i=1,face_loc/)
+             mesh%ndglno((ele_2-1)*nloc+face_local_nodes(mesh,face_2))&
+                  &=current_global_index+(/i, i=1,face_loc/)
+             if(ele_2<0) then
+                !it's a domain boundary
+                !not quite sure how this works in parallel
+                
+          end if
+       end do
+    end do
+
+  end subroutine make_global_numbering_trace
   
 !!$  subroutine make_global_numbering_nc &
 !!$       (new_nonods, new_ndglno, Nonods, Totele, NDGLNO) 

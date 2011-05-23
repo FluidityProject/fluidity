@@ -963,27 +963,29 @@ contains
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
 #endif
-
-       if (associated(model%halos)) then
-          assert(associated(model%element_halos))
-          allocate(mesh%halos(size(model%halos)))
-
-
-          call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-               mesh%elements, mesh%shape, model%element_halos, &
-               mesh%halos)
-
-          allocate(mesh%element_halos(size(model%element_halos)))
-          do i=1,size(mesh%element_halos)
-             mesh%element_halos(i)=model%element_halos(i)
-             call incref(mesh%element_halos(i))
-          end do
-
-       else
-          
-          call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-               mesh%elements, mesh%shape)
-
+       !trace fields have continuity -1 but aren't like DG
+       if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+          if (associated(model%halos)) then
+             assert(associated(model%element_halos))
+             allocate(mesh%halos(size(model%halos)))
+             
+             
+             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+                  mesh%elements, mesh%shape, model%element_halos, &
+                  mesh%halos)
+             
+             allocate(mesh%element_halos(size(model%element_halos)))
+             do i=1,size(mesh%element_halos)
+                mesh%element_halos(i)=model%element_halos(i)
+                call incref(mesh%element_halos(i))
+             end do
+             
+          else
+             
+             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+                  mesh%elements, mesh%shape)
+             
+          end if
        end if
     end if
 
@@ -1003,7 +1005,7 @@ contains
       call add_faces(mesh, model)
     end if
 
-    if (mesh%shape%ele_numbering_type%type==ELEMENT_TRACE) then
+    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
        call make_global_numbering_trace(mesh)
     end if
   end function make_mesh
