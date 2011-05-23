@@ -211,7 +211,6 @@ contains
 
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
-       ewrite(3,*) "ml805 check_any_lagrangian", check_any_lagrangian(agent_arrays(i))
        if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if

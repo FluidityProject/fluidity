@@ -2845,7 +2845,6 @@ contains
     location_to_write = location_to_write + 2 * realsize
 
     node => detector_list%firstnode
-    ewrite(3,*) "ml805 binary", detector_list%binary_output
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
       

@@ -8570,6 +8570,13 @@ Functions should be of the form:
                       <ref name="python_code"/>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="exclude_from_advection">
+                      <a:documentation/>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <ref name="comment"/>
                 </element>
               </zeroOrMore>
               <ref name="lagrangian_timestepping"/>

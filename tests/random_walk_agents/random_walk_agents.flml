@@ -140,6 +140,7 @@
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
+          <comment>Bob checks whether the agent advection behaves just like the I/O detector array Steve. </comment>
         </agent_array>
         <agent_array name="Carl">
           <number_of_agents>
@@ -155,6 +156,8 @@
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
+          <exclude_from_advection/>
+          <comment>Carl doesn't move at all.</comment>
         </agent_array>
         <agent_array name="Dave">
           <number_of_agents>
@@ -170,6 +173,17 @@
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
+          <random_walk>
+            <string_value type="python" lines="20">velocity = state.vector_fields['Velocity']
+
+def val(ele,local_coords):
+  # The val function should only present detector attributes
+  # that enable us to evaluate the field at the current position
+  # eval_field is not yet implemented in python
+  return velocity.eval_field(ele, local_coords)</string_value>
+          </random_walk>
+          <exclude_from_advection/>
+          <comment>Dave should move just like Steve, but using the python interface.</comment>
         </agent_array>
         <lagrangian_timestepping>
           <explicit_runge_kutta_guided_search>

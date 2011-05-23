@@ -6751,7 +6751,12 @@ biology =
                   ##     return # Return value
                   element random_walk {
                      python_code
-                  }?
+                  }?,
+                  ## 
+                  element exclude_from_advection {
+                     empty
+                  }?,
+                  comment
                }*,
                lagrangian_timestepping
             }?,
