@@ -3,7 +3,7 @@
 	@true
 
 Debug.o ../include/fldebug.mod: Debug.F90 ../include/fldebug_parameters.mod \
-   ../include/confdefs.h ../include/fdebug.h
+   ../include/fdebug.h
 
 ../include/fldebug_parameters.mod: Debug_Parameters.o
 	@true

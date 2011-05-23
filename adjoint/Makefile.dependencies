@@ -4,18 +4,18 @@
 
 Adjoint_Functional_Evaluation.o ../include/adjoint_functional_evaluation.mod: \
    Adjoint_Functional_Evaluation.F90 ../include/adjoint_python.mod \
-   ../include/libadjoint_data_callbacks.mod ../include/confdefs.h \
-   ../include/mangle_options_tree.mod ../include/adjoint_global_variables.mod \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/diagnostic_variables.mod \
-   ../include/spud.mod ../include/embed_python.mod ../include/state_module.mod \
+   ../include/libadjoint_data_callbacks.mod ../include/mangle_options_tree.mod \
+   ../include/adjoint_global_variables.mod ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/fields.mod \
+   ../include/diagnostic_variables.mod ../include/spud.mod \
+   ../include/embed_python.mod ../include/state_module.mod \
    ../include/python_state.mod ../include/fdebug.h ../include/fldebug.mod
 
 ../include/adjoint_global_variables.mod: Adjoint_Global_Variables.o
 	@true
 
 Adjoint_Global_Variables.o ../include/adjoint_global_variables.mod: \
-   Adjoint_Global_Variables.F90 ../include/confdefs.h ../include/fdebug.h
+   Adjoint_Global_Variables.F90 ../include/fdebug.h
 
 ../include/adjoint_main_loop.mod: Adjoint_Main_Loop.o
 	@true
@@ -25,10 +25,9 @@ Adjoint_Main_Loop.o ../include/adjoint_main_loop.mod: Adjoint_Main_Loop.F90 \
    ../include/diagnostic_fields_new.mod \
    ../include/adjoint_functional_evaluation.mod ../include/sparse_tools.mod \
    ../include/fields.mod ../include/diagnostic_variables.mod \
-   ../include/confdefs.h ../include/mangle_options_tree.mod \
-   ../include/write_state_module.mod ../include/spud.mod \
-   ../include/mangle_dirichlet_rows_module.mod ../include/state_module.mod \
-   ../include/libadjoint_data_callbacks.mod \
+   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
+   ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
+   ../include/state_module.mod ../include/libadjoint_data_callbacks.mod \
    ../include/diagnostic_fields_wrapper.mod ../include/signal_vars.mod \
    ../include/adjoint_global_variables.mod ../include/solvers.mod \
    ../include/global_parameters.mod ../include/fdebug.h
@@ -37,17 +36,17 @@ Adjoint_Main_Loop.o ../include/adjoint_main_loop.mod: Adjoint_Main_Loop.F90 \
 	@true
 
 Adjoint_Python_Fortran.o ../include/adjoint_python.mod: \
-   Adjoint_Python_Fortran.F90 ../include/confdefs.h ../include/spud.mod \
-   ../include/fdebug.h ../include/fldebug.mod
+   Adjoint_Python_Fortran.F90 ../include/spud.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
 ../include/burgers_adjoint_callbacks.mod: Burgers_Adjoint_Callbacks.o
 	@true
 
 Burgers_Adjoint_Callbacks.o ../include/burgers_adjoint_callbacks.mod: \
    Burgers_Adjoint_Callbacks.F90 ../include/libadjoint_data_callbacks.mod \
-   ../include/confdefs.h ../include/adjoint_global_variables.mod \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/mangle_options_tree.mod ../include/sparse_matrices_fields.mod \
+   ../include/adjoint_global_variables.mod ../include/fields.mod \
+   ../include/spud.mod ../include/mangle_options_tree.mod \
+   ../include/sparse_matrices_fields.mod \
    ../include/mangle_dirichlet_rows_module.mod ../include/fdebug.h \
    ../include/state_module.mod
 
@@ -59,10 +58,9 @@ Forward_Main_Loop.o ../include/forward_main_loop.mod: Forward_Main_Loop.F90 \
    ../include/diagnostic_fields_new.mod \
    ../include/adjoint_functional_evaluation.mod ../include/sparse_tools.mod \
    ../include/fields.mod ../include/diagnostic_variables.mod \
-   ../include/confdefs.h ../include/mangle_options_tree.mod \
-   ../include/write_state_module.mod ../include/spud.mod \
-   ../include/mangle_dirichlet_rows_module.mod ../include/state_module.mod \
-   ../include/libadjoint_data_callbacks.mod \
+   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
+   ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
+   ../include/state_module.mod ../include/libadjoint_data_callbacks.mod \
    ../include/diagnostic_fields_wrapper.mod ../include/signal_vars.mod \
    ../include/adjoint_global_variables.mod ../include/solvers.mod \
    ../include/global_parameters.mod ../include/fdebug.h
@@ -72,16 +70,15 @@ Forward_Main_Loop.o ../include/forward_main_loop.mod: Forward_Main_Loop.F90 \
 
 Libadjoint_Data_Callbacks.o ../include/libadjoint_data_callbacks.mod: \
    Libadjoint_Data_Callbacks.F90 ../include/boundary_conditions.mod \
-   ../include/confdefs.h ../include/sparse_tools.mod \
-   ../include/fields_manipulation.mod ../include/fields.mod \
-   ../include/fdebug.h
+   ../include/sparse_tools.mod ../include/fields_manipulation.mod \
+   ../include/fields.mod ../include/fdebug.h
 
 ../include/mangle_dirichlet_rows_module.mod: Mangle_Dirichlet_Rows_Module.o
 	@true
 
 Mangle_Dirichlet_Rows_Module.o ../include/mangle_dirichlet_rows_module.mod: \
    Mangle_Dirichlet_Rows_Module.F90 ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/confdefs.h \
+   ../include/boundary_conditions_from_options.mod \
    ../include/field_options.mod ../include/fields.mod \
    ../include/sparse_matrices_fields.mod ../include/fdebug.h
 
@@ -89,9 +86,9 @@ Mangle_Dirichlet_Rows_Module.o ../include/mangle_dirichlet_rows_module.mod: \
 	@true
 
 Mangle_Options_Tree.o ../include/mangle_options_tree.mod: \
-   Mangle_Options_Tree.F90 ../include/confdefs.h ../include/futils.mod \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/spud.mod ../include/fdebug.h ../include/fldebug.mod
+   Mangle_Options_Tree.F90 ../include/futils.mod ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
 ../include/shallow_water_adjoint_callbacks.mod: \
    Shallow_Water_Adjoint_Callbacks.o
@@ -100,7 +97,7 @@ Mangle_Options_Tree.o ../include/mangle_options_tree.mod: \
 Shallow_Water_Adjoint_Callbacks.o \
    ../include/shallow_water_adjoint_callbacks.mod: \
    Shallow_Water_Adjoint_Callbacks.F90 \
-   ../include/libadjoint_data_callbacks.mod ../include/confdefs.h \
+   ../include/libadjoint_data_callbacks.mod \
    ../include/adjoint_global_variables.mod \
    ../include/populate_state_module.mod ../include/global_parameters.mod \
    ../include/fields.mod ../include/spud.mod \

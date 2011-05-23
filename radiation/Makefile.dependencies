@@ -9,10 +9,10 @@ Create_Unittest_Input.o ../include/create_unittest_input.mod: \
 ../include/radiation.mod: Radiation.o
 	@true
 
-Radiation.o ../include/radiation.mod: Radiation.F90 ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_solve_module.mod \
-   ../include/global_parameters.mod ../include/radiation_particle.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/fdebug.h
+Radiation.o ../include/radiation.mod: Radiation.F90 ../include/futils.mod \
+   ../include/radiation_solve_module.mod ../include/global_parameters.mod \
+   ../include/radiation_particle.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/fdebug.h
 
 ../include/radiation_calculate_current_module.mod: \
    Radiation_Calculate_Current.o
@@ -21,8 +21,8 @@ Radiation.o ../include/radiation.mod: Radiation.F90 ../include/confdefs.h \
 Radiation_Calculate_Current.o \
    ../include/radiation_calculate_current_module.mod: \
    Radiation_Calculate_Current.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_materials_interpolation.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_materials_interpolation.mod \
    ../include/radiation_extract_flux_field.mod ../include/vector_tools.mod \
    ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/fields.mod \
@@ -35,8 +35,8 @@ Radiation_Calculate_Current.o \
 Radiation_Check_Flux_Convergence.o \
    ../include/radiation_check_flux_convergence.mod: \
    Radiation_Check_Flux_Convergence.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_extract_flux_field.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
    ../include/fdebug.h ../include/radiation_particle_data_type.mod
 
@@ -44,7 +44,7 @@ Radiation_Check_Flux_Convergence.o \
 	@true
 
 Radiation_Check_Options.o ../include/radiation_check_options_module.mod: \
-   Radiation_Check_Options.F90 ../include/confdefs.h ../include/futils.mod \
+   Radiation_Check_Options.F90 ../include/futils.mod \
    ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h
 
 ../include/radiation_copy_flux_values.mod: Radiation_Copy_Flux_Values.o
@@ -52,8 +52,8 @@ Radiation_Check_Options.o ../include/radiation_check_options_module.mod: \
 
 Radiation_Copy_Flux_Values.o ../include/radiation_copy_flux_values.mod: \
    Radiation_Copy_Flux_Values.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_extract_flux_field.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/fields.mod \
    ../include/spud.mod ../include/fdebug.h ../include/state_module.mod
@@ -62,7 +62,7 @@ Radiation_Copy_Flux_Values.o ../include/radiation_copy_flux_values.mod: \
 	@true
 
 Radiation_Diagnostics.o ../include/radiation_diagnostics.mod: \
-   Radiation_Diagnostics.F90 ../include/confdefs.h ../include/futils.mod \
+   Radiation_Diagnostics.F90 ../include/futils.mod \
    ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/fields.mod \
    ../include/diagnostic_variables.mod ../include/spud.mod ../include/fdebug.h \
@@ -74,17 +74,16 @@ Radiation_Diagnostics.o ../include/radiation_diagnostics.mod: \
 
 Radiation_Energy_Group_Set_Tools.o \
    ../include/radiation_energy_group_set_tools.mod: \
-   Radiation_Energy_Group_Set_Tools.F90 ../include/confdefs.h \
-   ../include/futils.mod ../include/global_parameters.mod ../include/spud.mod \
-   ../include/fdebug.h
+   Radiation_Energy_Group_Set_Tools.F90 ../include/futils.mod \
+   ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h
 
 ../include/radiation_extract_flux_field.mod: Radiation_Extract_Flux_Field.o
 	@true
 
 Radiation_Extract_Flux_Field.o ../include/radiation_extract_flux_field.mod: \
    Radiation_Extract_Flux_Field.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/fields.mod \
    ../include/spud.mod ../include/fdebug.h ../include/state_module.mod
 
@@ -93,7 +92,7 @@ Radiation_Extract_Flux_Field.o ../include/radiation_extract_flux_field.mod: \
 
 Radiation_Materials.o ../include/radiation_materials.mod: \
    Radiation_Materials.F90 ../include/radiation_materials_read.mod \
-   ../include/confdefs.h ../include/radiation_materials_create.mod \
+   ../include/radiation_materials_create.mod \
    ../include/radiation_materials_data_types.mod \
    ../include/radiation_materials_operations.mod \
    ../include/radiation_materials_destroy.mod ../include/fdebug.h
@@ -103,8 +102,8 @@ Radiation_Materials.o ../include/radiation_materials.mod: \
 
 Radiation_Materials_Create.o ../include/radiation_materials_create.mod: \
    Radiation_Materials_Create.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_materials_data_types.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_materials_data_types.mod \
    ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h
 
 ../include/radiation_materials_data_types.mod: \
@@ -114,13 +113,13 @@ Radiation_Materials_Create.o ../include/radiation_materials_create.mod: \
 Radiation_Materials_Data_Types.o \
    ../include/radiation_materials_data_types.mod: \
    Radiation_Materials_Data_Types.F90 ../include/global_parameters.mod \
-   ../include/fdebug.h ../include/confdefs.h
+   ../include/fdebug.h
 
 ../include/radiation_materials_destroy.mod: Radiation_Materials_Destroy.o
 	@true
 
 Radiation_Materials_Destroy.o ../include/radiation_materials_destroy.mod: \
-   Radiation_Materials_Destroy.F90 ../include/confdefs.h ../include/futils.mod \
+   Radiation_Materials_Destroy.F90 ../include/futils.mod \
    ../include/radiation_materials_data_types.mod \
    ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h
 
@@ -133,7 +132,6 @@ Radiation_Materials_Interpolation.o \
    Radiation_Materials_Interpolation.F90 \
    ../include/radiation_materials_interpolation_form_radmat.mod \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h \
    ../include/radiation_materials_interpolation_form_ii.mod \
    ../include/radiation_materials_interpolation_destroy.mod \
    ../include/radiation_materials_interpolation_create.mod ../include/fdebug.h
@@ -147,7 +145,7 @@ Radiation_Materials_Interpolation_Create.o \
    Radiation_Materials_Interpolation_Create.F90 \
    ../include/radiation_materials.mod \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h ../include/radiation_extract_flux_field.mod \
+   ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
    ../include/fdebug.h ../include/state_module.mod
 
@@ -158,7 +156,7 @@ Radiation_Materials_Interpolation_Create.o \
 Radiation_Materials_Interpolation_Data_Types.o \
    ../include/radiation_materials_interpolation_data_types.mod: \
    Radiation_Materials_Interpolation_Data_Types.F90 \
-   ../include/global_parameters.mod ../include/confdefs.h ../include/fdebug.h
+   ../include/global_parameters.mod ../include/fdebug.h
 
 ../include/radiation_materials_interpolation_destroy.mod: \
    Radiation_Materials_Interpolation_Destroy.o
@@ -168,7 +166,7 @@ Radiation_Materials_Interpolation_Destroy.o \
    ../include/radiation_materials_interpolation_destroy.mod: \
    Radiation_Materials_Interpolation_Destroy.F90 \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h ../include/fdebug.h
+   ../include/fdebug.h
 
 ../include/radiation_materials_interpolation_form_ii.mod: \
    Radiation_Materials_Interpolation_Form_II.o
@@ -178,8 +176,7 @@ Radiation_Materials_Interpolation_Form_II.o \
    ../include/radiation_materials_interpolation_form_ii.mod: \
    Radiation_Materials_Interpolation_Form_II.F90 \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h ../include/futils.mod \
-   ../include/radiation_materials_data_types.mod \
+   ../include/futils.mod ../include/radiation_materials_data_types.mod \
    ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
    ../include/radiation_materials_interpolation_create.mod ../include/fdebug.h \
@@ -194,9 +191,9 @@ Radiation_Materials_Interpolation_Form_Radmat.o \
    Radiation_Materials_Interpolation_Form_Radmat.F90 \
    ../include/radiation_materials.mod \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h ../include/futils.mod \
-   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
-   ../include/fdebug.h ../include/state_module.mod
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/fields.mod ../include/spud.mod ../include/fdebug.h \
+   ../include/state_module.mod
 
 ../include/radiation_materials_operations.mod: \
    Radiation_Materials_Operations.o
@@ -204,15 +201,15 @@ Radiation_Materials_Interpolation_Form_Radmat.o \
 
 Radiation_Materials_Operations.o \
    ../include/radiation_materials_operations.mod: \
-   Radiation_Materials_Operations.F90 ../include/confdefs.h \
-   ../include/unittest_tools.mod ../include/futils.mod \
-   ../include/radiation_materials_data_types.mod ../include/fdebug.h
+   Radiation_Materials_Operations.F90 ../include/unittest_tools.mod \
+   ../include/futils.mod ../include/radiation_materials_data_types.mod \
+   ../include/fdebug.h
 
 ../include/radiation_materials_read.mod: Radiation_Materials_Read.o
 	@true
 
 Radiation_Materials_Read.o ../include/radiation_materials_read.mod: \
-   Radiation_Materials_Read.F90 ../include/confdefs.h \
+   Radiation_Materials_Read.F90 \
    ../include/radiation_materials_read_format_radmats.mod \
    ../include/futils.mod ../include/radiation_materials_data_types.mod \
    ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h
@@ -223,8 +220,8 @@ Radiation_Materials_Read.o ../include/radiation_materials_read.mod: \
 
 Radiation_Materials_Read_Format_Radmats.o \
    ../include/radiation_materials_read_format_radmats.mod: \
-   Radiation_Materials_Read_Format_Radmats.F90 ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_materials_data_types.mod \
+   Radiation_Materials_Read_Format_Radmats.F90 ../include/futils.mod \
+   ../include/radiation_materials_data_types.mod \
    ../include/radiation_materials_read_format_radmats_base.mod \
    ../include/fdebug.h
 
@@ -235,16 +232,15 @@ Radiation_Materials_Read_Format_Radmats.o \
 Radiation_Materials_Read_Format_Radmats_Base.o \
    ../include/radiation_materials_read_format_radmats_base.mod: \
    Radiation_Materials_Read_Format_Radmats_Base.F90 ../include/futils.mod \
-   ../include/radiation_materials_data_types.mod ../include/confdefs.h \
-   ../include/fdebug.h
+   ../include/radiation_materials_data_types.mod ../include/fdebug.h
 
 ../include/radiation_normalise_flux.mod: Radiation_Normalise_Flux.o
 	@true
 
 Radiation_Normalise_Flux.o ../include/radiation_normalise_flux.mod: \
    Radiation_Normalise_Flux.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_reaction_rate.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_reaction_rate.mod \
    ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
    ../include/fdebug.h ../include/radiation_particle_data_type.mod
@@ -253,8 +249,8 @@ Radiation_Normalise_Flux.o ../include/radiation_normalise_flux.mod: \
 	@true
 
 Radiation_Particle.o ../include/radiation_particle.mod: Radiation_Particle.F90 \
-   ../include/radiation_materials.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_materials_interpolation.mod \
+   ../include/radiation_materials.mod ../include/futils.mod \
+   ../include/radiation_materials_interpolation.mod \
    ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/spud.mod \
    ../include/fdebug.h ../include/state_module.mod
@@ -265,7 +261,7 @@ Radiation_Particle.o ../include/radiation_particle.mod: Radiation_Particle.F90 \
 Radiation_Particle_Data_Type.o ../include/radiation_particle_data_type.mod: \
    Radiation_Particle_Data_Type.F90 \
    ../include/radiation_materials_interpolation_data_types.mod \
-   ../include/confdefs.h ../include/radiation_materials_data_types.mod \
+   ../include/radiation_materials_data_types.mod \
    ../include/global_parameters.mod ../include/fdebug.h \
    ../include/state_module.mod
 
@@ -273,7 +269,7 @@ Radiation_Particle_Data_Type.o ../include/radiation_particle_data_type.mod: \
 	@true
 
 Radiation_Reaction_Rate.o ../include/radiation_reaction_rate.mod: \
-   Radiation_Reaction_Rate.F90 ../include/confdefs.h \
+   Radiation_Reaction_Rate.F90 \
    ../include/radiation_materials_interpolation.mod \
    ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod \
@@ -286,8 +282,8 @@ Radiation_Reaction_Rate.o ../include/radiation_reaction_rate.mod: \
 
 Radiation_Solve.o ../include/radiation_solve_module.mod: Radiation_Solve.F90 \
    ../include/radiation_calculate_current_module.mod \
-   ../include/radiation_solve_energy_group_iteration.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_solve_power_iteration.mod \
+   ../include/radiation_solve_energy_group_iteration.mod ../include/futils.mod \
+   ../include/radiation_solve_power_iteration.mod \
    ../include/global_parameters.mod \
    ../include/radiation_materials_interpolation.mod \
    ../include/radiation_normalise_flux.mod \
@@ -300,7 +296,7 @@ Radiation_Solve.o ../include/radiation_solve_module.mod: Radiation_Solve.F90 \
 
 Radiation_Solve_Energy_Group_Iteration.o \
    ../include/radiation_solve_energy_group_iteration.mod: \
-   Radiation_Solve_Energy_Group_Iteration.F90 ../include/confdefs.h \
+   Radiation_Solve_Energy_Group_Iteration.F90 \
    ../include/radiation_solve_scatter_iteration.mod ../include/futils.mod \
    ../include/radiation_materials_interpolation.mod \
    ../include/radiation_check_flux_convergence.mod \
@@ -314,8 +310,7 @@ Radiation_Solve_Energy_Group_Iteration.o \
 
 Radiation_Solve_Group.o ../include/radiation_assemble_solve_group.mod: \
    Radiation_Solve_Group.F90 ../include/radiation_energy_group_set_tools.mod \
-   ../include/confdefs.h ../include/futils.mod \
-   ../include/radiation_materials_interpolation.mod \
+   ../include/futils.mod ../include/radiation_materials_interpolation.mod \
    ../include/radiation_extract_flux_field.mod \
    ../include/global_parameters.mod ../include/boundary_conditions.mod \
    ../include/fields.mod ../include/advection_diffusion_cg.mod \
@@ -329,7 +324,7 @@ Radiation_Solve_Group.o ../include/radiation_assemble_solve_group.mod: \
 Radiation_Solve_Power_Iteration.o \
    ../include/radiation_solve_power_iteration.mod: \
    Radiation_Solve_Power_Iteration.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
+   ../include/radiation_energy_group_set_tools.mod \
    ../include/radiation_solve_scatter_iteration.mod ../include/futils.mod \
    ../include/radiation_materials_interpolation.mod \
    ../include/radiation_extract_flux_field.mod \
@@ -346,8 +341,8 @@ Radiation_Solve_Power_Iteration.o \
 Radiation_Solve_Scatter_Iteration.o \
    ../include/radiation_solve_scatter_iteration.mod: \
    Radiation_Solve_Scatter_Iteration.F90 \
-   ../include/radiation_energy_group_set_tools.mod ../include/confdefs.h \
-   ../include/futils.mod ../include/radiation_assemble_solve_group.mod \
+   ../include/radiation_energy_group_set_tools.mod ../include/futils.mod \
+   ../include/radiation_assemble_solve_group.mod \
    ../include/global_parameters.mod \
    ../include/radiation_particle_data_type.mod ../include/spud.mod \
    ../include/fdebug.h ../include/state_module.mod

@@ -13,7 +13,7 @@ dep_exclusions=[\
     "../include/mba3d_mba_nodal.mod",
     # Remove dependencies on confdefs.h because it causes
     # lots of spurious rebuilds.
-    "../include/confdefs.mod",
+    "../include/confdefs.h",
     # Get rid of absolute paths.
     # We are only interested in dependencies from within the
     # Fluidity tree  so we dump the ones from outside.  
