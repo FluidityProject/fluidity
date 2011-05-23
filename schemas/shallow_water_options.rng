@@ -335,6 +335,21 @@ This is usually disabled.</a:documentation>
               <ref name="prognostic_layerthickness_field"/>
             </element>
           </element>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Lagrange multiplier for hybridised solver</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>LagrangeMultiplier</value>
+              </attribute>
+              <element name="prognostic">
+                <ref name="mesh_choice"/>
+                <ref name="prognostic_lagrangemultiplier_field"/>
+              </element>
+            </element>
+          </optional>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
@@ -922,6 +937,20 @@ Will be replaced by a field in due course</a:documentation>
         </element>
       </element>
     </optional>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
+  <define name="prognostic_lagrangemultiplier_field">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <empty/>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>

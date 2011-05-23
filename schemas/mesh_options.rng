@@ -58,6 +58,7 @@ surface or region IDs.</a:documentation>
                   <choice>
                     <value>lagrangian</value>
                     <value>bubble</value>
+                    <value>trace</value>
                   </choice>
                 </element>
               </element>

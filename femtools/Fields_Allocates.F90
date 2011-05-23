@@ -892,7 +892,8 @@ contains
     call incref(mesh%shape)
 
     ! You can't have a CG degree 0 mesh!
-    if(mesh%shape%degree==0.and.mesh%continuity>=0) then
+    if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
+         &%ele_numbering_type%type/=ELEMENT_TRACE) then
       FLExit("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
     end if
 
@@ -1001,6 +1002,11 @@ contains
     if(has_faces(model)) then
       call add_faces(mesh, model)
     end if
+
+    if (mesh%shape%ele_numbering_type%type==ELEMENT_TRACE) then
+       call make_global_numbering_trace(mesh)
+    end if
+  end function make_mesh
 
     call addref(mesh)
 
