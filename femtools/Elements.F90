@@ -147,7 +147,7 @@ contains
        FLAbort('Illegal element family.')
     end select
 
-    select case(ele_num%type)
+    select case(ltype)
     case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, &
          &ELEMENT_BUBBLE, ELEMENT_TRACE)
 
