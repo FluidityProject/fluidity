@@ -13,7 +13,7 @@ def get_filelist(sample, start):
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
    
-    list = glob.glob("*.vtu")
+    list = glob.glob("*vtu")
     list = [l for l in list if 'check' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
@@ -32,9 +32,10 @@ def get_filelist(sample, start):
       ##### Start at the (start+1)th file.
       ##### Add every nth file by taking integer multiples of n; limit at 10 vtus max.
       vtu_no = float(file.split('_')[-1].split('.')[0])
-      if ((max(vtu_nos)-start)/sample > 10):
-        sample=int((max(vtu_nos)-start)/10)
-      
+      #if ((max(vtu_nos)-start)/sample > 10):
+      #  sample=int((max(vtu_nos)-start)/10)
+      #  print "sample rate: ", sample
+
       if vtu_no > start:
         if (vtu_no%sample==0):
           shortlist.append(file)
@@ -157,7 +158,6 @@ def meanvelo(filelist,x,y):
       ##### Get x-velocity
       uvw = datafile.ProbeData(pts, "Velocity")
       umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
-      (ilen, jlen) = uvw.shape
       u = uvw[:,0]/umax
       u=u.reshape([x.size,y.size])
       profiles[filecount,:,:] = u
@@ -247,10 +247,10 @@ def main():
     Re = sys.argv[1]
     type = sys.argv[2]
     mesh = sys.argv[3]
-    print "Re, bc type, mesh: ", Re, type, mesh
+    print "\nRe, bc type, mesh: ", Re, type, mesh
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=30, start=10)
+    filelist = get_filelist(sample=20, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
@@ -267,7 +267,7 @@ def main():
     profiles, time = meanvelo(filelist, xarray, yarray)
     numpy.save("velo_profiles_2d_"+str(Re)+"_"+str(mesh), profiles)
     plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time)
-    pylab.show()
+    #pylab.show()
 
     print "\nAll done.\n"
 

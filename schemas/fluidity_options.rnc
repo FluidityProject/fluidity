@@ -1267,6 +1267,10 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
                         }
                      )
                   },
@@ -1281,6 +1285,10 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
                         }
                      )
                   },
@@ -1321,6 +1329,10 @@ start =
                            internal_algorithm,
                            velocity_mesh_choice,
                            diagnostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
                         }
                      )
                   },

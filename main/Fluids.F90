@@ -444,8 +444,13 @@ contains
     end if
 
     ! Initialise k_epsilon
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
-        call keps_init(state(1))
+    have_k_epsilon = .false.
+    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
+    if (have_option(trim(keps_option_path)) then
+        have_k_epsilon = .true.
+        if (have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
+           call keps_init(state(1))
+        end if
     end if
 
 
@@ -651,7 +656,7 @@ contains
              end if
 
              ! do we have the k-epsilon 2 equation turbulence model?
-             if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+             if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::"//trim(field_name_list(it)//"/prognostic") then
                 if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
                     call keps_tke(state(1))
                 else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
@@ -737,7 +742,7 @@ contains
           end if
 
           ! k_epsilon after the solve on Epsilon has finished
-          if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+          if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
             ! Update the diffusivity, at each iteration.
             call keps_eddyvisc(state(1))
           end if
@@ -967,7 +972,7 @@ contains
     end if
 
     ! cleanup k_epsilon
-    if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/')) then
+    if (have_k_epsilon) then
         call keps_cleanup()
     end if
 
@@ -1056,7 +1061,7 @@ contains
 
     ! k_epsilon - we need to deallocate all module-level fields or the memory
     ! management system complains
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+    if (have_k_epsilon) then
         call keps_cleanup() ! deallocate everything
     end if
 
@@ -1141,7 +1146,9 @@ contains
     end if
 
     ! k_epsilon
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+    if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
+        &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
+        &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
         call keps_adapt_mesh(state(1))
     end if
 

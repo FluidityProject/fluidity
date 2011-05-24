@@ -1584,10 +1584,16 @@ carries the influence of turbulence onto the velocity field. See the manual for 
                     <attribute name="name">
                       <value>TurbulentKineticEnergy</value>
                     </attribute>
-                    <element name="prognostic">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prognostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="scalar_field">
                     <a:documentation>TurbulentDissipation (epsilon).
@@ -1600,10 +1606,16 @@ carries the influence of turbulence onto the velocity field. See the manual for 
                     <attribute name="name">
                       <value>TurbulentDissipation</value>
                     </attribute>
-                    <element name="prognostic">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prognostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Set the value of the background (laminar) viscosity field here.
@@ -1645,11 +1657,17 @@ This will appear in the stat file.</a:documentation>
                     <attribute name="name">
                       <value>ScalarEddyViscosity</value>
                     </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <optional>
                     <element name="scalar_field">

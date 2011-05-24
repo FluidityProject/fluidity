@@ -1,46 +1,49 @@
-# directory locations:
-BIN=../../bin/
-SCRIPTS=../../scripts/
-preprocess: 
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
-	@echo **********Generating the mesh using gmsh in 3d:
-	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
-	@echo **********Converting the gmsh mesh to triangle format:
-	$(SCRIPTS)gmsh2triangle step3d.msh
-ifneq ($(NPROCS),8)
-	@echo **********WARNING: This simulation is best run on 8 processors
-endif
-ifeq ($(NPROCS),1)
-	@echo **********Serial run: not decomposing mesh
-	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
-else
-# exit if no fltools and print warning
-	@if [ ! -e $(BIN)fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
-	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	$(BIN)fldecomp -n $(NPROCS) -f step3d
-endif
+BIN=../../../bin
+SCRIPTS=../../../scripts
+RE=5100
+JOB=dynles-lilly
+
+preprocess:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
+	@$(foreach NN,vfine, \
+		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
+		install -d $(RE)-$(JOB)-$(NN); \
+		cd $(RE)-$(JOB)-$(NN); \
+		pwd; \
+		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
+		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
+		echo **********Generating mesh for $(NN) simulation:; \
+		gmsh -3 -optimize -clmin 0.25 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
+		$(SCRIPTS)/gmsh2triangle step3d-$(NN).msh; \
+		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
+		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
+		cd ..; \
+	)
 
 run:
-ifneq ($(NPROCS),8)
-	@echo **********WARNING: This simulation is best run on 8 processors
-endif
-ifeq ($(NPROCS),1)
-	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
-	@echo **********Calling fluidity in serial with verbose log output enabled:
-	$(BIN)fluidity -v2 -l backward_facing_step_3d.flml
-else
-	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l backward_facing_step_3d.flml
-endif
+	@$(foreach NN,coarse med fine, \
+		echo Running $(NN) case; \
+		cd $(RE)-$(JOB)-$(NN); \
+		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
+		mpiexec -n $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_2d-$(RE)-$(JOB)-$(NN).flml; \
+		cd ..; \
+	)
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	./postprocessor_3d.py
+	@$(foreach NN,med, \
+		cd $(RE)-$(JOB)-$(NN); \
+		ln -s ../postprocessor_3d.py .; \
+		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
+		cd ..; \
+	)
 
 input: clean
 	$(MAKE) preprocess NPROCS=8
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
+	@$(foreach NN,coarse med fine, \
+		rm -rf $(RE)-$(JOB)-$(NN); \
+	)
 
