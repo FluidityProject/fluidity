@@ -156,6 +156,21 @@ contains
     totele = mesh%elements
     face_loc = mesh%faces%shape%loc
     nloc = mesh%shape%loc
+
+    !count up how many faces there are
+    nfaces = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele) then
+             nfaces=nfaces+1
+          end if
+       end do
+    end do
+    mesh%nodes = nfaces*face_loc
+
+    !construct mesh%ndglno
     mesh%ndglno = 0
     current_global_index = 0
     do ele = 1, totele
@@ -166,8 +181,8 @@ contains
              face_1=ele_face(mesh, ele, ele_2)
              mesh%ndglno((ele-1)*nloc+face_local_nodes(mesh,face_1))&
                   &=current_global_index+(/(i, i=1,face_loc)/)
-             if(ele_2<0) then
-                !it's a domain boundary
+             if(ele_2>0) then
+                !it's not a domain boundary
                 !not quite sure how this works in parallel
                 face_2=ele_face(mesh, ele_2, ele)
                 mesh%ndglno((ele_2-1)*nloc+face_local_nodes(mesh,face_2))&
@@ -179,6 +194,7 @@ contains
        end do
     end do
     if(current_global_index /= mesh%nodes) then
+       ewrite(3,*) current_global_index, mesh%nodes
        FLAbort('bad global index count in make_global_numbering_trace')
     end if
     if(any(mesh%ndglno==0)) then
