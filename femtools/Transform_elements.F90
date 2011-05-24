@@ -469,7 +469,7 @@ contains
     integer :: ele
     !! Reference element of which the derivatives are to be transformed
     type(element_type), intent(in) :: shape
-    !! Derivatives of this shape function transformed to physical space
+    !! Derivatives of this shape function transformed to physical space (loc x ngi x dim)
     real, dimension(:,:,:), intent(out) ::  dshape
     
     !! Quadrature weights for physical coordinates.

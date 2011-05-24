@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Shallow Water Equation MMS</name>
+  <owner userid="sf1409"/>
+  <tags>swml adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>shallow_water wave_dt_dx_A.swml; shallow_water wave_dt_dx_B.swml; shallow_water wave_dt_dx_C.swml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence_pass" language="python">import convergence_rate_2d
+print "Forward model convergence"      
+convergence_rate_2d.print_convergence_rates()
+convergence_pass = convergence_rate_2d.test_convergence_rates(1.8, False)
+    </variable>
+    <variable name="replay_convergence_pass" language="python">import convergence_rate_replay_2d
+print "Replay convergence"      
+convergence_rate_replay_2d.print_convergence_rates()
+replay_convergence_pass = convergence_rate_replay_2d.test_convergence_rates(1.8, False)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="convergence" language="python">assert(convergence_pass)
+</test>
+    <test name="replay_convergence" language="python">assert(replay_convergence_pass)</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

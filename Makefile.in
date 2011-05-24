@@ -78,6 +78,14 @@ endif
 # Thread count for make test.
 THREADS=1
 
+EXCLUDE_TAGS =
+ifneq (@ZOLTAN@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
+endif
+ifneq (@HAVE_ADJOINT@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
+endif
+
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
 .cpp.o:
@@ -433,11 +441,7 @@ else
 endif
 
 mediumtest:
-ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l medium -n $(THREADS)
-else
-	@cd tests; ../tools/testharness.py -l medium -e zoltan -n $(THREADS)
-endif
+	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
