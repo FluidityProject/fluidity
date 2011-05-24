@@ -82,6 +82,8 @@ module detector_data_types
   type detector_parameters
     ! Type of lagrangian advection algorithm
     logical :: use_rk_gs
+    ! Flag indicating whether to apply lagrangian advection
+    logical :: advect_lagrangian  
 
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles

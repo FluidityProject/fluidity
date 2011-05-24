@@ -60,7 +60,7 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len = 254) :: buffer, agent_array_name
+    character(len = 254) :: buffer, schema_buffer, agent_array_name
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type
@@ -80,25 +80,35 @@ contains
     ewrite(2,*) "Found", n_agent_arrays, "agent arrays"
 
     do i = 1, n_agent_arrays
-       write(buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
-       call get_option(trim(buffer)//"/number_of_agents", n_agents)
-       call get_option(trim(buffer)//"/name", agent_array_name)
+       write(schema_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
+       call get_option(trim(schema_buffer)//"/number_of_agents", n_agents)
+       call get_option(trim(schema_buffer)//"/name", agent_array_name)
 
-       call get_option(trim(buffer)//"/initial_position", func)
+       call get_option(trim(schema_buffer)//"/initial_position", func)
        allocate(coords(dim,n_agents))
        call set_detector_coords_from_python(coords, n_agents, func, current_time)
 
+       ! Register the agent array, so Zoltan/Adaptivity will not forget about it
        call register_detector_list(agent_arrays(i))
 
-       if (have_option(trim(buffer)//"/binary_output")) then
+       ! Get options for lagrangian detector movement
+       call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
+
+       ! Collect other meta-information
+       if (have_option(trim(schema_buffer)//"/binary_output")) then
           agent_arrays(i)%binary_output=.true.
        else
           agent_arrays(i)%binary_output=.false.
        end if
-       if (have_option(trim(buffer)//"/lagrangian")) then
+       if (have_option(trim(schema_buffer)//"/lagrangian")) then
           det_type=LAGRANGIAN_DETECTOR
        else
           det_type=STATIC_DETECTOR
+       end if
+       if (have_option(trim(schema_buffer)//"/exclude_from_advection")) then
+          agent_arrays(i)%move_parameters%advect_lagrangian=.false.
+       else
+          agent_arrays(i)%move_parameters%advect_lagrangian=.true.
        end if
        agent_arrays(i)%total_num_det=n_agents
 
@@ -178,9 +188,6 @@ contains
           end do
        end if
 
-       ! Get options for lagrangian detector movement
-       call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
-
        ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
     end do 
 
@@ -211,7 +218,8 @@ contains
 
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
-       if (check_any_lagrangian(agent_arrays(i))) then
+       if (check_any_lagrangian(agent_arrays(i)) .and. &
+               agent_arrays(i)%move_parameters%advect_lagrangian) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
 

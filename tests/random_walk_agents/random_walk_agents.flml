@@ -157,7 +157,7 @@
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
           <exclude_from_advection/>
-          <comment>Carl doesn't move at all.</comment>
+          <comment>Carl should not move at all, in order to check that exclude_from_advection works.</comment>
         </agent_array>
         <agent_array name="Dave">
           <number_of_agents>
@@ -174,7 +174,7 @@
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
           <random_walk>
-            <string_value type="python" lines="20">velocity = state.vector_fields['Velocity']
+            <string_value lines="20" type="python">velocity = state.vector_fields['Velocity']
 
 def val(ele,local_coords):
   # The val function should only present detector attributes

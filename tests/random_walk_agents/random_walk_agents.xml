@@ -19,13 +19,27 @@ last_locations_error = readstat_3d()
 from readtool_3d import readstat_3d
 last_locations_error_bob = readstat_3d(filename="Bob.detectors", prefix='', do_padding=False)
     </variable>
+    <variable name="last_locations_error_carl" language="python">
+from readtool_3d import initial_location_error
+last_locations_error_carl = initial_location_error(filename="Carl.detectors", prefix='', do_padding=False)
+    </variable>
+    <variable name="last_locations_error_dave" language="python">
+from readtool_3d import readstat_3d
+last_locations_error_dave = readstat_3d(filename="Dave.detectors", prefix='', do_padding=False)
+    </variable>
   </variables>
   <pass_tests>
     <test name="CorrectLagrangianTrajectory" language="python">
 assert abs(last_locations_error).max() &lt; 1.0e-6
     </test>
-    <test name="CorrectLagrangianTrajectory_Bob" language="python">
+    <test name="CorrectLagrangianTrajectoryAgents" language="python">
 assert abs(last_locations_error_bob).max() &lt; 1.0e-6
+    </test>
+    <test name="CorrectNonMovement" language="python">
+assert abs(last_locations_error_carl).max() &lt; 1.0e-6
+    </test>
+    <test name="CorrectLagrangianTrajectoryPythonInterface" language="python">
+assert abs(last_locations_error_dave).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
