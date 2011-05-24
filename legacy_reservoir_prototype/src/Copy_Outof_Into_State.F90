@@ -45,6 +45,9 @@ module copy_outof_into_state
 !  use diagnostic_fields_new, only : &
 !    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
 !    & check_diagnostic_dependencies
+
+  use boundary_conditions
+
   implicit none
   
   private
@@ -115,7 +118,9 @@ module copy_outof_into_state
       type(scalar_field), pointer :: porosity, density, pressure, &
            phasevolumefraction, pvf_source, &
            scalarfield, scalarfield_source, &
-           componentmassfraction
+           componentmassfraction, &
+           phasevolumefraction_bc
+      REAL, DIMENSION( : ), ALLOCATABLE::SATURABC
 
       type(vector_field), pointer :: velocity, velocity_source
 
@@ -229,6 +234,14 @@ module copy_outof_into_state
       real :: gravity_magnitude, gravity_direction, delta_den
       type( vector_field ), pointer :: gravity
       type(vector_field), pointer :: dummyvector
+
+      integer :: nobcs    
+      integer, dimension(:), pointer:: surface_element_list    
+      type(scalar_field), pointer:: volfra_surface_field    
+      character(len=OPTION_PATH_LEN):: bctype
+
+
+
 
 
       !! Finish declaration of variables needed from user input
@@ -697,9 +710,9 @@ module copy_outof_into_state
 !!!
 !!! Volume Fraction (or Saturation) Boundary Conditions:
 !!!
-
+if(.false.)then
       Loop_VolumeFraction_BC: do i=1,nphases
-         Conditional_VolumeFraction_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
+         Conditional_VolumeFraction_BC2: if( have_option( "/material_phase[" // int2str(i-1) // &
               "]/scalar_field::PhaseVolumeFraction/" // &
               "prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
@@ -730,9 +743,10 @@ module copy_outof_into_state
 
             deallocate(pvf_sufid_bc)
 
-         endif Conditional_VolumeFraction_BC
+         endif Conditional_VolumeFraction_BC2
 
       enddo Loop_VolumeFraction_BC
+   end if
 
 !!!
 !!! Pressure Boundary Conditions:
@@ -972,12 +986,63 @@ module copy_outof_into_state
       cv_p = p
 
       ewrite(3,*) "phasevolumefraction..."
-      do i=1,nphases
+      do i = 1, nphases
+
+         ! shape_option=option_shape("/material_phase[" // int2str(i-1) //"]/scalar_field::PhaseVolumeFraction/&
+         !      &prognostic/boundary_conditions[0]/surface_ids")
+         ! allocate(pvf_sufid_bc(1:shape_option(1)))
+         ! pvf_bc_type = 1
+         ! call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::PhaseVolumeFraction/prognostic/" // &
+         !      "boundary_conditions[0]/surface_ids", pvf_sufid_bc )
+
          phasevolumefraction => extract_scalar_field(state(i), "PhaseVolumeFraction")
-         if (.not.allocated(satura)) allocate(satura(nphases*node_count(phasevolumefraction)))
-         do j=1,node_count(phasevolumefraction)
-            satura((i-1)*node_count(phasevolumefraction)+j)=phasevolumefraction%val(j)
+
+         if ( .not. allocated( satura )) allocate( satura( nphases * node_count( phasevolumefraction )))
+         do j = 1, node_count( phasevolumefraction )
+            satura( ( i - 1 ) * node_count( phasevolumefraction ) + j ) = phasevolumefraction%val( j )
          enddo
+         do j = 1, node_count( phasevolumefraction )
+            if( j == 1 )then
+               satura( ( i - 1 ) * node_count( phasevolumefraction ) + j ) = &
+                    satura( ( i - 1 ) * node_count( phasevolumefraction ) + j + 1)
+            end if
+         enddo
+
+         Conditional_VolumeFraction_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
+              "]/scalar_field::PhaseVolumeFraction/" // &
+              "prognostic/boundary_conditions[0]/type::dirichlet" )) then
+
+            if (.not. allocated(wic_vol_bc)) then
+               allocate( wic_vol_bc( stotel * nphases ))
+               wic_vol_bc = 0.
+            endif
+            if (.not. allocated(suf_vol_bc)) then
+               allocate( suf_vol_bc( stotel * 1 * nphases ))
+               suf_vol_bc = 0.
+            endif
+
+            shape_option = option_shape( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
+                "PhaseVolumeFraction/prognostic/boundary_conditions[0]/surface_ids" )
+            allocate(pvf_sufid_bc(1:shape_option(1)))
+            pvf_bc_type = 1
+            call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::" // &
+                 "PhaseVolumeFraction/prognostic/boundary_conditions[0]/surface_ids", pvf_sufid_bc )
+            do j = 1, shape_option(1)
+               wic_vol_bc( pvf_sufid_bc(1) + ( i - 1 ) * nphases ) = pvf_bc_type
+            enddo
+
+            nobcs = get_boundary_condition_count( phasevolumefraction )
+            do j = 1, nobcs
+               phasevolumefraction_bc => extract_surface_field( phasevolumefraction, j, "value" )
+            end do
+            do j = 1, node_count( phasevolumefraction_bc )
+               suf_vol_bc( ( i - 1 ) * stotel + j ) = phasevolumefraction_bc%val( j )
+            end do
+
+            deallocate(pvf_sufid_bc)
+
+         endif Conditional_VolumeFraction_BC
+
       enddo
 
       ewrite(3,*) "velocity..."
