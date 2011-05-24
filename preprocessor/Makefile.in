@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -59,12 +59,9 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -75,15 +72,7 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
-
-Populate_State.o: Reserve_State.o VTK_Cache.o Initialise_Fields.o \
-   Boundary_Conditions_From_Options.o Field_Priority_Lists.o
-Populate_Sub_State.o: Populate_State.o
-Boundary_Conditions_From_Options.o: Initialise_Fields.o synthetic_bc.o Tidal_Modelling.o
-Initialise_Fields.o: VTK_Cache.o  Physics_From_Options.o
-
 
 .PHONY:check_options
 
@@ -98,7 +87,8 @@ check_options: check_options.o
 register_diagnostics: register_diagnostics.o
 	mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(LIB) register_diagnostics.o &> register_diagnostics.log
-	
+
 clean:
 	rm -f *.o *.d *.mod
 
+include Makefile.dependencies
