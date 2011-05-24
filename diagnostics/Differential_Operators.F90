@@ -373,7 +373,7 @@ contains
       end select
     end if
     
-    ewrite_minmax(s_field%val)
+    ewrite_minmax(s_field)
     
     ewrite(1, *) "Exiting calculate_curl_2d"
     
@@ -485,9 +485,7 @@ contains
       end select
     end if
     
-    do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i,:))
-    end do
+    ewrite_minmax(v_field)
     
     ewrite(1, *) "Exiting calculate_curl"
     
@@ -606,9 +604,7 @@ contains
     source_field => vector_source_field(state, v_field)
     assert(ele_count(source_field) == ele_count(v_field))
     assert(source_field%dim == v_field%dim)
-    do i = 1, source_field%dim
-      ewrite_minmax(source_field%val(i,:))
-    end do
+    ewrite_minmax(source_field)
       
     call check_source_mesh_derivative(source_field, "vector_laplacian")
     
@@ -628,18 +624,14 @@ contains
         call assemble_scalar_laplacian_face(j, v_field_comp, positions, source_field_comp)
       end do
     end do
-    do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i,:))
-    end do
+    ewrite_minmax(v_field)
     
     masslump => get_lumped_mass(state, v_field%mesh)
     
     do i = 1, v_field%dim
       v_field%val(i,:) = v_field%val(i,:) / masslump%val
     end do
-    do i = 1, v_field%dim
-      ewrite_minmax(v_field%val(i,:))
-    end do
+    ewrite_minmax(v_field)
     
     ewrite(1, *) "Exiting calculate_vector_laplacian"
         
@@ -746,7 +738,7 @@ contains
     source_field => scalar_source_field(state, s_field)
     assert(ele_count(source_field) == ele_count(s_field))
     assert(mesh_dim(source_field) == mesh_dim(s_field))
-    ewrite_minmax(source_field%val)
+    ewrite_minmax(source_field)
     
     call check_source_mesh_derivative(source_field, "scalar_laplacian")
     
@@ -760,12 +752,12 @@ contains
     do i = 1, surface_element_count(s_field)
       call assemble_scalar_laplacian_face(i, s_field, positions, source_field)
     end do
-    ewrite_minmax(s_field%val)
+    ewrite_minmax(s_field)
     
     masslump => get_lumped_mass(state, s_field%mesh)
     
     s_field%val = s_field%val / masslump%val
-    ewrite_minmax(s_field%val)
+    ewrite_minmax(s_field)
     
     ewrite(1, *) "Exiting calculate_scalar_laplacian"
         

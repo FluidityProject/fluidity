@@ -39,7 +39,7 @@ mesh_info =
             }?,
             element element_type {
               element string_value{
-                 "lagrangian" | "bubble"
+                 "lagrangian" | "bubble" | "trace"
               }
             }?
          }?,

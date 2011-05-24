@@ -50,7 +50,8 @@ module global_numbering
   private
   
   public :: make_global_numbering_DG, make_boundary_numbering,&
-       & make_global_numbering, element_halo_communicate_visibility
+       & make_global_numbering, element_halo_communicate_visibility, &
+       & make_global_numbering_trace
 
 contains
   
@@ -141,6 +142,66 @@ contains
 
 
   end subroutine make_global_numbering_DG
+
+  subroutine make_global_numbering_trace(mesh)
+    ! Construct a global node numbering for a trace mesh
+    !
+    ! Note that this code is broken for mixed element meshes.
+    type(mesh_type), intent(inout) :: mesh
+    !
+    integer :: ele, totele, ni, ele_2, current_global_index
+    integer, pointer, dimension(:) :: neigh
+    integer :: face_1,face_2,nfaces,i,face_loc, nloc
+
+    totele = mesh%elements
+    face_loc = mesh%faces%shape%loc
+    nloc = mesh%shape%loc
+
+    !count up how many faces there are
+    nfaces = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele) then
+             nfaces=nfaces+1
+          end if
+       end do
+    end do
+    mesh%nodes = nfaces*face_loc
+
+    !construct mesh%ndglno
+    mesh%ndglno = 0
+    current_global_index = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele) then
+             face_1=ele_face(mesh, ele, ele_2)
+             mesh%ndglno((ele-1)*nloc+face_local_nodes(mesh,face_1))&
+                  &=current_global_index+(/(i, i=1,face_loc)/)
+             if(ele_2>0) then
+                !it's not a domain boundary
+                !not quite sure how this works in parallel
+                face_2=ele_face(mesh, ele_2, ele)
+                mesh%ndglno((ele_2-1)*nloc+face_local_nodes(mesh,face_2))&
+                     &=current_global_index+(/(i, i=1,face_loc)/)
+             end if
+             current_global_index = current_global_index + &
+                  & mesh%faces%shape%loc
+          end if
+       end do
+    end do
+    if(current_global_index /= mesh%nodes) then
+       ewrite(3,*) current_global_index, mesh%nodes
+       FLAbort('bad global index count in make_global_numbering_trace')
+    end if
+    if(any(mesh%ndglno==0)) then
+       FLAbort('Failed to fully populate trace mesh ndglno')
+    end if
+
+  end subroutine make_global_numbering_trace
   
 !!$  subroutine make_global_numbering_nc &
 !!$       (new_nonods, new_ndglno, Nonods, Totele, NDGLNO) 

@@ -308,10 +308,6 @@ contains
           !                   2. ext_pos_fluid (\alpha_f)
           call femdem_update(state)
  
-          !ewrite_minmax(external_positions%val(1,:))
-          !ewrite_minmax(external_positions%val(2,:))
-          !ewrite_minmax(external_positions%val(3,:))
-
           ! interpolate the solid force from
           ! the femdem mesh to the fluidity mesh
           ! and update solid_local
@@ -1142,13 +1138,8 @@ contains
        ! the solid mesh to the fluidity mesh
        call interpolation_galerkin_femdem(alg_ext_v, alg_fl_v, field=solid_local)
 
-       ewrite_minmax(ext_pos_solid_force%val(1,:))
-       ewrite_minmax(ext_pos_solid_force%val(2,:))
-       ewrite_minmax(ext_pos_solid_force%val(3,:))
-
-       ewrite_minmax(field_fl_v%val(1,:))
-       ewrite_minmax(field_fl_v%val(2,:))
-       ewrite_minmax(field_fl_v%val(3,:))
+       ewrite_minmax(ext_pos_solid_force)
+       ewrite_minmax(field_fl_v)
 
     else if (operation == "out") then
 
@@ -1159,13 +1150,8 @@ contains
        if (use_fluid_velocity) &
           call linear_interpolation(alg_fl_s, alg_ext_s, different_domains=.true.)
 
-       ewrite_minmax(field_fl_v%val(1,:))
-       ewrite_minmax(field_fl_v%val(2,:))
-       ewrite_minmax(field_fl_v%val(3,:))
-
-       ewrite_minmax(ext_pos_fluid_vel%val(1,:))
-       ewrite_minmax(ext_pos_fluid_vel%val(2,:))
-       ewrite_minmax(ext_pos_fluid_vel%val(3,:))
+       ewrite_minmax(field_fl_v)
+       ewrite_minmax(ext_pos_fluid_vel)
 
        ewrite_minmax(field_fl_s)
        ewrite_minmax(field_ext_s)
@@ -2385,10 +2371,10 @@ contains
                 end do
 
                 call halo_update(max_bound)
-                ewrite_minmax(max_bound%val)
+                ewrite_minmax(max_bound)
 
                 call halo_update(min_bound)
-                ewrite_minmax(min_bound%val)
+                ewrite_minmax(min_bound)
                 
                 call bound_field(named_fields(name, field), max_bound, min_bound, &
                                  M_B(mesh), M_B_L(mesh), inverse_M_B_L, bounded_soln, &

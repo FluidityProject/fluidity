@@ -26,8 +26,31 @@ characters in the simulation name should be avoided.</a:documentation>
       <ref name="geometry"/>
       <ref name="io"/>
       <ref name="material_phase"/>
+      <optional>
+        <ref name="coupling_options"/>
+      </optional>
     </element>
   </start>
+  <define name="coupling_options">
+    <optional>
+      <element name="coupling">
+        <a:documentation>These options activate coupling of Fluidity with OASIS.
+NB: Currently only works in 2D</a:documentation>
+        <element name="element_count">
+          <a:documentation>Number of elements in longitude and latitude dimension respectively</a:documentation>
+          <ref name="integer_dim_vector"/>
+        </element>
+        <element name="longitude_extent">
+          <a:documentation>The minimum and maximum longitude of the coupled domain</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
+        <element name="latitude_extent">
+          <a:documentation>The minimum and maximum latitude of the coupled domain</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
+      </element>
+    </optional>
+  </define>
   <define name="geometry">
     <element name="geometry">
       <a:documentation>Options dealing with the specification of geometry</a:documentation>
@@ -57,13 +80,6 @@ characters in the simulation name should be avoided.</a:documentation>
           <value>TracerMesh</value>
         </attribute>
         <ref name="mesh_info_frommesh"/>
-      </element>
-      <element name="mesh">
-        <a:documentation>The structured mesh</a:documentation>
-        <attribute name="name">
-          <value>StructuredMesh</value>
-        </attribute>
-        <ref name="mesh_info_fromfile"/>
       </element>
       <element name="quadrature">
         <a:documentation>Quadrature</a:documentation>
@@ -103,11 +119,6 @@ quadrature not the number of surface gauss points</a:documentation>
       <element name="mesh">
         <attribute name="name">
           <value>CoordinateMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <value>StructuredMesh</value>
         </attribute>
       </element>
     </choice>

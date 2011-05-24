@@ -524,6 +524,8 @@ contains
              from_shape_type=ELEMENT_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
+          else if(trim(shape_type)=="trace") then
+             from_shape_type=ELEMENT_TRACE
            end if
            ! If new_shape_type does not match model mesh shape type, make new mesh.
            if(from_shape_type == model_mesh%shape%numbering%type) then
@@ -780,6 +782,8 @@ contains
            new_shape_type=ELEMENT_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
+        else if(trim(element_option)=="trace") then
+           new_shape_type=ELEMENT_TRACE
         end if
       else
         new_shape_type=from_mesh%shape%numbering%type
@@ -1977,6 +1981,8 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
+    real :: Pr
+
     ! Prescribed diffusivity
     do i = 1, size(states)
        
@@ -2032,7 +2038,7 @@ contains
     ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
     do i = 1, size(states)
        
-       tfield=extract_tensor_field(states(i), "KEpsEddyDiffusivity", stat)
+       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
 
        if (stat/=0) cycle
 
@@ -2045,7 +2051,14 @@ contains
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
                &::k_epsilon")) then
-             
+
+             ! Get Prandtl number, if specified.
+             call get_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
+
+             ! Scale field by Prandtl number
+             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 

@@ -428,8 +428,8 @@ subroutine gls_tke(state)
     call set(tke_old,tke)
 
     ! that's the TKE set up ready for the solve which is the next thing to happen (see Fluids.F90)
-    ewrite_minmax(source%val(:))
-    ewrite_minmax(absorption%val(:))
+    ewrite_minmax(source)
+    ewrite_minmax(absorption)
     ! set source and absorption terms in optional output fields
     scalarField => extract_scalar_field(state, "GLSSource1", stat)
     if(stat == 0) then
@@ -565,8 +565,8 @@ subroutine gls_psi(state)
 
     ewrite(2,*) "In gls_psi: tearing down"
     ! Psi is now ready for solving (see Fluids.F90)
-    ewrite_minmax(source%val(:))
-    ewrite_minmax(absorption%val(:))
+    ewrite_minmax(source)
+    ewrite_minmax(absorption)
     ! set source and absorption terms in optional output fields
     scalarField => extract_scalar_field(state, "GLSSource2", stat)
     if(stat == 0) then

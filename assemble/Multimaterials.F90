@@ -479,11 +479,11 @@ contains
         ! this capping takes care of overlapping volume fractions
         call bound(scaledvfrac, upper_bound=sumvolumefractionsbound) 
         call addto(sumvolumefractionsbound, scaledvfrac, scale=-1.0)
-        ewrite_minmax(sumvolumefractionsbound%val)
+        ewrite_minmax(sumvolumefractionsbound)
       end if
           
     end if
-    ewrite_minmax(scaledvfrac%val)
+    ewrite_minmax(scaledvfrac)
  
   end subroutine get_scalable_volume_fraction
 
