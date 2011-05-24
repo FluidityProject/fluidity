@@ -790,6 +790,13 @@ prognostic_lagrangemultiplier_field =
       element solver {
          linear_solver_options_asym
       },
+      ## Initial condition is not used for shallow water or Helmholtz 
+      ## solves but is required for test_trace_space.
+      element initial_condition {
+         attribute name { string },
+         region_ids,
+         input_choice_initial_condition_real
+      }?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       adaptivity_options_prognostic_scalar_field,

@@ -951,6 +951,17 @@ Will be replaced by a field in due course</a:documentation>
       <a:documentation>Solver</a:documentation>
       <ref name="linear_solver_options_asym"/>
     </element>
+    <optional>
+      <element name="initial_condition">
+        <a:documentation>Initial condition is not used for shallow water or Helmholtz 
+solves but is required for test_trace_space.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <ref name="region_ids"/>
+        <ref name="input_choice_initial_condition_real"/>
+      </element>
+    </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>

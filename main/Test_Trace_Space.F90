@@ -27,6 +27,8 @@
 
 #include "fdebug.h"
   program test_trace_space
+    ! Program to test trace space by making some projections between
+    ! fields and trace spaces.
     use spud
     use fields
     use state_module
@@ -93,12 +95,64 @@
     call print_current_memory_stats(0)
 #endif
 
+    call test_trace_values(state(1))
+
 #ifdef HAVE_MPI
     call mpi_finalize(ierr)
     assert(ierr == MPI_SUCCESS)
 #endif
 
   contains
+
+    subroutine test_trace_values(state)
+      !This subroutine assumes that the layer thickness 
+      type(state_type), intent(inout) :: state
+      ! 
+      integer :: ele
+      type(scalar_field), pointer :: D,L
+      D=>extract_scalar_field(state, "LayerThickness")
+      L=>extract_scalar_field(state, "LagrangeMultiplier")
+      
+      do ele = 1, element_count(D)
+         print *, 'Testing element ',ele
+         call test_trace_values_ele(D,L,ele)
+      end do
+
+    end subroutine test_trace_values
+
+    subroutine test_trace_values_ele(D,L,ele)
+      type(scalar_field), intent(inout) :: D,L
+      integer, intent(in) :: ele
+      !
+      integer, pointer, dimension(:) :: neigh
+      integer :: ni,ele_2,face
+      real, pointer, dimension(:) :: D_face, L_face
+      
+      neigh => ele_neigh(D,ele)
+      do ni = 1, size(neigh)
+         ele_2 = neigh(ni)
+         face = ele_face(D,ele,ele_2)
+         
+         call test_trace_values_face(D,L,face)
+      end do
+    end subroutine test_trace_values_ele
+
+    subroutine test_trace_values_face(D,L,face)
+      type(scalar_field), intent(inout) :: D,L
+      integer, intent(in) :: face
+      !
+      real, dimension(face_loc(D,face)) :: D_face
+      real, dimension(face_loc(L,face)) :: L_face
+      
+      D_face = face_val(D,face)
+      L_face = face_val(L,face)
+      
+      if(any(abs(D_face-L_face)>1.0e-10)) then
+         print *, "D_face", D_face
+         print *, "L_face", L_face
+         FLExit('Test Trace Values Failed')
+      end if
+    end subroutine test_trace_values_face
 
     subroutine read_command_line()
       implicit none
