@@ -36,7 +36,8 @@ use halos_allocates
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
-use global_numbering, only: make_global_numbering, make_global_numbering_dg
+use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
+     &make_global_numbering_trace
 use memory_diagnostics
 use ieee_arithmetic
 use data_structures
@@ -871,7 +872,7 @@ contains
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i, input_nodes
+    integer :: i, input_nodes, n_faces
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -893,7 +894,7 @@ contains
 
     ! You can't have a CG degree 0 mesh!
     if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
-         &%ele_numbering_type%type/=ELEMENT_TRACE) then
+         &%numbering%type/=ELEMENT_TRACE) then
       FLExit("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
     end if
 
@@ -957,14 +958,14 @@ contains
        end if
 
     else
-       ! Make a discontinuous field.
-       allocate(mesh%ndglno(mesh%shape%loc*model%elements))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%ndglno), name=name)
-#endif
        !trace fields have continuity -1 but aren't like DG
        if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+          ! Make a discontinuous field.
+          allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+#ifdef HAVE_MEMORY_STATS
+          call register_allocation("mesh_type", "integer", &
+               size(mesh%ndglno), name=name)
+#endif
           if (associated(model%halos)) then
              assert(associated(model%element_halos))
              allocate(mesh%halos(size(model%halos)))
@@ -1006,10 +1007,15 @@ contains
     end if
 
     if (mesh%shape%numbering%type==ELEMENT_TRACE) then
+       select case(mesh%shape%numbering%family)
+       case(FAMILY_SIMPLEX)          
+          n_faces = mesh%shape%dim + 1
+       case default
+          FLExit('Element family not supported for trace elements')
+       end select
+       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%loc))
        call make_global_numbering_trace(mesh)
     end if
-  end function make_mesh
-
     call addref(mesh)
 
   end function make_mesh

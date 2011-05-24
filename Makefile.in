@@ -154,6 +154,14 @@ bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
+bin/test_trace_space: fluidity_library main/Test_Trace_Space.F90
+	@cd main; $(MAKE) Test_Trace_Space.o
+	@echo "BUILD test_trace_space"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD test_trace_space"
+	@$(EVAL) $(LINKER) -o bin/test_trace_space main/Test_Trace_Space.o $(LIBS)
+
 bin/shallow_water_legacy: fluidity_library main/Shallow_Water_Legacy.F90
 	@cd main; $(MAKE) Shallow_Water_Legacy.o
 	@echo "BUILD shallow_water_legacy"
