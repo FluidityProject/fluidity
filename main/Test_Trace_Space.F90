@@ -127,6 +127,9 @@
       integer, pointer, dimension(:) :: neigh
       integer :: ni,ele_2,face
       real, pointer, dimension(:) :: D_face, L_face
+
+      print *, 'D_ele', ele_val(D,ele)
+      print *, 'L_ele', ele_val(L,ele)
       
       neigh => ele_neigh(D,ele)
       do ni = 1, size(neigh)
