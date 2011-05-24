@@ -156,18 +156,6 @@ contains
     totele = mesh%elements
     face_loc = mesh%faces%shape%loc
     nloc = mesh%shape%loc
-    !figure out how many interfaces there are and hence how many nodes
-    nfaces = 0
-    do ele = 1, totele
-       neigh => ele_neigh(mesh,ele)
-       do ni = 1, size(neigh)
-          ele_2 = neigh(ni)
-          if(ele_2<ele) then
-             nfaces=nfaces+1
-          end if
-       end do
-    end do
-    mesh%nodes = nfaces*mesh%faces%shape%loc
     mesh%ndglno = 0
     current_global_index = 0
     do ele = 1, totele

@@ -3101,7 +3101,7 @@ contains
     integer :: vert
 
     select case(shape%numbering%type)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_BUBBLE)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_BUBBLE, ELEMENT_TRACE)
       select case(shape%numbering%family)
       case (FAMILY_SIMPLEX)
         vert = shape%dim

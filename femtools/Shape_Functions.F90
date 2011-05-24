@@ -262,8 +262,9 @@ contains
           !No interior functions, hence NaNs
           shape%n = ieee_value(0.0,ieee_quiet_nan)
           shape%dn = ieee_value(0.0,ieee_quiet_nan)
-          shape%n_s = ieee_value(0.0,ieee_quiet_nan)
-          shape%dn_s = ieee_value(0.0,ieee_quiet_nan)
+          if(present(quad_s)) then
+             FLExit('Shouldn''t be happening')
+          end if
        else
        ! Loop over all the quadrature points.
           do j=1,quad%ngi

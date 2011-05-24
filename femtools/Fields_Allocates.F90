@@ -1015,6 +1015,12 @@ contains
        end select
        allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%loc))
        call make_global_numbering_trace(mesh)
+       call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+#ifdef HAVE_MEMORY_STATS
+       call register_allocation("mesh_type", "integer", &
+            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+#endif
     end if
     call addref(mesh)
 
@@ -1283,17 +1289,19 @@ contains
       end if
     end if
       
-    ! this is a surface mesh consisting of all exterior faces
-    !    which is often used and therefore created in advance
-    ! this also create a surface_node_list which can be used
-    !    as a mapping between the node numbering of this surface mesh
-    !    and the node numbering of the full mesh
-    call create_surface_mesh(mesh%faces%surface_mesh, &
-       mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+    if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+       ! this is a surface mesh consisting of all exterior faces
+       !    which is often used and therefore created in advance
+       ! this also create a surface_node_list which can be used
+       !    as a mapping between the node numbering of this surface mesh
+       !    and the node numbering of the full mesh
+       call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
 #ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", &
-         size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+       call register_allocation("mesh_type", "integer", &
+            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
 #endif
+    end if
 
   end subroutine add_faces
 
