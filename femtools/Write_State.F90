@@ -387,6 +387,7 @@ contains
   
     type(scalar_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
+    character(len=FIELD_NAME_LEN) l_field_name
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
     integer :: stat
@@ -409,28 +410,36 @@ contains
     is_iterated_field=.false.
     
     field => extract_scalar_field(state(istate), field_name)
-    if (len_trim(field%option_path)==0) then
+    ! so that goto below works
+    l_field_name=field_name
+48  if (len_trim(field%option_path)==0) then
       ! fields without option paths
-      if (starts_with(field_name, 'Old')) then
+      if (starts_with(l_field_name, 'Old')) then
         is_old_field=.true.
-        field => extract_scalar_field(state(istate), field_name(4:), stat=stat)
+        field => extract_scalar_field(state(istate), l_field_name(4:), stat=stat)
         if (stat /= 0) then
           include_scalar_field_in_vtu = .false.
           return
+        else
+           goto 48
         end if
-      else if (starts_with(field_name, 'Nonlinear')) then
+      else if (starts_with(l_field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
-        field => extract_scalar_field(state(istate), field_name(10:), stat=stat)
+        field => extract_scalar_field(state(istate), l_field_name(10:), stat=stat)
         if (stat /= 0) then
           include_scalar_field_in_vtu = .false.
           return
+        else
+           goto 48
         end if
-      else if (starts_with(field_name, 'Iterated')) then
+      else if (starts_with(l_field_name, 'Iterated')) then
         is_iterated_field=.true.
-        field => extract_scalar_field(state(istate), field_name(9:), stat=stat)
+        field => extract_scalar_field(state(istate), l_field_name(9:), stat=stat)
         if (stat /= 0) then
           include_scalar_field_in_vtu = .false.
           return
+        else
+           goto 48
         end if
       else
         include_scalar_field_in_vtu=.false.
@@ -457,7 +466,7 @@ contains
     ! if we get here the field is not aliased and has an option_path
     ! now we let the user decide!
     
-    output_option_path=trim(complete_field_path(field%option_path, name=trim(field_name)))//'/output'
+    output_option_path=trim(complete_field_path(field%option_path, name=trim(l_field_name)))//'/output'
     
     if (is_old_field) then
       include_scalar_field_in_vtu=have_option(trim(output_option_path)//'/include_previous_time_step')

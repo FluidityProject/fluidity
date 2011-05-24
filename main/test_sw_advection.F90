@@ -321,6 +321,7 @@
     subroutine get_parameters()
       implicit none
       type(vector_field), pointer :: u, v_field, coord
+      type(scalar_field), pointer :: u_x, u_y
       type(scalar_field), pointer :: eta
       type(vector_field) :: dummy_field
 
@@ -344,6 +345,13 @@
 
       v_field => extract_vector_field(state(1), "Velocity")
       call project_cartesian_to_local(state(1), v_field)
+
+      u_x=>extract_scalar_field(state(1), "Ux")
+      u_y=>extract_scalar_field(state(1), "Uy")
+
+      call set(u_x, v_field, 1)
+      call set(u_y, v_field, 2)
+
       if (has_vector_field(state(1), "VelocitySource")) then
                 v_field => extract_vector_field(state(1), "VelocitySource")
         call project_cartesian_to_local(state(1), v_field)
@@ -472,6 +480,7 @@
 
       !! Layer thickness
       type(scalar_field), pointer :: D, d_src
+      type(scalar_field), pointer :: u_x, u_y, old_u_x, old_u_y
       !! velocity
       type(vector_field), pointer :: U
       !! Source term
@@ -490,6 +499,10 @@
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "LocalVelocity")
       old_U=extract_vector_field(state, "OldLocalVelocity")
+      U_x=>extract_scalar_field(state, "Ux")
+      old_U_x=>extract_scalar_field(state, "OldUx")
+      U_y=>extract_scalar_field(state, "Uy")
+      old_U_y=>extract_scalar_field(state, "OldUy")
 
       have_source = .false.
       if (has_vector_field(state, "LocalVelocitySource")) then
@@ -508,21 +521,16 @@
       ! this is a hack.
       call set(advecting_u,source)
       call set(old_u,u)
-      call set(old_d,d)
+      call set(old_u_x, u_x)
+      call set(old_u_y, u_y)
 
       do nit = 1, nonlinear_iterations
 
          call set(u,old_u)
-         call set(d,old_d)
 
          !velocity advection step
          if(.not.exclude_velocity_advection) then
             call solve_vector_advection_dg_subcycle("LocalVelocity", state, "NonlinearVelocity")
-         end if
-         !pressure advection
-         if(.not.exclude_pressure_advection) then
-            call solve_field_equation_cg("LayerThickness", state, dt, &
-                 "NonlinearVelocity")
          end if
 
          if(has_scalar_field(state,"PassiveTracer")) then
@@ -533,65 +541,10 @@
             call solve_advection_dg_subcycle("PassiveTracer", state, "NonlinearVelocity")
          end if
 
-         !Wave equation step
-         ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
-         ! \Delta\eta + \eta^n) = 0
-         ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
-         ! SO
-         ! (M+\theta\Delta t F)\Delta u =
-         !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
-         ! SET r = \Delta t(-Fu^n - gC\eta^n)
-         ! THEN SUBSTITUTION GIVES
-         ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
-         !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
-
-         !Construct explicit parts of u rhs
-         if (have_source) then
-           call get_u_rhs(u_rhs,U,D,dt,g, &
-                coriolis_mat,div_mat,u_mass_mat, source)
-         else
-           call get_u_rhs(u_rhs,U,D,dt,g, &
-                coriolis_mat,div_mat)
-         end if
-
-         !Construct explicit parts of h rhs in wave equation
-         call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
-
-         if (has_scalar_field(state, "LayerThicknessSource")) then
-           d_src => extract_scalar_field(state, "LayerThicknessSource")
-           call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
-           call zero(md_src)
-           call mult(md_src, h_mass_mat, d_src)
-           call addto(d_rhs, md_src, scale=dt)
-           call deallocate(md_src)
-         endif
-
-         !Solve wave equation for D update
-         delta_d%option_path = d%option_path
-         call petsc_solve(delta_d, wave_mat, d_rhs)
-
-         if(.not. prescribed_velocity) then
-            !Add the new D contributions into the RHS for u
-            call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
-
-            !Solve momentum equation for U update
-            call zero(delta_u)
-            call mult(delta_u, big_mat, u_rhs)
-
-            !Check the equation was solved correctly
-            if(have_option("/debug/check_solution")) then
-               call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
-                    &,h_mass_mat, coriolis_mat,div_mat)
-            end if
-
-            call addto(u,delta_u)
-            call set(advecting_u,old_u)
-            call scale(advecting_u,(1-itheta))
-            call addto(advecting_u,u,scale=itheta)
-         end if
-
-         call addto(d,delta_d)
-
+         call solve_advection_dg_subcycle("Ux", state, "NonlinearVelocity")
+         call solve_advection_dg_subcycle("Uy", state, "NonlinearVelocity")
+         ewrite_minmax(u_x)
+         ewrite_minmax(u_y)
 
       end do
 
@@ -647,6 +600,7 @@
 
       ! coriolis, old passive tracer
       type(scalar_field) :: f, old_T
+      type(scalar_field) :: u_x, old_u_x, u_y, old_u_y
       ! velocity in local coordinates
       type(vector_field) :: U_local, U_local_old
 
@@ -661,6 +615,21 @@
       else
         U=>extract_vector_field(state, "Velocity")
       end if
+
+      call allocate(u_x,U%mesh, "Ux")
+      call zero(u_x)
+      u_x%option_path=u%option_path
+      call insert(state, u_x, "Ux")
+      call allocate(old_u_x,U%mesh, "OldUx")
+      call zero(old_u_x)
+      call insert(state, old_u_x, "OldUx")
+      call allocate(u_y,U%mesh, "Uy")
+      call zero(u_y)
+      u_y%option_path=u%option_path
+      call insert(state, u_y, "Uy")
+      call allocate(old_u_y,U%mesh, "OldUy")
+      call zero(old_u_y)
+      call insert(state, old_u_y, "OldUy")
 
       call allocate(f, X%mesh, "Coriolis")
       call get_option("/physical_parameters/coriolis", coriolis, stat)

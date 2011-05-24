@@ -516,6 +516,7 @@
          !velocity advection step
          if(.not.exclude_velocity_advection) then
             call solve_vector_advection_dg_subcycle("LocalVelocity", state, "NonlinearVelocity")
+            ewrite_minmax(u)
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then

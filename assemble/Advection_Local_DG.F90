@@ -25,6 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
+#include "petscversion.h"
 
 module advection_local_DG
   !!< This module contains the Discontinuous Galerkin form of the advection
@@ -53,8 +54,24 @@ module advection_local_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use manifold_projections
+  use petsc
+  use Petsc_Tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#else
+#include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
+#include "finclude/petscvec.h"
+#include "finclude/petscmat.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscpc.h"
+#endif
+#endif
 
   implicit none
 
@@ -426,7 +443,7 @@ contains
     integer, dimension(:), pointer :: T_ele
     type(element_type), pointer :: T_shape, U_shape
     ! Neighbours of this element.
-    integer, dimension(:), pointer :: neigh, x_neigh
+    integer, dimension(:), pointer :: neigh
     ! Whether the tracer field is continuous.
     logical :: dg
 
@@ -481,10 +498,10 @@ contains
 
       Ad_mat1 = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)
       Ad_mat2 = -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
-!      print*, 'Ad_mat1'
-!      print*, Ad_mat1
-!      print*, 'Ad_mat2'
-!      print*, Ad_mat2
+      print*, 'Ad_mat1'
+      print*, Ad_mat1
+      print*, 'Ad_mat2'
+      print*, Ad_mat2
       Advection_mat = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)  &
            -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
    else
@@ -519,8 +536,6 @@ contains
    !-------------------------------------------------------------------
     
    neigh=>ele_neigh(T, ele)
-   ! x_neigh/=t_neigh only on periodic boundaries.
-   x_neigh=>ele_neigh(X, ele)
 
    ! Flag for whether this is a boundary element.
    boundary_element=.false.
@@ -670,15 +685,15 @@ contains
        inner_advection_integral = (1.-income)*u_nl_q_dotn
        nnAdvection_out=shape_shape(T_shape, T_shape,  &
             &                     inner_advection_integral*T_shape%quadrature%weight)
-!       print*, 'js:nnAdvection_out:'
-!       print*, nnAdvection_out
+       print*, 'js:nnAdvection_out:'
+       print*, nnAdvection_out
        ! now the integral around the outside of the element
        ! (this is the flux *in* to the element)
        outer_advection_integral = income*u_nl_q_dotn
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral*T_shape%quadrature%weight)
-!       print*, 'js:nnAdvection_in:'
-!       print*, nnAdvection_in
+       print*, 'js:nnAdvection_in:'
+       print*, nnAdvection_in
        
     else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
 
@@ -781,7 +796,7 @@ contains
     
     !! System matrices.
     type(block_csr_matrix) :: A, L, mass_local, inv_mass_local, &
-         inv_mass_cartesian
+         inv_mass_cartesian, test
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -818,6 +833,8 @@ contains
     call zero(A)
     call allocate(L, sparsity, (/dim,X%dim/))
     call zero(L)
+    call allocate(test, sparsity, (/X%dim,X%dim/))
+    call zero(test)
 
     mass_sparsity=make_sparsity_dg_mass(U%mesh)
     call allocate(mass_local, mass_sparsity, (/dim,dim/))
@@ -842,6 +859,11 @@ contains
          inv_mass_local, inv_mass_cartesian,&
          rhs, field_name, state, &
          velocity_name=velocity_name)
+    print*, size(test,1)
+    print*, size(L,2)
+    
+    call matmul(test, transpose(L), A)
+    ewrite_minmax(test)
 
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
@@ -942,6 +964,33 @@ contains
     call deallocate(inv_mass_cartesian)
     call deallocate(mass_sparsity)
     call deallocate(rhs)
+
+    contains
+
+      subroutine write_A(A, filename)
+
+        type(block_csr_matrix), intent(in)::A
+        character(len=*), intent(in)::filename
+
+        type(petsc_numbering_type):: petsc_numbering
+        Mat:: mat
+        PetscViewer:: viewer
+        PetscErrorCode:: ierr
+
+        call allocate(petsc_numbering, &
+             nnodes=block_size(A,2), nfields=blocks(A,1), &
+             halo=A%sparsity%column_halo)
+
+        ! create PETSc Mat using this numbering:
+        mat=block_csr2petsc(A, petsc_numbering, petsc_numbering)
+
+        call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
+             filename, FILE_MODE_WRITE, &
+             viewer, ierr)
+        call MatView(mat, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+
+      end subroutine write_A
 
   end subroutine solve_vector_advection_dg_subcycle
 
@@ -1100,9 +1149,9 @@ contains
     integer, dimension(:), pointer :: U_ele
     type(element_type), pointer :: U_shape, U_nl_shape
     ! Neighbours of this element.
-    integer, dimension(:), pointer :: neigh, x_neigh
+    integer, dimension(:), pointer :: neigh
 
-    integer :: i, gi, dim, dim1, dim2, nloc
+    integer :: i, gi, dim, dim1, dim2, nloc, k
 
     logical :: boundary_element
 
@@ -1159,18 +1208,29 @@ contains
 
     ! This assumes X is linear
 
+    do gi=1,ele_ngi(X,ele)
+       J(:,:,gi)=J(:,:,gi)/detJ(gi)
+    end do
     Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, J, U_shape, U_shape%quadrature%weight)
 !    print*, 'U_shape%quadrature%weight'
 !    print*, U_shape%quadrature%weight
 !    print*, 'U_nl_q'
 !    print*, U_nl_q
     print*, 'Ad_mat1'
-    print*, Ad_mat1
+    do i=1,size(Ad_mat1,1)
+       do k=1,size(Ad_mat1,2)
+          print*, Ad_mat1(i,k,:,:)
+       end do
+    end do
     Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, J)
 !    print*, 'U_nl_div_q'
 !    print*, U_nl_div_q
     print*, 'Ad_mat2'
-    print*, Ad_mat2
+    do i=1,size(Ad_mat2,1)
+       do k=1,size(Ad_mat2,2)
+          print*, Ad_mat2(i,k,:,:)
+       end do
+    end do
     Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, J, U_shape, U_shape%quadrature%weight)  &
            -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, J)
 
@@ -1234,8 +1294,6 @@ contains
    !-------------------------------------------------------------------
     
    neigh=>ele_neigh(U, ele)
-   ! x_neigh/=t_neigh only on periodic boundaries.
-   x_neigh=>ele_neigh(X, ele)
 
    ! Flag for whether this is a boundary element.
    boundary_element=.false.
@@ -1319,7 +1377,13 @@ contains
     real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face)) :: nnAdvection_out
     real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
 
-    integer :: dim, dim1, dim2, gi, i
+    integer :: dim, dim1, dim2, gi, i, k
+
+    print*, 'face: ', face
+    print*, 'local face: ', local_face_number(U%mesh,face)
+    print*, 'face2: ', face_2
+    print*, 'local face2: ', local_face_number(U%mesh,face_2)
+    print*, 'X: ', face_val(X,face)
 
     dim=mesh_dim(U)
 
@@ -1352,11 +1416,21 @@ contains
        U_nl_f2_q=sqrt(2.)*U_nl_f2_q
     end if
 
+    print*, 'U_nl_f_q'
+    print*, U_nl_f_q
+    print*, 'U_nl_f2_q'
+    print*, U_nl_f2_q
+
+    print*, 'n1_l'
+    print*, n1_l
+    print*, 'n2_l'
+    print*, n2_l
+
     u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
     u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
     U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
-!    print*, 'U_nl_q_dotn'
-!    print*, U_nl_q_dotn
+    print*, 'U_nl_q_dotn_l'
+    print*, U_nl_q_dotn_l
 
     ! Inflow is true if the flow at this gauss point is directed
     ! into this element.
@@ -1368,18 +1442,19 @@ contains
     forall(gi=1:face_ngi(X,face))
        J_f(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
-    print*, J_f
+!    print*, 'J_f'
+!    print*, J_f
 
     ! Get outward pointing normals for each element
     call transform_facet_to_physical(X, face, normal=n1)
     call transform_facet_to_physical(X, face_2, normal=n2)
 
     ! Form 'bending' tensor
-    forall(gi=1:face_ngi(X,face))
-       B(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
-       forall(i=1:size(B,1)) B(i,i,gi)=B(i,i,gi)+1.0
-       B(:,:,gi)=transpose(transpose(J_f(:,:,gi))*B(:,:,gi))
-    end forall
+!    forall(gi=1:face_ngi(X,face))
+!       B(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
+!       forall(i=1:size(B,1)) B(i,i,gi)=B(i,i,gi)+1.0
+!       B(:,:,gi)=transpose(transpose(J_f(:,:,gi))*B(:,:,gi))
+!    end forall
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
