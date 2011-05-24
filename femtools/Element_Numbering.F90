@@ -2206,23 +2206,24 @@ contains
        case (FAMILY_SIMPLEX)
 
           count_coords=ele_num%number2count(:,n)
-          
-          do i=1,ele_num%dimension+1
-             if (i<count_coords(1)) then
-                coords(i)=count_coords(i+1)/real(ele_num%degree)
-             else if (i==count_coords(1)) then
-                coords(i)=0.0
-             else
-                coords(i)=count_coords(i)/real(ele_num%degree)
-             end if
-          end do
 
-          if (ele_num%degree>0) then
-             coords=real(ele_num%number2count(:,n))/real(ele_num%degree)
+          if (ele_num%degree>0) then          
+             do i=1,ele_num%dimension+1
+                if (i<count_coords(1)) then
+                   coords(i)=count_coords(i+1)/real(ele_num%degree)
+                else if (i==count_coords(1)) then
+                   coords(i)=0.0
+                else
+                   coords(i)=count_coords(i)/real(ele_num%degree)
+                end if
+             end do
+             !ewrite(2,*) 'coords', n, coords
+             !coords=real(ele_num%number2count(:,n))/real(ele_num%degree)
           else
              ! Degree 0 elements have a single node in the centre of the
              ! element. 
-             coords=1.0/ele_num%vertices
+             coords=0.5
+             coords(n) = 0.0
           end if
 
        case default
