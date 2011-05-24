@@ -30,7 +30,7 @@
 module detector_data_types
 
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN
+  use global_parameters, only : FIELD_NAME_LEN, PYTHON_FUNC_LEN
   
   implicit none
   
@@ -83,13 +83,18 @@ module detector_data_types
     ! Type of lagrangian advection algorithm
     logical :: use_rk_gs
     ! Flag indicating whether to apply lagrangian advection
-    logical :: advect_lagrangian  
+    logical :: do_velocity_advect=.true.
+    ! Flag indicating whther Python Random Walk should be used
+    logical :: do_random_walk=.false.
 
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
     real, allocatable, dimension(:) :: timestep_weights
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
+
+    ! Python code to execute for Random Walk
+    character(len=PYTHON_FUNC_LEN) :: rw_pycode
   end type detector_parameters
 
   type detector_linked_list

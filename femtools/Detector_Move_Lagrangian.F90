@@ -39,6 +39,8 @@ module detector_move_lagrangian
   use detector_distribution
   use detector_move_bisection
   use detector_move_rk_guided_search
+  use python_state
+  use iso_c_binding
 
   implicit none
   
@@ -137,13 +139,30 @@ contains
     type(integer_hash_table) :: ihash
     type(halo_type), pointer :: ele_halo
     integer :: i, j, k, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, &
-               halo_level, stage, cycle
+               halo_level, stage, cycle, python_err
     logical :: any_lagrangian
     real :: rk_dt
+    type(c_ptr) :: val_func = C_NULL_PTR 
 
     ewrite(2,*) "In move_lagrangian_detectors,", detector_list%length, "local detectors before moving"
 
     parameters => detector_list%move_parameters
+
+    ! For Random Walk first run the user code, so we can pull fields from state
+    if (parameters%do_random_walk) then
+       ! Prepare python-state
+       call python_reset()
+       call python_add_state(state(1))
+
+       ! Run the user's code and store val object
+       call python_run_string_get_val(trim(parameters%rw_pycode), val_func, python_err) 
+       ewrite(3,*) "ml805 debug: exiting python, c_associated(val_func):", c_associated(val_func), "python_err:", python_err
+    end if
+
+    ! This is here temporarily and checks whether we actually want to advect this detector list
+    if (.not. parameters%do_velocity_advect) then
+       return
+    end if
 
     !Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")

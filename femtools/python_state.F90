@@ -28,6 +28,7 @@ module python_state
   use fields
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
+  use iso_c_binding
    
   implicit none
   
@@ -36,7 +37,7 @@ module python_state
   public :: python_init, python_reset
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
-  public :: python_run_string, python_run_file
+  public :: python_run_string, python_run_file, python_run_string_get_val
   public :: python_shell
   public :: python_fetch_real
 
@@ -70,6 +71,15 @@ module python_state
       character(len = slen), intent(in) :: s
       integer, intent(out) :: stat
     end subroutine python_run_filec
+
+    !! Run a python string and return a pointer to val
+    subroutine python_run_string_get_valc(s, slen, val) bind(c)
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in) :: slen
+      character(kind=c_char,len = 1), intent(in) :: s
+      type(c_ptr), intent(inout) :: val
+    end subroutine python_run_string_get_valc
 
   end interface
 
@@ -551,6 +561,32 @@ module python_state
     end if
     
   end subroutine python_run_string
+
+  subroutine python_run_string_get_val(s, val, stat)
+    !!< Wrapper for function for python_run_stringc
+    
+    character(len = *), intent(in) :: s
+    type(c_ptr), intent(out) :: val
+    integer, optional, intent(out) :: stat
+    
+    integer :: lstat
+
+    val = C_NULL_PTR 
+        
+    if(present(stat)) stat = 0
+    call python_run_string_get_valc(s, len_trim(s), val)
+    ewrite(3,*) "ml805 debug: fortran val_func:", val
+    if(.not.c_associated(val)) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error, Python string was:"
+        ewrite(-1, *) trim(s)
+        FLExit("Dying")
+      end if
+    end if
+    
+  end subroutine python_run_string_get_val
   
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec

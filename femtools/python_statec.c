@@ -99,6 +99,41 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #endif
 }
 
+void python_run_string_get_valc(char *s,int *slen, void *val){
+#ifdef HAVE_PYTHON
+  // Run a python command from Fortran and return val PyObject
+  PyObject *pMain=NULL, *pGlobals=NULL, *pLocals=NULL, *pFunc=NULL, *pCode=NULL;
+
+  char *c = fix_string(s,*slen);
+  int tlen=8+*slen;
+  char t[tlen];
+  snprintf(t, tlen, "%s\n",c);
+
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");
+  pGlobals = PyModule_GetDict(pMain);
+
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(t, Py_file_input, pGlobals, pLocals);
+
+  // Check for Python errors
+  if(!pCode){
+    PyErr_Print();
+  }
+
+  // Extract the function from the code.
+  val = NULL;
+  val=(void *)PyDict_GetItemString(pLocals, "val");
+  printf("ml805 debug: In python_run_string_get_valc, val: %p\n", val);
+
+  free(c); 
+#endif
+}
+
+
 
 void python_run_filec_(char *f,int *flen, int *stat){
 #ifdef HAVE_PYTHON

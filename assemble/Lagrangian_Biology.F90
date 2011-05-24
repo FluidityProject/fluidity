@@ -110,6 +110,12 @@ contains
        else
           agent_arrays(i)%move_parameters%advect_lagrangian=.true.
        end if
+       if (have_option(trim(schema_buffer)//"/random_walk")) then
+          agent_arrays(i)%move_parameters%use_random_walk=.true.
+          call get_option(trim(schema_buffer)//"/random_walk", agent_arrays(i)%move_parameters%rw_pycode)
+       else
+          agent_arrays(i)%move_parameters%use_random_walk=.false.
+       end if
        agent_arrays(i)%total_num_det=n_agents
 
 
@@ -218,8 +224,7 @@ contains
 
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
-       if (check_any_lagrangian(agent_arrays(i)) .and. &
-               agent_arrays(i)%move_parameters%advect_lagrangian) then
+       if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
 
