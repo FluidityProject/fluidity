@@ -4,22 +4,36 @@ import os
 import sys
 import glob
 
-exceptions=set(["Refcount_interface_templates.F90",
-                "Refcount_templates.F90",
-                "testshapefunctions.F90",
-                "test_element_numbering.F90",
-                "Residual_estimation.F90",
-                "mmpde.F90"])
+# List of dependencies we don't want in makefiles. Dependencies starting
+# with these strings will be dropped.
+dep_exclusions=[\
+    # Because switching on and off mba changes the module files loaded, these
+    # are special-cased in the Makefiles.
+    "../../include/mba2d_module.mod",
+    "../include/mba3d_mba_nodal.mod",
+    # Remove dependencies on confdefs.h because it causes
+    # lots of spurious rebuilds.
+    "../include/confdefs.h",
+    # Get rid of absolute paths.
+    # We are only interested in dependencies from within the
+    # Fluidity tree  so we dump the ones from outside.  
+    "/"
+    ]
+
 
 class dependency_list(object):
+    '''Class to store and process the dependencies of a single .o and its
+    associated .mod(s) if any.'''
     def __init__(self, obj, source, dep_strings):
-        self.obj=obj
-        self.source=source
+        self.obj=obj # .o target of rule.
+        self.source=source # .F90 file
         
-        self.targets=set()
-        self.deps=set()
+        self.targets=set() # remaining targets (.mod)
+        self.deps=set() # dependencies (.mod, .h and included .F90s)
 
-        intargets=True
+        intargets=True # True while we are processing targets. False once we
+                       # proceed to dependencies.
+        
         for dep in dep_strings:
             for d in dep.split():
                 # Drop continuaton characters.
@@ -38,12 +52,15 @@ class dependency_list(object):
         # Treat the .o and the .F90 specially.
         self.targets.remove(obj)
         self.deps.remove(source)
+
         # Gfortran produces spurious circular dependencies if the .F90
         # contains both a module and routines which use that module.
         self.deps.difference_update(self.targets)
         
     def remove_dep_by_rule(self, f):
-        
+        '''remove_dep_by_rule(self, f)
+
+        Remove and dependency d for which f(d) is true.'''
         discards=set()
         for dep in self.deps:
             if f(dep):
@@ -51,7 +68,10 @@ class dependency_list(object):
         self.deps.difference_update(discards)
     
     def as_strings(self):
-        
+        '''as_strings(self)
+
+        produce the actual makefile rules in string form'''
+
         out=[]
 
         # Special rule to fake .mod dependency on .o.
@@ -70,7 +90,9 @@ class dependency_list(object):
 
                            
 def wrap(string):
-    """Wrap dependencies string according to makefile conventions"""
+    """wrap(string)
+
+    Linewrap dependencies string according to makefile conventions"""
     linelen=78
     
     lines=[]
@@ -91,10 +113,19 @@ def wrap(string):
     return lines
 
 def trysystem(command):
+    '''trysystem(command)
+
+    Wrapped version of the os.system command which causes an OSError if
+    the command fails.'''
     if not(os.system(command)==0):
         raise OSError
 
 def create_refcounts():
+    '''create_refcounts()
+
+    Produce all the generated reference counting Fortran source. This
+    currently only has effect in the femtools directory.
+    '''
 
     refcounts_raw=os.popen("grep include.*Ref *.F90").read()
 
@@ -103,28 +134,16 @@ def create_refcounts():
     if len(refcounts)>0:
         trysystem("make "+" ".join(refcounts))
 
-def strip_makefile(filename):
-    
-    input=file(filename,'r').readlines()
-
-    for i,l in enumerate(input):
-        if l.startswith("#####Automatically generated dependencies. Do not edit below this line#####"):
-            break
-
-    file(filename,'w').writelines(input[:i+1])
-
-def rebuild_makefile(filename, dependencies):
-    
-    outfile=file(filename,'a')
-
-    outfile.writelines(dependencies)        
-
 def generate_dependencies(fortran):
+    '''generate_dependencies(fortran)
+
+    Given a list of Fortran source files, generate the actual list of
+    makefile dependencies.
+    '''
     import os.path
     
     setsize=len(fortran)+1 # Make sure loop executes once.
 
-    
     dependencies={}
     # Loop as long as we are making progress.
     while len(fortran)<setsize and len(fortran)>0:
@@ -145,15 +164,11 @@ def generate_dependencies(fortran):
                     obj,
                     f,
                     file(obj+"_dependencies","r").readlines())
-                # Get rid of absolute paths.
-                # We are only interested in dependencies from within the
-                # Fluidity tree  so we dump the ones from outside.  
-                this_deps.remove_dep_by_rule(lambda x: x.startswith("/"))
-                # Remove dependencies on ../confdefs.h because it causes
-                # lots of spurious rebuilds.
-                this_deps.remove_dep_by_rule(lambda x:
-                    x.startswith("../include/confdefs.h"))
-
+                
+                # Remove unwanted dependencies
+                for dep in dep_exclusions:
+                    this_deps.remove_dep_by_rule(lambda x:
+                                                     x.startswith(dep))
                 dependencies[f]=this_deps
                 #split_module_dependency(
                 #    strip_absolute_paths(this_deps))+["\n"]
@@ -167,7 +182,7 @@ def generate_dependencies(fortran):
         print str(fortran)
         raise OSError
 
-    dep_strings=[]
+    dep_strings=["# Dependencies generated by create_makefile.py. DO NOT EDIT\n"]
     
     # Sort the output by filename.
     files=dependencies.keys()
@@ -196,14 +211,15 @@ def handle_options():
 if __name__=='__main__':
     options=handle_options()
 
-    sys.stderr.write("Stripping Makefile\n")
-    strip_makefile("Makefile")
+    sys.stderr.write("Clobbering previous dependencies\n")
+    os.system("rm Makefile.dependencies")
+    trysystem("touch Makefile.dependencies")
 
     sys.stderr.write("Making clean\n")
     trysystem("make clean")
 
     sys.stderr.write("Listing F90 files\n")
-    fortran=set(glob.glob("*.F90")).difference(exceptions)\
+    fortran=set(glob.glob("*.F90"))\
         .difference(set(options.exclude.split()))
 
     sys.stderr.write("Creating reference counts\n")
@@ -211,11 +227,4 @@ if __name__=='__main__':
 
     dependencies=generate_dependencies(fortran)
 
-    sys.stderr.write("Inserting dependencies in Makefile\n")
-    rebuild_makefile("Makefile", dependencies)
-
-    sys.stderr.write("Stripping Makefile.in\n")
-    strip_makefile("Makefile.in")
-
-    sys.stderr.write("Inserting dependencies in Makefile.in\n")
-    rebuild_makefile("Makefile.in", dependencies)
+    file("Makefile.dependencies",'w').writelines(dependencies)        
