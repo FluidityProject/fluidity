@@ -5,15 +5,14 @@ JOB=dynles-lilly
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,vfine, \
+	@$(foreach NN,coarse med fine vfine, \
 		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
-		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Generating mesh for $(NN) simulation:; \
-		gmsh -3 -optimize -clmin 0.25 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
+		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
 		$(SCRIPTS)/gmsh2triangle step3d-$(NN).msh; \
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
 		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \

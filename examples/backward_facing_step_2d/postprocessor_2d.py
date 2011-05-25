@@ -250,7 +250,7 @@ def main():
     print "\nRe, bc type, mesh: ", Re, type, mesh
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=20, start=0)
+    filelist = get_filelist(sample=20, start=20)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))

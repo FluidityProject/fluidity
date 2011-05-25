@@ -606,6 +606,15 @@ vector_laplacian_algorithm =
          vector_source_field
       }
    )
+grad_vector_algorithm =
+   (
+      ## algorithm for the full tensor gradient of a vector field
+       element algorithm {
+         attribute name { "grad_vector" },
+         attribute material_phase_support { "single "},
+         vector_source_field
+      }
+   )
 strain_rate_algorithm =
    (
       ## algorithm for the strain rate of a vector field
@@ -1391,6 +1400,7 @@ vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
 tensor_diagnostic_algorithms = tensor_squared_time_averaged_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
+tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm

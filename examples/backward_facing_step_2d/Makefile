@@ -2,7 +2,7 @@ BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5000
 JOB=high-log
-#NN=fine
+NN=vfine
 preprocess: 
 	@echo **********Generating a 2D mesh:
 	@$(foreach NN, vfine, \
@@ -28,7 +28,7 @@ run:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
-	@$(foreach RE,500 1000 1290 2000 3000 4000 4700 5000 6000 7000 50000, \
+	@$(foreach RE,5000, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_2d.py .; \
 		./postprocessor_2d.py $(RE) $(JOB) $(NN); \

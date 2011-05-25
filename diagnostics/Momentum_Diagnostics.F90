@@ -54,10 +54,26 @@ module momentum_diagnostics
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_vector_potential, calculate_geostrophic_velocity, &
-            calculate_hessian
+            calculate_hessian, calculate_tgrad_vector
            
   
 contains
+
+  subroutine calculate_tgrad_vector(state, t_field)
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+
+    positions => extract_vector_field(state, "Coordinate")
+    source_field => vector_source_field(state, t_field)
+
+    call check_source_mesh_derivative(source_field, "grad_vector")
+
+    call grad(source_field, positions, t_field)
+
+  end subroutine calculate_tgrad_vector
 
   subroutine calculate_strain_rate(state, t_field)
     type(state_type), intent(inout) :: state
