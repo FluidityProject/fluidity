@@ -845,7 +845,7 @@ AC_LANG_PUSH([Fortran])
 old_fcflags="$FCFLAGS"
 if test -z "$FORTRAN_REAL_8" ; then
    # gfortran
-    FORTRAN_REAL_8="-fdefault-real-8"
+    FORTRAN_REAL_8="-fdefault-real-8 -fdefault-double-8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
        implicit none

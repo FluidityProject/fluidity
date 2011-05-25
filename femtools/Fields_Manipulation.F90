@@ -50,7 +50,7 @@ implicit none
   public :: addto, zero, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
     & set_to_submesh, set_from_submesh, scale, bound, invert, &
-    & absolute_value, inner_product, cross_product, clone_header
+    & absolute_value, inner_product, cross_prod, clone_header
   public :: piecewise_constant_field, piecewise_constant_mesh
   public :: renumber_positions, renumber_positions_trailing_receives, &
     & renumber_positions_elements, &
@@ -161,9 +161,11 @@ implicit none
         inner_product_field_field
   end interface inner_product
   
-  interface cross_product
+  !  This is named cross_prod rather than cross_product to avoid a name
+  !  clash with various cross_product functions (this one is a subroutine).
+  interface cross_prod
      module procedure cross_product_vector
-  end interface cross_product
+  end interface cross_prod
 
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
