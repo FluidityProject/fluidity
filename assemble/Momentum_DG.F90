@@ -1704,7 +1704,11 @@ contains
              end if
 
              if(viscosity_scheme==ARBITRARY_UPWIND) then
-                Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
+                if(multiphase) then
+                   Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei*ele_val_at_quad(nvfrac,ele))        
+                else
+                   Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
+                end if
              end if
 
           end if
@@ -2427,28 +2431,35 @@ contains
 
     subroutine arbitrary_upwind_viscosity
 
+       real, dimension(face_ngi(u, face)) :: coefficient_detwei
+
        !! Arbitrary upwinding scheme.
        do dim=1,mesh_dim(U)
+          coefficient_detwei = detwei*normal(dim,:)
+          if(multiphase) then
+            coefficient_detwei = coefficient_detwei*nvfrac_gi
+          end if
+
           if (normal(dim,1)>0) then          
              ! Internal face.
              Grad_U_mat(dim, q_face_l, U_face_l)=&
                   Grad_U_mat(dim, q_face_l, U_face_l) &
-                  +shape_shape(q_shape, U_shape, detwei*normal(dim,:))
+                  +shape_shape(q_shape, U_shape, coefficient_detwei)
              
              ! External face. Note the sign change which is caused by the
              ! divergence matrix being constructed in transpose.
              Div_U_mat(dim, q_face_l, start:finish)=&
-                  -shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+                  -shape_shape(q_shape, U_shape_2, coefficient_detwei)
              
              ! Internal face.
              Div_U_mat(dim, q_face_l, U_face_l)=&
                   Div_U_mat(dim, q_face_l, U_face_l) &
-                  +shape_shape(q_shape, U_shape, detwei*normal(dim,:))
+                  +shape_shape(q_shape, U_shape, coefficient_detwei)
              
           else
              ! External face.
              Grad_U_mat(dim, q_face_l, start:finish)=&
-                  +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
+                  +shape_shape(q_shape, U_shape_2, coefficient_detwei)
              
           end if
        end do
@@ -2456,47 +2467,33 @@ contains
     end subroutine arbitrary_upwind_viscosity
 
     subroutine bassi_rebay_viscosity
+
+      real, dimension(face_ngi(u, face)) :: coefficient_detwei
       
       do dim=1,mesh_dim(U)
 
+         coefficient_detwei = detwei*normal(dim,:)
+         if(multiphase) then
+           ! Include the PhaseVolumeFraction for multiphase simulations.
+           coefficient_detwei = coefficient_detwei*nvfrac_gi
+         end if
+
          if(.not.boundary) then
-
-            if(multiphase) then
-               ! Include the PhaseVolumeFraction for multiphase simulations.
-
-               ! Internal face.
-               Grad_U_mat(dim, q_face_l, U_face_l)=&
-                  Grad_U_mat(dim, q_face_l, U_face_l) &
-                  +0.5*shape_shape(q_shape, U_shape, detwei*nvfrac_gi*normal(dim,:))
-               
-               ! External face.
-               Grad_U_mat(dim, q_face_l, start:finish)=&
-                  +0.5*shape_shape(q_shape, U_shape_2, detwei*nvfrac_gi*normal(dim,:))
-            else
-               ! Internal face.
-               Grad_U_mat(dim, q_face_l, U_face_l)=&
-                  Grad_U_mat(dim, q_face_l, U_face_l) &
-                  +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:))
-               
-               ! External face.
-               Grad_U_mat(dim, q_face_l, start:finish)=&
-                  +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
-            end if
+            ! Internal face.
+            Grad_U_mat(dim, q_face_l, U_face_l)=&
+               Grad_U_mat(dim, q_face_l, U_face_l) &
+               +0.5*shape_shape(q_shape, U_shape, coefficient_detwei)
+            
+            ! External face.
+            Grad_U_mat(dim, q_face_l, start:finish)=&
+               +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei)
            
          else
             ! Boundary case. Put the whole integral in the external bit.
 
-            if(multiphase) then
-               ! Include the PhaseVolumeFraction for multiphase simulations.
-               ! External face.
-               Grad_U_mat(dim, q_face_l, start:finish)=&
-                 +shape_shape(q_shape, U_shape_2, detwei*nvfrac_gi*normal(dim,:))
-            else
-               ! External face.
-               Grad_U_mat(dim, q_face_l, start:finish)=&
-                  +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
-            end if
- 
+            ! External face.
+            Grad_U_mat(dim, q_face_l, start:finish)=&
+               +shape_shape(q_shape, U_shape_2, coefficient_detwei)
          end if
       end do
 
