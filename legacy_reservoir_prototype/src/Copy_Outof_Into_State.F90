@@ -1170,16 +1170,20 @@ module copy_outof_into_state
                   t_source = 0.
                endif
 
-               Conditional_Temperature_BC:if( have_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::Temperature/" // &
-                    "prognostic/boundary_conditions[0]/type::dirichlet" )) then
+               Conditional_Temperature_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
+                    "]/scalar_field::Temperature/prognostic/boundary_conditions[0]/" // &
+                    "type::dirichlet" )) then
 
-                  shape_option=option_shape("/material_phase[" // int2str(i-1) //"]/scalar_field::Temperature/&
-                       &prognostic/boundary_conditions[0]/surface_ids")
+                  shape_option=option_shape("/material_phase[" // int2str(i-1) // &
+                       "]/scalar_field::Temperature/prognostic/boundary_conditions[0]/" // &
+                       "surface_ids")
 
-                  if( .not. allocated( Temperature_sufid_bc )) allocate( Temperature_sufid_bc( 1 : shape_option( 1 )))
+                  if( .not. allocated( Temperature_sufid_bc )) &
+                       allocate( Temperature_sufid_bc( 1 : shape_option( 1 )))
                   Temperature_bc_type = 1
 
-                  call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::Temperature/prognostic/" // &
+                  call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::" &
+                       "Temperature/prognostic/" // &
                        "boundary_conditions[0]/surface_ids", Temperature_sufid_bc )
 
                   if( ( .not. allocated( wic_t_bc )) .and. ( .not. allocated( suf_t_bc ))) then
