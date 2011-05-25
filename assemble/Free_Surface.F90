@@ -467,9 +467,14 @@ contains
     
       
     ! adding in the free surface integral using the free surface
-    ! elevation (p/g) specified by the inital pressure at the surface nodes
+    ! elevation (p/rho0/g) specified by the inital pressure at the surface nodes
+    ! or, with prognostic fs, use the free surface node values directly
     positions => extract_vector_field(state, "Coordinate")
-    coef=g*rho0*theta_pg**2*dt**2
+    if (prognostic_fs) then
+      coef=theta_pg**2*dt**2
+    else
+      coef=g*rho0*theta_pg**2*dt**2
+    end if
       
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
@@ -502,10 +507,11 @@ contains
     subroutine add_free_surface_element(sele)
     integer, intent(in):: sele
       
-      integer, dimension(face_loc(p, sele)):: nodes
+      real, dimension(face_loc(p, sele)):: values
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele
       real, dimension(face_ngi(p, sele)):: detwei
+      integer, dimension(face_loc(p, sele)):: nodes
       integer:: ele
       
       ele=face_ele(positions, sele)
@@ -519,12 +525,14 @@ contains
       
       if (use_fs_mesh) then
         nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
+        values = face_val(free_surface, sele)
       else
         nodes = face_global_nodes(p, sele)
+        values = face_val(p, sele)
       end if
       
       call addto(poisson_rhs, nodes, &
-        matmul(mass_ele, face_val(p, sele))/coef)
+        matmul(mass_ele, values)/coef)
       
     end subroutine add_free_surface_element
     
@@ -535,50 +543,57 @@ contains
   type(scalar_field), intent(inout), target:: p_theta, p, old_p
   type(vector_field), intent(in):: u
     
-    type(scalar_field), pointer:: free_surface, copy_from
+    type(scalar_field), pointer:: free_surface
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
+    logical:: prognostic_fs
     integer, dimension(:), pointer:: surface_element_list 
     integer:: fs_stat
     integer:: i, j, sele 
     
     ! the prognostic free surface can only be used with the no_normal_stress option
     free_surface => extract_scalar_field(state, "FreeSurface", stat=fs_stat)
-    
-    ! first copy initial free surface elevations (p/g) at free surface nodes
-    ! to p_theta
-    do i=1, get_boundary_condition_count(u)
-      call get_boundary_condition(u, i, type=bctype, &
-          surface_element_list=surface_element_list, &
-          option_path=fs_option_path)
-      if (bctype=="free_surface") then
+    prognostic_fs=.false.
+    if (fs_stat==0) then
+      prognostic_fs=have_option(trim(free_surface%option_path)//"/prognostic")
+    end if
 
-        if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
-          if (fs_stat/=0) then
+    if (prognostic_fs) then
+      ! only copy over solved for pressure values
+      ! we keep the initial free surface
+      call set_all(p, p_theta%val(1:node_count(p)))
+    else
+    
+      ! first copy initial free surface elevations (p/g) at free surface nodes
+      ! to p_theta
+      do i=1, get_boundary_condition_count(u)
+        call get_boundary_condition(u, i, type=bctype, &
+            surface_element_list=surface_element_list, &
+            option_path=fs_option_path)
+        if (bctype=="free_surface") then
+
+          if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
             ! this should have been options checked
             FLAbort("No normal stress free surface without prognostic free surface")
           end if
-          copy_from => free_surface
-        else
-          copy_from => p
+
+          do j=1, size(surface_element_list)
+            sele=surface_element_list(j)
+            call set(p_theta, face_global_nodes(p_theta,sele), face_val(p, sele))
+          end do
+
         end if
+      end do
 
-        do j=1, size(surface_element_list)
-          sele=surface_element_list(j)
-          ! note we cannot use face_global_nodes(p_theta,sele) as its mesh doesn't have %faces
-          call set(p_theta, face_global_nodes(p,sele), face_val(copy_from, sele))
-        end do
+      ! then copy everything (including interior) back from p_theta to p
+      call set(p, p_theta)
+    end if
 
-      end if
-    end do
-      
-    ! then copy everything (including interior) back from p_theta to p
-    call set(p, p_theta)
-    
-    ! p and old_p are the same (as we're in the first non-linear iteration)
+    ! p and old_p should be the same (as we're in the first non-linear iteration)
     ! but they might be different fields (if #nonlinear iterations>1)
-    call set(old_p, p_theta)
-    
+    call set(old_p, p)
+    ewrite_minmax(p)
+
   end subroutine copy_poisson_solution_to_interior
 
   subroutine initialise_prognostic_free_surface(fs, u)
@@ -664,8 +679,8 @@ contains
     ! p is not theta weighted (as usual for incompressible)
     p_theta%val(1:node_count(p)) = p%val
 
-    p_theta%val(node_count(p)+1:) = (1.-theta_pg)*oldfs%val(fs_surface_node_list) + &
-        theta_pg*fs%val(fs_surface_node_list)
+    p_theta%val(node_count(p)+1:) = ((1.-theta_pg)*oldfs%val(fs_surface_node_list) + &
+        theta_pg*fs%val(fs_surface_node_list))*rho0*g
 
   end subroutine copy_to_extended_p
 
@@ -872,7 +887,7 @@ contains
         ! for the viscous bc however we add this bc in the extra rows at the bottom of ct_m
         ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
         !   n\cdot\tau\cdot n + p - \rho_0 g\eta = 0
-        call addto(ct_m, 1, dim, ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+        call addto(ct_m, 1, dim, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
              face_global_nodes(u,sele), -ct_mat_bdy(dim,:,:))
       end do
 

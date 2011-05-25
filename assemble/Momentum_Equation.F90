@@ -659,6 +659,9 @@
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
             end if
+            if (prognostic_fs .and. reassemble_ct_m) then
+              call add_viscous_free_surface_integrals(state(istate), ct_m(istate)%ptr, u, p, free_surface)
+            end if
             call profiler_toc(p, "assembly")
 
             call profiler_tic(u, "assembly")
@@ -1138,8 +1141,8 @@
          call profiler_toc("finalisation_loop")
 
          if (prognostic_fs) then
-           deallocate(p_mesh)
            call deallocate(p_mesh)
+           deallocate(p_mesh)
          end if
          if(prognostic_fs .or. use_theta_pg) then
             call deallocate(p_theta)
