@@ -184,7 +184,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_a, 1), ele_ngi(positions_a, 1), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
-    type(ele_numbering_type) :: ele_num
+    type(ele_numbering_type), pointer :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -205,7 +205,8 @@ contains
     
     allocate(shapes_c(ele_count(positions_c)))
     do i = 1, size(shapes_c)
-       ele_num = find_element_numbering(vertices = loc, &
+       ele_num => find_element_numbering(&
+            &vertices = base_shape_c%numbering%vertices, &
             &dimension = dim, degree =&
             & degree)    
       call allocate(shapes_c(i), ele_num=ele_num, ngi = ngi)
