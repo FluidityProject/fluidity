@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@
 
 UTFC    = ../scripts/unittest_f90
 
@@ -54,14 +54,11 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
      Project_metric_to_surface.o Field_preprocessing.o Anisotropic_ZZ.o Richardson_metric.o \
      Reference_Meshes.o Huang_metric.o
 
-.SUFFIXES: .f90 .F90 .c .o .a
+.SUFFIXES: .F90 .c .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .cpp.o:
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $<
@@ -69,29 +66,9 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
 
 clean:
 	rm -f *.o *.mod
 
-Assemble_metric.o: Form_metric.o Edge_lengths.o Interpolation_metric.o \
-		           Gradation_metric.o Bounding_box_metric.o Boundary_metric.o \
-               Geometric_constraints_metric.o Goals.o Goal_metric.o Metric_advection.o Limit_metric.o Anisotropic_gradation_metric.o \
-               Richardson_metric.o Anisotropic_ZZ.o Reference_Meshes.o Aspect_ratios.o
-Interpolation_metric.o: Form_metric.o Edge_lengths.o Aspect_ratios.o Field_preprocessing.o Project_metric_to_surface.o
-Project_metric_to_surface.o: Edge_lengths.o
-Form_metric.o: Recovery_estimator.o
-Gradation_metric.o: Edge_lengths.o
-Bounding_box_metric.o: Edge_lengths.o
-Boundary_metric.o: Bounding_box_metric.o
-Goal_metric.o: Form_metric.o Goals.o Gradation_metric.o
-Geometric_constraints_metric.o: Edge_lengths.o Form_metric.o Gradation_metric.o
-Metric_advection.o: Form_metric.o 
-Mba_adapt.o: Limit_metric.o
-Anisotropic_gradation_metric.o: Form_metric.o Gradation_metric.o
-Anisotropic_ZZ.o: Conformity_measurement.o Bounding_box_metric.o Edge_lengths.o Form_metric.o Limit_metric.o
-Richardson_metric.o: Edge_lengths.o Limit_metric.o
-Conformity_measurement.o: Limit_metric.o
-Reference_Meshes.o: Conformity_measurement.o
-Huang_metric.o: Form_metric.o
+include Makefile.dependencies

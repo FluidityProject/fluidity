@@ -68,4 +68,4 @@ default: $(OBJS)
 	cp *.h ../include/
 
 clean:
-	rm -f *.o *.mod
+include Makefile.dependencies

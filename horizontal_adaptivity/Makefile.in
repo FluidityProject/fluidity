@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@
+FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@
 
 UTFC    = ../scripts/unittest_f90
 
@@ -49,14 +49,11 @@ TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 # These are all the objects that are supposed to go into the makefile
 OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Combine_Meshes.o
 
-.SUFFIXES: .f90 .F90 .c .o .a
+.SUFFIXES: .F90 .c .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .cpp.o:
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $<
@@ -64,16 +61,9 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
 
 clean:
 	rm -f *.o *.mod
 
-Combine_Meshes.o: Advancing_front.o
-
-Extrude.o: Combine_Meshes.o
-
-Metric_based_extrude.o: Combine_Meshes.o Advancing_front.o
-
-Extrude_radially.o: Combine_Meshes.o
+include Makefile.dependencies
