@@ -119,7 +119,7 @@ module copy_outof_into_state
            phasevolumefraction, pvf_source, &
            scalarfield, scalarfield_source, &
            componentmassfraction, &
-           phasevolumefraction_bc
+           phasevolumefraction_bc, density_bc, pressure_bc
       REAL, DIMENSION( : ), ALLOCATABLE::SATURABC
 
       type(vector_field), pointer :: velocity, velocity_source
@@ -710,8 +710,9 @@ module copy_outof_into_state
 !!!
 !!! Pressure Boundary Conditions:
 !!!
-      Loop_Pressure_BC: do i = 1, nphases
-         Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+if(.false.)then
+      Loop_Pressure_BC0: do i = 1, nphases
+         Conditional_Pressure_BC0: if( have_option( '/material_phase[' // int2str(i-1) // &
               ']/scalar_field::Pressure/prognostic/' // &
               'boundary_conditions[0]/type::dirichlet' )) then
 
@@ -752,52 +753,10 @@ module copy_outof_into_state
 
             deallocate(pressure_sufid_bc)
 
-         endif Conditional_Pressure_BC
+         endif Conditional_Pressure_BC0
 
-      end do Loop_Pressure_BC
-!!!
-!!! Density Boundary Conditions
-!!!
-
-      Loop_Density_BC: do i = 1, nphases
-
-         Conditional_Density_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
-              ']/scalar_field::Density/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet' )) then
-
-            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Density/prognostic/boundary_conditions[0]/' // &
-                 'surface_ids' )
-            allocate(density_sufid_bc(1:shape_option(1)))
-            Density_BC_Type = 1
-            call get_option( '/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Density/prognostic/' // &
-                 'boundary_conditions[0]/surface_ids', Density_SufID_BC )
-            call get_option( '/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Density/prognostic/' // &
-                 'boundary_conditions[0]/type::dirichlet/constant', Density_Suf_BC )
-
-            if( .not. ( allocated( wic_d_bc ) .and. allocated( suf_d_bc ))) then 
-               allocate( wic_d_bc( stotel * nphases ))
-               allocate( suf_d_bc( stotel * 1 * nphases ))
-               wic_d_bc = 0
-               suf_d_bc = 0.
-            end if
-
-            do j=1,shape_option(1)
-               wic_d_bc( density_sufid_bc(1) + (i-1)*nphases ) = density_bc_type
-               suf_d_bc( density_sufid_bc(1) + (i-1)*nphases ) = density_suf_bc
-            enddo
-
-            ewrite(3,*) 'wic_d_bc', wic_d_bc
-            ewrite(3,*) 'suf_d_bc', suf_d_bc
-
-            deallocate(density_sufid_bc)
-
-         endif Conditional_Density_BC
-
-      end do Loop_Density_BC
-
+      end do Loop_Pressure_BC0
+endif
 !!!
 !!! Temperature (or extra scalar-field) Boundary Conditions:
 !!!
@@ -923,22 +882,128 @@ module copy_outof_into_state
       ! Density and pressure might need re-ordering because of the
       ! peculiarity of the quadratic element setup
       ! see copy_into_state() below
+
+!!!
+!!!  Density
+!!!
       ewrite(3,*) "going to get density..."
-      do i=1,nphases
-         density => extract_scalar_field(state(i), "Density")
-         !       ewrite(3,*) "size of density", node_count(density)
-         if (.not.allocated(den)) allocate(den(nphases*node_count(density)))
-         do j=1,node_count(density)
-            den((i-1)*node_count(density)+j)=density%val(j)
-         enddo
+
+      Loop_Density: do i = 1, nphases
+         density => extract_scalar_field( state( i ), "Density")
+         if ( .not. allocated( den )) allocate( den( nphases * node_count( density )))
+
+         do j = node_count( density ), 1, -1
+            den(( i - 1 ) * node_count( density ) + j ) = density%val( j )
+            ! This will make sure that the fields in the PC *does not* contain any boundary conditions
+            ! elements. This need to be changed along with the future data structure to take into 
+            ! account the overlapping formulation.
+            if( j == 1 ) den(( i - 1 ) * node_count( density ) + j ) = &
+                 den(( i - 1 ) * node_count( density ) + j + 1)     
+         end do
+
+         Conditional_Density_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+              ']/scalar_field::Density/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet' )) then
+
+            if( .not. ( allocated( wic_d_bc ) .and. allocated( suf_d_bc ))) then 
+               allocate( wic_d_bc( stotel * nphases ))
+               allocate( suf_d_bc( stotel * 1 * nphases ))
+               wic_d_bc = 0
+               suf_d_bc = 0.
+            end if
+
+            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Density/prognostic/boundary_conditions[0]/' // &
+                 'surface_ids' )
+            allocate( density_sufid_bc( 1 : shape_option( 1 )))
+
+            Density_BC_Type = 1
+
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Density/prognostic/' // &
+                 'boundary_conditions[0]/surface_ids', Density_SufID_BC )
+
+            do j=1,shape_option(1)
+               wic_d_bc( density_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = density_bc_type
+            enddo
+
+            nobcs = get_boundary_condition_count( density )
+            do j = 1, nobcs
+               density_bc => extract_surface_field( density, j, "value" )
+            end do
+            do j = 1, node_count( density_bc )
+               suf_d_bc( ( i - 1 ) * stotel + j ) = density_bc%val( j )
+            end do
+
+            ewrite(3,*) 'wic_d_bc', wic_d_bc
+            ewrite(3,*) 'suf_d_bc', suf_d_bc
+
+            deallocate(density_sufid_bc)
+
+         endif Conditional_Density_BC
+
+      enddo Loop_Density
+
+!!!
+!!! Pressure
+!!!
+      ewrite(3,*) "pressure..."
+      pressure => extract_scalar_field( state( 1 ), "Pressure" )
+      allocate( p( node_count( pressure )))
+
+      ! This will make sure that the fields in the PC *does not* contain any boundary conditions
+      ! elements. This need to be changed along with the future data structure to take into 
+      ! account the overlapping formulation.
+      do i= node_count( pressure ), 1, -1
+         p( i ) = pressure%val( i )
+         if( i == 1 ) p ( i ) = p( i + 1 )
       enddo
 
-      ewrite(3,*) "pressure..."
-      pressure => extract_scalar_field(state(1), "Pressure")
-      allocate(p(node_count(pressure)))
-      do i=1,node_count(pressure)
-         p(i)=pressure%val(i)
-      enddo
+      Loop_Pressure: do i = 1, nphases
+
+        Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+              ']/scalar_field::Pressure/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet' )) then
+
+            if( .not. ( allocated( wic_p_bc ) .and. allocated( suf_p_bc ))) then
+               allocate( wic_p_bc( stotel * nphases ))
+               allocate( suf_p_bc( stotel * 1 * nphases ))
+               wic_p_bc = 0
+               suf_p_bc = 0.
+            end if
+
+            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Pressure/' // &
+                 'prognostic/boundary_conditions[0]/surface_ids')
+
+            allocate( pressure_sufid_bc( 1 : shape_option( 1 )))
+
+            Pressure_BC_Type = 1
+            call get_option( '/material_phase[' // int2str(i-1) // &
+                 ']/scalar_field::Pressure/prognostic/' // &
+                 'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
+
+            do j = 1, shape_option( 1 )
+               wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = pressure_bc_type
+               ! The bellow is done as prssure for phase 2 is aliased therefore the same info for nodes
+               ! for the phase 1 should be copied for phase 2. This need to be changed later.
+               wic_p_bc( pressure_sufid_bc( 1 ) + i * nphases ) = pressure_bc_type
+            enddo
+
+            nobcs = get_boundary_condition_count( pressure )
+            do j = 1, nobcs
+               pressure_bc => extract_surface_field( pressure, j, "value" )
+            end do
+            do j = 1, node_count( pressure_bc )
+               suf_p_bc( ( i - 1 ) * stotel + j ) = pressure_bc%val( j )
+            end do
+
+            ewrite(3,*) 'wic_p_bc', wic_p_bc
+            ewrite(3,*) 'suf_p_bc', suf_p_bc
+           
+        end if Conditional_Pressure_BC
+
+      end do Loop_Pressure
 
       !! Control-volume pressure used for shock tube initialisation
       allocate(cv_p(node_count(pressure)))
@@ -949,19 +1014,19 @@ module copy_outof_into_state
 !!!
       ewrite(3,*) "phasevolumefraction..."
 
-      Loop_VolumeFraction_BC: do i = 1, nphases
+      Loop_VolumeFraction: do i = 1, nphases
 
          phasevolumefraction => extract_scalar_field(state(i), "PhaseVolumeFraction")
 
          if ( .not. allocated( satura )) allocate( satura( nphases * node_count( phasevolumefraction )))
-         do j = 1, node_count( phasevolumefraction )
+
+         ! This will make sure that the fields in the PC *does not* contain any boundary conditions
+         ! elements. This need to be changed along with the future data structure to take into 
+         ! account the overlapping formulation.
+         do j = node_count( phasevolumefraction ), 1, -1
             satura( ( i - 1 ) * node_count( phasevolumefraction ) + j ) = phasevolumefraction%val( j )
-         enddo
-         do j = 1, node_count( phasevolumefraction )
-            if( j == 1 )then
-               satura( ( i - 1 ) * node_count( phasevolumefraction ) + j ) = &
-                    satura( ( i - 1 ) * node_count( phasevolumefraction ) + j + 1)
-            end if
+            if( j == 1 ) satura( ( i - 1 ) * node_count( phasevolumefraction ) + j ) = &
+                 satura( ( i - 1 ) * node_count( phasevolumefraction ) + j + 1)
          enddo
 
          Conditional_VolumeFraction_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
@@ -979,8 +1044,10 @@ module copy_outof_into_state
 
             shape_option = option_shape( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
                  "PhaseVolumeFraction/prognostic/boundary_conditions[0]/surface_ids" )
-            allocate(pvf_sufid_bc(1:shape_option(1)))
+            allocate( pvf_sufid_bc( 1 : shape_option( 1 )))
+
             pvf_bc_type = 1
+
             call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::" // &
                  "PhaseVolumeFraction/prognostic/boundary_conditions[0]/surface_ids", pvf_sufid_bc )
             do j = 1, shape_option(1)
@@ -999,7 +1066,7 @@ module copy_outof_into_state
 
          endif Conditional_VolumeFraction_BC
 
-      enddo Loop_VolumeFraction_BC
+      enddo Loop_VolumeFraction
 
       ewrite(3,*) "velocity..."
       do i=1,nphases
