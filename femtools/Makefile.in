@@ -130,7 +130,7 @@ default: $(LIB)
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(F90LIB).a $(F90LIB_OBJS)
-	cp *.mod ../include/
+
 
 clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
