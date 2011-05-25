@@ -128,7 +128,7 @@ contains
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
        lambda_mat,g,dt,theta,D0,lambda_rhs,rhs)
-    !implicit none
+    implicit none
     type(scalar_field), intent(inout) :: D,f,lambda_rhs
     type(vector_field), intent(inout) :: U,X,down
     integer, intent(in) :: ele
@@ -139,7 +139,8 @@ contains
     real, dimension(ele_loc(U,ele)*2*ele_loc(D,ele),ele_loc(U,ele)*ele_loc(D,ele))&
          &:: local_solver
     real, allocatable, dimension(:,:) :: continuity_mat, continuity_mat2
-    real, allocatable, dimension(:,:) :: helmholtz_loc_mat, continuity_face_mat
+    real, allocatable, dimension(:,:) :: helmholtz_loc_mat
+    real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, lambda_ele_loc, face, ele_2, lambda_loc_count
     integer, dimension(:), pointer :: neigh
     type(element_type) :: u_shape, d_shape
@@ -186,12 +187,17 @@ contains
     !calculate continuity_mat
     lambda_loc_count=0
     do ni = 1, size(neigh)
-       allocate(continuity_face_mat(ele_loc(U,ele)*2,face_loc(lambda_rhs,face)))
-       call get_continuity_mat_face(continuity_face_mat,face,lambda_rhs)
-
-       continuity_mat(1:ele_loc(U,ele)*2,lambda_loc_count+1:&
-            &lambda_loc_count+face_loc(lambda_rhs,face)) = &
-            &continuity_face_mat
+       face=ele_face(U, ele, neigh(ni))
+       allocate(continuity_face_mat(2,face_loc(U,face),&
+            &face_loc(lambda_rhs,face)))
+       call get_continuity_face_mat(continuity_face_mat,X,face,&
+            U,lambda_rhs)
+       continuity_mat(face_local_nodes(U,face),&
+            lambda_loc_count+1:lambda_loc_count+face_loc(lambda_rhs,face)) = &
+            &continuity_face_mat(1,:,:)
+       continuity_mat(ele_loc(U,ele)+face_local_nodes(U,face),&
+            lambda_loc_count+1:lambda_loc_count+face_loc(lambda_rhs,face)) = &
+            &continuity_face_mat(2,:,:)
        lambda_loc_count=lambda_loc_count+face_loc(lambda_rhs,face)
        deallocate(continuity_face_mat)
     end do
@@ -238,6 +244,7 @@ contains
 
   contains 
     subroutine get_local_solver()
+      implicit none
       f_gi = ele_val_at_quad(f,ele)
       up_gi = -ele_val_at_quad(down,ele)
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
@@ -282,7 +289,10 @@ contains
       end do
     end subroutine get_local_solver
 
+  end subroutine assemble_hybridized_helmholtz_ele
+
     function get_up_vec(X_val, up) result (up_vec_out)
+      implicit none
       real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
       real, dimension(:), intent(in) :: up
       real, dimension(size(X_val,1)) :: up_vec_out
@@ -302,22 +312,71 @@ contains
       end if
     end function get_up_vec
     
-    subroutine get_continuity_mat_face(continuity_mat,X,face,face_2,lambda_rhs)
+    subroutine get_continuity_face_mat(continuity_face_mat,X,face,&
+         U,lambda_rhs)
       ! integral is done in local coordinates to avoid computing
-      ! dx/dxi on face
+      ! dx/dxi on face (using properties of the Piola transform)
       ! \int_f [[w]]\lambda dS
-      real, dimension(:,:), intent(inout) :: continuity_mat
+      implicit none
+      integer, intent(in) :: face
       type(scalar_field), intent(inout) :: lambda_rhs
-      type(vector_field), intent(inout) :: X
-      integer, intent(in) :: face,face_2
+      type(vector_field), intent(inout) :: X, U
+      real, dimension(2,face_loc(U,face),face_loc(lambda_rhs,face)), intent(inout) :: continuity_face_mat
       !
-      real, dimension(U%dim, face_ngi(lambda_rhs, face)) :: normal
+      real, dimension(U%dim, face_ngi(U, face)) :: n1
+      real :: weight
+      type(element_type), pointer :: U_face_shape,lambda_face_shape
+      real, dimension(face_ngi(U,face)) :: detwei
 
-      call transform_facet_to_physical(X, max(face,face_2), &
-           &                          normal=normal)
-      if(face_2>face) normal = -normal
+      U_face_shape=>face_shape(U, face)
+      lambda_face_shape=>face_shape(lambda_rhs, face)
+
+      !Get normal in local coordinates
+      n1=get_normal(U,local_face_number(U%mesh,face))
+
+      !Integral is taken on one of the edges of the local 2D element
+      !This edge must be transformed to the local 1D element
+      !to do numerical integration, with the following weight factors
+      if(local_face_number(U%mesh, face)==3) then
+         weight = sqrt(2.)
+      else
+         weight = 1.0
+      end if
+      detwei = weight*U_face_shape%quadrature%weight
       
-      FLExit('write this!')
-    end subroutine get_continuity_mat_face
-  end subroutine assemble_hybridized_helmholtz_ele
+      continuity_face_mat = shape_shape_vector(&
+           U_face_shape,lambda_face_shape,detwei,n1)
+     
+    end subroutine get_continuity_face_mat
+
+        function get_normal(U,face) result(norm)
+          !Function returns normal to face on local 2D element
+          implicit none
+          type(vector_field), intent(in) :: U
+          integer, intent(in) :: face
+          real, dimension(U%dim, face_ngi(U,face)) :: norm
+          
+          integer :: i
+          
+          if(U%dim==1) then
+             if(face==1) then
+                forall(i=1:face_ngi(U,face)) norm(1,i)=1.
+             else if(face==2) then
+                forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
+             end if
+          else if(U%dim==2) then
+             if(face==1) then
+                forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
+             else if(face==2) then
+                forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
+             else if(face==3) then
+                forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
+                     &/sqrt(2.)/)
+             else
+                FLAbort('Oh dear oh dear')
+             end if
+          end if
+
+      end function get_normal
+
 end module hybridized_helmholtz
