@@ -98,7 +98,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">9.81</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -171,7 +171,8 @@
   c = 1.0
   k = 2.0*pi
   x=X[0]  
-  return [-c*k*cos(k*x + t) + c*cos(k*x + t),0,0]</string_value>
+  g = 9.81
+  return [-g*c*k*cos(k*x + t) + c*cos(k*x + t),0,0]</string_value>
               </python>
             </value>
             <output/>
@@ -254,7 +255,7 @@
           </python>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">1.0</real_value>
+          <real_value rank="0">1.414</real_value>
         </mean_layer_thickness>
         <scalar_field name="Source">
           <prescribed>
@@ -264,8 +265,9 @@
   from math import cos, pi, sin
   c = 1.0
   k = 2.0*pi
+  mean_layer_thickness = 1.414
   x=X[0]  
-  return c*k*cos(k*x + t) - c*cos(k*x + t)</string_value>
+  return mean_layer_thickness*c*k*cos(k*x + t) - c*cos(k*x + t)</string_value>
               </python>
             </value>
             <output/>
@@ -380,4 +382,17 @@
       </diagnostic>
     </vector_field>
   </material_phase>
+  <adjoint>
+    <functional name="dummy">
+      <functional_dependencies>
+        <algorithm name="functional_dependencies">
+          <string_value lines="20" type="python">def dependencies(times, timestep):
+   return {}</string_value>
+        </algorithm>
+      </functional_dependencies>
+    </functional>
+    <debug>
+      <replay_forward_run/>
+    </debug>
+  </adjoint>
 </shallow_water_options>
