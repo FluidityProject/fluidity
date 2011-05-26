@@ -108,7 +108,7 @@ contains
       assert(element%dim .eq. size(positions))
 
       P = getP_spr(positions, element)
-      call outer_product(P, P, pTp)
+      pTp= outer_product(P, P)
 
     end function compute_matrix_contribution_spr
 
@@ -164,7 +164,7 @@ contains
       real, dimension(MATRIX_SIZE_QF) :: P
 
       P = getP_qf(positions)
-      call outer_product(P, P, pTp)
+      pTp = outer_product(P, P)
     end function compute_matrix_contribution_qf
 
     function compute_rhs_contribution_qf(positions, derivative) result(b)
@@ -228,7 +228,7 @@ contains
       real, dimension(MATRIX_SIZE_CF) :: P
 
       P = getP_cf(positions)
-      call outer_product(P, P, pTp)
+      pTp = outer_product(P, P)
     end function compute_matrix_contribution_cf
 
     function compute_rhs_contribution_cf(positions, derivative) result(b)
