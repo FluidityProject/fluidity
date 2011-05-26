@@ -156,7 +156,7 @@ module diagnostic_variables
     type(stringlist), dimension(:), allocatable :: vfield_list
     type(stringlist), dimension(:), allocatable :: tfield_list
 
-    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order
     integer, dimension(:), allocatable :: number_det_in_each_group
 
     type(detector_linked_list) :: detector_list
@@ -1393,7 +1393,7 @@ contains
 
     allocate(default_stat%name_of_detector_groups_in_read_order(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
-    allocate(default_stat%name_of_detector_in_read_order(total_dete))
+    allocate(default_stat%detector_list%detector_names(total_dete))
     
     if (total_dete==0) return
 
@@ -1445,7 +1445,7 @@ contains
              default_stat%name_of_detector_groups_in_read_order(i)=node%name
              default_stat%number_det_in_each_group(i)=1.0
 
-             default_stat%name_of_detector_in_read_order(i)=node%name
+             default_stat%detector_list%detector_names(i)=node%name
 
              allocate(node%local_coords(local_coord_count(shape)))
 
@@ -1469,7 +1469,7 @@ contains
              
              default_stat%name_of_detector_groups_in_read_order(i+static_dete)=node%name
              default_stat%number_det_in_each_group(i+static_dete)=1.0
-             default_stat%name_of_detector_in_read_order(i+static_dete)=node%name
+             default_stat%detector_list%detector_names(i+static_dete)=node%name
 
              allocate(node%local_coords(local_coord_count(shape)))
 
@@ -1522,7 +1522,7 @@ contains
                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type=type_det
 
-                     default_stat%name_of_detector_in_read_order(k)=trim(funcnam)
+                     default_stat%detector_list%detector_names(k)=trim(funcnam)
 
                      node%id_number = k
 
@@ -1562,7 +1562,7 @@ contains
                      node%type=type_det
                      node%id_number = k
 
-                     default_stat%name_of_detector_in_read_order(k)=trim(funcnam)
+                     default_stat%detector_list%detector_names(k)=trim(funcnam)
 
                      allocate(node%local_coords(local_coord_count(shape)))
                      k=k+1
@@ -2213,8 +2213,7 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
-       call move_lagrangian_detectors(state(1), default_stat%detector_list, &
-            dt, timestep, default_stat%name_of_detector_in_read_order)
+       call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
     end if
 
     ! Now output any detectors.    

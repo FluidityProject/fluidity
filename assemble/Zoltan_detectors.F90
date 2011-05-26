@@ -65,7 +65,7 @@ module zoltan_detectors
        detector%initial_owner=getprocno()
     end if
     detector%local_coords=local_coords(positions,detector%element,detector%position)
-    detector%name=default_stat%name_of_detector_in_read_order(detector%id_number)    
+    detector%name=default_stat%detector_list%detector_names(detector%id_number)    
     
   end subroutine update_detector
 

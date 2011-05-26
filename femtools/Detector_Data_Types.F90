@@ -36,7 +36,7 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_parameters, detector_linked_list, &
+  public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
@@ -79,21 +79,24 @@ module detector_data_types
   end type detector_type
 
   ! Parameters for lagrangian detector movement
-  type detector_parameters
+  type rk_gs_parameters
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
     real, allocatable, dimension(:) :: timestep_weights
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
-  end type detector_parameters
+  end type rk_gs_parameters
 
   type detector_linked_list
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
 
-     ! Parameters for lagrangian movement
-     type(detector_parameters), pointer :: move_parameters => null()
+     ! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
+     type(rk_gs_parameters), pointer :: move_parameters => null()
+
+     ! Optional array for detector names; names are held in read order
+     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
 
      ! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list

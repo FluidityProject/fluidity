@@ -53,7 +53,7 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     character(len=*), intent(in) :: detector_path
 
-    type(detector_parameters), pointer :: parameters
+    type(rk_gs_parameters), pointer :: parameters
     integer :: i,j,k
     real, allocatable, dimension(:) :: stage_weights
     integer, dimension(2) :: option_rank
@@ -121,17 +121,16 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, detector_names)
-    type(state_type), intent(in) :: state
+  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
+    type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
-    character(len = FIELD_NAME_LEN), dimension(:), intent(in), optional :: detector_names
 
-    type(detector_parameters), pointer :: parameters
+    type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector
-    type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
+    type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(integer_hash_table) :: ihash
     type(halo_type), pointer :: ele_halo
     integer :: i, j, k, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, &
@@ -144,8 +143,8 @@ contains
     parameters => detector_list%move_parameters
 
     !Pull some information from state
-    xfield=>extract_vector_field(state, "Coordinate")
-    vfield => extract_vector_field(state,"Velocity")
+    xfield=>extract_vector_field(state(1), "Coordinate")
+    vfield => extract_vector_field(state(1),"Velocity")
     halo_level = element_halo_count(vfield%mesh)
 
     !making a hash table of {processor_number,count}
@@ -171,7 +170,6 @@ contains
     end if
 
     allocate(send_list_array(number_neigh_processors))
-    allocate(receive_list_array(number_neigh_processors))
 
     call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
     rk_dt = dt/parameters%n_subcycles
@@ -179,8 +177,7 @@ contains
     subcycling_loop: do cycle = 1, parameters%n_subcycles
        RKstages_loop: do stage = 1, parameters%n_stages
 
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage,parameters%n_stages, &
-                       parameters%stage_matrix,parameters%timestep_weights)
+          call set_stage(detector_list,vfield,xfield,rk_dt,stage)
 
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -206,13 +203,10 @@ contains
 
                 !Work out whether all send lists are empty,
                 !in which case exit.
-                !This is slightly Byzantine, I think it would
-                !also work if it was initially zero, and then
-                !set to 1 if any of the lists were not empty. CJC
-                all_send_lists_empty=number_neigh_processors
+                all_send_lists_empty=0
                 do k=1, number_neigh_processors
-                   if (send_list_array(k)%length==0) then
-                      all_send_lists_empty=all_send_lists_empty-1
+                   if (send_list_array(k)%length/=0) then
+                      all_send_lists_empty=1
                    end if
                 end do
                 call allmax(all_send_lists_empty)
@@ -221,36 +215,8 @@ contains
                 !This call serialises send_list_array,
                 !sends it, receives serialised receive_list_array,
                 !unserialises that.
-                if (present(detector_names)) then
-                   call serialise_lists_exchange_receive(&
-                     state,send_list_array,receive_list_array,&
-                     number_neigh_processors,ihash,detector_names)
-                else
-                   call serialise_lists_exchange_receive(&
-                     state,send_list_array,receive_list_array,&
-                     number_neigh_processors,ihash)
-                end if
-
-                !This call moves detectors into the detector_list
-                !I'm still unsure about how detectors are removed
-                !from the detector list if they are sent.
-                do i=1, number_neigh_processors
-                   if  (receive_list_array(i)%length/=0) then      
-                      call move_all(receive_list_array(i),detector_list)
-                   end if
-                end do
-
-                !Flush the detector lists
-                do k=1, number_neigh_processors
-                   if (send_list_array(k)%length/=0) then  
-                      call delete_all(send_list_array(k))
-                   end if
-                end do
-                do k=1, number_neigh_processors
-                   if (receive_list_array(k)%length/=0) then  
-                      call delete_all(receive_list_array(k))
-                   end if
-                end do
+                call serialise_lists_exchange_receive(state(1),detector_list, &
+                      send_list_array,number_neigh_processors,ihash)
              end if
 
           end do detector_timestepping_loop
@@ -258,16 +224,13 @@ contains
     end do subcycling_loop
 
     deallocate(send_list_array)
-    deallocate(receive_list_array)
 
     !!! at the end of write_detectors subroutine I need to loop over all the detectors 
     !!! in the list and check that I own them (the element where they are). 
     !!! If not, they need to be sent to the processor owner before adaptivity happens
-    if (timestep/=0) then
-       call distribute_detectors(state, detector_list, ihash)
-    end if
+    call distribute_detectors(state, detector_list, ihash)
 
-    ! This needs to be called after distribute_detectors because, since the exchange  
+    ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     call deallocate_rk_guided_search(detector_list)
 
