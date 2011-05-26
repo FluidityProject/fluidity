@@ -1573,7 +1573,7 @@ module zoltan_integration
     integer :: original_detector_list_length
     integer :: send_count
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
-    type(detector_type), pointer :: detector => null(), send_detector => null(), delete_detector => null()
+    type(detector_type), pointer :: detector => null(), send_detector => null()
     type(detector_linked_list) :: detector_send_list
     integer, allocatable :: ndets_being_sent(:)
     integer :: ierr
@@ -1654,11 +1654,10 @@ module zoltan_integration
     do i=1,send_count
        ! Pack the detector information
        call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), &
-            zoltan_global_ndims, zoltan_global_ndata_per_det)
+            zoltan_global_ndims)
 
-       delete_detector => detector
-       detector => detector%next
-       call delete(detector_send_list, delete_detector)
+       ! delete also advances detector
+       call delete(detector_send_list, detector)
     end do
 
     ewrite(3,*) "Packed the ", send_count, " detectors to be sent"
@@ -1697,7 +1696,7 @@ module zoltan_integration
                       call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
 
                       call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), &
-                           zoltan_global_ndims, zoltan_global_ndata_per_det)
+                           zoltan_global_ndims)
                       detector%element = new_local_element_number
 
                       call update_detector(detector, zoltan_global_new_positions)

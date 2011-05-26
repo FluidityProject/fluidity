@@ -36,7 +36,7 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_parameters, detector_linked_list, &
+  public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
@@ -79,9 +79,7 @@ module detector_data_types
   end type detector_type
 
   ! Parameters for lagrangian detector movement
-  type detector_parameters
-    ! Type of lagrangian advection algorithm
-    logical :: use_rk_gs
+  type rk_gs_parameters
     ! Flag indicating whether to apply lagrangian advection
     logical :: do_velocity_advect=.true.
     ! Flag indicating whther Python Random Walk should be used
@@ -95,15 +93,18 @@ module detector_data_types
 
     ! Python code to execute for Random Walk
     character(len=PYTHON_FUNC_LEN) :: rw_pycode
-  end type detector_parameters
+  end type rk_gs_parameters
 
   type detector_linked_list
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
 
-     ! Parameters for lagrangian movement
-     type(detector_parameters), pointer :: move_parameters => null()
+     ! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
+     type(rk_gs_parameters), pointer :: move_parameters => null()
+
+     ! Optional array for detector names; names are held in read order
+     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
 
      ! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list

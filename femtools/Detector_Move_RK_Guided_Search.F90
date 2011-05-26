@@ -45,12 +45,12 @@ module detector_move_rk_guided_search
 contains
 
   ! Subroutine to allocate the RK stages and update vector
-  subroutine allocate_rk_guided_search(detector_list0, dim, n_stages)
-    type(detector_linked_list), intent(inout) :: detector_list0
+  subroutine allocate_rk_guided_search(detector_list, dim, n_stages)
+    type(detector_linked_list), intent(inout) :: detector_list
     integer, intent(in) :: n_stages, dim
     type(detector_type), pointer :: det0
 
-    det0 => detector_list0%firstnode
+    det0 => detector_list%firstnode
     do while (associated(det0))
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
@@ -69,14 +69,14 @@ contains
   end subroutine allocate_rk_guided_search
 
   ! Subroutine to deallocate the RK stages and update vector
-  subroutine deallocate_rk_guided_search(detector_list0)
-    type(detector_linked_list), intent(inout) :: detector_list0
+  subroutine deallocate_rk_guided_search(detector_list)
+    type(detector_linked_list), intent(inout) :: detector_list
       
     type(detector_type), pointer :: det0
     integer :: j0
       
-    det0 => detector_list0%firstnode
-    do j0=1, detector_list0%length
+    det0 => detector_list%firstnode
+    do j0=1, detector_list%length
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
              deallocate(det0%k)
@@ -90,21 +90,21 @@ contains
   end subroutine deallocate_rk_guided_search
 
   !Subroutine to compute the vector to search for the next RK stage
-  subroutine set_stage(detector_list0,vfield,xfield,dt0,stage0,n_stages, &
-                       stage_matrix,timestep_weights)
-    type(detector_linked_list), intent(inout) :: detector_list0
+  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0)
+    type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: vfield, xfield
-    real, allocatable, dimension(:), intent(in) :: timestep_weights
-    real, allocatable, dimension(:,:), intent(in) :: stage_matrix
     real, intent(in) :: dt0
-    integer, intent(in) :: stage0, n_stages
+    integer, intent(in) :: stage0
     
+    type(rk_gs_parameters), pointer :: parameters
     type(detector_type), pointer :: det0
     integer :: det_count,j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
+
+    parameters => detector_list%move_parameters
     
-    det0 => detector_list0%firstnode
-    do det_count=1, detector_list0%length 
+    det0 => detector_list%firstnode
+    do det_count=1, detector_list%length 
        if(det0%type==LAGRANGIAN_DETECTOR) then
           det0%search_complete = .false.
           if(stage0.eq.1) then
@@ -116,20 +116,20 @@ contains
                local_coords(xfield,det0%element,det0%update_vector)
           det0%k(stage0,:) = &
                & eval_field(det0%element, vfield, stage_local_coords)
-          if(stage0<n_stages) then
+          if(stage0<parameters%n_stages) then
              !update vector maps from current position to place required
              !for computing next stage vector
              det0%update_vector = det0%position
              do j0 = 1, stage0
                 det0%update_vector = det0%update_vector + &
-                     dt0*stage_matrix(stage0+1,j0)*det0%k(j0,:)
+                     dt0*parameters%stage_matrix(stage0+1,j0)*det0%k(j0,:)
              end do
           else
              !update vector maps from current position to final position
              det0%update_vector = det0%position
-             do j0 = 1, n_stages
+             do j0 = 1, parameters%n_stages
                 det0%update_vector = det0%update_vector + &
-                     dt0*timestep_weights(j0)*det0%k(j0,:)
+                     dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
              end do
              det0%position = det0%update_vector
           end if
@@ -149,8 +149,8 @@ contains
     !This is done by computing the local coordinates of the target point,
     !finding the local coordinate closest to -infinity
     !and moving to the element through that face
-    subroutine move_detectors_guided_search(detector_list0,vfield,xfield,ihash,send_list_array,search_tolerance)
-      type(detector_linked_list), intent(inout) :: detector_list0
+    subroutine move_detectors_guided_search(detector_list,vfield,xfield,ihash,send_list_array,search_tolerance)
+      type(detector_linked_list), intent(inout) :: detector_list
       type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
       type(vector_field), pointer, intent(in) :: vfield,xfield
       type(integer_hash_table), intent(in) :: ihash
@@ -165,8 +165,8 @@ contains
       logical :: make_static
       !
       !Loop over all the detectors
-      det0 => detector_list0%firstnode
-      do det_count=1, detector_list0%length
+      det0 => detector_list%firstnode
+      do det_count=1, detector_list%length
          !Only move Lagrangian detectors
          if(det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
             search_loop: do
@@ -222,7 +222,7 @@ contains
                      proc_local_number=fetch(ihash,&
                           &element_owner(vfield%mesh,det_send%element))
 
-                     call move(detector_list0,det_send&
+                     call move(detector_list,det_send&
                           &,send_list_array(proc_local_number))
                      !move on to the next detector
                      exit search_loop

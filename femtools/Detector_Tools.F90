@@ -38,7 +38,8 @@ module detector_tools
   private
 
   public :: insert, allocate, deallocate, copy, move, move_all, remove, &
-            delete, delete_all, detector_value, set_detector_coords_from_python
+            delete, delete_all, pack_detector, unpack_detector, &
+            detector_value, set_detector_coords_from_python
 
   interface insert
      module procedure insert_into_detector_list
@@ -255,6 +256,38 @@ contains
     end do
 
   end subroutine delete_all_detectors
+
+  subroutine pack_detector(detector, buff, ndims)
+    ! Packs the element, position, id_number and type of the
+    ! detector into buff
+    type(detector_type), pointer, intent(in) :: detector
+    real, dimension(:),  intent(out) :: buff
+    integer, intent(in) :: ndims
+
+    assert(size(buff)==ndims+3)
+
+    buff(1) = detector%element
+    buff(2:ndims+1) = detector%position
+    buff(ndims+2) = detector%id_number
+    buff(ndims+3) = detector%type
+    
+  end subroutine pack_detector
+
+  subroutine unpack_detector(detector, buff, ndims)
+    ! Unpacks the element, position, id_number and type of the
+    ! detector from buff
+    type(detector_type), pointer, intent(inout) :: detector
+    real, dimension(:), intent(in) :: buff
+    integer, intent(in) :: ndims
+
+    assert(size(buff)==ndims+3)
+
+    detector%element = buff(1)
+    detector%position = reshape(buff(2:ndims+1),(/ndims/))
+    detector%id_number = buff(ndims+2)
+    detector%type = buff(ndims+3)
+    
+  end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)
     !!< Evaluate field at the location of the detector.

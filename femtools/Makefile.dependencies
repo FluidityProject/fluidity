@@ -220,16 +220,6 @@ Detector_Distribution.o ../include/detector_distribution.mod: \
    ../include/detector_data_types.mod ../include/fdebug.h \
    ../include/state_module.mod
 
-../include/detector_move_bisection.mod: Detector_Move_Bisection.o
-	@true
-
-Detector_Move_Bisection.o ../include/detector_move_bisection.mod: \
-   Detector_Move_Bisection.F90 ../include/halo_data_types.mod \
-   ../include/detector_tools.mod ../include/integer_hash_table_module.mod \
-   ../include/fields.mod ../include/halos_numbering.mod \
-   ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/state_module.mod
-
 ../include/detector_move_lagrangian.mod: Detector_Move_Lagrangian.o
 	@true
 
@@ -238,8 +228,7 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    ../include/detector_move_rk_guided_search.mod ../include/python_state.mod \
    ../include/halos_base.mod ../include/detector_tools.mod \
    ../include/integer_hash_table_module.mod \
-   ../include/detector_move_bisection.mod ../include/fields.mod \
-   ../include/spud.mod ../include/halo_data_types.mod \
+   ../include/fields.mod ../include/spud.mod ../include/halo_data_types.mod \
    ../include/detector_distribution.mod ../include/fdebug.h \
    ../include/state_module.mod
 
