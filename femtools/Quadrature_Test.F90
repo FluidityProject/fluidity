@@ -26,6 +26,9 @@
 !    USA
 
 module quadrature_test
+  !!< Support module for all unit tests related to quadrature.
+  !!< Provides auxiliary routines needed by these tests and separates these
+  !!< from the actual module, thereby reducing dependencies.
   use quadrature
   implicit none
 

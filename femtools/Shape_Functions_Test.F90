@@ -27,6 +27,9 @@
    
 #include "fdebug.h"
 module shape_functions_test
+  !!< Support module for all unit tests related to shape_functions.
+  !!< Provides auxiliary routines needed by these tests and separates these
+  !!< from the actual module, thereby reducing dependencies.
   use shape_functions
   use spud, only: option_count, get_option
 
