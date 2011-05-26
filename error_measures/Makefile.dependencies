@@ -199,8 +199,8 @@ Mba_adapt.o ../include/mba_adapt_module.mod: Mba_adapt.F90 \
    ../include/limit_metric_module.mod ../include/vtk_interfaces.mod \
    ../include/meshdiagnostics.mod ../include/interpolation_module.mod \
    ../include/node_boundary.mod ../include/fields.mod \
-   ../include/metric_tools.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/state_module.mod
+   ../include/metric_tools.mod ../include/mba2d_module.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/state_module.mod
 
 ../include/metric_advection.mod: Metric_advection.o
 	@true
@@ -210,17 +210,17 @@ Metric_advection.o ../include/metric_advection.mod: Metric_advection.F90 \
    ../include/vtk_interfaces.mod ../include/futils.mod \
    ../include/cv_shape_functions.mod ../include/diagnostic_fields.mod \
    ../include/sparse_matrices_fields.mod ../include/edge_length_module.mod \
-   ../include/solvers.mod ../include/adaptive_timestepping.mod \
-   ../include/cv_faces.mod ../include/vector_tools.mod \
-   ../include/sparse_tools.mod ../include/fields.mod \
-   ../include/transform_elements.mod ../include/cv_face_values.mod \
-   ../include/diagnostic_variables.mod ../include/sparsity_patterns.mod \
-   ../include/merge_tensors.mod ../include/boundary_conditions.mod \
-   ../include/unittest_tools.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/fetools.mod ../include/elements.mod ../include/spud.mod \
-   ../include/fldebug.mod ../include/parallel_tools.mod ../include/cvtools.mod \
+   ../include/adaptive_timestepping.mod ../include/cv_faces.mod \
+   ../include/vector_tools.mod ../include/sparse_tools.mod \
+   ../include/fields.mod ../include/transform_elements.mod \
+   ../include/cv_face_values.mod ../include/diagnostic_variables.mod \
+   ../include/sparsity_patterns.mod ../include/merge_tensors.mod \
+   ../include/boundary_conditions.mod ../include/unittest_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/fetools.mod \
+   ../include/elements.mod ../include/spud.mod ../include/fldebug.mod \
+   ../include/parallel_tools.mod ../include/cvtools.mod \
    ../include/shape_functions.mod ../include/cv_options.mod \
-   ../include/global_numbering.mod ../include/field_options.mod \
+   ../include/solvers.mod ../include/field_options.mod \
    ../include/global_parameters.mod ../include/cv_upwind_values.mod \
    ../include/state_module.mod ../include/state_fields_module.mod \
    ../include/fdebug.h

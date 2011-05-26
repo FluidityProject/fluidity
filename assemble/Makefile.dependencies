@@ -97,9 +97,8 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/sparsity_patterns_meshes.mod ../include/fetools.mod \
    ../include/elements.mod ../include/fefields.mod ../include/spud.mod \
    ../include/fldebug.mod ../include/petsc_solve_state_module.mod \
-   ../include/shape_functions.mod ../include/global_numbering.mod \
-   ../include/global_parameters.mod ../include/state_module.mod \
-   ../include/coordinates.mod ../include/fdebug.h
+   ../include/shape_functions.mod ../include/global_parameters.mod \
+   ../include/state_module.mod ../include/coordinates.mod ../include/fdebug.h
 
 ../include/advection_diffusion_fv.mod: Advection_Diffusion_FV.o
 	@true
@@ -279,8 +278,8 @@ Field_Equations_CV.o ../include/field_equations_cv.mod: Field_Equations_CV.F90 \
 Foam_Drainage.o ../include/foam_drainage.mod: Foam_Drainage.F90 \
    ../include/diagnostic_fields_matrices.mod ../include/field_options.mod \
    ../include/fields.mod ../include/cv_upwind_values.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/sparse_matrices_fields.mod \
-   ../include/fldebug.mod ../include/fdebug.h ../include/state_module.mod
+   ../include/state_fields_module.mod ../include/fldebug.mod \
+   ../include/fdebug.h ../include/state_module.mod
 
 ../include/foam_flow_module.mod: Foam_Flow.o
 	@true
@@ -472,7 +471,8 @@ Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
    ../include/node_locking.mod ../include/data_structures.mod \
    ../include/state_module.mod ../include/limit_metric_module.mod \
    ../include/quadrature.mod ../include/halos.mod \
-   ../include/global_parameters.mod ../include/fdebug.h
+   ../include/global_parameters.mod ../include/mba2d_module.mod \
+   ../include/fdebug.h
 
 ../include/mba3d_integration.mod: Mba3d_Integration.o
 	@true
@@ -528,18 +528,17 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/vtk_interfaces.mod ../include/petsc_tools.mod \
    ../include/colouring.mod ../include/slope_limiters_dg.mod \
    ../include/diagnostic_fields.mod ../include/sparse_matrices_fields.mod \
-   ../include/solvers.mod ../include/fields_manipulation.mod \
+   ../include/dgtools.mod ../include/fields_manipulation.mod \
    ../include/profiler.mod ../include/vector_tools.mod \
    ../include/sparse_tools.mod ../include/fields.mod \
    ../include/transform_elements.mod ../include/sparsity_patterns.mod \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod \
    ../include/sparsity_patterns_meshes.mod ../include/fetools.mod \
-   ../include/dgtools.mod ../include/elements.mod ../include/fefields.mod \
-   ../include/spud.mod ../include/turbine.mod \
-   ../include/les_viscosity_module.mod ../include/fldebug.mod \
-   ../include/coriolis_module.mod ../include/halos.mod \
-   ../include/shape_functions.mod ../include/global_numbering.mod \
+   ../include/elements.mod ../include/fefields.mod ../include/spud.mod \
+   ../include/turbine.mod ../include/les_viscosity_module.mod \
+   ../include/fldebug.mod ../include/coriolis_module.mod ../include/halos.mod \
+   ../include/shape_functions.mod ../include/solvers.mod \
    ../include/field_options.mod ../include/global_parameters.mod \
    ../include/state_module.mod ../include/smoothing_module.mod \
    ../include/coordinates.mod ../include/fdebug.h
