@@ -84,6 +84,7 @@ contains
 
     call number_cell_interval
     call number_cell_triangle
+    call number_cell_quad
     call number_cell_tet
 
   end subroutine number_cells
@@ -197,6 +198,53 @@ contains
     call map_vertices_entity(cell, [1,2,3,4], [3,1])
 
   end subroutine number_cell_tet
+
+  subroutine number_cell_hex
+    ! Number the topological entities in a hex
+    type(cell_type), pointer :: cell
+
+    cell=> cells(CELL_HEX)
+
+    cell%type=CELL_HEX
+    cell%dimension=3
+    cell%entity_counts=[8,12,6,1]
+    
+    allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    call allocate(cell%vertices2entity)
+
+    ! Vertices
+    call map_vertices_entity(cell, [1], [0,1])
+    call map_vertices_entity(cell, [2], [0,2])
+    call map_vertices_entity(cell, [3], [0,3])
+    call map_vertices_entity(cell, [4], [0,4])
+    call map_vertices_entity(cell, [5], [0,5])
+    call map_vertices_entity(cell, [6], [0,6])
+    call map_vertices_entity(cell, [7], [0,7])
+    call map_vertices_entity(cell, [8], [0,8])
+    ! Edges
+    call map_vertices_entity(cell, [7,8], [1,1])
+    call map_vertices_entity(cell, [6,7], [1,2])
+    call map_vertices_entity(cell, [5,8], [1,3])
+    call map_vertices_entity(cell, [5,6], [1,4])
+    call map_vertices_entity(cell, [4,8], [1,5])
+    call map_vertices_entity(cell, [3,7], [1,6])
+    call map_vertices_entity(cell, [3,4], [1,7])
+    call map_vertices_entity(cell, [2,6], [1,8])
+    call map_vertices_entity(cell, [2,3], [1,9])
+    call map_vertices_entity(cell, [1,5], [1,10])
+    call map_vertices_entity(cell, [1,4], [1,11])
+    call map_vertices_entity(cell, [1,2], [1,12])
+    ! Faces
+    call map_vertices_entity(cell, [5,6,7,8], [2,1])
+    call map_vertices_entity(cell, [3,4,7,8], [2,2])
+    call map_vertices_entity(cell, [2,3,6,7], [2,3])
+    call map_vertices_entity(cell, [1,4,5,8], [2,4])
+    call map_vertices_entity(cell, [1,2,5,6], [2,5])
+    call map_vertices_entity(cell, [1,2,3,4], [2,6])
+    ! Cell
+    call map_vertices_entity(cell, [1,2,3,4,5,6,7,8], [3,1])
+
+  end subroutine number_cell_hex
 
   subroutine map_vertices_entity(cell, vertices, entity)
     ! Set the entity-vertices and vertices-entity maps of cell.
