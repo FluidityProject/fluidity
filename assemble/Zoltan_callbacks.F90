@@ -1073,7 +1073,7 @@ contains
 
           ! pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-               zoltan_global_ndims, zoltan_global_ndata_per_det)
+               zoltan_global_ndims)
 
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
@@ -1248,7 +1248,7 @@ contains
                    
                    ! unpack detector information 
                    call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-                        zoltan_global_ndims, zoltan_global_ndata_per_det)
+                        zoltan_global_ndims)
                    detector%element = new_local_element_number
                    
                    ! update other detector data

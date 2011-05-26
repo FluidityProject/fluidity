@@ -196,24 +196,19 @@ contains
        call insert(ihash_inverse, mapped_val_a, target_proc_a)
     end do
 
-    have_update_vector = &
-         &have_option("/io/detectors/lagrangian_timestepping/explicit_runge_k&
-         &utta_guided_search")
-    if(have_update_vector) then
-       call get_option("/io/detectors/lagrangian_timestepping/explicit_runge&
-            &_kutta_guided_search/n_stages",n_stages)
-    else
-       n_stages = 1
-    end if
-
+    have_update_vector=associated(detector_list%move_parameters)
     number_of_columns=dim+4
     if(have_update_vector) then
+       n_stages=detector_list%move_parameters%n_stages
+
        !we need to include the RK update vector in serial array
        update_start = number_of_columns
        number_of_columns=number_of_columns+dim
        !we need to include the RK k values in the serial array
        k_start = number_of_columns
        number_of_columns=number_of_columns+dim*n_stages
+    else
+       n_stages = 1
     end if
     
     do i=1, number_neigh_processors
