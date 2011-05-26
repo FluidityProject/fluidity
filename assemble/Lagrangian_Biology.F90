@@ -106,15 +106,15 @@ contains
           det_type=STATIC_DETECTOR
        end if
        if (have_option(trim(schema_buffer)//"/exclude_from_advection")) then
-          agent_arrays(i)%move_parameters%advect_lagrangian=.false.
+          agent_arrays(i)%move_parameters%do_velocity_advect=.false.
        else
-          agent_arrays(i)%move_parameters%advect_lagrangian=.true.
+          agent_arrays(i)%move_parameters%do_velocity_advect=.true.
        end if
        if (have_option(trim(schema_buffer)//"/random_walk")) then
-          agent_arrays(i)%move_parameters%use_random_walk=.true.
+          agent_arrays(i)%move_parameters%do_random_walk=.true.
           call get_option(trim(schema_buffer)//"/random_walk", agent_arrays(i)%move_parameters%rw_pycode)
        else
-          agent_arrays(i)%move_parameters%use_random_walk=.false.
+          agent_arrays(i)%move_parameters%do_random_walk=.false.
        end if
        agent_arrays(i)%total_num_det=n_agents
 
