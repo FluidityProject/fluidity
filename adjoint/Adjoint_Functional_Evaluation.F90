@@ -52,6 +52,15 @@ module adjoint_functional_evaluation
 
   contains
 
+  ! This function is used by libadjoint during the adjoint assembly.
+  ! It computes the right-hand side of the adjoint system, which is
+  ! \frac{\partial J}{\partial u}.
+  ! 
+  ! This is computed one of two ways, depending on what the user has
+  ! supplied us with. If the user has supplied a functional_derivative python
+  ! function, then we just use that. Otherwise, if they have supplied a
+  ! functional_value python function, then we apply automatic differentiation
+  ! to that.
   subroutine libadjoint_functional_derivative(adjointer, var, ndepends, dependencies, values, functional_name_c, output) bind(c)
     type(adj_adjointer), intent(in) :: adjointer
     type(adj_variable), intent(in), value :: var
@@ -140,6 +149,7 @@ module adjoint_functional_evaluation
       ierr = adj_variable_get_name(var, variable_name_f)
       ewrite(-1,*) "Variable: ", trim(variable_name_f)
       ewrite(-1,*) "Timelevel: ", timelevel
+      ewrite(-1,*) "Functional: ", trim(functional_name_f)
       ewrite(-1,*) "At a minimum, the functional depends on the meshes that the output is to be allocated on."
       ewrite(-1,*) "Register them as auxiliary dependencies."
       FLAbort("You really need at least one dependency.")
@@ -437,10 +447,6 @@ module adjoint_functional_evaluation
         ierr = adj_storage_memory_incref(record, storage)
         call adj_chkierr(ierr)
 
-        assert(.not. have_option("/mesh_adaptivity")) ! if you're adaptive, your meshes are no longer auxiliary, are they?
-        ierr = adj_variable_set_auxiliary(vars(j), .true.)
-        call adj_chkierr(ierr)
-
         ierr = adj_record_variable(adjointer, vars(j), storage)
         if (ierr == ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
           call femtools_vec_destroy_proc(record)
@@ -472,6 +478,7 @@ module adjoint_functional_evaluation
             record = field_to_adj_vector(sfield)
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
+
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)
@@ -486,11 +493,6 @@ module adjoint_functional_evaluation
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
 
-            if (index(trim(field_name), "Coordinate") /= 0) then
-              assert(.not. have_option("/mesh_adaptivity")) ! your coordinate is no longer auxiliary, because you compute it
-              ierr = adj_variable_set_auxiliary(vars(j), .true.)
-              call adj_chkierr(ierr)
-            end if
 
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
@@ -505,6 +507,7 @@ module adjoint_functional_evaluation
             record = field_to_adj_vector(tfield)
             ierr = adj_storage_memory_copy(record, storage)
             call adj_chkierr(ierr)
+
             ierr = adj_record_variable(adjointer, vars(j), storage)
             if (ierr /= ADJ_WARN_ALREADY_RECORDED) then ! ADJ_WARN_ALREADY_RECORDED means we have recorded it already
               call adj_chkierr(ierr)

@@ -594,6 +594,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 HYPERLIGHT
+HAVE_ZOLTAN
 MEMORY_STATS
 ALGENCAN
 MBA3D
@@ -618,6 +619,7 @@ X_LIBS
 X_PRE_LIBS
 X_CFLAGS
 XMKMF
+HAVE_ADJOINT
 ZOLTAN
 MPICXX
 MPICC
@@ -657,6 +659,8 @@ ac_ct_CC
 CPPFLAGS
 CFLAGS
 CC
+MOD_FLAG
+GFORTRAN_4_5_OR_NEWER
 FCLIBS
 ac_ct_FC
 FCFLAGS
@@ -4202,6 +4206,29 @@ if test "$fcompiler" = "sunf95" ; then
 else
     MODINC_FLAG="-I"
 fi
+
+if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+  USING_GFORTRAN="yes"
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
+    GFORTRAN_4_5_OR_NEWER="yes"
+
+  fi
+else
+  USING_GFORTRAN="no"
+fi
+
+# How to specify where .mod files are placed.
+if test "$FC" = "ifort"; then
+   MOD_FLAG="-module "
+elif test "$USING_GFORTRAN" = "yes"; then
+   MOD_FLAG="-J"
+else
+   as_fn_error $? "Don't know how to specify the module output directory for $FC." "$LINENO" 5
+fi
+
+
 
 if test "$F77" = "$FC" ; then
     smart_fortran="yes"
@@ -10321,12 +10348,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
-  USING_GFORTRAN="yes"
-else
-  USING_GFORTRAN="no"
-fi
-
 if test "$USING_GFORTRAN" = "yes"; then
     if test "$enable_debugging" = "yes" ; then
 	FFLAGS="-frecord-marker=4 $FFLAGS"
@@ -11780,12 +11801,15 @@ ZOLTAN="yes"
 
 echo $LIBS
 
-     fi
+      fi
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
 
 # Set variables...
 
@@ -11888,8 +11912,15 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 echo $LIBS
 
+    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+      # test really is so retarded that it can't lexicographically compare strings
+      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
+      fi
+    fi
   fi
 fi
+
 
 # Check whether --enable-petsc-fortran-modules was given.
 if test "${enable_petsc_fortran_modules+set}" = set; then :
@@ -13092,7 +13123,7 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 old_fcflags="$FCFLAGS"
 if test -z "$FORTRAN_REAL_8" ; then
    # gfortran
-    FORTRAN_REAL_8="-fdefault-real-8"
+    FORTRAN_REAL_8="-fdefault-real-8 -fdefault-double-8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
@@ -14614,7 +14645,11 @@ fi
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
 if test "$with_zoltan" != "no" ; then
 	LIBS="$LIBS $ZOLTAN_DEPS"
+    HAVE_ZOLTAN=yes
+else
+    HAVE_ZOLTAN=no
 fi
+
 
 # Check whether --enable-hyperlight was given.
 if test "${enable_hyperlight+set}" = set; then :
