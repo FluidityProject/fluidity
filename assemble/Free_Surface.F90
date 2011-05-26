@@ -122,7 +122,8 @@ contains
     
       type(integer_hash_table):: sele_to_fs_ele
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp, original_bottomdist, free_surface
+      type(scalar_field), pointer:: p, prevp, original_bottomdist
+      type(scalar_field), pointer:: free_surface, old_free_surface
       type(scalar_field) :: original_bottomdist_remap
       type(mesh_type), pointer:: fs_mesh
       character(len=FIELD_NAME_LEN):: bctype
@@ -173,6 +174,7 @@ contains
              surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
           ! create a map from face numbers to element numbers in fs_mesh
           call invert_set(fs_surface_element_list, sele_to_fs_ele)
+          old_free_surface => extract_scalar_field(state, "OldFreeSurface")
         end if
       end if
       
@@ -272,6 +274,7 @@ contains
       integer, dimension(face_loc(p, sele)):: nodes
       integer :: i
 
+      real, dimension(face_loc(p, sele)):: top_pressures, old_top_pressures
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_wd, mass_ele_old, mass_ele_old_wd
       real, dimension(face_ngi(p, sele)):: detwei, alpha_wetdry_quad, alpha_wetdry_quad_prevp
@@ -314,8 +317,12 @@ contains
       
       if (use_fs_mesh) then
         nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
+        top_pressures = g*rho0*face_val(free_surface, sele)
+        old_top_pressures = g*rho0*face_val(old_free_surface, sele)
       else
         nodes = face_global_nodes(p, sele)
+        top_pressures = face_val(p, sele)
+        old_top_pressures = face_val(prevp, sele)
       end if
 
       if (addto_cmc) then
@@ -348,8 +355,8 @@ contains
 
         if(present(rhs)) then
            call addto(rhs, nodes, &
-                -(matmul(mass_ele, face_val(p, sele)) &
-                -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+                -(matmul(mass_ele, top_pressures) &
+                -matmul(mass_ele_old, old_top_pressures))*alpha)
         end if
         if (have_wd .and. present(rhs)) then
            call addto(rhs, nodes, &
@@ -361,7 +368,7 @@ contains
         ! no mesh movement - just use the same mass matrix as above
          if(present(rhs)) then
             call addto(rhs, nodes, &
-                 -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+                 -1.0*matmul(mass_ele, top_pressures-old_top_pressures)*alpha)
          end if
       end if
       
