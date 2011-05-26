@@ -13123,7 +13123,7 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 old_fcflags="$FCFLAGS"
 if test -z "$FORTRAN_REAL_8" ; then
    # gfortran
-    FORTRAN_REAL_8="-fdefault-real-8"
+    FORTRAN_REAL_8="-fdefault-real-8 -fdefault-double-8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
