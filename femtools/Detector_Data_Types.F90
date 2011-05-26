@@ -80,9 +80,6 @@ module detector_data_types
 
   ! Parameters for lagrangian detector movement
   type detector_parameters
-    ! Type of lagrangian advection algorithm
-    logical :: use_rk_gs
-
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
     real, allocatable, dimension(:) :: timestep_weights

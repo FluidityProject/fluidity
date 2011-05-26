@@ -37,7 +37,6 @@ module detector_move_lagrangian
   use detector_data_types
   use detector_tools
   use detector_distribution
-  use detector_move_bisection
   use detector_move_rk_guided_search
 
   implicit none
@@ -67,7 +66,6 @@ contains
 
     if(have_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_search")) then
 
-       parameters%use_rk_gs=.true.
        call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
             h/n_stages",parameters%n_stages)
        call get_option(trim(detector_path)//"/lagrangian_timestepping/explicit_runge_kutta_guided_searc&
@@ -115,10 +113,10 @@ contains
             &ed_search/timestep_weights",parameters%timestep_weights)
 
     else
-       ! Setup for legacy bisection method
-       parameters%use_rk_gs=.false.
-       parameters%n_subcycles = 1
-       parameters%n_stages = 1
+       if (check_any_lagrangian(detector_list)) then
+          ewrite(-1,*) "Found lagrangian detectors, but no timstepping options"
+          FLExit('No lagrangian timestepping specified')
+       end if
     end if
 
   end subroutine read_detector_move_options
@@ -172,28 +170,18 @@ contains
        number_neigh_processors=key_count(ihash)
     end if
 
-    !set value of dt in each detector
-    !this is only used in bisection method
-    detector => detector_list%firstnode
-    do j=1, detector_list%length
-       detector%dt=dt
-       detector => detector%next
-    end do
-
     allocate(send_list_array(number_neigh_processors))
     allocate(receive_list_array(number_neigh_processors))
 
-    if (parameters%use_rk_gs) then
-       call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
-       rk_dt = dt/parameters%n_subcycles
-    end if
+    call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
+    rk_dt = dt/parameters%n_subcycles
 
     subcycling_loop: do cycle = 1, parameters%n_subcycles
        RKstages_loop: do stage = 1, parameters%n_stages
-          if (parameters%use_rk_gs) then
-             call set_stage(detector_list,vfield,xfield,rk_dt,stage,parameters%n_stages, &
+
+          call set_stage(detector_list,vfield,xfield,rk_dt,stage,parameters%n_stages, &
                        parameters%stage_matrix,parameters%timestep_weights)
-          end if
+
           !this loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
           ! lists are empty in all processors
@@ -212,14 +200,9 @@ contains
                 !than leaving the physical domain. In this subroutine
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
-                if (parameters%use_rk_gs) then
-                   call move_detectors_guided_search(detector_list,&
+
+                call move_detectors_guided_search(detector_list,&
                         vfield,xfield,ihash,send_list_array,parameters%search_tolerance)
-                else
-                   ewrite(-1,*) 'WARNING, BISECTION METHOD NOT RECOMMENDED!'
-                   call move_detectors_bisection_method(&
-                        state, detector_list, dt, ihash, send_list_array)
-                end if
 
                 !Work out whether all send lists are empty,
                 !in which case exit.
@@ -286,9 +269,7 @@ contains
 
     ! This needs to be called after distribute_detectors because, since the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
-    if (parameters%use_rk_gs) then       
-       call deallocate_rk_guided_search(detector_list)
-    end if
+    call deallocate_rk_guided_search(detector_list)
 
     call deallocate(ihash) 
 

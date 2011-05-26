@@ -86,7 +86,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
   tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
-  Detector_Data_Types.o Detector_Tools.o Detector_Move_Bisection.o \
+  Detector_Data_Types.o Detector_Tools.o \
   Detector_Move_RK_Guided_Search.o Detector_Distribution.o Detector_Move_Lagrangian.o \
   Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
@@ -233,7 +233,7 @@ Detector_Data_Types.o: Global_Parameters.o
 
 Detector_Distribution.o: Detector_Tools.o
 
-Detector_Move_Lagrangian.o: Detector_Distribution.o Detector_Move_Bisection.o \
+Detector_Move_Lagrangian.o: Detector_Distribution.o \
   Detector_Move_RK_Guided_Search.o
 
 Picker_Data_Types.o: Global_Parameters.o Reference_count_picker_type.F90 \
