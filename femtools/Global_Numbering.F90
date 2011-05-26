@@ -415,7 +415,7 @@ contains
              node_map(ele_node(j))=ndglno_val(j)
              
              if(receive_halo_level(ele_node(j)) == 0 .and. have_halos) then
-               new_send_targets(n(0),:) = copy(old_send_targets(ele_node(j),:))
+               call copy(new_send_targets(n(0),:), old_send_targets(ele_node(j),:))
              end if
           end if
        end do
@@ -461,10 +461,10 @@ contains
                    this_node_owner=max(node_owner(node), node_owner(node2))
                    if (this_node_owner==node_owner(node)) then
                       this_receive_halo_level=receive_halo_level(node)
-                      this_send_targets=copy(old_send_targets(node,:))
+                      call copy(this_send_targets, old_send_targets(node,:))
                    else
                       this_receive_halo_level=receive_halo_level(node2)
-                      this_send_targets=copy(old_send_targets(node2,:))
+                      call copy(this_send_targets,old_send_targets(node2,:))
                    end if
                    
                    ! Uncontested nodes. Nodes belong to the smallest available
@@ -545,8 +545,8 @@ contains
                       
                       if (any(this_send_targets%length/=0)) then
                          do i=1,size(ndglno_pos)
-                            new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 = copy(this_send_targets)
+                            call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
+                                 ,this_send_targets)
                          end do
                       end if
                    end if

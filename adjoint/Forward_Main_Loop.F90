@@ -94,15 +94,12 @@ module forward_main_loop
       ierr = adj_adjointer_check_consistency(adjointer)
       call adj_chkierr(ierr)
 
-      ! Forget everything up to the first equation
-      ierr = adj_forget_adjoint_equation(adjointer, 0)
-
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .false.
 
       ! Switch the html output on if you are interested what the adjointer has registered
-      if (have_option("/adjoint/html_output")) then
+      if (have_option("/adjoint/debug/html_output")) then
         ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
         call adj_chkierr(ierr)
         ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
@@ -184,12 +181,15 @@ module forward_main_loop
               soln = field_to_adj_vector(sfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(sfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case(ADJ_VECTOR_FIELD)
               call field_from_adj_vector(rhs, vfield_rhs)
               call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, trim(field_name))
@@ -236,12 +236,15 @@ module forward_main_loop
               soln = field_to_adj_vector(vfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(vfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case default
               FLAbort("Unknown rhs%klass")
           end select
@@ -258,7 +261,7 @@ module forward_main_loop
           end if
         end do ! end of the equation loop
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
         call write_diagnostics(state, current_time, dt, equation+1)
