@@ -106,6 +106,29 @@ else
     MODINC_FLAG="-I"
 fi
 
+if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+  USING_GFORTRAN="yes"
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
+    GFORTRAN_4_5_OR_NEWER="yes"
+    AC_SUBST(GFORTRAN_4_5_OR_NEWER)
+  fi
+else
+  USING_GFORTRAN="no"
+fi
+
+# How to specify where .mod files are placed.
+if test "$FC" = "ifort"; then
+   MOD_FLAG="-module "
+elif test "$USING_GFORTRAN" = "yes"; then
+   MOD_FLAG="-J"
+else
+   AC_MSG_ERROR(Don't know how to specify the module output directory for $FC.)
+fi
+AC_SUBST(MOD_FLAG)
+
+
 if test "$F77" = "$FC" ; then
     smart_fortran="yes"
     AC_MSG_NOTICE([*** Assuming that $FC can process both free and fixed form fortran files.])
@@ -328,12 +351,6 @@ AC_COMPILE_IFELSE(
 FFLAGS="$OLD_FFLAGS"
 AC_SUBST(UNROLL_LOOPS)
 AC_LANG_POP()
-
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
-  USING_GFORTRAN="yes"
-else
-  USING_GFORTRAN="no"
-fi
 
 if test "$USING_GFORTRAN" = "yes"; then
     if test "$enable_debugging" = "yes" ; then
@@ -599,6 +616,26 @@ AC_SUBST(FLFEMDEM_PATH)
 AC_SUBST(LIB_FEMDEM)
 AC_SUBST(FEMDEM)
 
+##########################################
+# Are we using OASIS
+##########################################
+ 
+AC_ARG_WITH(psmile,
+    [AC_HELP_STRING([--with-psmile@<:@=psmile_library@:>@],
+    [specify the oasis4 path])])
+if test -n "$with_psmile" ; then
+  FLPSMILE_PATH="${with_psmile}"
+  ENABLE_PSMILE="yes"
+  cat >> confdefs.h << EOF
+#define USING_PSMILE 1
+EOF
+else
+  FLPSMILE_PATH=""
+  ENABLE_PSMILE=""
+fi
+AC_SUBST(FLPSMILE_PATH)
+AC_SUBST(ENABLE_PSMILE)
+
 # save compiler name for libadapt before it's changed by MPI stuff
 saved_FC="${FC}"
 saved_CC="${CC}"
@@ -768,20 +805,30 @@ if test "$enable_mpi" != "no"
     if test "$with_zoltan" != "no"; then
       if test ! -z "$with_zoltan"; then
         ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
-     fi
+      fi
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
+    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+      # test really is so retarded that it can't lexicographically compare strings
+      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+        AC_MSG_ERROR(["Need gfortran >= 4.5 for the adjoint, sorry"])
+      fi
+    fi
   fi
 fi
+AC_SUBST(HAVE_ADJOINT)
 
 AC_ARG_ENABLE(petsc-fortran-modules,
     [AC_HELP_STRING([--disable-petsc-fortran-modules],
     [By default fluidity tries to use fortran modules provided with petsc. Use --disable-petsc-fortran-modules if these are known to be not functional (e.g. compiled with different compiler version)])])
-ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERR(["PETSc not found"])])
+ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERROR(["PETSc not found"])])
 ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
 if test "$HAVE_PETSC_MODULES" == "1"; then
@@ -798,7 +845,7 @@ AC_LANG_PUSH([Fortran])
 old_fcflags="$FCFLAGS"
 if test -z "$FORTRAN_REAL_8" ; then
    # gfortran
-    FORTRAN_REAL_8="-fdefault-real-8"
+    FORTRAN_REAL_8="-fdefault-real-8 -fdefault-double-8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
        implicit none
@@ -1430,7 +1477,11 @@ fi
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
 if test "$with_zoltan" != "no" ; then
 	LIBS="$LIBS $ZOLTAN_DEPS"
+    HAVE_ZOLTAN=yes
+else
+    HAVE_ZOLTAN=no
 fi
+AC_SUBST(HAVE_ZOLTAN)
 
 AC_ARG_ENABLE(hyperlight,
 [AC_HELP_STRING([--enable-hyperlight],

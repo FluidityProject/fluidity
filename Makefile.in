@@ -78,6 +78,14 @@ endif
 # Thread count for make test.
 THREADS=1
 
+EXCLUDE_TAGS =
+ifneq (@ZOLTAN@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
+endif
+ifneq (@HAVE_ADJOINT@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
+endif
+
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
 .cpp.o:
@@ -170,6 +178,22 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@echo "    LD burgers_equation"
 	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
 
+ifeq (@ENABLE_PSMILE@,yes)
+LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
+bin/test_coupler: fluidity_library main/test_coupler.F90
+	@cd main; $(MAKE) test_coupler.o
+	@echo "BUILD test_coupler"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD test_coupler"
+	@$(EVAL) $(FC) -o bin/test_coupler main/test_coupler.o $(LIBPSMILE) $(FCFLAGS) $(LIBS)
+else
+bin/test_coupler:
+	@echo "     Unable to build bin/test_coupler without psmile libraries"
+	@echo "     Please reconfigure --with-psmile=/path/to/oasis4"
+	exit 1
+endif
+
 bin/multiphase_prototype: fluidity_library
 	@echo "    MAKE multiphase_prototype"
 	@cd legacy_reservoir_prototype; $(MAKE)
@@ -243,7 +267,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
-	@rm -f lib/lib@FLUIDITY@.a 
 	@echo "    MAKE debug"
 	@cd debug; 	$(MAKE)
 	@echo '    MAKE libwm'
@@ -418,11 +441,7 @@ else
 endif
 
 mediumtest:
-ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l medium -n $(THREADS)
-else
-	@cd tests; ../tools/testharness.py -l medium -e zoltan -n $(THREADS)
-endif
+	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
@@ -473,3 +492,59 @@ schema:
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
+.PHONY: makefiles
+
+makefiles: 
+ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
+	@echo "makefile dependency generation requires gfortran (>=4.5)"
+	@false
+endif
+ifneq (@HAVE_ZOLTAN@,yes)
+	@echo "makefile dependency generation requires zoltan"
+	@false
+endif
+ifneq (@HAVE_ADJOINT@,yes)
+	@echo "makefile dependency generation requires adjoint"
+	@false
+endif
+	@echo "    Generating debug dependencies"
+	@cd debug; 	../scripts/create_makefile.py
+	@echo "    Generating libwm dependencies"
+	@cd libwm; ../scripts/create_makefile.py
+	@echo "    Generating femtools dependencies"
+	@cd femtools;	../scripts/create_makefile.py --exclude \
+	"Refcount_interface_templates.F90 Refcount_templates.F90"
+	@echo "    Generating bathymetry dependencies"
+	@cd bathymetry; ../scripts/create_makefile.py
+	@echo "    Generating ocean_forcing dependencies"
+	@cd ocean_forcing; ../scripts/create_makefile.py
+	@echo "    Generating sediments dependencies"
+	@cd sediments; ../scripts/create_makefile.py
+	@echo "    Generating parameterisation dependencies"
+	@cd parameterisation; ../scripts/create_makefile.py
+	@echo "    Generating forward_interfaces dependencies"
+	@cd forward_interfaces;	../scripts/create_makefile.py
+	@echo "    Generating horizontal_adaptivity dependencies"
+	@cd horizontal_adaptivity;   	../scripts/create_makefile.py
+	@echo "    Generating preprocessor dependencies"
+	@cd preprocessor; ../scripts/create_makefile.py --exclude \
+	"register_diagnostics.F90 check_options.F90"
+	@echo "    Generating error_measures dependencies"
+	@cd error_measures;   	../scripts/create_makefile.py
+	@echo "    Generating decomp dependencies"
+	@cd decomp;   	../scripts/create_makefile.py
+	@echo "    Generating assemble dependencies"
+	@cd assemble;   	../scripts/create_makefile.py
+	@echo "    Generating diagnostics dependencies"
+	@cd diagnostics;   	../scripts/create_makefile.py --exclude \
+	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90"
+	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
+	Diagnostic_Fields_New.o
+	@echo "    Generating radiation dependencies"
+	@cd radiation; ../scripts/create_makefile.py
+	@echo "    Generating reduced_modelling dependencies"
+	@cd reduced_modelling;   	../scripts/create_makefile.py
+	@echo "    Generating adjoint dependencies"
+	@cd adjoint; ../scripts/create_makefile.py
+	@echo "    Generating main dependencies"
+	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90

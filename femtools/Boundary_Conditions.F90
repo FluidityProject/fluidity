@@ -2290,8 +2290,8 @@ contains
           bcvalue => extract_surface_field(v_field, k, "value")
           ewrite(2, *) "Collapsing vector bc " // trim(bcname) // " for field " // trim(v_field%name)
           
+          ewrite_minmax(bcvalue)  
           bc_dim_loop: do l = 1, v_field%dim
-            ewrite_minmax(bcvalue%val(l,:))  
             if(.not. bcapplies(l)) cycle bc_dim_loop
             
             call add_boundary_condition_surface_elements(v_field_comps(l)%ptr, bcname, bctype, &

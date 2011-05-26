@@ -802,9 +802,7 @@ contains
         call remap_field(local_grid_u, grid_u)
         call deallocate(local_grid_u)
       end if
-      do i = 1, grid_u%dim
-        ewrite_minmax(grid_u%val(i,:))
-      end do      
+      ewrite_minmax(grid_u)
     end if
     
     if (associated(p, p_mapped_to_coordinate_space)) then

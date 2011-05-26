@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -45,24 +45,25 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard *.c))
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	cp *.mod ../include/
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+default: $(LIB)
+
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -70,9 +71,4 @@ default: $(OBJS)
 clean:
 	rm -f *.o *.d *.mod
 
-Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
-Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Adjoint_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
-Forward_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
-
+include Makefile.dependencies
