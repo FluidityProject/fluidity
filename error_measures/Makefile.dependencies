@@ -199,8 +199,8 @@ Mba_adapt.o ../include/mba_adapt_module.mod: Mba_adapt.F90 \
    ../include/limit_metric_module.mod ../include/vtk_interfaces.mod \
    ../include/meshdiagnostics.mod ../include/interpolation_module.mod \
    ../include/node_boundary.mod ../include/fields.mod \
-   ../include/metric_tools.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/state_module.mod
+   ../include/metric_tools.mod ../include/mba2d_module.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/state_module.mod
 
 ../include/metric_advection.mod: Metric_advection.o
 	@true
