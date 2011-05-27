@@ -111,7 +111,7 @@ fi
 # is not called gfortran
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
-  GFORTRAN_VERSION=$($FC -v 2>&1 | grep -q 'gcc version' | awk '{print $3}')
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
   # test really is so retarded that it can't lexicographically compare strings
   if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
     GFORTRAN_4_5_OR_NEWER="yes"
@@ -820,7 +820,7 @@ if test "$with_adjoint" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
     if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
       # test really is so retarded that it can't lexicographically compare strings
-      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
         AC_MSG_ERROR(["Need gfortran >= 4.5 for the adjoint, sorry"])
       fi
     fi
