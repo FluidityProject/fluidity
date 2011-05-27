@@ -333,9 +333,7 @@ contains
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Source)
-      do dim = 1, source%dim
-        ewrite_minmax(source%val(dim,:))
-      end do
+       ewrite_minmax(source)
     end if
 
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
@@ -346,9 +344,7 @@ contains
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Abs)
-       do dim = 1, abs%dim
-         ewrite_minmax(Abs%val(dim,:))
-       end do
+       ewrite_minmax(Abs)
     end if
 
     have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
@@ -398,7 +394,7 @@ contains
       call allocate(gravity, u%dim, u%mesh, "GravityDirection", FIELD_TYPE_CONSTANT)
       call zero(gravity)
     end if
-    ewrite_minmax(buoyancy%val)
+    ewrite_minmax(buoyancy)
 
     Viscosity=extract_tensor_field(state, "Viscosity", stat)
     have_viscosity = (stat==0)
@@ -408,12 +404,7 @@ contains
     else
       ! Grab an extra reference to cause the deallocate below to be safe.
       call incref(Viscosity)
-      do dim = 1, viscosity%dim(1)
-        do dim2 = 1, viscosity%dim(2)
-          if(dim2<dim) cycle
-          ewrite_minmax(viscosity%val(dim,dim2,:))
-        end do
-      end do
+      ewrite_minmax(viscosity)
     end if
 
     have_dg_les=.false.
@@ -433,12 +424,7 @@ contains
       call zero(surfacetension)
     else
       call incref(surfacetension)
-      do dim = 1, surfacetension%dim(1)
-        do dim2 = 1, surfacetension%dim(2)
-          if(dim2<dim) cycle
-          ewrite_minmax(surfacetension%val(dim,dim2,:))
-        end do
-      end do
+      ewrite_minmax(surfacetension)
     end if
 
     have_coriolis = have_option("/physical_parameters/coriolis")
@@ -746,19 +732,13 @@ contains
 
     if (present(inverse_masslump) .and. lump_mass) then
       call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-      do dim = 1, rhs%dim
-         ewrite_minmax(inverse_masslump%val(dim,:))
-      end do
+      ewrite_minmax(inverse_masslump)
     end if
     if (present(inverse_mass) .and. .not. lump_mass) then
       call apply_dirichlet_conditions_inverse_mass(inverse_mass, u)
-      do dim = 1, rhs%dim
-         ewrite_minmax(inverse_mass%val(dim,dim)%ptr)
-      end do
+      ewrite_minmax(inverse_mass)
     end if
-    do dim = 1, rhs%dim
-      ewrite_minmax(rhs%val(dim,:))
-    end do
+    ewrite_minmax(rhs)
 
     ! Drop the reference to the fields we may have made.
     call deallocate(Viscosity)
@@ -2977,9 +2957,7 @@ contains
 
     end do
 
-    do d = 1, delta_u%dim
-      ewrite_minmax(delta_u%val(d,:))
-    end do
+    ewrite_minmax(delta_u)
 
     !update RHS of momentum equation
 
@@ -3239,9 +3217,7 @@ contains
     end do
 
     call halo_update(u)
-    do dim = 1, u%dim
-      ewrite_minmax(u%val(dim,:))
-    end do
+    ewrite_minmax(u)
 
     call deallocate(delta_U1)
     call deallocate(delta_U2)

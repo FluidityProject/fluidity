@@ -618,11 +618,14 @@ X_LIBS
 X_PRE_LIBS
 X_CFLAGS
 XMKMF
+HAVE_ADJOINT
 ZOLTAN
 MPICXX
 MPICC
 MPIF77
 MPIF90
+ENABLE_PSMILE
+FLPSMILE_PATH
 FEMDEM
 LIB_FEMDEM
 FLFEMDEM_PATH
@@ -727,6 +730,7 @@ enable_openmp
 enable_shared
 enable_verbose
 with_femdem
+with_psmile
 enable_mpi
 with_netcdf
 with_ParMetis
@@ -1417,6 +1421,8 @@ Optional Packages:
   --with-lapack-dir=<dir> look for LAPACK library in <dir>
   --with-femdem[=femdem_library]
                           specify the femdem path
+  --with-psmile[=psmile_library]
+                          specify the oasis4 path
   --with-netcdf[=netcdf_ROOT]
                           specify where to find lib/ and include/ for netCDF
   --with-ParMetis=PFX        Prefix where ParMetis is installed
@@ -10318,6 +10324,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
   USING_GFORTRAN="yes"
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
 else
   USING_GFORTRAN="no"
 fi
@@ -10957,6 +10964,29 @@ else
   FEMDEM=""
 fi
 
+
+
+
+##########################################
+# Are we using OASIS
+##########################################
+
+
+# Check whether --with-psmile was given.
+if test "${with_psmile+set}" = set; then :
+  withval=$with_psmile;
+fi
+
+if test -n "$with_psmile" ; then
+  FLPSMILE_PATH="${with_psmile}"
+  ENABLE_PSMILE="yes"
+  cat >> confdefs.h << EOF
+#define USING_PSMILE 1
+EOF
+else
+  FLPSMILE_PATH=""
+  ENABLE_PSMILE=""
+fi
 
 
 
@@ -11756,8 +11786,11 @@ echo $LIBS
     fi
 fi
 
+
+HAVE_ADJOINT=no
 if test "$with_adjoint" != "no"; then
   if test ! -z "$with_adjoint"; then
+    HAVE_ADJOINT=yes
 
 # Set variables...
 
@@ -11860,8 +11893,15 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 echo $LIBS
 
+    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+      # test really is so retarded that it can't lexicographically compare strings
+      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
+      fi
+    fi
   fi
 fi
+
 
 # Check whether --enable-petsc-fortran-modules was given.
 if test "${enable_petsc_fortran_modules+set}" = set; then :
@@ -15524,7 +15564,7 @@ do
     "qg_strat/unittests/Makefile") CONFIG_FILES="$CONFIG_FILES qg_strat/unittests/Makefile" ;;
     "tests/lauwerier/Makefile") CONFIG_FILES="$CONFIG_FILES tests/lauwerier/Makefile" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
-    "multiphase/Makefile") CONFIG_FILES="$CONFIG_FILES multiphase/Makefile" ;;
+    "legacy_reservoir_prototype/Makefile") CONFIG_FILES="$CONFIG_FILES legacy_reservoir_prototype/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5 ;;
   esac

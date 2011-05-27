@@ -1977,6 +1977,8 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
+    real :: Pr
+
     ! Prescribed diffusivity
     do i = 1, size(states)
        
@@ -2032,7 +2034,7 @@ contains
     ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
     do i = 1, size(states)
        
-       tfield=extract_tensor_field(states(i), "KEpsEddyDiffusivity", stat)
+       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
 
        if (stat/=0) cycle
 
@@ -2045,7 +2047,14 @@ contains
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
                &::k_epsilon")) then
-             
+
+             ! Get Prandtl number, if specified.
+             call get_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
+
+             ! Scale field by Prandtl number
+             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 

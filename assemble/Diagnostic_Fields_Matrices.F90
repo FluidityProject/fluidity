@@ -30,7 +30,7 @@
 module diagnostic_fields_matrices
   !!< A module to link to diagnostic variable calculations.
 
-  use global_parameters, only:FIELD_NAME_LEN, new_options
+  use global_parameters, only:FIELD_NAME_LEN 
   use fields
   use sparse_matrices_fields
   use field_derivatives

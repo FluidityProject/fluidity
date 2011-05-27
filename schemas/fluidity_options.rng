@@ -1568,16 +1568,16 @@ unedited surface.</a:documentation>
               </optional>
               <optional>
                 <element name="k-epsilon">
-                  <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+                  <a:documentation>Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
 Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
-Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
+Generates an isotropic 'eddy viscosity', added to normal viscosity field, that
 carries the influence of turbulence onto the velocity field. See the manual for details.</a:documentation>
                   <element name="scalar_field">
                     <a:documentation>Turbulent kinetic energy (k).
 1. 'k_epsilon'-type boundary conditions are recommended for this field.
 2. Turn on diffusivity, source and absorption diagnostic fields.
-3. Use the same mesh asVelocity.</a:documentation>
+3. Use the same mesh as Velocity.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
                     </attribute>
@@ -1629,24 +1629,6 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                     </attribute>
                     <attribute name="name">
                       <value>KEpsEddyViscosity</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_tensor_field"/>
-                    </element>
-                  </element>
-                  <element name="tensor_field">
-                    <a:documentation>Eddy diffusivity (turbulent diffusion of scalar fields).
-This is a fictitious isotropic diffusivity, added to normal diffusivity field, that
-carries the influence of turbulence onto the temperature field.
-It is related to the Eddy Viscosity by the turbulent Schmidt number for the
-TurbulentKineticEnergy field, sigma_k.</a:documentation>
-                    <attribute name="rank">
-                      <value>2</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>KEpsEddyDiffusivity</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="internal_algorithm"/>
@@ -1717,34 +1699,6 @@ This will appear in the stat file.</a:documentation>
                       </element>
                     </element>
                   </optional>
-                  <element name="scalar_field">
-                    <a:documentation>Strain rate calculated by double dot product (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>StrainRate</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                  </element>
-                  <element name="scalar_field">
-                    <a:documentation>Lumped mass (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>LumpedMass</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                  </element>
                   <element name="source_absorption">
                     <a:documentation>Select whether source and absorption terms for k and epsilon
 are implicit or explicit.</a:documentation>
@@ -1754,24 +1708,6 @@ are implicit or explicit.</a:documentation>
                         <value>implicit</value>
                       </choice>
                     </element>
-                  </element>
-                  <optional>
-                    <element name="limit_length">
-                      <a:documentation>If limit_length is selected, the lengthscale is limited on the same surfaces as
-k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).
-This is currently only applied on surfaces with "k_epsilon" type BCs for epsilon.
-Since length scale is diagnostic, this has no effect on the solution and may be scrapped [pending revision].</a:documentation>
-                      <optional>
-                        <element name="string_value">
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
-                  <element name="L_max">
-                    <a:documentation>Maximum lengthscale: geometric constraint on the largest possible eddy, e.g. channel width.
-Since length scale is diagnostic, this has no effect on the solution and may be scrapped.</a:documentation>
-                    <ref name="real"/>
                   </element>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
@@ -6432,6 +6368,9 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
         <attribute name="name">
           <value>FreeSurfaceHistory</value>
         </attribute>

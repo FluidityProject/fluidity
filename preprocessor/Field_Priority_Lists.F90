@@ -45,14 +45,12 @@ module field_priority_lists
        dimension(:), allocatable :: field_optionpath_list
   !! State list for tracers (from 1 to NTSOL)
   integer, save, dimension(:), allocatable :: field_state_list
-  !! indexes between states and phases
-  integer, save, dimension(:), allocatable :: state2phase_index
 
   private
   public :: field_name_list, field_list, field_optionpath_list,&
        & field_state_list, initialise_field_lists_from_options,&
-       & get_ntsol, get_nphase, initialise_state_phase_lists_from_options, &
-       & state2phase_index
+       & get_ntsol 
+       
 contains
 
   subroutine initialise_field_lists_from_options(state, ntsol)
@@ -275,38 +273,6 @@ contains
     end do
           
   end subroutine initialise_field_lists_from_options
-    
-
-  subroutine initialise_state_phase_lists_from_options()
-
-    logical, save:: initialised=.false.
-    integer :: nphase, counter, p, nmaterial_phases
-
-    if (initialised) return
-
-    nmaterial_phases = option_count('/material_phase')  
-    allocate(state2phase_index(nmaterial_phases))
-    state2phase_index = 0
-
-    call get_nphase(nphase)
-
-    counter = 0
-    do p = 0, nmaterial_phases-1
-       if (have_option('/material_phase['//int2str(p)//']/vector_field::Velocity')) then
-          ! don't know if prescribed or diagnostic fields should be included in nphase but
-          ! suspect that for things like traffic they should be
-          ! definitely don't want aliased - crgw
-          if (.not.have_option('/material_phase['//int2str(p)//']/vector_field::Velocity/aliased')) then
-             counter = counter + 1
-             state2phase_index(p+1) = counter
-          end if
-       end if
-    end do
-
-    initialised = .true.
-
-  end subroutine initialise_state_phase_lists_from_options
-
 
   subroutine get_ntsol(ntsol)
     integer, intent(out) :: ntsol
@@ -379,26 +345,5 @@ contains
     endif
 
   end subroutine get_ntsol
-
-  subroutine get_nphase(nphase)
-    integer, intent(out) :: nphase
-    integer :: nmaterial_phases,p
-
-    nphase = 0
-
-    nmaterial_phases = option_count('/material_phase')  
-    do p = 0, nmaterial_phases-1
-       if (have_option('/material_phase['//int2str(p)//']/vector_field::Velocity')) then
-          ! don't know if prescribed or diagnostic fields should be included in nphase but
-          ! suspect that for things like traffic they should be
-          ! definitely don't want aliased - crgw
-          if (.not.have_option('/material_phase['//int2str(p)//']/vector_field::Velocity/aliased')) then
-             nphase = nphase + 1
-          end if
-       end if
-    end do
-  end subroutine get_nphase
-
-
 
 end module field_priority_lists
