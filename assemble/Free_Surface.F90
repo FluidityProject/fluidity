@@ -743,8 +743,7 @@ contains
 
   end subroutine update_pressure_and_viscous_free_surface
 
-  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs, &
-      assemble_ct_m, assemble_cmc_m)
+  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs)
     ! extend ct_m with some extra rows to enforce the kinematic bc
     ! in the transpose of this the extra columns are used to enforce the
     ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
@@ -757,7 +756,6 @@ contains
     type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
     type(scalar_field), intent(inout):: fs
-    logical, intent(in):: assemble_ct_m, assemble_cmc_m
 
     type(integer_set):: fs_nodes
     type(block_csr_matrix):: new_ct_m
@@ -765,11 +763,16 @@ contains
     type(csr_sparsity):: new_sparsity, new_sparsity2
     character(len=FIELD_NAME_LEN):: ct_name, cmc_name
     integer, dimension(:), pointer:: fs_surface_node_list
+    logical:: extend_ct_m, extend_cmc_m
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
-    ! nothing to see here, go away
-    if (.not. (assemble_ct_m .or. assemble_cmc_m)) return
+    ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
+    ! (we here use fs%mesh is pressure mesh)
+    extend_ct_m = size(ct_m,1)==node_count(fs)
+    extend_cmc_m = size(cmc_m,1)==node_count(fs)
+    ! check whether we have anything to do at all
+    if (.not. (extend_ct_m .or. extend_cmc_m)) return
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
       call initialise_prognostic_free_surface(fs, u)
@@ -781,7 +784,7 @@ contains
     call allocate(fs_nodes)
     call insert(fs_nodes, fs_surface_node_list)
 
-    if (assemble_ct_m) then
+    if (extend_ct_m) then
       new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
       ! only thing we want to keep from the original ct_m before deallocating
       ! (ct_m is just a borrowed reference so we don't need to allocate ourselves, this is done by the insert)
@@ -797,7 +800,7 @@ contains
 
     end if
 
-    if (assemble_cmc_m) then
+    if (extend_cmc_m) then
       ! first add some columns
       new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
       ! only thing we want to keep from the original cmc_m before deallocating
