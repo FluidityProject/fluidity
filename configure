@@ -4207,9 +4207,12 @@ else
     MODINC_FLAG="-I"
 fi
 
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+# We're calling the fortran compiler and testing if gcc is in the output. If so
+# we're using gfortran. Fixes cases where we're using gfortran, but the compiler binary
+# is not called gfortran
+if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
-  GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  GFORTRAN_VERSION=$($FC -v 2>&1 | grep -q 'gcc version' | awk '{print $3}')
   # test really is so retarded that it can't lexicographically compare strings
   if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
     GFORTRAN_4_5_OR_NEWER="yes"
