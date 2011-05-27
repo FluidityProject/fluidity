@@ -1588,7 +1588,6 @@ module sam_integration
         node%name = default_stat%detector_list%detector_names(node%id_number)
         node%local = .true.
         allocate(node%local_coords(new_positions%dim + 1))
-        node%initial_owner = procno
         
         call insert(default_stat%detector_list, node)
       end do

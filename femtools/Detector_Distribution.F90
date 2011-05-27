@@ -332,7 +332,6 @@ contains
              end do
              detector_received%search_complete=.false.
           end if
-          detector_received%initial_owner=getprocno()
  
           allocate(detector_received%local_coords(local_coord_count(shape)))    
   

@@ -65,8 +65,6 @@ module detector_data_types
      real :: dt
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
-     !! Processor that owns initially the detector (for parallel)
-     integer :: initial_owner= -1
      !! RK timestepping stages (first index is stage no., second index is dim)
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
