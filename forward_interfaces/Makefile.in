@@ -61,7 +61,6 @@ OBJS = Diagnostic_Fields_Wrapper_New.o
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
