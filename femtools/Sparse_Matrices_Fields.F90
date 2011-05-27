@@ -29,6 +29,8 @@ module sparse_matrices_fields
 use fields
 use sparse_tools
 use sparse_tools_petsc
+use c_interfaces
+use iso_c_binding
 implicit none
 
   interface mult
@@ -61,10 +63,14 @@ contains
 
   subroutine csr_mult_scalar(x, A, b)
     !!< Calculate x=A*b
-    type(scalar_field), intent(inout) :: x
+    type(scalar_field), intent(inout), target :: x
     type(csr_matrix), intent(in) :: A
-    type(scalar_field), intent(in) :: b
+    type(scalar_field), intent(in), target :: b
     real, dimension(:), allocatable :: tmp
+
+    if (compare_pointers(c_loc(x), c_loc(b))) then
+      FLAbort("You can't pass the same field in for x and b.")
+    end if
 
     select case(b%field_type)
     case(FIELD_TYPE_NORMAL)

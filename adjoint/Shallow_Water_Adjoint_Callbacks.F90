@@ -75,13 +75,13 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "Grad", c_funloc(grad_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivMinusDivBigMatCoriolis", c_funloc(div_minus_div_bigmat_coriolis_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivMinusDivBigMatCoriolisProjection", c_funloc(div_minus_div_bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "DivBigMatGrad", c_funloc(div_bigmat_grad_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassBigMatGrad", c_funloc(mass_bigmat_grad_action_callback))
       call adj_chkierr(ierr)
-      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassBigMatCoriolis", c_funloc(mass_bigmat_coriolis_action_callback))
+      ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassBigMatCoriolisProjection", c_funloc(mass_bigmat_coriolis_action_callback))
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassLocalProjection", c_funloc(local_projection_action_callback))
       call adj_chkierr(ierr)
@@ -347,7 +347,11 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, u_input)
       call allocate(u_output, u_input%dim, u_input%mesh, "LocalVelocityMassOutput")
       u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
-      call mult(u_output, u_mass_mat, u_input)
+      if (hermitian == ADJ_FALSE) then
+        call mult(u_output, u_mass_mat, u_input)
+      else
+        call mult_T(u_output, u_mass_mat, u_input)
+      end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)
@@ -450,7 +454,7 @@ module shallow_water_adjoint_callbacks
 
       type(state_type), pointer :: matrices
       type(mesh_type), pointer :: eta_mesh
-      type(vector_field), pointer :: u
+      type(vector_field), pointer :: u, cartesian_u, positions
       type(block_csr_matrix), pointer :: big_mat, div_mat, coriolis_mat
 
       ! hermitian == ADJ_FALSE
@@ -471,10 +475,12 @@ module shallow_water_adjoint_callbacks
 
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "LocalVelocityDummy")
+      cartesian_u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
       div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
+      positions => extract_vector_field(matrices, "Coordinate")
 
       ierr = adj_dict_find(adj_path_lookup, "Fluid::LayerThickness", path)
       call adj_chkierr(ierr)
@@ -486,8 +492,10 @@ module shallow_water_adjoint_callbacks
       call get_option(trim(path) // "/prognostic/mean_layer_thickness", d0)
 
       if (hermitian==ADJ_FALSE) then
-        call field_from_adj_vector(input, u_input)
-        call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
+        call field_from_adj_vector(input, u_tmp)
+        call allocate(u_input, u%dim, u%mesh, "TemporaryVelocityVariable")
+        call project_cartesian_to_local(positions, u_tmp, u_input)
+        call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable2")
         call allocate(u_tmp_2, u%dim, u%mesh, "TemporaryVelocityVariable2")
         call zero(u_tmp)
         call zero(u_tmp_2)
@@ -496,15 +504,16 @@ module shallow_water_adjoint_callbacks
 
         call mult(u_tmp, coriolis_mat, u_input)
         call mult(u_tmp_2, big_mat, u_tmp)
-        call scale(u_tmp_2, -1.0*dt*theta)
+        call scale(u_tmp_2, -1*dt*theta)
         call addto(u_tmp_2, u_input)
         call mult(eta_output, div_mat, u_tmp_2)
-        call scale(eta_output, dt*d0)
+        call scale(eta_output, -1.0*dt*d0)
 
         output = field_to_adj_vector(eta_output)
         call deallocate(eta_output)
         call deallocate(u_tmp)
         call deallocate(u_tmp_2)
+        call deallocate(u_input)
       else
         ! Do the same steps as above, but backwards and with the transposed operators
         call field_from_adj_vector(input, eta_input)
@@ -518,13 +527,15 @@ module shallow_water_adjoint_callbacks
         call mult_T(u_tmp, div_mat, eta_input)
         call mult_T(u_tmp_2, big_mat, u_tmp)
         call mult_T(u_output, coriolis_mat, u_tmp_2)
-        call scale(u_output, -1.0*dt*theta)
+        call scale(u_output, -1*dt*theta)
         call addto(u_output, u_tmp)
-        call scale(u_output, dt*d0)
-
-        output = field_to_adj_vector(u_output)
-        call deallocate(u_output)
+        call scale(u_output, -1.0*dt*d0)
         call deallocate(u_tmp)
+        call allocate(u_tmp, cartesian_u%dim, cartesian_u%mesh, "CallbackOutput")
+        call project_cartesian_to_local(positions, u_tmp, u_output, transpose=.true.)
+        output = field_to_adj_vector(u_tmp)
+        call deallocate(u_tmp)
+        call deallocate(u_output)
         call deallocate(u_tmp_2)
       end if
     end subroutine div_minus_div_bigmat_coriolis_action_callback
@@ -546,7 +557,7 @@ module shallow_water_adjoint_callbacks
 
       type(scalar_field) :: eta_input
       type(scalar_field) :: eta_output
-      type(vector_field) :: u_tmp
+      type(vector_field) :: u_tmp, u_tmp2
 
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "LocalVelocityDummy")
@@ -557,25 +568,28 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, eta_input)
       call allocate(u_tmp, u%dim, u%mesh, "TemporaryVelocityVariable")
       call zero(u_tmp)
+      call allocate(u_tmp2, u%dim, u%mesh, "TemporaryVelocityVariable")
+      call zero(u_tmp2)
       call allocate(eta_output, eta_mesh, "AdjointDivBigmatGradOutput")
       call zero(eta_output)
 
       if (hermitian==ADJ_FALSE) then
         call mult_T(u_tmp, div_mat, eta_input)
-        call mult(u_tmp, big_mat, u_tmp)
-        call mult(eta_output, div_mat, u_tmp)
+        call mult(u_tmp2, big_mat, u_tmp)
+        call mult(eta_output, div_mat, u_tmp2)
         call scale(eta_output, coefficient)
         output = field_to_adj_vector(eta_output)
       else
         ! Do the same steps as above, but backwards and with the transposed operators
         call mult_T(u_tmp, div_mat, eta_input)
-        call mult_T(u_tmp, big_mat, u_tmp)
-        call mult(eta_output, div_mat, u_tmp)
+        call mult_T(u_tmp2, big_mat, u_tmp)
+        call mult(eta_output, div_mat, u_tmp2)
         call scale(eta_output, coefficient)
         output = field_to_adj_vector(eta_output)
       end if
-        call deallocate(eta_output)
-        call deallocate(u_tmp)
+      call deallocate(eta_output)
+      call deallocate(u_tmp)
+      call deallocate(u_tmp2)
     end subroutine div_bigmat_grad_action_callback
 
     subroutine mass_bigmat_grad_action_callback(nvar, variables, dependencies, hermitian, coefficient, input, context, output) bind(c)
@@ -656,36 +670,46 @@ module shallow_water_adjoint_callbacks
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
 
-      type(vector_field) :: u_output, u_input, u_tmp
+      type(vector_field) :: u_output, u_input, u_tmp, cartesian_u
 
       type(state_type), pointer :: matrices
-      type(vector_field), pointer :: u
+      type(vector_field), pointer :: u, positions, cartesian_dummy_u
       type(mesh_type), pointer :: eta_mesh
       type(block_csr_matrix), pointer :: coriolis_mat, big_mat, local_mass_matrix
 
       call c_f_pointer(context, matrices)
       u => extract_vector_field(matrices, "LocalVelocityDummy")
+      cartesian_dummy_u => extract_vector_field(matrices, "VelocityDummy")
       eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
       coriolis_mat => extract_block_csr_matrix(matrices, "CoriolisMatrix")
       big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
       local_mass_matrix => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
+      positions => extract_vector_field(matrices, "Coordinate")
 
-      call field_from_adj_vector(input, u_input)
-      call allocate(u_output, u%dim, u%mesh, "AdjointBigMatCoriolisOutput")
       call allocate(u_tmp, u%dim, u%mesh, "TemporaryVariable")
-      call zero(u_output)
 
       if (hermitian==ADJ_FALSE) then
         ! So, we'll mult with coriolis_mat and big_mat.
+        call allocate(u_output, u%dim, u%mesh, "AdjointBigMatCoriolisOutput")
+        call field_from_adj_vector(input, cartesian_u)
+        call allocate(u_input, u%dim, u%mesh, "LocalVelocity")
+        call project_cartesian_to_local(positions, cartesian_u, u_input)
         call mult(u_tmp, coriolis_mat, u_input)
         call mult(u_output, big_mat, u_tmp)
         call set(u_tmp, u_output)
         call mult(u_output, local_mass_matrix, u_tmp)
+        call deallocate(u_input)
       else
+        call allocate(u_output, u%dim, u%mesh, "AdjointBigMatCoriolisOutput")
+        call field_from_adj_vector(input, u_input)
         call mult_T(u_tmp, local_mass_matrix, u_input)
         call mult_T(u_output, big_mat, u_tmp)
         call set(u_tmp, u_output)
         call mult_T(u_output, coriolis_mat, u_tmp)
+        call set(u_tmp, u_output)
+        call deallocate(u_output)
+        call allocate(u_output, cartesian_dummy_u%dim, cartesian_dummy_u%mesh, "AdjointBigMatCoriolisOutput")
+        call project_cartesian_to_local(positions, u_output, u_tmp, transpose=.true.)
       end if
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
@@ -719,7 +743,7 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, u_input)
 
       if (hermitian==ADJ_FALSE) then
-        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionTemp")
+        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionLocalVelocityTemp")
         call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionOutput")
         call zero(u_output)
         ! So, we'll project from cartesian space to local space
@@ -727,12 +751,12 @@ module shallow_water_adjoint_callbacks
         call mult(u_output, local_mass_matrix, tmp_u)
         call deallocate(tmp_u)
       else
-        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "MassTimesLocalTemp")
+        call allocate(tmp_u, local_dummy_u%dim, local_dummy_u%mesh, "LocalProjectionTLocalVelocityTemp")
         call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         ! So, we'll project from local space to cartesian space
         call mult_T(tmp_u, local_mass_matrix, u_input)
-        call project_local_to_cartesian(X, tmp_u, u_output)
+        call project_cartesian_to_local(X, u_output, tmp_u, transpose=.true.)
         call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)
@@ -766,18 +790,18 @@ module shallow_water_adjoint_callbacks
       call field_from_adj_vector(input, u_input)
 
       if (hermitian==ADJ_FALSE) then
-        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionTemp")
+        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionLocalVelocityTemp")
         call allocate(u_output, dummy_u%dim, dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         call project_local_to_cartesian(X, u_input, tmp_u)
         call mult(u_output, cartesian_mass_matrix, tmp_u)
         call deallocate(tmp_u)
       else
-        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "MassTimesLocalTemp")
+        call allocate(tmp_u, dummy_u%dim, dummy_u%mesh, "CartesianProjectionTLocalVelocityTemp")
         call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "CartesianProjectionOutput")
         call zero(u_output)
         call mult_T(tmp_u, cartesian_mass_matrix, u_input)
-        call project_cartesian_to_local(X, tmp_u, u_output)
+        call project_local_to_cartesian(X, u_output, tmp_u, transpose=.true.)
         call deallocate(tmp_u)
       end if
       call scale(u_output, coefficient)
@@ -806,13 +830,14 @@ module shallow_water_adjoint_callbacks
       type(mesh_type), pointer :: eta_mesh, u_mesh
       type(state_type), pointer :: matrices
 
-      type(vector_field), pointer :: u_src, positions
+      type(vector_field), pointer :: u_src, positions, dummy_u
       type(scalar_field), pointer :: eta_src
       type(block_csr_matrix), pointer :: big_mat, div_mat, u_mass_mat
       type(csr_matrix), pointer :: h_mass_mat
       type(vector_field) :: u_tmp, projected_u_src
       integer :: ierr
       type(state_type), dimension(1) :: dummy_state
+      logical :: has_velocity_source, has_layer_thickness_source
 
       ierr = adj_variable_get_name(var, name)
       call adj_chkierr(ierr)
@@ -822,6 +847,9 @@ module shallow_water_adjoint_callbacks
 
       call c_f_pointer(context, matrices)
       assert(associated(matrices))
+
+      has_velocity_source = has_vector_field(matrices, "VelocitySource")
+      has_layer_thickness_source = has_scalar_field(matrices, "LayerThicknessSource")
 
       if (timestep > 0) then
         ierr = adj_timestep_get_times(adjointer, timestep-1, time, end_time)
@@ -840,58 +868,64 @@ module shallow_water_adjoint_callbacks
         select case (trim(name))
         case("Fluid::LayerThicknessDelta")
           call allocate(eta_output, eta_mesh, "LayerThicknessRhs")
-          call allocate(eta_tmp, eta_mesh, "LayerThicknessRhsTemp")
-          call allocate(u_tmp, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
-          call allocate(projected_u_src, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
+          call zero(eta_output)
           call set_prescribed_field_values((/matrices/), exclude_interpolated=.true., exclude_nonreprescribed=.true., time=time+theta*dt)
 
           big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
           div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
           h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
           u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
-          u_src => extract_vector_field(matrices, "VelocitySource")
-          eta_src => extract_scalar_field(matrices, "LayerThicknessSource")
           positions => extract_vector_field(matrices, "Coordinate")
 
-          call project_cartesian_to_local(positions, u_src, projected_u_src)
-          call mult(u_tmp, u_mass_mat, projected_u_src)
-          call mult(projected_u_src, big_mat, u_tmp)
-          call mult(eta_output, div_mat, projected_u_src)
-          call scale(eta_output, dt**2 * d0 * theta)
+          if (has_velocity_source) then
+            u_src => extract_vector_field(matrices, "VelocitySource")
+            call allocate(u_tmp, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
+            call allocate(projected_u_src, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
+            call project_cartesian_to_local(positions, u_src, projected_u_src)
+            call mult(u_tmp, u_mass_mat, projected_u_src)
+            call mult(projected_u_src, big_mat, u_tmp)
+            call mult(eta_output, div_mat, projected_u_src)
+            call scale(eta_output, dt**2 * d0 * theta)
+            call deallocate(u_tmp)
+            call deallocate(projected_u_src)
+          end if 
 
-          call mult(eta_tmp, h_mass_mat, eta_src)
-          call addto(eta_output, eta_tmp, scale=dt)
-          call deallocate(u_tmp)
-          call deallocate(projected_u_src)
-          call deallocate(eta_tmp)
+          if (has_layer_thickness_source) then
+            eta_src => extract_scalar_field(matrices, "LayerThicknessSource")
+            call allocate(eta_tmp, eta_mesh, "LayerThicknessRhsTemp")
+            call mult(eta_tmp, h_mass_mat, eta_src)
+            call addto(eta_output, eta_tmp, scale=dt)
+            call deallocate(eta_tmp)
+          end if
 
           output = field_to_adj_vector(eta_output)
           has_output = ADJ_TRUE
-          write(0,*) "Callback LayerThickessDelta source: ", eta_output%val
           call deallocate(eta_output)
         case("Fluid::LayerThickness")
         case("Fluid::LocalVelocity")
         case("Fluid::Velocity")
         case("Fluid::LocalVelocityDelta")
-          call allocate(u_tmp, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
           call allocate(u_output, local_dummy_u%dim, local_dummy_u%mesh, "LocalVelocityDeltaSource")
-          call allocate(projected_u_src, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
-          call set_prescribed_field_values((/matrices/), exclude_interpolated=.true., exclude_nonreprescribed=.true., time=time+theta*dt)
+          call zero(u_output)
+          if (has_velocity_source) then
+            call allocate(u_tmp, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
+            call allocate(projected_u_src, local_dummy_u%dim, local_dummy_u%mesh, "TemporaryVelocity")
+            call set_prescribed_field_values((/matrices/), exclude_interpolated=.true., exclude_nonreprescribed=.true., time=time+theta*dt)
 
-          big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
-          u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
-          u_src => extract_vector_field(matrices, "VelocitySource")
-          positions => extract_vector_field(matrices, "Coordinate")
+            big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
+            u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
+            u_src => extract_vector_field(matrices, "VelocitySource")
+            positions => extract_vector_field(matrices, "Coordinate")
 
-          call project_cartesian_to_local(positions, u_src, projected_u_src)
-          call mult(u_tmp, u_mass_mat, projected_u_src)
-          call mult(projected_u_src, big_mat, u_tmp)
-          call mult(u_output, u_mass_mat, projected_u_src)
-          call scale(u_output, dt)
+            call project_cartesian_to_local(positions, u_src, projected_u_src)
+            call mult(u_tmp, u_mass_mat, projected_u_src)
+            call mult(projected_u_src, big_mat, u_tmp)
+            call mult(u_output, u_mass_mat, projected_u_src)
+            call scale(u_output, dt)
 
-          call deallocate(u_tmp)
-          call deallocate(projected_u_src)
-
+            call deallocate(u_tmp)
+            call deallocate(projected_u_src)
+          end if
           output = field_to_adj_vector(u_output)
           has_output = ADJ_TRUE
           call deallocate(u_output)
@@ -905,7 +939,9 @@ module shallow_water_adjoint_callbacks
           eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")
           positions => extract_vector_field(matrices, "Coordinate")
           call allocate(eta_output, eta_mesh, "LayerThicknessInitialCondition")
+          call zero(eta_output)
           call allocate(eta_tmp, eta_mesh, "MassLayerThicknessInitialCondition")
+          call zero(eta_tmp)
           ierr = adj_dict_find(adj_path_lookup, "Fluid::LayerThickness", eta_output%option_path)
           call adj_chkierr(ierr)
           call insert(dummy_state(1), positions, "Coordinate")
@@ -921,10 +957,12 @@ module shallow_water_adjoint_callbacks
           call deallocate(eta_output)
           call deallocate(eta_tmp)
         case("Fluid::Velocity")
-          u_src => extract_vector_field(matrices, "VelocitySource")
+          dummy_u => extract_vector_field(matrices, "VelocityDummy")
           positions => extract_vector_field(matrices, "Coordinate")
-          call allocate(u_output, u_src%dim, u_src%mesh, "VelocityInitialCondition")
-          call allocate(u_tmp, u_src%dim, u_src%mesh, "MassVelocityInitialCondition")
+          call allocate(u_output, dummy_u%dim, dummy_u%mesh, "VelocityInitialCondition")
+          call zero(u_output)
+          call allocate(u_tmp, dummy_u%dim, dummy_u%mesh, "MassVelocityInitialCondition")
+          call zero(u_tmp)
           ierr = adj_dict_find(adj_path_lookup, "Fluid::Velocity", u_output%option_path)
           call adj_chkierr(ierr)
           call insert(dummy_state(1), positions, "Coordinate")

@@ -57,9 +57,9 @@
     use mp_prototype
     implicit none
 
-    !#ifdef HAVE_PETSC
-    !#include "finclude/petsc.h"
-    !#endif
+#ifdef HAVE_PETSC
+#include "finclude/petsc.h"
+#endif
 
     ! Interface blocks for the initialisation routines we need to call
     interface
@@ -75,13 +75,13 @@
          integer, intent(out) :: ierr
        end subroutine mpi_finalize
 
-       !      subroutine python_init
-       !      end subroutine python_init
+       subroutine python_init
+       end subroutine python_init
 
-       !      subroutine petscinitialize(s, i)
-       !        character(len=*), intent(in) :: s
-       !        integer, intent(out) :: i
-       !      end subroutine petscinitialize
+       subroutine petscinitialize(s, i)
+         character(len=*), intent(in) :: s
+         integer, intent(out) :: i
+       end subroutine petscinitialize
     end interface
 
     type(state_type), dimension(:), pointer :: state
@@ -94,16 +94,16 @@
     character(len = option_path_len) :: simulation_name, dump_format
 
     real :: finish_time, nonlinear_iteration_tolerance, steady_state_tolerance
-    integer :: mpi_success
+!    integer :: mpi_success
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
 #endif
 
-    !#ifdef HAVE_PETSC
-    !    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-    !#endif
+#ifdef HAVE_PETSC
+    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+#endif
 
     call set_simulation_start_times()
     call initialise_walltime
@@ -251,7 +251,7 @@
        call multiphase_prototype(state, dt, current_time, finish_time, &
                                  nonlinear_iterations, nonlinear_iteration_tolerance)
 
-       current_time = current_time + dt
+       current_time = current_time + dt + 100000.
 
     end do timestep_loop
     ! ****************************

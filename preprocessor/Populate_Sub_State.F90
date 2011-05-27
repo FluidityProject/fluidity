@@ -342,9 +342,7 @@ contains
     call remap_to_subdomain(external_mesh_position,position)
 
     ewrite(2,*) 'MinMax info for subdomain_mesh positions_field: '
-    do i = 1, mesh_dim(subdomain_mesh)
-       ewrite_minmax(position%val(i,:))
-    end do
+    ewrite_minmax(position)
 
     ! Load into sub_states:
     call insert(sub_states, subdomain_mesh, subdomain_mesh%name)
@@ -624,6 +622,8 @@ contains
        end do
 
        ! Deal with tensor fields:
+       ntfields = tensor_field_count(states(istate))
+
        do ifield = 1, ntfields
 
           tfield => extract_tensor_field(states(istate),ifield)

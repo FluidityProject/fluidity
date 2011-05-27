@@ -57,10 +57,9 @@ module forward_main_loop
     public :: compute_forward
 #endif
 
-
 #ifdef HAVE_ADJOINT
     contains
-    
+
     subroutine compute_forward(state)
       type(state_type), dimension(:), intent(inout) :: state
 
@@ -95,17 +94,17 @@ module forward_main_loop
       ierr = adj_adjointer_check_consistency(adjointer)
       call adj_chkierr(ierr)
 
-      ! Forget everything up to the first equation
-      ierr = adj_forget_adjoint_equation(adjointer, 0)
-
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .false.
 
       ! Switch the html output on if you are interested what the adjointer has registered
-      ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
-      ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
-      call adj_chkierr(ierr)
+      if (have_option("/adjoint/debug/html_output")) then
+        ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
+        call adj_chkierr(ierr)
+        ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
+        call adj_chkierr(ierr)
+      end if
 
       default_stat = new_stat
       call initialise_walltime
@@ -170,8 +169,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                    ewrite(1,*), "Scalar field solved for via libadjoint: ", sfield_soln%name
-                    ewrite(1,*), sfield_soln%val
                     call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
@@ -184,12 +181,15 @@ module forward_main_loop
               soln = field_to_adj_vector(sfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(sfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case(ADJ_VECTOR_FIELD)
               call field_from_adj_vector(rhs, vfield_rhs)
               call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, trim(field_name))
@@ -213,8 +213,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                    print *, vfield_soln%name
-                    print *, vfield_soln%val
                     !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
@@ -228,8 +226,6 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
-                    ewrite(1,*), "Vector field solved for via libadjoint: ", vfield_soln%name
-                    ewrite(1,*), vfield_soln%val
                     !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                   endif
                 case default
@@ -240,12 +236,15 @@ module forward_main_loop
               soln = field_to_adj_vector(vfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(vfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case default
               FLAbort("Unknown rhs%klass")
           end select
@@ -262,7 +261,7 @@ module forward_main_loop
           end if
         end do ! end of the equation loop
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
         call write_diagnostics(state, current_time, dt, equation+1)

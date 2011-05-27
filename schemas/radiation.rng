@@ -258,12 +258,67 @@ associated with the diffusivity term. </a:documentation>
       <element name="diagnostic">
         <ref name="comment"/>
         <element name="algorithm">
+          <a:documentation>Calculated via interpolation of a prescribed data set.</a:documentation>
           <ref name="comment"/>
           <attribute name="name">
             <value>Internal</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="rotate_diffusivity_tensor"/>
+        </zeroOrMore>
         <ref name="field_exclude_all_output"/>
+      </element>
+    </element>
+  </define>
+  <define name="rotate_diffusivity_tensor">
+    <element name="rotation">
+      <a:documentation> Apply successive rotations of the diffusivity tensor around a 
+ chosen dimension axis (XYZ). This induces a counter-clockwise
+ rotation when the axis about which they occur points towards an observer  
+ (ie. the right hand rule for positive sign of angles).
+ Intrinsic rotations are applied to the mobile (co-moving) axis frame.
+ In 1 dimension this is pointless, in 2 dimensions only rotations about
+ the Z axis are appropriate. The rotation angle unit is degree.</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <choice>
+        <element name="axis">
+          <a:documentation>The axis of the mobile frame to rotate about</a:documentation>
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>X</value>
+          </attribute>
+        </element>
+        <element name="axis">
+          <a:documentation>The axis of the mobile frame to rotate about</a:documentation>
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>Y</value>
+          </attribute>
+        </element>
+        <element name="axis">
+          <a:documentation>The axis of the mobile frame to rotate about</a:documentation>
+          <ref name="comment"/>
+          <attribute name="name">
+            <value>Z</value>
+          </attribute>
+        </element>
+      </choice>
+      <element name="scalar_field">
+        <a:documentation>The rotation angle field in degree units</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Angle</value>
+        </attribute>
+        <element name="prescribed">
+          <a:documentation>Field Type</a:documentation>
+          <ref name="comment"/>
+          <ref name="particle_type_material_mesh_choice"/>
+          <ref name="prescribed_scalar_field_no_adapt_exclude_all_output"/>
+        </element>
       </element>
     </element>
   </define>
@@ -278,6 +333,7 @@ associated with the absorption term. </a:documentation>
       <element name="diagnostic">
         <ref name="comment"/>
         <element name="algorithm">
+          <a:documentation>Calculated via interpolation of a prescribed data set.</a:documentation>
           <ref name="comment"/>
           <attribute name="name">
             <value>Internal</value>
@@ -1272,5 +1328,9 @@ that is used for the cross section interpolation</a:documentation>
         <ref name="comment"/>
       </element>
     </element>
+  </define>
+  <define name="prescribed_scalar_field_no_adapt_exclude_all_output">
+    <ref name="prescribed_values_scalar_field"/>
+    <ref name="field_exclude_all_output"/>
   </define>
 </grammar>

@@ -532,7 +532,7 @@ contains
 
     do gi=1, compute_ngi
        do loc=1, nloc
-          call outer_product( du_t(loc,gi,:), du_t(loc,gi,:), M)
+          M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
           r=sum( (/ ( M(i,i), i=1, dim) /) )
           t(:,:,gi)=t(:,:,gi)+M/(r**2)
        end do

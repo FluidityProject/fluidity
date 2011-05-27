@@ -143,17 +143,13 @@ contains
     ewrite(2,*) "path: ", trim(lpath)
     ewrite(2,*) "alpha: ", alpha
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+    ewrite_minmax(mnu)
+    ewrite_minmax(tnu)
 
     call anisotropic_smooth_vector(mnu, positions, tnu, alpha, lpath)
 
-    do i = 1, positions%dim
-      ewrite_minmax(mnu%val(i,:))
-      ewrite_minmax(tnu%val(i,:))
-    end do
+    ewrite_minmax(mnu)
+    ewrite_minmax(tnu)
 
     ! Velocity products (ui*uj)
     allocate(ui_uj); allocate(tui_tuj)
@@ -169,12 +165,12 @@ contains
     do i=1, node_count(mnu)
       ! Mesh filter ^r
       u_loc = node_val(mnu,i)
-      call outer_product(u_loc, u_loc, t_loc)
+      t_loc = outer_product(u_loc, u_loc)
       call set( ui_uj, i, t_loc )
       ! Test filter ^t
       u_loc = node_val(tnu,i)
       ! Calculate (test-filtered velocity) products: (ui^rt*uj^rt)
-      call outer_product(u_loc, u_loc, t_loc)
+      t_loc = outer_product(u_loc, u_loc)
       call set( tui_tuj, i, t_loc )
     end do
 

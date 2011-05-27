@@ -1,6 +1,6 @@
 input.dat (legacy_reservoir_prototype)                                        Fluidity/Diamond
 ###
-### Option for debugging: if =357, then all print statements will             Subroutines ewrite(), FLAbort() and FLExit() are used. Vebrocity level
+### Option for debugging: if =357, then all print statements will             Subroutines ewrite(), FLAbort() and FLExit() are used. Verbocity level
 ### be sent to the file flog.dat, otherwise to /dev/null                      is then specified by command line option -v. Debugging symbols
 option_debug   1                                                              can be produced by configuring with --enable-debugging.
 

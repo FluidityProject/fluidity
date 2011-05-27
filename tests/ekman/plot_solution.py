@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from numpy import sqrt,exp, pi, cos, sin
 from pylab import find, plot, show, xlabel, ylabel, legend
 import vtktools
