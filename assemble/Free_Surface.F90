@@ -1028,9 +1028,10 @@ contains
     ! The pressure difference, i.e. p relative to external pressures
     ! (such as atmospheric pressure and pressure due to the weight of an ice shelf)
     type(scalar_field), target :: p_relative
+    type(scalar_field), pointer :: equilibrium_pressure, fs
     
-    logical :: l_initialise, have_wd
-    type(scalar_field), pointer :: equilibrium_pressure
+    logical :: l_initialise, have_wd, have_prognostic_fs
+    real :: coef
     
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
@@ -1062,9 +1063,26 @@ contains
     ! eos/fluids/linear/subtract_out_hydr.level is options checked below
     ! so the ref. density should be present
     call get_reference_density_from_options(rho0, state%option_path)
+    coef=g*rho0
     
     p => extract_scalar_field(state, "Pressure")
+    fs => extract_scalar_field(state, "FreeSurface", stat=stat)
+    have_prognostic_fs=.false.
+    if (stat==0) then
+      have_prognostic_fs = have_option(trim(fs%option_path)//"/prognostic")
+      if (have_prognostic_fs) then
+        ! if we have a prognostic free surface use it, diagnostic fs might not always be up to date
+        p => fs
+        ! no need to divide by g*rho0 in this case
+        coef=1.0
+      end if
+    end if
+
     if (have_option(trim(p%option_path)//'/prognostic/atmospheric_pressure') .or. have_option('/ocean_forcing/shelf')) then
+       if (have_prognostic_fs) then
+         ewrite(-1,*) "You have selected /ocean_forcing/shelf or atmospheric_pressure option under pressure"
+         FLExit("These options don't currently work with a prognostic free surface")
+       end if
        call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', atmospheric_pressure, default=0.0)
 
        p_relative=extract_scalar_field(state, "PressureRelativeToExternal", stat=stat)
@@ -1096,6 +1114,7 @@ contains
 
        p => p_relative
     end if
+
 
     if (.not. p%mesh==positions%mesh) then
       call allocate(p_mapped_to_coordinate_space, positions%mesh)
@@ -1177,7 +1196,7 @@ contains
       do node=1, node_count(positions)
         call set(iterated_positions, node, &
                   node_val(original_positions, node)- &
-                  node_val(extrapolated_p, node)*node_val(gravity_normal, node)/g/rho0)
+                  node_val(extrapolated_p, node)*node_val(gravity_normal, node)/coef)
                   
         if(.not.l_initialise) call set(grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
@@ -1207,7 +1226,7 @@ contains
                   if (node_val(p, node)/g/rho0 > -node_val(original_bottomdist, node)+d0) then
                     call set(iterated_positions, node, &
                       node_val(original_positions, node)- &
-                      node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
+                      node_val(p, node)*node_val(gravity_normal, node)/coef)
                   else
                     call set(iterated_positions, node, &
                            & node_val(original_positions, node) + &
@@ -1217,7 +1236,7 @@ contains
                 else
                   call set(iterated_positions, node, &
                     node_val(original_positions, node)- &
-                    node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
+                    node_val(p, node)*node_val(gravity_normal, node)/coef)
                 end if
 
                 ! compute new surface node grid velocity:
