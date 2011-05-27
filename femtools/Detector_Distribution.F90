@@ -197,7 +197,7 @@ contains
     end do
 
     have_update_vector=associated(detector_list%move_parameters)
-    number_of_columns=dim+4
+    number_of_columns=dim+3
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
 
@@ -235,9 +235,8 @@ contains
              end if
              send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
              send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
-             send_list_array_serialise(i)%ptr(j,dim+2)=detector%dt
-             send_list_array_serialise(i)%ptr(j,dim+3)=detector%id_number
-             send_list_array_serialise(i)%ptr(j,dim+4)=detector%type
+             send_list_array_serialise(i)%ptr(j,dim+2)=detector%id_number
+             send_list_array_serialise(i)%ptr(j,dim+3)=detector%type
              if(have_update_vector) then
                send_list_array_serialise(i)%ptr(&
                      &j,update_start+1:update_start+dim)=&
@@ -312,12 +311,11 @@ contains
           detector_received%position=&
                receive_list_array_serialise(i)%ptr(j,1:dim)
           detector_received%element=global_ele
-          detector_received%dt=receive_list_array_serialise(i)%ptr(j,dim+2)
           detector_received%type = &
-               receive_list_array_serialise(i)%ptr(j,dim+4)
+               receive_list_array_serialise(i)%ptr(j,dim+3)
           detector_received%local = .true. 
           detector_received%id_number=&
-               receive_list_array_serialise(i)%ptr(j,dim+3)
+               receive_list_array_serialise(i)%ptr(j,dim+2)
           if(have_update_vector) then
              allocate(detector_received%update_vector(vfield%dim))
              allocate(detector_received%k(n_stages,vfield%dim))

@@ -61,8 +61,6 @@ module detector_data_types
      real, dimension(:), allocatable :: local_coords
      !! Whether the detector is static or Lagrangian.
      integer :: type = STATIC_DETECTOR
-     !! Bisected time step used when moving the Lagrangian detectors
-     real :: dt
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
      !! RK timestepping stages (first index is stage no., second index is dim)
