@@ -1882,7 +1882,9 @@ contains
 
        detector => default_stat%detector_list%firstnode
        do while (associated(detector))
-          if (element_owner(xfield%mesh,detector%element)/=getprocno() .or. detector%element<0) then 
+          if ( detector%element<0) then 
+             call delete(default_stat%detector_list,detector)
+          elseif (element_owner(xfield%mesh,detector%element)/=getprocno()) then
              call delete(default_stat%detector_list,detector)
           else
              detector%local=.true.           

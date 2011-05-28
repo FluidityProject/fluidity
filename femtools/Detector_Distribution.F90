@@ -152,17 +152,13 @@ contains
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
-    integer :: global_ele, univ_ele, &
-         &number_detectors_to_send, number_of_columns, &
+    integer :: number_detectors_to_send, buffer_size, &
          &number_detectors_received, target_proc, count, IERROR, dim, i, j
-    integer, PARAMETER ::TAG=12
-
-    integer, ALLOCATABLE, DIMENSION(:) :: sendRequest
-    integer, ALLOCATABLE, DIMENSION(:) :: status
+    integer, parameter ::TAG=12
+    integer, dimension(:), allocatable :: sendRequest, status
  
     type(integer_hash_table) :: ihash_inverse
     integer :: halo_level, target_proc_a, mapped_val_a
-    integer :: ki 
 
     type(element_type), pointer :: shape
 
@@ -197,75 +193,44 @@ contains
     end do
 
     have_update_vector=associated(detector_list%move_parameters)
-    number_of_columns=dim+3
+    buffer_size=dim+3
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
-
-       !we need to include the RK update vector in serial array
-       update_start = number_of_columns
-       number_of_columns=number_of_columns+dim
-       !we need to include the RK k values in the serial array
-       k_start = number_of_columns
-       number_of_columns=number_of_columns+dim*n_stages
-    else
-       n_stages = 1
+       buffer_size=buffer_size+(n_stages+1)*dim
     end if
     
     do i=1, number_neigh_processors
-
        detector => send_list_array(i)%firstnode
        number_detectors_to_send=send_list_array(i)%length
 
-       allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
+       allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,buffer_size))
 
        if(number_detectors_to_send>0) then
           do j=1, send_list_array(i)%length
 
-             global_ele=detector%element
+             assert(detector%element>0)
+             detector%element = halo_universal_number(ele_halo, detector%element)
 
-             if (detector%element>0) then
-                univ_ele = halo_universal_number(ele_halo, global_ele)
+             if (have_update_vector) then
+                call pack_detector(detector, send_list_array_serialise(i)%ptr(j,1:buffer_size), dim, n_stages)
              else
-
-!!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. 
-!!! In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., 
-!!! this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
-                univ_ele =-1
-
+                call pack_detector(detector, send_list_array_serialise(i)%ptr(j,1:buffer_size), dim)
              end if
-             send_list_array_serialise(i)%ptr(j,1:dim)=detector%position
-             send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
-             send_list_array_serialise(i)%ptr(j,dim+2)=detector%id_number
-             send_list_array_serialise(i)%ptr(j,dim+3)=detector%type
-             if(have_update_vector) then
-               send_list_array_serialise(i)%ptr(&
-                     &j,update_start+1:update_start+dim)=&
-                     &detector%update_vector
-                do ki = 1, n_stages
-                   send_list_array_serialise(i)%ptr(j,&
-                        k_start+(ki-1)*dim+1:k_start+ki*dim) =&
-                        &detector%k(ki,:)
-                end do
-             end if
-             detector => detector%next
 
+             ! delete also advances detector
+             call delete(send_list_array(i), detector)
           end do
        end if
        target_proc=fetch(ihash_inverse, i)
 
+       ! getprocno() returns the rank of the processor + 1, hence target_proc-1
        call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
             & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(i-1), IERROR)
        assert(ierror == MPI_SUCCESS)
-       !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
-       !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
-       !!!proc with rank 3.
 
-    end do
-
-    ! Deallocate serialised arrays
-    do i=1, number_neigh_processors
+       ! Deallocate serialised send lists after sending
        deallocate(send_list_array_serialise(i)%ptr)
-    end do 
+    end do
     deallocate(send_list_array_serialise)
   
     allocate(receive_list_array_serialise(number_neigh_processors))
@@ -273,73 +238,34 @@ contains
     call get_universal_numbering_inverse(ele_halo, gens)
     ewrite(1,*) "gens length is:", key_count(gens)    
 
-    do i=1, number_neigh_processors
-              
+    do i=1, number_neigh_processors              
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
        assert(ierror == MPI_SUCCESS)
 
-       number_detectors_received=count/number_of_columns
-
-       allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,number_of_columns))
+       number_detectors_received=count/buffer_size
+       allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,buffer_size))
 
        call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        do j=1, number_detectors_received
 
-          univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1); 
-
-          !!! added this line below since I had to add extra code to cope
-          !!! with issues after adapt+zoltan. In particular, after adapt +
-          !!! zoltan, the element that owns a detector can be negative,
-          !!! i.e., this current proc does not see it/own it. This can
-          !!! happen due to floating errors if det in element boundary
-          !!! Ana SG wrote the above, I think it can be ditched now -- cjc
-          if (univ_ele/=-1) then
-             global_ele=fetch(gens,univ_ele)
-          else        
-             global_ele=-1
-          end if
-
           allocate(detector_received)
 
-          allocate(detector_received%position(vfield%dim))
-
-          detector_received%position=&
-               receive_list_array_serialise(i)%ptr(j,1:dim)
-          detector_received%element=global_ele
-          detector_received%type = &
-               receive_list_array_serialise(i)%ptr(j,dim+3)
-          detector_received%local = .true. 
-          detector_received%id_number=&
-               receive_list_array_serialise(i)%ptr(j,dim+2)
-          if(have_update_vector) then
-             allocate(detector_received%update_vector(vfield%dim))
-             allocate(detector_received%k(n_stages,vfield%dim))
-             detector_received%update_vector = &
-                  receive_list_array_serialise(i)%ptr(j,update_start+1:&
-                  &update_start+dim)
-             do ki = 1, n_stages
-                detector_received%k(ki,:) = &
-                  receive_list_array_serialise(i)%ptr(&
-                  j,k_start+dim*(ki-1)+1:&
-                  &k_start+dim*ki)
-             end do
-             detector_received%search_complete=.false.
+          if (have_update_vector) then
+             call unpack_detector(detector_received, receive_list_array_serialise(i)%ptr(j,1:buffer_size), dim, n_stages)
+          else
+             call unpack_detector(detector_received, receive_list_array_serialise(i)%ptr(j,1:buffer_size), dim)
           end if
+
+          assert(detector_received%element>0)
+          detector_received%element=fetch(gens,detector_received%element)
  
-          allocate(detector_received%local_coords(local_coord_count(shape)))    
-  
-        !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. 
-        !!! In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. 
-        !!! This can happen due to floating errors if det in element boundary   
-
-          if (detector_received%element/=-1) then 
-              detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
-          end if
+          allocate(detector_received%local_coords(local_coord_count(shape)))
+          detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
 
           if (allocated(detector_list%detector_names)) then
              detector_received%name=detector_list%detector_names(detector_received%id_number)
@@ -347,8 +273,7 @@ contains
              detector_received%name=int2str(detector_received%id_number)
           end if
 
-          call insert(detector_list, detector_received) 
-          
+          call insert(detector_list, detector_received)           
        end do
     end do    
 
