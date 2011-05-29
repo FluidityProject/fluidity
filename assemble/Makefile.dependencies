@@ -665,17 +665,17 @@ Sam_integration.o ../include/sam_integration.mod: Sam_integration.F90 \
    ../include/populate_state_module.mod ../include/tictoc.mod \
    ../include/surfacelabels.mod \
    ../include/boundary_conditions_from_options.mod \
-   ../include/detector_distribution.mod ../include/surface_id_interleaving.mod \
-   ../include/fields.mod ../include/metric_tools.mod \
-   ../include/memory_diagnostics.mod ../include/detector_data_types.mod \
-   ../include/reserve_state_module.mod ../include/pickers.mod \
-   ../include/diagnostic_variables.mod ../include/boundary_conditions.mod \
-   ../include/mpi_interfaces.mod ../include/detector_tools.mod \
-   ../include/node_boundary.mod ../include/elements.mod ../include/spud.mod \
-   ../include/data_structures.mod ../include/state_module.mod \
-   ../include/quadrature.mod ../include/halos.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/ieee_arithmetic.mod ../include/fdebug.h
+   ../include/surface_id_interleaving.mod ../include/fields.mod \
+   ../include/metric_tools.mod ../include/memory_diagnostics.mod \
+   ../include/detector_data_types.mod ../include/reserve_state_module.mod \
+   ../include/pickers.mod ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions.mod ../include/mpi_interfaces.mod \
+   ../include/detector_tools.mod ../include/node_boundary.mod \
+   ../include/elements.mod ../include/spud.mod ../include/data_structures.mod \
+   ../include/state_module.mod ../include/quadrature.mod ../include/halos.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/ieee_arithmetic.mod \
+   ../include/fdebug.h
 
 ../include/saturation_distribution_search_hookejeeves.mod: \
    Saturation_Distribution_Search_HookeJeeves.o

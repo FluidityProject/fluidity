@@ -36,7 +36,7 @@ module detector_move_lagrangian
   use halos_base
   use detector_data_types
   use detector_tools
-  use detector_distribution
+  use detector_parallel
   use detector_move_rk_guided_search
 
   implicit none
@@ -215,7 +215,7 @@ contains
                 !This call serialises send_list_array,
                 !sends it, receives serialised receive_list_array,
                 !unserialises that.
-                call serialise_lists_exchange_receive(state(1),detector_list, &
+                call exchange_detectors(state(1),detector_list, &
                       send_list_array,number_neigh_processors,ihash)
              end if
 

@@ -74,7 +74,7 @@ module diagnostic_variables
   use fields_manipulation
   use detector_data_types
   use detector_tools
-  use detector_distribution
+  use detector_parallel
   use detector_move_lagrangian
 
   implicit none

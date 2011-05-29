@@ -56,10 +56,7 @@ module sam_integration
   use diagnostic_variables
   use pickers
   use ieee_arithmetic
-  use detector_tools
-  use detector_distribution
-
-  
+  use detector_tools  
 
   implicit none
   

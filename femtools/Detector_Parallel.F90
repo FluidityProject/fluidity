@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
 
-module detector_distribution
+module detector_parallel
   use state_module
   use fields
   use spud
@@ -42,7 +42,7 @@ module detector_distribution
   
   private
 
-  public :: distribute_detectors, serialise_lists_exchange_receive, register_detector_list
+  public :: distribute_detectors, exchange_detectors, register_detector_list
 
   type(detector_list_ptr), dimension(:), allocatable, save :: detector_list_array
 
@@ -93,33 +93,30 @@ contains
 
     detector => detector_list%firstnode
     do i = 1, detector_list%length
-       if (detector%element>0) then
-          processor_owner=element_owner(vfield%mesh,detector%element)
+       assert(detector%element>0)
+       processor_owner=element_owner(vfield%mesh,detector%element)
 
-          if (processor_owner/= getprocno()) then
-             list_neigh_processor=fetch(ihash,processor_owner)
-             node_to_send => detector
-             detector => detector%next
+       if (processor_owner/= getprocno()) then
+          list_neigh_processor=fetch(ihash,processor_owner)
+          node_to_send => detector
+          detector => detector%next
 
-             call move(detector_list,node_to_send,send_list_array(list_neigh_processor))
-          else
-             detector => detector%next
-          end if
+          call move(detector_list,node_to_send,send_list_array(list_neigh_processor))
        else
           detector => detector%next
        end if
     end do
 
-    all_send_lists_empty=number_neigh_processors
+    all_send_lists_empty=0
     do k=1, number_neigh_processors
-       if (send_list_array(k)%length==0) then
-          all_send_lists_empty=all_send_lists_empty-1
+       if (send_list_array(k)%length/=0) then
+          all_send_lists_empty=1
        end if
     end do
     call allmax(all_send_lists_empty)
 
     if (all_send_lists_empty/=0) then
-       call serialise_lists_exchange_receive(state(1),detector_list, &
+       call exchange_detectors(state(1),detector_list, &
           send_list_array, number_neigh_processors, ihash)
     end if
 
@@ -131,40 +128,29 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine serialise_lists_exchange_receive(state, detector_list, &
+  subroutine exchange_detectors(state, detector_list, &
          send_list_array,number_neigh_processors,ihash)
-    !This subroutine serialises send_list_array,
-    !sends it, receives serialised receive_list_array,
-    !unserialises that.
+    ! This subroutine serialises send_list_array, sends it, 
+    ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     integer, intent(inout) :: number_neigh_processors
     type(integer_hash_table), intent(in) :: ihash
 
-    type array_ptr
-       real, dimension(:,:), pointer :: ptr
-    end type array_ptr
-
-    type(array_ptr), dimension(:), allocatable :: &
-         &send_list_array_serialise, receive_list_array_serialise
+    real, dimension(:,:), allocatable :: detector_buffer
     type(detector_type), pointer :: detector, detector_received
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
-    integer :: number_detectors_to_send, buffer_size, &
-         &number_detectors_received, target_proc, count, IERROR, dim, i, j
+    integer :: i, j, dim, count, n_stages, target_proc, IERROR, &
+               det_size, ndet_to_send, ndet_received, &
+               halo_level, target_proc_a, mapped_val_a
     integer, parameter ::TAG=12
     integer, dimension(:), allocatable :: sendRequest, status
- 
-    type(integer_hash_table) :: ihash_inverse
-    integer :: halo_level, target_proc_a, mapped_val_a
-
     type(element_type), pointer :: shape
-
-    !stuff for sending RK info
+    type(integer_hash_table) :: ihash_inverse
     logical :: have_update_vector
-    integer :: update_start, k_start,n_stages
 
     xfield => extract_vector_field(state,"Coordinate")
     shape=>ele_shape(xfield,1)
@@ -173,10 +159,7 @@ contains
  
     !set up sendrequest tags because we are going to do an MPI_Isend
     !these are used by wait_all
-    allocate( sendRequest(0:number_neigh_processors-1) )
-
-    !Allocate an array of pointers for the serialised send list
-    allocate(send_list_array_serialise(number_neigh_processors))
+    allocate( sendRequest(number_neigh_processors) )
 
     !Get the element halo 
     halo_level = element_halo_count(vfield%mesh)
@@ -192,29 +175,29 @@ contains
        call insert(ihash_inverse, mapped_val_a, target_proc_a)
     end do
 
+    ! If RK-GS parameters are still allocated, we need a bigger buffer
     have_update_vector=associated(detector_list%move_parameters)
-    buffer_size=dim+3
+    det_size=dim+3
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
-       buffer_size=buffer_size+(n_stages+1)*dim
+       det_size=det_size+(n_stages+1)*dim
     end if
     
     do i=1, number_neigh_processors
+       ndet_to_send=send_list_array(i)%length
+       allocate(detector_buffer(ndet_to_send,det_size))
+
        detector => send_list_array(i)%firstnode
-       number_detectors_to_send=send_list_array(i)%length
-
-       allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,buffer_size))
-
-       if(number_detectors_to_send>0) then
+       if(ndet_to_send>0) then
           do j=1, send_list_array(i)%length
 
              assert(detector%element>0)
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, send_list_array_serialise(i)%ptr(j,1:buffer_size), dim, n_stages)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim, n_stages)
              else
-                call pack_detector(detector, send_list_array_serialise(i)%ptr(j,1:buffer_size), dim)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim)
              end if
 
              ! delete also advances detector
@@ -224,16 +207,14 @@ contains
        target_proc=fetch(ihash_inverse, i)
 
        ! getprocno() returns the rank of the processor + 1, hence target_proc-1
-       call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
-            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(i-1), IERROR)
+       call MPI_ISEND(detector_buffer,size(detector_buffer), &
+            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(i), IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       ! Deallocate serialised send lists after sending
-       deallocate(send_list_array_serialise(i)%ptr)
+       ! Deallocate buffer after sending
+       deallocate(detector_buffer)
     end do
-    deallocate(send_list_array_serialise)
-  
-    allocate(receive_list_array_serialise(number_neigh_processors))
+
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, gens)
     ewrite(1,*) "gens length is:", key_count(gens)    
@@ -245,20 +226,20 @@ contains
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
        assert(ierror == MPI_SUCCESS)
 
-       number_detectors_received=count/buffer_size
-       allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,buffer_size))
+       ndet_received=count/det_size
+       allocate(detector_buffer(ndet_received,det_size))
 
-       call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
+       call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       do j=1, number_detectors_received
+       do j=1, ndet_received
 
           allocate(detector_received)
 
           if (have_update_vector) then
-             call unpack_detector(detector_received, receive_list_array_serialise(i)%ptr(j,1:buffer_size), dim, n_stages)
+             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim, n_stages)
           else
-             call unpack_detector(detector_received, receive_list_array_serialise(i)%ptr(j,1:buffer_size), dim)
+             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim)
           end if
 
           assert(detector_received%element>0)
@@ -275,6 +256,7 @@ contains
 
           call insert(detector_list, detector_received)           
        end do
+       deallocate(detector_buffer)
     end do    
 
     call MPI_WAITALL(number_neigh_processors, sendRequest, MPI_STATUSES_IGNORE, IERROR)
@@ -283,6 +265,6 @@ contains
     call deallocate(gens)
     call deallocate(ihash_inverse) 
 
-  end subroutine serialise_lists_exchange_receive
+  end subroutine exchange_detectors
 
-end module detector_distribution
+end module detector_parallel
