@@ -1023,7 +1023,7 @@ Specify the maximum courant number per subcycle.</a:documentation>
       <element name="reference_node">
         <a:documentation>&lt;b&gt;ONLY MAKES SENSE WITH STOKES&lt;/b&gt;
 
-Reference node (Node at which all components of velocity = 0.)
+Reference node (Node at which specified components of velocity = 0.)
 
 Must be less than the total number of nodes.
 If parallel must be less than the total number of nodes of the first processor.
@@ -1038,6 +1038,30 @@ option is available under solvers but only removes a single null space so will
 only work if your Stokes velocities are coupled in some way (not generally the 
 case unless using stress form viscosity and/or coriolis).</a:documentation>
         <ref name="integer"/>
+        <choice>
+          <element name="all_components">
+            <a:documentation>Apply this reference node to all components of velocity</a:documentation>
+            <empty/>
+          </element>
+          <element name="specify_components">
+            <a:documentation>Specify individual components of velocity to apply this reference node to</a:documentation>
+            <optional>
+              <element name="x_component">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="y_component">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="z_component">
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </choice>
       </element>
     </optional>
     <element name="solver">

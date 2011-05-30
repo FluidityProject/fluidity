@@ -1499,7 +1499,7 @@ contains
     
   end subroutine set_reference_node_scalar
 
-  subroutine set_reference_node_vector_petsc(matrix, node, rhs, reference_value, reference_node_owned)
+  subroutine set_reference_node_vector_petsc(matrix, node, rhs, mask, reference_value, reference_node_owned)
     !!< Sets a reference node for which the value is fixed in the equation
     !!< This is typically done for a Poisson equation with all Neumann
     !!< bcs to eliminate the spurious freedom of adding a constant value
@@ -1509,6 +1509,9 @@ contains
     !! if rhs is not provided, you have to make sure the rhs at 
     !! the reference node has the right value, usually 0, yourself:
     type(vector_field), optional, intent(inout) :: rhs
+    !! mask returns true for blocks in which the reference node is to be set
+    !! (false for those in which it will not be set)
+    logical, dimension(blocks(matrix, 1)), intent(in) :: mask 
     !! by default the field gets set to 0 at the reference node
     real, dimension(blocks(matrix,1)), optional, intent(in) :: reference_value
     !! in parallel all processes need to call this routine, only one
@@ -1533,7 +1536,9 @@ contains
     
     assert(blocks(matrix,1)==blocks(matrix,2))
     do k = 1, blocks(matrix, 1)
-      call addto_diag(matrix, k, k, node, INFINITY)
+      if(mask(k)) then
+        call addto_diag(matrix, k, k, node, INFINITY)
+      end if
     end do
     
     if ((present(rhs)).and.(present(reference_value))) then

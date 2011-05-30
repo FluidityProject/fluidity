@@ -2347,6 +2347,7 @@ contains
     character(len=*), intent(in) :: option_path
 
     integer :: reference_node, stat, stat2
+    logical, dimension(blocks(big_m, 1)) :: mask
 
     call get_option(trim(complete_field_path(option_path, stat=stat2))//&
         &"/reference_node", reference_node, &
@@ -2354,8 +2355,24 @@ contains
     if (stat==0) then
        ! all processors now have to call this routine, although only
        ! process 1 sets it
-       ewrite(1,*) 'Imposing_reference_velocity_node'    
-       call set_reference_node(big_m, reference_node, rhs)
+       mask = .true.
+       if(have_option(trim(complete_field_path(option_path))//&
+                     &"/reference_node/specify_components")) then
+         mask(1) = have_option(trim(complete_field_path(option_path))//&
+                              &"/reference_node/specify_components/x_component")
+         if(blocks(big_m,1)>1) then
+           mask(2) = have_option(trim(complete_field_path(option_path))//&
+                                &"/reference_node/specify_components/y_component")
+         end if
+         if(blocks(big_m,2)>2) then
+           mask(3) = have_option(trim(complete_field_path(option_path))//&
+                                &"/reference_node/specify_components/z_component")
+         end if
+         ewrite(1,*) 'Imposing_reference_velocity_node on specified components: ', mask
+       else
+         ewrite(1,*) 'Imposing_reference_velocity_node on all components'
+       end if
+       call set_reference_node(big_m, reference_node, rhs, mask)
     end if
 
   end subroutine impose_reference_velocity_node

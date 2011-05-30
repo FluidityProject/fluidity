@@ -876,7 +876,7 @@ prognostic_velocity_field =
       },
       ## <b>ONLY MAKES SENSE WITH STOKES</b>
       ##
-      ## Reference node (Node at which all components of velocity = 0.)
+      ## Reference node (Node at which specified components of velocity = 0.)
       ##
       ## Must be less than the total number of nodes.
       ## If parallel must be less than the total number of nodes of the first processor.
@@ -891,7 +891,25 @@ prognostic_velocity_field =
       ## only work if your Stokes velocities are coupled in some way (not generally the 
       ## case unless using stress form viscosity and/or coriolis).
       element reference_node {
-         integer
+         integer,
+         (
+           ## Apply this reference node to all components of velocity
+           element all_components {
+             empty
+           }|
+           ## Specify individual components of velocity to apply this reference node to
+           element specify_components {
+             element x_component {
+                empty
+             }?,
+             element y_component {
+                empty
+             }?,
+             element z_component {
+                empty
+             }?
+           }
+         )
       }?,
       ## Solver
       element solver {
