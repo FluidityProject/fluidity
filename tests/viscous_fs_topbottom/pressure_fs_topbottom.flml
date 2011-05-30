@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">viscous_fs_topbottom</string_value>
+    <string_value lines="1">pressure_fs_topbottom</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -285,17 +285,13 @@
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
-          <type name="free_surface">
-            <no_normal_stress/>
-          </type>
+          <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="Top">
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
-          <type name="free_surface">
-            <no_normal_stress/>
-          </type>
+          <type name="free_surface"/>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
@@ -355,13 +351,9 @@
       </prescribed>
     </scalar_field>
     <scalar_field name="FreeSurface" rank="0">
-      <prognostic>
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </initial_condition>
         <output/>
         <stat/>
         <convergence>
@@ -373,8 +365,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
+      </diagnostic>
     </scalar_field>
   </material_phase>
 </fluidity_options>

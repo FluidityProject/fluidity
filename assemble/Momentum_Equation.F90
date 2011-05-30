@@ -758,6 +758,9 @@
                      schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
                      call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
                         name="schur_auxiliary_matrix")
+                     if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
+                       call extend_schur_auxiliary_matrix_for_viscous_free_surface(schur_auxiliary_matrix, u, free_surface)
+                     end if
                      ! Initialize matrix:
                      call zero(schur_auxiliary_matrix)
                      if(apply_kmk) then
@@ -831,7 +834,13 @@
                   scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
+                  if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
+                    call extend_schur_auxiliary_matrix_for_viscous_free_surface(scaled_pressure_mass_matrix, u, free_surface)
+                  end if
                   call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
+                  if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
+                    call add_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
+                  end if
                end if
 
             end if ! end of prognostic pressure

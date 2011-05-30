@@ -55,7 +55,8 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   calculate_volume_by_surface_integral
 public extend_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
   update_pressure_and_viscous_free_surface, extend_matrices_for_viscous_free_surface, &
-  add_viscous_free_surface_integrals
+  add_viscous_free_surface_integrals, extend_schur_auxiliary_matrix_for_viscous_free_surface, &
+  add_viscous_free_surface_scaled_mass_integrals
   
 
 public free_surface_module_check_options
@@ -787,8 +788,8 @@ contains
     if (extend_ct_m) then
       new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
       ! only thing we want to keep from the original ct_m before deallocating
-      ! (ct_m is just a borrowed reference so we don't need to allocate ourselves, this is done by the insert)
       ct_name=ct_m%name
+      ! (ct_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
 
       call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_name)
       call deallocate(new_sparsity)
@@ -805,7 +806,7 @@ contains
       new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
       ! only thing we want to keep from the original cmc_m before deallocating
       cmc_name=cmc_m%name
-      ! (cmc_m is just a borrowed reference so we don't need to allocate ourselves, this is done by the insert)
+      ! (cmc_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
 
       ! now add the rows
       new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
@@ -823,6 +824,56 @@ contains
     call deallocate(fs_nodes)
 
   end subroutine extend_matrices_for_viscous_free_surface
+  
+  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(schur_auxiliary_matrix, u, fs)
+    ! Schur auxiliary matrix needs to be extended
+    ! in both rows and columns to store the extra entries as a result 
+    ! of extending ct_m, for the mass matrix of the time derivative in the 
+    ! kinematic bc.
+    type(csr_matrix), intent(inout) :: schur_auxiliary_matrix
+    type(vector_field), intent(in):: u
+    type(scalar_field), intent(inout):: fs
+
+    type(integer_set):: fs_nodes
+    type(csr_sparsity):: new_sparsity, new_sparsity2
+    character(len=FIELD_NAME_LEN):: schur_auxiliary_matrix_name
+    integer, dimension(:), pointer:: fs_surface_node_list
+    logical:: extend
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
+    ! (we here use fs%mesh is pressure mesh)
+    extend = size(schur_auxiliary_matrix,1)==node_count(fs)
+    ! check whether we have anything to do at all
+    if (.not. extend) return
+
+    if (.not. has_boundary_condition_name(fs, "_free_surface")) then
+      call initialise_prognostic_free_surface(fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_node_list=fs_surface_node_list)
+    call allocate(fs_nodes)
+    call insert(fs_nodes, fs_surface_node_list)
+
+    ! first add some columns
+    new_sparsity = sparsity_duplicate_columns(schur_auxiliary_matrix%sparsity, fs_nodes, schur_auxiliary_matrix%sparsity%name)
+    ! only thing we want to keep from the original matrix before deallocating
+    schur_auxiliary_matrix_name=schur_auxiliary_matrix%name
+    call deallocate(schur_auxiliary_matrix)
+
+    ! now add the rows
+    new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
+    call deallocate(new_sparsity)
+
+    call allocate(schur_auxiliary_matrix, new_sparsity2, name=schur_auxiliary_matrix_name)
+    call deallocate(new_sparsity2)
+
+    call deallocate(fs_nodes)
+
+  end subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface
   
   subroutine add_viscous_free_surface_integrals(state, ct_m, u, p, fs)
     ! This routine adds in the boundary conditions for the viscous free surface
@@ -890,7 +941,7 @@ contains
            detwei_bdy, normal_bdy)
       do dim=1, u%dim
         ! we've integrated continuity by parts, but not yet added in the resulting
-        ! surface integral - for the non-viscous free surface this is namely left
+        ! surface integral - for the non-viscous free surface this is mainly left
         ! out to enforce the kinematic bc
         call addto(ct_m, 1, dim, face_global_nodes(p,sele), &
              face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
@@ -904,6 +955,91 @@ contains
     end subroutine add_boundary_integral_sele
 
   end subroutine add_viscous_free_surface_integrals
+
+  subroutine add_viscous_free_surface_scaled_mass_integrals(state, mass, u, p, fs)
+    ! This routine adds in the boundary conditions for the viscous free surface
+    ! (that is the free_surface bc with the no_normal_stress option)
+    ! mass has been extended with some extra rows and columns (corresponding to free surface
+    ! nodes) that are used to enforce the kinematic bc.
+    ! Here we fill in those terms with the scaled mass on the free surface.
+    
+    type(state_type), intent(in):: state
+    type(csr_matrix), intent(inout):: mass
+    type(vector_field), intent(in):: u
+    type(scalar_field), intent(in):: p
+    type(scalar_field), intent(inout):: fs
+
+    type(tensor_field), pointer :: viscosity
+    type(vector_field), pointer:: x
+    type(scalar_field) :: viscosity_component, inverse_viscosity_component
+    type(mesh_type), pointer:: fs_mesh
+    type(integer_hash_table):: sele_to_fs_ele
+    character(len=FIELD_NAME_LEN):: bc_type
+    character(len=OPTION_PATH_LEN):: bc_option_path
+    integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
+    integer:: i, j
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    if (.not. has_boundary_condition_name(fs, "_free_surface")) then
+      call initialise_prognostic_free_surface(fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_free_surface" boundary condition
+    call get_boundary_condition(fs, "_free_surface", &
+        surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
+    ! create a map from face numbers to element numbers in fs_mesh
+    call invert_set(fs_surface_element_list, sele_to_fs_ele)
+
+    x => extract_vector_field(state, "Coordinate")
+
+    ! Extract viscosity tensor from state:
+    viscosity => extract_tensor_field(state,'Viscosity')
+
+    ! Extract first component of viscosity tensor from full tensor:
+    viscosity_component = extract_scalar_field(viscosity,1,1)
+
+    ! Allocate memory for inverse viscosity component scalar field:
+    call allocate(inverse_viscosity_component, viscosity_component%mesh, name="inverse_viscosity_component")
+
+    ! Invert viscosity:
+    call invert(viscosity_component,inverse_viscosity_component)
+
+
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bc_type)
+      if (bc_type=="free_surface") then
+        call get_boundary_condition(u, i, option_path=bc_option_path, &
+          surface_element_list=surface_element_list)
+        if (have_option(trim(bc_option_path)//"/type[0]/no_normal_stress")) then
+          do j=1, size(surface_element_list)
+            call add_boundary_integral_sele(surface_element_list(j))
+          end do
+        end if
+      end if
+    end do
+
+    call deallocate(inverse_viscosity_component)
+
+  contains
+
+    subroutine add_boundary_integral_sele(sele)
+      integer, intent(in):: sele
+
+      real, dimension(face_loc(p, sele), face_loc(p, sele)) :: mat_bdy
+      real, dimension(face_ngi(p, sele)) :: detwei_bdy
+      
+      call transform_facet_to_physical(x, sele, &
+           detwei_f=detwei_bdy)
+      mat_bdy = shape_shape(face_shape(p, sele), face_shape(p, sele), &
+           detwei_bdy*face_val_at_quad(inverse_viscosity_component, sele))
+      call addto(mass, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+                       node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+                       mat_bdy)
+
+    end subroutine add_boundary_integral_sele
+
+  end subroutine add_viscous_free_surface_scaled_mass_integrals
 
   
   subroutine move_mesh_free_surface(states, initialise, nonlinear_iteration)
