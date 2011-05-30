@@ -75,10 +75,35 @@ module cell_numbering
 
   type(cell_type), dimension(0:5), target :: cells
 
-  public :: cells, number_cells
+  public :: cell_type, cells, number_cells, entity_vertices,&
+       & vertices_entity
 
 contains
+
+  function entity_vertices(cell, entity)
+    ! Return a pointer to  the list of vertices associated with the given
+    ! topological entity. 
+    type(cell_type), intent(in), target :: cell
+    integer, dimension(2), intent(in) :: entity
+
+    integer, dimension(:), pointer :: entity_vertices
+
+    entity_vertices => cell%entities(entity(1), entity(2))%vertices
+    
+  end function entity_vertices
  
+  function vertices_entity(cell, vertices)
+    ! Return the entity associated with vertices.
+    ! Vertices must be in ascending order.
+    type(cell_type), intent(in) :: cell
+    integer, dimension(:), intent(in) :: vertices
+
+    integer, dimension(2) :: vertices_entity
+
+    vertices_entity=intuncat(fetch(cell%vertices2entity, intcat(vertices)),2)
+    
+  end function vertices_entity
+
   subroutine number_cells
     ! initialisation routine which causes the cells to be populated.
 
@@ -86,6 +111,7 @@ contains
     call number_cell_triangle
     call number_cell_quad
     call number_cell_tet
+    call number_cell_hex
 
   end subroutine number_cells
 
@@ -252,7 +278,10 @@ contains
     integer, dimension(:), intent(in) :: vertices
     integer, dimension(2), intent(in) :: entity
     
-    call insert(cell%vertices2entity, intcat(entity), intcat(vertices))
+    call insert(cell%vertices2entity, intcat(vertices), intcat(entity))
+
+    ! Fortran 2003 says this line is not necessary.
+    allocate(cell%entities(entity(1), entity(2))%vertices(size(vertices)))
     
     cell%entities(entity(1), entity(2))%vertices=vertices
     
@@ -271,7 +300,7 @@ contains
     
     intcat=0
     do i = 1,size(tuple)
-       intcat=intcat+16*tuple(i)
+       intcat=16*intcat+tuple(i)
     end do
 
   end function intcat
@@ -287,7 +316,7 @@ contains
     tmpint=int
 
     do i=n,1,-1
-       intuncat=mod(tmpint, 16)
+       intuncat(i)=mod(tmpint, 16)
        tmpint=tmpint/16
     end do
     
