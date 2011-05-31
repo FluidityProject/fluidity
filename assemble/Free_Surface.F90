@@ -148,12 +148,6 @@ contains
       if (grav_stat/=0) then
         FLExit("For a free surface you need gravity")
       end if
-        
-      ! if we've assembled cmc from scratch then this should be zeroed
-      ! so that the addition to the matrix isn't incremental
-      if(assemble_cmc) coef_old = 0.0
-      ! if we haven't assembled cmc from scratch then the addition involves
-      ! the change in the timestep (i.e. it increments from the previous timestep)
       
       ! get the pressure, and the pressure at the beginning of the time step
       p => extract_scalar_field(state, "Pressure")
@@ -219,7 +213,7 @@ contains
       end if
       
       ! only add to cmc if we're reassembling it (assemble_cmc = .true.)
-      ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
+      ! or if the timestep has changed
       addto_cmc = assemble_cmc.or.&
         (have_option("/timestepping/adaptive_timestep").and.(dt/=dt_old))
       do i=1, get_boundary_condition_count(u)
@@ -247,8 +241,12 @@ contains
           alpha=1.0/g/delta_rho/dt
           coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
 
-          alpha_old=1.0/g/delta_rho/dt_old
-          coef_old = alpha_old/(theta_pressure_gradient*theta_divergence*dt)
+          if (assemble_cmc) then
+            coef_old=0.0
+          else
+            alpha_old=1.0/g/delta_rho/dt_old
+            coef_old = alpha_old/(theta_pressure_gradient*theta_divergence*dt_old)
+          end if
 
           do j=1, size(surface_element_list)
             call add_free_surface_element(surface_element_list(j))
@@ -491,10 +489,10 @@ contains
           surface_element_list=surface_element_list, &
           option_path=fs_option_path)
       if (bctype=="free_surface") then
-        if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
-          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+        call get_option(trim(fs_option_path)//"/type[0]/external_density", &
               rho_external, default=0.0)
-          delta_rho=rho0-rho_external
+        delta_rho=rho0-rho_external
+        if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
           if (.not. prognostic_fs) then
             ! this should have been options checked
             FLAbort("No normal stress free surface without prognostic free surface")
@@ -619,7 +617,7 @@ contains
 
     type(integer_set):: surface_elements
     type(mesh_type), pointer:: surface_mesh
-    type(scalar_field):: delta_rho, surface_delta_rho
+    type(scalar_field):: rho_external, delta_rho
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
     real:: rho0, external_density
@@ -656,7 +654,7 @@ contains
    call allocate(delta_rho, surface_mesh, "DensityDifference")
 
    ! compute delta_rho=rho0-rho_external
-   call remap_to_surface(rho_external, delta_rho, surface_element_list)
+   call remap_field_to_surface(rho_external, delta_rho, surface_element_list)
    call scale(delta_rho, -1.0)
    call get_reference_density_from_options(rho0, state%option_path)
    call addto(delta_rho, rho0)
@@ -719,7 +717,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_scalar_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
 
     ! p is not theta weighted (as usual for incompressible)
     p_theta%val(1:node_count(p)) = p%val
@@ -744,7 +742,6 @@ contains
     real:: g, dt
     integer:: stat
 
-    call get_reference_density_from_options(rho0, state%option_path)
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
     if (stat/=0) then
@@ -756,7 +753,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_scalar_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
 
     p%val=p%val+delta_p%val(1:node_count(p))/dt
 
