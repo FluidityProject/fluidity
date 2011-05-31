@@ -295,6 +295,9 @@
           </surface_ids>
           <type name="free_surface">
             <no_normal_stress/>
+            <external_density>
+              <real_value rank="0">1.5</real_value>
+            </external_density>
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">

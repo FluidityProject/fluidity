@@ -2746,6 +2746,12 @@ velocity_boundary_conditions =
               element no_normal_stress {
                  empty
               }?,
+              ## When selected a hydrostatic pressure distribution on the outside is assumed
+              ## using the specified density, i.e. instead of applying p=0 (resp.
+              ## no_normal_stress=0) we apply p=p_external (resp. no_normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
+              element external_density {
+                 real
+              }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT

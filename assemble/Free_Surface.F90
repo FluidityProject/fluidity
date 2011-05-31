@@ -129,7 +129,7 @@ contains
       type(mesh_type), pointer:: fs_mesh
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
-      real:: g, rho0, alpha, coef, d0
+      real:: g, rho0, external_density, delta_rho, alpha, alpha_old, coef, coef_old, d0
       integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
       integer:: fs_node_offset
       integer:: i, j, grav_stat, fs_stat
@@ -138,7 +138,7 @@ contains
       logical:: have_wd, have_wd_node_int
       logical:: prognostic_fs, use_fs_mesh
       
-      real, save :: coef_old = 0.0
+      real, save :: dt_old = 0.0
       
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection routine'
       ewrite(2,*) "Are we adding free-surface contribution to RHS:",present(rhs)
@@ -167,7 +167,7 @@ contains
         if (have_option(trim(free_surface%option_path)//"/prognostic")) then
           prognostic_fs=.true.
           if (.not. has_boundary_condition_name(free_surface, "_free_surface")) then
-            call initialise_prognostic_free_surface(free_surface, u)
+            call initialise_prognostic_free_surface(state, free_surface, u)
           end if
           ! obtain the f.s. surface mesh that has been stored under the
           ! "_free_surface" boundary condition
@@ -218,13 +218,10 @@ contains
         positions => extract_vector_field(state, "Coordinate")
       end if
       
-      alpha=1.0/g/rho0/dt
-      coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
-
       ! only add to cmc if we're reassembling it (assemble_cmc = .true.)
       ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
       addto_cmc = assemble_cmc.or.&
-        (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
+        (have_option("/timestepping/adaptive_timestep").and.(dt/=dt_old))
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
            surface_element_list=surface_element_list, &
@@ -243,6 +240,16 @@ contains
             use_fs_mesh=.false.
           end if
 
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+             external_density, default=0.0)
+          delta_rho=rho0-external_density
+
+          alpha=1.0/g/delta_rho/dt
+          coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
+
+          alpha_old=1.0/g/delta_rho/dt_old
+          coef_old = alpha_old/(theta_pressure_gradient*theta_divergence*dt)
+
           do j=1, size(surface_element_list)
             call add_free_surface_element(surface_element_list(j))
           end do
@@ -257,8 +264,8 @@ contains
         call deallocate(sele_to_fs_ele)
       end if      
       
-      ! save the coefficient with the current timestep for the next time round
-      coef_old = coef
+      ! save the current timestep, so we know how much to add when it changes
+      dt_old = dt
     
       if(present(rhs)) then
          ewrite_minmax(rhs)
@@ -318,8 +325,8 @@ contains
       
       if (use_fs_mesh) then
         nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
-        top_pressures = g*rho0*face_val(free_surface, sele)
-        old_top_pressures = g*rho0*face_val(old_free_surface, sele)
+        top_pressures = g*delta_rho*face_val(free_surface, sele)
+        old_top_pressures = g*delta_rho*face_val(old_free_surface, sele)
       else
         nodes = face_global_nodes(p, sele)
         top_pressures = face_val(p, sele)
@@ -423,7 +430,7 @@ contains
     type(mesh_type), pointer:: fs_mesh
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
-    real g, coef, rho0
+    real g, coef, rho0, delta_rho, rho_external
     integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
     integer:: fs_node_offset
     integer i, j, grav_stat, fs_stat
@@ -450,7 +457,7 @@ contains
       if (have_option(trim(free_surface%option_path)//"/prognostic")) then
         prognostic_fs=.true.
         if (.not. has_boundary_condition_name(free_surface, "_free_surface")) then
-          call initialise_prognostic_free_surface(free_surface, u)
+          call initialise_prognostic_free_surface(state, free_surface, u)
         end if
         ! obtain the f.s. surface mesh that has been stored under the
         ! "_free_surface" boundary condition
@@ -478,11 +485,6 @@ contains
     ! elevation (p/rho0/g) specified by the inital pressure at the surface nodes
     ! or, with prognostic fs, use the free surface node values directly
     positions => extract_vector_field(state, "Coordinate")
-    if (prognostic_fs) then
-      coef=theta_pg**2*dt**2
-    else
-      coef=g*rho0*theta_pg**2*dt**2
-    end if
       
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
@@ -490,6 +492,9 @@ contains
           option_path=fs_option_path)
       if (bctype=="free_surface") then
         if (have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+              rho_external, default=0.0)
+          delta_rho=rho0-rho_external
           if (.not. prognostic_fs) then
             ! this should have been options checked
             FLAbort("No normal stress free surface without prognostic free surface")
@@ -497,9 +502,12 @@ contains
           use_fs_mesh=.true.
           ! node i in the fs_mesh will be associated with row/column i+fs_node_offset in cmc
           fs_node_offset=node_count(p)
+          coef=theta_pg**2*dt**2
         else
           use_fs_mesh=.false.
+          coef=g*delta_rho*theta_pg**2*dt**2
         end if
+
         do j=1, size(surface_element_list)
           call add_free_surface_element(surface_element_list(j))
         end do
@@ -604,24 +612,38 @@ contains
 
   end subroutine copy_poisson_solution_to_interior
 
-  subroutine initialise_prognostic_free_surface(fs, u)
+  subroutine initialise_prognostic_free_surface(state, fs, u)
+    type(state_type), intent(in):: state
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
 
     type(integer_set):: surface_elements
+    type(mesh_type), pointer:: surface_mesh
+    type(scalar_field):: delta_rho, surface_delta_rho
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
-    integer, dimension(:), pointer:: surface_element_list
+    real:: rho0, external_density
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer:: i
+
+    ! external density is first evaluated as a full mesh field - although
+    ! only surface nodes are set - this is to avoid complicated remapping
+    ! of different surface element/nodes numberings
+    call allocate(rho_external, fs%mesh)
+    call zero(rho_external)
 
     call allocate(surface_elements)
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
           surface_element_list=surface_element_list, &
+          surface_node_list=surface_node_list, &
           option_path=fs_option_path)
       if (bctype=="free_surface" .and. &
              have_option(trim(fs_option_path)//"/type[0]/no_normal_stress")) then
          call insert(surface_elements, surface_element_list)
+         call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+            external_density, default=0.0)
+         call set(delta_rho, external_density)
       end if
     end do
 
@@ -629,6 +651,20 @@ contains
    surface_element_list=set2vector(surface_elements)
    call add_boundary_condition_surface_elements(fs, "_free_surface", "free_surface", &
       surface_element_list)
+
+   call get_boundary_condition(fs, "_free_surface", surface_mesh=surface_mesh)
+   call allocate(delta_rho, surface_mesh, "DensityDifference")
+
+   ! compute delta_rho=rho0-rho_external
+   call remap_to_surface(rho_external, delta_rho, surface_element_list)
+   call scale(delta_rho, -1.0)
+   call get_reference_density_from_options(rho0, state%option_path)
+   call addto(delta_rho, rho0)
+   call deallocate(rho_external)
+
+   call insert_surface_field(u, "_free_surface", delta_rho)
+   call deallocate(delta_rho)
+
    deallocate(surface_element_list)
 
   end subroutine initialise_prognostic_free_surface
@@ -648,7 +684,7 @@ contains
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
       u => extract_vector_field(state, "Velocity")
       assert(have_option(trim(u%option_path)//"/prognostic"))
-      call initialise_prognostic_free_surface(fs, u)
+      call initialise_prognostic_free_surface(state, fs, u)
     end if
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
@@ -668,11 +704,11 @@ contains
     type(scalar_field), intent(inout):: p_theta
     ! copy p and fs into p_theta that is allocated on the extended pressure mesh
 
+    type(scalar_field), pointer:: delta_rho
     integer, dimension(:), pointer:: fs_surface_node_list
-    real:: g, rho0
+    real:: g
     integer:: grav_stat
 
-    call get_reference_density_from_options(rho0, state%option_path)
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
     if (grav_stat/=0) then
@@ -683,12 +719,13 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
+    delta_rho => extract_scalar_surface_field(fs, "_free_surface", "DeltaRho")
 
     ! p is not theta weighted (as usual for incompressible)
     p_theta%val(1:node_count(p)) = p%val
 
     p_theta%val(node_count(p)+1:) = ((1.-theta_pg)*oldfs%val(fs_surface_node_list) + &
-        theta_pg*fs%val(fs_surface_node_list))*rho0*g
+        theta_pg*fs%val(fs_surface_node_list))*delta_rho%val*g
 
   end subroutine copy_to_extended_p
 
@@ -702,8 +739,9 @@ contains
 
     type(vector_field), pointer:: x, vertical_normal
     type(scalar_field), pointer:: topdis
+    type(scalar_field), pointer:: delta_rho
     integer, dimension(:), pointer:: fs_surface_node_list, surface_element_list
-    real:: g, rho0, dt
+    real:: g, dt
     integer:: stat
 
     call get_reference_density_from_options(rho0, state%option_path)
@@ -718,10 +756,11 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
+    delta_rho => extract_scalar_surface_field(fs, "_free_surface", "DeltaRho")
 
     p%val=p%val+delta_p%val(1:node_count(p))/dt
 
-    call addto(fs, fs_surface_node_list, delta_p%val(node_count(p)+1:)/(dt*rho0*g*theta_pg))
+    call addto(fs, fs_surface_node_list, delta_p%val(node_count(p)+1:)/(dt*delta_rho%val*g*theta_pg))
 
     ! if /geometry/ocean_boundaries are specified take the new fs values
     ! at the top and extrapolate them downwards
@@ -776,7 +815,7 @@ contains
     if (.not. (extend_ct_m .or. extend_cmc_m)) return
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
-      call initialise_prognostic_free_surface(fs, u)
+      call initialise_prognostic_free_surface(state, fs, u)
     end if
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
@@ -825,11 +864,12 @@ contains
 
   end subroutine extend_matrices_for_viscous_free_surface
   
-  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(schur_auxiliary_matrix, u, fs)
+  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, fs)
     ! Schur auxiliary matrix needs to be extended
     ! in both rows and columns to store the extra entries as a result 
     ! of extending ct_m, for the mass matrix of the time derivative in the 
     ! kinematic bc.
+    type(state_type), intent(in):: state
     type(csr_matrix), intent(inout) :: schur_auxiliary_matrix
     type(vector_field), intent(in):: u
     type(scalar_field), intent(inout):: fs
@@ -849,7 +889,7 @@ contains
     if (.not. extend) return
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
-      call initialise_prognostic_free_surface(fs, u)
+      call initialise_prognostic_free_surface(state, fs, u)
     end if
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
@@ -901,7 +941,7 @@ contains
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
-      call initialise_prognostic_free_surface(fs, u)
+      call initialise_prognostic_free_surface(state, fs, u)
     end if
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
@@ -982,7 +1022,7 @@ contains
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
-      call initialise_prognostic_free_surface(fs, u)
+      call initialise_prognostic_free_surface(state, fs, u)
     end if
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_free_surface" boundary condition
