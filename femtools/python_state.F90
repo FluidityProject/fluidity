@@ -37,7 +37,8 @@ module python_state
   public :: python_init, python_reset
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
-  public :: python_run_string, python_run_file, python_run_string_keep_locals
+  public :: python_run_string, python_run_file
+  public :: python_run_detector_string, python_run_detector_val
   public :: python_shell
   public :: python_fetch_real
 
@@ -72,24 +73,37 @@ module python_state
       integer, intent(out) :: stat
     end subroutine python_run_filec
 
-    !! Run a python string and keep its local context in a global dictionary
-    subroutine python_run_string_keep_locals_c(str, strlen, dict, dictlen, key, keylen, stat) bind(c)
+    !! Run a python string and keep its local context in a global dictionary, 
+    !! under a given key. Using the same dict name and key we can then evaluate 
+    !! the specified val() function at a later stage.
+    !! Wrapped by python_run_detector_string
+    subroutine python_run_string_keep_locals_c(str, strlen, dict, dictlen, &
+           key, keylen, stat) bind(c)
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in) :: strlen, dictlen, keylen
-      character(kind=c_char,len = 1), intent(in) :: str, dict, key
+      integer(c_int), intent(in), value :: strlen, dictlen, keylen
+      character(kind=c_char), dimension(strlen), intent(in) :: str
+      character(kind=c_char), dimension(dictlen), intent(in) :: dict
+      character(kind=c_char), dimension(keylen), intent(in) :: key
       integer(c_int), intent(out) :: stat
     end subroutine python_run_string_keep_locals_c
 
-    !! Evaluate the val() function from a local context in the global dict
-    subroutine python_run_val_from_locals_c(dict, dictlen, key, keylen, value, stat) bind(c)
+    !! Evaluate the detector val() function from a local namespace in the global dictionary
+    !! Interface: val(ele, local_coords), where
+    !! ele: elelement number, integer, 
+    !! local_coords: vector of size dim
+    !! Not wrapped, since this will be called a lot
+    subroutine python_run_detector_val(ele, dim, lcoords, dict, dictlen, key, keylen, &
+           value) bind(c, name='python_run_detector_val_from_locals_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in) :: dictlen, keylen
-      character(kind=c_char,len = 1), intent(in) :: dict, key
-      real(c_double), intent(out) :: value
-      integer(c_int), intent(out) :: stat
-    end subroutine python_run_val_from_locals_c
+      integer(c_int), intent(in), value :: ele, dim
+      real(c_double), dimension(dim), intent(in) :: lcoords
+      integer(c_int), intent(in), value :: dictlen, keylen
+      character(kind=c_char), dimension(dictlen), intent(in) :: dict
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      real(c_double), dimension(dim), intent(out) :: value
+    end subroutine python_run_detector_val
 
   end interface
 
@@ -572,16 +586,24 @@ module python_state
     
   end subroutine python_run_string
 
-  subroutine python_run_string_keep_locals(str, dict, key, stat)
-    !!< Wrapper for function for python_run_stringc
-    
+  subroutine python_run_detector_string(str, dict, key, stat)
+    !!< Wrapper function for python_run_string_keep_locals_c
     character(len = *), intent(in) :: str, dict, key
     integer, optional, intent(out) :: stat
     
-    integer :: lstat
+    integer :: lstat, ele, dim
+    real, dimension(3) :: lcoords, value
         
     if(present(stat)) stat = 0
-    call python_run_string_keep_locals_c(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat)    
+    call python_run_string_keep_locals_c(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat) 
+
+    ele=6
+    dim=3
+    lcoords = (/ 0.1, 0.2, 0.3 /)
+    value = (/ 0.0, 0.0, 0.0 /)
+
+    call python_run_detector_val(ele, dim, lcoords, dict, len_trim(dict), key, len_trim(key), value) 
+    ewrite(3,*) "ml805 debug: python_run_detector_string returns:", value
 
     if(lstat /= 0) then
       if(present(stat)) then
@@ -593,7 +615,7 @@ module python_state
       end if
     end if
     
-  end subroutine python_run_string_keep_locals
+  end subroutine python_run_detector_string
   
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec

@@ -99,15 +99,15 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #endif
 }
 
-void python_run_string_keep_locals_c(char *str, int *strlen, 
-                                     char *dict, int *dictlen, 
-                                     char *key, int *keylen, int *stat){
+void python_run_string_keep_locals_c(char *str, int strlen, 
+                                     char *dict, int dictlen, 
+                                     char *key, int keylen, int *stat){
 #ifdef HAVE_PYTHON
-  /* Run a python command from Fortran and store local context
+  /* Run a python command from Fortran and store local namespace
    * in a global dictionary for later evaluation
    */
-  char *c = fix_string(str,*strlen);
-  int tlen=8+*strlen;
+  char *c = fix_string(str,strlen);
+  int tlen=8+strlen;
   char t[tlen];
   snprintf(t, tlen, "%s\n",c);
 
@@ -122,35 +122,87 @@ void python_run_string_keep_locals_c(char *str, int *strlen,
   PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
 
   // Create dictionary to hold the locals if it doesn't exist
-  char *local_dict = fix_string(dict, *dictlen);
-  PyObject *pDetLocals= PyDict_GetItemString(pGlobals, local_dict);
-  if(!pDetLocals){
-    int cmdlen = *dictlen + 8;
+  char *local_dict = fix_string(dict, dictlen);
+  PyObject *pLocalDict= PyDict_GetItemString(pGlobals, local_dict);
+  if(!pLocalDict){
+    int cmdlen = dictlen + 8;
     char cmd[cmdlen];
     snprintf(cmd, cmdlen, "%s=dict()", local_dict);
     PyRun_SimpleString(cmd);
-    pDetLocals= PyDict_GetItemString(pGlobals, local_dict);
+    pLocalDict= PyDict_GetItemString(pGlobals, local_dict);
   }
 
   // Now store a copy of our local namespace
-  char *local_key = fix_string(key, *keylen);
-  *stat = PyDict_SetItemString(pDetLocals, local_key, pLocals);
-  PyRun_SimpleString("print \"ml805 debug: \" + str(detector_locals)");
+  char *local_key = fix_string(key, keylen);
+  *stat = PyDict_SetItemString(pLocalDict, local_key, pLocals);
 
   // Check for Python errors
   if(!pCode){
     PyErr_Print();
     *stat=-1;
+    return;
   }
 
   free(c); 
 #endif
 }
 
-void python_run_val_from_locals_c(char *dict, int *dictlen, 
-                                  char *key, int *keylen, 
-                                  double *value, int *stat){
+void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
+                                           char *dict, int dictlen, 
+                                           char *key, int keylen,
+                                           double value[]){
 #ifdef HAVE_PYTHON
+  /* Evaluate the detector val() function from a previously stored local namespace
+   * found in dict under key. The interface is: val(ele, local_coords)
+   */
+
+  // Get a reference to the main module and global dictionary
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
+
+  // Get the local context from the global dictionary
+  char *local_dict = fix_string(dict, dictlen);
+  PyObject *pLocalDict= PyDict_GetItemString(pGlobals, local_dict);
+  char *local_key = fix_string(key, keylen);
+  PyObject *pLocals = PyDict_GetItemString(pLocalDict, local_key);
+
+  // Extract val function from the code.
+  PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+
+  // Create ele argument
+  PyObject *pEle = PyInt_FromLong( (long)ele );
+
+  // Create local_coords argument
+  int i;
+  PyObject *pLCoords = PyTuple_New(dim);
+  for(i=0; i<dim; i++){
+    PyTuple_SetItem(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
+  }
+
+  // Tuple of arguments to function;
+  PyObject *pArgs=PyTuple_New(2);
+  PyTuple_SetItem(pArgs, 0, pEle);
+  PyTuple_SetItem(pArgs, 1, pLCoords);
+
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    return;
+  }
+
+  // Run val(ele, local_coords)
+  PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
+ 
+  // Check for Python errors
+  if(!pResult){
+    PyErr_Print();
+    return;
+  }
+
+  // Convert the python result
+  for(i=0; i<dim; i++){
+    value[i] = PyFloat_AsDouble( PySequence_GetItem(pResult, i) );
+  }
 
 #endif
 }

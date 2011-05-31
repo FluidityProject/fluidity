@@ -176,14 +176,17 @@
           <random_walk>
             <string_value lines="20" type="python">velocity = state.vector_fields['Velocity']
 
-print "In python global"
+print "In outer python"
 
 def val(ele,local_coords):
   # The val function should only present detector attributes
   # that enable us to evaluate the field at the current position
   # eval_field is not yet implemented in python
-  print "In python val function"
-  return velocity.eval_field(ele, local_coords)</string_value>
+  print "In detector val function"
+  print "ele: "+str(ele)
+  print "local_coords: " + str(local_coords)
+  return (1.0, 0.9, 0.8)
+  #return velocity.eval_field(ele, local_coords)</string_value>
           </random_walk>
           <exclude_from_advection/>
           <comment>Dave should move just like Steve, but using the python interface.</comment>

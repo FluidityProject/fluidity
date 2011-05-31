@@ -151,8 +151,8 @@ contains
        call python_reset()
        call python_add_state(state(1))
 
-       ! Run the user's code and store val object
-       call python_run_string_keep_locals(trim(parameters%rw_pycode), trim("detector_locals"), trim("Dave"))
+       ! Run the user's code and store val object in "random_walk" dict
+       call python_run_detector_string(trim(parameters%rw_pycode), trim("random_walk"), trim("Dave"))
     end if
 
     ! This is here temporarily and checks whether we actually want to advect this detector list
