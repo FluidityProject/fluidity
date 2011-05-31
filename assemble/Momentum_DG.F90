@@ -1703,11 +1703,7 @@ contains
              end if
 
              if(viscosity_scheme==ARBITRARY_UPWIND) then
-                if(multiphase) then
-                   Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei*ele_val_at_quad(nvfrac,ele))        
-                else
-                   Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
-                end if
+               Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
              end if
 
           end if
@@ -2430,35 +2426,29 @@ contains
 
     subroutine arbitrary_upwind_viscosity
 
-       real, dimension(face_ngi(u, face)) :: coefficient_detwei
-
        !! Arbitrary upwinding scheme.
        do dim=1,mesh_dim(U)
-          coefficient_detwei = detwei*normal(dim,:)
-          if(multiphase) then
-            coefficient_detwei = coefficient_detwei*nvfrac_gi
-          end if
 
           if (normal(dim,1)>0) then          
              ! Internal face.
              Grad_U_mat(dim, q_face_l, U_face_l)=&
                   Grad_U_mat(dim, q_face_l, U_face_l) &
-                  +shape_shape(q_shape, U_shape, coefficient_detwei)
+                  +shape_shape(q_shape, U_shape, detwei*normal(dim,:))
              
              ! External face. Note the sign change which is caused by the
              ! divergence matrix being constructed in transpose.
              Div_U_mat(dim, q_face_l, start:finish)=&
-                  -shape_shape(q_shape, U_shape_2, coefficient_detwei)
+                  -shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
              
              ! Internal face.
              Div_U_mat(dim, q_face_l, U_face_l)=&
                   Div_U_mat(dim, q_face_l, U_face_l) &
-                  +shape_shape(q_shape, U_shape, coefficient_detwei)
+                  +shape_shape(q_shape, U_shape, detwei*normal(dim,:))
              
           else
              ! External face.
              Grad_U_mat(dim, q_face_l, start:finish)=&
-                  +shape_shape(q_shape, U_shape_2, coefficient_detwei)
+                  +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
              
           end if
        end do
