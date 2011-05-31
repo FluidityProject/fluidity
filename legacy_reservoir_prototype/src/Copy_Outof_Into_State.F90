@@ -123,6 +123,7 @@ module copy_outof_into_state
       REAL, DIMENSION( : ), ALLOCATABLE::SATURABC
 
       type(vector_field), pointer :: velocity, velocity_source
+      type(vector_field), pointer :: velocity_bc
 
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
 
@@ -1068,8 +1069,13 @@ endif
 
       enddo Loop_VolumeFraction
 
+!!!
+!!! Velocity and associated boundary conditions:
+!!!
       ewrite(3,*) "velocity..."
-      do i=1,nphases
+
+      Loop_Velocity: do i = 1, nphases
+
          velocity => extract_vector_field(state(i), "Velocity")
          if (.not. allocated(u)) then
             allocate(u(nphases*node_count(velocity)))
@@ -1079,12 +1085,22 @@ endif
          u=0.
          v=0.
          w=0.
+
+         ! This will make sure that the fields in the PC *does not* contain any boundary conditions
+         ! elements. This need to be changed along with the future data structure to take into 
+         ! account the overlapping formulation.
          do j=1,node_count(velocity)
             u((i-1)*node_count(velocity)+j)=velocity%val(X_, j)
             if (ndim>1) v((i-1)*node_count(velocity)+j)=velocity%val(Y_, j)
             if (ndim>2) w((i-1)*node_count(velocity)+j)=velocity%val(Z_, j)
          enddo
-      enddo
+
+         Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+              ']/vector_field::Velocity/prognostic/' // &
+              'boundary_conditions[0]/type::dirichlet' )) then
+         endif Conditional_Velocity_BC
+
+      enddo Loop_Velocity
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
