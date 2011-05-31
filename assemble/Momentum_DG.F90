@@ -1680,6 +1680,8 @@ contains
        else
           ! Tau Q = grad(u)
           if(multiphase) then
+            ! By setting up an auxiliary variable q, such that
+            ! vfrac*q = vfrac*div(u), the mass matrix becomes \int{N_A vfrac N_B}:
             Q_inv= shape_shape(q_shape, q_shape, detwei*nvfrac_gi)
           else
             Q_inv= shape_shape(q_shape, q_shape, detwei)
@@ -1696,12 +1698,12 @@ contains
                ! For multiphase simulations, we need to compute -\int{grad(N_A vfrac) N_B},
                ! so split up grad(N_A vfrac) using the product rule and compute
                ! -\int{grad(N_A) vfrac N_B} - \int{N_A grad(vfrac) N_B}
-               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*ele_val_at_quad(nvfrac, ele)) - &
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*nvfrac_gi) - &
                                          shape_shape_vector(q_shape, u_shape, detwei, grad_nvfrac_gi)
              else
                Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, U_shape, detwei)
              end if
-
+ 
              if(viscosity_scheme==ARBITRARY_UPWIND) then
                Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
              end if
