@@ -695,8 +695,7 @@ contains
 
   end subroutine extend_pressure_mesh_for_viscous_free_surface
   
-  subroutine copy_to_extended_p(state, p, fs, oldfs, theta_pg, p_theta)
-    type(state_type), intent(in):: state
+  subroutine copy_to_extended_p(p, fs, oldfs, theta_pg, p_theta)
     type(scalar_field), intent(in):: p, fs, oldfs
     real, intent(in):: theta_pg
     type(scalar_field), intent(inout):: p_theta
@@ -1184,27 +1183,22 @@ contains
     type(vector_field), pointer:: positions, u, original_positions
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
     type(vector_field), pointer:: iterated_positions
-    type(scalar_field), pointer:: p, original_bottomdist
+    type(scalar_field), pointer:: p
+    type(scalar_field), pointer:: topdis, bottomdis
     type(vector_field), target :: local_grid_u
-    type(scalar_field), target:: p_mapped_to_coordinate_space
+    type(scalar_field), target:: fs_mapped_to_coordinate_space, local_fs
+    type(scalar_field):: local_fracdis, scaled_fs
     character(len=FIELD_NAME_LEN):: bctype
-    real g, dt, rho0, atmospheric_pressure, d0
+    real dt 
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
-    integer, dimension(:), pointer :: surface_node_list
     integer i, j, k, node, sele, stat
 
     ! some fields for when moving the entire mesh
-    type(scalar_field), pointer :: topdis, bottomdis
     type(scalar_field), pointer :: fracdis
-    type(scalar_field) :: extrapolated_p
-    ! The pressure difference, i.e. p relative to external pressures
-    ! (such as atmospheric pressure and pressure due to the weight of an ice shelf)
-    type(scalar_field), target :: p_relative
-    type(scalar_field), pointer :: equilibrium_pressure, fs
+    type(scalar_field), pointer :: fs
     
-    logical :: l_initialise, have_wd, have_prognostic_fs
-    real :: coef
+    logical :: l_initialise, have_prognostic_fs
     
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
@@ -1214,13 +1208,7 @@ contains
     l_initialise = present_and_true(initialise)
     
     ! gravity acceleration
-    call get_option('/physical_parameters/gravity/magnitude', g)
     call get_option('/timestepping/timestep', dt)
-    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-    if (have_wd) then
-     original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-   end if
  
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
@@ -1232,78 +1220,37 @@ contains
     assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
 
     u => extract_vector_field(state, "Velocity")
-    
-    ! eos/fluids/linear/subtract_out_hydr.level is options checked below
-    ! so the ref. density should be present
-    call get_reference_density_from_options(rho0, state%option_path)
-    coef=g*rho0
-    
     p => extract_scalar_field(state, "Pressure")
+    
     fs => extract_scalar_field(state, "FreeSurface", stat=stat)
     have_prognostic_fs=.false.
     if (stat==0) then
       have_prognostic_fs = have_option(trim(fs%option_path)//"/prognostic")
-      if (have_prognostic_fs) then
-        ! if we have a prognostic free surface use it, diagnostic fs might not always be up to date
-        p => fs
-        ! no need to divide by g*rho0 in this case
-        coef=1.0
-      end if
+    else
+      call allocate(local_fs, p%mesh, "LocalFreeSurface")
+      fs => local_fs
+    end if
+    if (.not. have_prognostic_fs) then
+      ! make sure the fs is up-to-date with the latest pressure values
+      call calculate_diagnostic_free_surface(state, fs)
     end if
 
-    if (have_option(trim(p%option_path)//'/prognostic/atmospheric_pressure') .or. have_option('/ocean_forcing/shelf')) then
-       if (have_prognostic_fs) then
-         ewrite(-1,*) "You have selected /ocean_forcing/shelf or atmospheric_pressure option under pressure"
-         FLExit("These options don't currently work with a prognostic free surface")
-       end if
-       call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', atmospheric_pressure, default=0.0)
-
-       p_relative=extract_scalar_field(state, "PressureRelativeToExternal", stat=stat)
-       if (stat/=0) then
-          call allocate(p_relative, p%mesh, "PressureRelativeToExternal")
-          call zero(p_relative)
-       else
-          if (.not. p_relative%mesh==p%mesh) then
-             FLExit("The diagnostic field PressureRelativeToExternal is required to be on the pressure mesh.")
-          end if
-          call incref(p_relative)
-       end if
-
-       call set(p_relative, p)
-       ! Set the p solved for relative to external pressures, i.e. p => p_relative = p - atmospheric_pressure
-       call addto(p_relative, - atmospheric_pressure)
-
-       if (have_option('/ocean_forcing/shelf') .and. .not. have_option('/ocean_forcing/shelf/calculate_only')) then
-         equilibrium_pressure=>extract_scalar_field(state, "EquilibriumPressure", stat=stat)
-         if (stat/=0) then
-            FLExit("EquilibriumPressure diagnostic field required with shelf ocean forcing and mesh movement at the moment.")
-         end if
-         if (.not. equilibrium_pressure%mesh==p%mesh) then
-            FLExit("The diagnostic field EquilibriumPressure is required to be on the pressure mesh.")
-         end if
-         call calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
-         call addto(p_relative, equilibrium_pressure, scale=-1.0)
-       end if
-
-       p => p_relative
-    end if
-
-
-    if (.not. p%mesh==positions%mesh) then
-      call allocate(p_mapped_to_coordinate_space, positions%mesh)
-      call remap_field(p, p_mapped_to_coordinate_space, stat=stat)
+    if (.not. fs%mesh==positions%mesh) then
+      call allocate(fs_mapped_to_coordinate_space, positions%mesh)
+      call remap_field(fs, fs_mapped_to_coordinate_space, stat=stat)
       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
         ewrite(-1,*) "Just remapped from a discontinuous to a continuous field when using free_surface mesh movement."
-        ewrite(-1,*) "This suggests the pressure is discontinuous, which isn't supported."
+        ewrite(-1,*) "This suggests the FreeSurface is discontinuous, which isn't supported."
         FLExit("Discontinuous pressure not permitted.")
       else if(stat/=0 .and. stat/=REMAP_ERR_UNPERIODIC_PERIODIC .and. stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
-        FLAbort("Something went wrong mapping pressure to the CoordinateMesh")
+        FLAbort("Something went wrong mapping FreeSurface to the CoordinateMesh")
       end if
       ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
-      if (associated(p, p_relative)) then
-         call deallocate(p_relative)
+      
+      if (associated(fs, local_fs)) then
+        call deallocate(local_fs)
       end if
-      p => p_mapped_to_coordinate_space
+      fs => fs_mapped_to_coordinate_space
     end if
    
     if(.not.l_initialise) then
@@ -1320,62 +1267,47 @@ contains
     
     if (have_option("/mesh_adaptivity/mesh_movement/free_surface/move_whole_mesh")) then
     
-      topdis => extract_scalar_field(state, "DistanceToTop")
-      bottomdis => extract_scalar_field(state, "DistanceToBottom")
-      
-      ! first we need to extrapolate the pressure down from the surface
-      call allocate(extrapolated_p, p%mesh, "ExtrapolatedPressure")
-
-      call get_boundary_condition(topdis, 1, &
-        surface_node_list=surface_node_list, surface_element_list=surface_element_list)
-        
-      ! Vertically extrapolate pressure values at the free surface downwards
-      ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
-      ! The use of Coordinate here (as opposed to IteratedCoordinate or OldCoordinate)
-      ! doesn't affect anything as nodes only move in the vertical.
-      if (.not. have_wd) then
-        call VerticalExtrapolation(p, extrapolated_p, positions, &
-          gravity_normal, surface_element_list=surface_element_list, &
-          surface_name="DistanceToTop")
-      else
-        ! With wetting and drying we set the minimum depth to -OriginalDistanceToBottom+d0
-        call set(extrapolated_p, p)
-        do node=1, size(surface_node_list)
-            call set(extrapolated_p, surface_node_list(node), max(node_val(extrapolated_p, surface_node_list(node)), &
-                                                                & -g*node_val(original_bottomdist, surface_node_list(node))+g*d0))
-        end do
-        call VerticalExtrapolation(extrapolated_p, extrapolated_p, positions, &
-                gravity_normal, surface_element_list=surface_element_list, &
-                        surface_name="DistanceToTop")
+      if (.not. have_option("/geometry/ocean_boundaries")) then
+        ! ensure we have ocean boundaries so the fs has been extrapolated downwards
+        ewrite(-1,*) "With /mesh_adaptivity/mesh_movement/free_surface/move_whole_mesh" // &
+           "you need /geometry/ocean_boundaries"
+        FLExit("Missing option")
       end if
+      
+      topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+      bottomdis => extract_scalar_field(state, "DistanceToBottom", stat=stat)
 
-      ! Then we need to scale it by its fractional distance from the bottom
+      ! allocate a scaled free surface, that is equal to fs at the top
+      ! and linearly decreases to 0 at the bottom
+      call allocate(scaled_fs, fs%mesh, "ScaledFreeSurface")
+      ! start by setting it equal to fs everywhere
+      call set(scaled_fs, fs)
+
+      ! Now we need to scale it by its fractional distance from the bottom
       ! Since the fractional distance is constant in time, we compute it once and save it.
       if (.not. has_scalar_field(state, "FractionalDistance")) then
-        allocate(fracdis)
-        call allocate(fracdis, topdis%mesh, "FractionalDistance")     
-        call set(fracdis, topdis)
-        call addto(fracdis, bottomdis)
-        call invert(fracdis)
-        call scale(fracdis, bottomdis)
-        call insert(state, fracdis, name="FractionalDistance")
-        call deallocate(fracdis)
-        deallocate(fracdis)
+        call allocate(local_fracdis, fs%mesh, "FractionalDistance")     
+        call set(local_fracdis, topdis)
+        call addto(local_fracdis, bottomdis)
+        call invert(local_fracdis)
+        call scale(local_fracdis, bottomdis)
+        call insert(state, local_fracdis, name="FractionalDistance")
+        call deallocate(local_fracdis)
       end if
       fracdis => extract_scalar_field(state, "FractionalDistance")
 
-      call scale(extrapolated_p, fracdis)
+      call scale(scaled_fs, fracdis)
         
       do node=1, node_count(positions)
         call set(iterated_positions, node, &
                   node_val(original_positions, node)- &
-                  node_val(extrapolated_p, node)*node_val(gravity_normal, node)/coef)
+                  node_val(scaled_fs, node)*node_val(gravity_normal, node))
                   
         if(.not.l_initialise) call set(grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
       end do
       
-      call deallocate(extrapolated_p)
+      call deallocate(scaled_fs)
     
     else
       
@@ -1395,22 +1327,9 @@ contains
             node_loop: do k=1, size(face_nodes)
                 node=face_nodes(k)
                 ! compute new surface node position:
-                if (have_wd) then
-                  if (node_val(p, node)/g/rho0 > -node_val(original_bottomdist, node)+d0) then
-                    call set(iterated_positions, node, &
-                      node_val(original_positions, node)- &
-                      node_val(p, node)*node_val(gravity_normal, node)/coef)
-                  else
-                    call set(iterated_positions, node, &
-                           & node_val(original_positions, node) + &
-                           & (node_val(original_bottomdist, node)-d0)*node_val(gravity_normal, node))
-                  end if
-
-                else
-                  call set(iterated_positions, node, &
+                call set(iterated_positions, node, &
                     node_val(original_positions, node)- &
-                    node_val(p, node)*node_val(gravity_normal, node)/coef)
-                end if
+                    node_val(fs, node)*node_val(gravity_normal, node))
 
                 ! compute new surface node grid velocity:
                 if(.not.l_initialise) call set(grid_u, node, &
@@ -1438,10 +1357,10 @@ contains
       ewrite_minmax(grid_u)
     end if
     
-    if (associated(p, p_mapped_to_coordinate_space)) then
-       call deallocate(p_mapped_to_coordinate_space)
-    else if (associated(p, p_relative)) then
-       call deallocate(p_relative)
+    if (associated(fs, fs_mapped_to_coordinate_space)) then
+       call deallocate(fs_mapped_to_coordinate_space)
+    else if (associated(fs, local_fs)) then
+       call deallocate(local_fs)
     end if
 
   end subroutine move_free_surface_nodes
@@ -1546,13 +1465,15 @@ contains
   subroutine calculate_diagnostic_free_surface(state, free_surface)
   !!< calculates a 3D field (constant over the vertical) of the free surface elevation
   !!< This can be added as a diagnostic field in the flml.
-  type(state_type), intent(in):: state
+  type(state_type), intent(inout):: state
   type(scalar_field), target, intent(inout):: free_surface
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
      type(scalar_field), pointer:: p, topdis, original_bottomdist
+     type(scalar_field), pointer:: equilibrium_pressure, p_relative
      type(scalar_field) :: original_bottomdist_remap
+     type(scalar_field), target:: local_p_relative
      character(len=OPTION_PATH_LEN):: fs_option_path
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0, external_density, delta_rho, d0, p_atm 
@@ -1581,7 +1502,42 @@ contains
        call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
        call remap_field(original_bottomdist, original_bottomdist_remap)
        call addto(original_bottomdist_remap, -d0)
-     end if      
+     end if
+
+     if (have_option('/ocean_forcing/shelf')) then
+       p_relative => extract_scalar_field(state, "PressureRelativeToExternal", stat=stat)
+       if (stat/=0) then
+         call allocate(local_p_relative, p%mesh, "PressureRelativeToExternal")
+         call zero(local_p_relative)
+         p_relative => local_p_relative
+       else
+         if (.not. p_relative%mesh==p%mesh) then
+           FLExit("The diagnostic field PressureRelativeToExternal is required to be on the pressure mesh.")
+         end if
+         call incref(p_relative)
+       end if
+
+       call set(p_relative, p)
+       ! Set the p solved for relative to external pressures, i.e. p => p_relative = p - atmospheric_pressure
+       call addto(p_relative, - p_atm)
+       ! we subtract out p_atm here, so don't do it again
+       p_atm=0.0
+
+       if (have_option('/ocean_forcing/shelf') .and. .not. have_option('/ocean_forcing/shelf/calculate_only')) then
+         equilibrium_pressure=>extract_scalar_field(state, "EquilibriumPressure", stat=stat)
+         if (stat/=0) then
+            FLExit("EquilibriumPressure diagnostic field required with shelf ocean forcing and mesh movement at the moment.")
+         end if
+         if (.not. equilibrium_pressure%mesh==p%mesh) then
+            FLExit("The diagnostic field EquilibriumPressure is required to be on the pressure mesh.")
+         end if
+         call calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+         call addto(p_relative, equilibrium_pressure, scale=-1.0)
+       end if
+
+       p => p_relative
+     end if
+
      u => extract_vector_field(state, "Velocity")
      call get_reference_density_from_options(rho0, state%option_path)
 
@@ -1624,6 +1580,9 @@ contains
 
      if (have_wd) then
        call deallocate(original_bottomdist_remap)
+     end if
+     if (have_option('/ocean_forcing/shelf')) then
+       call deallocate(p_relative)
      end if
 
      topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
