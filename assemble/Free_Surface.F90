@@ -1553,8 +1553,9 @@ contains
      type(vector_field), pointer:: x, u, vertical_normal
      type(scalar_field), pointer:: p, topdis, original_bottomdist
      type(scalar_field) :: original_bottomdist_remap
+     character(len=OPTION_PATH_LEN):: fs_option_path
      character(len=FIELD_NAME_LEN):: bctype
-     real:: g, rho0, d0
+     real:: g, rho0, external_density, delta_rho, d0, p_atm 
      integer:: i, j, sele, stat
      logical :: have_wd
 
@@ -1567,73 +1568,86 @@ contains
      assert(free_surface%mesh==p%mesh)
 
      call get_option('/physical_parameters/gravity/magnitude', g)
+     call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
+       p_atm, default=0.0)
+
      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+     ! Do the wetting and drying corrections: In dry regions, the free surface is not coupled to 
+     ! the pressure but is fixed to -OriginalCoordinate+d0
+     if (have_wd) then
+       call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+       original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
+       ! We need the OriginalDistanceToBottom on the pressure mesh
+       call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
+       call remap_field(original_bottomdist, original_bottomdist_remap)
+       call addto(original_bottomdist_remap, -d0)
+     end if      
      u => extract_vector_field(state, "Velocity")
      call get_reference_density_from_options(rho0, state%option_path)
-          
-     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
-     if (stat==0) then
-       ! note we're not using the actual free_surface bc here, as 
-       ! that may be specified in parts, or not cover the whole area
-       call get_boundary_condition(topdis, 1, &
-         surface_element_list=surface_element_list)
-         
-       vertical_normal => extract_vector_field(state, "GravityDirection")
-    
- 
-       ! Do the wetting and drying corrections: In dry regions, the free surface is not coupled to 
-       ! the pressure but is fixed to -OriginalCoordinate+d0
-       if (have_wd) then
-          call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-          original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-          ! We need the OriginalDistanceToBottom on the pressure mesh
-          call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-          call remap_field(original_bottomdist, original_bottomdist_remap)
-          call addto(original_bottomdist_remap, -d0)
-          call scale(original_bottomdist_remap, -g*rho0)
-          call set(free_surface, p)
-          !call set(p, free_surface)
-          !call set(original_bottomdist_remap, -0.3)
-          call bound(free_surface, lower_bound=original_bottomdist_remap)
-          call deallocate(original_bottomdist_remap)
-          p=>free_surface
-       end if      
 
-       ! vertically extrapolate pressure values at the free surface downwards
-       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
-       call VerticalExtrapolation(p, free_surface, x, &
-         vertical_normal, surface_element_list=surface_element_list, &
-         surface_name="DistanceToTop")
-       ! divide by rho0 g
-       call scale(free_surface, 1/g/rho0)
-       
-     else
-     
-       ! if no vertical extrapolation is available, only copy
-       ! the values at the free surface nodes and divide by rho0 g
-       
-       ! make sure other nodes are zeroed
-       call zero(free_surface)    
+     !
+     ! first we compute the right free surface values at the free surface
+     ! nodes only
+     !
 
-       do i=1, get_boundary_condition_count(u)
-          call get_boundary_condition(u, i, type=bctype, &
-             surface_element_list=surface_element_list)
-          if (bctype=="free_surface") then
+     ! make sure other nodes are zeroed
+     call zero(free_surface)    
+
+     do i=1, get_boundary_condition_count(u)
+        call get_boundary_condition(u, i, type=bctype, &
+           surface_element_list=surface_element_list, &
+           option_path=fs_option_path)
+        if (bctype=="free_surface") then
+
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+             external_density, default=0.0)
+          delta_rho=rho0-external_density
+      
+          face_loop: do j=1, size(surface_element_list)
+
+            sele=surface_element_list(j)
+             
+            call set(free_surface, &
+               face_global_nodes(free_surface, sele), &
+               (face_val(p, sele)-p_atm)/delta_rho/g)
+            if (have_wd) then
+              ! bound free surface from below by -orig_bottomdist+d0
+              call set(free_surface, face_global_nodes(free_surface, sele), &
+                max(face_val(free_surface, sele), -face_val(original_bottomdist_remap, sele)))
+            end if
+             
+          end do face_loop
+             
+        end if
         
-             face_loop: do j=1, size(surface_element_list)
+     end do
 
-               sele=surface_element_list(j)
-               
-               call set(free_surface, &
-                 face_global_nodes(free_surface, sele), &
-                 face_val(p, sele)/rho0/g)
-               
-             end do face_loop
-               
-          end if
-          
-       end do      
+     if (have_wd) then
+       call deallocate(original_bottomdist_remap)
      end if
+
+     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+     ! if /geometry/ocean_boundaries are not specified we leave at this
+     if (stat/=0) return
+
+     !
+     ! otherwise we continue to extrapolate vertically from the free
+     ! surface values calculated above
+     !
+
+
+     ! note we're not using the actual free_surface bc here, as 
+     ! that may be specified in parts, or not cover the whole area
+     call get_boundary_condition(topdis, 1, &
+         surface_element_list=surface_element_list)
+     vertical_normal => extract_vector_field(state, "GravityDirection")
+
+     ! vertically extrapolate pressure values at the free surface downwards
+     ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+     call VerticalExtrapolation(free_surface, free_surface, x, &
+       vertical_normal, surface_element_list=surface_element_list, &
+       surface_name="DistanceToTop")
+     
   end subroutine calculate_diagnostic_free_surface
 
   subroutine update_wettingdrying_alpha(state)
@@ -1947,7 +1961,7 @@ contains
       
       ! check prognostic FreeSurface options:
       option_path=trim(phase_path)//'/scalar_field::FreeSurface/prognostic'
-      if (have_viscous_free_surface .and. .not. have_option(option_path)) then
+      if (have_free_surface .and. have_viscous_free_surface .and. .not. have_option(option_path)) then
         FLExit("For a free surface with no_normal_stress you need a prognostic FreeSurface")
       end if
       if (have_option(trim(option_path))) then
