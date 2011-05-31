@@ -1182,7 +1182,7 @@ module copy_outof_into_state
                        allocate( Temperature_sufid_bc( 1 : shape_option( 1 )))
                   Temperature_bc_type = 1
 
-                  call get_option( "/material_phase[" // int2str(i-1) //"]/scalar_field::" &
+                  call get_option( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
                        "Temperature/prognostic/" // &
                        "boundary_conditions[0]/surface_ids", Temperature_sufid_bc )
 
