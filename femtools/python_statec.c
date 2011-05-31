@@ -99,37 +99,59 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #endif
 }
 
-void python_run_string_get_valc(char *s,int *slen, void *val){
+void python_run_string_keep_locals_c(char *str, int *strlen, 
+                                     char *dict, int *dictlen, 
+                                     char *key, int *keylen, int *stat){
 #ifdef HAVE_PYTHON
-  // Run a python command from Fortran and return val PyObject
-  PyObject *pMain=NULL, *pGlobals=NULL, *pLocals=NULL, *pFunc=NULL, *pCode=NULL;
-
-  char *c = fix_string(s,*slen);
-  int tlen=8+*slen;
+  /* Run a python command from Fortran and store local context
+   * in a global dictionary for later evaluation
+   */
+  char *c = fix_string(str,*strlen);
+  int tlen=8+*strlen;
   char t[tlen];
   snprintf(t, tlen, "%s\n",c);
 
   // Get a reference to the main module and global dictionary
-  pMain = PyImport_AddModule("__main__");
-  pGlobals = PyModule_GetDict(pMain);
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
 
   // Global and local namespace dictionaries for our code.
-  pLocals=PyDict_New();
+  PyObject *pLocals = PyDict_New();
   
   // Execute the user's code.
-  pCode=PyRun_String(t, Py_file_input, pGlobals, pLocals);
+  PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
+
+  // Create dictionary to hold the locals if it doesn't exist
+  char *local_dict = fix_string(dict, *dictlen);
+  PyObject *pDetLocals= PyDict_GetItemString(pGlobals, local_dict);
+  if(!pDetLocals){
+    int cmdlen = *dictlen + 8;
+    char cmd[cmdlen];
+    snprintf(cmd, cmdlen, "%s=dict()", local_dict);
+    PyRun_SimpleString(cmd);
+    pDetLocals= PyDict_GetItemString(pGlobals, local_dict);
+  }
+
+  // Now store a copy of our local namespace
+  char *local_key = fix_string(key, *keylen);
+  *stat = PyDict_SetItemString(pDetLocals, local_key, pLocals);
+  PyRun_SimpleString("print \"ml805 debug: \" + str(detector_locals)");
 
   // Check for Python errors
   if(!pCode){
     PyErr_Print();
+    *stat=-1;
   }
 
-  // Extract the function from the code.
-  val = NULL;
-  val=(void *)PyDict_GetItemString(pLocals, "val");
-  printf("ml805 debug: In python_run_string_get_valc, val: %p\n", val);
-
   free(c); 
+#endif
+}
+
+void python_run_val_from_locals_c(char *dict, int *dictlen, 
+                                  char *key, int *keylen, 
+                                  double *value, int *stat){
+#ifdef HAVE_PYTHON
+
 #endif
 }
 

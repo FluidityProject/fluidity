@@ -37,7 +37,7 @@ module python_state
   public :: python_init, python_reset
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
-  public :: python_run_string, python_run_file, python_run_string_get_val
+  public :: python_run_string, python_run_file, python_run_string_keep_locals
   public :: python_shell
   public :: python_fetch_real
 
@@ -72,14 +72,24 @@ module python_state
       integer, intent(out) :: stat
     end subroutine python_run_filec
 
-    !! Run a python string and return a pointer to val
-    subroutine python_run_string_get_valc(s, slen, val) bind(c)
+    !! Run a python string and keep its local context in a global dictionary
+    subroutine python_run_string_keep_locals_c(str, strlen, dict, dictlen, key, keylen, stat) bind(c)
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in) :: slen
-      character(kind=c_char,len = 1), intent(in) :: s
-      type(c_ptr), intent(inout) :: val
-    end subroutine python_run_string_get_valc
+      integer(c_int), intent(in) :: strlen, dictlen, keylen
+      character(kind=c_char,len = 1), intent(in) :: str, dict, key
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_string_keep_locals_c
+
+    !! Evaluate the val() function from a local context in the global dict
+    subroutine python_run_val_from_locals_c(dict, dictlen, key, keylen, value, stat) bind(c)
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in) :: dictlen, keylen
+      character(kind=c_char,len = 1), intent(in) :: dict, key
+      real(c_double), intent(out) :: value
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_val_from_locals_c
 
   end interface
 
@@ -562,31 +572,28 @@ module python_state
     
   end subroutine python_run_string
 
-  subroutine python_run_string_get_val(s, val, stat)
+  subroutine python_run_string_keep_locals(str, dict, key, stat)
     !!< Wrapper for function for python_run_stringc
     
-    character(len = *), intent(in) :: s
-    type(c_ptr), intent(out) :: val
+    character(len = *), intent(in) :: str, dict, key
     integer, optional, intent(out) :: stat
     
     integer :: lstat
-
-    val = C_NULL_PTR 
         
     if(present(stat)) stat = 0
-    call python_run_string_get_valc(s, len_trim(s), val)
-    ewrite(3,*) "ml805 debug: fortran val_func:", val
-    if(.not.c_associated(val)) then
+    call python_run_string_keep_locals_c(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat)    
+
+    if(lstat /= 0) then
       if(present(stat)) then
         stat = -1
       else
         ewrite(-1, *) "Python error, Python string was:"
-        ewrite(-1, *) trim(s)
+        ewrite(-1, *) trim(str)
         FLExit("Dying")
       end if
     end if
     
-  end subroutine python_run_string_get_val
+  end subroutine python_run_string_keep_locals
   
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec

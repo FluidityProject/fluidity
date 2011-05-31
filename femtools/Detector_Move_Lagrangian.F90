@@ -152,8 +152,7 @@ contains
        call python_add_state(state(1))
 
        ! Run the user's code and store val object
-       call python_run_string_get_val(trim(parameters%rw_pycode), val_func, python_err) 
-       ewrite(3,*) "ml805 debug: exiting python, c_associated(val_func):", c_associated(val_func), "python_err:", python_err
+       call python_run_string_keep_locals(trim(parameters%rw_pycode), trim("detector_locals"), trim("Dave"))
     end if
 
     ! This is here temporarily and checks whether we actually want to advect this detector list
