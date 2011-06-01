@@ -351,7 +351,7 @@ Field_derivatives.o ../include/field_derivatives.mod: Field_derivatives.F90 \
    ../include/vtk_interfaces.mod ../include/surfacelabels.mod \
    ../include/halos.mod ../include/fetools.mod ../include/node_boundary.mod \
    ../include/vector_tools.mod ../include/elements.mod ../include/fields.mod \
-   ../include/superconvergence.mod ../include/state_module.mod \
+   ../include/state_module.mod \
    ../include/eventcounter.mod ../include/vector_set.mod ../include/fdebug.h \
    ../include/transform_elements.mod
 
@@ -617,7 +617,7 @@ Integer_set.o ../include/integer_set_module.mod: Integer_set.F90 \
 	@true
 
 Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
-   ../include/superconvergence.mod ../include/supermesh_construction.mod \
+   ../include/supermesh_construction.mod \
    ../include/meshdiagnostics.mod ../include/futils.mod \
    ../include/field_options.mod ../include/sparse_tools.mod \
    ../include/fields.mod ../include/node_ownership.mod \
@@ -910,7 +910,7 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 	@true
 
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
-   ../include/superconvergence.mod ../include/unittest_tools.mod \
+   ../include/unittest_tools.mod \
    ../include/futils.mod ../include/polynomials.mod \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/spud.mod ../include/fdebug.h ../include/fldebug.mod
@@ -1033,12 +1033,6 @@ Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
    ../include/fields.mod ../include/parallel_tools.mod ../include/spud.mod \
    ../include/eventcounter.mod ../include/sparsity_patterns.mod \
    ../include/fdebug.h ../include/state_module.mod
-
-../include/superconvergence.mod: Superconvergence.o
-	@true
-
-Superconvergence.o ../include/superconvergence.mod: Superconvergence.F90 \
-   ../include/vector_tools.mod ../include/elements.mod ../include/fdebug.h
 
 ../include/supermesh_construction.mod: Supermesh.o
 	@true

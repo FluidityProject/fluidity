@@ -33,7 +33,6 @@ module shape_functions
   use polynomials
   use elements
   use element_numbering
-  use Superconvergence
   use spud, only: option_count, get_option
   
   implicit none
@@ -288,8 +287,6 @@ contains
       end if
 
     end do
-
-    shape%superconvergence => get_superconvergence(shape)
 
   end function make_element_shape
 

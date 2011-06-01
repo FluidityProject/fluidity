@@ -265,10 +265,6 @@ module fields_base
   interface extract_scalar_field ! extract_scalar_field is already used in State.F90
      module procedure extract_scalar_field_from_vector_field, extract_scalar_field_from_tensor_field
   end interface
-
-  interface ele_val_at_superconvergent
-     module procedure ele_val_at_superconvergent_scalar, ele_val_at_superconvergent_vector, ele_val_at_superconvergent_tensor
-  end interface
     
   interface field2file
      module procedure field2file_scalar, field2file_vector
@@ -2936,49 +2932,6 @@ contains
 
     sfield%refcount => tfield%refcount
   end function extract_scalar_field_from_tensor_field
-
-  function ele_val_at_superconvergent_scalar(field, ele_number) result (superconvergent_val)
-    ! Return the values of field at the superconvergent points of ele_number.
-    type(scalar_field),intent(in) :: field
-    integer, intent(in) :: ele_number
-    real, dimension(field%mesh%shape%superconvergence%nsp) :: superconvergent_val
-
-    type(element_type), pointer :: shape
-
-    shape=>ele_shape(field,ele_number)
-
-    superconvergent_val=matmul(ele_val(field, ele_number), shape%superconvergence%n)
-
-  end function ele_val_at_superconvergent_scalar
-
-  function ele_val_at_superconvergent_vector(field, ele_number) result (superconvergent_val)
-    ! Return the values of field at the superconvergent points of ele_number.
-    type(vector_field),intent(in) :: field
-    integer, intent(in) :: ele_number
-    real, dimension(field%dim, field%mesh%shape%superconvergence%nsp) :: superconvergent_val
-
-    type(element_type), pointer :: shape
-
-    shape=>ele_shape(field,ele_number)
-
-    superconvergent_val=matmul(ele_val(field, ele_number), shape%superconvergence%n)
-
-  end function ele_val_at_superconvergent_vector
-  
-  function ele_val_at_superconvergent_tensor(field, ele_number) result (superconvergent_val)
-    ! Return the values of field at the superconvergent points of ele_number.
-    type(tensor_field),intent(in) :: field
-    integer, intent(in) :: ele_number
-    real, dimension(field%dim(1), field%dim(2), &
-         field%mesh%shape%superconvergence%nsp) :: superconvergent_val
-
-    type(element_type), pointer :: shape
-
-    shape=>ele_shape(field,ele_number)
-
-    superconvergent_val=tensormul(ele_val(field, ele_number), shape%superconvergence%n)
-
-  end function ele_val_at_superconvergent_tensor
     
   subroutine field2file_scalar(filename, field)
     !!< Write the field values to filename.

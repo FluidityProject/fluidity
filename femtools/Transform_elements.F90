@@ -60,7 +60,7 @@ module transform_elements
   private
   public :: transform_to_physical, transform_facet_to_physical, &
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
-            transform_superconvergent_to_physical, transform_horizontal_to_physical, &
+            transform_horizontal_to_physical, &
             compute_jacobian, compute_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache
   
@@ -1573,76 +1573,6 @@ contains
     end function cross_product
     
   end subroutine transform_cvsurf_facet_to_physical
-
-  subroutine transform_superconvergent_to_physical(X, x_shape, n_shape, dnsp_t) 
-    !!< Given a positions shape function and node positions return the
-    !!< return the transformed derivatives of X at the superconvergent
-    !!< points. 
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(:,:), intent(in) :: X
-    !! Shape function used for coordinate interpolation
-    type(element_type), intent(in) :: x_shape, n_shape
-    !! Derivatives at superconvergent points in physical coordinates. 
-    !! (x_shape%loc x x_shape%superconvergence%nsp x dim)
-    real, dimension(:,:,:), intent(out) ::  dnsp_t
-    
-    ! Jacobian matrix and its inverse. (dim x dim)
-    real :: detJ
-    real, dimension(size(X,1),size(X,1)) :: J, invJ
-
-    integer :: sp, i, k, dim
-
-    dim=size(X,1)
-
-    assert(size(X,2)==x_shape%loc)
-    assert(size(dnsp_t,1)==n_shape%loc)
-    assert(size(dnsp_t,2)==n_shape%superconvergence%nsp)
-    assert(size(dnsp_t,3)==dim)
-
-    ! Loop over superconvergent points.
-    super_point_loop: do sp=1,n_shape%superconvergence%nsp
-
-       if ((sp==1).or.(x_shape%degree>1)) then
-         !     |- dx  dx  dx  -|
-         !     |  dL1 dL2 dL3  |
-         !     |               |
-         !     |  dy  dy  dy   |
-         ! J = |  dL1 dL2 dL3  |
-         !     |               |
-         !     |  dz  dz  dz   |
-         !     |- dL1 dL2 dL3 -|
-  
-         ! Form Jacobian.
-         J=transpose(matmul(X, x_shape%superconvergence%dn(:, sp, :)))
-  
-         select case (dim)
-         case(1)
-            invJ=1.0
-         case(2)
-            invJ=reshape((/J(2,2),-J(2,1),-J(1,2),J(1,1)/),(/2,2/))
-         case(3)
-            ! Calculate (scaled) inverse using recursive determinants.
-            forall (i=1:dim,k=1:dim) 
-               invJ(k,i)=J(cyc3(i+1),cyc3(k+1))*J(cyc3(i+2),cyc3(k+2)) &
-                    -J(cyc3(i+2),cyc3(k+1))*J(cyc3(i+1),cyc3(k+2))
-            end forall
-         case default
-            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
-         end select
-         
-         detJ=dot_product(J(1,:),invJ(:,1))
-         invJ=invJ/detJ
-       end if
-
-       ! Evaluate derivatives in physical space.
-       do i=1,n_shape%loc
-          dnsp_t(i,sp,:)=matmul(invJ, n_shape%superconvergence%dn(i,sp,:))
-       end do
-       
-    end do super_point_loop
-       
-  end subroutine transform_superconvergent_to_physical
     
   subroutine transform_horizontal_to_physical(X_f, X_face_shape, vertical_normal, &
     m_f, dm_hor, detwei_hor)

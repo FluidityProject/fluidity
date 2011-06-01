@@ -33,6 +33,7 @@ module elements
   use FLDebug
   use polynomials
   use reference_counting
+  use cell_numbering
   implicit none
 
   type element_type
@@ -53,31 +54,12 @@ module elements
      !! Link back to the quadrature used for this element.
      type(quadrature_type) :: quadrature
      type(quadrature_type), pointer :: surface_quadrature=>null()
-     !! Pointer to the superconvergence data for this element.
-     type(superconvergence_type), pointer :: superconvergence=>null()
      !! Reference count to prevent memory leaks.
      type(refcount_type), pointer :: refcount=>null()
      !! Dummy name to satisfy reference counting
      character(len=0) :: name
+     
   end type element_type
-
-  type superconvergence_type
-    !!< A structure to represent the superconvergent points of the element in question.
-    !!< This is in this module because it has to be in element_type,
-    !!< but Superconvergence.F90 depends on Elements.F90. So Elements.F90
-    !!< cannot depend on Superconvergence.F90. (Fortran is a real pain.)
-    !! Number of superconvergent points
-    integer :: nsp 
-    !! Locations of superconvergent points in local coordinates
-    !! allocated to nsp x loc
-    real, pointer :: l(:, :)
-    !! Shape functions at each superconvergent point.
-    !! loc x nsp
-    real, pointer :: n(:, :)
-    !! Derivatives of shape functions at each superconvergent point
-    !! loc x nsp x ndim
-    real, pointer :: dn(:, :, :)
-  end type superconvergence_type
 
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
