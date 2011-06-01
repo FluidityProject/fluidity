@@ -622,7 +622,8 @@ contains
     character(len=OPTION_PATH_LEN):: fs_option_path
     real:: rho0, external_density
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer:: i
+    integer, dimension(face_loc(fs, 1)) :: fs_nodes
+    integer:: i, j
 
     ! external density is first evaluated as a full mesh field - although
     ! only surface nodes are set - this is to avoid complicated remapping
@@ -641,7 +642,10 @@ contains
          call insert(surface_elements, surface_element_list)
          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
             external_density, default=0.0)
-         call set(delta_rho, external_density)
+         do j = 1, size(surface_element_list)
+           fs_nodes = face_global_nodes(fs, surface_element_list(j))
+           call set(rho_external, fs_nodes, spread(external_density, 1, size(fs_nodes)))
+         end do
       end if
     end do
 
@@ -660,7 +664,7 @@ contains
    call addto(delta_rho, rho0)
    call deallocate(rho_external)
 
-   call insert_surface_field(u, "_free_surface", delta_rho)
+   call insert_surface_field(fs, "_free_surface", delta_rho)
    call deallocate(delta_rho)
 
    deallocate(surface_element_list)
@@ -717,7 +721,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DensityDifference")
 
     ! p is not theta weighted (as usual for incompressible)
     p_theta%val(1:node_count(p)) = p%val
@@ -753,7 +757,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DensityDifference")
 
     p%val=p%val+delta_p%val(1:node_count(p))/dt
 
