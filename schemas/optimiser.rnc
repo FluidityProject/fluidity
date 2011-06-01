@@ -1,0 +1,91 @@
+include "spud_base.rnc"
+
+start =
+   (
+      ## The root node of the options dictionary.
+      element optimiser_options {
+         comment,
+         ## Output files are named according to the optimisation
+         ## name, e.g. [optimisation_name]_0.stat. Non-standard
+         ## characters in the optimisation name should be avoided.
+         element optimisation_name {
+            anystring
+         },
+         model_template,
+         optimisation_options,
+         control_io
+      }
+   )
+
+model_template = 
+   (
+      ## Options to specifing the *flml file containing to model
+      ## configuration template
+      element model_template {
+         attribute file_name { xsd:string }
+      }
+   )
+
+optimisation_options =
+   (
+      ## Options for the optimisation algorithm.
+      element optimisation_options {
+         (
+            ## Minimize the functional using the BFGS algorithm.
+            element optimisation_algorithm {
+              attribute name { "BFGS" },
+              comment
+            }|
+            ## Minimize the functional using the LBFGS algorithm. 
+            element optimisation_algorithm {
+              attribute name { "LBFGS" },
+              comment
+            }|
+            ## Minimize the functional using modified Powell’s method.
+            element optimisation_algorithm {
+               attribute name { "Powell" },
+               comment
+            }
+         ),
+         ## The optimisation loop tolerance
+         element tolerance {
+              real
+         },
+         comment
+      }
+   )
+
+control_io =
+   (
+      ## Read mesh from file.
+      element control_io {
+         (
+            ## Triangle mesh format.
+            ##
+            ## Enter the base name without the .edge .ele, .face or
+            ## .node extensions, and without process numbers.
+            element type {
+              attribute name { "custom" },
+              ## Python function which takes as input a dictionary of the new model parameters and
+              ## updates the corresponding model schema file.
+              element update_model_template {
+                 python_code
+              },
+              comment
+            }|
+            ## Read the mesh from a vtu. Note that the mesh will have no 
+            ## surface or region IDs.
+            element type {
+              attribute name { "initial_condition" },
+              comment
+            }|
+            ## GMSH mesh format
+            element type {
+               attribute name { "boundary_condition" },
+               comment
+            }
+         ),
+         comment
+      }
+   )
+

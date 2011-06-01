@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimiser_options>
+  <optimisation_name>
+    <string_value lines="1">shallow_water_optimisation_A</string_value>
+  </optimisation_name>
+  <model_template file_name="adjoint_A"/>
+  <optimisation_options>
+    <optimisation_algorithm name="BFGS"/>
+    <tolerance>
+      <real_value rank="0">1e-5</real_value>
+    </tolerance>
+  </optimisation_options>
+  <control_io>
+    <type name="custom">
+      <update_model_template>
+        <string_value type="python" lines="20">def update_schema():
+  return 0.0</string_value>
+      </update_model_template>
+    </type>
+  </control_io>
+</optimiser_options>
