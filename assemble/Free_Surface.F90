@@ -622,7 +622,8 @@ contains
     character(len=OPTION_PATH_LEN):: fs_option_path
     real:: rho0, external_density
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer:: i
+    integer, dimension(face_loc(fs, 1)) :: fs_nodes
+    integer:: i, j
 
     ! external density is first evaluated as a full mesh field - although
     ! only surface nodes are set - this is to avoid complicated remapping
@@ -641,8 +642,10 @@ contains
          call insert(surface_elements, surface_element_list)
          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
             external_density, default=0.0)
-         call set(rho_external, surface_node_list, &
-           spread(external_density, 1, size(surface_node_list)))
+         do j = 1, size(surface_element_list)
+           fs_nodes = face_global_nodes(fs, surface_element_list(j))
+           call set(rho_external, fs_nodes, spread(external_density, 1, size(fs_nodes)))
+         end do
       end if
     end do
 
