@@ -87,7 +87,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
   tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
   Detector_Data_Types.o Detector_Tools.o \
-  Detector_Move_RK_Guided_Search.o Detector_Distribution.o Detector_Move_Lagrangian.o \
+  Detector_Move_RK_Guided_Search.o Detector_Parallel.o Detector_Move_Lagrangian.o \
   Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \

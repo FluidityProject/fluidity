@@ -31,11 +31,6 @@ module zoltan_detectors
     type(vector_field), intent(in) :: positions
 
     detector%local = .true.
-    if (detector%type == STATIC_DETECTOR) then
-       detector%initial_owner=-1
-    else
-       detector%initial_owner=getprocno()
-    end if
     detector%local_coords=local_coords(positions,detector%element,detector%position)
     detector%name=default_stat%detector_list%detector_names(detector%id_number)    
     

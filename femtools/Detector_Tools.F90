@@ -257,36 +257,87 @@ contains
 
   end subroutine delete_all_detectors
 
-  subroutine pack_detector(detector, buff, ndims)
-    ! Packs the element, position, id_number and type of the
-    ! detector into buff
+  subroutine pack_detector(detector, buff, ndims, nstages)
+    ! Packs (serialises) detector into buff
+    ! Basic fields are: element, position, id_number and type
+    ! If nstages is given, the detector is still moving
+    ! and we also pack update_vector and k
     type(detector_type), pointer, intent(in) :: detector
-    real, dimension(:),  intent(out) :: buff
+    real, dimension(:), intent(out) :: buff
     integer, intent(in) :: ndims
+    integer, intent(in), optional :: nstages
 
-    assert(size(buff)==ndims+3)
+    assert(detector%element>0)
+    assert(size(buff)>=ndims+3)
 
+    ! Basic fields: ndims+3
     buff(1) = detector%element
     buff(2:ndims+1) = detector%position
     buff(ndims+2) = detector%id_number
     buff(ndims+3) = detector%type
+
+    ! Lagrangian advection fields: (nstages+1)*ndims
+    if (present(nstages)) then
+       assert(size(buff)==(nstages+2)*ndims+3)
+       assert(allocated(detector%update_vector))
+       assert(allocated(detector%k))
+
+       buff(ndims+4:2*ndims+3) = detector%update_vector
+       buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
+    else
+       assert(size(buff)==ndims+3)
+    end if
+
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector, buff, ndims)
-    ! Unpacks the element, position, id_number and type of the
-    ! detector from buff
+  subroutine unpack_detector(detector, buff, ndims, nstages)
+    ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer, intent(inout) :: detector
     real, dimension(:), intent(in) :: buff
     integer, intent(in) :: ndims
+    integer, intent(in), optional :: nstages
 
-    assert(size(buff)==ndims+3)
+    assert(size(buff)>=ndims+3)
 
+    if (.not. allocated(detector%position)) then
+       allocate(detector%position(ndims))
+    end if
+
+    ! Basic fields: ndims+3
     detector%element = buff(1)
     detector%position = reshape(buff(2:ndims+1),(/ndims/))
     detector%id_number = buff(ndims+2)
     detector%type = buff(ndims+3)
-    
+
+    assert(detector%element>0)
+
+    ! Lagrangian advection fields: (nstages+1)*ndims
+    if (present(nstages)) then
+       assert(size(buff)==(nstages+2)*ndims+3)
+
+       ! update_vector, dimension(ndim)
+       if (.not. allocated(detector%update_vector)) then
+          allocate(detector%update_vector(ndims))
+       end if       
+       detector%update_vector = reshape(buff(ndims+4:2*ndims+3),(/ndims/))
+
+       ! k, dimension(nstages:ndim)
+       if (.not. allocated(detector%k)) then
+          allocate(detector%k(nstages,ndims))
+       end if  
+       detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
+
+       ! If update_vector still exists, we're not done moving
+       detector%search_complete=.false.
+    else
+       assert(size(buff)==ndims+3)
+
+       detector%search_complete=.true.
+    end if
+
+    ! If detector was received it is local
+    detector%local = .true.     
   end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)

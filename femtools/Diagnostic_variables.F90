@@ -74,7 +74,7 @@ module diagnostic_variables
   use fields_manipulation
   use detector_data_types
   use detector_tools
-  use detector_distribution
+  use detector_parallel
   use detector_move_lagrangian
 
   implicit none
@@ -1882,11 +1882,12 @@ contains
 
        detector => default_stat%detector_list%firstnode
        do while (associated(detector))
-          if (element_owner(xfield%mesh,detector%element)/=getprocno() .or. detector%element<0) then 
+          if ( detector%element<0) then 
+             call delete(default_stat%detector_list,detector)
+          elseif (element_owner(xfield%mesh,detector%element)/=getprocno()) then
              call delete(default_stat%detector_list,detector)
           else
-             detector%local=.true.
-             detector%initial_owner=getprocno()            
+             detector%local=.true.           
              detector => detector%next
           end if
        end do
@@ -2846,16 +2847,12 @@ contains
     node => detector_list%firstnode
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
-      
-      if (node%initial_owner /= -1 .or. procno == 1) then
-        assert(size(node%position) == dim)
-      
-        offset = location_to_write + (node%id_number - 1) * dim * realsize
+      assert(size(node%position) == dim)  
+    
+      offset = location_to_write + (node%id_number - 1) * dim * realsize
 
-        call mpi_file_write_at(detector_list%mpi_fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-        assert(ierror == MPI_SUCCESS)
-      end if
-      
+      call mpi_file_write_at(detector_list%mpi_fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
       node => node%next
     end do position_loop
     assert(.not. associated(node))
@@ -2876,25 +2873,21 @@ contains
 
           node => detector_list%firstnode
           scalar_node_loop: do j = 1, detector_list%length
-          if(node%initial_owner /= -1 .or. procno == 1) then
             value =  detector_value(sfield, node)
 
             offset = location_to_write + (detector_list%total_num_det * (number_of_scalar_det_fields - 1) + (node%id_number - 1)) * realsize
 
             call mpi_file_write_at(detector_list%mpi_fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
             assert(ierror == MPI_SUCCESS)
-          end if
-
-          node => node%next
-        end do scalar_node_loop
-        assert(.not. associated(node))
-
+            node => node%next
+          end do scalar_node_loop
+          assert(.not. associated(node))
         end do scalar_loop
       end if
       location_to_write = location_to_write + detector_list%total_num_det * number_of_scalar_det_fields * realsize
       
       number_of_vector_det_fields = 0
-      if (allocated(detector_list%sfield_list)) then
+      if (allocated(detector_list%vfield_list)) then
         vector_loop: do i = 1, size(detector_list%vfield_list(phase)%ptr)
           ! Output statistics for each vector field
      
@@ -2909,21 +2902,17 @@ contains
 
           node => detector_list%firstnode
           vector_node_loop: do j = 1, detector_list%length
-            if(node%initial_owner /= -1 .or. procno == 1) then
-              vvalue =  detector_value(vfield, node)
+            vvalue =  detector_value(vfield, node)
 
-              ! Currently have to assume single dimension vector fields in
-              ! order to compute the offset
-              offset = location_to_write + (detector_list%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
+            ! Currently have to assume single dimension vector fields in
+            ! order to compute the offset
+            offset = location_to_write + (detector_list%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
 
-              call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-              assert(ierror == MPI_SUCCESS)
-            end if  
-
+            call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+            assert(ierror == MPI_SUCCESS)
             node => node%next
           end do vector_node_loop
-          assert(.not. associated(node))
-        
+          assert(.not. associated(node))        
         end do vector_loop
       end if
       location_to_write = location_to_write + detector_list%total_num_det * number_of_vector_det_fields * dim * realsize

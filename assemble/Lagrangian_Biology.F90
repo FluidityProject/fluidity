@@ -39,7 +39,7 @@ module lagrangian_biology
   use detector_data_types
   use detector_tools
   use detector_move_lagrangian
-  use detector_distribution
+  use detector_parallel
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, write_detectors
 
 implicit none
@@ -187,8 +187,7 @@ contains
              if (element_owner(xfield%mesh,agent%element)/=getprocno() .or. agent%element<0) then 
                 call delete(agent_arrays(i),agent)
              else
-                agent%local=.true.
-                agent%initial_owner=getprocno()            
+                agent%local=.true. 
                 agent => agent%next
              end if
           end do

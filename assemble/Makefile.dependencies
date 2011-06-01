@@ -431,7 +431,7 @@ LES_viscosity.o ../include/les_viscosity_module.mod: LES_viscosity.F90 \
 Lagrangian_Biology.o ../include/lagrangian_biology.mod: Lagrangian_Biology.F90 \
    ../include/detector_move_lagrangian.mod ../include/pickers_inquire.mod \
    ../include/mpi_interfaces.mod ../include/detector_tools.mod \
-   ../include/futils.mod ../include/detector_distribution.mod \
+   ../include/futils.mod ../include/detector_parallel.mod \
    ../include/global_parameters.mod ../include/fields.mod \
    ../include/diagnostic_variables.mod ../include/parallel_tools.mod \
    ../include/spud.mod ../include/state_module.mod \
@@ -484,7 +484,8 @@ Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
    ../include/node_locking.mod ../include/data_structures.mod \
    ../include/state_module.mod ../include/limit_metric_module.mod \
    ../include/quadrature.mod ../include/halos.mod \
-   ../include/global_parameters.mod ../include/fdebug.h
+   ../include/global_parameters.mod ../include/mba2d_module.mod \
+   ../include/fdebug.h
 
 ../include/mba3d_integration.mod: Mba3d_Integration.o
 	@true
@@ -677,17 +678,17 @@ Sam_integration.o ../include/sam_integration.mod: Sam_integration.F90 \
    ../include/populate_state_module.mod ../include/tictoc.mod \
    ../include/surfacelabels.mod \
    ../include/boundary_conditions_from_options.mod \
-   ../include/detector_distribution.mod ../include/surface_id_interleaving.mod \
-   ../include/fields.mod ../include/metric_tools.mod \
-   ../include/memory_diagnostics.mod ../include/detector_data_types.mod \
-   ../include/reserve_state_module.mod ../include/pickers.mod \
-   ../include/diagnostic_variables.mod ../include/boundary_conditions.mod \
-   ../include/mpi_interfaces.mod ../include/detector_tools.mod \
-   ../include/node_boundary.mod ../include/elements.mod ../include/spud.mod \
-   ../include/data_structures.mod ../include/state_module.mod \
-   ../include/quadrature.mod ../include/halos.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/ieee_arithmetic.mod ../include/fdebug.h
+   ../include/surface_id_interleaving.mod ../include/fields.mod \
+   ../include/metric_tools.mod ../include/memory_diagnostics.mod \
+   ../include/detector_data_types.mod ../include/reserve_state_module.mod \
+   ../include/pickers.mod ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions.mod ../include/mpi_interfaces.mod \
+   ../include/detector_tools.mod ../include/node_boundary.mod \
+   ../include/elements.mod ../include/spud.mod ../include/data_structures.mod \
+   ../include/state_module.mod ../include/quadrature.mod ../include/halos.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/ieee_arithmetic.mod \
+   ../include/fdebug.h
 
 ../include/saturation_distribution_search_hookejeeves.mod: \
    Saturation_Distribution_Search_HookeJeeves.o
