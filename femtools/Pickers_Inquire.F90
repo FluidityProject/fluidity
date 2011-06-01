@@ -327,75 +327,54 @@ contains
     !!< This subroutine establishes on which processor, in which element and at
     !!< which local coordinates each detector is to be found. A negative element
     !!< value indicates that no element could be found for that node.
+    !!< Detectors are assumed to be local.
     
     type(vector_field), intent(inout) :: positions
     
     type(detector_linked_list), intent(inout) :: detectors
     type(detector_type), pointer :: node
 
-    integer :: i, global_index, local_index, nglobal_dets, nlocal_dets
-    real, dimension(:, :), allocatable :: global_coords, local_coords, global_l_coords, local_l_coords
-    integer, dimension(:), allocatable :: global_ele, local_ele
+    integer :: i, local_index, nlocal_dets
+    real, dimension(:, :), allocatable :: local_coords, local_l_coords
+    integer, dimension(:), allocatable :: local_ele
        
     if(detectors%length == 0) return
        
     call initialise_picker(positions)
-        
-    allocate(global_coords(positions%dim, detectors%length))
+
     allocate(local_coords(positions%dim, detectors%length))
     assert(ele_numbering_family(positions, 1) == FAMILY_SIMPLEX)
-    allocate(global_l_coords(positions%dim+1, detectors%length))
     allocate(local_l_coords(positions%dim+1, detectors%length))
 
     allocate(local_ele(detectors%length))
-    allocate(global_ele(detectors%length))
         
     node => detectors%firstnode
 
-    nglobal_dets = 0
     nlocal_dets = 0
     do i = 1, detectors%length
-      if(node%local) then
-        nlocal_dets = nlocal_dets + 1
-        local_coords(:, nlocal_dets) = node%position
-      else
-        nglobal_dets = nglobal_dets + 1
-        global_coords(:, nglobal_dets) = node%position
-      end if
+      nlocal_dets = nlocal_dets + 1
+      local_coords(:, nlocal_dets) = node%position
       node => node%next
     end do
-        
-    if(nglobal_dets > 0) then
-      call picker_inquire(positions, global_coords(:, :nglobal_dets), global_ele(:nglobal_dets), local_coords = global_l_coords(:, :nglobal_dets), global = .true.)
-    end if
+
     if(nlocal_dets > 0) then
       call picker_inquire(positions, local_coords(:, :nlocal_dets), local_ele(:nlocal_dets), local_coords = local_l_coords(:, :nlocal_dets), global = .false.)
     end if
     
     node => detectors%firstnode
 
-    global_index = 0
     local_index = 0
     do i = 1, detectors%length
-      if(node%local) then
-        local_index = local_index + 1
-        node%local_coords = local_l_coords(:, local_index)
-        node%element = local_ele(local_index)
-      else
-        global_index = global_index + 1
-        node%local_coords = global_l_coords(:, global_index)
-        node%element = global_ele(global_index)
-      end if
+      local_index = local_index + 1
+      node%local_coords = local_l_coords(:, local_index)
+      node%element = local_ele(local_index)
       node => node%next
     end do
-    assert(global_index == nglobal_dets)
     assert(local_index == nlocal_dets)
-    
-    deallocate(global_coords)
+
     deallocate(local_coords)
     deallocate(local_l_coords)
     deallocate(local_ele)
-    deallocate(global_ele)
     
   end subroutine search_for_detectors
 

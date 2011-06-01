@@ -1429,7 +1429,6 @@ contains
              allocate(node%position(shape_option(1)))
              call get_option(trim(buffer)//"/location", node%position)       
 
-             node%local = .not. isparallel()
              node%type = STATIC_DETECTOR
              node%id_number = i
              
@@ -1464,7 +1463,6 @@ contains
              call get_option(trim(buffer)//"/location", node%position)
           
              node%type = LAGRANGIAN_DETECTOR
-             node%local = .true.
              node%id_number = i+static_dete
              
              default_stat%name_of_detector_groups_in_read_order(i+static_dete)=node%name
@@ -1519,7 +1517,6 @@ contains
                      allocate(node%position(dim))
 
                      node%position=coords(:,j)
-                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type=type_det
 
                      default_stat%detector_list%detector_names(k)=trim(funcnam)
@@ -1558,7 +1555,6 @@ contains
 
                      allocate(node%position(dim))
                      read(default_stat%detector_file_unit) node%position
-                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type=type_det
                      node%id_number = k
 
@@ -1625,7 +1621,6 @@ contains
                      node%name=temp_name
                      allocate(node%position(dim))
                      read(default_stat%detector_checkpoint_unit) node%position
-                     node%local = .not. isparallel()
                      node%type = STATIC_DETECTOR
                      allocate(node%local_coords(local_coord_count(shape)))   
 
@@ -1653,7 +1648,6 @@ contains
                      node%name=temp_name
                      allocate(node%position(dim))
                      read(default_stat%detector_checkpoint_unit) node%position
-                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                      node%type = LAGRANGIAN_DETECTOR
 
                      allocate(node%local_coords(local_coord_count(shape))) 
@@ -1697,7 +1691,6 @@ contains
                       write(node%name, fmt) trim(temp_name)//"_", m
                       allocate(node%position(dim))
                       read(default_stat%detector_checkpoint_unit) node%position
-                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                       node%type=type_det
 
                       node%id_number = k
@@ -1886,8 +1879,7 @@ contains
              call delete(default_stat%detector_list,detector)
           elseif (element_owner(xfield%mesh,detector%element)/=getprocno()) then
              call delete(default_stat%detector_list,detector)
-          else
-             detector%local=.true.           
+          else         
              detector => detector%next
           end if
        end do

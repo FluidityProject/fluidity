@@ -30,7 +30,6 @@ module zoltan_detectors
     type(detector_type), pointer, intent(inout) :: detector
     type(vector_field), intent(in) :: positions
 
-    detector%local = .true.
     detector%local_coords=local_coords(positions,detector%element,detector%position)
     detector%name=default_stat%detector_list%detector_names(detector%id_number)    
     

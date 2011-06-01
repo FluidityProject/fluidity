@@ -152,7 +152,6 @@ contains
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
     new_detector%type = old_detector%type
-    new_detector%local = old_detector%local
     new_detector%name = old_detector%name
     new_detector%local_coords=old_detector%local_coords
       
@@ -287,7 +286,6 @@ contains
     else
        assert(size(buff)==ndims+3)
     end if
-
     
   end subroutine pack_detector
 
@@ -335,9 +333,7 @@ contains
 
        detector%search_complete=.true.
     end if
-
-    ! If detector was received it is local
-    detector%local = .true.     
+   
   end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)
@@ -345,16 +341,9 @@ contains
     real :: value
     type(scalar_field), intent(in) :: sfield
     type(detector_type), intent(in) :: detector
-
-    value=0.0
     
-    if(detector%element>0) then
-       if(detector%element > 0) then
-         value = eval_field(detector%element, sfield, detector%local_coords)
-       end if
-    end if
-
-    if (.not. detector%local) call allsum(value)
+    assert(detector%element>0)
+    value = eval_field(detector%element, sfield, detector%local_coords)
 
   end function detector_value_scalar
 
@@ -363,16 +352,9 @@ contains
     type(vector_field), intent(in) :: vfield
     type(detector_type), intent(in) :: detector
     real, dimension(vfield%dim) :: value
-
-    value=0.0
     
-    if(detector%element>0) then
-      if(detector%element > 0) then
-        value = eval_field(detector%element, vfield, detector%local_coords)
-      end if
-    end if
-
-    if(.not. detector%local) call allsum(value)
+    assert(detector%element>0)
+    value = eval_field(detector%element, vfield, detector%local_coords)
 
   end function detector_value_vector
 

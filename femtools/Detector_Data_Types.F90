@@ -53,8 +53,6 @@ module detector_data_types
      real, dimension(:), allocatable :: position
      !! Name of the detector in input and output.
      character(len=FIELD_NAME_LEN) :: name 
-     !! Whether the detector is on the current processor. 
-     logical :: local
      !! Element number in which the detector lies.
      integer :: element
      !! Local coordinates of the detector in that element.
