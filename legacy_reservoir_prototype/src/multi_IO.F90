@@ -1565,9 +1565,11 @@ contains
 
 
        call get_entry( unit, len_name, ior, ifile, fcn_name, value_real, value_bool )
+!       ewrite(3,*) 'ior :', ior
 
        Conditional_IOR: if ( ior > 0 ) then
           k = index( ifile, ' ') - 1
+!          ewrite(3,*) 'ifile ', ifile(1:k)
           Select Case ( ifile( 1 : k ))
              ! Logical
           Case( 'KComp_Sigmoid' );
@@ -2355,7 +2357,7 @@ contains
              stop 788
 
           end Select
-
+          
        end if Conditional_IOR
 
     end do
@@ -2696,7 +2698,7 @@ contains
        u_ele_type, cv_ele_type, &
        x, xu, &
        u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-       mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
+       mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
     use printout
 
     implicit none
@@ -2726,6 +2728,15 @@ contains
 
     ewrite(3,*) 'In allocating_global_nodes'
 
+    ewrite(3,*) 'vars :', ndim, totele, domain_length, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
+           cv_nonods, u_nonods, x_nonods, xu_nonods, &
+           u_ele_type, cv_ele_type, &
+           x, xu,  &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln
+
     Conditional_NDIM: if( ndim == 1 ) then ! This needs to be updated for 2-3D
 
        dx = domain_length / real( totele )
@@ -2733,6 +2744,8 @@ contains
        cv_sndgln( 2 ) = cv_nonods
        p_sndgln( 1 ) = 1
        p_sndgln( 2 ) = cv_nonods
+       
+       ewrite(3,*) 'u_sndgln: ', u_sndgln
 
        if( cv_ele_type == 2 ) then
           u_nloc2 = u_nloc / cv_nloc

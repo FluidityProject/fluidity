@@ -223,6 +223,8 @@ module mp_prototype
            ! Now adding other things which we have taken inside this routine to define
            cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods)
            
+      ! Test ground for sorting out memory problems
+           
       ! Going to move to here a load of random things
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
@@ -237,7 +239,7 @@ module mp_prototype
 
       if( ndpset < 0 ) ndpset = cv_nonods
 
-      ! This should really be in the coy routine, but it isn't used
+      ! This should really be in the copy routine, but it isn't used
       ! anyway
       allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
