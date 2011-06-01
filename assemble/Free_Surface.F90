@@ -1620,7 +1620,7 @@ contains
   type(scalar_field) :: original_bottomdist_remap
   character(len=FIELD_NAME_LEN):: bctype
   character(len=OPTION_PATH_LEN) fs_option_path
-  real:: rho0, g, d0
+  real:: g, d0
   integer:: i, j, sele
   real, dimension(:), allocatable :: alpha
 
@@ -1635,7 +1635,6 @@ contains
        if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
              scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
              ! Update WettingDryingAlpha
-             call get_reference_density_from_options(rho0, state%option_path)
              original_bottomdist => extract_scalar_field(state, "OriginalDistanceToBottom") 
              call get_option('/physical_parameters/gravity/magnitude', g)
              call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
@@ -1734,7 +1733,7 @@ contains
       type(scalar_field) :: original_bottomdist_remap
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
-      real:: g, rho0, alpha, volume, d0
+      real:: g, rho0, alpha, volume, d0, delta_rho, external_density
       integer, dimension(:), pointer:: surface_element_list
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
@@ -1771,12 +1770,15 @@ contains
       positions => extract_vector_field(state, "Coordinate")
       
       volume=0.0
-      alpha=1.0/g/rho0/dt
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
            surface_element_list=surface_element_list,option_path=fs_option_path)
         if (bctype=="free_surface") then
-         do j=1, size(surface_element_list)
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+             external_density, default=0.0)
+          delta_rho=rho0-external_density
+          alpha=1.0/g/delta_rho/dt
+          do j=1, size(surface_element_list)
             volume=volume+calculate_volume_by_surface_integral_element(surface_element_list(j))
           end do
         end if
