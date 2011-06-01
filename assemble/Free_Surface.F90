@@ -641,7 +641,8 @@ contains
          call insert(surface_elements, surface_element_list)
          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
             external_density, default=0.0)
-         call set(delta_rho, external_density)
+         call set(rho_external, surface_node_list, &
+           spread(external_density, 1, size(surface_node_list)))
       end if
     end do
 
@@ -660,7 +661,7 @@ contains
    call addto(delta_rho, rho0)
    call deallocate(rho_external)
 
-   call insert_surface_field(u, "_free_surface", delta_rho)
+   call insert_surface_field(fs, "_free_surface", delta_rho)
    call deallocate(delta_rho)
 
    deallocate(surface_element_list)
@@ -716,7 +717,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DensityDifference")
 
     ! p is not theta weighted (as usual for incompressible)
     p_theta%val(1:node_count(p)) = p%val
@@ -752,7 +753,7 @@ contains
     ! "_free_surface" boundary condition
     call get_boundary_condition(fs, "_free_surface", &
         surface_node_list=fs_surface_node_list)
-    delta_rho => extract_surface_field(fs, "_free_surface", "DeltaRho")
+    delta_rho => extract_surface_field(fs, "_free_surface", "DensityDifference")
 
     p%val=p%val+delta_p%val(1:node_count(p))/dt
 
