@@ -84,17 +84,17 @@ contains
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_type), pointer :: detector, node_to_send
-    type(vector_field), pointer :: vfield
+    type(vector_field), pointer :: xfield
     integer :: i, k, all_send_lists_empty, list_neigh_processor, number_neigh_processors, processor_owner
 
-    vfield => extract_vector_field(state(1),"Velocity")
+    xfield => extract_vector_field(state(1),"Coordinate")
     number_neigh_processors=key_count(ihash)
     allocate(send_list_array(number_neigh_processors))
 
     detector => detector_list%firstnode
     do i = 1, detector_list%length
        assert(detector%element>0)
-       processor_owner=element_owner(vfield%mesh,detector%element)
+       processor_owner=element_owner(xfield%mesh,detector%element)
 
        if (processor_owner/= getprocno()) then
           list_neigh_processor=fetch(ihash,processor_owner)
@@ -126,6 +126,12 @@ contains
     end do
     deallocate(send_list_array)
 
+    detector => detector_list%firstnode
+    do i = 1, detector_list%length
+       assert(element_owner(xfield%mesh,detector%element)==getprocno())
+       detector=>detector%next
+    end do
+
   end subroutine distribute_detectors
 
   subroutine exchange_detectors(state, detector_list, &
@@ -140,7 +146,7 @@ contains
 
     real, dimension(:,:), allocatable :: detector_buffer
     type(detector_type), pointer :: detector, detector_received
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
     integer :: i, j, dim, count, n_stages, target_proc, IERROR, &
@@ -154,17 +160,16 @@ contains
 
     xfield => extract_vector_field(state,"Coordinate")
     shape=>ele_shape(xfield,1)
-    vfield => extract_vector_field(state,"Velocity")
-    dim=vfield%dim
+    dim=xfield%dim
  
     !set up sendrequest tags because we are going to do an MPI_Isend
     !these are used by wait_all
     allocate( sendRequest(number_neigh_processors) )
 
     !Get the element halo 
-    halo_level = element_halo_count(vfield%mesh)
+    halo_level = element_halo_count(xfield%mesh)
     if (halo_level /= 0) then
-       ele_halo => vfield%mesh%element_halos(halo_level)
+       ele_halo => xfield%mesh%element_halos(halo_level)
     end if
 
     !Get the inverse of the hash table mapping between 
