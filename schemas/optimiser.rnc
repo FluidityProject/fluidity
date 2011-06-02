@@ -37,6 +37,11 @@ optimisation_options =
               attribute name { "BFGS" },
               comment
             }|
+            ## Minimize the functional using the NCG algorithm.
+            element optimisation_algorithm {
+              attribute name { "NCG" },
+              comment
+            }|
             ## Minimize the functional using the LBFGS algorithm. 
             element optimisation_algorithm {
               attribute name { "LBFGS" },

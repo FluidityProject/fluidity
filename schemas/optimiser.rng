@@ -40,6 +40,13 @@ configuration template</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="optimisation_algorithm">
+          <a:documentation>Minimize the functional using the NCG algorithm.</a:documentation>
+          <attribute name="name">
+            <value>NCG</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="optimisation_algorithm">
           <a:documentation>Minimize the functional using the LBFGS algorithm. </a:documentation>
           <attribute name="name">
             <value>LBFGS</value>

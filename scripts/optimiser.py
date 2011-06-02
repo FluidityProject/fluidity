@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 import scipy.optimize
 import string
 from fluidity_tools import stat_parser as stat
+import time
 
 # Initial control
 #if not os.path.isfile("control.npy"):
@@ -29,17 +30,29 @@ def run_model():
     exit()
   print out
 
+def update_model_options(m):
+  update_type = libspud.get_option('/control_io/type[0]/name')
+  if update_type == 'custom':
+    update_code = libspud.get_option('/control_io/type::custom/update_model_template')
+    # execute the python code
+    d = {}
+    exec update_code in d
+    d['update_model'](m)
+  else:
+    print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
+    exit()
+
 
 def optimisation_loop():
   def J(m):
-    # TODO: Update m
+    update_model_options(m)
     run_model()
     J = stat("wave_A_adjoint_integral_eta_t1.stat")["integral_eta_t1"]["value"][-1]
     print "J = ", J
     return J
 
   def dJdm(m):
-    # TODO: Update m
+    update_model_options(m)
     run_model()
     djdm = numpy.load("djdm.npy")
     print "dJdm = ", djdm
@@ -52,6 +65,8 @@ def optimisation_loop():
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
       res = scipy.optimize.fmin_bfgs(J, m, dJdm, gtol=tol, full_output=1)
+  if algo == 'NCG':
+      res = scipy.optimize.fmin_ncg(J, m, dJdm, avextol=tol, full_output=1)
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
@@ -79,4 +94,6 @@ def main():
   optimisation_loop() 
 
 if '__main__'==__name__:
+      start_time = time.time()
       main()   
+      print "Optimisation finished in ", time.time() - start_time, "seconds"
