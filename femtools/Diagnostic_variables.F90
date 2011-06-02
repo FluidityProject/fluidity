@@ -1341,67 +1341,47 @@ contains
 
   end subroutine initialise_steady_state
 
-  subroutine create_single_detector_from_option(detector_list,xfield,option_path,id,type)
+  subroutine create_single_detector(detector_list,xfield,position,id,type,name)
     ! Allocate a single detector, populate and insert it into the given list
     ! In parallel, first check if the detector would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
-    character(len = *), intent(in) :: option_path
+    real, dimension(xfield%dim), intent(in) :: position
     integer, intent(in) :: id, type
+    character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
-    real, dimension(xfield%dim) :: det_position
-    real, dimension(xfield%dim+1) :: det_lcoords
-    integer :: det_element
-    integer, dimension(2) :: shape_option
+    real, dimension(xfield%dim+1) :: lcoords
+    integer :: element
 
-    ! Make sure dimensions are right
-    shape_option=option_shape(trim(option_path)//"/location")
-    assert(xfield%dim==shape_option(1))
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
 
     ! Determine element and local_coords from position
-    call get_option(trim(option_path)//"/location", det_position)
-    call picker_inquire(xfield,det_position,det_element,local_coord=det_lcoords,global=.false.)
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
 
     ! If we're in parallel and don't own the element, skip this detector
     if (isparallel()) then
-       if (det_element<0) return
-       if (.not.element_owned(xfield,det_element)) return
+!       if (element<0) return
+!       if (.not.element_owned(xfield,element)) return
     end if
          
-    ! Otherwise, allocate detector
+    ! Otherwise, allocate and insert detector
     allocate(detector)
-    allocate(detector%position(shape_option(1)))
+    allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
+    call insert(default_stat%detector_list,detector)
 
     ! Populate detector
-    call get_option(trim(option_path)//"/name", detector%name)
-    detector%position=det_position
-    detector%element=det_element
-    detector%local_coords=det_lcoords
+    detector%name=name
+    detector%position=position
+    detector%element=element
+    detector%local_coords=lcoords
     detector%type=type
     detector%id_number=id
 
-    ! And insert
-    call insert(default_stat%detector_list,detector)
-             
-       ! The arrays below contain information about the order in which detector
-       ! groups are read and how many detectors there are in each group. This is
-       ! used when checkpointing detectors. In particular, when continuing a
-       ! simulation from a checkpoint, with these arrays we make sure we read
-       ! back the detectors from the file in the same order than at the beginning
-       ! of the simulation for consistency. All the .detectors files with
-       ! detector data (position, value of variables at those positions, etc.) 
-       ! will have the information in the same order.
-
-    default_stat%detector_group_names(id)=detector%name
-    default_stat%number_det_in_each_group(id)=1.0
-    default_stat%detector_list%detector_names(id)=detector%name
-
-  end subroutine create_single_detector_from_option
+  end subroutine create_single_detector
   
   subroutine initialise_detectors(filename, state)
     !!< Set up the detector file headers. This has the same syntax as the
@@ -1409,7 +1389,7 @@ contains
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    character(len=FIELD_NAME_LEN) ::funcnam, temp_name
+    character(len=FIELD_NAME_LEN) ::funcnam, temp_name, detector_name
     character(len=PYTHON_FUNC_LEN) :: func
 
     integer :: column, i, j, k, phase, m, IERROR
@@ -1420,13 +1400,12 @@ contains
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
     real, allocatable, dimension(:,:) :: coords
+    real, allocatable, dimension(:) :: detector_location
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
 
     type(detector_type), pointer :: node, detector
-
     type(element_type), pointer :: shape
-    logical :: detectors_from_file_initially
 
     ! Idempotency check
     if (default_stat%detectors_initialised) return
@@ -1463,6 +1442,7 @@ contains
     shape=>ele_shape(xfield,1)
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
+    allocate(detector_location(dim))
     
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
@@ -1482,75 +1462,83 @@ contains
        ! Read all single static detector from options
        do i=1,static_dete
           write(buffer, "(a,i0,a)") "/io/detectors/static_detector[",i-1,"]"
-          call create_single_detector_from_option(default_stat%detector_list, &
-                     xfield, trim(buffer), i, STATIC_DETECTOR)
+
+          shape_option=option_shape(trim(buffer)//"/location")
+          assert(xfield%dim==shape_option(1))
+          call get_option(trim(buffer)//"/location", detector_location)
+
+          ! The arrays below contain information about the order in which detector
+          ! groups are read and how many detectors there are in each group. This is
+          ! used when checkpointing detectors. In particular, when continuing a
+          ! simulation from a checkpoint, with these arrays we make sure we read
+          ! back the detectors from the file in the same order than at the beginning
+          ! of the simulation for consistency. All the .detectors files with
+          ! detector data (position, value of variables at those positions, etc.) 
+          ! will have the information in the same order.
+          call get_option(trim(buffer)//"/name", detector_name)
+          default_stat%detector_group_names(i)=detector_name
+          default_stat%number_det_in_each_group(i)=1.0
+          default_stat%detector_list%detector_names(i)=detector_name
+
+          call create_single_detector(default_stat%detector_list, xfield, &
+                detector_location, i, STATIC_DETECTOR, trim(detector_name))
        end do
 
        ! Read all single lagrangian detector from options
        do i=1,lagrangian_dete
           write(buffer, "(a,i0,a)") "/io/detectors/lagrangian_detector[",i-1,"]"
-          call create_single_detector_from_option(default_stat%detector_list, &
-                     xfield, trim(buffer), i+static_dete, LAGRANGIAN_DETECTOR)
+
+          shape_option=option_shape(trim(buffer)//"/location")
+          assert(xfield%dim==shape_option(1))
+          call get_option(trim(buffer)//"/location", detector_location)
+
+          call get_option(trim(buffer)//"/name", detector_name)
+          default_stat%detector_group_names(static_dete+i)=detector_name
+          default_stat%number_det_in_each_group(static_dete+i)=1.0
+          default_stat%detector_list%detector_names(static_dete+i)=detector_name
+
+          call create_single_detector(default_stat%detector_list, xfield, &
+                detector_location, static_dete+1, LAGRANGIAN_DETECTOR, trim(detector_name))
        end do
 
        k=static_dete+lagrangian_dete+1
 
-          do i=1,python_functions_or_files
-             write(buffer, "(a,i0,a)")  &
-               "/io/detectors/detector_array[",i-1,"]"
+       do i=1,python_functions_or_files
+          write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"
 
-             call get_option(trim(buffer)//"/name", funcnam)
-             call get_option(trim(buffer)//"/number_of_detectors", ndete)
-             str_size=len_trim(int2str(ndete))
-             fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
+          call get_option(trim(buffer)//"/name", funcnam)
+          call get_option(trim(buffer)//"/number_of_detectors", ndete)
+          str_size=len_trim(int2str(ndete))
+          fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
-             if (have_option(trim(buffer)//"/lagrangian")) then
-                  type_det=LAGRANGIAN_DETECTOR
-             else
-                  type_det=STATIC_DETECTOR
-             end if
+          if (have_option(trim(buffer)//"/lagrangian")) then
+             type_det=LAGRANGIAN_DETECTOR
+          else
+             type_det=STATIC_DETECTOR
+          end if
 
-             default_stat%detector_group_names(i+static_dete+lagrangian_dete)=trim(funcnam)
-             default_stat%number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
+          default_stat%detector_group_names(i+static_dete+lagrangian_dete)=trim(funcnam)
+          default_stat%number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
 
-             if (have_option(trim(buffer) // "/from_file")) then
-                 detectors_from_file_initially=.true.
-             else
-                 detectors_from_file_initially=.false.
-             end if
+          if (.not.have_option(trim(buffer)//"/from_file")) then
 
-             if (.not.detectors_from_file_initially) then
-
-                 ! Reading detectors from a python function
-
-                 call get_option(trim(buffer)//"/python", func)
-                 allocate(coords(dim,ndete))
-                 call set_detector_coords_from_python(coords, ndete, func, current_time)
+             ! Reading detectors from a python function
+             call get_option(trim(buffer)//"/python", func)
+             allocate(coords(dim,ndete))
+             call set_detector_coords_from_python(coords, ndete, func, current_time)
           
-                 do j=1,ndete
+             do j=1,ndete
+                write(detector_name, fmt) trim(funcnam)//"_", j
+                default_stat%detector_list%detector_names(k)=trim(funcnam)
 
-                     allocate(node)
-                     call insert(default_stat%detector_list,node)
-
-                     write(node%name, fmt) trim(funcnam)//"_", j
-
-                     allocate(node%position(dim))
-
-                     node%position=coords(:,j)
-                     node%type=type_det
-
-                     default_stat%detector_list%detector_names(k)=trim(funcnam)
-
-                     node%id_number = k
-
-                     allocate(node%local_coords(local_coord_count(shape)))
-
-                     k=k+1
+                call create_single_detector(default_stat%detector_list, xfield, &
+                       coords(:,j), k, type_det, trim(detector_name))
+                k=k+1
            
-                 end do
-                 deallocate(coords)
+             end do
+             deallocate(coords)
 
-             else
+          else
                  ! Reading from a binary file where the user has placed the detector positions
 
                  if (getprocno() == 1) then
