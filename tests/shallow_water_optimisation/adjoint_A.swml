@@ -403,8 +403,6 @@ if os.path.isfile("djdm.npy") and time != 1.0:
 else:
   djdm_np = numpy.array([0.0])
 djdm_np = djdm_np + J
-print J
-print "djdm_np", djdm_np
 numpy.save("djdm.npy", djdm_np)
 
 field.val[:] = J</string_value>

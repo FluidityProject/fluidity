@@ -7,39 +7,51 @@ import shlex
 from subprocess import Popen, PIPE
 import scipy.optimize
 import string
+from fluidity_tools import stat_parser as stat
 
 # Initial control
 #if not os.path.isfile("control.npy"):
 #  m = numpy.array([1.0])
 #  numpy.save("control.npy", m)
 
+def run_model():
+  command_line = libspud.get_option('/model_template/command_line')
+  option_file = libspud.get_option('/model_template/option_file')
+  args = shlex.split(command_line)
+  args.append(option_file)
+  p = Popen(args, stdout=PIPE,stderr=PIPE)
+  out = string.join(p.stdout.readlines() )
+  outerr = string.join(p.stderr.readlines() )
+  if p.wait() != 0:
+    print "Model execution failed: "
+    print outerr
+    print "See .. for more information."
+    exit()
+  print out
+
+
 def optimisation_loop():
   def J(m):
-    command_line = libspud.get_option('/model_template/command_line')
-    option_file = libspud.get_option('/model_template/option_file')
-    args = shlex.split(command_line)
-    args.append(option_file)
-    p = Popen(args, stdout=PIPE,stderr=PIPE)
-    out = string.join(p.stdout.readlines() )
-    outerr = string.join(p.stderr.readlines() )
-    if p.wait() != 0:
-      print "Model execution failed: "
-      print outerr
-      print "See .. for more information."
-      exit()
-    print out
-    return 0.0
+    # TODO: Update m
+    run_model()
+    J = stat("wave_A_adjoint_integral_eta_t1.stat")["integral_eta_t1"]["value"][-1]
+    print "J = ", J
+    return J
 
-  def Jprime(m):
-    return 0.0
-
+  def dJdm(m):
+    # TODO: Update m
+    run_model()
+    djdm = numpy.load("djdm.npy")
+    print "dJdm = ", djdm
+    return djdm
 
   # Start the optimisation loop
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
   tol = libspud.get_option('/optimisation_options/tolerance')
+  m = numpy.ones(1)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-      res = scipy.optimize.fmin_bfgs(J, numpy.ones(10), Jprime, gtol=tol, full_output=1)
+      res = scipy.optimize.fmin_bfgs(J, m, dJdm, gtol=tol, full_output=1)
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
