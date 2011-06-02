@@ -11,7 +11,7 @@ from fluidity_tools import stat_parser as stat
 import time
 import pickle
 
-# Hack to convince libspud to work with several ml simultaneously
+# Hack for libspud to be able to read an option from a second option file.
 def spud_get_option(filename, option_path):
   d = {}
   exec "import libspud" in d
@@ -19,6 +19,8 @@ def spud_get_option(filename, option_path):
   exec "v = libspud.get_option('"+option_path+"')" in d
   return d['v']
 
+# Executes the model specified in the optimiser option tree
+# The model stdout is printed to stdout.
 def run_model():
   command_line = libspud.get_option('/model/command_line')
   option_file = libspud.get_option('/model/option_file')
@@ -30,15 +32,14 @@ def run_model():
   if p.wait() != 0:
     print "Model execution failed: "
     print outerr
-    print "See .. for more information."
     exit()
   print out
 
 def initialise_model_controls():
   update_type = libspud.get_option('/control_io/type[0]/name')
+  # With the custom type, the user specifies python function to initialise the controls. 
   if update_type == 'custom':
     get_initial_code = libspud.get_option('/control_io/type::custom/get_initial_controls')
-    # execute the python code
     d = {}
     exec get_initial_code in d
     m = d['get_initial_controls']()
@@ -49,9 +50,9 @@ def initialise_model_controls():
 
 def update_model_controls(m):
   update_type = libspud.get_option('/control_io/type[0]/name')
+  # With the custom type, the user specifies a python function to upadate the controls. 
   if update_type == 'custom':
     update_code = libspud.get_option('/control_io/type::custom/update_controls')
-    # execute the python code
     d = {}
     exec update_code in d
     d['update_controls'](m)
@@ -59,8 +60,11 @@ def update_model_controls(m):
     print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
     exit()
 
+################# Optimisation loop ###################
 def optimisation_loop():
-
+  # This function takes in a dictionary m with numpy.array as entries. 
+  # From that it creates one serialised numpy.array with all the data.
+  # In addition it creates m_shape, a dictionary which is used in unserialise.
   def serialise(m):
     m_serial = numpy.array([])
     m_shape = {}
@@ -69,6 +73,7 @@ def optimisation_loop():
       m_shape[k] = len(m_serial)
     return [m_serial, m_shape]
 
+  # Reconstructs the original dictionary of numpy.array's from the serialised version and the shape.
   def unserialise(m_serial, m_shape):
     m = {}
     current_index = 0
@@ -77,6 +82,7 @@ def optimisation_loop():
       current_index = v
     return m
 
+  # Retuns the functional value with the current controls
   def J(m_serial, args):
     m_shape = args
     m = unserialise(m_serial, m_shape)
@@ -85,16 +91,18 @@ def optimisation_loop():
     functional = libspud.get_option('/functional/name')
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
-    J = stat(simulation_name+'_adjoint_'+functional+".stat")[functional]["value"][-1]
+    stat_file = simulation_name+'_adjoint_'+functional+".stat"
+    J = stat(stat_file)[functional]["value"][-1]
     print "J = ", J
     return J
 
+  # Retuns the functional derivative with respect to the controls.
   def dJdm(m_serial, args):
     m_shape = args
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
-    pkl_file = open('controls.pkl', 'rb')
+    pkl_file = open('func_derivs.pkl', 'rb')
     djdm = pickle.load(pkl_file)
     # Check that the the controls in dJdm are consistent with the ones specified in m
     djdm_keys = djdm.keys()
@@ -111,14 +119,13 @@ def optimisation_loop():
       if len(m[k]) != len(djdm[k]):
         print "The control ", k, " has dimension ", len(m[k]), " but dJd(", k, ") has dimension ", len(djdm[k])
         exit()
-
     # Serialise djdm in the same order than m_serial
     djdm_serial = [] 
     for k, v in m_shape.iteritems():
       djdm_serial = numpy.append(djdm_serial, djdm[k])
     return djdm_serial
 
-  # Start the optimisation loop
+  # Get the optimisation settings
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
   tol = libspud.get_option('/optimisation_options/tolerance')
   # Initialise the controls

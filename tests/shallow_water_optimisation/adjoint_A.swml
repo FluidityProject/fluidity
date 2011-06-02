@@ -408,7 +408,7 @@ else:
   djdm_np = numpy.array([0.0])
 djdm_np = djdm_np + J
 #numpy.save("djdm.npy", djdm_np)
-controls_file = open('controls.pkl', 'wb')
+controls_file = open('func_derivs.pkl', 'wb')
 pickle.dump({'h': djdm_np}, controls_file)
 field.val[:] = J</string_value>
           <depends>
