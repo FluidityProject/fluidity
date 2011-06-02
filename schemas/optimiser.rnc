@@ -8,22 +8,27 @@ start =
          ## Output files are named according to the optimisation
          ## name, e.g. [optimisation_name]_0.stat. Non-standard
          ## characters in the optimisation name should be avoided.
-         element optimisation_name {
+         element name {
             anystring
          },
-         model_template,
+         model,
          optimisation_options,
          control_io
       }
    )
 
-model_template = 
+model = 
    (
       ## Options to specifing the *flml file containing to model
       ## configuration template
-      element model_template {
+      element model {
          attribute option_file { xsd:string },
          attribute command_line { xsd:string }
+      },
+      ## Options to specifing the *flml file containing to model
+      ## configuration template
+      element functional {
+         attribute name { xsd:string }
       }
    )
 

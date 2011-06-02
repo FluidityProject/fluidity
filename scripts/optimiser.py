@@ -11,9 +11,17 @@ from fluidity_tools import stat_parser as stat
 import time
 import pickle
 
+# Hack to convince libspud to work with several ml simultaneously
+def spud_get_option(filename, option_path):
+  d = {}
+  exec "import libspud" in d
+  exec "libspud.load_options('"+filename+"')" in d
+  exec "v = libspud.get_option('"+option_path+"')" in d
+  return d['v']
+
 def run_model():
-  command_line = libspud.get_option('/model_template/command_line')
-  option_file = libspud.get_option('/model_template/option_file')
+  command_line = libspud.get_option('/model/command_line')
+  option_file = libspud.get_option('/model/option_file')
   args = shlex.split(command_line)
   args.append(option_file)
   p = Popen(args, stdout=PIPE,stderr=PIPE)
@@ -74,8 +82,10 @@ def optimisation_loop():
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
-    # TODO
-    J = stat("wave_A_adjoint_integral_eta_t1.stat")["integral_eta_t1"]["value"][-1]
+    functional = libspud.get_option('/functional/name')
+    option_file = libspud.get_option('/model/option_file')
+    simulation_name = spud_get_option(option_file, "/simulation_name")
+    J = stat(simulation_name+'_adjoint_'+functional+".stat")[functional]["value"][-1]
     print "J = ", J
     return J
 
@@ -135,11 +145,11 @@ def main():
     print "File", args.filename, "not found."
     exit()
   libspud.load_options(args.filename)
-  if not libspud.have_option('/optimisation_name/'):
+  if not libspud.have_option('/optimisation_options'):
     print "File", args.filename, "is not a valid .oml file."
     exit()
-  if not os.path.isfile(libspud.get_option('/model_template/option_file')):
-      print "Could not find ", libspud.get_option('/model_template/option_file') ," as specified in /model_template/option_file"
+  if not os.path.isfile(libspud.get_option('/model/option_file')):
+      print "Could not find ", libspud.get_option('/model/option_file') ," as specified in /model/option_file"
       exit()
   # Start the optimisation loop
   optimisation_loop() 

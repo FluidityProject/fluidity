@@ -5,25 +5,32 @@
     <element name="optimiser_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
       <ref name="comment"/>
-      <element name="optimisation_name">
+      <element name="name">
         <a:documentation>Output files are named according to the optimisation
 name, e.g. [optimisation_name]_0.stat. Non-standard
 characters in the optimisation name should be avoided.</a:documentation>
         <ref name="anystring"/>
       </element>
-      <ref name="model_template"/>
+      <ref name="model"/>
       <ref name="optimisation_options"/>
       <ref name="control_io"/>
     </element>
   </start>
-  <define name="model_template">
-    <element name="model_template">
+  <define name="model">
+    <element name="model">
       <a:documentation>Options to specifing the *flml file containing to model
 configuration template</a:documentation>
       <attribute name="option_file">
         <data type="string"/>
       </attribute>
       <attribute name="command_line">
+        <data type="string"/>
+      </attribute>
+    </element>
+    <element name="functional">
+      <a:documentation>Options to specifing the *flml file containing to model
+configuration template</a:documentation>
+      <attribute name="name">
         <data type="string"/>
       </attribute>
     </element>
