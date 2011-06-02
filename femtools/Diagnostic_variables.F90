@@ -1363,8 +1363,8 @@ contains
 
     ! If we're in parallel and don't own the element, skip this detector
     if (isparallel()) then
-!       if (element<0) return
-!       if (.not.element_owned(xfield,element)) return
+       if (element<0) return
+       if (.not.element_owned(xfield,element)) return
     end if
          
     ! Otherwise, allocate and insert detector
@@ -1392,7 +1392,7 @@ contains
     character(len=FIELD_NAME_LEN) ::funcnam, temp_name, detector_name
     character(len=PYTHON_FUNC_LEN) :: func
 
-    integer :: column, i, j, k, phase, m, IERROR
+    integer :: column, i, j, k, phase, m, IERROR, field_count
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
     integer :: python_dete, ndete, dim, str_size, type_det
     integer, dimension(2) :: shape_option
@@ -1719,20 +1719,6 @@ contains
     end if !!IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET end if
 
 
-    allocate (default_stat%detector_list%sfield_list(size(state)))
-    do phase=1, size(state)
-         allocate(default_stat%detector_list%sfield_list(phase)%ptr(&
-         size(state(phase)%scalar_names)))
-         default_stat%detector_list%sfield_list(phase)%ptr=state(phase)%scalar_names
-    end do
-
-    allocate (default_stat%detector_list%vfield_list(size(state)))
-    do phase = 1, size(state)
-         allocate(default_stat%detector_list%vfield_list(phase)%ptr(&
-         size(state(phase)%vector_names)))
-         default_stat%detector_list%vfield_list(phase)%ptr = state(phase)%vector_names
-    end do
-
     default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
     if (isparallel()) then
        default_stat%detector_list%binary_output=.true.
@@ -1745,7 +1731,7 @@ contains
 
        write(default_stat%detector_list%output_unit, '(a)') "<header>"
        call initialise_constant_diagnostics(default_stat%detector_list%output_unit, &
-              binary_format = default_stat%detector_list%binary_output)
+                binary_format = default_stat%detector_list%binary_output)
 
        ! Initial columns are elapsed time and dt.
        buffer=field_tag(name="ElapsedTime", column=1, statistic="value")
@@ -1763,69 +1749,87 @@ contains
        end do positionloop
 
 
-    phaseloop: do phase=1,size(state)
+       allocate (default_stat%detector_list%sfield_list(size(state)))
+       allocate (default_stat%detector_list%vfield_list(size(state)))
+       phaseloop: do phase=1,size(state)
+          material_phase_name=trim(state(phase)%name)
 
-            material_phase_name=trim(state(phase)%name)
+          ! Count the scalar fields to include in detectors
+          field_count = 0
+          do i = 1, size(state(phase)%scalar_names)
+             sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(i))   
+             if (detector_field(sfield)) field_count = field_count + 1
+          end do 
+          allocate(default_stat%detector_list%sfield_list(phase)%ptr(field_count))
+          default_stat%detector_list%num_sfields = &
+              default_stat%detector_list%num_sfields + field_count
 
-        do i=1, size(default_stat%detector_list%sfield_list(phase)%ptr)
-          ! Headers for detectors for each scalar field.
-            sfield => extract_scalar_field(state(phase), &
-               default_stat%detector_list%sfield_list(phase)%ptr(i))
+          ! Loop over scalar fields again to store names and create header lines
+          field_count = 1
+          do i=1, size(state(phase)%scalar_names)
 
-            if(.not. detector_field(sfield)) then
-                 cycle
-            end if
+             sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(i))
+             if(.not. detector_field(sfield)) then
+                cycle
+             end if
 
-          node => default_stat%detector_list%firstnode
+             ! Create header for included scalar field
+             do j=1, default_stat%detector_list%total_num_det
+                column=column+1
+                buffer=field_tag(name=sfield%name, column=column, &
+                    statistic=default_stat%detector_list%detector_names(j), &
+                    material_phase_name=material_phase_name)
+                write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
+             end do
 
-          do j=1, default_stat%detector_list%length
-
-            column=column+1
-            buffer=field_tag(name=sfield%name, column=column, &
-                  statistic=node%name, &
-                  material_phase_name=material_phase_name)
-            write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-
-            node => node%next
-
+             ! Store name of included scalar field
+             default_stat%detector_list%sfield_list(phase)%ptr(field_count)=state(phase)%scalar_names(i)
+             field_count = field_count + 1
           end do
 
-        end do
+          ! Count the vector fields to include in detectors
+          field_count = 0
+          do i = 1, size(state(phase)%vector_names)
+             vfield => extract_vector_field(state(phase),state(phase)%vector_names(i))   
+             if (detector_field(vfield)) field_count = field_count + 1
+          end do 
+          allocate(default_stat%detector_list%vfield_list(phase)%ptr(field_count))
+          default_stat%detector_list%num_vfields = &
+              default_stat%detector_list%num_vfields + field_count
 
-        do i = 1, size(default_stat%detector_list%vfield_list(phase)%ptr)
-          ! Headers for detectors for each vector field.
-          vfield => extract_vector_field(state(phase), &
-               & default_stat%detector_list%vfield_list(phase)%ptr(i))
+          ! Loop over vector fields again to store names and create header lines
+          field_count = 1
+          do i=1, size(state(phase)%vector_names)
 
-          if(.not. detector_field(vfield)) then
-             cycle
-          end if
+             vfield => extract_vector_field(state(phase),state(phase)%vector_names(i))
+             if(.not. detector_field(vfield)) then
+                cycle
+             end if
 
-          node => default_stat%detector_list%firstnode
+             ! Create header for included vector field
+             do j=1, default_stat%detector_list%total_num_det
+                buffer=field_tag(name=vfield%name, column=column+1, &
+                    statistic=default_stat%detector_list%detector_names(j), &
+                    material_phase_name=material_phase_name, &
+                    components=vfield%dim)
+                write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
+                column=column+vfield%dim
+             end do
 
-          do j=1, default_stat%detector_list%length
-
-             buffer=field_tag(name=vfield%name, column=column+1, &
-                  statistic=node%name, &
-                  material_phase_name=material_phase_name, &
-                  components=vfield%dim)
-             write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-             column=column+size(node%position)
-
-             node => node%next
-
+             ! Store name of included vector field
+             default_stat%detector_list%vfield_list(phase)%ptr(field_count)=state(phase)%vector_names(i)
+             field_count = field_count + 1
           end do
-        end do
 
-    end do phaseloop
+       end do phaseloop
 
-    write(default_stat%detector_list%output_unit, '(a)') "</header>"
-    flush(default_stat%detector_list%output_unit)
+       write(default_stat%detector_list%output_unit, '(a)') "</header>"
+       flush(default_stat%detector_list%output_unit)
 
     !!!when using mpi_subroutines to write into the detectors file we need to close the file since 
     !filename.detectors.dat needs to be open now with MPI_OPEN
 
-    if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
+       if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
 !        close(detector_unit)
 
 !#ifdef STREAM_IO
@@ -1835,13 +1839,11 @@ contains
 !     FLAbort("No stream I/O support")
 !#endif
 
-    else
-    
-      close(default_stat%detector_list%output_unit)
+       else    
+          close(default_stat%detector_list%output_unit)
+       end if
 
-    end if
-
-    end if
+    end if  !getprocno() == 1
 
     if ((isparallel()).or.((.not.isparallel()).and.(default_stat%detector_list%binary_output))) then
 
@@ -2615,6 +2617,7 @@ contains
        return
     end if
 
+    ! This is only for single processor with non-binary output
     if ((.not.isparallel()).and.(.not. detector_list%binary_output)) then
 
        if(getprocno() == 1) then
@@ -2631,95 +2634,70 @@ contains
        ! Next columns contain the positions of all the detectors.
        detector => detector_list%firstnode
        positionloop: do i=1, detector_list%length
-          if(getprocno() == 1) then
-             if(detector_list%binary_output) then
-                write(detector_list%output_unit) detector%position
-             else
-                format_buffer=reals_format(size(detector%position))
-                write(detector_list%output_unit, format_buffer, advance="no") &
-                     detector%position
-             end if
+          if(detector_list%binary_output) then
+             write(detector_list%output_unit) detector%position
+          else
+             format_buffer=reals_format(size(detector%position))
+             write(detector_list%output_unit, format_buffer, advance="no") &
+                  detector%position
           end if
 
           detector => detector%next
        end do positionloop
 
        phaseloop: do phase=1,size(state)
+          if (size(detector_list%sfield_list(phase)%ptr)>0) then
+             do i=1, size(detector_list%sfield_list(phase)%ptr)
+                ! Output statistics for each scalar field.
+                sfield=>extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
 
-          do i=1, size(detector_list%sfield_list(phase)%ptr)
-             ! Output statistics for each scalar field.
-             sfield=>extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
-
-             if(.not. detector_field(sfield)) then
-                cycle
-             end if
-
-             detector => detector_list%firstnode
-
-             do j=1, detector_list%length
-                value =  detector_value(sfield, detector)
-                if(getprocno() == 1) then
+                detector => detector_list%firstnode
+                do j=1, detector_list%length
+                   value =  detector_value(sfield, detector)
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) value
                    else
                       format_buffer=reals_format(1)
                       write(detector_list%output_unit, format_buffer, advance="no") value
                    end if
-                end if
-
-                detector => detector%next
+                   detector => detector%next
+                end do
              end do
-          end do
+          end if
 
-          allocate(vvalue(0))
-
-          do i = 1, size(detector_list%vfield_list(phase)%ptr)
-             ! Output statistics for each vector field
-
-             vfield => extract_vector_field(state(phase), &
+          if (size(detector_list%vfield_list(phase)%ptr)>0) then
+             do i = 1, size(detector_list%vfield_list(phase)%ptr)
+                ! Output statistics for each vector field
+                vfield => extract_vector_field(state(phase), &
                   & detector_list%vfield_list(phase)%ptr(i))
-
-             if(.not. detector_field(vfield)) then
-                cycle
-             end if
-
-             if (size(vvalue)/=vfield%dim) then
-                deallocate(vvalue)
                 allocate(vvalue(vfield%dim))
-             end if
 
-             detector => detector_list%firstnode
+                detector => detector_list%firstnode
+                do j=1, detector_list%length
+                   vvalue =  detector_value(vfield, detector)
 
-             do j=1, detector_list%length
-                vvalue =  detector_value(vfield, detector)
-
-                ! Only the first process should write statistics information
-                if(getprocno() == 1) then
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) vvalue
                    else
                       format_buffer=reals_format(vfield%dim)
                       write(detector_list%output_unit, format_buffer, advance="no") vvalue
                    end if
-                end if
-
-                detector => detector%next
+                   detector => detector%next
+                end do
+                deallocate(vvalue)
              end do
-          end do
+          end if
 
-          deallocate(vvalue)
        end do phaseloop
 
        ! Output end of line
-       ! Only the first process should write statistics information
-       if(getprocno() == 1) then
-          if(.not. detector_list%binary_output) then
-             ! Output end of line
-             write(detector_list%output_unit,'(a)') ""
-          end if
-          flush(detector_list%output_unit)
+       if (.not. detector_list%binary_output) then
+          ! Output end of line
+          write(detector_list%output_unit,'(a)') ""
        end if
+       flush(detector_list%output_unit)
 
+    ! If isparallel() or binary output us this
     else
        call write_mpi_out(state,detector_list,time,dt)
     end if
@@ -2771,23 +2749,9 @@ contains
     
     procno = getprocno()
 
-    number_of_scalar_det_fields = 0
-    do phase = 1, size(state)
-      do i = 1, size(detector_list%sfield_list(phase)%ptr)
-         sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))   
-         if(detector_field(sfield)) number_of_scalar_det_fields = number_of_scalar_det_fields + 1
-      end do 
-    end do 
-    ewrite(2, *) "Number of detector scalar fields = ", number_of_scalar_det_fields
+    ewrite(2, *) "Number of detector scalar fields = ", detector_list%num_sfields
 
-    number_of_vector_det_fields = 0
-    do phase = 1, size(state)   
-      do i = 1, size(detector_list%vfield_list(phase)%ptr)
-        vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
-        if(detector_field(vfield)) number_of_vector_det_fields = number_of_vector_det_fields + 1
-      end do 
-    end do
-    ewrite(2, *) "Number of detector vector fields = ", number_of_vector_det_fields
+    ewrite(2, *) "Number of detector vector fields = ", detector_list%num_vfields
 
     call mpi_type_extent(getpreal(), realsize, ierror)
     assert(ierror == MPI_SUCCESS)
@@ -2799,9 +2763,9 @@ contains
                            ! Detector coordinates
                          & detector_list%total_num_det * dim + &
                            ! Scalar detector data
-                         & detector_list%total_num_det * number_of_scalar_det_fields + &
+                         & detector_list%total_num_det * detector_list%num_sfields + &
                            ! Vector detector data
-                         & detector_list%total_num_det * number_of_vector_det_fields * dim
+                         & detector_list%total_num_det * detector_list%num_vfields * dim
 
     location_to_write = (detector_list%mpi_write_count - 1) * number_total_columns * realsize
 
@@ -2832,21 +2796,17 @@ contains
     allocate(vvalue(dim))
     state_loop: do phase = 1, size(state)
 
-      number_of_scalar_det_fields = 0
       if (allocated(detector_list%sfield_list)) then
+        if (size(detector_list%sfield_list(phase)%ptr)>0) then
         scalar_loop: do i = 1, size(detector_list%sfield_list(phase)%ptr)
-          ! Output statistics for each scalar field
-        
+          ! Output statistics for each scalar field        
           sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
-
-          if(.not. detector_field(sfield)) cycle scalar_loop
-          number_of_scalar_det_fields = number_of_scalar_det_fields + 1
 
           node => detector_list%firstnode
           scalar_node_loop: do j = 1, detector_list%length
             value =  detector_value(sfield, node)
 
-            offset = location_to_write + (detector_list%total_num_det * (number_of_scalar_det_fields - 1) + (node%id_number - 1)) * realsize
+            offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * realsize
 
             call mpi_file_write_at(detector_list%mpi_fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
             assert(ierror == MPI_SUCCESS)
@@ -2854,18 +2814,15 @@ contains
           end do scalar_node_loop
           assert(.not. associated(node))
         end do scalar_loop
+        end if
       end if
-      location_to_write = location_to_write + detector_list%total_num_det * number_of_scalar_det_fields * realsize
+      location_to_write = location_to_write + detector_list%total_num_det *detector_list%num_sfields * realsize
       
-      number_of_vector_det_fields = 0
       if (allocated(detector_list%vfield_list)) then
+        if (size(detector_list%vfield_list(phase)%ptr)>0) then
         vector_loop: do i = 1, size(detector_list%vfield_list(phase)%ptr)
-          ! Output statistics for each vector field
-     
+          ! Output statistics for each vector field     
           vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
-     
-          if(.not. detector_field(vfield)) cycle vector_loop
-          number_of_vector_det_fields = number_of_vector_det_fields + 1
 
           ! We currently don't have enough information for mixed dimension
           ! vector fields (see below)
@@ -2877,7 +2834,7 @@ contains
 
             ! Currently have to assume single dimension vector fields in
             ! order to compute the offset
-            offset = location_to_write + (detector_list%total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
+            offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * dim * realsize
 
             call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
             assert(ierror == MPI_SUCCESS)
@@ -2885,8 +2842,9 @@ contains
           end do vector_node_loop
           assert(.not. associated(node))        
         end do vector_loop
+        end if
       end if
-      location_to_write = location_to_write + detector_list%total_num_det * number_of_vector_det_fields * dim * realsize
+      location_to_write = location_to_write + detector_list%total_num_det * detector_list%num_vfields * dim * realsize
         
     end do state_loop
     deallocate(vvalue)
