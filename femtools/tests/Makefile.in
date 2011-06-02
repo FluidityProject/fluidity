@@ -48,13 +48,12 @@ DISABLED_TESTS=test_blasmul test_surface_ids \
   test_submesh test_cv_faces \
   test_vertical_integration compare_intersection_finder test_remap_coordinate \
   test_adaptive_interpolation_refine test_array_permutation test_vtk_read_surface
-  
-
 
 # the test programs to be built:
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.F90)))
 
 unittest: $(TEST_BINARIES)
+	mkdir -p ../../bin/tests
 	ln -sf $(addprefix ../../femtools/tests/,$(TEST_BINARIES)) ../../bin/tests/
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a $(.SUFFIXES)

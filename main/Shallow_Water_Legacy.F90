@@ -53,12 +53,6 @@
     & check_diagnostic_dependencies
     use iso_c_binding
     use mangle_options_tree
-#ifdef HAVE_ADJOINT
-    use shallow_water_adjoint_callbacks
-    use libadjoint
-    use libadjoint_data_callbacks
-#include "libadjoint/adj_fortran.h"
-#endif
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -115,13 +109,6 @@
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: on_manifold, adjoint
     integer, save :: dump_no=0
-#ifdef HAVE_ADJOINT
-    type(adj_adjointer) :: adjointer
-
-    ierr = adj_create_adjointer(adjointer)
-    call adj_register_femtools_data_callbacks(adjointer)
-#endif
-
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
@@ -136,7 +123,6 @@
     call mangle_options_tree_forward
 
     call populate_state(state)
-    call adjoint_register_initial_eta_condition
 
     call insert_time_in_state(state)
 
@@ -169,12 +155,6 @@
     if (adjoint .and. have_option("/mesh_adaptivity/prescribed_adaptivity")) then
       FLExit("Cannot adjoint an adaptive simulation")
     endif
-#ifndef HAVE_ADJOINT
-    if (adjoint) then
-      FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
-    endif
-#endif
-
     ! Always output the initial conditions.
     call output_state(state, on_manifold)
 
@@ -192,7 +172,6 @@
             exclude_nonreprescribed=.true., time=current_time+dt)
 
        call execute_timestep(state(1), dt)
-       call adjoint_register_timestep(timestep)
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
@@ -263,33 +242,6 @@
       call print_references(0)
     endif
 
-#ifdef HAVE_ADJOINT
-    if (adjoint) then
-      ewrite(1,*) "Entering adjoint computation"
-      call clear_options
-      call read_command_line
-
-      call mangle_options_tree_adjoint
-      call populate_state(state)
-      call check_diagnostic_dependencies(state)
-      call get_option('/simulation_name', simulation_name)
-      call initialise_diagnostics(trim(simulation_name),state)
-
-      dump_no = dump_no - 1
-
-!      call compute_adjoint(forward_state, adjoint_state)
-
-      call deallocate_transform_cache
-      call deallocate_reserve_state
-      call close_diagnostic_files
-      call uninitialise_diagnostics
-
-      call print_references(0)
-    else
-      ewrite(1,*) "No adjoint specified, not entering adjoint computation"
-    end if
-#endif
-
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
@@ -297,11 +249,6 @@
 #ifdef HAVE_MPI
     call mpi_finalize(ierr)
     assert(ierr == MPI_SUCCESS)
-#endif
-
-#ifdef HAVE_ADJOINT
-    ierr = adj_destroy_adjointer(adjointer)
-    call adj_chkierr(ierr)
 #endif
 
   contains
@@ -364,9 +311,6 @@
            &/initial_condition::WholeMesh/balanced")) then
          call set_velocity_from_geostrophic_balance(state(1), &
               div_mat, coriolis_mat, inverse_coriolis_mat)
-         call adjoint_register_initial_u_condition(balanced=.true.)
-      else
-         call adjoint_register_initial_u_condition(balanced=.false.)
       end if
 
       ! Set up the state of cached matrices
@@ -878,205 +822,4 @@
       write (0,*) ""
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
-
-    subroutine adjoint_register_initial_eta_condition
-#ifdef HAVE_ADJOINT
-      ! Register the initial condition for eta_0.
-      type(adj_block) :: I
-      integer :: ierr
-      type(adj_equation) :: equation
-      type(adj_variable) :: eta0
-
-      ierr = adj_create_block("LayerThicknessIdentity", block=I, context=c_loc(matrices))
-      call adj_chkierr(ierr)
-
-      ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
-      call adj_chkierr(ierr)
-
-      ierr = adj_create_equation(var=eta0, blocks=(/I/), targets=(/eta0/), equation=equation)
-      call adj_chkierr(ierr)
-
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-
-      ierr = adj_destroy_equation(equation)
-      ierr = adj_destroy_block(I)
-#endif
-    end subroutine adjoint_register_initial_eta_condition
-
-    subroutine adjoint_register_initial_u_condition(balanced)
-      logical, intent(in) :: balanced
-#ifdef HAVE_ADJOINT
-      type(adj_block) :: I, L, gC
-      integer :: ierr
-      type(adj_equation) :: equation
-      type(adj_variable) :: u0, eta0
-
-      ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
-      ! if balanced is false, we just read in an initial condition as usual
-
-      if (.not. balanced) then ! we just read in u from file
-        ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_equation(var=u0, blocks=(/I/), targets=(/u0/), equation=equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_register_equation(adjointer, equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_destroy_equation(equation)
-        ierr = adj_destroy_block(I)
-      else
-        ! The equation we have to register is the derivation of u0 from geostrophic balance
-        ierr = adj_create_block("Coriolis", block=L)
-        call adj_chkierr(ierr)
-        ierr = adj_create_block("Grad", block=gC)
-        call adj_chkierr(ierr)
-        ierr = adj_block_set_coefficient(block=gC, coefficient=g)
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_variable("Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=u0)
-        call adj_chkierr(ierr)
-        ierr = adj_create_variable("LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, var=eta0)
-        call adj_chkierr(ierr)
-
-        ierr = adj_create_equation(var=u0, blocks=(/L, gC/), targets=(/u0, eta0/), equation=equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_register_equation(adjointer, equation)
-        call adj_chkierr(ierr)
-
-        ierr = adj_destroy_equation(equation)
-        ierr = adj_destroy_block(L)
-        ierr = adj_destroy_block(gC)
-      endif
-#endif
-    end subroutine adjoint_register_initial_u_condition
-
-    subroutine adjoint_register_timestep(timestep)
-      integer, intent(in) :: timestep
-#ifdef HAVE_ADJOINT
-      type(adj_block) :: Iu, minusIu, Ieta, minusIeta, W, CTMC, CTML, MCdelta, ML, MC
-      integer :: ierr
-      type(adj_equation) :: equation
-      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta
-
-      ! Set up adj_variables
-      ierr = adj_create_variable("Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=u)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_u)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("VelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_u)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=eta)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("LayerThickness", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, var=previous_eta)
-      call adj_chkierr(ierr)
-      ierr = adj_create_variable("LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, var=delta_eta)
-      call adj_chkierr(ierr)
-
-      ! Set up adj_blocks
-
-      ! Blocks for delta eta equation
-      ierr = adj_create_block("WaveMatrix", context=c_loc(matrices), block=W)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("DivBigMatGrad", context=c_loc(matrices), block=CTMC)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("GradMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
-      call adj_chkierr(ierr)
-
-      ! Blocks for eta_n equation
-      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=Ieta)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("LayerThicknessIdentity", context=c_loc(matrices), block=minusIeta)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=minusIeta, coefficient=-1.0)
-      call adj_chkierr(ierr)
-
-      ! Blocks for delta u equation
-      ierr = adj_create_block("BigMatGrad", context=c_loc(matrices), block=MCdelta)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=MCdelta, coefficient=theta * dt * g)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("BigMatCoriolis", context=c_loc(matrices), block=ML)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=ML, coefficient=dt)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("BigMatGrad", context=c_loc(matrices), block=MC)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=MC, coefficient=dt * g)
-      call adj_chkierr(ierr)
-
-      ! Blocks for u_n equation
-      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=Iu)
-      call adj_chkierr(ierr)
-      ierr = adj_create_block("VelocityIdentity", context=c_loc(matrices), block=minusIu)
-      call adj_chkierr(ierr)
-      ierr = adj_block_set_coefficient(block=minusIu, coefficient=-1.0)
-      call adj_chkierr(ierr)
-
-      ! Ahah! Now we can register our lovely equations. They are pretty, aren't they?
-      ierr = adj_create_equation(delta_eta, blocks=(/CTMC, CTML, W/), &
-                                          & targets=(/previous_eta, previous_u, delta_eta/), equation=equation)
-      call adj_chkierr(ierr)
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
-
-      ierr = adj_create_equation(eta, blocks=(/minusIeta, minusIeta, Ieta/), &
-                                    & targets=(/previous_eta, delta_eta, eta/), equation=equation)
-      call adj_chkierr(ierr)
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
-
-      ierr = adj_create_equation(delta_u, blocks=(/MC, ML, MCdelta, Iu/), &
-                                        & targets=(/previous_eta, previous_u, delta_eta, delta_u/), equation=equation)
-      call adj_chkierr(ierr)
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
-
-      ierr = adj_create_equation(u, blocks=(/minusIu, minusIu, Iu/), &
-                                    & targets=(/previous_u, delta_u, u/), equation=equation)
-      call adj_chkierr(ierr)
-      ierr = adj_register_equation(adjointer, equation)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_equation(equation)
-      call adj_chkierr(ierr)
-
-      ! And now we gots to destroy some blocks
-      ierr = adj_destroy_block(Iu)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(minusIu)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(Ieta)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(minusIeta)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(W)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(CTMC)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(CTML)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(MCdelta)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(ML)
-      call adj_chkierr(ierr)
-      ierr = adj_destroy_block(MC)
-      call adj_chkierr(ierr)
-
-      ! And that's it!
-#endif
-    end subroutine adjoint_register_timestep
   end program shallow_water

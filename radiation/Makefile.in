@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -76,14 +76,11 @@ OBJS = Radiation.o \
        Radiation_Diagnostics.o \
        Radiation_Calculate_Current.o
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -94,44 +91,12 @@ OBJS = Radiation.o \
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Radiation.o: Radiation_Particle.o Radiation_Solve.o
-Radiation_Particle_Data_Type.o: Radiation_Materials_Data_Types.o Radiation_Materials_Interpolation_Data_Types.o 
-Radiation_Particle.o: Radiation_Particle_Data_Type.o Radiation_Materials.o Radiation_Materials_Interpolation.o  
-Radiation_Solve.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Solve_Power_Iteration.o Radiation_Normalise_Flux.o Radiation_Calculate_Current.o Radiation_Diagnostics.o Radiation_Solve_Energy_Group_Iteration.o
-Radiation_Solve_Power_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Solve_Scatter_Iteration.o Radiation_Extract_Flux_Field.o Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Solve_Energy_Group_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Solve_Scatter_Iteration.o Radiation_Check_Flux_Convergence.o Radiation_Copy_Flux_Values.o 
-Radiation_Solve_Scatter_Iteration.o: Radiation_Particle_Data_Type.o Radiation_Solve_Group.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Solve_Group.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Materials_Interpolation.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Check_Flux_Convergence.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Copy_Flux_Values.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Extract_Flux_Field.o: Radiation_Particle_Data_Type.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Normalise_Flux.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Reaction_Rate.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Reaction_Rate.o: Radiation_Particle_Data_Type.o Radiation_Materials_Interpolation.o Radiation_Extract_Flux_Field.o
-Radiation_Energy_Group_Set_Tools.o: 
-Radiation_Materials.o: Radiation_Materials_Data_Types.o Radiation_Materials_Create.o Radiation_Materials_Destroy.o Radiation_Materials_Read.o Radiation_Materials_Operations.o
-Radiation_Materials_Data_Types.o: 
-Radiation_Materials_Create.o: Radiation_Materials_Data_Types.o Radiation_Energy_Group_Set_Tools.o
-Radiation_Materials_Destroy.o: Radiation_Materials_Data_Types.o
-Radiation_Materials_Read.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats.o
-Radiation_Materials_Read_Format_Radmats.o: Radiation_Materials_Data_Types.o Radiation_Materials_Read_Format_Radmats_Base.o 
-Radiation_Materials_Read_Format_Radmats_Base.o: Radiation_Materials_Data_Types.o 
-Radiation_Materials_Operations.o: Radiation_Materials_Data_Types.o
-Radiation_Materials_Interpolation.o: Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials_Interpolation_Create.o Radiation_Materials_Interpolation_Destroy.o Radiation_Materials_Interpolation_Form_II.o Radiation_Materials_Interpolation_Form_Radmat.o 
-Radiation_Materials_Interpolation_Data_Types.o: 
-Radiation_Materials_Interpolation_Create.o: Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials.o Radiation_Extract_Flux_Field.o
-Radiation_Materials_Interpolation_Destroy.o: Radiation_Materials_Interpolation_Data_Types.o
-Radiation_Materials_Interpolation_Form_II.o: Radiation_Materials_Interpolation_Data_Types.o Radiation_Materials_Interpolation_Create.o Radiation_Materials_Data_Types.o
-Radiation_Materials_Interpolation_Form_Radmat.o: Radiation_Materials.o Radiation_Materials_Interpolation_Data_Types.o
-Create_Unittest_Input.o: Radiation_Materials_Data_Types.o Radiation_Materials_Create.o 
-Radiation_Diagnostics.o: Radiation_Particle_Data_Type.o 
-Radiation_Calculate_Current.o: Radiation_Particle_Data_Type.o Radiation_Extract_Flux_Field.o Radiation_Materials_Interpolation.o Radiation_Energy_Group_Set_Tools.o
-
 clean:
 	rm -f *.o *.d *.mod
 
+include Makefile.dependencies
