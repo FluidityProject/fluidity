@@ -3,7 +3,7 @@
   <optimisation_name>
     <string_value lines="1">shallow_water_optimisation_A</string_value>
   </optimisation_name>
-  <model_template file_name="adjoint_A"/>
+  <model_option_template command_line="shallow_water" option_file="optimiser_A.oml"/>
   <optimisation_options>
     <optimisation_algorithm name="BFGS"/>
     <tolerance>
@@ -13,7 +13,7 @@
   <control_io>
     <type name="custom">
       <update_model_template>
-        <string_value type="python" lines="20">def update_schema():
+        <string_value lines="20" type="python">def update_schema():
   return 0.0</string_value>
       </update_model_template>
     </type>

@@ -17,10 +17,13 @@ characters in the optimisation name should be avoided.</a:documentation>
     </element>
   </start>
   <define name="model_template">
-    <element name="model_template">
+    <element name="model_option_template">
       <a:documentation>Options to specifing the *flml file containing to model
 configuration template</a:documentation>
-      <attribute name="file_name">
+      <attribute name="option_file">
+        <data type="string"/>
+      </attribute>
+      <attribute name="command_line">
         <data type="string"/>
       </attribute>
     </element>
