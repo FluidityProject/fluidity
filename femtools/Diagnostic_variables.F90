@@ -143,7 +143,7 @@ module diagnostic_variables
     logical :: binary_steady_state_output = .false.
 
    !! Are we continuing from a detector checkpoint file?
-    logical :: detectors_checkpoint_done = .false.
+    logical :: from_checkpoint = .false.
 
     !The following variable will switch to true if call to zoltan_drive for the re-load balance occur.
     logical :: zoltan_drive_call = .false.
@@ -156,7 +156,8 @@ module diagnostic_variables
     type(stringlist), dimension(:), allocatable :: vfield_list
     type(stringlist), dimension(:), allocatable :: tfield_list
 
-    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_of_detector_groups_in_read_order
+    ! Names of detector groups used for checkpointing; names are held in read order
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_group_names
     integer, dimension(:), allocatable :: number_det_in_each_group
 
     type(detector_linked_list) :: detector_list
@@ -1339,11 +1340,72 @@ contains
     end if
 
   end subroutine initialise_steady_state
+
+  subroutine create_single_detector_from_option(detector_list,xfield,option_path,id,type)
+    ! Allocate a single detector, populate and insert it into the given list
+    ! In parallel, first check if the detector would be local and only allocate if it is
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), pointer, intent(in) :: xfield
+    character(len = *), intent(in) :: option_path
+    integer, intent(in) :: id, type
+
+    type(detector_type), pointer :: detector
+    type(element_type), pointer :: shape
+    real, dimension(xfield%dim) :: det_position
+    real, dimension(xfield%dim+1) :: det_lcoords
+    integer :: det_element
+    integer, dimension(2) :: shape_option
+
+    ! Make sure dimensions are right
+    shape_option=option_shape(trim(option_path)//"/location")
+    assert(xfield%dim==shape_option(1))
+    shape=>ele_shape(xfield,1)
+    assert(xfield%dim+1==local_coord_count(shape))
+
+    ! Determine element and local_coords from position
+    call get_option(trim(option_path)//"/location", det_position)
+    call picker_inquire(xfield,det_position,det_element,local_coord=det_lcoords,global=.false.)
+
+    ! If we're in parallel and don't own the element, skip this detector
+    if (isparallel()) then
+       if (det_element<0) return
+       if (.not.element_owned(xfield,det_element)) return
+    end if
+         
+    ! Otherwise, allocate detector
+    allocate(detector)
+    allocate(detector%position(shape_option(1)))
+    allocate(detector%local_coords(local_coord_count(shape)))
+
+    ! Populate detector
+    call get_option(trim(option_path)//"/name", detector%name)
+    detector%position=det_position
+    detector%element=det_element
+    detector%local_coords=det_lcoords
+    detector%type=type
+    detector%id_number=id
+
+    ! And insert
+    call insert(default_stat%detector_list,detector)
+             
+       ! The arrays below contain information about the order in which detector
+       ! groups are read and how many detectors there are in each group. This is
+       ! used when checkpointing detectors. In particular, when continuing a
+       ! simulation from a checkpoint, with these arrays we make sure we read
+       ! back the detectors from the file in the same order than at the beginning
+       ! of the simulation for consistency. All the .detectors files with
+       ! detector data (position, value of variables at those positions, etc.) 
+       ! will have the information in the same order.
+
+    default_stat%detector_group_names(id)=detector%name
+    default_stat%number_det_in_each_group(id)=1.0
+    default_stat%detector_list%detector_names(id)=detector%name
+
+  end subroutine create_single_detector_from_option
   
   subroutine initialise_detectors(filename, state)
     !!< Set up the detector file headers. This has the same syntax as the
     !!< .stat file
-
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
@@ -1391,14 +1453,14 @@ contains
     ! Register this I/O detector list with a global list of detector lists
     call register_detector_list(default_stat%detector_list)
 
-    allocate(default_stat%name_of_detector_groups_in_read_order(total_dete_groups))
+    allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
     allocate(default_stat%detector_list%detector_names(total_dete))
     
     if (total_dete==0) return
 
-    vfield=>extract_vector_field(state(1), "Coordinate")
-    shape=>ele_shape(vfield,1)
+    xfield=>extract_vector_field(state(1), "Coordinate")
+    shape=>ele_shape(xfield,1)
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     
@@ -1406,74 +1468,32 @@ contains
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
     ! after checkpointing and the reading of the detector positions must be
     ! done from a file
-
     if (have_option("/io/detectors/static_detector/from_checkpoint_file").or. & 
 & have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
 & have_option("/io/detectors/detector_array/from_checkpoint_file")) then
-       default_stat%detectors_checkpoint_done=.true.
+       default_stat%from_checkpoint=.true.
     else
-       default_stat%detectors_checkpoint_done=.false.
+       default_stat%from_checkpoint=.false.
     end if
 
-    if (.not.default_stat%detectors_checkpoint_done) then
+    ! Read detectors from options
+    if (.not.default_stat%from_checkpoint) then
 
-          do i=1,static_dete
-             write(buffer, "(a,i0,a)")  &
-               "/io/detectors/static_detector[",i-1,"]"
-         
-             allocate(node)
-             call insert(default_stat%detector_list,node) 
+       ! Read all single static detector from options
+       do i=1,static_dete
+          write(buffer, "(a,i0,a)") "/io/detectors/static_detector[",i-1,"]"
+          call create_single_detector_from_option(default_stat%detector_list, &
+                     xfield, trim(buffer), i, STATIC_DETECTOR)
+       end do
 
-             call get_option(trim(buffer)//"/name", node%name)
-             shape_option=option_shape(trim(buffer)//"/location")
-             allocate(node%position(shape_option(1)))
-             call get_option(trim(buffer)//"/location", node%position)       
+       ! Read all single lagrangian detector from options
+       do i=1,lagrangian_dete
+          write(buffer, "(a,i0,a)") "/io/detectors/lagrangian_detector[",i-1,"]"
+          call create_single_detector_from_option(default_stat%detector_list, &
+                     xfield, trim(buffer), i+static_dete, LAGRANGIAN_DETECTOR)
+       end do
 
-             node%type = STATIC_DETECTOR
-             node%id_number = i
-             
-       ! The arrays below contain information about the order in which detector
-       ! groups are read and how many detectors there are in each group. This is
-       ! used when checkpointing detectors. In particular, when continuing a
-       ! simulation from a checkpoint, with these arrays we make sure we read
-       ! back the detectors from the file in the same order than at the beginning
-       ! of the simulation for consistency. All the .detectors files with
-       ! detector data (position, value of variables at those positions, etc.) 
-       ! will have the information in the same order.
-
-             default_stat%name_of_detector_groups_in_read_order(i)=node%name
-             default_stat%number_det_in_each_group(i)=1.0
-
-             default_stat%detector_list%detector_names(i)=node%name
-
-             allocate(node%local_coords(local_coord_count(shape)))
-
-          end do
-
-          do i=1,lagrangian_dete
-             write(buffer, "(a,i0,a)")  &
-               "/io/detectors/lagrangian_detector[",i-1,"]"
-
-             allocate(node)
-             call insert(default_stat%detector_list,node) 
-
-             call get_option(trim(buffer)//"/name", node%name)
-             shape_option=option_shape(trim(buffer)//"/location")
-             allocate(node%position(shape_option(1)))
-             call get_option(trim(buffer)//"/location", node%position)
-          
-             node%type = LAGRANGIAN_DETECTOR
-             node%id_number = i+static_dete
-             
-             default_stat%name_of_detector_groups_in_read_order(i+static_dete)=node%name
-             default_stat%number_det_in_each_group(i+static_dete)=1.0
-             default_stat%detector_list%detector_names(i+static_dete)=node%name
-
-             allocate(node%local_coords(local_coord_count(shape)))
-
-          end do
-
-          k=static_dete+lagrangian_dete+1
+       k=static_dete+lagrangian_dete+1
 
           do i=1,python_functions_or_files
              write(buffer, "(a,i0,a)")  &
@@ -1490,7 +1510,7 @@ contains
                   type_det=STATIC_DETECTOR
              end if
 
-             default_stat%name_of_detector_groups_in_read_order(i+static_dete+lagrangian_dete)=trim(funcnam)
+             default_stat%detector_group_names(i+static_dete+lagrangian_dete)=trim(funcnam)
              default_stat%number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
 
              if (have_option(trim(buffer) // "/from_file")) then
@@ -1592,7 +1612,7 @@ contains
 
            do i=1, total_dete_groups  
 
-               read(default_stat%detector_checkpoint_unit,'(a,i10)') default_stat%name_of_detector_groups_in_read_order(i), default_stat%number_det_in_each_group(i)
+               read(default_stat%detector_checkpoint_unit,'(a,i10)') default_stat%detector_group_names(i), default_stat%number_det_in_each_group(i)
 
            end do
 
@@ -1607,14 +1627,14 @@ contains
  
        !!!Read in order the last positions of the detectors from the binary file.
 
-          do j=1,size(default_stat%name_of_detector_groups_in_read_order)
+          do j=1,size(default_stat%detector_group_names)
 
              do i=1,static_dete
                  write(buffer, "(a,i0,a)")  &
                "/io/detectors/static_detector[",i-1,"]"
                  call get_option(trim(buffer)//"/name", temp_name)
           
-                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%detector_group_names(j)==temp_name) then
 
                      allocate(node)
                      call insert(default_stat%detector_list,node)
@@ -1633,14 +1653,14 @@ contains
 
           end do
 
-          do j=1,size(default_stat%name_of_detector_groups_in_read_order)   
+          do j=1,size(default_stat%detector_group_names)   
 
              do i=1,lagrangian_dete
                  write(buffer, "(a,i0,a)")  &
                "/io/detectors/lagrangian_detector[",i-1,"]"
                  call get_option(trim(buffer)//"/name", temp_name)
 
-                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%detector_group_names(j)==temp_name) then
 
 
                      allocate(node)
@@ -1663,7 +1683,7 @@ contains
 
           k=static_dete+lagrangian_dete+1
 
-          do j=1,size(default_stat%name_of_detector_groups_in_read_order)  
+          do j=1,size(default_stat%detector_group_names)  
 
              do i=1,python_functions_or_files
                  write(buffer, "(a,i0,a)")  &
@@ -1671,7 +1691,7 @@ contains
       
                  call get_option(trim(buffer)//"/name", temp_name)
 
-                 if (default_stat%name_of_detector_groups_in_read_order(j)==temp_name) then
+                 if (default_stat%detector_group_names(j)==temp_name) then
 
                     call get_option(trim(buffer)//"/number_of_detectors", ndete)
                     str_size=len_trim(int2str(ndete))
