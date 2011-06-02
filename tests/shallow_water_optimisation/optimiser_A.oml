@@ -3,7 +3,7 @@
   <optimisation_name>
     <string_value lines="1">shallow_water_optimisation_A</string_value>
   </optimisation_name>
-  <model_option_template command_line="shallow_water" option_file="optimiser_A.oml"/>
+  <model_template command_line="../../bin/shallow_water" option_file="adjoint_A.swml"/>
   <optimisation_options>
     <optimisation_algorithm name="BFGS"/>
     <tolerance>

@@ -21,7 +21,7 @@ model_template =
    (
       ## Options to specifing the *flml file containing to model
       ## configuration template
-      element model_option_template {
+      element model_template {
          attribute option_file { xsd:string },
          attribute command_line { xsd:string }
       }
