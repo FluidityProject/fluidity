@@ -80,7 +80,12 @@ Enter the base name without the .edge .ele, .face or
           <attribute name="name">
             <value>custom</value>
           </attribute>
-          <element name="update_model_template">
+          <element name="get_initial_controls">
+            <a:documentation>Python function which takes as input a dictionary of the new model parameters and
+updates the corresponding model schema file.</a:documentation>
+            <ref name="python_code"/>
+          </element>
+          <element name="update_controls">
             <a:documentation>Python function which takes as input a dictionary of the new model parameters and
 updates the corresponding model schema file.</a:documentation>
             <ref name="python_code"/>

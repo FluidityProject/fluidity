@@ -74,7 +74,12 @@ control_io =
               attribute name { "custom" },
               ## Python function which takes as input a dictionary of the new model parameters and
               ## updates the corresponding model schema file.
-              element update_model_template {
+              element get_initial_controls {
+                 python_code
+              },
+              ## Python function which takes as input a dictionary of the new model parameters and
+              ## updates the corresponding model schema file.
+              element update_controls {
                  python_code
               },
               comment

@@ -10,11 +10,6 @@ import string
 from fluidity_tools import stat_parser as stat
 import time
 
-# Initial control
-#if not os.path.isfile("control.npy"):
-#  m = numpy.array([1.0])
-#  numpy.save("control.npy", m)
-
 def run_model():
   command_line = libspud.get_option('/model_template/command_line')
   option_file = libspud.get_option('/model_template/option_file')
@@ -30,14 +25,27 @@ def run_model():
     exit()
   print out
 
-def update_model_options(m):
+def initialise_model_controls():
   update_type = libspud.get_option('/control_io/type[0]/name')
   if update_type == 'custom':
-    update_code = libspud.get_option('/control_io/type::custom/update_model_template')
+    get_initial_code = libspud.get_option('/control_io/type::custom/get_initial_controls')
+    # execute the python code
+    d = {}
+    exec get_initial_code in d
+    m = d['get_initial_controls']()
+  else:
+    print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
+    exit()
+  return m
+
+def update_model_controls(m):
+  update_type = libspud.get_option('/control_io/type[0]/name')
+  if update_type == 'custom':
+    update_code = libspud.get_option('/control_io/type::custom/update_controls')
     # execute the python code
     d = {}
     exec update_code in d
-    d['update_model'](m)
+    d['update_controls'](m)
   else:
     print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
     exit()
@@ -45,15 +53,17 @@ def update_model_options(m):
 
 def optimisation_loop():
   def J(m):
-    update_model_options(m)
+    update_model_controls(m)
     run_model()
+    # TODO
     J = stat("wave_A_adjoint_integral_eta_t1.stat")["integral_eta_t1"]["value"][-1]
     print "J = ", J
     return J
 
   def dJdm(m):
-    update_model_options(m)
+    update_model_controls(m)
     run_model()
+    # TODO
     djdm = numpy.load("djdm.npy")
     print "dJdm = ", djdm
     return djdm
@@ -61,7 +71,8 @@ def optimisation_loop():
   # Start the optimisation loop
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
   tol = libspud.get_option('/optimisation_options/tolerance')
-  m = numpy.ones(1)
+  # Initialise the controls
+  m = initialise_model_controls()
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
       res = scipy.optimize.fmin_bfgs(J, m, dJdm, gtol=tol, full_output=1)
@@ -89,8 +100,7 @@ def main():
   if not os.path.isfile(libspud.get_option('/model_template/option_file')):
       print "Could not find ", libspud.get_option('/model_template/option_file') ," as specified in /model_template/option_file"
       exit()
-  
-
+  # Start the optimisation loop
   optimisation_loop() 
 
 if '__main__'==__name__:
