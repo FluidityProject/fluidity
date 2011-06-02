@@ -8,22 +8,27 @@ start =
          ## Output files are named according to the optimisation
          ## name, e.g. [optimisation_name]_0.stat. Non-standard
          ## characters in the optimisation name should be avoided.
-         element optimisation_name {
+         element name {
             anystring
          },
-         model_template,
+         model,
          optimisation_options,
          control_io
       }
    )
 
-model_template = 
+model = 
    (
       ## Options to specifing the *flml file containing to model
       ## configuration template
-      element model_template {
+      element model {
          attribute option_file { xsd:string },
          attribute command_line { xsd:string }
+      },
+      ## Options to specifing the *flml file containing to model
+      ## configuration template
+      element functional {
+         attribute name { xsd:string }
       }
    )
 
@@ -74,7 +79,12 @@ control_io =
               attribute name { "custom" },
               ## Python function which takes as input a dictionary of the new model parameters and
               ## updates the corresponding model schema file.
-              element update_model_template {
+              element get_initial_controls {
+                 python_code
+              },
+              ## Python function which takes as input a dictionary of the new model parameters and
+              ## updates the corresponding model schema file.
+              element update_controls {
                  python_code
               },
               comment
