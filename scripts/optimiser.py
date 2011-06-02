@@ -9,6 +9,7 @@ import scipy.optimize
 import string
 from fluidity_tools import stat_parser as stat
 import time
+import pickle
 
 def run_model():
   command_line = libspud.get_option('/model_template/command_line')
@@ -83,10 +84,29 @@ def optimisation_loop():
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
-    # TODO
-    djdm = numpy.load("djdm.npy")
-    print "dJdm = ", djdm
-    return djdm
+    pkl_file = open('controls.pkl', 'rb')
+    djdm = pickle.load(pkl_file)
+    # Check that the the controls in dJdm are consistent with the ones specified in m
+    djdm_keys = djdm.keys()
+    djdm_keys.sort()
+    m_keys = djdm.keys()
+    m_keys.sort()
+    if m_keys != djdm_keys:
+      print "The specified controls are not consistent with the controls in the derivative in the objective function."
+      print "The specified controls are:", m_keys
+      print "The controls in dJdm are:", djdm_keys
+      print "Check the consistency of the control definition in the model and the optimiser configuration."
+      exit()
+    for k, v in m.iteritems():
+      if len(m[k]) != len(djdm[k]):
+        print "The control ", k, " has dimension ", len(m[k]), " but dJd(", k, ") has dimension ", len(djdm[k])
+        exit()
+
+    # Serialise djdm in the same order than m_serial
+    djdm_serial = [] 
+    for k, v in m_shape.iteritems():
+      djdm_serial = numpy.append(djdm_serial, djdm[k])
+    return djdm_serial
 
   # Start the optimisation loop
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
