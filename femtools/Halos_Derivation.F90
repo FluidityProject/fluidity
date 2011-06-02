@@ -683,7 +683,7 @@ contains
     
     assert(valid_halo_node_counts(element_halo))
     
-    loc = mesh%shape%loc
+    loc = mesh%shape%ndof
     
     allocate(receives_uenlist(nprocs))
     do i = 1, nprocs

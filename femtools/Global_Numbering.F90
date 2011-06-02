@@ -70,7 +70,7 @@ contains
 
     integer :: i
 
-    new_nonods=totele*element%loc
+    new_nonods=totele*element%ndof
 
     forall (i=1:new_nonods)
        new_ndglno(i)=i
@@ -97,7 +97,7 @@ contains
       
       integer :: i,j,k, nloc
 
-      nloc=element%loc
+      nloc=element%ndof
 
       do i=1, size(nsends)
          nsends(i)=nloc*size(element_halo%sends(i)%ptr)
@@ -112,7 +112,7 @@ contains
 !! Query what is the naming convention for halos.
               name=trim(halo_name(element_halo)) // "DG", &
               nprocs=element_halo%nprocs, &
-              nowned_nodes=element_halo%nowned_nodes*element%loc, &
+              nowned_nodes=element_halo%nowned_nodes*element%ndof, &
               data_type=HALO_TYPE_DG_NODE, &
               ordering_scheme=halo_ordering_scheme(element_halo))
 
@@ -524,20 +524,20 @@ contains
     ! Remaining numbers.
     !----------------------------------------------------------------------
 
-    allocate (ndglno_pos(element%loc))
+    allocate (ndglno_pos(element%ndof))
     this_receive_halo_level = 0
 
     ! This is the internal nodes of the elements plus the external faces.
     do ele=1,size(EEList,1)
               
-       ndglno_pos=sequence((ele-1)*element%loc+1, element%loc)
+       ndglno_pos=sequence((ele-1)*element%ndof+1, element%ndof)
 
        ! Work out who should own these nodes.
        ele1_vertices=>NDGLNO(vertex_count*(ele-1)+1:vertex_count*ele)
        call conduct_halo_voting(ele1_vertices, this_node_owner,&
             & this_receive_halo_level, this_send_targets)
               
-       do i=1, element%loc
+       do i=1, element%ndof
           if (new_ndglno(ndglno_pos(i))==0) then
              n(this_receive_halo_level)=n(this_receive_halo_level)+1
              new_ndglno(ndglno_pos(i))=n(this_receive_halo_level)
@@ -590,7 +590,7 @@ contains
             =new_node_owner(:new_nonods-n(halo),halo)
 
        call generate_new_halos(new_halos, new_ndglno, new_node_owner(:,0)&
-            &, new_receive_halo_level, element%loc, owned_nodes,&
+            &, new_receive_halo_level, element%ndof, owned_nodes,&
             & new_send_targets) 
 
        do i = 1, size(old_send_targets,1)

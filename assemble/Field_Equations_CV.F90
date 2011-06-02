@@ -1418,7 +1418,7 @@ contains
         diff_mat_local = 0.0
 
         ! loop over nodes within this element
-        nodal_loop_i: do iloc = 1, tfield%mesh%shape%loc
+        nodal_loop_i: do iloc = 1, tfield%mesh%shape%ndof
 
           ! loop over cv faces internal to this element
           face_loop: do face = 1, cvfaces%faces
@@ -1726,7 +1726,7 @@ contains
         diff_mat_local_bdy = 0.0
 
         ! loop over the nodes on this surface element
-        surface_nodal_loop_i: do iloc = 1, tfield%mesh%faces%shape%loc
+        surface_nodal_loop_i: do iloc = 1, tfield%mesh%faces%shape%ndof
 
           ! loop over the faces in this surface element
           surface_face_loop: do face = 1, cvfaces%sfaces
@@ -1860,7 +1860,7 @@ contains
                       ! because transform to physical doesn't give the full gradient at a face
                       ! yet this can't be done so we're going to have to assume zero neumann
                       ! at outflow faces
-                      !        do dloc= 1,tfield%mesh%faces%shape%loc
+                      !        do dloc= 1,tfield%mesh%faces%shape%ndof
                       !
                       !         ! n_i K_{ij} dT/dx_j
                       !         diff_mat_local_bdy(iloc, dloc) = diff_mat_local_bdy(iloc,dloc) + &
@@ -2804,7 +2804,7 @@ contains
         notvisited=.true.
 
         ! loop over nodes within this element
-        nodal_loop_i: do iloc = 1, tfield(1)%ptr%mesh%shape%loc
+        nodal_loop_i: do iloc = 1, tfield(1)%ptr%mesh%shape%ndof
 
           ! loop over cv faces internal to this element
           face_loop: do face = 1, cvfaces%faces
@@ -3040,7 +3040,7 @@ contains
         end do
 
         ! loop over the nodes on this surface element
-        surface_nodal_loop_i: do iloc = 1, tfield(1)%ptr%mesh%faces%shape%loc
+        surface_nodal_loop_i: do iloc = 1, tfield(1)%ptr%mesh%faces%shape%ndof
 
           ! loop over the faces in this surface element
           surface_face_loop: do face = 1, cvfaces%sfaces

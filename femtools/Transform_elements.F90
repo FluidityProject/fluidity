@@ -485,7 +485,7 @@ contains
     !! This is mostly useful for control volumes.
     type(element_type), intent(in), optional, target :: X_shape
     
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(X%dim,ele_loc(X,ele)) :: X_val
     !! Shape function to be used for coordinate interpolation.
@@ -520,7 +520,7 @@ contains
        assert(size(detwei)==lx_shape%ngi)
     end if
     !if (present(dshape)) then
-       assert(size(dshape,1)==shape%loc)
+       assert(size(dshape,1)==shape%ndof)
        assert(size(dshape,2)==shape%ngi)
        assert(size(dshape,3)==dim)
     !end if
@@ -616,7 +616,7 @@ contains
        ! If both space and the derivatives are linear then we only need
        ! to do this once.
        if (x_nonlinear.or.m_nonlinear.or.gi==1) then
-          do i=1,shape%loc
+          do i=1,shape%ndof
              dshape(i,gi,:)=matmul(invJ_local, shape%dn(i,gi,:))
           end do
        else
@@ -655,7 +655,7 @@ contains
 
     !! Shape function used for coordinate interpolation
     type(element_type), pointer :: x_shape
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(X%dim,ele_loc(X,ele)) :: X_val
 
@@ -768,7 +768,7 @@ contains
   subroutine compute_inverse_jacobian(X, x_shape, invJ, detwei, detJ)
     !!< Fast version of transform_to_physical that only calculates detwei and invJ
       
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(:,:), intent(in) :: X
     !! Shape function used for coordinate interpolation
@@ -792,7 +792,7 @@ contains
     
     dim=size(X,1)
 
-    assert(size(X,2)==x_shape%loc)
+    assert(size(X,2)==x_shape%ndof)
     if (present(detwei)) then
       assert(size(detwei)==x_shape%ngi)
     end if
@@ -880,7 +880,7 @@ contains
   subroutine compute_jacobian(X, x_shape, J, detwei, detJ)
     !!< Fast version of transform_to_physical that only calculates detwei and J
       
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(:,:), intent(in) :: X
     !! Shape function used for coordinate interpolation
@@ -903,7 +903,7 @@ contains
     dim=size(X,1) ! dimension of space
     ldim=x_shape%dim ! dimension of element
 
-    assert(size(X,2)==x_shape%loc)
+    assert(size(X,2)==x_shape%ndof)
     if (present(detwei)) then
       assert(size(detwei)==x_shape%ngi)
     end if
@@ -1460,7 +1460,7 @@ contains
 
     dim=size(X,1)
     assert(size(X_f,1)==dim)
-    assert(size(X_f,2)==x_shape_f%loc)
+    assert(size(X_f,2)==x_shape_f%ndof)
 
     assert(size(normal,1)==dim)
 

@@ -90,7 +90,7 @@ contains
     !!<  
     type(element_type), intent(in) :: t_shape
     !! dshape is nloc x ngi x dim
-    real, dimension(t_shape%loc, t_shape%quadrature%ngi, t_shape%dim) :: dshape
+    real, dimension(t_shape%ndof, t_shape%quadrature%ngi, t_shape%dim) :: dshape
     !! u_nl_q is dim x ngi
     real, dimension(t_shape%dim, t_shape%quadrature%ngi), intent(in) :: u_nl_q
     !! j_mat is dim x dim x ngi
@@ -100,18 +100,18 @@ contains
     integer, optional, intent(in) :: nu_bar_scheme
     real, optional, intent(in) ::  nu_bar_scale
 
-    real, dimension(t_shape%loc, t_shape%loc) :: stab
+    real, dimension(t_shape%ndof, t_shape%ndof) :: stab
 
     ! Local Variables
     
     !! This is the factor nu/||U_nl^^2||
     real, dimension(size(detwei)) :: nu_scaled
     !! U_nl \dot dshape
-    real, dimension(t_shape%loc, size(detwei)) :: U_nl_dn
+    real, dimension(t_shape%ndof, size(detwei)) :: U_nl_dn
 
     integer :: i, j, loc, ngi
 
-    loc = t_shape%loc
+    loc = t_shape%ndof
     ngi = size(u_nl_q, 2)
 
     nu_scaled = nu_bar_scaled_q(dshape, u_nl_q, j_mat, diff_q = diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
@@ -322,7 +322,7 @@ contains
     
     type(element_type), target, intent(in) :: base_shape
     !! dshape is nloc x ngi x dim
-    real, dimension(base_shape%loc, base_shape%quadrature%ngi, base_shape%dim) :: dshape
+    real, dimension(base_shape%ndof, base_shape%quadrature%ngi, base_shape%dim) :: dshape
     !! u_nl_q is dim x ngi
     real, dimension(base_shape%dim, base_shape%quadrature%ngi), intent(in) :: u_nl_q
     !! j_mat is dim x dim x ngi
@@ -337,20 +337,20 @@ contains
     !! This is the factor nu/||u_nl^^2||
     real, dimension(size(u_nl_q, 2)) :: nu_bar_scaled
     !! u_nl \dot dshape
-    real, dimension(base_shape%loc, size(u_nl_q, 2)) :: u_nl_dn
+    real, dimension(base_shape%ndof, size(u_nl_q, 2)) :: u_nl_dn
     type(quadrature_type), pointer :: quad
         
     quad => base_shape%quadrature
     
     dim = base_shape%dim
-    loc = base_shape%loc
+    loc = base_shape%ndof
     ngi = quad%ngi
     coords = local_coord_count(base_shape)
     degree = base_shape%degree
         
     ! Step 1: Generate a new shape
     
-    call allocate(test_function, dim = dim, loc = loc, ngi = ngi, coords = coords)
+    call allocate(test_function, dim = dim, ndof = loc, ngi = ngi, coords = coords)
     
     test_function%degree = degree
     test_function%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)

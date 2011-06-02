@@ -270,8 +270,8 @@ contains
 
         allocate(detwei_bdy(face_ngi(field, 1)), &
                 normal_bdy(field%dim, face_ngi(field, 1)))
-        allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
-        allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
+        allocate(field_nodes_bdy(field%mesh%faces%shape%ndof))
+        allocate(test_nodes_bdy(test_mesh%faces%shape%ndof))
         allocate(ele_mat_bdy(field%dim, face_loc(test_mesh, 1), face_loc(field, 1)))
 
         assert(surface_element_count(test_mesh)==surface_element_count(field))
@@ -557,8 +557,8 @@ contains
         allocate(detwei_bdy(face_ngi(field, 1)), &
                  density_bdy(face_ngi(density, 1)), &
                  normal_bdy(field%dim, face_ngi(field, 1)))
-        allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
-        allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
+        allocate(field_nodes_bdy(field%mesh%faces%shape%ndof))
+        allocate(test_nodes_bdy(test_mesh%faces%shape%ndof))
         allocate(ele_mat_bdy(field%dim, face_loc(test_mesh, 1), face_loc(field, 1)))
 
         assert(surface_element_count(test_mesh)==surface_element_count(field))

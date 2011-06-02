@@ -168,10 +168,10 @@ contains
     nullify(mesh%columns)
     nullify(mesh%element_columns)
     
-    allocate(mesh%ndglno(elements*shape%loc))
+    allocate(mesh%ndglno(elements*shape%ndof))
 
 #ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", elements*shape%loc,&
+    call register_allocation("mesh_type", "integer", elements*shape%ndof,&
          & name=mesh%name)
 #endif
 
@@ -260,7 +260,7 @@ contains
         field%py_positions_same_mesh = .true.
       else
         field%py_positions_same_mesh = .false.
-        allocate(field%py_locweight(mesh%shape%loc, py_positions%mesh%shape%loc))
+        allocate(field%py_locweight(mesh%shape%ndof, py_positions%mesh%shape%ndof))
         do toloc=1,size(field%py_locweight,1)
           do fromloc=1,size(field%py_locweight,2)
             field%py_locweight(toloc,fromloc)=eval_shape(py_positions%mesh%shape, fromloc, &
@@ -791,7 +791,7 @@ contains
 
     mesh%name=name
     
-    mesh%elements=size(ndglno)/shape%loc
+    mesh%elements=size(ndglno)/shape%ndof
 
     allocate(mesh%adj_lists)
     mesh%wrapped=.true.
@@ -914,7 +914,7 @@ contains
        end if
 
        allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-            mesh%ndglno(mesh%shape%loc*model%elements))
+            mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -957,7 +957,7 @@ contains
 
     else
        ! Make a discontinuous field.
-       allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+       allocate(mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -1199,7 +1199,7 @@ contains
          & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
 
     face_count=entries(mesh%faces%face_list)
-    snloc=mesh%faces%shape%loc
+    snloc=mesh%faces%shape%ndof
     allocate(mesh%faces%face_lno( face_count*snloc ))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", &
@@ -1313,7 +1313,7 @@ contains
     assert(continuity(mesh)>=0)
 
     mesh_shape=>ele_shape(mesh, 1)
-    nloc=mesh_shape%loc
+    nloc=mesh_shape%ndof
 
     ! Calculate the node-to-element list.
     ! Calculate the element adjacency list.
@@ -1705,10 +1705,10 @@ contains
     integer, dimension(:), pointer:: lsurface_elements
     integer, dimension(:), pointer:: suf_ndglno
     integer, dimension(:), allocatable:: nod2sufnod
-    integer, dimension(mesh%faces%shape%loc):: glnodes
+    integer, dimension(mesh%faces%shape%ndof):: glnodes
     integer i, j, sele, sufnod, snloc
     
-    snloc=mesh%faces%shape%loc
+    snloc=mesh%faces%shape%ndof
     
     if (present(surface_elements)) then
        lsurface_elements => surface_elements
@@ -1849,7 +1849,7 @@ contains
     !allocate memory for temporary place to hold old connectivity,
     !and memory for periodic connectivity
     allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-         mesh%ndglno(mesh%shape%loc*model%elements))
+         mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
       name=mesh%name)
@@ -2127,11 +2127,11 @@ contains
             ! 4. now, since we've been adding nodes to mesh consistently 
             !    with the local face numbering we should be able to retrieve
             !    the global node number of the node on this face
-            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = ele2_nodes(local_face2)
+            mesh%ndglno(mesh%shape%ndof*(ele-1)+n) = ele2_nodes(local_face2)
           else
             ! we're adding a new edge so increment
             facet_count = facet_count + 1
-            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = facet_count
+            mesh%ndglno(mesh%shape%ndof*(ele-1)+n) = facet_count
           end if
        end do
     end do
@@ -2245,7 +2245,7 @@ contains
       regions = .true.
     end if
 
-    allocate(mesh%ndglno(mesh%shape%loc*mesh%elements))
+    allocate(mesh%ndglno(mesh%shape%ndof*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
       name=mesh%name)
@@ -2259,7 +2259,7 @@ contains
 
       do l_ele = 1, size(permutation,1)
         sub_ele = sub_ele+1
-        mesh%ndglno(mesh%shape%loc*(sub_ele-1)+1:mesh%shape%loc*sub_ele) = model_nodes(permutation(l_ele,:))
+        mesh%ndglno(mesh%shape%ndof*(sub_ele-1)+1:mesh%shape%ndof*sub_ele) = model_nodes(permutation(l_ele,:))
       end do
 
     end do

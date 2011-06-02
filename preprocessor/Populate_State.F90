@@ -789,8 +789,8 @@ contains
       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
                       poly_degree, default=from_mesh%shape%degree)
     
-      ! loc is the number of vertices of the element
-      loc=from_mesh%shape%loc
+      ! loc is the number of vertices of the element (since from_mesh is linear)
+      loc=from_mesh%shape%ndof
       ! dim is the dimension
       dim=from_mesh%shape%dim
       ! Make quadrature

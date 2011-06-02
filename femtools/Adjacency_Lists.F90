@@ -733,7 +733,7 @@ END SUBROUTINE NODELE
 
     nonods = mesh%nodes
     totele = mesh%elements
-    nloc   = mesh%shape%loc
+    nloc   = mesh%shape%ndof
     ndglno => mesh%ndglno
     d3     = (mesh%shape%dim == 3)
 

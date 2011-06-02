@@ -1375,7 +1375,7 @@ contains
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: ele_number
     
-    ele_loc=mesh%shape%loc
+    ele_loc=mesh%shape%ndof
 
   end function ele_loc_mesh
 
@@ -1385,7 +1385,7 @@ contains
     type(scalar_field),intent(in) :: field
     integer, intent(in) :: ele_number
     
-    ele_loc=field%mesh%shape%loc
+    ele_loc=field%mesh%shape%ndof
     
   end function ele_loc_scalar
 
@@ -1395,7 +1395,7 @@ contains
     type(vector_field),intent(in) :: field
     integer, intent(in) :: ele_number
     
-    ele_loc=field%mesh%shape%loc
+    ele_loc=field%mesh%shape%ndof
     
   end function ele_loc_vector
 
@@ -1405,7 +1405,7 @@ contains
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
     
-    ele_loc=field%mesh%shape%loc
+    ele_loc=field%mesh%shape%ndof
     
   end function ele_loc_tensor
 
@@ -1495,7 +1495,7 @@ contains
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: face_number
     
-    face_loc=mesh%faces%shape%loc
+    face_loc=mesh%faces%shape%ndof
 
   end function face_loc_mesh
 
@@ -1505,7 +1505,7 @@ contains
     type(scalar_field),intent(in) :: field
     integer, intent(in) :: face_number
     
-    face_loc=field%mesh%faces%shape%loc
+    face_loc=field%mesh%faces%shape%ndof
     
   end function face_loc_scalar
 
@@ -1515,7 +1515,7 @@ contains
     type(vector_field),intent(in) :: field
     integer, intent(in) :: face_number
     
-    face_loc=field%mesh%faces%shape%loc
+    face_loc=field%mesh%faces%shape%ndof
     
   end function face_loc_vector
 
@@ -1525,7 +1525,7 @@ contains
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: face_number
     
-    face_loc=field%mesh%faces%shape%loc
+    face_loc=field%mesh%faces%shape%ndof
     
   end function face_loc_tensor
 
@@ -1537,11 +1537,11 @@ contains
     integer, intent(in) :: ele_number
     
     if (mesh%continuity<0) then
-       loc=mesh%shape%loc + mesh%shape%numbering%boundaries &
-            * mesh%faces%shape%loc
+       loc=mesh%shape%ndof + mesh%shape%numbering%boundaries &
+            * mesh%faces%shape%ndof
     else
        ! For a continuous mesh the face nodes are among the element nodes.
-       loc=mesh%shape%loc
+       loc=mesh%shape%ndof
     end if
 
   end function ele_and_faces_loc_mesh
@@ -1763,8 +1763,8 @@ contains
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: ele_number
 
-    ele_nodes=>mesh%ndglno(mesh%shape%loc*(ele_number-1)+1:&
-         &mesh%shape%loc*ele_number)
+    ele_nodes=>mesh%ndglno(mesh%shape%ndof*(ele_number-1)+1:&
+         &mesh%shape%ndof*ele_number)
   
   end function ele_nodes_mesh
 
@@ -1813,8 +1813,8 @@ contains
 
     faces=>mesh%faces
 
-    face_nodes=>faces%face_lno(faces%shape%loc*(face_number-1)+1:&
-         &faces%shape%loc*face_number)
+    face_nodes=>faces%face_lno(faces%shape%ndof*(face_number-1)+1:&
+         &faces%shape%ndof*face_number)
   
   end function face_local_nodes_mesh
     
@@ -1985,7 +1985,7 @@ contains
     ! Return the values of field at the nodes of ele_number.
     type(scalar_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%mesh%shape%loc) :: ele_val_out
+    real, dimension(field%mesh%shape%ndof) :: ele_val_out
     integer :: i
 
     select case(field%field_type)
@@ -2002,8 +2002,8 @@ contains
     subroutine val_python
       !!< This subroutine only exists to remove the following stack variables
       !!< from the main routine. 
-      real, dimension(field%py_dim, field%mesh%shape%loc) :: pos
-      real, dimension(field%py_dim, field%py_positions_shape%loc) :: tmp_pos
+      real, dimension(field%py_dim, field%mesh%shape%ndof) :: pos
+      real, dimension(field%py_dim, field%py_positions_shape%ndof) :: tmp_pos
 
       if (.not. field%py_positions_same_mesh) then
         tmp_pos = ele_val(field%py_positions, ele_number)
@@ -2026,7 +2026,7 @@ contains
     ! Return the values of field at the nodes of ele_number.
     type(vector_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%dim, field%mesh%shape%loc) :: ele_val
+    real, dimension(field%dim, field%mesh%shape%ndof) :: ele_val
 
     integer :: i
     integer, dimension(:), pointer :: nodes
@@ -2050,7 +2050,7 @@ contains
     ! Return the values of dimension dim of field at the nodes of ele_number.
     type(vector_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%mesh%shape%loc) :: ele_val
+    real, dimension(field%mesh%shape%ndof) :: ele_val
     integer, intent(in) :: dim
 
     select case(field%field_type)
@@ -2066,7 +2066,7 @@ contains
     ! Return the values of field at the nodes of ele_number.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: ele_number
-    real, dimension(field%dim(1), field%dim(2), field%mesh%shape%loc) :: ele_val
+    real, dimension(field%dim(1), field%dim(2), field%mesh%shape%ndof) :: ele_val
 
     integer, dimension(:), pointer :: nodes
     integer :: i
@@ -2088,7 +2088,7 @@ contains
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: dim1, dim2
     integer, intent(in) :: ele_number
-    real, dimension(field%mesh%shape%loc) :: ele_val
+    real, dimension(field%mesh%shape%ndof) :: ele_val
 
     integer, dimension(:), pointer :: nodes
 
@@ -2270,7 +2270,7 @@ contains
     type(element_type), pointer :: meshshape
     
     meshshape=>ele_shape(field, ele_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=matmul(ele_val(field, ele_number), shape%n)
 
@@ -2286,7 +2286,7 @@ contains
     type(element_type), pointer :: meshshape
 
     meshshape=>ele_shape(field, ele_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=matmul(ele_val(field, ele_number), shape%n)
 
@@ -2302,7 +2302,7 @@ contains
     type(element_type), pointer :: meshshape
     
     meshshape=>ele_shape(field, ele_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=tensormul(ele_val(field, ele_number), shape%n)
 
@@ -2375,7 +2375,7 @@ contains
     type(element_type), pointer :: meshshape
 
     meshshape=>face_shape(field, face_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=matmul(face_val(field, face_number), shape%n)
 
@@ -2391,7 +2391,7 @@ contains
     type(element_type), pointer :: meshshape
 
     meshshape=>face_shape(field,face_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=matmul(face_val(field, face_number), shape%n)
 
@@ -2407,7 +2407,7 @@ contains
     type(element_type), pointer :: meshshape
 
     meshshape=>face_shape(field, face_number)
-    assert(meshshape%loc==shape%loc)
+    assert(meshshape%ndof==shape%ndof)
 
     quad_val=tensormul(face_val(field, face_number), shape%n)
 
@@ -2591,8 +2591,8 @@ contains
       !!< This subroutine isolates the following stack variables from the
       !!< main code path.
       real, dimension(field%py_dim, 1) :: pos
-      real, dimension(field%py_dim, field%py_positions_shape%loc) :: tmp_pos
-      real, dimension(field%py_dim, field%mesh%shape%loc) :: tmp_pos_2
+      real, dimension(field%py_dim, field%py_positions_shape%ndof) :: tmp_pos
+      real, dimension(field%py_dim, field%mesh%shape%ndof) :: tmp_pos_2
       real, dimension(1) :: tmp_val
       integer :: i, ele, loccoord
       
@@ -3840,7 +3840,7 @@ contains
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele
     real :: t
-    real, dimension(positions%dim, positions%mesh%shape%loc) :: pos
+    real, dimension(positions%dim, positions%mesh%shape%ndof) :: pos
     real :: xA, xB, yA, yB, xC, yC
 
     pos = ele_val(positions, ele)

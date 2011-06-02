@@ -308,7 +308,7 @@ contains
       augmented_shape = element_shape
       call incref(augmented_shape)
     else
-      augmented_shape = make_element_shape(positions_shape%loc, element_shape%dim, &
+      augmented_shape = make_element_shape(positions_shape%ndof, element_shape%dim, &
         & element_shape%degree, element_shape%quadrature, &
         & quad_s = face_element_shape%quadrature)
     end if
@@ -554,7 +554,7 @@ contains
     call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', surface_ids)
     ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
-    augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, u_shape%degree, u_shape%quadrature, &
+    augmented_shape = make_element_shape(x_shape%ndof, u_shape%dim, u_shape%degree, u_shape%quadrature, &
                     & quad_s=u_f_shape%quadrature)
                     
     sarea = 0.0

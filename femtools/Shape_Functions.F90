@@ -194,7 +194,7 @@ contains
     shape%dn=0.0
 
     ! Construct shape for each node
-    do i=1,shape%loc
+    do i=1,shape%ndof
 
        counts(1:coords)=ele_num%number2count(:,i)
        
@@ -218,7 +218,7 @@ contains
              end select
 
           case(ELEMENT_BUBBLE)
-             if(i==shape%loc) then
+             if(i==shape%ndof) then
                
                ! the last node is the bubble shape function
                shape%spoly(j,i) = (/1.0, 0.0/)
@@ -369,7 +369,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
 
        tmpval=integrand(local_coords(i,element))       
        
@@ -400,7 +400,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -434,7 +434,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -477,7 +477,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 

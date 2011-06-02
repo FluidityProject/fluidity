@@ -41,7 +41,7 @@ contains
     type(element_type), intent(in) :: shape
     real, dimension(shape%ngi), intent(in) :: detwei
 
-    real, dimension(shape%loc) :: shape_rhs
+    real, dimension(shape%ndof) :: shape_rhs
 
     shape_rhs=matmul(shape%n, detwei)
 
@@ -61,7 +61,7 @@ contains
     !! vector is dim x ngi
     real, dimension(:,:), intent(in) :: vector
 
-    real, dimension(size(vector,1),shape%loc) :: shape_vector_rhs
+    real, dimension(size(vector,1),shape%ndof) :: shape_vector_rhs
 
     integer :: dim,i
 
@@ -88,7 +88,7 @@ contains
     !! tensor is dim1 x dim2 x ngi
     real, dimension(:,:,:), intent(in) :: tensor
 
-    real, dimension(size(tensor,1), size(tensor, 2), shape%loc) :: shape_tensor_rhs
+    real, dimension(size(tensor,1), size(tensor, 2), shape%ndof) :: shape_tensor_rhs
 
     integer :: dim1,dim2,i, j
 
@@ -119,7 +119,7 @@ contains
     real, dimension(:,:,:), intent(in) :: tensor !dim1 x dim2 x ngi
     real, dimension(:,:) :: vector  !dim2 x ngi
 
-    real, dimension(size(tensor,1), shape%loc) :: shape_tensor_dot_vector_rhs
+    real, dimension(size(tensor,1), shape%ndof) :: shape_tensor_dot_vector_rhs
 
     integer :: dim,i, ngi, j
 
@@ -207,11 +207,11 @@ contains
     !! from real to computational space.
     real, dimension(shape1%ngi), intent(in) :: detwei
 
-    real, dimension(shape1%loc,shape2%loc) :: shape_shape
+    real, dimension(shape1%ndof,shape2%ndof) :: shape_shape
 
     integer :: iloc, jloc
 
-    forall(iloc=1:shape1%loc,jloc=1:shape2%loc)
+    forall(iloc=1:shape1%ndof,jloc=1:shape2%ndof)
        ! Main mass matrix.
        shape_shape(iloc,jloc)=&
             dot_product(shape1%n(iloc,:)*shape2%n(jloc,:),detwei)
@@ -229,7 +229,7 @@ contains
     !! dim x ngi list of vectors.
     real, dimension(:,:), intent(in) :: vector
 
-    real, dimension(size(vector,1),shape1%loc,shape2%loc) ::&
+    real, dimension(size(vector,1),shape1%ndof,shape2%ndof) ::&
          & shape_shape_vector
 
     integer :: iloc,jloc
@@ -239,7 +239,7 @@ contains
 
     !      assert(size(vector,2)==shape1%ngi)
 
-    forall(iloc=1:shape1%loc,jloc=1:shape2%loc)
+    forall(iloc=1:shape1%ndof,jloc=1:shape2%ndof)
        ! Main mass matrix.
        shape_shape_vector(:,iloc,jloc)=&
             matmul(vector*spread(shape1%n(iloc,:)*shape2%n(jloc,:),1,dim),detwei)
@@ -256,14 +256,14 @@ contains
     real, dimension(shape1%ngi), intent(in) :: detwei
     real, dimension(:,:,:), intent(in) :: tensor
 
-    real, dimension(size(tensor,1),size(tensor,2),shape1%loc,shape2%loc) ::&
+    real, dimension(size(tensor,1),size(tensor,2),shape1%ndof,shape2%ndof) ::&
          & shape_shape_tensor
 
     integer :: iloc,jloc,i,j
 
     assert(size(tensor,3)==shape1%ngi)
 
-    forall(iloc=1:shape1%loc,jloc=1:shape2%loc,i=1:size(tensor,1),j=1:size(tensor,2))
+    forall(iloc=1:shape1%ndof,jloc=1:shape2%ndof,i=1:size(tensor,1),j=1:size(tensor,2))
        ! Main mass matrix.
        shape_shape_tensor(i,j,iloc,jloc)=&
             sum(shape1%n(iloc,:)*shape2%n(jloc,:)*tensor(i,j,:)*detwei)
@@ -282,7 +282,7 @@ contains
     real, dimension(:,:), intent(in) :: vector1
     real, dimension(:,:), intent(in) :: vector2
 
-    real, dimension(size(vector1,1),size(vector2,1),shape1%loc,shape2%loc) ::&
+    real, dimension(size(vector1,1),size(vector2,1),shape1%ndof,shape2%ndof) ::&
          & shape_shape_vector_outer_vector
 
     integer :: iloc,jloc,i,j
@@ -290,7 +290,7 @@ contains
     assert(size(vector1,2)==shape1%ngi)
     assert(size(vector2,2)==shape1%ngi)
 
-    forall(iloc=1:shape1%loc,jloc=1:shape2%loc,i=1:size(vector1,1),j=1:size(vector2,1))
+    forall(iloc=1:shape1%ndof,jloc=1:shape2%ndof,i=1:size(vector1,1),j=1:size(vector2,1))
        ! Main mass matrix.
        shape_shape_vector_outer_vector(i,j,iloc,jloc)=&
             sum(shape1%n(iloc,:)*shape2%n(jloc,:)*vector1(i,:)* &
@@ -334,7 +334,7 @@ contains
     !! from real to computational space.
     real, dimension(shape%ngi), intent(in) :: detwei
 
-    real, dimension(size(dshape,3), shape%loc, size(dshape,1)) :: shape_dshape
+    real, dimension(size(dshape,3), shape%ndof, size(dshape,1)) :: shape_dshape
 
     integer :: iloc,jloc
     integer :: dshape_loc, dim, idim
@@ -343,11 +343,11 @@ contains
     dim=size(dshape,3)
 
 #ifdef INLINE_MATMUL
-    forall(iloc=1:shape%loc,jloc=1:dshape_loc,idim=1:dim)
+    forall(iloc=1:shape%ndof,jloc=1:dshape_loc,idim=1:dim)
        shape_dshape(idim,iloc,jloc)= sum(detwei * dshape(jloc,:,idim) * shape%n(iloc,:))
     end forall
 #else
-    forall(iloc=1:shape%loc,jloc=1:dshape_loc)
+    forall(iloc=1:shape%ndof,jloc=1:dshape_loc)
        ! Main matrix.
        shape_dshape(1:dim,iloc,jloc)= &
             matmul(detwei,spread(shape%n(iloc,:),2,dim)*dshape(jloc,:,:))
@@ -366,7 +366,7 @@ contains
     !! from real to computational space.
     real, dimension(shape%ngi), intent(in) :: detwei
 
-    real, dimension(size(dshape,3),size(dshape,1),shape%loc) :: dshape_shape
+    real, dimension(size(dshape,3),size(dshape,1),shape%ndof) :: dshape_shape
 
     integer :: iloc,jloc
     integer :: dshape_loc, dim
@@ -374,7 +374,7 @@ contains
     dshape_loc=size(dshape,1)
     dim=size(dshape,3)
 
-    forall(iloc=1:dshape_loc,jloc=1:shape%loc)
+    forall(iloc=1:dshape_loc,jloc=1:shape%ndof)
        ! Main matrix.
        dshape_shape(1:dim,iloc,jloc)= &
             matmul(detwei,dshape(iloc,:,1:dim)*spread(shape%n(jloc,:),2,dim))
@@ -461,7 +461,7 @@ contains
     real, dimension(shape%ngi), intent(in) :: detwei
     real, dimension(:,:), intent(in) :: vector
     real, dimension(size(vector,1),size(dshape,3), &
-         shape%loc,size(dshape,1)) :: tensor
+         shape%ndof,size(dshape,1)) :: tensor
 
     integer :: iloc,jloc,i,j
     integer :: dshape_loc, dim1,dim2
@@ -471,7 +471,7 @@ contains
     dim2=size(vector,1)
     assert(size(vector,2)==shape%ngi)
 
-    forall(iloc=1:shape%loc,jloc=1:dshape_loc,i = 1:dim1,j = 1:dim2)
+    forall(iloc=1:shape%ndof,jloc=1:dshape_loc,i = 1:dim1,j = 1:dim2)
        ! Main matrix.
        tensor(i,j,iloc,jloc)= &
             sum(shape%n(iloc,:)*dshape(jloc,:,j)*detwei*vector(i,:))
@@ -494,7 +494,7 @@ contains
     real, dimension(shape%ngi), intent(in) :: detwei
     real, dimension(:,:), intent(in) :: vector
     real, dimension(size(dshape,3),size(vector,1), &
-         shape%loc,size(dshape,1)) :: tensor
+         shape%ndof,size(dshape,1)) :: tensor
 
     integer :: iloc,jloc,i,j
     integer :: dshape_loc, dim1,dim2
@@ -504,7 +504,7 @@ contains
     dim2=size(vector,1)
     assert(size(vector,2)==shape%ngi)
 
-    forall(iloc=1:dshape_loc,jloc=1:shape%loc,i = 1:dim1,j = 1:dim2)
+    forall(iloc=1:dshape_loc,jloc=1:shape%ndof,i = 1:dim1,j = 1:dim2)
        ! Main matrix.
        tensor(i,j,iloc,jloc)= &
             sum(dshape(iloc,:,i)*detwei*vector(j,:)*shape%n(jloc,:))
@@ -700,14 +700,14 @@ contains
     type(element_type), intent(in) :: shape
     real, dimension(size(dshape,2)) :: detwei
 
-    real, dimension(size(dshape,1),shape%loc) :: R
+    real, dimension(size(dshape,1),shape%ndof) :: R
 
     integer :: iloc,jloc
     integer :: dshape_loc
 
     dshape_loc=size(dshape,1)
 
-    forall(iloc=1:dshape_loc,jloc=1:shape%loc)
+    forall(iloc=1:dshape_loc,jloc=1:shape%ndof)
        R(iloc,jloc)= dot_product(sum(dshape(iloc,:,:)*transpose(vector),2) &
             *shape%n(jloc,:), detwei)
     end forall
@@ -723,7 +723,7 @@ contains
     type(element_type), intent(in) :: shape
     real, dimension(size(dshape,2)) :: detwei
 
-    real, dimension(size(tensor,2),size(dshape,1),shape%loc) :: R
+    real, dimension(size(tensor,2),size(dshape,1),shape%ndof) :: R
 
     integer :: iloc,jloc, idim2
     integer :: dshape_loc, dim2
@@ -732,7 +732,7 @@ contains
     dshape_loc=size(dshape,1)
     dim2=size(tensor,2)
     
-    forall(iloc=1:dshape_loc,jloc=1:shape%loc,idim2=1:dim2)
+    forall(iloc=1:dshape_loc,jloc=1:shape%ndof,idim2=1:dim2)
       R(idim2,iloc,jloc)=dot_product(sum( dshape(iloc,:,:)* transpose(tensor(:,idim2,:)) ) &
             *shape%n(jloc,:), detwei)
     end forall
@@ -749,7 +749,7 @@ contains
     real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
     real, dimension(size(dshape,2)) :: detwei
 
-    real, dimension(shape%loc, size(dshape,1)) :: R
+    real, dimension(shape%ndof, size(dshape,1)) :: R
 
     integer :: iloc,jloc
     integer :: dshape_loc, dim
@@ -758,7 +758,7 @@ contains
     dshape_loc=size(dshape,1)
     dim=size(dshape,3)
 
-    forall(iloc=1:shape%loc,jloc=1:dshape_loc)
+    forall(iloc=1:shape%ndof,jloc=1:dshape_loc)
        R(iloc,jloc)= dot_product(shape%n(iloc,:) * &
             sum(dshape(jloc,:,:)*transpose(vector),2), detwei)
     end forall
@@ -775,7 +775,7 @@ contains
     real, dimension(:,:,:), intent(in) :: dshape
     real, dimension(size(dshape,2)) :: detwei
 
-    real, dimension(2,shape%loc,size(dshape,1)) :: R
+    real, dimension(2,shape%ndof,size(dshape,1)) :: R
 
     integer :: iloc,jloc
     integer :: dshape_loc, dim
@@ -785,7 +785,7 @@ contains
     
     assert(dim==2)
 
-    forall(iloc=1:shape%loc,jloc=1:dshape_loc)
+    forall(iloc=1:shape%ndof,jloc=1:dshape_loc)
        R(1,iloc,jloc)= dot_product(shape%n(iloc,:) * &
             dshape(jloc,:,2), detwei)
 

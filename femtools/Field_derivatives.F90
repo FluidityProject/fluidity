@@ -765,7 +765,7 @@ module field_derivatives
          ! calculate the transformed derivative of the shape function
          call compute_inverse_jacobian( ele_val(positions, ele), xshape, invJ, detwei=detwei)
          do gi=1, inshape%ngi
-            do i=1, inshape%loc
+            do i=1, inshape%ndof
                dinshape(i,gi,:)=matmul(invJ(:,:,gi), inshape%dn(i,gi,:))
             end do
          end do

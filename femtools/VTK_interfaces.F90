@@ -742,12 +742,12 @@ contains
     integer, dimension(:), intent(in) :: ndglno
     integer, dimension(size(ndglno)) :: renumber
 
-    integer, dimension(element%loc) :: ele_num
+    integer, dimension(element%ndof) :: ele_num
     integer :: i, nloc
 
     ele_num=vtk2fluidity_ordering(element)
 
-    nloc=element%loc
+    nloc=element%ndof
 
     forall (i=1:size(ndglno)/nloc)
        renumber((i-1)*nloc+1:i*nloc)=ndglno((i-1)*nloc+ele_num)
@@ -760,12 +760,12 @@ contains
     integer, dimension(:), intent(in) :: vtk_ndglno
     integer, dimension(size(vtk_ndglno)) :: fl_ndglno
 
-    integer, dimension(element%loc) :: ele_num
+    integer, dimension(element%ndof) :: ele_num
     integer :: i, nloc
 
     ele_num=vtk2fluidity_ordering(element)
 
-    nloc=element%loc
+    nloc=element%ndof
 
     forall (i=1:size(vtk_ndglno)/nloc)
        fl_ndglno((i-1)*nloc+ele_num)=vtk_ndglno((i-1)*nloc+1:i*nloc)
@@ -871,7 +871,7 @@ contains
     ! on chirality so transformed elements may have the oposite chirality
     ! to that expected by VTK.
     type(element_type), intent(in) :: element
-    integer, dimension(element%loc) :: order
+    integer, dimension(element%ndof) :: order
     
     integer :: type
 

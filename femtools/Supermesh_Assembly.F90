@@ -192,7 +192,7 @@ contains
     quad => base_shape_c%quadrature
     
     dim = base_shape_c%dim
-    loc = base_shape_c%loc
+    loc = base_shape_c%ndof
     ngi = quad%ngi
     coords = local_coord_count(base_shape_c)
     degree = base_shape_c%degree
@@ -204,7 +204,7 @@ contains
     
     allocate(shapes_c(ele_count(positions_c)))
     do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
+      call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
@@ -281,7 +281,7 @@ contains
     quad => base_shape_c%quadrature
     
     dim = base_shape_c%dim
-    loc = base_shape_c%loc
+    loc = base_shape_c%ndof
     ngi = quad%ngi
     coords = local_coord_count(base_shape_c)
     degree = base_shape_c%degree
@@ -293,7 +293,7 @@ contains
     
     allocate(shapes_c(ele_count(positions_c)))
     do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, loc = loc, ngi = ngi, coords = coords)
+      call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
@@ -461,14 +461,14 @@ contains
     quad => shape_vol%quadrature
     
     dim = positions_vol%dim
-    loc = shape_surf%loc
+    loc = shape_surf%ndof
     ngi = quad%ngi
     coords = local_coord_count(shape_vol)
     degree = shape_surf%degree
     
     ! Note that the extruded surface mesh shape function takes its number of
     ! quadrature points from the volume shape function
-    call allocate_element(shape_surf_ext, dim = dim, loc = loc, ngi = ngi, coords = coords)
+    call allocate_element(shape_surf_ext, dim = dim, ndof = loc, ngi = ngi, coords = coords)
 
     shape_surf_ext%degree = degree
     shape_surf_ext%numbering => find_element_numbering(loc = loc, dimension = dim - 1, degree = degree)
@@ -969,7 +969,7 @@ contains
     type(vector_field), intent(in) :: positions
     type(state_type), intent(in) :: state
     type(element_type), intent(in) :: shape
-    real, dimension(shape%loc, scalar_field_count(state)), intent(inout) :: little_rhs
+    real, dimension(shape%ndof, scalar_field_count(state)), intent(inout) :: little_rhs
     
     integer :: i
     real, dimension(ele_ngi(positions, ele)) :: detwei

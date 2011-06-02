@@ -741,7 +741,7 @@ contains
       assert(all(ele_nodes(positions, i) <= nnodes))
       
       shape => ele_shape(positions, i)
-      if(positions%dim == 3 .and. shape%loc == 4 .and. shape%degree == 1) then
+      if(positions%dim == 3 .and. shape%ndof == 4 .and. shape%degree == 1) then
         volume = simplex_volume(positions, i)
         if(abs(volume) < epsilon(0.0)) then
           ewrite(-1, "(a,i0)") "For element: ", i
