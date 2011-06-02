@@ -529,16 +529,15 @@ Halos_Debug.o ../include/halos_debug.mod: Halos_Debug.F90 \
 	@true
 
 Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
-   ../include/halos_base.mod ../include/halos_allocates.mod \
-   ../include/fields_allocates.mod ../include/halos_repair.mod \
-   ../include/halo_data_types.mod ../include/fields_manipulation.mod \
-   ../include/sparse_tools.mod ../include/halos_numbering.mod \
-   ../include/mpi_interfaces.mod ../include/linked_lists.mod \
-   ../include/fields_base.mod ../include/halos_debug.mod \
-   ../include/fields_data_types.mod ../include/data_structures.mod \
-   ../include/fldebug.mod ../include/halos_communications.mod \
-   ../include/halos_ownership.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/halos_communications.mod ../include/mpi_interfaces.mod \
+   ../include/fields_base.mod ../include/halos_base.mod \
+   ../include/parallel_tools.mod ../include/halos_ownership.mod \
+   ../include/halos_allocates.mod ../include/sparse_tools.mod \
+   ../include/linked_lists.mod ../include/fields_manipulation.mod \
+   ../include/fields_allocates.mod ../include/halos_debug.mod \
+   ../include/fields_data_types.mod ../include/halos_numbering.mod \
+   ../include/data_structures.mod ../include/halos_repair.mod \
+   ../include/halo_data_types.mod ../include/fdebug.h ../include/fldebug.mod
 
 ../include/halos_diagnostics.mod: Halos_Diagnostics.o
 	@true
@@ -910,7 +909,8 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
    ../include/superconvergence.mod ../include/futils.mod \
    ../include/polynomials.mod ../include/element_numbering.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/elements.mod ../include/ieee_arithmetic.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
 ../include/shape_functions_test.mod: Shape_Functions_Test.o
 	@true
