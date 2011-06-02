@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimiser_options>
+  <optimisation_name>
+    <string_value lines="1">shallow_water_optimisation_A</string_value>
+  </optimisation_name>
+  <model_template command_line="../../bin/shallow_water" option_file="adjoint_A.swml"/>
+  <optimisation_options>
+    <optimisation_algorithm name="NCG"/>
+    <tolerance>
+      <real_value rank="0">1e-10</real_value>
+    </tolerance>
+  </optimisation_options>
+  <control_io>
+    <type name="custom">
+      <update_model_template>
+        <string_value lines="20" type="python">def update_model(m):
+  import numpy
+  numpy.save('control.npy', m)
+  print 'control state: ', m</string_value>
+      </update_model_template>
+    </type>
+  </control_io>
+</optimiser_options>

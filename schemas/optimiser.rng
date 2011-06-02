@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <include href="spud_base.rng"/>
+  <start>
+    <element name="optimiser_options">
+      <a:documentation>The root node of the options dictionary.</a:documentation>
+      <ref name="comment"/>
+      <element name="optimisation_name">
+        <a:documentation>Output files are named according to the optimisation
+name, e.g. [optimisation_name]_0.stat. Non-standard
+characters in the optimisation name should be avoided.</a:documentation>
+        <ref name="anystring"/>
+      </element>
+      <ref name="model_template"/>
+      <ref name="optimisation_options"/>
+      <ref name="control_io"/>
+    </element>
+  </start>
+  <define name="model_template">
+    <element name="model_template">
+      <a:documentation>Options to specifing the *flml file containing to model
+configuration template</a:documentation>
+      <attribute name="option_file">
+        <data type="string"/>
+      </attribute>
+      <attribute name="command_line">
+        <data type="string"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="optimisation_options">
+    <element name="optimisation_options">
+      <a:documentation>Options for the optimisation algorithm.</a:documentation>
+      <choice>
+        <element name="optimisation_algorithm">
+          <a:documentation>Minimize the functional using the BFGS algorithm.</a:documentation>
+          <attribute name="name">
+            <value>BFGS</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="optimisation_algorithm">
+          <a:documentation>Minimize the functional using the NCG algorithm.</a:documentation>
+          <attribute name="name">
+            <value>NCG</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="optimisation_algorithm">
+          <a:documentation>Minimize the functional using the LBFGS algorithm. </a:documentation>
+          <attribute name="name">
+            <value>LBFGS</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="optimisation_algorithm">
+          <a:documentation>Minimize the functional using modified Powell’s method.</a:documentation>
+          <attribute name="name">
+            <value>Powell</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+      </choice>
+      <element name="tolerance">
+        <a:documentation>The optimisation loop tolerance</a:documentation>
+        <ref name="real"/>
+      </element>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="control_io">
+    <element name="control_io">
+      <a:documentation>Read mesh from file.</a:documentation>
+      <choice>
+        <element name="type">
+          <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+          <attribute name="name">
+            <value>custom</value>
+          </attribute>
+          <element name="update_model_template">
+            <a:documentation>Python function which takes as input a dictionary of the new model parameters and
+updates the corresponding model schema file.</a:documentation>
+            <ref name="python_code"/>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="type">
+          <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
+surface or region IDs.</a:documentation>
+          <attribute name="name">
+            <value>initial_condition</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="type">
+          <a:documentation>GMSH mesh format</a:documentation>
+          <attribute name="name">
+            <value>boundary_condition</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+      </choice>
+      <ref name="comment"/>
+    </element>
+  </define>
+</grammar>
