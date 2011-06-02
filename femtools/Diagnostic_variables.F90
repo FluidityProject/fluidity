@@ -1529,7 +1529,7 @@ contains
           
              do j=1,ndete
                 write(detector_name, fmt) trim(funcnam)//"_", j
-                default_stat%detector_list%detector_names(k)=trim(funcnam)
+                default_stat%detector_list%detector_names(k)=trim(detector_name)
 
                 call create_single_detector(default_stat%detector_list, xfield, &
                        coords(:,j), k, type_det, trim(detector_name))
@@ -1734,52 +1734,35 @@ contains
     end do
 
     default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
-
     if (isparallel()) then
-
        default_stat%detector_list%binary_output=.true.
-
     end if
 
     ! Only the first process should write statistics information
-    if (getprocno() == 1) then
-    
-    default_stat%detector_list%output_unit=free_unit()
-    open(unit=default_stat%detector_list%output_unit, file=trim(filename)//'.detectors', action="write")
+    if (getprocno() == 1) then    
+       default_stat%detector_list%output_unit=free_unit()
+       open(unit=default_stat%detector_list%output_unit, file=trim(filename)//'.detectors', action="write")
 
-   
-    write(default_stat%detector_list%output_unit, '(a)') "<header>"
+       write(default_stat%detector_list%output_unit, '(a)') "<header>"
+       call initialise_constant_diagnostics(default_stat%detector_list%output_unit, &
+              binary_format = default_stat%detector_list%binary_output)
 
-    call initialise_constant_diagnostics(default_stat%detector_list%output_unit, binary_format = default_stat%detector_list%binary_output)
+       ! Initial columns are elapsed time and dt.
+       buffer=field_tag(name="ElapsedTime", column=1, statistic="value")
+       write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
+       buffer=field_tag(name="dt", column=2, statistic="value")
+       write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
 
-    column=0
-
-    ! Initial columns are elapsed time and dt.
-    column=column+1
-    buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-    write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-    column=column+1
-    buffer=field_tag(name="dt", column=column, statistic="value")
-    write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-
-    ! Next columns contain the positions of all the detectors.
-
-    node => default_stat%detector_list%firstnode
-
-    positionloop: do i=1, default_stat%detector_list%length
+       ! Next columns contain the positions of all the detectors.
+       column=2
+       positionloop: do i=1, default_stat%detector_list%total_num_det
+          buffer=field_tag(name=default_stat%detector_list%detector_names(i), column=column+1,&
+              statistic="position", components=xfield%dim)
+          write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
+          column=column+xfield%dim   ! xfield%dim == size(detector%position)
+       end do positionloop
 
 
-         buffer=field_tag(name=node%name, column=column+1,&
-            statistic="position", &
-            components=size(node%position))
-         write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-         column=column+size(node%position)
-
-         node => node%next
-
-    end do positionloop
-
-    
     phaseloop: do phase=1,size(state)
 
             material_phase_name=trim(state(phase)%name)
@@ -2738,25 +2721,17 @@ contains
        end if
 
     else
-
        call write_mpi_out(state,detector_list,time,dt)
-
     end if
 
     totaldet_global=detector_list%length
-
     call allsum(totaldet_global)
-
     ewrite(2,*) "total number of detectors at the end of write_detectors subroutine", totaldet_global
 
     if (totaldet_global/=detector_list%total_num_det) then
-
        ewrite(2,*) "We have either duplication or have lost some det"
-
        ewrite(2,*) "totaldet_global", totaldet_global
-
        ewrite(2,*) "total_num_det", detector_list%total_num_det
-
     end if
 
   contains
