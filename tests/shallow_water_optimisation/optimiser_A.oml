@@ -15,13 +15,17 @@
       <get_initial_controls>
         <string_value type="python" lines="20">def get_initial_controls():
   import numpy
-  return numpy.array([1])</string_value>
+  m = {}
+  h = numpy.array([1])
+  m['h'] = h
+  return m</string_value>
       </get_initial_controls>
       <update_controls>
         <string_value lines="20" type="python">def update_controls(m):
   import numpy
-  numpy.save('control.npy', m)
-  print 'control state: ', m</string_value>
+  h = m['h']
+  numpy.save('control.npy', h)
+  print 'control state: ', h</string_value>
       </update_controls>
     </type>
   </control_io>

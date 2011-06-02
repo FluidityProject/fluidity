@@ -50,9 +50,27 @@ def update_model_controls(m):
     print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
     exit()
 
-
 def optimisation_loop():
-  def J(m):
+
+  def serialise(m):
+    m_serial = numpy.array([])
+    m_shape = {}
+    for k, v in m.iteritems():
+      m_serial = numpy.append(m_serial, v)
+      m_shape[k] = len(m_serial)
+    return [m_serial, m_shape]
+
+  def unserialise(m_serial, m_shape):
+    m = {}
+    current_index = 0
+    for k, v in m_shape.iteritems():
+      m[k] = m_serial[current_index:v]
+      current_index = v
+    return m
+
+  def J(m_serial, args):
+    m_shape = args
+    m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
     # TODO
@@ -60,7 +78,9 @@ def optimisation_loop():
     print "J = ", J
     return J
 
-  def dJdm(m):
+  def dJdm(m_serial, args):
+    m_shape = args
+    m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
     # TODO
@@ -73,11 +93,12 @@ def optimisation_loop():
   tol = libspud.get_option('/optimisation_options/tolerance')
   # Initialise the controls
   m = initialise_model_controls()
+  [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-      res = scipy.optimize.fmin_bfgs(J, m, dJdm, gtol=tol, full_output=1)
+      res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ))
   if algo == 'NCG':
-      res = scipy.optimize.fmin_ncg(J, m, dJdm, avextol=tol, full_output=1)
+      res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
