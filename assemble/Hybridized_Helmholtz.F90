@@ -143,33 +143,12 @@ contains
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, lambda_ele_loc, face, ele_2, lambda_loc_count
     integer, dimension(:), pointer :: neigh
-    type(element_type) :: u_shape, d_shape
-    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
-    real, dimension(ele_ngi(x,ele)) :: f_gi
-    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
-    real, dimension(X%dim) :: up_vec
-    real, dimension(mesh_dim(U),ele_loc(D,ele),ele_loc(U,ele)) :: l_div_mat
-    real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric, &
-         &Metricf
-    real, dimension(X%dim, X%dim, ele_ngi(U,ele)) :: rot
-    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U&
-         &,ele)) :: l_u_mat
-    integer :: mdim, uloc,dloc,face2,ni2,dim1,dim2,gi
     real, dimension(:), allocatable :: lambda_rhs_loc
     real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: rhs_loc
-    integer, dimension(:), pointer :: D_ele,U_ele
-    real, dimension(ele_ngi(D,ele)) :: detwei, detJ
+    integer :: face2,ni2
 
-    mdim = mesh_dim(U)
-    uloc = ele_loc(U,ele)
-    dloc = ele_loc(d,ele)
-
-    u_shape=ele_shape(u, ele)
-    D_shape=ele_shape(d, ele)
-    D_ele => ele_nodes(D, ele)
-    U_ele => ele_nodes(U, ele)
-
-    call get_local_solver()
+    call get_local_solver(local_solver,U,X,down,D,f,ele,&
+         & g,dt,theta,D0)
 
     !get list of neighbours
     neigh => ele_neigh(D,ele)
@@ -190,7 +169,7 @@ contains
        face=ele_face(U, ele, neigh(ni))
        allocate(continuity_face_mat(2,face_loc(U,face),&
             &face_loc(lambda_rhs,face)))
-       call get_continuity_face_mat(continuity_face_mat,X,face,&
+       call get_continuity_face_mat(continuity_face_mat,face,&
             U,lambda_rhs)
        continuity_mat(face_local_nodes(U,face),&
             lambda_loc_count+1:lambda_loc_count+face_loc(lambda_rhs,face)) = &
@@ -241,10 +220,43 @@ contains
                ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
        end do
     end do
+  end subroutine assemble_hybridized_helmholtz_ele
 
-  contains 
-    subroutine get_local_solver()
+    subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
+         & g,dt,theta,D0)
       implicit none
+      real, intent(in) :: g,dt,theta,D0
+      type(vector_field), intent(inout) :: U,X,down
+      type(scalar_field), intent(inout) :: D,f
+      integer, intent(in) :: ele
+      real, dimension(ele_loc(U,ele)*2*ele_loc(D,ele),ele_loc(U,ele)&
+           &*ele_loc(D,ele))&
+           &, intent(inout) :: local_solver
+      !
+      real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+      real, dimension(ele_ngi(x,ele)) :: f_gi
+      real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
+      real, dimension(X%dim) :: up_vec
+      real, dimension(mesh_dim(U),ele_loc(D,ele),ele_loc(U,ele)) :: l_div_mat
+      real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric, &
+           &Metricf
+      real, dimension(X%dim, X%dim, ele_ngi(U,ele)) :: rot
+      real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U&
+           &,ele)) :: l_u_mat
+      integer :: mdim, uloc,dloc,dim1,dim2,gi
+      type(element_type) :: u_shape, d_shape
+      real, dimension(ele_ngi(D,ele)) :: detwei, detJ
+      integer, dimension(:), pointer :: D_ele,U_ele
+
+      mdim = mesh_dim(U)
+      uloc = ele_loc(U,ele)
+      dloc = ele_loc(d,ele)
+      
+      u_shape=ele_shape(u, ele)
+      D_shape=ele_shape(d, ele)
+      D_ele => ele_nodes(D, ele)
+      U_ele => ele_nodes(U, ele)
+
       f_gi = ele_val_at_quad(f,ele)
       up_gi = -ele_val_at_quad(down,ele)
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
@@ -289,8 +301,6 @@ contains
       end do
     end subroutine get_local_solver
 
-  end subroutine assemble_hybridized_helmholtz_ele
-
     function get_up_vec(X_val, up) result (up_vec_out)
       implicit none
       real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
@@ -312,7 +322,7 @@ contains
       end if
     end function get_up_vec
     
-    subroutine get_continuity_face_mat(continuity_face_mat,X,face,&
+    subroutine get_continuity_face_mat(continuity_face_mat,face,&
          U,lambda_rhs)
       ! integral is done in local coordinates to avoid computing
       ! dx/dxi on face (using properties of the Piola transform)
@@ -320,7 +330,7 @@ contains
       implicit none
       integer, intent(in) :: face
       type(scalar_field), intent(inout) :: lambda_rhs
-      type(vector_field), intent(inout) :: X, U
+      type(vector_field), intent(inout) :: U
       real, dimension(2,face_loc(U,face),face_loc(lambda_rhs,face)), intent(inout) :: continuity_face_mat
       !
       real, dimension(U%dim, face_ngi(U, face)) :: n1
