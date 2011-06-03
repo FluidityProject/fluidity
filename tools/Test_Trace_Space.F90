@@ -36,6 +36,8 @@
     use populate_state_module
     use write_state_module
     use solvers
+    use sparse_tools
+    use sparsity_patterns_meshes
     use global_parameters, only: option_path_len, python_func_len, current_time, dt
     use memory_diagnostics
     use iso_c_binding
@@ -97,6 +99,8 @@
 
     call test_local_coords(state(1))
     call test_trace_values(state(1))
+    call test_trace_projection(state(1))
+
     ewrite(1,*) 'TEST PASSED'
 
 #ifdef HAVE_MPI
@@ -105,6 +109,96 @@
 #endif
 
   contains
+
+    subroutine test_trace_projection(state)
+      !this subroutine checks the values of the local coordinates 
+      !for the trace function
+      type(state_type), intent(inout) :: state
+      !
+      type(scalar_field), pointer :: D,L
+      type(vector_field), pointer :: X
+      type(scalar_field) :: L_projected, L_projected_rhs
+      type(csr_sparsity) :: L_mass_sparsity
+      type(csr_matrix) :: L_mass_mat
+      integer :: i, ele
+      D=>extract_scalar_field(state, "LayerThickness")
+      L=>extract_scalar_field(state, "LagrangeMultiplier")
+      X=>extract_vector_field(state, "Coordinate")
+      call allocate(L_projected,L%mesh, "ProjectedLagrangeMultiplier")
+      L_projected%option_path = L%option_path
+      call allocate(L_projected_rhs,L%mesh,&
+           & "ProjectedLagrangeMultiplierRHS")
+      call zero(L_projected)
+      call zero(L_projected_rhs)
+
+      L_mass_sparsity=get_csr_sparsity_firstorder(state, L%mesh, L%mesh)
+      call allocate(L_mass_mat,L_mass_sparsity)
+      call zero(L_mass_mat)
+
+      do ele = 1, element_count(L)
+         call assemble_trace_projection_ele(ele,D,L_projected_rhs,X,L_mass_mat)
+      end do
+
+      call petsc_solve(L_projected, L_mass_mat,&
+           &L_projected_rhs)
+
+      if(maxval(abs(L_projected%val-L%val))>1.0e-5) then
+         FLExit('Projection to trace space looks funky.')
+      end if
+
+      call deallocate(L_mass_mat)
+      call deallocate(L_projected) 
+     call deallocate(L_projected_rhs)
+
+    end subroutine test_trace_projection
+
+    subroutine assemble_trace_projection_ele(ele,D,L_projected_rhs&
+         &,X,L_mass_mat)
+      integer, intent(in) :: ele
+      type(scalar_field), intent(inout) :: D,L_projected_rhs
+      type(vector_field), intent(inout) :: X
+      type(csr_matrix), intent(inout) :: L_mass_mat
+      !
+      integer, dimension(:), pointer :: neigh
+      integer :: ni,ele_2,face
+      
+      neigh => ele_neigh(D,ele)
+      do ni = 1, size(neigh)
+         ele_2 = neigh(ni)
+         if(ele_2<ele) then
+            face = ele_face(D,ele,ele_2)
+            call assemble_trace_projection_face(face,D,L_projected_rhs,X,&
+                 &L_mass_mat)
+         end if
+      end do
+
+    end subroutine assemble_trace_projection_ele
+
+    subroutine assemble_trace_projection_face(face,D,L_projected_rhs,X&
+         &,L_mass_mat)
+      integer, intent(in) :: face
+      type(scalar_field), intent(inout) :: D,L_projected_rhs
+      type(vector_field), intent(inout) :: X
+      type(csr_matrix), intent(inout) :: L_mass_mat
+      !
+      real, dimension(face_loc(D,face),face_loc(D,face)) :: L_mass_mat_face
+      real, dimension(face_loc(D,face)) :: L_rhs
+      real, dimension(face_ngi(D,face)) :: D_face_quad, detwei
+      type(element_type), pointer :: shape
+      integer, dimension(face_loc(l_projected_rhs,face)) :: L_face
+
+      l_face = face_global_nodes(L_projected_rhs,face)
+      shape => face_shape(L_projected_rhs,face)
+      D_face_quad = face_val_at_quad(D,face)
+      call transform_facet_to_physical(X, face, &
+         &                          detwei_f=detwei)
+      L_rhs = shape_rhs(shape,D_face_quad*detwei)
+      L_mass_mat_face = shape_shape(shape,shape,detwei)
+      
+      call addto(L_projected_rhs, l_face, l_rhs)
+      call addto(L_mass_mat, l_face, l_face, L_mass_mat_face)
+
+    end subroutine assemble_trace_projection_face
 
     subroutine test_local_coords(state)
       !this subroutine checks the values of the local coordinates 
@@ -181,9 +275,9 @@
       
       print *, "D_face", D_face
       print *, "L_face", L_face
-      !if(any(abs(D_face-L_face)>1.0e-10)) then
-      !   FLExit('Test Trace Values Failed')
-      !end if
+      if(any(abs(D_face-L_face)>1.0e-10)) then
+         FLExit('Test Trace Values Failed')
+      end if
     end subroutine test_trace_values_face
 
     subroutine read_command_line()
