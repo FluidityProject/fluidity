@@ -768,8 +768,19 @@ contains
     integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
     logical :: new_shape
     
+    ! Get new mesh continuity
+    call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", continuity_option, stat)
+    if(stat==0) then
+      if(trim(continuity_option)=="discontinuous") then
+         continuity=-1
+      else if(trim(continuity_option)=="continuous") then
+         continuity=0
+      end if
+    else
+      continuity=from_mesh%continuity
+    end if
+
     ! Get new mesh shape information
-    
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
       ! Get new mesh element type
@@ -777,7 +788,11 @@ contains
                       element_option, stat)
       if(stat==0) then
         if(trim(element_option)=="lagrangian") then
-           new_shape_type=ELEMENT_LAGRANGIAN
+           if(continuity==0) then
+              new_shape_type=ELEMENT_LAGRANGIAN
+           else
+              new_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
+           end if
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
         end if
@@ -803,18 +818,6 @@ contains
     else
       shape=from_mesh%shape
       call incref(shape)
-    end if
-
-    ! Get new mesh continuity
-    call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", continuity_option, stat)
-    if(stat==0) then
-      if(trim(continuity_option)=="discontinuous") then
-         continuity=-1
-      else if(trim(continuity_option)=="continuous") then
-         continuity=0
-      end if
-    else
-      continuity=from_mesh%continuity
     end if
 
     ! Get mesh name.

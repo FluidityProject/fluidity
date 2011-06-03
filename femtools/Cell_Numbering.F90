@@ -73,12 +73,53 @@ module cell_numbering
      type(vertex_list), dimension(:,:), allocatable :: entities
   end type cell_type
 
-  type(cell_type), dimension(0:5), target :: cells
+  type(cell_type), dimension(0:5), target, save :: cells
 
   public :: cell_type, cells, number_cells, entity_vertices,&
-       & vertices_entity
+       & vertices_entity, facet_count, find_cell
+
+  logical, save :: initialised=.false.
 
 contains
+  
+  pure function facet_count(cell)
+    ! Return the number of facets in a cell.
+    type(cell_type), intent(in) :: cell
+    integer :: facet_count
+    
+    ! Special case for dim==0
+    if (cell%dimension==0) then
+       facet_count=0
+    else
+       facet_count=cell%entity_counts(cell%dimension-1)
+    end if
+
+  end function facet_count
+
+  function find_cell(dim, vertices)
+    ! Return a pointer to the cell characterised by dim and vertices
+    type(cell_type), pointer :: find_cell
+    integer, intent(in) :: dim, vertices
+    
+    character(len=200) :: errmsg
+    integer :: i
+    
+    call number_cells
+
+    do i=0,5
+       find_cell=>cells(i)
+       if (find_cell%dimension==dim &
+            .and. find_cell%entity_counts(0)==vertices) then
+          return
+       end if
+    end do
+
+    write(errmsg,&
+    "('No cell with dimension ',i0,' and ',i0,' vertices')") dim,&
+         & vertices
+    FLAbort(errmsg)
+    
+  end function find_cell
 
   function entity_vertices(cell, entity)
     ! Return a pointer to  the list of vertices associated with the given
@@ -107,6 +148,10 @@ contains
   subroutine number_cells
     ! initialisation routine which causes the cells to be populated.
 
+    if (initialised) return
+    initialised=.true.
+
+    call number_cell_point
     call number_cell_interval
     call number_cell_triangle
     call number_cell_quad
@@ -114,6 +159,24 @@ contains
     call number_cell_hex
 
   end subroutine number_cells
+
+  subroutine number_cell_point
+    ! Number the topological entities in a triangle
+    type(cell_type), pointer :: cell
+
+    cell=> cells(CELL_POINT)
+
+    cell%type=CELL_POINT
+    cell%dimension=0
+    cell%entity_counts=[1,0,0,0]
+    
+    allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    call allocate(cell%vertices2entity)
+
+    ! Vertex
+    call map_vertices_entity(cell, [1], [0,1])
+
+  end subroutine number_cell_point
 
   subroutine number_cell_interval
     ! Number the topological entities in a triangle

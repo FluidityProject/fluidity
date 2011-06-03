@@ -113,12 +113,12 @@ contains
   end function make_element_shape_from_element
 
   function make_element_shape(vertices, dim, degree, quad, type,&
-       stat, quad_s)  result (shape)
+       stat, quad_s)  result (element)
     !!< Generate the shape functions for an element. The result is a suitable
     !!< element_type.
     !!
     !!< At this stage only Lagrange family polynomial elements are supported.
-    type(element_type) :: shape
+    type(element_type) :: element
     !! Vertices is the number of vertices of the element, not the number of nodes!
     !! dim \in [1,2,3] is currently supported.
     !! Degree is the degree of the Lagrange polynomials.
@@ -133,17 +133,11 @@ contains
     ! Count coordinates of each point 
     integer, dimension(dim+1) :: counts
     integer :: i,j,k
-    integer :: ltype, coords,surface_count
+    integer :: coords
 
     ! Check that the quadrature and the element shapes match.
     assert(quad%vertices==vertices)
     assert(quad%dim==dim)
-
-    if (present(type)) then
-       ltype=type
-    else
-       ltype=ELEMENT_LAGRANGIAN
-    end if
 
     if (present(stat)) stat=0
 
@@ -169,66 +163,59 @@ contains
        FLAbort('Illegal element family.')
     end select
 
-    shape%numbering=>ele_num
-    shape%quadrature=quad
+    element%cell => find_cell(dim, vertices)
+    element%numbering=>ele_num
+    element%quadrature=quad
     call incref(quad)
 
+    call allocate(element, dim, ele_num%nodes, quad%ngi, coords, type)
     if (present(quad_s)) then
-       select case(dim)
-          case(2)
-              call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-            ele_num%edges, quad_s%ngi,coords,.true.)
-              surface_count=ele_num%edges
-           case(3)
-              call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-            ele_num%faces, quad_s%ngi,coords,.true.)
-              surface_count=ele_num%edges
-           case default
-              FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
-        end select
-    else
-       call allocate(shape, dim, ele_num%nodes, quad%ngi, coords)
+       if (dim==1) then
+          FLAbort("Unsupported dimension count. Can only generate facet functions for elements that exist in 2 or 3 dimensions.")
+       end if
+       call allocate_element_facets(element, dim, ele_num%nodes,&
+            facet_count(element%cell), quad_s%ngi)
     end if
-    shape%degree=degree
-    shape%n=0.0
-    shape%dn=0.0
+    element%degree=degree
+    element%n=0.0
+    element%dn=0.0
 
     ! Construct shape for each node
-    do i=1,shape%ndof
+    do i=1,element%ndof
 
        counts(1:coords)=ele_num%number2count(:,i)
        
        ! Construct appropriate polynomials.
        do j=1,coords
           
-          select case(ltype)
+          select case(element%type)
           case(ELEMENT_LAGRANGIAN)
              select case(ele_num%family)
              case (FAMILY_SIMPLEX)
                 ! Raw polynomial.
-                shape%spoly(j,i)&
+                element%spoly(j,i)&
                      =lagrange_polynomial(counts(j), counts(j), 1.0/degree)
              case(FAMILY_CUBE)
 
                 ! note that local coordinates run from -1.0 to 1.0
-                shape%spoly(j,i)&
+                element%spoly(j,i)&
                      =lagrange_polynomial(counts(j), degree, 2.0/degree, &
                        origin=-1.0)
 
              end select
 
           case(ELEMENT_BUBBLE)
-             if(i==shape%ndof) then
+             if(i==element%ndof) then
                
                ! the last node is the bubble shape function
-               shape%spoly(j,i) = (/1.0, 0.0/)
+               element%spoly(j,i) = (/1.0, 0.0/)
                
              else
              
                select case(ele_num%family)
                case (FAMILY_SIMPLEX)
                   ! Raw polynomial.
-                  shape%spoly(j,i)&
+                  element%spoly(j,i)&
                        =lagrange_polynomial(counts(j)/coords, counts(j)/coords, 1.0/degree)
                        
                end select
@@ -237,7 +224,7 @@ contains
 
           case(ELEMENT_NONCONFORMING)
              
-             shape%spoly(j,i)=nonconforming_polynomial(counts(j))
+             element%spoly(j,i)=nonconforming_polynomial(counts(j))
 
           case default
 
@@ -246,7 +233,7 @@ contains
           end select
 
           ! Derivative
-          shape%dspoly(j,i)=ddx(shape%spoly(j,i))
+          element%dspoly(j,i)=ddx(element%spoly(j,i))
 
        end do
 
@@ -254,15 +241,15 @@ contains
        do j=1,quad%ngi
 
           ! Raw shape function
-          shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
+          element%n(i,j)=eval_shape(element, i, quad%l(j,:))
 
           ! Directional derivatives.
-          shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
+          element%dn(i,j,:)=eval_dshape(element, i, quad%l(j,:))
        end do
 
        if (present(quad_s)) then
-          shape%surface_quadrature=>quad_s
-          select case(ltype)
+          element%surface_quadrature=>quad_s
+          select case(element%numbering%family)
           case(FAMILY_SIMPLEX)
           allocate(g(dim+1))
            do k=1,dim+1
@@ -278,15 +265,112 @@ contains
                     g(mod(k+1,4)+1)=quad_s%l(j,2)
                     g(mod(k+2,4)+1)=quad_s%l(j,3)
                  end if
-                 shape%n_s(i,j,k)=eval_shape(shape, i,g)
-                 shape%dn_s(i,j,k,:)=eval_dshape(shape, i,g)
+                 element%n_s(i,j,k)=eval_shape(element, i,g)
+                 element%dn_s(i,j,k,:)=eval_dshape(element, i,g)
              end do
           end do
           deallocate(g)
+          case default
+             FLAbort("Surface shape functions not supported for cube family")
           end select
       end if
 
     end do
+
+    call entity_dofs(element)
+    call facet_dofs(element)
+    
+  contains
+    
+    subroutine entity_dofs(element)
+      ! Create lists of the dofs on each entity.
+      type(element_type), intent(inout) :: element
+      
+      type(cell_type), pointer :: cell
+      type(ele_numbering_type), pointer :: numbering
+
+      integer, dimension(:), allocatable :: dofs
+      integer, dimension(:), pointer :: vertices
+      integer :: i, dof_len
+      logical, dimension(:), allocatable :: cell_mask
+
+      cell=>element%cell
+      numbering=>element%numbering
+
+      allocate(element%entity2dofs(0:ubound(cell%entities,1),size(cell%entities,2)))
+
+      allocate(cell_mask(element%ndof))
+      cell_mask=.true.
+
+      ! DG elements have all their dofs associated with the interior.
+      if (element%type/=ELEMENT_DISCONTINUOUS_LAGRANGIAN) then
+         ! Vertices
+         allocate(dofs(cell%entity_counts(0)))
+         dofs=local_vertices(numbering)
+         do i=1,size(dofs)
+            allocate(element%entity2dofs(0,i)%dofs(1))
+            element%entity2dofs(0,i)%dofs(1)=dofs(i)
+         end do
+         cell_mask(dofs)=.false.
+         deallocate(dofs)
+         
+         ! Edges
+         dof_len=edge_num_length(numbering, interior=.true.)
+         do i=1,cell%entity_counts(1)
+            vertices=>entity_vertices(cell,[1,i])
+            allocate(element%entity2dofs(1,i)%dofs(dof_len))
+            element%entity2dofs(1,i)%dofs=&
+                 edge_local_num(vertices, numbering, interior=.true.)
+            ! Sanity check dofs uniquely belong to one entity.
+            assert(all(cell_mask(element%entity2dofs(1,i)%dofs)))
+            cell_mask(element%entity2dofs(1,i)%dofs)=.false.
+         end do
+         
+         ! Faces
+         dof_len=face_num_length(numbering, interior=.true.)
+         do i=1,cell%entity_counts(2)
+            vertices=>entity_vertices(cell,[2,i])
+            allocate(element%entity2dofs(2,i)%dofs(dof_len))
+            element%entity2dofs(2,i)%dofs=&
+                 face_local_num(vertices, numbering, interior=.true.)
+            ! Sanity check dofs uniquely belong to one entity.
+            assert(all(cell_mask(element%entity2dofs(2,i)%dofs)))
+            cell_mask(element%entity2dofs(2,i)%dofs)=.false.
+         end do
+      end if
+
+      ! Interior cell elements.
+      if (any(cell_mask)) then
+         assert(.not.allocated(element%entity2dofs(3,1)%dofs))
+         allocate(element%entity2dofs(3,1)%dofs(count(cell_mask)))
+         element%entity2dofs(3,1)%dofs=&
+              pack([(i,i=1,element%ndof)],cell_mask)
+      end if
+    end subroutine entity_dofs
+    
+    subroutine facet_dofs(element)
+      ! Create lists of the dofs on each facet.
+      type(element_type), intent(inout) :: element
+      
+      type(cell_type), pointer :: cell
+      type(ele_numbering_type), pointer :: numbering
+
+      integer :: facet_dim
+
+      cell=>element%cell
+      numbering=>element%numbering
+      facet_dim=element%dim-1
+
+      allocate(element%facet2dofs(facet_count(cell)))
+      do i=1,facet_count(cell)
+         allocate(element%facet2dofs(i)%dofs(&
+              boundary_num_length(numbering, interior=.false.)))
+         element%facet2dofs(i)%dofs=&
+              boundary_local_num(entity_vertices(cell,[facet_dim,i]),&
+              & numbering)
+      end do
+
+    end subroutine facet_dofs
 
   end function make_element_shape
 

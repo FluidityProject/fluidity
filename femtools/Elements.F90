@@ -47,6 +47,8 @@ module elements
      integer :: ndof !! Number of degrees of fredom (nodes).
      integer :: ngi !! Number of gauss points.
      integer :: degree !! Polynomial degree of element.
+     integer :: type !! Identifier for elements eg. Lagrange 
+     !!                 See Element_Numbering for a list.
      !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
      !! n is ndof x ngi, dn is ndof x ngi x dim
      !! dn_s is ndof x ngi x face x dim 
@@ -65,12 +67,14 @@ module elements
      character(len=0) :: name
      !! Mapping from element entities to degrees of freedom
      type(dof_list), dimension(:,:), allocatable :: entity2dofs
+     !! Mapping from facets to degrees of freedom.
+     type(dof_list), dimension(:), allocatable :: facet2dofs
      !! Topological entity numbering
      type(cell_type), pointer :: cell
   end type element_type
 
   interface allocate
-     module procedure allocate_element, allocate_element_with_surface
+     module procedure allocate_element
   end interface
 
   interface deallocate
@@ -122,16 +126,17 @@ contains
     !! define element type
     integer, intent(in), optional :: type
 
-    integer :: lstat, ltype
+    integer :: lstat
 
     if (present(type)) then
-       ltype=type
+       element%type=type
     else
-       ltype=ELEMENT_LAGRANGIAN
+       element%type=ELEMENT_LAGRANGIAN
     end if
 
-    select case(ltype)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
+    select case(element%type)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_DISCONTINUOUS_LAGRANGIAN,&
+         & ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
 
       allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim), &
           element%spoly(coords,ndof), element%dspoly(coords,ndof), stat=lstat)
@@ -177,41 +182,27 @@ contains
 
   end subroutine allocate_element
 
-  subroutine allocate_element_with_surface(element, dim, ndof,&
-       ngi,faces, ngi_s, coords,surface_present,type, stat)
-    !!< Allocate memory for an element_type. 
+  subroutine allocate_element_facets(element, dim, ndof,&
+       facets, ngi_s, stat)
+    !!< Allocate memory for the facet shape functions of an element_type. 
     type(element_type), intent(inout) :: element
     !! Dim is the dimension of the element, ndof is number of nodes, ngi is
     !! number of gauss points. 
-    integer, intent(in) :: dim,ndof,ngi,faces,ngi_s    
-    !! Number of local coordinates.
-    integer, intent(in) :: coords
-    logical, intent(in) :: surface_present
-    !! Stat returns zero for success and nonzero otherwise.
-    integer, intent(in), optional :: type
+    integer, intent(in) :: dim,ndof,facets,ngi_s    
     integer, intent(out), optional :: stat
 
     integer :: lstat
 
-    allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim), &
-         element%n_s(ndof,ngi_s,faces),element%dn_s(ndof,ngi_s,faces,dim),&
-         element%spoly(coords,ndof), element%dspoly(coords,ndof), stat=lstat)
-    
-    element%ndof=ndof
-    element%ngi=ngi
-    element%dim=dim
-
+    allocate(element%n_s(ndof,ngi_s,facets),element%dn_s(ndof,ngi_s,facets,dim),&
+         stat=lstat)
+   
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("Unable to allocate element.")
+       FLAbort("Unable to allocate element facets.")
     end if
     
-    nullify(element%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(element)
-
-  end subroutine allocate_element_with_surface
+  end subroutine allocate_element_facets
 
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element

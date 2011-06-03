@@ -50,7 +50,8 @@ module element_numbering
 
   integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
                         ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
-                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6
+                        ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6, &
+                        ELEMENT_DISCONTINUOUS_LAGRANGIAN=7
 
   integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
@@ -181,6 +182,12 @@ contains
        ltype=type
     else
        ltype=ELEMENT_LAGRANGIAN
+    end if
+
+    ! For element numbering, DG and CG Lagrangian are the same. The
+    !  difference occurs in the element_type.
+    if (ltype==ELEMENT_DISCONTINUOUS_LAGRANGIAN) then
+       ltype=ELEMENT_LAGRANGIAN 
     end if
 
     select case(ltype)
