@@ -6368,6 +6368,9 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
         <attribute name="name">
           <value>FreeSurfaceHistory</value>
         </attribute>

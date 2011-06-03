@@ -342,7 +342,7 @@ contains
     integer i, n, istate, stat
     type(halo_type), pointer :: my_halo
     integer nstates, universal_nodes, components
-    type(ele_numbering_type) :: ele_num
+    type(ele_numbering_type), pointer :: ele_num
 
     ewrite(1,*) "Opening flml file ", trim(flml)
     call load_options(flml)
@@ -444,7 +444,7 @@ contains
     else
     
       ! allocate a dummy shape and mesh:
-       ele_num = find_element_numbering(&
+       ele_num => find_element_numbering(&
          &vertices = 1, dimension = 1, degree = 1)
       call allocate(shape,ele_num,1)
       call allocate(mesh, n, 1, shape, "Mesh")

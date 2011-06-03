@@ -184,7 +184,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_a, 1), ele_ngi(positions_a, 1), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
-    type(ele_numbering_type) :: ele_num
+    type(ele_numbering_type), pointer :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -205,7 +205,8 @@ contains
     
     allocate(shapes_c(ele_count(positions_c)))
     do i = 1, size(shapes_c)
-       ele_num = find_element_numbering(vertices = loc, &
+       ele_num => find_element_numbering(&
+            &vertices = base_shape_c%numbering%vertices, &
             &dimension = dim, degree =&
             & degree)    
       call allocate(shapes_c(i), ele_num=ele_num, ngi = ngi)
@@ -279,7 +280,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_b, ele_b), ele_ngi(positions_b, ele_b), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
-    type(ele_numbering_type) :: ele_num
+    type(ele_numbering_type), pointer :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -298,8 +299,8 @@ contains
     
     allocate(shapes_c(ele_count(positions_c)))
     do i = 1, size(shapes_c)
-       ele_num = find_element_numbering(&
-            vertices = loc, dimension = dim, degree =&
+       ele_num => find_element_numbering(&
+            vertices = base_shape_c%numbering%vertices, dimension = dim, degree =&
             & degree)    
       call allocate(shapes_c(i), ele_num, ngi = ngi)
       
@@ -455,7 +456,7 @@ contains
     type(element_type), target, intent(in) :: shape_vol
     ! If present and .false., do not form the shape function derivatives
     logical, optional, intent(in) :: form_dn
-    type(ele_numbering_type) :: ele_num
+    type(ele_numbering_type), pointer :: ele_num
     type(element_type) :: shape_surf_ext
     
     integer :: coords, degree, dim, i, loc, ngi
@@ -473,8 +474,8 @@ contains
     ngi = quad%ngi
     coords = local_coord_count(shape_vol)
     degree = shape_surf%degree
-    ele_num = &
-         &find_element_numbering(vertices = loc, &
+    ele_num => &
+         &find_element_numbering(vertices = shape_surf%numbering%vertices, &
          &dimension = dim - 1, degree = degree)
     ! Note that the extruded surface mesh shape function takes its number of
     ! quadrature points from the volume shape function

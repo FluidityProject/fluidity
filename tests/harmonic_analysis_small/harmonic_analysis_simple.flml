@@ -448,7 +448,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FreeSurfaceHistory">
+    <scalar_field name="FreeSurfaceHistory" rank="0">
       <diagnostic>
         <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
           <levels>
