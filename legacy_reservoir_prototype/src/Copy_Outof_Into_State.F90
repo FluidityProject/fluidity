@@ -1003,7 +1003,7 @@ module copy_outof_into_state
          ! This will make sure that the fields in the PC *does not* contain any boundary conditions
          ! elements. This need to be changed along with the future data structure to take into 
          ! account the overlapping formulation.
-         do j=1,node_count(velocity), 1, -1
+         do j = node_count(velocity), 1, -1
             u((i-1)*node_count(velocity)+j)=velocity%val(X_, j)
             if( j == 1 ) u( ( i - 1 ) * node_count( velocity ) + j ) = &
                           u( ( i - 1 ) * node_count( velocity ) + j + 1)
