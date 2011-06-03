@@ -74,7 +74,7 @@ contains
     type(csr_matrix) :: lambda_mat
     real :: D0, dt, g, theta
     integer :: ele
-    ewrite(1,*) '  subroutine assemble_hybridized_helmholtz('
+    ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
@@ -109,7 +109,7 @@ contains
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-            lambda_mat,g,dt,theta,D0,lambda_rhs,rhs)
+            g,dt,theta,D0,lambda_rhs,lambdamat=lambdamat,rhs=rhs)
     end do
 
     !Solve the equations
@@ -124,10 +124,12 @@ contains
     call deallocate(lambda_mat)
     call deallocate(lambda_rhs)
 
+    ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
+
   end subroutine solve_hybridized_helmholtz
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-       lambda_mat,g,dt,theta,D0,lambda_rhs,rhs)
+       g,dt,theta,D0,lambda_rhs,lambdamat,rhs)
     implicit none
     type(scalar_field), intent(inout) :: D,f,lambda_rhs
     type(vector_field), intent(inout) :: U,X,down
@@ -326,7 +328,7 @@ contains
          U,lambda_rhs)
       ! integral is done in local coordinates to avoid computing
       ! dx/dxi on face (using properties of the Piola transform)
-      ! \int_f [[w]]\lambda dS
+      ! \int_f w.n\lambda dS
       implicit none
       integer, intent(in) :: face
       type(scalar_field), intent(inout) :: lambda_rhs
