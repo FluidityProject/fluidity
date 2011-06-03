@@ -1392,7 +1392,7 @@ contains
     character(len=FIELD_NAME_LEN) ::funcnam, temp_name, detector_name
     character(len=PYTHON_FUNC_LEN) :: func
 
-    integer :: column, i, j, k, phase, m, IERROR, field_count
+    integer :: column, i, j, k, phase, m, IERROR, field_count, totaldet_global
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
     integer :: python_dete, ndete, dim, str_size, type_det
     integer, dimension(2) :: shape_option
@@ -1404,12 +1404,14 @@ contains
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
 
-    type(detector_type), pointer :: node, detector
+    type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
 
     ! Idempotency check
     if (default_stat%detectors_initialised) return
     default_stat%detectors_initialised=.true.
+
+    ewrite(2,*) "In initialise_detectors"
 
     ! Check whether there are actually any detectors.
     static_dete = option_count("/io/detectors/static_detector")
@@ -1418,8 +1420,7 @@ contains
     python_dete = 0
  
     do i=1,python_functions_or_files
-       write(buffer, "(a,i0,a)")  &
-            "/io/detectors/detector_array[",i-1,"]"
+       write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"
        call get_option(trim(buffer)//"/number_of_detectors", j)
        python_dete=python_dete+j
     end do
@@ -1458,6 +1459,7 @@ contains
 
     ! Read detectors from options
     if (.not.default_stat%from_checkpoint) then
+       ewrite(2,*) "Reading detectors from options"
 
        ! Read all single static detector from options
        do i=1,static_dete
@@ -1533,190 +1535,131 @@ contains
 
                 call create_single_detector(default_stat%detector_list, xfield, &
                        coords(:,j), k, type_det, trim(detector_name))
-                k=k+1
-           
+                k=k+1           
              end do
              deallocate(coords)
 
           else
-                 ! Reading from a binary file where the user has placed the detector positions
 
-                 if (getprocno() == 1) then
-
+             ! Reading from a binary file where the user has placed the detector positions
+             if (getprocno() == 1) then
                  default_stat%detector_file_unit=free_unit()
-
                  call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
-      open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
-        & action = "read", access = "stream", form = "unformatted")
+                 open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
+                      & action = "read", access = "stream", form = "unformatted")
 #else
-      FLAbort("No stream I/O support")
+                 FLAbort("No stream I/O support")
 #endif
        
                  do j=1,ndete
-
-                     allocate(node)
-                     call insert(default_stat%detector_list,node)
-
-                     write(node%name, fmt) trim(funcnam)//"_", j
-
-                     allocate(node%position(dim))
-                     read(default_stat%detector_file_unit) node%position
-                     node%type=type_det
-                     node%id_number = k
-
-                     default_stat%detector_list%detector_names(k)=trim(funcnam)
-
-                     allocate(node%local_coords(local_coord_count(shape)))
-                     k=k+1
-           
+                    write(detector_name, fmt) trim(funcnam)//"_", j
+                    default_stat%detector_list%detector_names(k)=trim(detector_name)
+                    read(default_stat%detector_file_unit) detector_location
+                    call create_single_detector(default_stat%detector_list, xfield, &
+                          detector_location, k, type_det, trim(detector_name))
+                    k=k+1          
                  end do
-
-                 end if
-                
-             end if
-
-          end do
-      
+              end if                
+          end if
+       end do      
     else 
-    
-       !!If reading from checkpoint file
-       !!!First we should read the header of checkpoint_file to get the order in which the detectors were read at the beginning of the calculation
+       ewrite(2,*) "Reading detectors from checkpoint"
 
-        !IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET 
+       ! If reading from checkpoint file:
+       ! Detector checkpoint file names end in _det, with.groups appended for the header file
+       ! and .positions.dat appended for the binary data file that holds the positions
 
-           default_stat%detector_checkpoint_unit=free_unit()
+       default_stat%detector_checkpoint_unit=free_unit()
+       if (have_option("/io/detectors/static_detector")) then
+          call get_option("/io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  
+       elseif (have_option("/io/detectors/lagrangian_detector")) then 
+          call get_option("/io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  
+       else 
+          call get_option("/io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  
+       end if 
 
-           if (have_option("/io/detectors/static_detector")) then
-               call get_option("/io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-           elseif (have_option("/io/detectors/lagrangian_detector")) then 
-               call get_option("/io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-           else 
-               call get_option("/io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-           end if 
+       open(unit=default_stat%detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
 
-           open(unit=default_stat%detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
+       ! First we read the header of checkpoint_file to get the order in which the detectors were read initialliy
+       do i=1, total_dete_groups 
+          read(default_stat%detector_checkpoint_unit,'(a,i10)') default_stat%detector_group_names(i), default_stat%number_det_in_each_group(i)
+       end do
 
-           do i=1, total_dete_groups  
-
-               read(default_stat%detector_checkpoint_unit,'(a,i10)') default_stat%detector_group_names(i), default_stat%number_det_in_each_group(i)
-
-           end do
-
-           close(default_stat%detector_checkpoint_unit)
+       close(default_stat%detector_checkpoint_unit)
 
 #ifdef STREAM_IO
-      open(unit = default_stat%detector_checkpoint_unit, file = trim(detectors_cp_filename) // '.positions.dat', &
-        & action = "read", access = "stream", form = "unformatted")
+       open(unit = default_stat%detector_checkpoint_unit, file = trim(detectors_cp_filename) // '.positions.dat', &
+             & action = "read", access = "stream", form = "unformatted")
 #else
-      FLAbort("No stream I/O support")
+       FLAbort("No stream I/O support")
 #endif
  
-       !!!Read in order the last positions of the detectors from the binary file.
+       ! Read in order the last positions of the detectors from the binary file.
 
-          do j=1,size(default_stat%detector_group_names)
-
-             do i=1,static_dete
-                 write(buffer, "(a,i0,a)")  &
-               "/io/detectors/static_detector[",i-1,"]"
-                 call get_option(trim(buffer)//"/name", temp_name)
-          
-                 if (default_stat%detector_group_names(j)==temp_name) then
-
-                     allocate(node)
-                     call insert(default_stat%detector_list,node)
-                     node%name=temp_name
-                     allocate(node%position(dim))
-                     read(default_stat%detector_checkpoint_unit) node%position
-                     node%type = STATIC_DETECTOR
-                     allocate(node%local_coords(local_coord_count(shape)))   
-
-                     node%id_number = i
-                  
-                 else
-                     cycle
-                 end if
-             end do
-
+       do j=1,size(default_stat%detector_group_names)
+          do i=1,static_dete
+             write(buffer, "(a,i0,a)") "/io/detectors/static_detector[",i-1,"]"
+             call get_option(trim(buffer)//"/name", temp_name)
+       
+             if (default_stat%detector_group_names(j)==temp_name) then
+                read(default_stat%detector_checkpoint_unit) detector_location
+                call create_single_detector(default_stat%detector_list, xfield, &
+                      detector_location, i, STATIC_DETECTOR, trim(temp_name))                  
+             else
+                cycle
+             end if
           end do
+       end do
 
-          do j=1,size(default_stat%detector_group_names)   
+       do j=1,size(default_stat%detector_group_names)
+          do i=1,lagrangian_dete
+             write(buffer, "(a,i0,a)") "/io/detectors/lagrangian_detector[",i-1,"]"
+             call get_option(trim(buffer)//"/name", temp_name)
 
-             do i=1,lagrangian_dete
-                 write(buffer, "(a,i0,a)")  &
-               "/io/detectors/lagrangian_detector[",i-1,"]"
-                 call get_option(trim(buffer)//"/name", temp_name)
-
-                 if (default_stat%detector_group_names(j)==temp_name) then
-
-
-                     allocate(node)
-                     call insert(default_stat%detector_list,node)
-                     node%name=temp_name
-                     allocate(node%position(dim))
-                     read(default_stat%detector_checkpoint_unit) node%position
-                     node%type = LAGRANGIAN_DETECTOR
-
-                     allocate(node%local_coords(local_coord_count(shape))) 
-
-                     node%id_number = i+static_dete
-    
-                 else
-                     cycle
-                 end if
-             end do
-
+             if (default_stat%detector_group_names(j)==temp_name) then
+                read(default_stat%detector_checkpoint_unit) detector_location
+                call create_single_detector(default_stat%detector_list, xfield, &
+                      detector_location, i+static_dete, LAGRANGIAN_DETECTOR, trim(temp_name)) 
+             else
+                cycle
+             end if
           end do
+       end do
 
-          k=static_dete+lagrangian_dete+1
+       k=static_dete+lagrangian_dete+1
 
-          do j=1,size(default_stat%detector_group_names)  
+       do j=1,size(default_stat%detector_group_names) 
+          do i=1,python_functions_or_files
+             write(buffer, "(a,i0,a)") "/io/detectors/detector_array[",i-1,"]"      
+             call get_option(trim(buffer)//"/name", temp_name)
 
-             do i=1,python_functions_or_files
-                 write(buffer, "(a,i0,a)")  &
-               "/io/detectors/detector_array[",i-1,"]"
-      
-                 call get_option(trim(buffer)//"/name", temp_name)
+             if (default_stat%detector_group_names(j)==temp_name) then
+                call get_option(trim(buffer)//"/number_of_detectors", ndete)
+                str_size=len_trim(int2str(ndete))
+                fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
-                 if (default_stat%detector_group_names(j)==temp_name) then
+                if (have_option(trim(buffer)//"/lagrangian")) then
+                   type_det=LAGRANGIAN_DETECTOR
+                else
+                   type_det=STATIC_DETECTOR
+                end if
 
-                    call get_option(trim(buffer)//"/number_of_detectors", ndete)
-                    str_size=len_trim(int2str(ndete))
-                    fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
+                do m=1,default_stat%number_det_in_each_group(j)
+                   write(detector_name, fmt) trim(temp_name)//"_", m
+                   read(default_stat%detector_checkpoint_unit) detector_location
+                   call create_single_detector(default_stat%detector_list, xfield, &
+                          detector_location, k, type_det, trim(detector_name)) 
+                   k=k+1           
+                end do
+             else                     
+                cycle                   
+             end if             
+          end do
+       end do
 
-                    if (have_option(trim(buffer)//"/lagrangian")) then
-                      type_det=LAGRANGIAN_DETECTOR
-                    else
-                      type_det=STATIC_DETECTOR
-                    end if
-
-                    do m=1,default_stat%number_det_in_each_group(j)
-
-                      allocate(node)
-                      call insert(default_stat%detector_list,node)
-
-                      write(node%name, fmt) trim(temp_name)//"_", m
-                      allocate(node%position(dim))
-                      read(default_stat%detector_checkpoint_unit) node%position
-                      node%type=type_det
-
-                      node%id_number = k
-
-                      allocate(node%local_coords(local_coord_count(shape)))
-
-                      k=k+1
-           
-                    end do
-
-                 else                     
-                    cycle                   
-                 end if
-             
-             end do
-          end do       
-
-    end if !!IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET end if
+    end if  ! from_checkpoint
 
 
     default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
@@ -1724,7 +1667,7 @@ contains
        default_stat%detector_list%binary_output=.true.
     end if
 
-    ! Only the first process should write statistics information
+    ! Only the first process should write the header file
     if (getprocno() == 1) then    
        default_stat%detector_list%output_unit=free_unit()
        open(unit=default_stat%detector_list%output_unit, file=trim(filename)//'.detectors', action="write")
@@ -1748,7 +1691,7 @@ contains
           column=column+xfield%dim   ! xfield%dim == size(detector%position)
        end do positionloop
 
-
+       ! Loop over all fields in state and record the ones we want to output
        allocate (default_stat%detector_list%sfield_list(size(state)))
        allocate (default_stat%detector_list%vfield_list(size(state)))
        phaseloop: do phase=1,size(state)
@@ -1826,18 +1769,9 @@ contains
        write(default_stat%detector_list%output_unit, '(a)') "</header>"
        flush(default_stat%detector_list%output_unit)
 
-    !!!when using mpi_subroutines to write into the detectors file we need to close the file since 
-    !filename.detectors.dat needs to be open now with MPI_OPEN
-
+       ! when using mpi_subroutines to write into the detectors file we need to close the file since 
+       ! filename.detectors.dat needs to be open now with MPI_OPEN
        if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
-!        close(detector_unit)
-
-!#ifdef STREAM_IO
-!      open(unit = detector_unit, file = trim(filename) // '.detectors.dat', &
-!        & action = "write", access = "stream", form = "unformatted")
-!#else
-!     FLAbort("No stream I/O support")
-!#endif
 
        else    
           close(default_stat%detector_list%output_unit)
@@ -1858,30 +1792,17 @@ contains
 
     end if 
 
-
-    ! After initialising all detectors and the detector output file
-    ! we let the picker determine detector%element and
-    ! delete all detectors whose element we don't own
-    if (default_stat%detector_list%length/=0) then
-       xfield=>extract_vector_field(state(1), "Coordinate")
-       call search_for_detectors(default_stat%detector_list, xfield)
-
-       detector => default_stat%detector_list%firstnode
-       do while (associated(detector))
-          if ( detector%element<0) then 
-             call delete(default_stat%detector_list,detector)
-          elseif (element_owner(xfield%mesh,detector%element)/=getprocno()) then
-             call delete(default_stat%detector_list,detector)
-          else         
-             detector => detector%next
-          end if
-       end do
+    !Get options for lagrangian detector movement
+    if (check_any_lagrangian(default_stat%detector_list)) then
+       call read_detector_move_options(default_stat%detector_list, "/io/detectors")
     end if
 
-    ewrite(2,*) "Found", default_stat%detector_list%length, "local detectors in initialise_detectors"
+    ! And finally some sanity checks
+    totaldet_global=default_stat%detector_list%length
+    call allsum(totaldet_global)
+    ewrite(2,*) "Found", default_stat%detector_list%length, "local and ", totaldet_global, "global detectors"
 
-    !Get options for lagrangian detector movement
-    call read_detector_move_options(default_stat%detector_list, "/io/detectors")
+    assert(totaldet_global==default_stat%detector_list%total_num_det)
 
   end subroutine initialise_detectors
 
