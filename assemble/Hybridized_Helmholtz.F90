@@ -74,7 +74,7 @@ contains
     type(csr_matrix) :: lambda_mat
     real :: D0, dt, g, theta
     integer :: ele
-    ewrite(1,*) '  subroutine assemble_hybridized_helmholtz('
+    ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
@@ -124,6 +124,8 @@ contains
 
     call deallocate(lambda_mat)
     call deallocate(lambda_rhs)
+
+    ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
   end subroutine solve_hybridized_helmholtz
  
