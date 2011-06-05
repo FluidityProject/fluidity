@@ -132,6 +132,13 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
               <ref name="python_code"/>
             </element>
           </element>
+          <optional>
+            <element name="disable_adjoint_run">
+              <a:documentation>Disables the adjoint run.
+The functional values are still computed during the forward run. </a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </oneOrMore>
       <optional>
