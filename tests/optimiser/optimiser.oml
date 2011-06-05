@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimiser_options>
+  <name>
+    <string_value lines="1">shallow_water_optimisation_A</string_value>
+  </name>
+  <model command_line="../../bin/shallow_water" option_file="dummy.swml"/>
+  <functional name="functional1"/>
+  <optimisation_options>
+    <optimisation_algorithm name="NCG"/>
+    <tolerance>
+      <real_value rank="0">1e-10</real_value>
+    </tolerance>
+  </optimisation_options>
+  <control_io>
+    <type name="custom">
+      <get_initial_controls>
+        <string_value lines="20" type="python">def get_initial_controls():
+  import numpy
+  return {'h': numpy.array([0]), 'g': numpy.array([0])}</string_value>
+      </get_initial_controls>
+      <update_controls>
+        <string_value lines="20" type="python">def update_controls(m):
+  import pickle
+  func_derivs_file = open('controls.pkl', 'wb')
+  pickle.dump(m, func_derivs_file)</string_value>
+      </update_controls>
+    </type>
+  </control_io>
+</optimiser_options>
