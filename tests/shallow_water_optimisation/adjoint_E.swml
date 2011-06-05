@@ -374,6 +374,7 @@ for ele in range(coord.ele_count):
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="python">import fluidity.state_types
 import numpy
+import pickle
 
 coord = state.vector_fields["Coordinate"]
 local_adj_delta_u = state.vector_fields["AdjointLocalVelocityDelta"]
@@ -395,7 +396,20 @@ if time == 0.0:
   J = numpy.dot(adj_eta.val, deta_src.val) + sum([numpy.dot(adj_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)])
 else:
   J = numpy.dot(adj_delta_eta.val, deta_src.val) + sum([numpy.dot(adj_delta_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)])
-    
+
+# Hack to emulate the future behaviour of the dJdm handling
+import numpy, os
+if os.path.isfile("djdm.npy") and time != 1.0:
+  pkl_file = open('controls.pkl', 'rb')
+  controls_data = pickle.load(pkl_file)
+  djdm_np = controls_data['h']
+  #djdm_np = numpy.load("djdm.npy")
+else:
+  djdm_np = numpy.array([0.0])
+djdm_np = djdm_np + J
+#numpy.save("djdm.npy", djdm_np)
+controls_file = open('func_derivs.pkl', 'wb')
+pickle.dump({'h': djdm_np}, controls_file)
 field.val[:] = J</string_value>
           <depends>
             <string_value lines="1">LayerThicknessSourceDerivative,VelocitySourceDerivative</string_value>

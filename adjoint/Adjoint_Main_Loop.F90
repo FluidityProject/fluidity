@@ -80,10 +80,12 @@ module adjoint_main_loop
       integer :: end_timestep, start_timestep, no_timesteps, timestep
       real :: start_time, end_time
 
-      character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
+      character(len=OPTION_PATH_LEN) :: simulation_base_name
       type(stat_type), dimension(:), allocatable :: functional_stats
+      real :: J
+      real, dimension(:), pointer :: fn_value
 
-      character(len=ADJ_NAME_LEN) :: variable_name, field_name, material_phase_name
+      character(len=ADJ_NAME_LEN) :: variable_name, field_name, material_phase_name, functional_name
       type(scalar_field) :: sfield_soln, sfield_rhs
       type(vector_field) :: vfield_soln, vfield_rhs
       type(csr_matrix) :: csr_mat
@@ -117,7 +119,11 @@ module adjoint_main_loop
         call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
         call initialise_diagnostics(trim(simulation_base_name) // '_' // trim(functional_name), state)
         functional_stats(functional + 1) = default_stat
-
+        
+        ! Register the callback to compute J
+        ierr = adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_evaluate_functional))
+        call adj_chkierr(ierr)
+       
         ! Register the callback to compute delJ/delu
         ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
         call adj_chkierr(ierr)
@@ -282,7 +288,22 @@ module adjoint_main_loop
               call adjoint_cleanup
               return
             end if
-          end do
+          end do ! End of equation loop
+
+          ! Compute the functional value if not done yet 
+          if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+            if (.not. functional_computed) then
+              ierr = adj_evaluate_functional(adjointer, timestep, functional_name, J)
+              call adj_chkierr(ierr)
+              ! So we've computed the component of the functional associated with this timestep.
+              ! We also want to sum them all up ...
+              call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/J/))
+              fn_value => get_diagnostic(name=trim(functional_name), statistic="value")
+              J = J + fn_value(1)
+              call set_diagnostic(name=trim(functional_name), statistic="value", value=(/J/))
+              functional_computed = .true.  
+            end if
+          end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -296,13 +317,13 @@ module adjoint_main_loop
           endif
 
           functional_stats(functional + 1) = default_stat
-        end do
+        end do ! End of functional loop
 
         ! Now forget
         ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
         call adj_chkierr(ierr)
         current_time = start_time
-      end do
+      end do ! End of timestep loop
 
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)

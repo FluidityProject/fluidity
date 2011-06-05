@@ -48,7 +48,7 @@ module adjoint_functional_evaluation
   implicit none
 
   private
-  public :: libadjoint_functional_derivative, adj_record_anything_necessary
+  public :: libadjoint_evaluate_functional, libadjoint_functional_derivative, adj_record_anything_necessary
 
   contains
 
@@ -250,32 +250,6 @@ module adjoint_functional_evaluation
     end if
 
     if (has_func) then
-      if (.not. functional_computed) then
-        ierr = adj_timestep_get_times(adjointer, timelevel, start_time, end_time)
-        call adj_chkierr(ierr)
-        assert(start_time < end_time)
-
-        write(buffer,*) timelevel + 1
-        call python_run_string("n = " // trim(buffer))
-
-        write(buffer,*) start_time
-        call python_run_string("time = " // trim(buffer))
-
-        write(buffer, *) abs(start_time - end_time)
-        call python_run_string("dt = " // trim(buffer))
-
-        call python_run_string(trim(code_func))
-        J = python_fetch_real("J")
-
-        ! So we've computed the component of the functional associated with this timestep.
-        ! We also want to sum them all up ...
-
-        call set_diagnostic(name=trim(functional_name_f) // "_component", statistic="value", value=(/J/))
-        fn_value => get_diagnostic(name=trim(functional_name_f), statistic="value")
-        J = J + fn_value(1)
-        call set_diagnostic(name=trim(functional_name_f), statistic="value", value=(/J/))
-        functional_computed = .true.
-      end if
 
       if (.not. has_deriv) then
         check_uncertainties = "try: " // achar(10) // &
@@ -340,6 +314,111 @@ module adjoint_functional_evaluation
     call deallocate(derivative_state)
 
   end subroutine libadjoint_functional_derivative
+
+  subroutine libadjoint_evaluate_functional(adjointer, timelevel, ndepends, dependencies, values, functional_name_c, output) bind(c) 
+    use iso_c_binding
+    use libadjoint_data_structures
+    type(adj_adjointer), intent(in) :: adjointer
+    integer(kind=c_int), intent(in), value :: timelevel
+    integer(kind=c_int), intent(in), value :: ndepends
+    type(adj_variable), dimension(ndepends), intent(in) :: dependencies
+    type(adj_vector), dimension(ndepends), intent(in) :: values
+    character(kind=c_char), dimension(ADJ_NAME_LEN), intent(in) :: functional_name_c
+    adj_scalar_f, intent(out) :: output
+
+    type(state_type), dimension(:,:), pointer :: states ! material_phases x timelevels
+    character(len=ADJ_NAME_LEN) :: functional_name_f
+    logical :: has_func
+    character(len=PYTHON_FUNC_LEN) :: code_func
+    integer :: ierr, max_timelevel, tmp_timelevel, min_timelevel, nmaterial_phases
+    character(len=OPTION_PATH_LEN) :: material_phase_name
+    integer :: no_timesteps, timestep, i
+    real :: start_time, end_time
+    character(len = 30) :: buffer, buffer2
+
+    call python_reset
+
+    functional_name_f = ' '
+    i = 1
+    do while (i <= ADJ_NAME_LEN .and. functional_name_c(i) /= c_null_char)
+      functional_name_f(i:i) = functional_name_c(i)
+      i = i + 1
+    end do
+
+    ! Fetch the python code the user has helpfully supplied.
+    has_func  = have_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm")
+    if (.not. has_func) then
+      FLAbort("You need to supply code for the functional to evaluate it!")
+    endif
+
+    if (has_func) then
+      call get_option("/adjoint/functional::" // trim(functional_name_f) // "/functional_value/algorithm", code_func)
+    endif
+
+    if (ndepends==0) then
+      max_timelevel = 0
+      min_timelevel = 0
+    else
+      ! Convert from the list of adj_values/adj_vectors to actual states
+      ierr = adj_variable_get_timestep(dependencies(1), max_timelevel)
+      min_timelevel = max_timelevel
+      do i=1,ndepends
+        ierr = adj_variable_get_timestep(dependencies(i), tmp_timelevel)
+        max_timelevel = max(max_timelevel, tmp_timelevel)
+        min_timelevel = min(min_timelevel, tmp_timelevel)
+      end do
+    end if
+
+    nmaterial_phases = option_count("/material_phase")
+    allocate(states(nmaterial_phases, min_timelevel:max_timelevel))
+
+    ! Set the names of the material phases, so that we can look them up and know
+    ! which material_phase to put stuff into in convert_adj_vectors_to_states
+    do i=0,nmaterial_phases-1
+      call get_option("/material_phase[" // int2str(i) // "]/name", material_phase_name)
+      states(i+1,:)%name = trim(material_phase_name)
+    end do
+    call convert_adj_vectors_to_states(dependencies, values, states)
+    call python_add_states_time(states)
+
+    ! Also set up some useful variables for the user to use
+    ierr = adj_timestep_count(adjointer, no_timesteps)
+    call adj_chkierr(ierr)
+    write(buffer, *) no_timesteps
+    call python_run_string("times = [0] * " // trim(buffer))
+    do timestep=0,no_timesteps-2
+      ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
+      call adj_chkierr(ierr)
+      write(buffer, '(i0)') timestep
+      write(buffer2, *) start_time
+      call python_run_string("times[" // trim(buffer) // "] = " // trim(buffer2))
+      write(buffer, '(i0)') timestep+1
+      write(buffer2, *) end_time
+      call python_run_string("times[" // trim(buffer) // "] = " // trim(buffer2))
+    end do
+
+    ierr = adj_timestep_get_times(adjointer, timelevel, start_time, end_time)
+    call adj_chkierr(ierr)
+    assert(start_time < end_time)
+
+    write(buffer,*) timelevel + 1
+    call python_run_string("n = " // trim(buffer))
+
+    write(buffer,*) start_time
+    call python_run_string("time = " // trim(buffer))
+
+    write(buffer, *) abs(start_time - end_time)
+    call python_run_string("dt = " // trim(buffer))
+
+    call python_run_string(trim(code_func))
+    output = python_fetch_real("J")
+    
+    if (max_timelevel >= 0) then
+      call deallocate(states)
+      deallocate(states)
+    endif
+
+  end subroutine libadjoint_evaluate_functional
 
   subroutine convert_adj_vectors_to_states(dependencies, values, states)
     type(adj_variable), dimension(:), intent(in) :: dependencies
@@ -522,5 +601,6 @@ module adjoint_functional_evaluation
 
     deallocate(vars)
   end subroutine adj_record_anything_necessary
+
 #endif
 end module adjoint_functional_evaluation
