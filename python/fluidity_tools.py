@@ -220,8 +220,10 @@ def getElementMeshDensity(file):
     a[i] = sum / len(eles)
   return a
 
+#class stat_writer(dict):
+
 class stat_parser(dict):
-    """Parse a .stat file. The resulting mapping object is a heirarchy
+    """Parse a .stat file. The resulting mapping object is a hierarchy
 of dictionaries. Most entries are of the form:
 
    parser[material_phase][field][statistic].
