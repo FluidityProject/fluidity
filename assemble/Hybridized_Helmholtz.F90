@@ -155,13 +155,17 @@ contains
     real, dimension(:), allocatable :: lambda_rhs_loc
     real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: rhs_loc
     integer :: face2,ni2
-    logical :: assembly, rhs
-    integer :: d_start, d_end
+    logical :: assembly, have_rhs
+    integer :: d_start, d_end, dim1, dim2, mdim, uloc,dloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
+
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    dloc = ele_loc(d,ele)
 
     assembly = .false.
     if(present(lambda_mat)) assembly = .true.
-    if(present(rhs)) rhs = .true.
+    if(present(rhs)) have_rhs = .true.
     if(assembly) then
        if(.not.present(lambda_rhs)) then
           FLAbort('Need lambda_rhs for assembly')
@@ -170,11 +174,12 @@ contains
           FLAbort('Don''t need lambda for assembly')
        end if
     else
-       if(rhs..or.present(lambda_rhs)) then
+       if(have_rhs.or.present(lambda_rhs)) then
           FLAbort('Shouldn''t provide rhs or lambda_rhs for reconstruction')
        end if
        if(.not.present(lambda)) then
           FLAbort('Need lambda for reconstruction')
+       end if
     end if
 
     d_start = uloc*2 + 1
@@ -262,15 +267,17 @@ contains
           l_face_start = lambda_loc_count+1
           l_face_end = lambda_loc_count+face_loc(lambda_rhs,face)
           face=ele_face(U, ele, neigh(ni))
-          ...
+          FLExit('blah')
        end do
 
        do ni = 1, size(neigh)
           ele_2 = neigh(ni)
           face=ele_face(U, ele, ele_2)
        end do
-       rhs_loc = matmul(continuity_mat2,
+       FLExit('blah')
+       !rhs_loc = matmul(continuity_mat2,
     end if
+
   end subroutine assemble_hybridized_helmholtz_ele
 
   subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
