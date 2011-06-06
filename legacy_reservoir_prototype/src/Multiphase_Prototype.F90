@@ -229,6 +229,7 @@ module mp_prototype
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
+      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       mat_nloc = cv_nloc
@@ -274,7 +275,7 @@ module mp_prototype
            u_ele_type, cv_ele_type, &
            x, xu,  &
            u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
+           mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
 
       ! Mirroring Input dat
 
