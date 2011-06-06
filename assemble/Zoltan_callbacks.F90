@@ -1252,7 +1252,8 @@ contains
                    detector%element = new_local_element_number
                    
                    ! update other detector data
-                   call update_detector(detector, zoltan_global_new_positions)
+                   detector%local_coords=local_coords(zoltan_global_new_positions,detector%element,detector%position)
+                   detector%name=default_stat%detector_list%detector_names(detector%id_number)  
                    
                    ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
                    ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", new_local_element_number

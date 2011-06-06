@@ -1569,30 +1569,14 @@ module zoltan_integration
     ! Fix the detector%element field for every detector left in our lis
     type(detector_linked_list), intent(inout) :: detector_list
 
-    integer :: i, j
-    integer :: original_detector_list_length
-    integer :: send_count
-    integer :: old_local_element_number, new_local_element_number, old_universal_element_number
-    type(detector_type), pointer :: detector => null(), send_detector => null()
-    type(detector_linked_list) :: detector_send_list
-    integer, allocatable :: ndets_being_sent(:)
-    integer :: ierr
-    real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    type(element_type), pointer :: shape    
+    integer :: i, old_local_element_number, new_local_element_number, old_universal_element_number
+    type(detector_type), pointer :: detector => null()
 
     ewrite(1,*) "In update_detector_list_element"
-
     ewrite(3,*) "Length of detector list to be updated: ", detector_list%length
 
-    original_detector_list_length = detector_list%length
-
     detector => detector_list%firstnode
-
-    send_count = 0
-
-    ewrite(3,*) "Beginning update of detectors in detector_list"
-
-    do i=1, original_detector_list_length
+    do i=1, detector_list%length
 
        ewrite(3,*) "Updating detector%id_number:", detector%id_number
        ewrite(3,*) "Old element owner of ", detector%id_number, "(ID): ", ele_owner(detector%element, zoltan_global_zz_mesh, zoltan_global_zz_halo)
@@ -1613,116 +1597,12 @@ module zoltan_integration
           ewrite(3,*) "Finished updating detector%id_number:", detector%id_number
           detector => detector%next
        else
-          ewrite(3,*) "No new element number of ", detector%id_number, "(ID) could be found"
-          ! We no longer own the element containing this detector
-          ! We're going to put it into a send list and count how many detectors we're sending
-          send_count = send_count + 1
-
-          send_detector => detector
-          detector => detector%next
-          
-          ! Store the old universal element number for unpacking to new local at the receive
-          send_detector%element = old_universal_element_number
-
-          ! Remove detector from detector list
-          ewrite(3,*) "Moving detector ", send_detector%id_number, "(ID) from the detector_list to the detector_send_list"
-          call move(detector_list, send_detector, detector_send_list)
-
+          ewrite(-1,*) "No new element number of detector", detector%id_number, "(ID) could be found"
+          FLAbort('Trying to update unknown detector in Zoltan')
        end if
     end do
 
     ewrite(3,*) "Length of detector list AFTER being updated: ", detector_list%length
-    ewrite(3,*) "Length of detector_send_list AFTER update: ", detector_send_list%length
-    ewrite(3,*) "Finished updating of detectors in detector_list"
-
-    ewrite(3,*) "Preparing to broadcast detectors in detector_send_list"
-
-    allocate(ndets_being_sent(getnprocs()))
-
-    ! Find out how many detectors each process wants to send
-    call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), &
-         MPI_COMM_FEMTOOLS, ierr)
-    assert(ierr == MPI_SUCCESS)
-    
-    ewrite(3,*) "Gathered the number of detectors each process wants to broadcast"
-    ewrite(3,*) "             ndets_being_sent: ", ndets_being_sent
-
-    ! Allocate memory for all the detectors you're going to send
-    allocate(send_buff(send_count,zoltan_global_ndata_per_det))
-
-    detector => detector_send_list%firstnode
-    do i=1,send_count
-       ! Pack the detector information
-       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), &
-            zoltan_global_ndims)
-
-       ! delete also advances detector
-       call delete(detector_send_list, detector)
-    end do
-
-    ewrite(3,*) "Packed the ", send_count, " detectors to be sent"
-    
-    do i=1,getnprocs()
-
-       if (ndets_being_sent(i) > 0) then
-
-          if (i == getprocno()) then
-             ! Broadcast the detectors you want to send
-             ewrite(3,*) "Broadcasting the ", send_count, " detectors in detector_send_list"
-             call mpi_bcast(send_buff,send_count*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
-             assert(ierr == MPI_SUCCESS)
-          else
-             ! Allocate memory to receive into
-             allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det))
-             
-             ! Receive broadcast
-             ewrite(3,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
-             call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
-             assert(ierr == MPI_SUCCESS)
-
-             ! Unpack detector if you own it
-             do j=1,ndets_being_sent(i)
-                old_universal_element_number = recv_buff(j,1)
-
-                if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then                   
-
-                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-
-                   if(ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos)) == getprocno()) then
-
-                      ewrite(3,*) "Unpacking ", recv_buff(j,zoltan_global_ndims+2), "(ID) detector from process ", i
-
-                      shape=>ele_shape(zoltan_global_new_positions,1)                     
-                      call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-
-                      call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), &
-                           zoltan_global_ndims)
-                      detector%element = new_local_element_number
-
-                      call update_detector(detector, zoltan_global_new_positions)
-
-                      ewrite(3,*) "Unpacked detector%id_number: ", detector%id_number
-                      ewrite(3,*) "Unpacked detector%position: ", detector%position
-                      ewrite(3,*) "Unpacked detector given new_local_element_number: ", detector%element
-
-                      call insert(detector_list, detector)
-                      detector => null()
-
-                   end if
-                end if
-             end do
-
-             deallocate(recv_buff)
-
-          end if
-       end if
-    end do
-
-    deallocate(send_buff)             
-
-    ewrite(3,*) "Length of detector_send_list AFTER moving of detectors: ", detector_send_list%length
-    ewrite(3,*) "Length of detector list AFTER being updated and moving detectors: ", detector_list%length
-
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element

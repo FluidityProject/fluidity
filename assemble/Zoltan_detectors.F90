@@ -6,7 +6,7 @@ module zoltan_detectors
 #ifdef HAVE_ZOLTAN
 
   use zoltan, only: zoltan_int
-  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_uen_to_old_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions, zoltan_global_new_positions_mesh_nhalos
+  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_uen_to_old_local_numbering, zoltan_global_new_positions, zoltan_global_new_positions_mesh_nhalos
   use data_structures, only: has_key, fetch
   use halos_derivation, only: ele_owner
 
@@ -18,22 +18,10 @@ module zoltan_detectors
 
   implicit none
 
-  public :: update_detector, prepare_detectors_for_packing
+  public :: prepare_detectors_for_packing
   private
 
   contains
-
-  subroutine update_detector(detector, positions)
-    ! Updates the local, inital_owner and local_coords for a
-    ! detector based off other information from the detector
-    ! and the vector field of positions
-    type(detector_type), pointer, intent(inout) :: detector
-    type(vector_field), intent(in) :: positions
-
-    detector%local_coords=local_coords(positions,detector%element,detector%position)
-    detector%name=default_stat%detector_list%detector_names(detector%id_number)    
-    
-  end subroutine update_detector
 
   subroutine prepare_detectors_for_packing(ndets_in_ele, detector_list, to_pack_detectors_list, num_ids, global_ids)
     ! Plan is to first count how many detectors are in each element we're sending
