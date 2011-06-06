@@ -910,7 +910,8 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
    ../include/superconvergence.mod ../include/futils.mod \
    ../include/polynomials.mod ../include/element_numbering.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/elements.mod ../include/ieee_arithmetic.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
 ../include/shape_functions_test.mod: Shape_Functions_Test.o
 	@true
