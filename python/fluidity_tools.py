@@ -299,7 +299,8 @@ class stat_creator(dict):
       exit()
     output = ""
     for stat in self.header:
-      output = output + "  " + str(self[stat]) + "\n"
+      output = output + "  " + str(self[stat])
+    output = output + "\n"  
     try:
           f.write(output)
     finally:
