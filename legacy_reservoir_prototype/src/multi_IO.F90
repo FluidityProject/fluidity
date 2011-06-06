@@ -2733,9 +2733,9 @@ contains
            cv_snloc, u_snloc, p_snloc, stotel, &
            cv_nonods, u_nonods, x_nonods, xu_nonods, &
            u_ele_type, cv_ele_type, &
-           x, xu,  &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln
+           x, xu !,  &
+           !u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           !mat_ndgln, u_sndgln, cv_sndgln, p_sndgln
 
     Conditional_NDIM: if( ndim == 1 ) then ! This needs to be updated for 2-3D
 
@@ -2744,8 +2744,6 @@ contains
        cv_sndgln( 2 ) = cv_nonods
        p_sndgln( 1 ) = 1
        p_sndgln( 2 ) = cv_nonods
-       
-       ewrite(3,*) 'u_sndgln: ', u_sndgln
 
        if( cv_ele_type == 2 ) then
           u_nloc2 = u_nloc / cv_nloc
@@ -2824,6 +2822,27 @@ contains
        end do Loop_Elements
 
     end if Conditional_NDIM
+
+    ewrite(3,*)'size of u_ndgln:',size(u_ndgln)
+    ewrite(3,*)'u_ndgln:', u_ndgln( 1: totele * u_nloc )
+    ewrite(3,*)'size of cv_ndgln:',size(cv_ndgln)
+    ewrite(3,*)'cv_ndgln:', cv_ndgln( 1: totele * cv_nloc )
+    ewrite(3,*)'size of p_ndgln:',size(p_ndgln)
+    ewrite(3,*)'p_ndgln:', p_ndgln( 1: totele * p_nloc )
+    ewrite(3,*)'size of x_ndgln:',size(x_ndgln)
+    ewrite(3,*)'x_ndgln:', x_ndgln( 1: totele * cv_nloc )
+    ewrite(3,*)'size of xu_ndgln:',size(xu_ndgln)
+    ewrite(3,*)'xu_ndgln:', xu_ndgln( 1: totele * xu_nloc )
+    ewrite(3,*)'size of mat_ndgln:',size(mat_ndgln)
+    ewrite(3,*)'mat_ndgln:', mat_ndgln( 1: totele * mat_nloc )
+
+    ewrite(3,*)'size of u_sndgln:',size(u_sndgln)
+    ewrite(3,*)'u_sndgln:', u_sndgln( 1: stotel * u_snloc )
+    ewrite(3,*)'size of cv_sndgln:',size(cv_sndgln)
+    ewrite(3,*)'cv_sndgln:', cv_sndgln( 1: stotel * cv_snloc )
+    ewrite(3,*)'size of p_sndgln:',size(p_sndgln)
+    ewrite(3,*)'p_sndgln:', p_sndgln( 1: stotel * p_snloc )
+
 
     ewrite(3,*) 'Leaving allocating_global_nodes'
 
