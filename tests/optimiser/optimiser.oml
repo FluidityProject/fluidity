@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <optimiser_options>
   <name>
-    <string_value lines="1">optimiser </string_value>
+    <string_value lines="1">optimiser</string_value>
   </name>
   <model command_line="../../bin/shallow_water" option_file="dummy.swml"/>
   <functional name="functional1"/>
@@ -26,4 +26,7 @@
       </update_controls>
     </type>
   </control_io>
+  <debugging>
+    <check_gradient/>
+  </debugging>
 </optimiser_options>

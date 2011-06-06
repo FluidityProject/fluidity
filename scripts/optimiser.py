@@ -86,8 +86,7 @@ def optimisation_loop():
     return m
 
   # Retuns the functional value with the current controls
-  def J(m_serial, args):
-    m_shape = args
+  def J(m_serial, m_shape, write_stat=True):
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
@@ -97,13 +96,13 @@ def optimisation_loop():
     stat_file = simulation_name+'_adjoint_'+functional+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
     print "J = ", J
-    # Update the functional value in the optimisation stat file
-    stat_writer[(functional, 'value')] = J
+    if write_stat:
+      # Update the functional value in the optimisation stat file
+      stat_writer[(functional, 'value')] = J
     return J
 
   # Retuns the functional derivative with respect to the controls.
-  def dJdm(m_serial, args):
-    m_shape = args
+  def dJdm(m_serial, m_shape, write_stat=True):
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
@@ -132,7 +131,11 @@ def optimisation_loop():
 
   # This function gets called after each optimisation iteration. 
   # It is currently used to do write the statistics to the stat file.
-  def callback(m):
+  def callback(m_serial, m_shape):
+    if libspud.have_option("/debugging/check_gradient"):
+      grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
+      functional = libspud.get_option('/functional/name')
+      stat_writer[(functional + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
 
   # Initialise stat file
@@ -145,9 +148,9 @@ def optimisation_loop():
   [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-      res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = callback)
+    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   if algo == 'NCG':
-      res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = callback)
+    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
