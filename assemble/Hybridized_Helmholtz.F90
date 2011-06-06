@@ -48,7 +48,7 @@ module hybridized_helmholtz
     implicit none
 
 contains 
-  subroutine solve_hybridized_helmholtz(state,rhs)
+  subroutine solve_hybridized_helmholtz(state,rhs,compute_cartesian)
     ! Subroutine to solve hybridized helmholtz equation
     ! If rhs (scalar pressure field) is present, then solve:
     ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = 0
@@ -66,15 +66,21 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout), optional :: rhs
+    logical, intent(in), optional :: compute_cartesian
     !
-    type(vector_field), pointer :: X, U, down
+    type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda
     type(scalar_field) :: lambda_rhs
     type(csr_sparsity) :: lambda_sparsity
     type(csr_matrix) :: lambda_mat
     real :: D0, dt, g, theta
     integer :: ele
+    logical :: l_compute_cartesian
+
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
+
+    l_compute_cartesian = .false.
+    if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
@@ -125,6 +131,13 @@ contains
     call deallocate(lambda_mat)
     call deallocate(lambda_rhs)
 
+    if(l_compute_cartesian) then
+       U_cart => extract_vector_field(state, "Velocity")
+       do ele = 1, ele_count(D)
+          call compute_cartesian_ele(U_cart,U,X,ele)
+       end do
+    end if
+
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
   end subroutine solve_hybridized_helmholtz
@@ -144,8 +157,8 @@ contains
     type(csr_matrix), intent(inout), optional :: lambda_mat
     type(scalar_field), intent(inout), optional :: lambda_rhs, rhs, lambda
     !
-    real, dimension(ele_loc(U,ele)*2*ele_loc(D,ele),ele_loc(U,ele)*ele_loc(D,ele))&
-         &:: local_solver
+    real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
+         &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
     real, allocatable, dimension(:,:) :: continuity_mat, continuity_mat2
     real, allocatable, dimension(:,:) :: helmholtz_loc_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
@@ -282,8 +295,8 @@ contains
     type(vector_field), intent(inout) :: U,X,down
     type(scalar_field), intent(inout) :: D,f
     integer, intent(in) :: ele
-    real, dimension(ele_loc(U,ele)*2*ele_loc(D,ele),ele_loc(U,ele)&
-         &*ele_loc(D,ele))&
+    real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
+         &ele_loc(U,ele)*2+ele_loc(D,ele))&
          &, intent(inout) :: local_solver
     !
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
@@ -460,5 +473,51 @@ contains
     end if
 
   end function get_normal
+
+  subroutine compute_cartesian_ele(U_cart,U,X,ele)
+    implicit none
+    type(vector_field), intent(inout) :: U_cart, U, X
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+    real, dimension(ele_ngi(U,ele)) :: detJ,detwei
+    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
+    real, dimension(X%dim,ele_loc(U,ele)) :: u_rhs
+    real, dimension(mesh_dim(U), ele_ngi(U,ele)) :: local_u_gi
+    real, dimension(X%dim,ele_ngi(U,ele)) :: u_cart_gi
+    integer :: gi, dim1, dim2
+    type(element_type) :: u_shape
+    integer :: d_start, d_end
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    integer, dimension(:), pointer :: U_ele
+    integer :: mdim, uloc
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc+dim1
+    end do
+
+    U_ele => ele_nodes(U, ele)
+
+    u_shape=ele_shape(u, ele)
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         &detJ=detJ, detwei=detwei)
+
+    local_u_gi = ele_val_at_quad(U,ele)
+    do gi = 1, ele_ngi(U,ele)
+       u_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),local_u_gi(:,gi))
+    end do
+    u_rhs = shape_vector_rhs(u_shape,u_cart_gi,detwei)
+    l_u_mat = shape_shape(u_shape, u_shape, detwei)
+
+    do dim1 = 1, mdim
+       call solve(l_u_mat,u_rhs(dim1,:))
+    end do
+    
+    do dim1 = 1, mdim
+       call set(U_cart,dim1,u_ele,u_rhs(dim1,:))
+    end do
+  end subroutine compute_cartesian_ele
 
 end module hybridized_helmholtz

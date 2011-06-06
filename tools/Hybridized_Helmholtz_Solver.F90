@@ -74,7 +74,8 @@
 
     type(state_type), dimension(:), pointer :: state
     type(scalar_field), pointer :: rhs
-
+    type(vector_field), pointer :: u
+    type(vector_field) :: U_Local
     integer :: ierr,dump_no
     character(len = OPTION_PATH_LEN) :: simulation_name
 
@@ -100,7 +101,14 @@
     call print_current_memory_stats(0)
 #endif
     rhs=>extract_scalar_field(state(0), "LayerThicknessRHS")
-    call solve_hybridized_helmholtz(state(0),rhs)
+    U=>extract_vector_field(state(0), "Velocity")
+    call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
+    call zero(U_local)
+    call insert(state, U_local, "LocalVelocity")
+    call deallocate(U_local)
+    
+    call solve_hybridized_helmholtz(state(0),rhs=rhs,&
+         &compute_cartesian=.true.)
     dump_no = 0
     call write_state(dump_no,state)
 

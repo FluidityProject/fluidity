@@ -311,9 +311,9 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.F90
-	$(FC) -c $(FCFLAGS) Test_Trace_Space.o
+	$(FC) -c $(FCFLAGS) Test_Trace_Space.F90
 	$(LINKER) -o $(TEST_TRACE_SPACE) Test_Trace_Space.o -l$(FLUIDITY) $(LIBS)
 
 $(HYBRIDIZED_HELMHOLTZ_SOLVER): Hybridized_Helmholtz_Solver.F90
-	$(FC) -c $(FCFLAGS) Hybridized_Helmholtz_Solver.o
+	$(FC) -c $(FCFLAGS) Hybridized_Helmholtz_Solver.F90
 	$(LINKER) -o $(HYBRIDIZED_HELMHOLTZ_SOLVER) Hybridized_Helmholtz_Solver.o -l$(FLUIDITY) $(LIBS)
