@@ -12,7 +12,6 @@ module zoltan_detectors
 
   use detector_data_types
   use detector_tools
-  use diagnostic_variables, only: default_stat
 
   use fields
 

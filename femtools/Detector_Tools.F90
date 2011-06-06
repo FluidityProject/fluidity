@@ -32,6 +32,7 @@ module detector_tools
   use fldebug
   use detector_data_types
   use fields
+  use integer_hash_table_module
   
   implicit none
   
@@ -256,7 +257,7 @@ contains
 
   end subroutine delete_all_detectors
 
-  subroutine pack_detector(detector, buff, ndims, nstages)
+  subroutine pack_detector(detector,buff,ndims,nstages)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -289,12 +290,14 @@ contains
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector, buff, ndims, nstages)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer, intent(inout) :: detector
     real, dimension(:), intent(in) :: buff
     integer, intent(in) :: ndims
-    integer, intent(in), optional :: nstages
+    type(integer_hash_table), intent(in), optional :: global_to_local
+    type(vector_field), intent(in), optional :: coordinates
+    integer, intent(in), optional :: nstages    
 
     assert(size(buff)>=ndims+3)
 
@@ -309,6 +312,20 @@ contains
     detector%type = buff(ndims+3)
 
     assert(detector%element>0)
+
+    ! Reconstruct element number if global-to-local mapping is given
+    if (present(global_to_local)) then
+       assert(has_key(global_to_local, detector%element))
+       detector%element=fetch(global_to_local,detector%element)
+
+       ! Update local coordinates if coordinate field is given
+       if (present(coordinates)) then
+          if (.not. allocated(detector%local_coords)) then
+             allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
+          end if
+          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+       end if
+    end if
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then

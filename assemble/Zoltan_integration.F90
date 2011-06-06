@@ -1718,12 +1718,12 @@ module zoltan_integration
     original_zoltan_global_unpacked_detectors_list_length = zoltan_global_unpacked_detectors_list%length
 
     do j=1, original_zoltan_global_unpacked_detectors_list_length
-
        add_detector => detector
        detector => detector%next
 
+       ! update detector name and move to our local detector list
+       add_detector%name=default_stat%detector_list%detector_names(add_detector%id_number)
        call move(zoltan_global_unpacked_detectors_list, add_detector, default_stat%detector_list)
-
     end do
 
     ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"

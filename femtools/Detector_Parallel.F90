@@ -200,7 +200,7 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim, n_stages)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim, nstages=n_stages)
              else
                 call pack_detector(detector, detector_buffer(j,1:det_size), dim)
              end if
@@ -242,16 +242,10 @@ contains
           allocate(detector_received)
 
           if (have_update_vector) then
-             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim, n_stages)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield,nstages=n_stages)
           else
-             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield)
           end if
-
-          assert(detector_received%element>0)
-          detector_received%element=fetch(gens,detector_received%element)
- 
-          allocate(detector_received%local_coords(local_coord_count(shape)))
-          detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
 
           if (allocated(detector_list%detector_names)) then
              detector_received%name=detector_list%detector_names(detector_received%id_number)
