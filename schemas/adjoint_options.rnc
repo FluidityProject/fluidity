@@ -117,7 +117,9 @@ adjoint_options =
             }
          },
          ## Disables the adjoint run for this functional.
-         ## The functional values are still computed during the forward run. 
+         ## The functional values are still computed during the forward run.
+         ## The resulting stat file is equivalent to the one with this option disabled, 
+         ## but all adjoint related entries will be zeroed.
          element disable_adjoint_run {
            empty
          }? 
