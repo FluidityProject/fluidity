@@ -118,8 +118,8 @@ contains
 
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
-       call U_and_D_from_lambda_ele(D,f,U,X,down,ele, &
-            g,dt,theta,D0,lambda)
+       call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
+            &g,dt,theta,D0,lambda=lambda)
     end do
 
     call deallocate(lambda_mat)
@@ -156,7 +156,7 @@ contains
     real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: rhs_loc
     integer :: face2,ni2
     logical :: assembly, have_rhs
-    integer :: d_start, d_end, dim1, dim2, mdim, uloc,dloc
+    integer :: d_start, d_end, dim1, dim2, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
 
     mdim = mesh_dim(U)
@@ -180,6 +180,7 @@ contains
        if(.not.present(lambda)) then
           FLAbort('Need lambda for reconstruction')
        end if
+       lloc = ele_loc(lambda,ele)
     end if
 
     d_start = uloc*2 + 1
@@ -194,16 +195,9 @@ contains
 
     !get list of neighbours
     neigh => ele_neigh(D,ele)
-    !get size of continuity_mat
-    lambda_ele_loc = 0
-    do ni = 1, size(neigh)
-       ele_2 = neigh(ni)
-       face=ele_face(U, ele, ele_2)
-       lambda_ele_loc = lambda_ele_loc + face_loc(lambda_rhs,face)
-    end do
 
     !allocate continuity_mat
-    allocate(continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lambda_ele_loc))
+    allocate(continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
     continuity_mat = 0.
     !calculate continuity_mat
     lambda_loc_count=0
@@ -225,27 +219,28 @@ contains
     end do
 
     !compute continuity_mat2 = inverse(local_solver)*continuity_mat
-    allocate(continuity_mat2(ele_loc(U,ele)*2+ele_loc(D,ele),lambda_ele_loc))
+    allocate(continuity_mat2(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
     continuity_mat2 = continuity_mat
     call solve(local_solver,continuity_mat)
 
     if(assembly) then
        !compute helmholtz_loc_mat
-       allocate(helmholtz_loc_mat(lambda_ele_loc,lambda_ele_loc))
+       allocate(helmholtz_loc_mat(lloc,lloc))
        helmholtz_loc_mat = matmul(transpose(continuity_mat),continuity_mat2)
        
        !construct lambda_rhs
-       ! ( M    C  L )(u)   (0)
+       ! ( M    C  -L)(u)   (0)
        ! ( -C^T N  0 )(h) = (j)
        ! ( L^T  0  0 )(l)   (0)
        ! 
        ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
-       ! (h) = (-C^T N)     (j) - (-C^T N)     (0)(l)
+       ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
        ! so
        !        (M    C)^{-1}(L)         (M    C)^{-1}(0)
        ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
-       allocate(lambda_rhs_loc(lambda_ele_loc))
+       allocate(lambda_rhs_loc(ele_loc(lambda,ele)))
        if(present(rhs)) then
+          rhs_loc = 0.
           rhs_loc(2*ele_loc(U,ele)+1:2*ele_loc(U,ele)+ele_loc(D,ele))&
                &= ele_val(rhs,ele)
           call solve(local_solver,rhs_loc)
@@ -262,20 +257,20 @@ contains
 
     else
        !Reconstruct U and D from lambda
-       lambda_loc_count=0
-       do ni = 1, size(neigh)
-          l_face_start = lambda_loc_count+1
-          l_face_end = lambda_loc_count+face_loc(lambda_rhs,face)
-          face=ele_face(U, ele, neigh(ni))
-          FLExit('blah')
-       end do
+       rhs_loc = 0.
+       if(present(rhs)) then
+          rhs_loc(2*ele_loc(U,ele)+1:2*ele_loc(U,ele)+ele_loc(D,ele))&
+               &= ele_val(rhs,ele)
+       else
+          FLExit('Haven''t coded a timestepping version yet.')             
+       end if
 
-       do ni = 1, size(neigh)
-          ele_2 = neigh(ni)
-          face=ele_face(U, ele, ele_2)
+       call solve(local_solver,rhs_loc)
+       
+       do dim1 = 1, mdim
+          call set(U,dim1,ele_nodes(u,ele),rhs_loc(u_start(dim1):u_end(dim1)))
        end do
-       FLExit('blah')
-       !rhs_loc = matmul(continuity_mat2,
+       call set(D,ele_nodes(d,ele),rhs_loc(d_start:d_end))
     end if
 
   end subroutine assemble_hybridized_helmholtz_ele
