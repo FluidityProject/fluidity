@@ -104,7 +104,8 @@ module zoltan_detectors
                 ewrite(3,*) "Detector ", detector_to_move%id_number, "(ID) removed from detector_list and added to to_pack_detectors_list."
 
                 detector_to_move => null()
-
+             else
+                detector => detector%next
              end if
           end do
           assert(detector_list%length == (original_detector_list_length - ndets_in_ele(i)))
