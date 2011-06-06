@@ -38,6 +38,12 @@ mesh_info =
                integer
             }?,
             element element_type {
+               ## Select the element type. "lagrangian" means the usual
+               ## Pn element type. "bubble" adds bubble functions that
+               ## vanish on the element boundaries, and
+               ## trace defines an element that is only defined on faces
+               ## and is undefined on the element interior (used for 
+               ## enforcing continuity by Lagrange multipliers).
               element string_value{
                  "lagrangian" | "bubble" | "trace"
               }

@@ -257,7 +257,7 @@ contains
           shape%n = ieee_value(0.0,ieee_quiet_nan)
           shape%dn = ieee_value(0.0,ieee_quiet_nan)
           if(present(quad_s)) then
-             FLExit('Shouldn''t be happening')
+             FLAbort('Shouldn''t be happening')
           end if
        else
        ! Loop over all the quadrature points.
