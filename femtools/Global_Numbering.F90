@@ -194,7 +194,6 @@ contains
        end do
     end do
     if(current_global_index /= mesh%nodes) then
-       ewrite(3,*) current_global_index, mesh%nodes
        FLAbort('bad global index count in make_global_numbering_trace')
     end if
     if(any(mesh%ndglno==0)) then

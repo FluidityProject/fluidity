@@ -295,8 +295,12 @@ contains
        
     case (ELEMENT_TRACE)
 
-       assert(vertices==3)
-       assert(dimension==2)
+       if(vertices /= 3) then
+          FLAbort('Trace elements only currently coded for triangles')
+       end if
+       if(dimension /= 2) then
+          FLAbort('Trace elements only currently coded for triangles')
+       end if
 
        ele_num=>tri_numbering_trace(degree)
 
@@ -2217,8 +2221,6 @@ contains
                    coords(i)=count_coords(i)/real(ele_num%degree)
                 end if
              end do
-             !ewrite(2,*) 'coords', n, coords
-             !coords=real(ele_num%number2count(:,n))/real(ele_num%degree)
           else
              ! Degree 0 elements have a single node in the centre of the
              ! element. 
