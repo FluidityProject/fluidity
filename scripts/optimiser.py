@@ -12,6 +12,8 @@ import time
 import pickle
 
 # Hack for libspud to be able to read an option from a second option file.
+# A better solution would be to fix libspud or use an alternative implementation like
+# https://github.com/gmarkall/manycore_form_compiler/blob/master/mcfc/optionfile.py
 def spud_get_option(filename, option_path):
   d = {}
   exec "import libspud" in d
