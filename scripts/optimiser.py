@@ -24,7 +24,8 @@ def spud_get_option(filename, option_path):
 
 # Executes the model specified in the optimiser option tree
 # The model stdout is printed to stdout.
-def run_model():
+def run_model(m):
+  update_model_controls(m)
   command_line = libspud.get_option('/model/command_line')
   option_file = libspud.get_option('/model/option_file')
   args = shlex.split(command_line)
@@ -68,16 +69,20 @@ def update_model_controls(m):
 def optimisation_loop():
   # Implement a memoization function to avoid duplicated functional (derivative) evaluations
   class MemoizeMutable:
-      def __init__(self, fn):
-          self.fn = fn
-          self.memo = {}
-      def __call__(self, *args, **kwds):
-          import cPickle
-          str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
-          if not self.memo.has_key(str): 
-              self.memo[str] = self.fn(*args, **kwds)
-
-          return self.memo[str]
+    def __init__(self, fn):
+      self.fn = fn
+      self.memo = {}
+    def __call__(self, *args, **kwds):
+      import cPickle
+      str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
+      if not self.memo.has_key(str): 
+        self.memo[str] = self.fn(*args, **kwds)
+      return self.memo[str]
+    # Insert a function value into the cache manually.
+    def __add__(self, value, *args, **kwds):
+      import cPickle
+      str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
+      self.memo[str] = value
    
  
   # This function takes in a dictionary m with numpy.array as entries. 
@@ -99,28 +104,47 @@ def optimisation_loop():
       m[k] = m_serial[current_index:v]
       current_index = v
     return m
-
-  # Retuns the functional value with the current controls
+  
+  # Returns the functional value with the current controls
   def J(m_serial, m_shape, write_stat=True):
+    J = mem_pure_J(m_serial, m_shape)
+    print "J = ", J 
+    if write_stat:
+      # Update the functional value in the optimisation stat file
+      functional = libspud.get_option('/functional/name')
+      stat_writer[(functional, 'value')] = J
+    return J
+
+  # A pure version of the computation of J 
+  def pure_J(m_serial, m_shape):
     m = unserialise(m_serial, m_shape)
-    update_model_controls(m)
-    run_model()
+    run_model(m)
     functional = libspud.get_option('/functional/name')
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
     stat_file = simulation_name+'_adjoint_'+functional+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
-    print "J = ", J
-    if write_stat:
-      # Update the functional value in the optimisation stat file
-      stat_writer[(functional, 'value')] = J
     return J
 
-  # Retuns the functional derivative with respect to the controls.
+  # Returns the functional derivative with respect to the controls.
   def dJdm(m_serial, m_shape, write_stat=True):
+    return mem_pure_dJdm(m_serial, m_shape)
+
+  # A pure version of the computation of J 
+  def pure_dJdm(m_serial, m_shape):
     m = unserialise(m_serial, m_shape)
-    update_model_controls(m)
-    run_model()
+    run_model(m)
+    # The dJdm we also run the forward model, and in particular we computed the 
+    # functional values. In order not to compute the functional values again when calling 
+    # J with, we manually add fill the memoize cache.
+    functional = libspud.get_option('/functional/name')
+    option_file = libspud.get_option('/model/option_file')
+    simulation_name = spud_get_option(option_file, "/simulation_name")
+    stat_file = simulation_name+'_adjoint_'+functional+".stat"
+    J = stat_parser(stat_file)[functional]["value"][-1]
+    # Add the functional value the memJ's cache
+    mem_pure_J.__add__(J, m_serial, m_shape)
+    # Now get the functional derivative information
     pkl_file = open('func_derivs.pkl', 'rb')
     djdm = pickle.load(pkl_file)
     # Check that the the controls in dJdm are consistent with the ones specified in m
@@ -162,10 +186,13 @@ def optimisation_loop():
   m = initialise_model_controls()
   [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
+  # Create the memoized version of the functional (derivative) evaluation functions
+  mem_pure_dJdm = MemoizeMutable(pure_dJdm)
+  mem_pure_J = MemoizeMutable(pure_J)
   if algo == 'BFGS':
-    res = scipy.optimize.fmin_bfgs(MemoizeMutable(J), m_serial, MemoizeMutable(dJdm), gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   if algo == 'NCG':
-    res = scipy.optimize.fmin_ncg(MemoizeMutable(J), m_serial, MemoizeMutable(dJdm), avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
