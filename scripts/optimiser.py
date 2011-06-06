@@ -63,8 +63,23 @@ def update_model_controls(m):
     print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
     exit()
 
+
 ################# Optimisation loop ###################
 def optimisation_loop():
+  # Implement a memoization function to avoid duplicated functional (derivative) evaluations
+  class MemoizeMutable:
+      def __init__(self, fn):
+          self.fn = fn
+          self.memo = {}
+      def __call__(self, *args, **kwds):
+          import cPickle
+          str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
+          if not self.memo.has_key(str): 
+              self.memo[str] = self.fn(*args, **kwds)
+
+          return self.memo[str]
+   
+ 
   # This function takes in a dictionary m with numpy.array as entries. 
   # From that it creates one serialised numpy.array with all the data.
   # In addition it creates m_shape, a dictionary which is used in unserialise.
@@ -148,9 +163,9 @@ def optimisation_loop():
   [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_bfgs(MemoizeMutable(J), m_serial, MemoizeMutable(dJdm), gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   if algo == 'NCG':
-    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_ncg(MemoizeMutable(J), m_serial, MemoizeMutable(dJdm), avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
