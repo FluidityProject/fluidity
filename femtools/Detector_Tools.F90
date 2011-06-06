@@ -271,8 +271,8 @@ contains
     assert(size(buff)>=ndims+3)
 
     ! Basic fields: ndims+3
-    buff(1) = detector%element
-    buff(2:ndims+1) = detector%position
+    buff(1:ndims) = detector%position
+    buff(ndims+1) = detector%element
     buff(ndims+2) = detector%id_number
     buff(ndims+3) = detector%type
 
@@ -306,8 +306,8 @@ contains
     end if
 
     ! Basic fields: ndims+3
-    detector%element = buff(1)
-    detector%position = reshape(buff(2:ndims+1),(/ndims/))
+    detector%position = reshape(buff(1:ndims),(/ndims/))
+    detector%element = buff(ndims+1)
     detector%id_number = buff(ndims+2)
     detector%type = buff(ndims+3)
 
