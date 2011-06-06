@@ -7,7 +7,8 @@ import shlex
 from subprocess import Popen, PIPE
 import scipy.optimize
 import string
-from fluidity_tools import stat_parser as stat
+from fluidity_tools import stat_parser 
+from fluidity_tools import stat_creator
 import time
 import pickle
 
@@ -94,8 +95,10 @@ def optimisation_loop():
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
     stat_file = simulation_name+'_adjoint_'+functional+".stat"
-    J = stat(stat_file)[functional]["value"][-1]
+    J = stat_parser(stat_file)[functional]["value"][-1]
     print "J = ", J
+    # Update the functional value in the optimisation stat file
+    stat_writer[(functional, 'value')] = J
     return J
 
   # Retuns the functional derivative with respect to the controls.
@@ -127,6 +130,13 @@ def optimisation_loop():
       djdm_serial = numpy.append(djdm_serial, djdm[k])
     return djdm_serial
 
+  # This function gets called after each optimisation iteration. 
+  # It is currently used to do write the statistics to the stat file.
+  def callback(m):
+    stat_writer.write()
+
+  # Initialise stat file
+  stat_writer=stat_creator(libspud.get_option('/name').strip() + '.stat')
   # Get the optimisation settings
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
   tol = libspud.get_option('/optimisation_options/tolerance')
@@ -135,9 +145,9 @@ def optimisation_loop():
   [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-      res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ))
+      res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = callback)
   if algo == 'NCG':
-      res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ))
+      res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = callback)
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
