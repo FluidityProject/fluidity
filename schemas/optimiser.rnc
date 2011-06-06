@@ -13,7 +13,8 @@ start =
          },
          model,
          optimisation_options,
-         control_io
+         control_io, 
+         debugging_options
       }
    )
 
@@ -105,3 +106,17 @@ control_io =
       }
    )
 
+debugging_options = 
+  (
+      ## Debugging options.
+      element debugging {
+         (
+            ## Check the functional gradient with respect to the parameters using finite differences. 
+            ## The l2 error of the result is saved in the stat file as [functional name]_gradient_error
+            element check_gradient {
+              empty
+            }?
+         ),
+         comment
+      }?
+  )

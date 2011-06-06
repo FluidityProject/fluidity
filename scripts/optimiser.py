@@ -7,7 +7,8 @@ import shlex
 from subprocess import Popen, PIPE
 import scipy.optimize
 import string
-from fluidity_tools import stat_parser as stat
+from fluidity_tools import stat_parser 
+from fluidity_tools import stat_creator
 import time
 import pickle
 
@@ -85,8 +86,7 @@ def optimisation_loop():
     return m
 
   # Retuns the functional value with the current controls
-  def J(m_serial, args):
-    m_shape = args
+  def J(m_serial, m_shape, write_stat=True):
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
@@ -94,13 +94,15 @@ def optimisation_loop():
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
     stat_file = simulation_name+'_adjoint_'+functional+".stat"
-    J = stat(stat_file)[functional]["value"][-1]
+    J = stat_parser(stat_file)[functional]["value"][-1]
     print "J = ", J
+    if write_stat:
+      # Update the functional value in the optimisation stat file
+      stat_writer[(functional, 'value')] = J
     return J
 
   # Retuns the functional derivative with respect to the controls.
-  def dJdm(m_serial, args):
-    m_shape = args
+  def dJdm(m_serial, m_shape, write_stat=True):
     m = unserialise(m_serial, m_shape)
     update_model_controls(m)
     run_model()
@@ -127,6 +129,17 @@ def optimisation_loop():
       djdm_serial = numpy.append(djdm_serial, djdm[k])
     return djdm_serial
 
+  # This function gets called after each optimisation iteration. 
+  # It is currently used to do write the statistics to the stat file.
+  def callback(m_serial, m_shape):
+    if libspud.have_option("/debugging/check_gradient"):
+      grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
+      functional = libspud.get_option('/functional/name')
+      stat_writer[(functional + "_gradient_error", "l2norm")] = grad_err
+    stat_writer.write()
+
+  # Initialise stat file
+  stat_writer=stat_creator(libspud.get_option('/name').strip() + '.stat')
   # Get the optimisation settings
   algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
   tol = libspud.get_option('/optimisation_options/tolerance')
@@ -135,9 +148,9 @@ def optimisation_loop():
   [m_serial, m_shape] = serialise(m)
   print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
-      res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ))
+    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   if algo == 'NCG':
-      res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ))
+    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()

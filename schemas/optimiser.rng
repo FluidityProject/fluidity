@@ -14,6 +14,7 @@ characters in the optimisation name should be avoided.</a:documentation>
       <ref name="model"/>
       <ref name="optimisation_options"/>
       <ref name="control_io"/>
+      <ref name="debugging_options"/>
     </element>
   </start>
   <define name="model">
@@ -117,5 +118,20 @@ surface or region IDs.</a:documentation>
       </choice>
       <ref name="comment"/>
     </element>
+  </define>
+  <define name="debugging_options">
+    <optional>
+      <element name="debugging">
+        <a:documentation>Debugging options.</a:documentation>
+        <optional>
+          <element name="check_gradient">
+            <a:documentation>Check the functional gradient with respect to the parameters using finite differences. 
+The l2 error of the result is saved in the stat file as [functional name]_gradient_error</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <ref name="comment"/>
+      </element>
+    </optional>
   </define>
 </grammar>
