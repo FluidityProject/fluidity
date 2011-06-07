@@ -73,11 +73,13 @@
     end interface
 
     type(state_type), dimension(:), pointer :: state
-    type(scalar_field), pointer :: rhs
-    type(vector_field), pointer :: u
+    type(scalar_field), pointer :: rhs, dgified_D, D, dgified_D_rhs
+    type(scalar_field) :: f
+    type(vector_field), pointer :: u,X
     type(vector_field) :: U_Local
-    integer :: ierr,dump_no
+    integer :: ierr,dump_no,stat
     character(len = OPTION_PATH_LEN) :: simulation_name
+    character(len=PYTHON_FUNC_LEN) :: coriolis
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -100,16 +102,39 @@
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
-    rhs=>extract_scalar_field(state(0), "LayerThicknessRHS")
-    U=>extract_vector_field(state(0), "Velocity")
+    rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
+    U=>extract_vector_field(state(1), "Velocity")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
     call zero(U_local)
     call insert(state, U_local, "LocalVelocity")
     call deallocate(U_local)
-    
-    call solve_hybridized_helmholtz(state(0),rhs=rhs,&
-         &compute_cartesian=.true.)
+
+    X=>extract_vector_field(state(1), "Coordinate")
+     call allocate(f, X%mesh, "Coriolis")
+     call get_option("/physical_parameters/coriolis", coriolis, stat)
+    if(stat==0) then
+       call set_from_python_function(f, coriolis, X, time=0.0)
+    else
+       call zero(f)
+    end if
+    call insert(state, f, "Coriolis")
+    call deallocate(f)
     dump_no = 0
+    call write_state(dump_no,state)
+    call solve_hybridized_helmholtz(state(1),rhs=rhs,&
+         &compute_cartesian=.true.,check_continuity=.true.)
+
+    dgified_D => extract_scalar_field(state(1), "LayerThicknessP1dg",stat)
+    if(stat==0) then
+       D => extract_scalar_field(state(1), "LayerThickness")
+       call remap_field(D,dgified_D)
+    end if
+    dgified_D_rhs => extract_scalar_field(state(1), &
+         &"LayerThicknessRHSP1dg",stat)
+    if(stat==0) then
+       call remap_field(rhs,dgified_D_rhs)
+    end if
+
     call write_state(dump_no,state)
 
 #ifdef HAVE_MPI
