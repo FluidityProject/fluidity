@@ -265,11 +265,16 @@ contains
     do ni = 1, size(neigh)
        face=ele_face(U, ele, neigh(ni))
        allocate(continuity_face_mat(mdim,face_loc(U,face),lloc))
+       continuity_face_mat = 0.
        call get_continuity_face_mat(continuity_face_mat,face,&
             U,l_lambda)
        do dim1 = 1, mdim
           continuity_mat((dim1-1)*ele_loc(U,face)+face_local_nodes(U,face),&
-               &face_local_nodes(l_lambda,face))=continuity_face_mat(dim1,:,:)
+               &face_local_nodes(l_lambda,face))=&
+               &continuity_mat((dim1-1)*ele_loc(U,face)&
+               &+face_local_nodes(U,face),&
+               &face_local_nodes(l_lambda,face))+&
+               continuity_face_mat(dim1,:,:)
        end do
        deallocate(continuity_face_mat)
     end do
@@ -402,23 +407,21 @@ contains
        u_start(dim1) = uloc*(dim1-1)+1
        u_end(dim1) = uloc*dim1
     end do
-    !pressure mass matrix
+    !pressure mass matrix (done in global coordinates)
     local_solver(d_start:d_end,d_start:d_end)=&
          &shape_shape(d_shape,d_shape,detwei)
-    !divergence matrix
+    !divergence matrix (done in local coordinates)
     l_div_mat = dshape_shape(u_shape%dn,d_shape,&
          &D_shape%quadrature%weight)
     do dim1 = 1, mdim
        !pressure gradient term
-       !real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) ::&
-       !     & l_div_mat
        local_solver(u_start(dim1):u_end(dim1),d_start:d_end)=&
             & -g*dt*theta*l_div_mat(mdim,:,:)
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
             & d0*dt*theta*transpose(l_div_mat(mdim,:,:))
     end do
-    !velocity mass matrix and Coriolis matrix
+    !velocity mass matrix and Coriolis matrix (done in local coordinates)
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, Metric+dt*theta*Metricf)
     do dim1 = 1, mdim
@@ -472,7 +475,7 @@ contains
     lambda_face_shape=>face_shape(lambda, face)
 
     !Get normal in local coordinates
-    n1=get_normal(U,local_face_number(U%mesh,face))
+    n1=get_local_normal(U,local_face_number(U%mesh,face))
 
     !Integral is taken on one of the edges of the local 2D element
     !This edge must be transformed to the local 1D element
@@ -489,7 +492,7 @@ contains
 
   end subroutine get_continuity_face_mat
 
-  function get_normal(U,face) result(norm)
+  function get_local_normal(U,face) result(norm)
     !Function returns normal to face on local 2D element
     implicit none
     type(vector_field), intent(in) :: U
@@ -517,7 +520,7 @@ contains
        end if
     end if
 
-  end function get_normal
+  end function get_local_normal
 
   subroutine compute_cartesian_ele(U_cart,U,X,ele)
     implicit none
@@ -601,7 +604,6 @@ contains
     !Get normals
     call transform_facet_to_physical(X, face, &
          &                          normal=n1)
-    ewrite(1,*) 'normal',n1
     if(face2>0) then
        call transform_facet_to_physical(X, face2, &
             &                          normal=n2)
@@ -630,6 +632,7 @@ contains
     real, dimension(ele_loc(lambda_nc,ele)) :: nc_rhs
     type(element_type), pointer :: lambda_nc_shape
     integer, dimension(:), pointer :: neigh
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(lambda,ele)) :: detwei
     integer :: ni,ele2,face
     real, dimension(ele_loc(lambda_nc,ele),ele_loc(lambda_nc,ele)) :: &
@@ -643,7 +646,8 @@ contains
        face = ele_face(X,ele,ele2)
        call get_nc_rhs_face(nc_rhs,lambda,lambda_nc,X,face)
     end do
-    call transform_to_physical(X, ele, detwei=detwei)
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
     l_mass_mat = shape_shape(lambda_nc_shape,lambda_nc_shape,detwei)
 
     call solve(l_mass_mat,nc_rhs)
@@ -663,11 +667,8 @@ contains
 
     lambda_nc_face_shape => face_shape(lambda_nc,face)
     call transform_facet_to_physical(X,face,detwei_f=detwei)
-    ewrite(1,*) 'val_at_quad', face_val_at_quad(lambda,face)
-    ewrite(1,*) 'detwei', detwei
     nc_rhs(face_local_nodes(lambda_nc,face)) = &
          &nc_rhs(face_local_nodes(lambda_nc,face)) &
          &+ shape_rhs(lambda_nc_face_shape,face_val_at_quad(lambda,face)*detwei)
-    ewrite(1,*) 'nc_rhs',nc_rhs(face_local_nodes(lambda_nc,face))
   end subroutine get_nc_rhs_face
 end module hybridized_helmholtz
