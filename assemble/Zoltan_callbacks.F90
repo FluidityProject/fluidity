@@ -943,6 +943,8 @@ contains
     character (len = OPTION_PATH_LEN) :: filename
     
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
+
+    allocate(zoltan_global_to_pack_detectors_list(num_ids))
     
     ! if there are some detectors on this process
     if (default_stat%detector_list%length .GT. 0) then
@@ -1020,10 +1022,6 @@ contains
     ewrite(1,*) "In zoltan_cb_pack_fields"
     
     ewrite(3,*) "Length of detector list BEFORE packing fields: ", default_stat%detector_list%length
-    
-    if(zoltan_global_to_pack_detectors_list%length /= 0) then
-       detector => zoltan_global_to_pack_detectors_list%firstnode
-    end if
 
     do i=1,num_ids
        
@@ -1066,6 +1064,10 @@ contains
        rbuf(rhead) = zoltan_global_ndets_in_ele(i)
        rhead = rhead + 1
 
+       if(zoltan_global_to_pack_detectors_list(i)%length /= 0) then
+          detector => zoltan_global_to_pack_detectors_list(i)%firstnode
+       end if
+
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
           
@@ -1081,7 +1083,7 @@ contains
           detector => detector%next
           
           ! delete the detector we just packed from the to_pack list
-          call delete(zoltan_global_to_pack_detectors_list, detector_to_delete)
+          call delete(zoltan_global_to_pack_detectors_list(i), detector_to_delete)
 
           rhead = rhead + zoltan_global_ndata_per_det
        end do
@@ -1099,10 +1101,12 @@ contains
        buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
        
        deallocate(rbuf)
+
+       assert(zoltan_global_to_pack_detectors_list(i)%length == 0)
        
     end do
-    
-    assert(zoltan_global_to_pack_detectors_list%length == 0)
+
+    deallocate(zoltan_global_to_pack_detectors_list)
 
     ewrite(3,*) "Length of detector list AFTER packing fields: ", default_stat%detector_list%length
     

@@ -95,7 +95,7 @@ module zoltan_global_variables
   type(state_type), save, dimension(:), allocatable :: zoltan_global_source_states, zoltan_global_target_states
   integer, save, dimension(:), allocatable :: zoltan_global_ndets_in_ele  
   integer, save :: zoltan_global_ndata_per_det
-  type(detector_linked_list), target, save :: zoltan_global_to_pack_detectors_list
+  type(detector_linked_list), dimension(:), allocatable, target, save :: zoltan_global_to_pack_detectors_list
 
   ! Needed for zoltan_cb_pack_fields
   integer, save :: zoltan_global_ndims
