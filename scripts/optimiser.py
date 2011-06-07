@@ -40,29 +40,37 @@ def run_model(m):
   print out
 
 def initialise_model_controls():
-  update_type = libspud.get_option('/control_io/type[0]/name')
-  # With the custom type, the user specifies python function to initialise the controls. 
-  if update_type == 'custom':
-    get_initial_code = libspud.get_option('/control_io/type::custom/get_initial_controls')
-    d = {}
-    exec get_initial_code in d
-    m = d['get_initial_controls']()
-  else:
-    print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
-    exit()
+  nb_controls = libspud.option_count("/control_io/control")
+  m = {}
+  for i in range(nb_controls):
+    cname = libspud.get_option('/control_io/control['+str(i)+']/name')
+    ctype = libspud.get_option('/control_io/control['+str(i)+']/type/name')
+    # With the custom type, the user specifies python function to initialise the controls. 
+    if ctype == 'custom':
+      get_initial_code = libspud.get_option('/control_io/control['+str(i)+']/type::custom/get_initial_controls')
+      d = {}
+      exec get_initial_code in d
+      m[cname] = d['get_initial_controls']()
+    else:
+      print "Control type ", ctype, " not implemented yet."
+      exit()
+  print m
   return m
 
 def update_model_controls(m):
-  update_type = libspud.get_option('/control_io/type[0]/name')
-  # With the custom type, the user specifies a python function to upadate the controls. 
-  if update_type == 'custom':
-    update_code = libspud.get_option('/control_io/type::custom/update_controls')
-    d = {}
-    exec update_code in d
-    d['update_controls'](m)
-  else:
-    print "Unknown type ", libspud.get_option('/control_io/type[0]/name'), " in /control_io/type"
-    exit()
+  nb_controls = libspud.option_count("/control_io/control")
+  for i in range(nb_controls):
+    cname = libspud.get_option('/control_io/control['+str(i)+']/name')
+    ctype = libspud.get_option('/control_io/control['+str(i)+']/type/name')
+    # With the custom type, the user specifies a python function to upadate the controls. 
+    if ctype == 'custom':
+      update_code = libspud.get_option('/control_io/control['+str(i)+']/type::custom/update_controls')
+      d = {}
+      exec update_code in d
+      d['update_controls'](m[cname])
+    else:
+      print "Unknown control type ", ctype, "."
+      exit()
 
 
 ################# Optimisation loop ###################

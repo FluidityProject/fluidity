@@ -71,39 +71,37 @@ control_io =
    (
       ## Read mesh from file.
       element control_io {
-         (
-            ## Triangle mesh format.
-            ##
-            ## Enter the base name without the .edge .ele, .face or
-            ## .node extensions, and without process numbers.
-            element type {
-              attribute name { "custom" },
-              ## Python function which takes as input a dictionary of the new model parameters and
-              ## updates the corresponding model schema file.
-              element get_initial_controls {
-                 python_code
-              },
-              ## Python function which takes as input a dictionary of the new model parameters and
-              ## updates the corresponding model schema file.
-              element update_controls {
-                 python_code
-              },
-              comment
-            }|
-            ## Read the mesh from a vtu. Note that the mesh will have no 
-            ## surface or region IDs.
-            element type {
-              attribute name { "initial_condition" },
-              comment
-            }|
-            ## GMSH mesh format
-            element type {
-               attribute name { "boundary_condition" },
-               comment
-            }
-         ),
-         comment
-      }
+            element control {
+                attribute name { xsd:string },
+                  (
+                    element type {
+                      ## The custom control parameter is the most flexible one since it allows 
+                      ## to code custom python functions for handling the controls.
+                      attribute name { "custom" },
+                      ## Python function which expects a numpy.array as return value of the control parameter dimension.
+                      element get_initial_controls {
+                         python_code
+                      },
+                      ## Python function which takes as input a numpy array containing the new model parameters and
+                      ## updates the corresponding model configuration.
+                      element update_controls {
+                         python_code
+                      },
+                      comment
+                    }|
+                    ## Initial condition 
+                    element type {
+                      attribute name { "initial_condition" },
+                      comment
+                    }|
+                    ## Boundary condition 
+                    element type {
+                       attribute name { "boundary_condition" },
+                       comment
+                    }
+                )
+           }+
+       }
    )
 
 debugging_options = 

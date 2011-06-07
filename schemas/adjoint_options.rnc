@@ -124,6 +124,21 @@ adjoint_options =
            empty
          }? 
       }+,
+      element control {
+          attribute name { xsd:string },
+            (
+              ## Initial condition 
+              element type {
+                attribute name { "initial_condition" },
+                comment
+              }|
+              ## Boundary condition 
+              element type {
+                 attribute name { "boundary_condition" },
+                 comment
+              }
+          )
+      }*,
       ## Debugging options for adjoint model development
       element debug {
          ## Rerun the forward equation using libadjoint. 

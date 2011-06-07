@@ -134,13 +134,38 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
           </element>
           <optional>
             <element name="disable_adjoint_run">
-              <a:documentation>Disables the adjoint run.
-The functional values are still computed during the forward run. </a:documentation>
+              <a:documentation>Disables the adjoint run for this functional.
+The functional values are still computed during the forward run.
+The resulting stat file is equivalent to the one with this option disabled, 
+but all adjoint related entries will be zeroed.</a:documentation>
               <empty/>
             </element>
           </optional>
         </element>
       </oneOrMore>
+      <zeroOrMore>
+        <element name="control">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <choice>
+            <element name="type">
+              <a:documentation>Initial condition </a:documentation>
+              <attribute name="name">
+                <value>initial_condition</value>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+            <element name="type">
+              <a:documentation>Boundary condition </a:documentation>
+              <attribute name="name">
+                <value>boundary_condition</value>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+          </choice>
+        </element>
+      </zeroOrMore>
       <optional>
         <element name="debug">
           <a:documentation>Debugging options for adjoint model development</a:documentation>

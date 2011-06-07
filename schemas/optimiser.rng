@@ -79,44 +79,46 @@ configuration template</a:documentation>
   <define name="control_io">
     <element name="control_io">
       <a:documentation>Read mesh from file.</a:documentation>
-      <choice>
-        <element name="type">
-          <a:documentation>Triangle mesh format.
-
-Enter the base name without the .edge .ele, .face or
-.node extensions, and without process numbers.</a:documentation>
+      <oneOrMore>
+        <element name="control">
           <attribute name="name">
-            <value>custom</value>
+            <data type="string"/>
           </attribute>
-          <element name="get_initial_controls">
-            <a:documentation>Python function which takes as input a dictionary of the new model parameters and
-updates the corresponding model schema file.</a:documentation>
-            <ref name="python_code"/>
-          </element>
-          <element name="update_controls">
-            <a:documentation>Python function which takes as input a dictionary of the new model parameters and
-updates the corresponding model schema file.</a:documentation>
-            <ref name="python_code"/>
-          </element>
-          <ref name="comment"/>
+          <choice>
+            <element name="type">
+              <attribute name="name">
+                <a:documentation>The custom control parameter is the most flexible one since it allows 
+to code custom python functions for handling the controls.</a:documentation>
+                <value>custom</value>
+              </attribute>
+              <element name="get_initial_controls">
+                <a:documentation>Python function which expects a numpy.array as return value of the control parameter dimension.</a:documentation>
+                <ref name="python_code"/>
+              </element>
+              <element name="update_controls">
+                <a:documentation>Python function which takes as input a numpy array containing the new model parameters and
+updates the corresponding model configuration.</a:documentation>
+                <ref name="python_code"/>
+              </element>
+              <ref name="comment"/>
+            </element>
+            <element name="type">
+              <a:documentation>Initial condition </a:documentation>
+              <attribute name="name">
+                <value>initial_condition</value>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+            <element name="type">
+              <a:documentation>Boundary condition </a:documentation>
+              <attribute name="name">
+                <value>boundary_condition</value>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+          </choice>
         </element>
-        <element name="type">
-          <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
-surface or region IDs.</a:documentation>
-          <attribute name="name">
-            <value>initial_condition</value>
-          </attribute>
-          <ref name="comment"/>
-        </element>
-        <element name="type">
-          <a:documentation>GMSH mesh format</a:documentation>
-          <attribute name="name">
-            <value>boundary_condition</value>
-          </attribute>
-          <ref name="comment"/>
-        </element>
-      </choice>
-      <ref name="comment"/>
+      </oneOrMore>
     </element>
   </define>
   <define name="debugging_options">
