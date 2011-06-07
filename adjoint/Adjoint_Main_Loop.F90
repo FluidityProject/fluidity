@@ -53,7 +53,6 @@ module adjoint_main_loop
     implicit none
 
     private
-    public :: adjoint_main_loop_register_diagnostic
 #ifdef HAVE_ADJOINT
     public :: compute_adjoint
 #endif
@@ -350,22 +349,5 @@ module adjoint_main_loop
       end subroutine adjoint_cleanup
     end subroutine compute_adjoint
 #endif
-
-    subroutine adjoint_main_loop_register_diagnostic
-      integer :: functional, no_functionals
-      character(len=OPTION_PATH_LEN) :: functional_name
-
-      no_functionals = option_count("/adjoint/functional")
-      
-      do functional=0,no_functionals-1
-        ! Register a diagnostic for each functional 
-        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
-          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
-          call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
-          call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
-        end if
-      end do
-
-       end subroutine adjoint_main_loop_register_diagnostic
 
 end module adjoint_main_loop

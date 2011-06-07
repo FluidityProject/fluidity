@@ -139,12 +139,6 @@ module mangle_options_tree
       deallocate(fields_to_delete)
     end do
 
-    ! We delete this because if it exists in the forward run,
-    ! write_diagnostics wants to print it out in the stat file.
-    do functional=0,option_count("/adjoint/functional")-1
-      call delete_option("/adjoint/functional[" // int2str(functional) // "]/functional_value", stat=stat)
-    end do
-
   end subroutine mangle_options_tree_forward
 
   subroutine mangle_options_tree_adjoint
