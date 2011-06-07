@@ -53,8 +53,9 @@ module forward_main_loop
     implicit none
 
     private
+    public :: forward_main_loop_register_diagnostic
 #ifdef HAVE_ADJOINT
-    public :: compute_forward
+    public :: compute_forward, calculate_functional_values, register_functional_callbacks
 #endif
 
 #ifdef HAVE_ADJOINT
@@ -264,6 +265,11 @@ module forward_main_loop
         call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+        !print*, "Timestep", timestep
+        !print *, "current_time", current_time
+        !print *, "start_time", start_time
+        !print *, "end_time", end_time
+        !call calculate_functional_values(timestep)
         call write_diagnostics(state, current_time, dt, equation+1)
 
         if (do_write_state(current_time, timestep)) then
@@ -286,5 +292,68 @@ module forward_main_loop
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)
     end subroutine compute_forward
+
+    subroutine register_functional_callbacks()                                                                                                                                                                 
+      integer :: no_functionals, functional
+      character(len=ADJ_NAME_LEN) :: functional_name
+      integer :: ierr
+
+      no_functionals = option_count("/adjoint/functional")
+      do functional=0,no_functionals-1
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          ! Register the callback to compute J
+          ierr = adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_evaluate_functional))
+          call adj_chkierr(ierr)
+        end if
+      end do
+    end subroutine register_functional_callbacks
+
+    subroutine calculate_functional_values(timestep)
+      integer, intent(in) :: timestep
+      integer :: functional, no_functionals
+      character(len=OPTION_PATH_LEN) :: functional_name
+      real, dimension(:), pointer :: fn_value
+      real :: J
+      integer :: ierr
+
+      no_functionals = option_count("/adjoint/functional")
+      do functional=0,no_functionals-1
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          ierr = adj_evaluate_functional(adjointer, timestep, functional_name, J)
+          call adj_chkierr(ierr)
+          ! So we've computed the component of the functional associated with this timestep.
+          ! We also want to sum them all up ...
+          call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/J/))
+          fn_value => get_diagnostic(name=trim(functional_name), statistic="value")
+          J = J + fn_value(1)
+          call set_diagnostic(name=trim(functional_name), statistic="value", value=(/J/))
+        end if
+      end do
+    end subroutine calculate_functional_values
+  
 #endif
+
+    ! Register a diagnostic variable for each functional.
+    subroutine forward_main_loop_register_diagnostic
+      integer :: functional, no_functionals
+      character(len=OPTION_PATH_LEN) :: functional_name
+
+#ifdef HAVE_ADJOINT
+      no_functionals = option_count("/adjoint/functional")
+      
+      do functional=0,no_functionals-1
+        ! Register a diagnostic for each functional 
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
+          call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
+          ! The functional value will be accumulated, so initialise it with zero.
+          call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
+        end if
+      end do
+#endif
+   end subroutine forward_main_loop_register_diagnostic
+   
 end module forward_main_loop

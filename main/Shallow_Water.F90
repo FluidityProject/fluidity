@@ -132,7 +132,6 @@
     call adj_register_femtools_data_callbacks(adjointer)
     ! Register the operator callbacks
     call register_sw_operator_callbacks(adjointer)
-
 #endif
 
 #ifdef HAVE_MPI
@@ -154,6 +153,7 @@
       FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
     endif
 #else
+    call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
       ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
@@ -226,8 +226,11 @@
        if (do_write_state(current_time, timestep)) then
           call output_state(state)
        end if
-
-       call write_diagnostics(state,current_time,dt, timestep)
+  
+#ifdef HAVE_ADJOINT
+       call calculate_functional_values(timestep-1)
+#endif
+       call write_diagnostics(state,current_time, dt, timestep)
 
     end do timestep_loop
 
@@ -236,6 +239,9 @@
 
     ! One last dump
     call output_state(state)
+#ifdef HAVE_ADJOINT
+    call calculate_functional_values(timestep-1)
+#endif
     call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(h_mass_mat)

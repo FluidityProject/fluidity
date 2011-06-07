@@ -122,7 +122,7 @@ def optimisation_loop():
     functional = libspud.get_option('/functional/name')
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
-    stat_file = simulation_name+'_adjoint_'+functional+".stat"
+    stat_file = simulation_name+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
     return J
 
@@ -140,7 +140,7 @@ def optimisation_loop():
     functional = libspud.get_option('/functional/name')
     option_file = libspud.get_option('/model/option_file')
     simulation_name = spud_get_option(option_file, "/simulation_name")
-    stat_file = simulation_name+'_adjoint_'+functional+".stat"
+    stat_file = simulation_name+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
     # Add the functional value the memJ's cache
     mem_pure_J.__add__(J, m_serial, m_shape)
