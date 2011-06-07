@@ -113,6 +113,9 @@ module adjoint_main_loop
       allocate(functional_stats(no_functionals))
 
       do functional=0,no_functionals-1
+         if (have_option("/adjoint/functional::functional1/disable_adjoint_run")) then
+          cycle
+        end if 
         default_stat = functional_stats(functional + 1)
         call initialise_walltime
         call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
@@ -145,140 +148,141 @@ module adjoint_main_loop
 
         call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         do functional=0,no_functionals-1
+          ! Only solve the adjoint system if desired by the user. 
+          if (have_option("/adjoint/functional::functional1/disable_adjoint_run")) then
+           cycle
+         end if 
           ! Set up things for this particular functional here
           ! e.g. .stat file, change names for vtus, etc.
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
           default_stat = functional_stats(functional + 1)
 
-          ! Only solve the adjoint system if desired by the user. Otherwise only the functional evaluation is done.
-          if (.not. have_option("/adjoint/functional::functional1/disable_adjoint_run")) then 
-            do equation=end_timestep,start_timestep,-1
-              ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
-              call adj_chkierr(ierr)
+          do equation=end_timestep,start_timestep,-1
+            ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
+            call adj_chkierr(ierr)
 
-              ! Now solve lhs . adjoint = rhs
-              ierr = adj_variable_get_name(adj_var, variable_name)
-              s_idx = scan(trim(variable_name), ":")
-              material_phase_name = variable_name(1:s_idx - 1)
-              field_name = variable_name(s_idx + 2:len_trim(variable_name))
-              ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
-              if (ierr == ADJ_ERR_OK) then
-                path = adjoint_field_path(path)
-                has_path = .true.
-              else
-                has_path = .false.
-              end if
+            ! Now solve lhs . adjoint = rhs
+            ierr = adj_variable_get_name(adj_var, variable_name)
+            s_idx = scan(trim(variable_name), ":")
+            material_phase_name = variable_name(1:s_idx - 1)
+            field_name = variable_name(s_idx + 2:len_trim(variable_name))
+            ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
+            if (ierr == ADJ_ERR_OK) then
+              path = adjoint_field_path(path)
+              has_path = .true.
+            else
+              has_path = .false.
+            end if
 
-              ! variable_name should be something like Fluid::Velocity 
-              select case(rhs%klass)
-                case(ADJ_SCALAR_FIELD)
-                  call field_from_adj_vector(rhs, sfield_rhs)
-                  call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // trim(field_name))
-                  call zero(sfield_soln)
+            ! variable_name should be something like Fluid::Velocity 
+            select case(rhs%klass)
+              case(ADJ_SCALAR_FIELD)
+                call field_from_adj_vector(rhs, sfield_rhs)
+                call allocate(sfield_soln, sfield_rhs%mesh, "Adjoint" // trim(field_name))
+                call zero(sfield_soln)
 
-                  if (has_path) then
-                    sfield_soln%option_path = trim(path)
-                  end if
+                if (has_path) then
+                  sfield_soln%option_path = trim(path)
+                end if
 
-                  select case(lhs%klass)
-                    case(ADJ_IDENTITY_MATRIX)
-                      call set(sfield_soln, sfield_rhs)
-                    case(ADJ_CSR_MATRIX)
-                      call matrix_from_adj_matrix(lhs, csr_mat)
-                      if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
-                        call mult(sfield_soln, csr_mat, sfield_rhs)
-                      else
-                        if (.not. has_path) then
-                          ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
-                          call adj_chkierr(ierr)
-                          path = adjoint_field_path(path)
-                        end if
+                select case(lhs%klass)
+                  case(ADJ_IDENTITY_MATRIX)
+                    call set(sfield_soln, sfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
+                      call mult(sfield_soln, csr_mat, sfield_rhs)
+                    else
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
 
-                        call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                        !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
-                      endif
-                    case(ADJ_BLOCK_CSR_MATRIX)
-                      FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
-                    case default
-                      FLAbort("Unknown lhs%klass")
-                  end select
+                      call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
+                      !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
 
-                  call insert(state(1), sfield_soln, trim(sfield_soln%name))
-                  soln = field_to_adj_vector(sfield_soln)
-                  ierr = adj_storage_memory_incref(soln, storage)
-                  call adj_chkierr(ierr)
-                  ierr = adj_record_variable(adjointer, adj_var, storage)
-                  call adj_chkierr(ierr)
-                  call deallocate(sfield_soln)
-                case(ADJ_VECTOR_FIELD)
-                  call field_from_adj_vector(rhs, vfield_rhs)
-                  call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // trim(field_name)) 
-                  call zero(vfield_soln)
+                call insert(state(1), sfield_soln, trim(sfield_soln%name))
+                soln = field_to_adj_vector(sfield_soln)
+                ierr = adj_storage_memory_incref(soln, storage)
+                call adj_chkierr(ierr)
+                ierr = adj_record_variable(adjointer, adj_var, storage)
+                call adj_chkierr(ierr)
+                call deallocate(sfield_soln)
+              case(ADJ_VECTOR_FIELD)
+                call field_from_adj_vector(rhs, vfield_rhs)
+                call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, "Adjoint" // trim(field_name)) 
+                call zero(vfield_soln)
 
-                  if (has_path) then
-                    vfield_soln%option_path = trim(path)
-                  end if
+                if (has_path) then
+                  vfield_soln%option_path = trim(path)
+                end if
 
-                  select case(lhs%klass)
-                    case(ADJ_IDENTITY_MATRIX)
-                      call set(vfield_soln, vfield_rhs)
-                    case(ADJ_CSR_MATRIX)
-                      call matrix_from_adj_matrix(lhs, csr_mat)
-                      if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
-                        call mult(vfield_soln, csr_mat, vfield_rhs)
-                      else
-                        if (.not. has_path) then
-                          ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
-                          call adj_chkierr(ierr)
-                          path = adjoint_field_path(path)
-                        end if
+                select case(lhs%klass)
+                  case(ADJ_IDENTITY_MATRIX)
+                    call set(vfield_soln, vfield_rhs)
+                  case(ADJ_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, csr_mat)
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
+                      call mult(vfield_soln, csr_mat, vfield_rhs)
+                    else
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
 
-                        call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                        call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
-                      endif
-                    case(ADJ_BLOCK_CSR_MATRIX)
-                      call matrix_from_adj_matrix(lhs, block_csr_mat)
-                      if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
-                        call mult(vfield_soln, block_csr_mat, vfield_rhs)
-                      else
-                        if (.not. has_path) then
-                          ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
-                          call adj_chkierr(ierr)
-                          path = adjoint_field_path(path)
-                        end if
+                      call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
+                      call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
+                    endif
+                  case(ADJ_BLOCK_CSR_MATRIX)
+                    call matrix_from_adj_matrix(lhs, block_csr_mat)
+                    if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
+                      call mult(vfield_soln, block_csr_mat, vfield_rhs)
+                    else
+                      if (.not. has_path) then
+                        ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
+                        call adj_chkierr(ierr)
+                        path = adjoint_field_path(path)
+                      end if
 
-                        call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
-                        !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
-                      endif
-                    case default
-                      FLAbort("Unknown lhs%klass")
-                  end select
+                      call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
+                      !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
+                    endif
+                  case default
+                    FLAbort("Unknown lhs%klass")
+                end select
 
-                  call insert(state(1), vfield_soln, trim(vfield_soln%name))
-                  soln = field_to_adj_vector(vfield_soln)
-                  ierr = adj_storage_memory_incref(soln, storage)
-                  call adj_chkierr(ierr)
-                  ierr = adj_record_variable(adjointer, adj_var, storage)
-                  call adj_chkierr(ierr)
-                  call deallocate(vfield_soln)
-                case default
-                  FLAbort("Unknown rhs%klass")
-              end select
+                call insert(state(1), vfield_soln, trim(vfield_soln%name))
+                soln = field_to_adj_vector(vfield_soln)
+                ierr = adj_storage_memory_incref(soln, storage)
+                call adj_chkierr(ierr)
+                ierr = adj_record_variable(adjointer, adj_var, storage)
+                call adj_chkierr(ierr)
+                call deallocate(vfield_soln)
+              case default
+                FLAbort("Unknown rhs%klass")
+            end select
 
-              ! Destroy lhs and rhs
-              call femtools_vec_destroy_proc(rhs)
-              if (lhs%klass /= ADJ_IDENTITY_MATRIX) then
-                call femtools_mat_destroy_proc(lhs)
-              endif
+            ! Destroy lhs and rhs
+            call femtools_vec_destroy_proc(rhs)
+            if (lhs%klass /= ADJ_IDENTITY_MATRIX) then
+              call femtools_mat_destroy_proc(lhs)
+            endif
 
-              if (sig_int .or. sig_hup) then
-                ewrite(-1,*) "Adjoint timeloop received signal, quitting"
-                call adjoint_cleanup
-                return
-              end if
-            end do ! End of equation loop
-          end if
+            if (sig_int .or. sig_hup) then
+              ewrite(-1,*) "Adjoint timeloop received signal, quitting"
+              call adjoint_cleanup
+              return
+            end if
+          end do ! End of equation loop
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -310,6 +314,9 @@ module adjoint_main_loop
       subroutine adjoint_cleanup
         ! Clean up stat files
         do functional=0,no_functionals-1
+          if (have_option("/adjoint/functional::functional1/disable_adjoint_run")) then
+            cycle
+          end if 
           default_stat = functional_stats(functional + 1)
           call close_diagnostic_files
           call uninitialise_diagnostics
