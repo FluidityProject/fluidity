@@ -83,7 +83,7 @@ control_io =
                          python_code
                       },
                       ## Python function which takes as input a numpy array containing the new model parameters and
-                      ## updates the corresponding model schema file.
+                      ## updates the corresponding model configuration.
                       element update_controls {
                          python_code
                       },

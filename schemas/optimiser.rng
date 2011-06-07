@@ -97,7 +97,7 @@ to code custom python functions for handling the controls.</a:documentation>
               </element>
               <element name="update_controls">
                 <a:documentation>Python function which takes as input a numpy array containing the new model parameters and
-updates the corresponding model schema file.</a:documentation>
+updates the corresponding model configuration.</a:documentation>
                 <ref name="python_code"/>
               </element>
               <ref name="comment"/>
