@@ -150,18 +150,6 @@ module adjoint_main_loop
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
           default_stat = functional_stats(functional + 1)
-          ! We don't want to compute a functional for the dummy timestep added at the end to act
-          ! as a container for the last equation
-          if (start_time == end_time) then
-            assert(timestep == no_timesteps-1)
-            if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
-              call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
-              call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/0.0/))
-            end if
-            functional_computed = .true.
-          else
-            functional_computed = .false.
-          end if
 
           ! Only solve the adjoint system if desired by the user. Otherwise only the functional evaluation is done.
           if (.not. have_option("/adjoint/functional::functional1/disable_adjoint_run")) then 
@@ -290,21 +278,6 @@ module adjoint_main_loop
                 return
               end if
             end do ! End of equation loop
-          end if
-
-          ! Compute the functional value if not done yet 
-          if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
-            if (.not. functional_computed) then
-              ierr = adj_evaluate_functional(adjointer, timestep, functional_name, J)
-              call adj_chkierr(ierr)
-              ! So we've computed the component of the functional associated with this timestep.
-              ! We also want to sum them all up ...
-              call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/J/))
-              fn_value => get_diagnostic(name=trim(functional_name), statistic="value")
-              J = J + fn_value(1)
-              call set_diagnostic(name=trim(functional_name), statistic="value", value=(/J/))
-              functional_computed = .true.  
-            end if
           end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
