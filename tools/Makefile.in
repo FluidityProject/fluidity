@@ -310,5 +310,5 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o
-	$(FC) -c $(FCFLAGS) Test_Trace_Space.o
+	$(FC) -c $(FCFLAGS) Test_Trace_Space.F90
 	$(LINKER) -o $(TEST_TRACE_SPACE) Test_Trace_Space.o -l$(FLUIDITY) $(LIBS)
