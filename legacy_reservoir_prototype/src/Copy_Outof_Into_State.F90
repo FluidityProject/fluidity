@@ -1021,7 +1021,7 @@ module copy_outof_into_state
       zu=0.
       u_nonods = u_nloc * totele
       ewrite(3,*)'u_nonods:', u_nloc, totele, u_nonods
-stop 981
+
       allocate( nu( u_nonods * nphases ))
       allocate( nv( u_nonods * nphases ))
       allocate( nw( u_nonods * nphases ))
