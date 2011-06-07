@@ -605,111 +605,6 @@ module copy_outof_into_state
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
 !!!
-
-!!!
-!!!  Velocity Boundary Conditions:
-!!!
-
-      Loop_Velocity_BC_U: do i=1, nphases
-         have_velocity_bcs=.false.
-         Conditional_velocityPhase_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
-              "]/vector_field::Velocity/prognostic/" // &
-              "boundary_conditions[0]/type::dirichlet" )) then
-
-            have_velocity_bcs=.true.
-
-            shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
-                 &prognostic/boundary_conditions[0]/surface_ids")
-            if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
-            ewrite(3,*) "allocated vel suf id"
-
-            Velocity_BC_Type = 1
-            call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/surface_ids", Velocity_SufID_BC )
-            ewrite(3,*) "velocity_sufid_bc", velocity_sufid_bc
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                 "align_bc_with_cartesian/x_component" )) then
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                    "align_bc_with_cartesian/x_component/constant", Velocity_Suf_BC_U )
-            endif
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                 "align_bc_with_cartesian/y_component" )) then
-               call get_option( "/material_phase[0]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                    "align_bc_with_cartesian/y_component/constant", Velocity_Suf_BC_V )
-            endif
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                 "align_bc_with_cartesian/z_component" )) then
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::dirichlet/" // &
-                    "align_bc_with_cartesian/z_component/constant", Velocity_Suf_BC_W )
-            endif
-            ewrite(3,*) "vel suf bc u", velocity_suf_bc_u
-
-         elseif( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/prognostic/" // &
-              "boundary_conditions[0]/type::neumann" )) then
-
-            if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
-            have_velocity_bcs=.true.
-            Velocity_BC_Type = 3
-            call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/surface_ids", Velocity_SufID_BC )
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::neumann/" // &
-                 "align_bc_with_cartesian/x_component" )) then
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::neumann/" // &
-                    "align_bc_with_cartesian/x_component/constant", Velocity_Suf_BC_U )
-            endif
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::neumann/" // &
-                 "align_bc_with_cartesian/y_component" )) then
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::neumann/" // &
-                    "align_bc_with_cartesian/y_component/constant", Velocity_Suf_BC_V )
-            endif
-            if( have_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/type::neumann/" // &
-                 "align_bc_with_cartesian/y_component" )) then
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                    "prognostic/boundary_conditions[0]/type::neumann/" // &
-                    "align_bc_with_cartesian/z_component/constant", Velocity_Suf_BC_W )
-            endif
-
-         endif Conditional_velocityPhase_BC
-
-         if (.not.allocated(wic_u_bc)) then
-            allocate( wic_u_bc( stotel * nphases ))
-            allocate( suf_u_bc( stotel * 3 * nphases ))
-            allocate( suf_v_bc( stotel * 3 * nphases ))
-            allocate( suf_w_bc( stotel * 3 * nphases ))
-            wic_u_bc = 0
-            suf_u_bc = 0.
-            suf_v_bc = 0.
-            suf_w_bc = 0.
-         endif
-         if (have_velocity_bcs) then
-            do j=1,shape_option(1)
-               wic_u_bc( Velocity_SufID_BC(j) + nphases*(i-1) ) = Velocity_BC_Type
-               suf_u_bc( Velocity_SufID_BC(j) + nphases*3*(i-1) ) = Velocity_Suf_BC_U
-               suf_v_bc( Velocity_SufID_BC(j) + nphases*3*(i-1) ) = Velocity_Suf_BC_V
-               suf_w_bc( Velocity_SufID_BC(j) + nphases*3*(i-1) ) = Velocity_Suf_BC_W
-            enddo
-
-            deallocate(velocity_sufid_bc)
-         endif
-
-         ewrite(3,*) 'wic_u_bc', wic_u_bc
-         ewrite(3,*) 'suf_u_bc', suf_u_bc
-
-      enddo Loop_Velocity_BC_U
-
-      ewrite(3,*) "Done with velocity boundary conditions"
-
 !!!
 !!! Components Boundary Conditions
 
@@ -999,6 +894,7 @@ module copy_outof_into_state
          u=0.
          v=0.
          w=0.
+         ewrite(3,*)'nodes veloc:', node_count(velocity)
 
          ! This will make sure that the fields in the PC *does not* contain any boundary conditions
          ! elements. This need to be changed along with the future data structure to take into 
@@ -1031,11 +927,11 @@ module copy_outof_into_state
                allocate( suf_u_bc( stotel * 3 * nphases ))
                suf_u_bc = 0.
             endif
-            if (.not.allocated(suf_u_bc).and.velocity%dim>1) then
+            if (.not.allocated(suf_v_bc)) then
                allocate( suf_v_bc( stotel * 3 * nphases ))
                suf_v_bc = 0.
             endif
-            if (.not.allocated(suf_u_bc).and.velocity%dim>2) then
+            if (.not.allocated(suf_w_bc)) then
                allocate( suf_w_bc( stotel * 3 * nphases ))
                suf_w_bc = 0.
             endif
@@ -1064,7 +960,6 @@ module copy_outof_into_state
                if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel + j ) = velocity_bc%val( 3, j )
             end do
 
-
          endif Conditional_Velocity_BC
 
       enddo Loop_Velocity
@@ -1074,7 +969,7 @@ module copy_outof_into_state
       allocate(cp_option(nphases))
       do i=1,nphases
          call get_option("/material_phase[" // int2str(i-1) // "]/multiphase_properties/relperm_option",uabs_option(i))
-         !ewrite(3,*) "relperm_option i:", uabs_option(i)
+         ewrite(3,*) "phase, relperm_option(= uabs_option):", i, uabs_option(i)
          if (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear")) then
             eos_option(i) = 2
          elseif (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas")) then
@@ -1125,6 +1020,8 @@ module copy_outof_into_state
       yu=0.
       zu=0.
       u_nonods = u_nloc * totele
+      ewrite(3,*)'u_nonods:', u_nloc, totele, u_nonods
+stop 981
       allocate( nu( u_nonods * nphases ))
       allocate( nv( u_nonods * nphases ))
       allocate( nw( u_nonods * nphases ))

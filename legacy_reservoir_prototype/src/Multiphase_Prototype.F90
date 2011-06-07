@@ -535,6 +535,8 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
+ewrite(3,*)'u:', size(u), u_nonods, nphase, u(1:u_nonods*nphase)
+stop 8877
 
       Select Case( problem )
 
