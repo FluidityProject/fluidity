@@ -294,5 +294,6 @@ J = (h-pi)**2 + g*(g+1)</string_value>
         </algorithm>
       </functional_dependencies>
     </functional>
+    <debug/>
   </adjoint>
 </shallow_water_options>

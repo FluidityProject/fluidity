@@ -263,6 +263,23 @@ module forward_main_loop
         end do ! end of the equation loop
 
         call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
+        call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+        ! The first timestep is the initialisation of the model.
+        ! We skip the evaluation of the functional at timestep zero to get the correct value.
+        if (timestep > 0) then
+          call calculate_functional_values(timestep-1)
+          ! The last timestep is a the dummy timestep added at the end to act
+          ! as a container for the last equation
+          if (start_time == end_time) then
+            assert(timestep == no_timesteps-1)
+          end if
+        end if
+        call write_diagnostics(state, current_time, dt, equation+1)
+        if (do_write_state(current_time, timestep)) then
+          call write_state(dump_no, state)
+        endif
+
         current_time = end_time
 
         nfunctionals = option_count("/adjoint/functional")
@@ -274,18 +291,6 @@ module forward_main_loop
             call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=state)
           end if
         end do
-        
-        if (timestep /= no_timesteps-1) then
-          call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
-          call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-          call calculate_functional_values(timestep)
-          call write_diagnostics(state, current_time, dt, equation+1)
-
-          if (do_write_state(current_time, timestep)) then
-            call write_state(dump_no, state)
-          endif
-        end if
-
       end do ! end of the timestep loop
 
       call get_option("/timestepping/finish_time", finish_time)
@@ -349,6 +354,7 @@ module forward_main_loop
           call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
           call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
           ! The functional value will be accumulated, so initialise it with zero.
+          call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/0.0/))
           call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
         end if
       end do
