@@ -310,4 +310,4 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
-	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
