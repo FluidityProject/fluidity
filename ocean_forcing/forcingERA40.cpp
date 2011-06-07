@@ -189,10 +189,11 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] runoff;
     delete [] ppt;
     delete [] SST;
+    delete [] speed;
+    delete [] qs;
     delete [] x;
     delete [] y;
     delete [] z;
-
 
 }
 
