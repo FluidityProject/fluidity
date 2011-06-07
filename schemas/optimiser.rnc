@@ -100,7 +100,7 @@ control_io =
                        comment
                     }
                 )
-           }*
+           }+
        }
    )
 

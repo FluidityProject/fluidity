@@ -79,7 +79,7 @@ configuration template</a:documentation>
   <define name="control_io">
     <element name="control_io">
       <a:documentation>Read mesh from file.</a:documentation>
-      <zeroOrMore>
+      <oneOrMore>
         <element name="control">
           <attribute name="name">
             <data type="string"/>
@@ -118,7 +118,7 @@ updates the corresponding model configuration.</a:documentation>
             </element>
           </choice>
         </element>
-      </zeroOrMore>
+      </oneOrMore>
     </element>
   </define>
   <define name="debugging_options">

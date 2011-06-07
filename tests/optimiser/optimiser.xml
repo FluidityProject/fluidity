@@ -13,9 +13,8 @@ from fluidity_tools import stat_parser
 from math import pi      
 import pickle
 
-pkl_file = open('controls.pkl', 'rb')
-controls_data = pickle.load(pkl_file)
-h = controls_data['h']
+pkl_file = open('control_h.pkl', 'rb')
+h = pickle.load(pkl_file)
 control_h_error = abs(h - pi)
     </variable>
     <variable name="control_g_error" language="python">
@@ -23,9 +22,8 @@ from fluidity_tools import stat_parser
 from math import pi 
 import pickle
 
-pkl_file = open('controls.pkl', 'rb')
-controls_data = pickle.load(pkl_file)
-g = controls_data['g']
+pkl_file = open('control_g.pkl', 'rb')
+g = pickle.load(pkl_file)
 control_g_error = abs(g + 0.5)
     </variable>
     <variable name="functional_error" language="python">
