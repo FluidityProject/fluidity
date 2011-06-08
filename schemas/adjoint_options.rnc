@@ -130,6 +130,7 @@ adjoint_options =
               ## Initial condition 
               element type {
                 attribute name { "initial_condition" },
+                attribute option_path { xsd:string },
                 comment
               }|
               ## Boundary condition 

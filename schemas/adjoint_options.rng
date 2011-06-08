@@ -154,6 +154,9 @@ but all adjoint related entries will be zeroed.</a:documentation>
               <attribute name="name">
                 <value>initial_condition</value>
               </attribute>
+              <attribute name="option_path">
+                <data type="string"/>
+              </attribute>
               <ref name="comment"/>
             </element>
             <element name="type">
