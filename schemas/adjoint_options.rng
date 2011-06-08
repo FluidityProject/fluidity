@@ -143,32 +143,56 @@ but all adjoint related entries will be zeroed.</a:documentation>
           </optional>
         </element>
       </oneOrMore>
-      <zeroOrMore>
-        <element name="control">
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <choice>
-            <element name="type">
-              <a:documentation>Initial condition </a:documentation>
+      <optional>
+        <element name="controls">
+          <zeroOrMore>
+            <element name="control">
               <attribute name="name">
-                <value>initial_condition</value>
-              </attribute>
-              <attribute name="option_path">
                 <data type="string"/>
               </attribute>
-              <ref name="comment"/>
+              <choice>
+                <element name="type">
+                  <a:documentation>Initial condition </a:documentation>
+                  <attribute name="name">
+                    <value>initial_condition</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="type">
+                  <a:documentation>Boundary condition </a:documentation>
+                  <attribute name="name">
+                    <value>boundary_condition</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="type">
+                  <a:documentation>Source term </a:documentation>
+                  <attribute name="name">
+                    <value>source_term</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+              </choice>
             </element>
-            <element name="type">
-              <a:documentation>Boundary condition </a:documentation>
-              <attribute name="name">
-                <value>boundary_condition</value>
-              </attribute>
-              <ref name="comment"/>
+          </zeroOrMore>
+          <optional>
+            <element name="record_controls">
+              <a:documentation>Stores the record variables while running the forward model
+This is used for the optimiser.py only and can be left disabled by the user.</a:documentation>
+              <empty/>
             </element>
-          </choice>
+          </optional>
         </element>
-      </zeroOrMore>
+      </optional>
       <optional>
         <element name="debug">
           <a:documentation>Debugging options for adjoint model development</a:documentation>
