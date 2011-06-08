@@ -217,6 +217,9 @@ contains
                 !unserialises that.
                 call exchange_detectors(state(1),detector_list, &
                       send_list_array,number_neigh_processors,ihash)
+             else
+                ! If we run out of lagrangian detectors for some reason, exit the loop
+                exit
              end if
 
           end do detector_timestepping_loop

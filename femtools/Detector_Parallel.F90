@@ -158,6 +158,8 @@ contains
     type(integer_hash_table) :: ihash_inverse
     logical :: have_update_vector
 
+    ewrite(2,*) "In exchange_detectors"  
+
     xfield => extract_vector_field(state,"Coordinate")
     shape=>ele_shape(xfield,1)
     dim=xfield%dim
@@ -191,6 +193,7 @@ contains
     do i=1, number_neigh_processors
        ndet_to_send=send_list_array(i)%length
        allocate(detector_buffer(ndet_to_send,det_size))
+       ewrite(2,*) "Neighbour", i, "ndet_to_send:", ndet_to_send
 
        detector => send_list_array(i)%firstnode
        if(ndet_to_send>0) then
@@ -222,7 +225,7 @@ contains
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, gens)
-    ewrite(1,*) "gens length is:", key_count(gens)    
+    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(gens)    
 
     do i=1, number_neigh_processors              
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
@@ -233,6 +236,7 @@ contains
 
        ndet_received=count/det_size
        allocate(detector_buffer(ndet_received,det_size))
+       ewrite(2,*) "Neighbour", i, "ndet_received:", ndet_received
 
        call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
@@ -263,6 +267,8 @@ contains
 
     call deallocate(gens)
     call deallocate(ihash_inverse) 
+
+    ewrite(2,*) "Exiting exchange_detectors"  
 
   end subroutine exchange_detectors
 
