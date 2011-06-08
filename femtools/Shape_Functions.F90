@@ -239,6 +239,10 @@ contains
           case(ELEMENT_NONCONFORMING)
              
              shape%spoly(j,i)=nonconforming_polynomial(counts(j))
+             
+          case(ELEMENT_OVERLAPPING) ! Perhaps want to use the default, ie Lagrangian shape functions
+          
+             ewrite(0,*) 'Shape function hack alert!'
 
           case default
 

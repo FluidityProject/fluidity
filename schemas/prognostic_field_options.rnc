@@ -825,10 +825,6 @@ prognostic_velocity_field =
                   element smagorinsky_coefficient {
                      real
                   }
-               }?,
-               ## DG overlapping CV method
-               element overlapping {
-                  comment
                }?
             }
          ),

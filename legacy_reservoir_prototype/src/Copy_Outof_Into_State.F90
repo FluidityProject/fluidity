@@ -258,7 +258,7 @@ module copy_outof_into_state
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! these does not matter -- most of them can be deleted quite soon
-      problem = 2 
+      problem = 1
       nlev = 3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       nstates = option_count("/material_phase")
@@ -300,10 +300,10 @@ module copy_outof_into_state
       x_nloc = 3*ndim
       p_nloc = pmesh%shape%loc ! 3
       u_nloc = vmesh%shape%loc
-      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
-           "spatial_discretisation/discontinuous_galerkin/overlapping")) then
-         u_nloc=u_nloc*p_nloc
-      endif
+!      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
+!           "spatial_discretisation/discontinuous_galerkin/overlapping")) then
+!         u_nloc=u_nloc*p_nloc
+!      endif
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
          cv_nonods = ( cv_nloc - 1 ) * totele + 1
@@ -342,12 +342,12 @@ module copy_outof_into_state
       !! Will need to update once schema is changed
       cv_ele_type = 2
       !! These aren't used 
-      cv_sele_type = 0
-      u_sele_type = 0
+      cv_sele_type = 1
+      u_sele_type = 1
 
       !! Time options
       ewrite(3,*) ' Getting time options'
-      call get_option('/io/max_dump_file_count', ntime, default=500)
+      call get_option('/io/max_dump_file_count', ntime, default=160)
       if (have_option('/io/dump_period_in_timesteps/constant')) then
          call get_option('/io/dump_period_in_timesteps/constant',ntime_dump)
       else
@@ -649,6 +649,9 @@ module copy_outof_into_state
       allocate( suf_cpd_bc( stotel * 1 * nphases ))
       suf_cpd_bc = 0.      
 
+      ! Extra allocation to stop the code dying when also running everything through the old io
+      allocate( suf_one_bc( stotel * cv_snloc * nphases ))
+      suf_one_bc=0.
 
       ewrite(3,*) "Done with boundary conditions"
 

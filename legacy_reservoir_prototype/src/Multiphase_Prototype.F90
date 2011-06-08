@@ -306,6 +306,10 @@ module mp_prototype
            u_source, &
            u,  &
            den, satura, comp, p, cv_p, volfra_pore, perm )
+           
+      !! Ok, done with the new input, now we need to check that everything's
+      !! as it was before, so we're going to do the old input routines too
+      !! and compare the mirror files.
 
            
       if( .false. ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
@@ -458,7 +462,52 @@ module mp_prototype
 
       told = t
 
-      close( unit_input )
+      call allocating_global_nodes( ndim, totele, domain_length, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
+           cv_nonods, u_nonods, x_nonods, xu_nonods, &
+           u_ele_type, cv_ele_type, &
+           x, xu,  &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
+      ! Initialising T and Told. This should be properly initialised through a generic function
+
+      call initialise_scalar_fields( &
+           problem, ndim, nphase, totele, domain_length, &
+           x_nloc, cv_nloc, x_nonods, cv_nonods,  &
+           x_ndgln, cv_ndgln, &
+           x, told, t )
+
+      ! Mirroring Input dat
+
+      if( .false. ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
+           cv_snloc,  p_snloc, stotel, &
+           ncoef, nuabs_coefs, &
+           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
+           cv_sele_type, u_sele_type, &
+           ntime, nits, ndpset, &
+           dt, patmos, p_ini, t_ini, &
+           t_beta, v_beta, t_theta, v_theta, u_theta, &
+           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
+           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
+           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
+           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
+           nlenmcy, &
+           nopt_vel_upwind_coefs, &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
+           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
+           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           suf_u_bc, &
+           suf_u_bc_rob1, suf_u_bc_rob2, &
+           opt_vel_upwind_coefs, &
+           x, xu, nu, ug, &
+           uabs_option, u_abs_stab, u_absorb, &
+           u_source, &
+           u,  &
+           den, satura, comp, p, cv_p, volfra_pore, perm )
+
 
       ! Sparsity patterns
       allocate( finmcy( nlenmcy + 1 )) ! Force balance plus cty multi-phase eqns

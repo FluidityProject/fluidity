@@ -524,6 +524,8 @@ contains
              from_shape_type=ELEMENT_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
+           else if(trim(shape_type)=="overlapping") then
+             from_shape_type=ELEMENT_OVERLAPPING
            end if
            ! If new_shape_type does not match model mesh shape type, make new mesh.
            if(from_shape_type == model_mesh%shape%numbering%type) then
@@ -765,10 +767,12 @@ contains
     character(len=OPTION_PATH_LEN) :: continuity_option, element_option
     type(quadrature_type):: quad
     type(element_type):: shape
-    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
+    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat, p_degree
     logical :: new_shape
     
     ! Get new mesh shape information
+    
+    ewrite(3,*) 'mesh path: ', mesh_path
     
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
@@ -780,19 +784,36 @@ contains
            new_shape_type=ELEMENT_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
+        else if(trim(element_option)=="overlapping") then
+           new_shape_type=ELEMENT_OVERLAPPING
         end if
       else
         new_shape_type=from_mesh%shape%numbering%type
       end if
+      ewrite(3,*) 'EO, new_shape_type: ',ELEMENT_OVERLAPPING, new_shape_type
       
       ! degree is the degree of the Lagrange polynomials (even if you add in a bubble function)
       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
                       poly_degree, default=from_mesh%shape%degree)
     
-      ! loc is the number of vertices of the element
-      loc=from_mesh%shape%loc
       ! dim is the dimension
       dim=from_mesh%shape%dim
+      ! loc is the number of vertices of the element
+      if(new_shape_type==ELEMENT_OVERLAPPING) then
+         ewrite(3,*) 'dealing with new element type'
+         ! Going to assume for now that the PressureMesh will be derived
+         ! (if not then we couldn't set the mesh shape anyway)
+         call get_option("/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree", p_degree, default=1)
+         ewrite(3,*) 'p_degree', p_degree
+         if(p_degree==1) then ! Linear pressure, constant velocity
+            loc=dim + 1
+         else if(p_degree==2) then ! Quadratic pressure, linear velocity
+            loc=(dim+1)*(dim**2 + 3*dim + 2)/2
+         end if
+      else
+         loc=from_mesh%shape%loc
+      end if
+      ewrite(3,*) 'loc:', loc
       ! Make quadrature
       call get_option("/geometry/quadrature/degree",&
            & quad_degree)
@@ -819,6 +840,7 @@ contains
 
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
+    ewrite(3,*) 'Mesh name: ', mesh_name
 
     ! Make new mesh
     mesh=make_mesh(from_mesh, shape, continuity, mesh_name)
@@ -2394,6 +2416,7 @@ contains
        ! Allocate field
        call allocate(field, dim, mesh, trim(lfield_name))
        call zero(field)
+       ewrite(3,*) 'mesh%nodes', mesh%nodes
     end if
     
     ewrite(2,*) trim(lfield_name), " is on mesh ", trim(mesh%name)

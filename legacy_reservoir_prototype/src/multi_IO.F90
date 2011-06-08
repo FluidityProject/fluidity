@@ -1569,7 +1569,7 @@ contains
 
        Conditional_IOR: if ( ior > 0 ) then
           k = index( ifile, ' ') - 1
-!          ewrite(3,*) 'ifile ', ifile(1:k)
+          ewrite(3,*) 'Going to get ', ifile(1:k)
           Select Case ( ifile( 1 : k ))
              ! Logical
           Case( 'KComp_Sigmoid' );
@@ -2358,8 +2358,10 @@ contains
 
           end Select
           
-       end if Conditional_IOR
+          ewrite(3,*) 'Done with ',ifile(1:k)
 
+       end if Conditional_IOR
+       
     end do
 
     ewrite(3,*) 'Leaving read_all'

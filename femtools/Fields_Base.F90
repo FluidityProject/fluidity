@@ -3110,6 +3110,9 @@ contains
       case default
         FLAbort("Unknown element family.")
       end select
+    case(ELEMENT_OVERLAPPING)
+      ewrite(0,*) 'Fields base hack alert!'
+      vert = shape%dim
     case default
       FLAbort("Unknown element type.")
     end select

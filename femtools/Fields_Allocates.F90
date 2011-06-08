@@ -1189,6 +1189,9 @@ contains
       ! quad_face will be deallocated inside deallocate_faces!
     else
        ! otherwise use degree of full mesh
+       ewrite(3,*) 'Going in here to make_quadrature, mesh_dim: ', mesh_dim(mesh)
+       ewrite(3,*) 'element%family', element%quadrature%family
+       ewrite(3,*) 'face_vertices', face_vertices(element)
        quad_face = make_quadrature(vertices=face_vertices(element), &
             & dim=mesh_dim(mesh)-1, degree=element%quadrature%degree, family=element%quadrature%family)
       ! quad_face will be deallocated inside deallocate_faces!
