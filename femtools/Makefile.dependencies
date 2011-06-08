@@ -856,11 +856,17 @@ Pseudo_Consistent_Interpolation.o \
 	@true
 
 Quadrature.o ../include/quadrature.mod: Quadrature.F90 \
-   ../include/wandzura_quadrature.mod ../include/unittest_tools.mod \
-   ../include/reference_counting.mod Reference_count_quadrature_type.F90 \
+   ../include/wandzura_quadrature.mod ../include/reference_counting.mod \
+   Reference_count_quadrature_type.F90 \
    ../include/grundmann_moeller_quadrature.mod ../include/vector_tools.mod \
    Reference_count_interface_quadrature_type.F90 ../include/fdebug.h \
    ../include/fldebug.mod
+
+../include/quadrature_test.mod: Quadrature_Test.o
+	@true
+
+Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
+   ../include/quadrature.mod
 
 ../include/read_gmsh.mod: Read_GMSH.o
 	@true
@@ -902,10 +908,17 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 	@true
 
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
-   ../include/superconvergence.mod ../include/unittest_tools.mod \
-   ../include/futils.mod ../include/polynomials.mod \
-   ../include/element_numbering.mod ../include/elements.mod \
-   ../include/spud.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/superconvergence.mod ../include/futils.mod \
+   ../include/polynomials.mod ../include/element_numbering.mod \
+   ../include/elements.mod ../include/ieee_arithmetic.mod ../include/fdebug.h \
+   ../include/fldebug.mod
+
+../include/shape_functions_test.mod: Shape_Functions_Test.o
+	@true
+
+Shape_Functions_Test.o ../include/shape_functions_test.mod: \
+   Shape_Functions_Test.F90 ../include/spud.mod ../include/shape_functions.mod \
+   ../include/fdebug.h
 
 ../include/signal_vars.mod: Signal_Vars.o
 	@true
