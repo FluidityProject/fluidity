@@ -42,9 +42,11 @@ module detector_parallel
   
   private
 
-  public :: distribute_detectors, exchange_detectors, register_detector_list
+  public :: distribute_detectors, exchange_detectors, &
+            register_detector_list, get_registered_detector_lists
 
-  type(detector_list_ptr), dimension(:), allocatable, save :: detector_list_array
+  type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
+  integer :: num_detector_lists = 0
 
 contains
 
@@ -73,7 +75,18 @@ contains
        detector_list_array(1)%ptr=>detector_list
     end if
 
+    ! Advance counter and assign list ID
+    num_detector_lists=num_detector_lists+1
+    detector_list%id=num_detector_lists
+
   end subroutine register_detector_list
+
+  subroutine get_registered_detector_lists(all_registered_lists)
+    type(detector_list_ptr), dimension(:), pointer, intent(out) :: all_registered_lists
+
+    all_registered_lists=>detector_list_array
+
+  end subroutine get_registered_detector_lists
 
   subroutine distribute_detectors(state, detector_list, ihash)
     ! Loop over all the detectors in the list and check that I own the element they are in. 

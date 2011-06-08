@@ -82,9 +82,13 @@ module detector_data_types
   end type rk_gs_parameters
 
   type detector_linked_list
+     ! Doubly linked list implementation
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
+
+     !! Internal ID used for packing/unpacking detectors
+     integer :: id  ! IDs are counted from 1
 
      ! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
