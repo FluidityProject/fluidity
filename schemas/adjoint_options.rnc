@@ -124,21 +124,38 @@ adjoint_options =
            empty
          }? 
       }+,
-      element control {
-          attribute name { xsd:string },
+      element controls {
+          element control {
             (
-              ## Initial condition 
-              element type {
-                attribute name { "initial_condition" },
-                comment
-              }|
-              ## Boundary condition 
-              element type {
-                 attribute name { "boundary_condition" },
-                 comment
-              }
-          )
-      }*,
+              attribute name { xsd:string },
+                (
+                  ## Initial condition 
+                  element type {
+                    attribute name { "initial_condition" },
+                    attribute field_name { xsd:string },
+                    comment
+                  }|
+                  ## Boundary condition 
+                  element type {
+                     attribute name { "boundary_condition" },
+                    attribute field_name { xsd:string },
+                     comment
+                  }|
+                  ## Source term 
+                  element type {
+                    attribute name { "source_term" },
+                    attribute field_name { xsd:string },
+                    comment
+                  }
+                )
+             )
+          }*,
+          ## Stores the record variables while running the forward model
+          ## This is used for the optimiser.py only and can be left disabled by the user.
+          element record_controls {
+             empty
+          }? 
+      }?,
       ## Debugging options for adjoint model development
       element debug {
          ## Rerun the forward equation using libadjoint. 

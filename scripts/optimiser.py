@@ -2,79 +2,106 @@
 import os.path
 import numpy
 import argparse
-import libspud
 import shlex 
 from subprocess import Popen, PIPE
 import scipy.optimize
 import string
+import libspud
 from fluidity_tools import stat_parser 
 from fluidity_tools import stat_creator
 import time
 import pickle
+import glob
 
-# Hack for libspud to be able to read an option from a second option file.
+# Hack for libspud to be able to read an option from a different files. 
 # A better solution would be to fix libspud or use an alternative implementation like
 # https://github.com/gmarkall/manycore_form_compiler/blob/master/mcfc/optionfile.py
-def spud_get_option(filename, option_path):
-  d = {}
-  exec "import libspud" in d
-  exec "libspud.load_options('"+filename+"')" in d
-  exec "v = libspud.get_option('"+option_path+"')" in d
-  return d['v']
+def superspud(filename, cmd):
+  libspud.load_options(filename)
+  r = None
+  if hasattr(cmd, '__iter__'):
+    for c in cmd:
+      exec "try: r = " + c + "\nexcept libspud.SpudNewKeyWarning: pass"
+  else:
+    exec "try: r = " + cmd + "\nexcept libspud.SpudNewKeyWarning: pass"
+  libspud.clear_options()
+  return r
 
 # Executes the model specified in the optimiser option tree
 # The model stdout is printed to stdout.
-def run_model(m):
-  update_model_controls(m)
-  command_line = libspud.get_option('/model/command_line')
-  option_file = libspud.get_option('/model/option_file')
+def run_model(m, opt_options, model_options):
+  update_custom_controls(m, opt_options)
+  # If record_controls is on the model creates the default controls, so we do not have to update them here.
+  if not superspud(model_options, "libspud.have_option('/adjoint/controls/record_controls')"):
+    update_default_controls(m, opt_options)
+  command_line = superspud(opt_options, "libspud.get_option('/model/command_line')")
+  option_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
   args = shlex.split(command_line)
   args.append(option_file)
   p = Popen(args, stdout=PIPE,stderr=PIPE)
   out = string.join(p.stdout.readlines() )
   outerr = string.join(p.stderr.readlines() )
   if p.wait() != 0:
-    print "Model execution failed: "
+    print "Model execution failed."
+    print "The error was:"
     print outerr
     exit()
   print out
 
-def initialise_model_controls():
-  nb_controls = libspud.option_count("/control_io/control")
+# Intialises the custom controls specified in the optimiser optimiser tree
+def get_initial_custom_controls(opt_options):
+  nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
   m = {}
   for i in range(nb_controls):
-    cname = libspud.get_option('/control_io/control['+str(i)+']/name')
-    ctype = libspud.get_option('/control_io/control['+str(i)+']/type/name')
+    cname = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/name')")
+    ctype = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type/name')")
     # With the custom type, the user specifies python function to initialise the controls. 
     if ctype == 'custom':
-      get_initial_code = libspud.get_option('/control_io/control['+str(i)+']/type::custom/get_initial_controls')
+      get_initial_code = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type::custom/get_initial_controls')")
       d = {}
       exec get_initial_code in d
       m[cname] = d['get_initial_controls']()
-    else:
-      print "Control type ", ctype, " not implemented yet."
-      exit()
-  print m
   return m
 
-def update_model_controls(m):
-  nb_controls = libspud.option_count("/control_io/control")
+# Gets the default controls as specified in the model option tree
+def get_initial_default_controls(model_options):
+  nb_controls = superspud(model_options, "libspud.option_count('/adjoint/controls/control')")
+  m = {}
   for i in range(nb_controls):
-    cname = libspud.get_option('/control_io/control['+str(i)+']/name')
-    ctype = libspud.get_option('/control_io/control['+str(i)+']/type/name')
+    cname = superspud(model_options, "libspud.get_option('/adjoint/controls/control["+str(i)+"]/name')")
+    # With the custom type, the user specifies python function to initialise the controls. 
+    for ctrl_file in glob.iglob('control_VelCtr_[0-9]*.pkl'):
+      try:
+        timestep_tmp = int(ctrl_file.strip()[len('control_VelCtr_'):len(ctrl_file)-4])
+      except:
+        print "Error while loading the default controls from the model."
+        print "The control file ", ctrl_file, "does not conform the standard naming conventions of default control files"
+        exit()
+      f = open(ctrl_file, 'rb')
+      m[cname] = pickle.load(f) 
+      f.close()
+  return m
+
+# Writes the custom controls onto disk
+def update_custom_controls(m, opt_options):
+  nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
+  for i in range(nb_controls):
+    cname = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/name')")
+    ctype = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type/name')")
     # With the custom type, the user specifies a python function to upadate the controls. 
     if ctype == 'custom':
-      update_code = libspud.get_option('/control_io/control['+str(i)+']/type::custom/update_controls')
+      update_code = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type::custom/update_controls')")
       d = {}
       exec update_code in d
       d['update_controls'](m[cname])
-    else:
-      print "Unknown control type ", ctype, "."
-      exit()
 
+# Writes the default controls onto disk
+def update_default_controls(m, opt_options):
+  # TODO
+  return
 
 ################# Optimisation loop ###################
-def optimisation_loop():
+def optimisation_loop(opt_options, model_options):
   # Implement a memoization function to avoid duplicated functional (derivative) evaluations
   class MemoizeMutable:
     def __init__(self, fn):
@@ -91,7 +118,6 @@ def optimisation_loop():
       import cPickle
       str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
       self.memo[str] = value
-   
  
   # This function takes in a dictionary m with numpy.array as entries. 
   # From that it creates one serialised numpy.array with all the data.
@@ -119,17 +145,16 @@ def optimisation_loop():
     print "J = ", J 
     if write_stat:
       # Update the functional value in the optimisation stat file
-      functional = libspud.get_option('/functional/name')
+      functional = superspud(opt_options, "libspud.get_option('/functional/name')")
       stat_writer[(functional, 'value')] = J
     return J
 
   # A pure version of the computation of J 
   def pure_J(m_serial, m_shape):
     m = unserialise(m_serial, m_shape)
-    run_model(m)
-    functional = libspud.get_option('/functional/name')
-    option_file = libspud.get_option('/model/option_file')
-    simulation_name = spud_get_option(option_file, "/simulation_name")
+    run_model(m, opt_options, model_options)
+    functional = superspud(opt_options, "libspud.get_option('/functional/name')")
+    simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
     stat_file = simulation_name+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
     return J
@@ -141,13 +166,12 @@ def optimisation_loop():
   # A pure version of the computation of J 
   def pure_dJdm(m_serial, m_shape):
     m = unserialise(m_serial, m_shape)
-    run_model(m)
+    run_model(m, opt_options, model_options)
     # The dJdm we also run the forward model, and in particular we computed the 
     # functional values. In order not to compute the functional values again when calling 
     # J with, we manually add fill the memoize cache.
-    functional = libspud.get_option('/functional/name')
-    option_file = libspud.get_option('/model/option_file')
-    simulation_name = spud_get_option(option_file, "/simulation_name")
+    functional = superspud(opt_options, "libspud.get_option('/functional/name')")
+    simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
     stat_file = simulation_name+".stat"
     J = stat_parser(stat_file)[functional]["value"][-1]
     # Add the functional value the memJ's cache
@@ -158,12 +182,12 @@ def optimisation_loop():
     # Check that the the controls in dJdm are consistent with the ones specified in m
     djdm_keys = djdm.keys()
     djdm_keys.sort()
-    m_keys = djdm.keys()
+    m_keys = m.keys()
     m_keys.sort()
     if m_keys != djdm_keys:
-      print "The specified controls are not consistent with the controls in the derivative in the objective function."
+      print "The specified controls are not consistent with the controls in the derivative of the objective function."
       print "The specified controls are:", m_keys
-      print "The controls in dJdm are:", djdm_keys
+      print "The control derivatives for the objective function are:", djdm_keys
       print "Check the consistency of the control definition in the model and the optimiser configuration."
       exit()
     for k, v in m.iteritems():
@@ -179,24 +203,49 @@ def optimisation_loop():
   # This function gets called after each optimisation iteration. 
   # It is currently used to do write the statistics to the stat file.
   def callback(m_serial, m_shape):
-    if libspud.have_option("/debugging/check_gradient"):
+    if superspud(opt_options, "libspud.have_option('/debugging/check_gradient')"):
       grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
-      functional = libspud.get_option('/functional/name')
+      functional = superspud(opt_options, "libspud.get_option('/functional/name')")
       stat_writer[(functional + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
 
   # Initialise stat file
-  stat_writer=stat_creator(libspud.get_option('/name').strip() + '.stat')
+  stat_writer=stat_creator(superspud(opt_options, "libspud.get_option('/name')").strip() + '.stat')
   # Get the optimisation settings
-  algo = libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')
-  tol = libspud.get_option('/optimisation_options/tolerance')
-  # Initialise the controls
-  m = initialise_model_controls()
-  [m_serial, m_shape] = serialise(m)
-  print "Using ", algo, " as optimisation algorithm."
+  algo = superspud(opt_options, "libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')")
+  tol = superspud(opt_options, "libspud.get_option('/optimisation_options/tolerance')")
   # Create the memoized version of the functional (derivative) evaluation functions
   mem_pure_dJdm = MemoizeMutable(pure_dJdm)
   mem_pure_J = MemoizeMutable(pure_J)
+  # Initialise the controls
+  # First we initialise the custom controls
+  # This has to be done first since the next step
+  # involves running the model and therefore 
+  # will need the custom controls to be set.
+  custom_m = get_initial_custom_controls(opt_options)
+  # And then the default controls by running the model with the option
+  # /adjoint/controls/record_controls
+  # switched on.
+  model_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
+  if (not superspud(model_options, "libspud.have_option('/adjoint/controls/record_controls')")):
+      superspud(model_options, ["libspud.add_option('/adjoint/controls/record_controls')", "libspud.write_options('"+ model_file +"')"])
+  # Run the forward model including adjoint.
+  [custom_m_serial, custom_m_shape] = serialise(custom_m)
+  mem_pure_dJdm(custom_m_serial, custom_m_shape)
+  # This should have created all the remaining intial controls and we can remove the record flag safely
+  superspud(model_options, ["libspud.delete_option('/adjoint/controls/record_controls')", "libspud.write_options('"+ model_file +"')"])
+  # Load the default controls
+  m = get_initial_default_controls(model_options)
+  nb_controls = len(m) + len(custom_m)
+  m.update(custom_m)
+  if (nb_controls != len(m)):
+    print "Error: Two controls with the same name defined"
+    print "The controls must have all unique names."
+    print "Your controls are: ", m.keys()
+    exit()
+
+  [m_serial, m_shape] = serialise(m)
+  print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
     res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   if algo == 'NCG':
@@ -216,15 +265,17 @@ def main():
   if not os.path.isfile(args.filename):
     print "File", args.filename, "not found."
     exit()
-  libspud.load_options(args.filename)
-  if not libspud.have_option('/optimisation_options'):
+  # Initial spud environments for the optimiser and model options.
+  opt_options = args.filename
+  if not superspud(opt_options, "libspud.have_option('/optimisation_options')"):
     print "File", args.filename, "is not a valid .oml file."
     exit()
-  if not os.path.isfile(libspud.get_option('/model/option_file')):
-      print "Could not find ", libspud.get_option('/model/option_file') ," as specified in /model/option_file"
+  model_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
+  if not os.path.isfile(model_file):
+      print "Could not find ", model_file ," as specified in /model/option_file"
       exit()
   # Start the optimisation loop
-  optimisation_loop() 
+  optimisation_loop(opt_options, model_file) 
 
 if '__main__'==__name__:
       start_time = time.time()
