@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>test_shallow_water</name>
+  <owner userid="colin"/>
+  <tags>flml swml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>test_trace_space trace_space.swml &amp;&gt; tr.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Passed" language="python">
+f= open('tr.log', 'r')
+Passed = False
+for line in f:
+   if 'PASSED' in line:
+      Passed = True
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Passed" language="python">
+assert Passed
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
