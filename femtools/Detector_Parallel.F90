@@ -88,21 +88,22 @@ contains
 
   end subroutine get_registered_detector_lists
 
-  subroutine distribute_detectors(state, detector_list, ihash)
+  subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
-    type(integer_hash_table), intent(in) :: ihash
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_type), pointer :: detector, node_to_send
     type(vector_field), pointer :: xfield
-    integer :: i, k, all_send_lists_empty, list_neigh_processor, number_neigh_processors, processor_owner
+    integer :: i, k, nprocs, all_send_lists_empty, processor_owner
 
     xfield => extract_vector_field(state(1),"Coordinate")
-    number_neigh_processors=key_count(ihash)
-    allocate(send_list_array(number_neigh_processors))
+
+    ! We allocate a sendlist for every processor
+    nprocs=getnprocs()
+    allocate(send_list_array(nprocs))
 
     detector => detector_list%firstnode
     do i = 1, detector_list%length
@@ -110,18 +111,17 @@ contains
        processor_owner=element_owner(xfield%mesh,detector%element)
 
        if (processor_owner/= getprocno()) then
-          list_neigh_processor=fetch(ihash,processor_owner)
           node_to_send => detector
           detector => detector%next
 
-          call move(detector_list,node_to_send,send_list_array(list_neigh_processor))
+          call move(detector_list,node_to_send,send_list_array(processor_owner))
        else
           detector => detector%next
        end if
     end do
 
     all_send_lists_empty=0
-    do k=1, number_neigh_processors
+    do k=1, nprocs
        if (send_list_array(k)%length/=0) then
           all_send_lists_empty=1
        end if
@@ -130,11 +130,11 @@ contains
 
     if (all_send_lists_empty/=0) then
        call exchange_detectors(state(1),detector_list, &
-          send_list_array, number_neigh_processors, ihash)
+          send_list_array)
     end if
 
     ! Make sure send lists are empty and deallocate them
-    do k=1, number_neigh_processors
+    do k=1, nprocs
        assert(send_list_array(k)%length==0)
     end do
     deallocate(send_list_array)
@@ -147,53 +147,45 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, &
-         send_list_array,number_neigh_processors,ihash)
+  subroutine exchange_detectors(state, detector_list, send_list_array)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
-    integer, intent(inout) :: number_neigh_processors
-    type(integer_hash_table), intent(in) :: ihash
 
     real, dimension(:,:), allocatable :: detector_buffer
     type(detector_type), pointer :: detector, detector_received
     type(vector_field), pointer :: xfield
     type(halo_type), pointer :: ele_halo
-    type(integer_hash_table) :: gens
-    integer :: i, j, dim, count, n_stages, target_proc, IERROR, &
+    type(integer_hash_table) :: ele_numbering_inverse
+    integer :: j, dim, count, n_stages, target_proc, receive_proc, &
                det_size, ndet_to_send, ndet_received, &
-               halo_level, target_proc_a, mapped_val_a
+               halo_level, nprocs, IERROR
     integer, parameter ::TAG=12
     integer, dimension(:), allocatable :: sendRequest, status
-    type(element_type), pointer :: shape
-    type(integer_hash_table) :: ihash_inverse
     logical :: have_update_vector
 
     ewrite(2,*) "In exchange_detectors"  
 
+    ! We want a sendlist for every processor
+    nprocs=getnprocs()
+    assert(size(send_list_array)==nprocs)
+
     xfield => extract_vector_field(state,"Coordinate")
-    shape=>ele_shape(xfield,1)
     dim=xfield%dim
  
     !set up sendrequest tags because we are going to do an MPI_Isend
     !these are used by wait_all
-    allocate( sendRequest(number_neigh_processors) )
+    allocate( sendRequest(nprocs) )
 
     !Get the element halo 
     halo_level = element_halo_count(xfield%mesh)
     if (halo_level /= 0) then
        ele_halo => xfield%mesh%element_halos(halo_level)
+    else
+       ! Something should be done here...
     end if
-
-    !Get the inverse of the hash table mapping between 
-    !processor numbers and numbering in the send list array
-    call allocate(ihash_inverse) 
-    do i=1, key_count(ihash)
-       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-       call insert(ihash_inverse, mapped_val_a, target_proc_a)
-    end do
 
     ! If RK-GS parameters are still allocated, we need a bigger buffer
     have_update_vector=associated(detector_list%move_parameters)
@@ -203,15 +195,17 @@ contains
        det_size=det_size+(n_stages+1)*dim
     end if
     
-    do i=1, number_neigh_processors
-       ndet_to_send=send_list_array(i)%length
+    do target_proc=1, nprocs
+       ndet_to_send=send_list_array(target_proc)%length
        allocate(detector_buffer(ndet_to_send,det_size))
-       ewrite(2,*) "Neighbour", i, "ndet_to_send:", ndet_to_send
 
-       detector => send_list_array(i)%firstnode
-       if(ndet_to_send>0) then
-          do j=1, send_list_array(i)%length
+       ewrite(2,*) "Proc", target_proc, "ndet_to_send:", ndet_to_send
 
+       detector => send_list_array(target_proc)%firstnode
+       if (ndet_to_send>0) then
+          do j=1, send_list_array(target_proc)%length
+
+             ! translate detector element to universal element
              assert(detector%element>0)
              detector%element = halo_universal_number(ele_halo, detector%element)
 
@@ -222,14 +216,13 @@ contains
              end if
 
              ! delete also advances detector
-             call delete(send_list_array(i), detector)
+             call delete(send_list_array(target_proc), detector)
           end do
        end if
-       target_proc=fetch(ihash_inverse, i)
 
        ! getprocno() returns the rank of the processor + 1, hence target_proc-1
        call MPI_ISEND(detector_buffer,size(detector_buffer), &
-            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(i), IERROR)
+            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(target_proc), IERROR)
        assert(ierror == MPI_SUCCESS)
 
        ! Deallocate buffer after sending
@@ -237,10 +230,10 @@ contains
     end do
 
     allocate( status(MPI_STATUS_SIZE) )
-    call get_universal_numbering_inverse(ele_halo, gens)
-    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(gens)    
+    call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
+    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(ele_numbering_inverse)    
 
-    do i=1, number_neigh_processors              
+    do receive_proc=1, nprocs
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
@@ -249,21 +242,25 @@ contains
 
        ndet_received=count/det_size
        allocate(detector_buffer(ndet_received,det_size))
-       ewrite(2,*) "Neighbour", i, "ndet_received:", ndet_received
+       ewrite(2,*) "Proc", receive_proc, "ndet_received:", ndet_received
 
        call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        do j=1, ndet_received
-
           allocate(detector_received)
 
+          ! Unpack routine uses ele_numbering_inverse to translate universal element 
+          ! back to local detector element
           if (have_update_vector) then
-             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield,nstages=n_stages)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
           else
-             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
+                    global_to_local=ele_numbering_inverse,coordinates=xfield)
           end if
 
+          ! If there is a list of detector names, use it, otherwise set ID as name
           if (allocated(detector_list%detector_names)) then
              detector_received%name=detector_list%detector_names(detector_received%id_number)
           else
@@ -275,11 +272,10 @@ contains
        deallocate(detector_buffer)
     end do    
 
-    call MPI_WAITALL(number_neigh_processors, sendRequest, MPI_STATUSES_IGNORE, IERROR)
+    call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
     assert(ierror == MPI_SUCCESS)
 
-    call deallocate(gens)
-    call deallocate(ihash_inverse) 
+    call deallocate(ele_numbering_inverse)
 
     ewrite(2,*) "Exiting exchange_detectors"  
 
