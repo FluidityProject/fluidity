@@ -34,6 +34,7 @@ module shallow_water_adjoint_controls
   use state_module
   use python_state
   use sparse_matrices_fields
+  use manifold_projections
 
     implicit none
 
@@ -57,19 +58,23 @@ module shallow_water_adjoint_controls
       character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name
       integer :: nb_controls
       integer :: i
-      type(scalar_field), pointer :: sfield, adj_sfield
-      type(vector_field), pointer :: vfield, adj_vfield
+      type(scalar_field), pointer :: sfield, adj_sfield, adj_sfield2
+      type(vector_field), pointer :: vfield, adj_vfield, positions
       type(tensor_field), pointer :: tfield, adj_tfield
-      type(block_csr_matrix), pointer :: u_mass_mat
+      type(block_csr_matrix), pointer :: big_mat, div_mat, u_mass_mat
       type(csr_matrix), pointer :: h_mass_mat
+      
+      type(vector_field) :: local_src_tmp, local_src_tmp2, src_tmp
+      real :: theta, d0, dt 
      
       state = states(1)
-      !print *, "In shallow_water_adjoint_timestep_callback"
-      !call print_state(state)
+      print *, "In shallow_water_adjoint_timestep_callback"
+      call print_state(state)
       ! Cast the data to the matrices state 
       matrices = transfer(data, matrices)
-      !print*, " ************************* Matrices: ************************** "
-      !call print_state(matrices) 
+      print*, " ************************* Matrices: ************************** "
+      call print_state(matrices) 
+
       nb_controls = option_count("/adjoint/controls/control")
       do i = 0, nb_controls-1
         call get_option("/adjoint/controls/control[" // int2str(i) //"]/name", control_deriv_name)
@@ -86,7 +91,7 @@ module shallow_water_adjoint_controls
             if (has_scalar_field(state, field_deriv_name)) then
               if (trim(field_name) == "LayerThickness") then
                 adj_sfield => extract_scalar_field(state, "Adjoint" // trim(field_name))
-                sfield => extract_scalar_field(state, field_deriv_name)
+                sfield => extract_scalar_field(state, field_deriv_name) ! Output field
                 h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
                 call mult(sfield, h_mass_mat, adj_sfield)
               else
@@ -95,14 +100,14 @@ module shallow_water_adjoint_controls
             elseif (has_vector_field(state, field_deriv_name)) then
               if (trim(field_name) == "Velocity") then
                 adj_vfield => extract_vector_field(state, "Adjoint" // trim(field_name))
-                vfield => extract_vector_field(state, field_deriv_name)
+                vfield => extract_vector_field(state, field_deriv_name) ! Output field
                 u_mass_mat => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
                 call mult(vfield, u_mass_mat, adj_vfield)
               else
                 FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
               end if
             elseif (has_tensor_field(state, field_deriv_name)) then
-              tfield => extract_tensor_field(state, field_deriv_name)
+              tfield => extract_tensor_field(state, field_deriv_name) ! Output field
               FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
             else
               FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
@@ -110,9 +115,69 @@ module shallow_water_adjoint_controls
           !!!!!!!!!!!!! Boundary condition !!!!!!!!!!!!
           case("boundary_condition")
             FLAbort("Boundary condition control not implemented yet.")
-          !!!!!!!!!!!!! Source  !!!!!!!!!!!!
+          !!!!!!!!!!!!! Source !!!!!!!!!!!!
           case("source_term")
-            FLAbort("Source control not implemented yet.")
+            field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
+            if (has_scalar_field(state, field_deriv_name)) then
+              if (trim(field_name) == "LayerThicknessSource") then
+                call get_option("/timestepping/timestep", dt)
+                adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
+                sfield => extract_scalar_field(state, field_deriv_name) ! Output field
+                h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
+                call mult(sfield, h_mass_mat, adj_sfield)
+                call scale(sfield, dt)
+              else
+                FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
+              end if
+            elseif (has_vector_field(state, field_deriv_name)) then
+              if (trim(field_name) == "VelocitySource") then
+                ! We want to compute:
+                ! \lambda_{delta \eta} \Delta t^2 d_0 \theta C^T (M+\theta \Delta t L)^{-1} M P_{Cart to local}
+                vfield => extract_vector_field(state, field_deriv_name) ! Output field
+                adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
+                adj_vfield => extract_vector_field(state, "AdjointLocalVelocityDelta")
+                ! We need the AdjointVelocity for the option path only
+                adj_sfield2 => extract_scalar_field(state, "AdjointLayerThickness")
+                
+                call get_option("/timestepping/timestep", dt)
+                call get_option(trim(adj_sfield2%option_path) // "/prognostic/temporal_discretisation/theta", theta)
+                call get_option(trim(adj_sfield2%option_path) // "/prognostic/mean_layer_thickness", d0)
+                
+                big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
+                div_mat => extract_block_csr_matrix(matrices, "DivergenceMatrix")
+                h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
+                u_mass_mat => extract_block_csr_matrix(matrices, "LocalVelocityMassMatrix")
+                positions => extract_vector_field(matrices, "Coordinate")
+
+                call allocate(local_src_tmp, adj_vfield%dim, adj_vfield%mesh, "TemporaryLocalVelocity")
+                call allocate(local_src_tmp2, adj_vfield%dim, adj_vfield%mesh, "TemporaryLocalVelocity2")
+                call allocate(src_tmp, vfield%dim, vfield%mesh, "TemporaryVelocity")
+                call mult_T(local_src_tmp, div_mat, adj_sfield)
+                call mult_T(local_src_tmp2, big_mat, local_src_tmp)
+                call mult_T(local_src_tmp, u_mass_mat, local_src_tmp2)
+                call project_cartesian_to_local(positions, src_tmp, local_src_tmp, transpose=.true.)
+                call addto(vfield, src_tmp, scale = dt**2 * d0 * theta)
+               
+                ! Now add the part from \lambda_{\Delta u}
+                ! \lambda_{\Delta u} M  M_{big} M P_{cart to local}
+                call mult_T(local_src_tmp, u_mass_mat, adj_vfield)
+                call mult_T(local_src_tmp2, big_mat, local_src_tmp)
+                call mult_T(local_src_tmp, u_mass_mat, local_src_tmp2)
+                call project_cartesian_to_local(positions, src_tmp, local_src_tmp, transpose = .true.)
+                call addto(vfield, src_tmp, scale = dt)
+
+                call deallocate(local_src_tmp)
+                call deallocate(local_src_tmp2)
+                call deallocate(src_tmp)
+              else
+                FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
+              end if
+            elseif (has_tensor_field(state, field_deriv_name)) then
+              tfield => extract_tensor_field(state, field_deriv_name) ! Output field
+              FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
+            else
+              FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
+            end if
         end select
       end do
       
