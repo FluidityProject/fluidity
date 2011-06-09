@@ -62,6 +62,7 @@
     use adjoint_functional_evaluation
     use adjoint_python
     use adjoint_global_variables
+    use shallow_water_adjoint_controls
     use adjoint_main_loop
     use forward_main_loop
     use adjoint_controls
@@ -195,7 +196,7 @@
 
     timestep=0
     ! Register the initial control variables
-    call adjoint_record_controls(timestep, dt, state)
+    call adjoint_write_controls(timestep, dt, state)
     timestep_loop: do
        timestep=timestep+1
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
@@ -222,7 +223,7 @@
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
        call adjoint_register_timestep(timestep, dt, state)
-       call adjoint_record_controls(timestep, dt, state)
+       call adjoint_write_controls(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
        if (simulation_completed(current_time, timestep)) exit timestep_loop
@@ -297,7 +298,7 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no)
+      call compute_adjoint(state, dump_no, shallow_water_adjoint_timestep_callback)
 
       call deallocate_transform_cache
       call deallocate_reserve_state

@@ -38,12 +38,12 @@ module adjoint_controls
 
     private
 
-    public :: adjoint_record_controls
+    public :: adjoint_write_controls, adjoint_write_functional_totalderivatives
 
     contains 
 
     ! Loop through all controls in the option file and store them in files.
-    subroutine adjoint_record_controls(timestep, dt, states)
+    subroutine adjoint_write_controls(timestep, dt, states)
       integer, intent(in) :: timestep
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
@@ -54,8 +54,8 @@ module adjoint_controls
       type(vector_field), pointer :: vfield
       type(tensor_field), pointer :: tfield
 
-      ! Do not record anything if the user does not want it
-      if (.not. have_option("/adjoint/controls/record_controls")) then
+      ! Do not save anything if the user does not want it
+      if (.not. have_option("/adjoint/controls/write_controls")) then
         return 
       end if
       nb_controls = option_count("/adjoint/controls/control")
@@ -79,6 +79,8 @@ module adjoint_controls
             elseif (has_tensor_field(states(1), field_name)) then
               tfield => extract_tensor_field(states(1), field_name)
               call python_add_array(tfield%val, size(tfield%val, 1), size(tfield%val, 2), size(tfield%val, 3), trim(control_name), len(trim(control_name)))
+            else
+              FLAbort("The control field " // field_name // " specified for " // control_name // " is not a field in the state")
             end if
           case ("source_term")
             if (has_scalar_field(states(1), field_name)) then
@@ -90,6 +92,8 @@ module adjoint_controls
             elseif (has_tensor_field(states(1), field_name)) then
               tfield => extract_tensor_field(states(1), field_name)
               call python_add_array(tfield%val, size(tfield%val, 1), size(tfield%val, 2), size(tfield%val, 3), trim(control_name), len(trim(control_name)))
+            else
+              FLAbort("The control field " // field_name // " specified for " // control_name // " is not a field in the state")
             end if
           case ("boundary_condition")
             FLAbort("Boundary condition control not implemented yet.")
@@ -103,6 +107,52 @@ module adjoint_controls
                             &  "f.close();")
       end do
 #endif
-    end subroutine adjoint_record_controls
+    end subroutine adjoint_write_controls
+
+    ! Extracts the total derivatives of the functional and saves them to disk.
+    subroutine adjoint_write_functional_totalderivatives(state, timestep, functional_name)
+      type(state_type), intent(inout) :: state
+      integer, intent(in) :: timestep
+      character(len=*), intent(in) :: functional_name
+      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name
+      integer :: nb_controls
+      integer :: i
+      type(scalar_field), pointer :: sfield
+      type(vector_field), pointer :: vfield
+      type(tensor_field), pointer :: tfield
+     
+      nb_controls = option_count("/adjoint/controls/control")
+      do i = 0, nb_controls-1
+        call get_option("/adjoint/controls/control[" // int2str(i) //"]/name", control_deriv_name)
+        control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
+        call get_option("/adjoint/controls/control[" // int2str(i) //"]/type/name", control_type)
+        call get_option("/adjoint/controls/control[" // int2str(i) //"]/type::" // trim(control_type) // "/field_name", field_name)
+        field_name = "Adjoint" // trim(field_name)
+        if (trim(control_type) == "initial_condition" .or. trim(control_type) == "source_term") then
+          field_deriv_name = trim(functional_name) // "_" // trim(field_name) // "_TotalDerivative"
+          if (has_scalar_field(state, field_name)) then
+            sfield => extract_scalar_field(state, field_deriv_name)
+            call python_add_array(sfield%val, size(sfield%val), trim(control_deriv_name), len(trim(control_deriv_name)))
+          elseif (has_vector_field(state, field_name)) then
+            vfield => extract_vector_field(state, field_deriv_name)
+            call python_add_array(vfield%val, size(vfield%val, 1), size(vfield%val, 2), trim(control_deriv_name), len(trim(control_deriv_name)))
+          elseif (has_tensor_field(state, field_name)) then
+            tfield => extract_tensor_field(state, field_deriv_name)
+            call python_add_array(tfield%val, size(tfield%val, 1), size(tfield%val, 2), size(tfield%val, 3), trim(control_deriv_name), len(trim(control_deriv_name)))
+          else
+            FLAbort("The control field " // field_name // " specified for " // control_deriv_name // " is not a field in the state")
+          end if
+        elseif (trim(control_type) == "boundary_condition") then
+          FLAbort("Boundary condition control not implemented yet.")
+        end if
+        ! Save the control parameter to disk
+        call python_run_string("import pickle;" // &
+                            &  "import os.path;" // &
+                            &  "fname = 'control_" // trim(control_deriv_name) // "_" // int2str(timestep) // ".pkl';" // &
+                            &  "f = open(fname, 'wb');" // &
+                            &  "pickle.dump(" // control_deriv_name // ", f);" // &
+                            &  "f.close();")
+      end do
+    end subroutine adjoint_write_functional_totalderivatives
 
 end module adjoint_controls

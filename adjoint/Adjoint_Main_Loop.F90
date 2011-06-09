@@ -39,6 +39,7 @@ module adjoint_main_loop
     use global_parameters, only: OPTION_PATH_LEN, running_adjoint
     use adjoint_global_variables
     use adjoint_functional_evaluation
+    use adjoint_controls
     use populate_state_module
     use signal_vars
     use mangle_options_tree
@@ -60,9 +61,22 @@ module adjoint_main_loop
     contains
 
 #ifdef HAVE_ADJOINT
-    subroutine compute_adjoint(state, dump_no)
+    ! Computes the adjoint equation
+    ! The optional adjoint timestep callback is called for each functional after every timestep in the adjoint loop.
+    ! It is commonly used to compute the diangostics from the adjoint solution, e.g. the total derivative of the functional.
+    subroutine compute_adjoint(state, dump_no, adjoint_timestep_callback)
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
+      optional :: adjoint_timestep_callback
+      interface 
+        subroutine adjoint_timestep_callback(state, timestep, functional_name)
+          use global_parameters, only: OPTION_PATH_LEN
+          use state_module
+          type(state_type), dimension(:), intent(inout) :: state
+          integer, intent(in) :: timestep
+          character(len=OPTION_PATH_LEN), intent(in) :: functional_name
+        end subroutine adjoint_timestep_callback
+      end interface
 
       type(adj_vector) :: rhs
       type(adj_vector) :: soln
@@ -130,6 +144,9 @@ module adjoint_main_loop
         ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
         call adj_chkierr(ierr)
       end do
+
+      ! Insert the fields for storing the derivatives of the functionals with respect to the controls into the state
+      call allocate_and_insert_functional_derivative_fields(state(1))
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
@@ -283,6 +300,15 @@ module adjoint_main_loop
               return
             end if
           end do ! End of equation loop
+          
+          ! Callback for the computation of the functional total derivatives
+          if (present(adjoint_timestep_callback)) then
+            call adjoint_timestep_callback(state, timestep, trim(functional_name))
+          end if
+          if (have_option("/adjoint/controls/write_controls_derivative")) then
+            ! Write the functional's total derivatives to file
+            call adjoint_write_functional_totalderivatives(state(1), timestep, trim(functional_name))
+          end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -328,6 +354,59 @@ module adjoint_main_loop
         call adj_chkierr(ierr)
       end subroutine adjoint_cleanup
     end subroutine compute_adjoint
+
+    subroutine allocate_and_insert_functional_derivative_fields(state)
+      type(state_type), intent(inout) :: state
+      integer :: nb_controls, nb_functionals, i, functional
+      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_name, functional_name, field_deriv_name
+      type(scalar_field), pointer :: sfield
+      type(vector_field), pointer :: vfield
+      type(tensor_field), pointer :: tfield
+      type(scalar_field) :: sfield_deriv
+      type(vector_field) :: vfield_deriv
+      type(tensor_field) :: tfield_deriv
+
+      nb_controls = option_count("/adjoint/controls/control")
+      nb_functionals = option_count("/adjoint/functional")
+      ! Loop over the functionals
+      do functional = 0, nb_functionals-1
+        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+        ! Now loop over the controls 
+        do i = 0, nb_controls-1
+          call get_option("/adjoint/controls/control[" // int2str(i) //"]/name", control_name)
+          call get_option("/adjoint/controls/control[" // int2str(i) //"]/type/name", control_type)
+          call get_option("/adjoint/controls/control[" // int2str(i) //"]/type::" // trim(control_type) // "/field_name", field_name)
+          field_name = "Adjoint" // trim(field_name)
+          if (trim(control_type) == "initial_condition" .or. trim(control_type) == "source_term") then
+            field_deriv_name = trim(functional_name) // "_" // trim(field_name) // "_TotalDerivative"
+            if (has_scalar_field(state, field_name)) then
+              sfield => extract_scalar_field(state, field_name)
+              call allocate(sfield_deriv, sfield%mesh, field_deriv_name)
+              call zero(sfield_deriv)
+              call insert(state, sfield_deriv, field_deriv_name)
+              call deallocate(sfield_deriv)
+            elseif (has_vector_field(state, field_name)) then
+              vfield => extract_vector_field(state, field_name)
+              call allocate(vfield_deriv, mesh_dim(vfield), vfield%mesh, field_deriv_name)
+              call zero(vfield_deriv)
+              call insert(state, vfield_deriv, field_deriv_name)
+              call deallocate(vfield_deriv)
+            elseif (has_tensor_field(state, field_name)) then
+              tfield => extract_tensor_field(state, field_name)
+              call allocate(tfield_deriv, tfield%mesh, field_deriv_name, mesh_dim(tfield))
+              call zero(tfield_deriv)
+              call insert(state, tfield_deriv, field_deriv_name)
+              call deallocate(tfield_deriv)
+            else
+              FLAbort("The control field " // field_name // " specified for " // control_name // " is not a field in the state")
+            end if
+          elseif (trim(control_type) == "boundary_condition") then
+            FLAbort("Boundary condition control not implemented yet.")
+          end if
+        end do
+      end do
+    end subroutine allocate_and_insert_functional_derivative_fields
+
 #endif
 
 end module adjoint_main_loop

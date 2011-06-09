@@ -172,7 +172,7 @@ but all adjoint related entries will be zeroed.</a:documentation>
                   <ref name="comment"/>
                 </element>
                 <element name="type">
-                  <a:documentation>Source term </a:documentation>
+                  <a:documentation>Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)</a:documentation>
                   <attribute name="name">
                     <value>source_term</value>
                   </attribute>
@@ -185,8 +185,15 @@ but all adjoint related entries will be zeroed.</a:documentation>
             </element>
           </zeroOrMore>
           <optional>
-            <element name="record_controls">
-              <a:documentation>Stores the record variables while running the forward model
+            <element name="write_controls">
+              <a:documentation>Writes the controls to disk while running the forward model.
+This is used for the optimiser.py only and can be left disabled by the user.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="write_controls_derivative">
+              <a:documentation>Writes the derivative of the functional with respect to the controls to disk while running the adjoint model.
 This is used for the optimiser.py only and can be left disabled by the user.</a:documentation>
               <empty/>
             </element>
