@@ -117,6 +117,9 @@ module shallow_water_adjoint_controls
             FLAbort("Boundary condition control not implemented yet.")
           !!!!!!!!!!!!! Source !!!!!!!!!!!!
           case("source_term")
+            if (timestep == 0) then
+             cycle
+            end if 
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
             if (has_scalar_field(state, field_deriv_name)) then
               if (trim(field_name) == "LayerThicknessSource") then
