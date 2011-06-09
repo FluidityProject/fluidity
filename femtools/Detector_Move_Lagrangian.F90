@@ -131,10 +131,8 @@ contains
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
-    type(integer_hash_table) :: ihash
     type(halo_type), pointer :: ele_halo
-    integer :: i, j, k, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, &
-               halo_level, stage, cycle
+    integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle
     logical :: any_lagrangian
     real :: rk_dt
 
@@ -145,31 +143,10 @@ contains
     !Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield => extract_vector_field(state(1),"Velocity")
-    halo_level = element_halo_count(vfield%mesh)
 
-    !making a hash table of {processor_number,count}
-    !where processor_number is the number of a processor
-    !which overlaps the domain of this processor
-    !and count goes from 1 up to total number of overlapping processors
-    !This is used to compute number_neigh_processors
-    number_neigh_processors=0
-    call allocate(ihash) 
-    if (halo_level /= 0.) then
-       ele_halo => vfield%mesh%element_halos(halo_level)
-       nprocs = halo_proc_count(ele_halo)
-       num_proc=1
-       do i = 1, nprocs 
-          if ((halo_send_count(ele_halo, i) + &
-               halo_receive_count(ele_halo, i) > 0)&
-               .and.(.not.has_key(ihash, i))) then
-             call insert(ihash, i, num_proc)
-             num_proc=num_proc+1
-          end if
-       end do
-       number_neigh_processors=key_count(ihash)
-    end if
-
-    allocate(send_list_array(number_neigh_processors))
+    ! We allocate a sendlist for every processor
+    nprocs=getnprocs()
+    allocate(send_list_array(nprocs))
 
     call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
     rk_dt = dt/parameters%n_subcycles
@@ -199,12 +176,12 @@ contains
                 !and added to the send_list_array
 
                 call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,ihash,send_list_array,parameters%search_tolerance)
+                        vfield,xfield,send_list_array,parameters%search_tolerance)
 
                 !Work out whether all send lists are empty,
                 !in which case exit.
                 all_send_lists_empty=0
-                do k=1, number_neigh_processors
+                do k=1, nprocs
                    if (send_list_array(k)%length/=0) then
                       all_send_lists_empty=1
                    end if
@@ -215,8 +192,7 @@ contains
                 !This call serialises send_list_array,
                 !sends it, receives serialised receive_list_array,
                 !unserialises that.
-                call exchange_detectors(state(1),detector_list, &
-                      send_list_array,number_neigh_processors,ihash)
+                call exchange_detectors(state(1),detector_list, send_list_array)
              else
                 ! If we run out of lagrangian detectors for some reason, exit the loop
                 exit
@@ -231,13 +207,11 @@ contains
     !!! at the end of write_detectors subroutine I need to loop over all the detectors 
     !!! in the list and check that I own them (the element where they are). 
     !!! If not, they need to be sent to the processor owner before adaptivity happens
-    call distribute_detectors(state, detector_list, ihash)
+    call distribute_detectors(state, detector_list)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     call deallocate_rk_guided_search(detector_list)
-
-    call deallocate(ihash) 
 
   end subroutine move_lagrangian_detectors
 

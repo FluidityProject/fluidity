@@ -151,11 +151,10 @@ contains
     !This is done by computing the local coordinates of the target point,
     !finding the local coordinate closest to -infinity
     !and moving to the element through that face
-    subroutine move_detectors_guided_search(detector_list,vfield,xfield,ihash,send_list_array,search_tolerance)
+    subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance)
       type(detector_linked_list), intent(inout) :: detector_list
       type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
       type(vector_field), pointer, intent(in) :: vfield,xfield
-      type(integer_hash_table), intent(in) :: ihash
       real, intent(in) :: search_tolerance
 
       type(detector_type), pointer :: det0, det_send
@@ -222,8 +221,7 @@ contains
                      det_send => det0
                      det0 => det0%next
                      !this face goes into another computational domain
-                     proc_local_number=fetch(ihash,&
-                          &element_owner(vfield%mesh,det_send%element))
+                     proc_local_number=element_owner(vfield%mesh,det_send%element)
 
                      call move(detector_list,det_send&
                           &,send_list_array(proc_local_number))
