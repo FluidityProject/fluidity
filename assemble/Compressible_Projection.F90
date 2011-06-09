@@ -58,10 +58,11 @@ module compressible_projection
 
 contains
 
-  subroutine assemble_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
+  subroutine assemble_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, theta_divergence, assemble_cmc, reuse_cmc)
 
-    ! inputs:
-    ! bucket full of fields
+    ! assemble the "compressible parts" of the projection equation
+    ! i.e. add in the drhodp mass term to cmc (C^T M^-1 C has been assembled before)
+    ! and assemble the right hand side terms; rhs here starts from zero, any additional terms (e.g. weak bcs) need to be added in outside this routine 
     type(state_type), dimension(:), intent(inout) :: state
 
     type(csr_matrix), intent(inout) :: cmc
@@ -69,27 +70,41 @@ contains
 
     real, intent(in) :: dt
     real, intent(in) :: theta_pg, theta_divergence
-    logical, intent(in) :: cmcget
+    ! this indicates whether cmc has just been reassembled and the mass terms
+    ! are added directly. If .false. (only in combination with reuse_cmc==.true.)
+    ! cmc is reused from a previous non-linear iteration. The mass terms
+    ! from this previous iteration are subtracted first
+    logical, intent(in) :: assemble_cmc
+    ! if .true. store the mass terms also separately in state, so we can
+    ! subtract them out the next time
+    logical, intent(in) :: reuse_cmc
+
 
     if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
     
       call assemble_1mat_compressible_projection_cv(state(1), cmc, rhs, dt, &
-                                                    theta_pg, theta_divergence, cmcget)
+                                                    theta_pg, theta_divergence, assemble_cmc, reuse_cmc)
       
-    else
+    else if (.not. reuse_cmc) then
     
-      call assemble_mmat_compressible_projection_cv(state, cmc, rhs, dt, cmcget)
+      call assemble_mmat_compressible_projection_cv(state, cmc, rhs, dt, assemble_cmc)
+
+    else
+
+      FLExit("Prognostic momentum does not work with multi-material compressible.")
       
     end if
-    
+
 
   end subroutine assemble_compressible_projection_cv
 
   subroutine assemble_1mat_compressible_projection_cv(state, cmc, rhs, dt, &
-                                                      theta_pg, theta_divergence, cmcget)
+                                                      theta_pg, theta_divergence, &
+                                                      assemble_cmc, reuse_cmc)
 
-    ! inputs:
-    ! bucket full of fields
+    ! assemble the "compressible parts" of the projection equation
+    ! i.e. add in the drhodp mass term to cmc (C^T M^-1 C has been assembled before)
+    ! and assemble the right hand side terms; rhs here starts from zero, any additional terms (e.g. weak bcs) need to be added in outside this routine 
     type(state_type), intent(inout) :: state
 
     type(csr_matrix), intent(inout) :: cmc
@@ -97,12 +112,20 @@ contains
 
     real, intent(in) :: dt
     real, intent(in) :: theta_pg, theta_divergence
-    logical, intent(in) :: cmcget
+    ! this indicates whether cmc has just been reassembled and the mass terms
+    ! are added directly. If .false. (only in combination with reuse_cmc==.true.)
+    ! cmc is reused from a previous non-linear iteration. The mass terms
+    ! from this previous iteration are subtracted first
+    logical, intent(in) :: assemble_cmc
+    ! if .true. store the mass terms also separately in state, so we can
+    ! subtract them out the next time
+    logical, intent(in) :: reuse_cmc
 
     ! local:
     integer :: norm_stat
     character(len=FIELD_NAME_LEN) :: normalisation_field
 
+    type(scalar_field), pointer:: prev_projection_mass
     type(scalar_field) :: eospressure, drhodp
     type(scalar_field), pointer :: normalisation, &
                                    density, olddensity
@@ -119,112 +142,132 @@ contains
     
     call zero(rhs)
 
-    ! only do all this if we need to make cmc (otherwise we'd be adding repeatedly)
-    if(cmcget) then
-
-      pressure=>extract_scalar_field(state, "Pressure")
-      call get_option(trim(pressure%option_path)//'/prognostic/atmospheric_pressure', &
+    pressure=>extract_scalar_field(state, "Pressure")
+    call get_option(trim(pressure%option_path)//'/prognostic/atmospheric_pressure', &
                       atmospheric_pressure, default=0.0)
       
-      if(pressure%mesh%shape%degree>1) then
-        ! try lumping on the submesh
-        p_lumpedmass => get_lumped_mass_on_submesh(state, pressure%mesh)
-      else
-        ! find the lumped mass
-        p_lumpedmass => get_lumped_mass(state, pressure%mesh)
-      end if
-      ewrite_minmax(p_lumpedmass)
-      
-      call get_option(trim(pressure%option_path)//"/prognostic/scheme/use_compressible_projection_method/normalisation/name", &
+    if(pressure%mesh%shape%degree>1) then
+      ! try lumping on the submesh
+      p_lumpedmass => get_lumped_mass_on_submesh(state, pressure%mesh)
+    else
+      ! find the lumped mass
+      p_lumpedmass => get_lumped_mass(state, pressure%mesh)
+    end if
+    ewrite_minmax(p_lumpedmass)
+    
+    call get_option(trim(pressure%option_path)//"/prognostic/scheme/use_compressible_projection_method/normalisation/name", &
                       normalisation_field, stat=norm_stat)
-      if(norm_stat==0) then
-        normalisation=>extract_scalar_field(state, trim(normalisation_field))
-      else
-        allocate(normalisation)
-        call allocate(normalisation, pressure%mesh, "DummyNormalisation", field_type=FIELD_TYPE_CONSTANT)
-        call set(normalisation, 1.0)
-      end if
+    if(norm_stat==0) then
+      normalisation=>extract_scalar_field(state, trim(normalisation_field))
+    else
+      allocate(normalisation)
+      call allocate(normalisation, pressure%mesh, "DummyNormalisation", field_type=FIELD_TYPE_CONSTANT)
+      call set(normalisation, 1.0)
+    end if
+    
+    call allocate(invnorm, normalisation%mesh, "InverseNormalisation", field_type=normalisation%field_type)
+    call invert(normalisation, invnorm)
+    
+    if(norm_stat/=0) then
+      call deallocate(normalisation)
+      deallocate(normalisation)
+    end if
+
+    call allocate(lhsfield, pressure%mesh, "LHSField")
+
+    call allocate(eospressure, pressure%mesh, 'EOSPressure')
+    call allocate(drhodp, pressure%mesh, 'DerivativeDensityWRTBulkPressure')
+
+    call zero(eospressure)
+    call zero(drhodp)
+
+    call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
+
+    density=>extract_scalar_field(state,'Density')
+    ewrite_minmax(density)
+    olddensity=>extract_scalar_field(state,'OldDensity')
+    ewrite_minmax(olddensity)
+
+    call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", theta)
+
+    if (reuse_cmc) then
+      ewrite(2,*) "Trying to reuse cmc"
+      prev_projection_mass => extract_scalar_field(state, "PreviousCompressibleProjectionMass", stat=stat)
       
-      call allocate(invnorm, normalisation%mesh, "InverseNormalisation", field_type=normalisation%field_type)
-      call invert(normalisation, invnorm)
-      
-      if(norm_stat/=0) then
-        call deallocate(normalisation)
-        deallocate(normalisation)
+      if (stat/=0) then
+        ewrite(2,*) "New assembly of cmc, creating separate mass matrix"
+        ! no mass matrix left from previous iteration
+        if (.not. assemble_cmc) then
+          FLAbort("Told to reuse cmc but can't find mass matrix from previous iteration")
+        end if
+      else if (.not. assemble_cmc) then
+        ewrite(2,*) "Subtracting mass terms from previous iteration"
+        ! cmc has not been reassembled, so we need to subtract the mass matrix from the previous iteration
+        call addto_diag(cmc, prev_projection_mass, scale=-1.0)
       end if
+    end if
 
-      call allocate(lhsfield, pressure%mesh, "LHSField")
-
-      call allocate(eospressure, pressure%mesh, 'EOSPressure')
-      call allocate(drhodp, pressure%mesh, 'DerivativeDensityWRTBulkPressure')
-
-      call zero(eospressure)
-      call zero(drhodp)
-
-      call compressible_eos(state, pressure=eospressure, drhodp=drhodp)
-
-      density=>extract_scalar_field(state,'Density')
-      ewrite_minmax(density)
-      olddensity=>extract_scalar_field(state,'OldDensity')
-      ewrite_minmax(olddensity)
-
-      call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", theta)
-
-      call set(lhsfield, p_lumpedmass)
-      call scale(lhsfield, drhodp)
-      call scale(lhsfield, invnorm)
-      call addto_diag(cmc, lhsfield, scale=1./(dt*dt*theta_divergence*theta_pg))
+    call set(lhsfield, p_lumpedmass)
+    call scale(lhsfield, drhodp)
+    call scale(lhsfield, invnorm)
       
 !     rhs = invnorm*p_lumpedmass* &
 !      ( (1./dt)*(olddensity - density + drhodp*(eospressure - (pressure + atmospheric_pressure)))
 !       +(absorption)*(drhodp*theta_pg*(eospressure - (pressure + atmospheric_pressure)) - theta_pg*density - (1-theta_pg)*olddensity)
 !       +source)
-      call set(rhs, pressure)
-      call addto(rhs, atmospheric_pressure)
-      call scale(rhs, -1.0)
-      call addto(rhs, eospressure)
-      call scale(rhs, drhodp)
-      call addto(rhs, density, -1.0)
-      call addto(rhs, olddensity)
-      call scale(rhs, (1./dt))
+    call set(rhs, pressure)
+    call addto(rhs, atmospheric_pressure)
+    call scale(rhs, -1.0)
+    call addto(rhs, eospressure)
+    call scale(rhs, drhodp)
+    call addto(rhs, density, -1.0)
+    call addto(rhs, olddensity)
+    call scale(rhs, (1./dt))
       
-      source => extract_scalar_field(state, "DensitySource", stat=stat)
-      if(stat==0) then
-        call addto(rhs, source)
-      end if
-      
-      absorption => extract_scalar_field(state, "DensityAbsorption", stat=stat)
-      if(stat==0) then
-        call allocate(absrhs, absorption%mesh, "AbsorptionRHS")
-        
-        call set(absrhs, pressure)
-        call addto(absrhs, atmospheric_pressure)
-        call scale(absrhs, -1.0)
-        call addto(absrhs, eospressure)
-        call scale(absrhs, drhodp)
-        call scale(absrhs, theta)
-        call addto(absrhs, density, -theta)
-        call addto(absrhs, olddensity, -(1-theta))
-        call scale(absrhs, absorption)
-        
-        call addto(rhs, absrhs)
-        
-        call deallocate(absrhs)
-        
-        call scale(lhsfield, absorption)
-        call addto_diag(cmc, lhsfield, scale=(theta/(dt*theta_divergence*theta_pg)))
-      end if
-      
-      call scale(rhs, p_lumpedmass)
-      call scale(rhs, invnorm)
-      
-      call deallocate(eospressure)
-      call deallocate(drhodp)
-
-      call deallocate(lhsfield)
-      call deallocate(invnorm)
-
+    source => extract_scalar_field(state, "DensitySource", stat=stat)
+    if(stat==0) then
+      call addto(rhs, source)
     end if
+    
+    absorption => extract_scalar_field(state, "DensityAbsorption", stat=stat)
+    if(stat==0) then
+      call allocate(absrhs, absorption%mesh, "AbsorptionRHS")
+      
+      call set(absrhs, pressure)
+      call addto(absrhs, atmospheric_pressure)
+      call scale(absrhs, -1.0)
+      call addto(absrhs, eospressure)
+      call scale(absrhs, drhodp)
+      call scale(absrhs, theta)
+      call addto(absrhs, density, -theta)
+      call addto(absrhs, olddensity, -(1-theta))
+      call scale(absrhs, absorption)
+      
+      call addto(rhs, absrhs)
+
+      ! mass -> mass*(1+abs*dt*theta)
+      call set(absrhs, lhsfield) ! (reusing absrhs as temp field)
+      call scale(absrhs, absorption)
+      call addto(lhsfield, lhsfield, scale=dt*theta)
+
+      call deallocate(absrhs)
+    end if
+    call scale(lhsfield, 1./(dt*dt*theta_divergence*theta_pg))
+    call addto_diag(cmc, lhsfield)
+    if (reuse_cmc) then
+      ! keep the mass term so we can subtract it next time
+      ! note, this will automatically drop the reference of the previous insertion (if any)
+      call insert(state, lhsfield, "PreviousCompressibleProjectionMass")
+    end if
+    
+    call scale(rhs, p_lumpedmass)
+    call scale(rhs, invnorm)
+    
+    call deallocate(eospressure)
+    call deallocate(drhodp)
+
+    call deallocate(lhsfield)
+    call deallocate(invnorm)
 
   end subroutine assemble_1mat_compressible_projection_cv
 

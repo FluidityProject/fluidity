@@ -1581,16 +1581,17 @@
          if(use_compressible_projection) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
+            ! if have_prognostic_momentum, we could potentially reuse
+            ! div-grad terms of cmc - provided there is no mesh_movement,
+            ! assemble_cmc will be .false. after the first nonlinear iteration
+            ! and cmc will be reused by first subtracting the mass term from the
+            ! previous iteration before adding the new one
+            reuse_cmc_m = have_prognostic_momentum
+
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
-                                                      theta_pg, theta_divergence, assemble_cmc_m)
+                                                      theta_pg, theta_divergence, assemble_cmc_m, reuse_cmc_m)
             else if(cg_pressure) then
-               ! if have_prognostic_momentum, we could potentially reuse
-               ! div-grad terms of cmc - provided there is no mesh_movement,
-               ! assemble_cmc will be .false. after the first nonlinear iteration
-               ! and cmc will be reused by first subtracting the mass term from the
-               ! previous iteration before adding the new one
-               reuse_cmc_m = have_prognostic_momentum
                call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, assemble_cmc_m, reuse_cmc_m)
             else
