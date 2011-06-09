@@ -1263,6 +1263,7 @@ contains
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))
+       ewrite(3,*) 'Allocating ele%number2count, ele%dimension+1, i+1: ', ele%dimension+1, i+1
        allocate(ele%number2count(ele%dimension+1,i+1))
        allocate(ele%boundary_coord(ele%vertices))
        allocate(ele%boundary_val(ele%vertices))

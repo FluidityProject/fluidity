@@ -197,7 +197,9 @@ contains
     ! Construct shape for each node
     do i=1,shape%loc
 
+       ewrite(3,*) 'shape%loc, i, coords: ', shape%loc, i, coords
        counts(1:coords)=ele_num%number2count(:,i)
+       ewrite(3,*) 'counts: ', counts(1:coords)
        
        ! Construct appropriate polynomials.
        do j=1,coords
