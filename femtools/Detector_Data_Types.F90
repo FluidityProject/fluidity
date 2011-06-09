@@ -99,7 +99,8 @@ module detector_data_types
      ! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list
      type(stringlist), dimension(:), allocatable :: vfield_list
-     integer :: num_sfields, num_vfields ! Total number of fields across all phases
+     integer :: num_sfields = 0   ! Total number of scalar fields across all phases
+     integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
      !! I/O parameters
      logical :: binary_output = .false.

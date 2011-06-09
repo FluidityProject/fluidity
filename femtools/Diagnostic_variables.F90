@@ -89,7 +89,7 @@ module diagnostic_variables
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & initialise_walltime, &
        & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic, &
-       & get_diagnostic
+       & get_diagnostic, initialise_constant_diagnostics, create_single_detector
 
   public :: default_stat
   public :: stat_type
