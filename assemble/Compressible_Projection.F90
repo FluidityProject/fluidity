@@ -495,6 +495,7 @@ contains
     type(scalar_field), pointer :: pressure, density, olddensity
     type(scalar_field), pointer :: source, absorption
 
+    type(csr_matrix):: new_projection_mass
     type(csr_matrix), pointer:: projection_mass
     type(csr_sparsity), pointer:: projection_mass_sparsity
     type(scalar_field) :: eospressure, drhodp
@@ -577,9 +578,9 @@ contains
           FLAbort("Told to reuse cmc but can't find mass matrix from previous iteration")
         end if
         projection_mass_sparsity => get_csr_sparsity_firstorder(state, pressure%mesh, pressure%mesh)
-        call allocate(projection_mass, projection_mass_sparsity, name="CompressibleProjectionMassMatrix")
-        call insert(state, projection_mass, "CompressibleProjectionMassMatrix")
-        call deallocate(projection_mass)
+        call allocate(new_projection_mass, projection_mass_sparsity, name="CompressibleProjectionMassMatrix")
+        call insert(state, new_projection_mass, "CompressibleProjectionMassMatrix")
+        call deallocate(new_projection_mass)
         projection_mass => extract_csr_matrix(state, "CompressibleProjectionMassMatrix", stat=stat)
       else if (.not. assemble_cmc) then
         ewrite(2,*) "Subtracting mass terms from previous iteration"
