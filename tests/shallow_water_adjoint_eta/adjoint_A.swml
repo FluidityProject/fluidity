@@ -550,6 +550,11 @@ if time &lt; T &lt;= time+dt:
         </algorithm>
       </functional_dependencies>
     </functional>
+    <controls>
+      <control name="VelocityControl">
+        <type field_name="Velocity" name="initial_condition"/>
+      </control>
+    </controls>
     <debug>
       <html_output/>
     </debug>

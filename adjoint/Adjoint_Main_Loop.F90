@@ -39,6 +39,7 @@ module adjoint_main_loop
     use global_parameters, only: OPTION_PATH_LEN, running_adjoint
     use adjoint_global_variables
     use adjoint_functional_evaluation
+    use adjoint_controls
     use populate_state_module
     use signal_vars
     use mangle_options_tree
@@ -60,9 +61,26 @@ module adjoint_main_loop
     contains
 
 #ifdef HAVE_ADJOINT
-    subroutine compute_adjoint(state, dump_no)
+    ! Computes the adjoint equation
+    ! The optional adjoint timestep callback is called for each functional after every timestep in the adjoint loop.
+    ! It is commonly used to compute the diangostics from the adjoint solution, e.g. the total derivative of the functional.
+    subroutine compute_adjoint(state, dump_no, adjoint_timestep_callback, adjoint_timestep_callback_data)
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
+      optional :: adjoint_timestep_callback 
+      ! Data is a void pointer used to pass variables into the callback
+      character(len=1), intent(inout), optional :: adjoint_timestep_callback_data(:)
+      interface 
+        subroutine adjoint_timestep_callback(state, timestep, functional_name, data)
+          use global_parameters, only: OPTION_PATH_LEN
+          use state_module
+          type(state_type), dimension(:), intent(inout) :: state
+          integer, intent(in) :: timestep
+          character(len=OPTION_PATH_LEN), intent(in) :: functional_name
+          ! Data is a void pointer used to pass variables into the callback
+          character(len=1), intent(inout) :: data(:)
+        end subroutine adjoint_timestep_callback
+      end interface
 
       type(adj_vector) :: rhs
       type(adj_vector) :: soln
@@ -130,6 +148,9 @@ module adjoint_main_loop
         ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
         call adj_chkierr(ierr)
       end do
+
+      ! Insert the fields for storing the derivatives of the functionals with respect to the controls into the state
+      call allocate_and_insert_functional_derivative_fields(state(1))
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
@@ -283,6 +304,15 @@ module adjoint_main_loop
               return
             end if
           end do ! End of equation loop
+          
+          ! Callback for the computation of the functional total derivatives
+          if (present(adjoint_timestep_callback)) then
+            call adjoint_timestep_callback(state, timestep, trim(functional_name), adjoint_timestep_callback_data)
+          end if
+          if (have_option("/adjoint/controls/write_controls_derivative")) then
+            ! Write the functional's total derivatives to file
+            call adjoint_write_functional_totalderivatives(state(1), timestep, trim(functional_name))
+          end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -328,6 +358,7 @@ module adjoint_main_loop
         call adj_chkierr(ierr)
       end subroutine adjoint_cleanup
     end subroutine compute_adjoint
+
 #endif
 
 end module adjoint_main_loop

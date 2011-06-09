@@ -141,7 +141,7 @@ adjoint_options =
                     attribute field_name { xsd:string },
                      comment
                   }|
-                  ## Source term 
+                  ## Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)
                   element type {
                     attribute name { "source_term" },
                     attribute field_name { xsd:string },
@@ -150,9 +150,14 @@ adjoint_options =
                 )
              )
           }*,
-          ## Stores the record variables while running the forward model
+          ## Writes the controls to disk while running the forward model.
           ## This is used for the optimiser.py only and can be left disabled by the user.
-          element record_controls {
+          element write_controls {
+             empty
+          }?, 
+          ## Writes the derivative of the functional with respect to the controls to disk while running the adjoint model.
+          ## This is used for the optimiser.py only and can be left disabled by the user.
+          element write_controls_derivative {
              empty
           }? 
       }?,

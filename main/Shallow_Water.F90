@@ -62,6 +62,7 @@
     use adjoint_functional_evaluation
     use adjoint_python
     use adjoint_global_variables
+    use shallow_water_adjoint_controls
     use adjoint_main_loop
     use forward_main_loop
     use adjoint_controls
@@ -101,6 +102,9 @@
                                          ! matrices in this state so that
                                          ! the adjoint callbacks can use
                                          ! them
+    character(len=1), allocatable :: matrices_data(:) ! We also cast the matrices state to be able to pass it to the 
+                                                      ! functional derivative callback.
+    integer :: lengthData                                                      
     real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     integer :: timestep, nonlinear_iterations
@@ -195,7 +199,7 @@
 
     timestep=0
     ! Register the initial control variables
-    call adjoint_record_controls(timestep, dt, state)
+    call adjoint_write_controls(timestep, dt, state)
     timestep_loop: do
        timestep=timestep+1
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
@@ -222,7 +226,7 @@
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
        call adjoint_register_timestep(timestep, dt, state)
-       call adjoint_record_controls(timestep, dt, state)
+       call adjoint_write_controls(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
        if (simulation_completed(current_time, timestep)) exit timestep_loop
@@ -297,7 +301,12 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no)
+      ! Cast matrices 
+      lengthData = size(transfer(matrices, matrices_data))
+      allocate(matrices_data(lengthData))
+      matrices_data = transfer(matrices, matrices_data)
+      call compute_adjoint(state, dump_no, shallow_water_adjoint_timestep_callback, matrices_data)
+      deallocate(matrices_data)
 
       call deallocate_transform_cache
       call deallocate_reserve_state
