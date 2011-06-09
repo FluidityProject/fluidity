@@ -32,6 +32,7 @@ module detector_tools
   use fldebug
   use detector_data_types
   use fields
+  use integer_hash_table_module
   
   implicit none
   
@@ -152,7 +153,6 @@ contains
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
     new_detector%type = old_detector%type
-    new_detector%local = old_detector%local
     new_detector%name = old_detector%name
     new_detector%local_coords=old_detector%local_coords
       
@@ -257,7 +257,7 @@ contains
 
   end subroutine delete_all_detectors
 
-  subroutine pack_detector(detector, buff, ndims, nstages)
+  subroutine pack_detector(detector,buff,ndims,nstages)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -271,8 +271,8 @@ contains
     assert(size(buff)>=ndims+3)
 
     ! Basic fields: ndims+3
-    buff(1) = detector%element
-    buff(2:ndims+1) = detector%position
+    buff(1:ndims) = detector%position
+    buff(ndims+1) = detector%element
     buff(ndims+2) = detector%id_number
     buff(ndims+3) = detector%type
 
@@ -287,16 +287,17 @@ contains
     else
        assert(size(buff)==ndims+3)
     end if
-
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector, buff, ndims, nstages)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer, intent(inout) :: detector
     real, dimension(:), intent(in) :: buff
     integer, intent(in) :: ndims
-    integer, intent(in), optional :: nstages
+    type(integer_hash_table), intent(in), optional :: global_to_local
+    type(vector_field), intent(in), optional :: coordinates
+    integer, intent(in), optional :: nstages    
 
     assert(size(buff)>=ndims+3)
 
@@ -305,12 +306,26 @@ contains
     end if
 
     ! Basic fields: ndims+3
-    detector%element = buff(1)
-    detector%position = reshape(buff(2:ndims+1),(/ndims/))
+    detector%position = reshape(buff(1:ndims),(/ndims/))
+    detector%element = buff(ndims+1)
     detector%id_number = buff(ndims+2)
     detector%type = buff(ndims+3)
 
     assert(detector%element>0)
+
+    ! Reconstruct element number if global-to-local mapping is given
+    if (present(global_to_local)) then
+       assert(has_key(global_to_local, detector%element))
+       detector%element=fetch(global_to_local,detector%element)
+
+       ! Update local coordinates if coordinate field is given
+       if (present(coordinates)) then
+          if (.not. allocated(detector%local_coords)) then
+             allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
+          end if
+          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+       end if
+    end if
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then
@@ -335,9 +350,7 @@ contains
 
        detector%search_complete=.true.
     end if
-
-    ! If detector was received it is local
-    detector%local = .true.     
+   
   end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)
@@ -345,16 +358,9 @@ contains
     real :: value
     type(scalar_field), intent(in) :: sfield
     type(detector_type), intent(in) :: detector
-
-    value=0.0
     
-    if(detector%element>0) then
-       if(detector%element > 0) then
-         value = eval_field(detector%element, sfield, detector%local_coords)
-       end if
-    end if
-
-    if (.not. detector%local) call allsum(value)
+    assert(detector%element>0)
+    value = eval_field(detector%element, sfield, detector%local_coords)
 
   end function detector_value_scalar
 
@@ -363,16 +369,9 @@ contains
     type(vector_field), intent(in) :: vfield
     type(detector_type), intent(in) :: detector
     real, dimension(vfield%dim) :: value
-
-    value=0.0
     
-    if(detector%element>0) then
-      if(detector%element > 0) then
-        value = eval_field(detector%element, vfield, detector%local_coords)
-      end if
-    end if
-
-    if(.not. detector%local) call allsum(value)
+    assert(detector%element>0)
+    value = eval_field(detector%element, vfield, detector%local_coords)
 
   end function detector_value_vector
 

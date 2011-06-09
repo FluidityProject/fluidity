@@ -53,8 +53,6 @@ module detector_data_types
      real, dimension(:), allocatable :: position
      !! Name of the detector in input and output.
      character(len=FIELD_NAME_LEN) :: name 
-     !! Whether the detector is on the current processor. 
-     logical :: local
      !! Element number in which the detector lies.
      integer :: element
      !! Local coordinates of the detector in that element.
@@ -92,9 +90,13 @@ module detector_data_types
   end type rk_gs_parameters
 
   type detector_linked_list
+     ! Doubly linked list implementation
      integer :: length=0
      TYPE (detector_type), POINTER :: firstnode => null()
      TYPE (detector_type), POINTER :: lastnode => null()
+
+     !! Internal ID used for packing/unpacking detectors
+     integer :: id  ! IDs are counted from 1
 
      ! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
@@ -105,6 +107,8 @@ module detector_data_types
      ! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list
      type(stringlist), dimension(:), allocatable :: vfield_list
+     integer :: num_sfields = 0   ! Total number of scalar fields across all phases
+     integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
      !! I/O parameters
      logical :: binary_output = .false.

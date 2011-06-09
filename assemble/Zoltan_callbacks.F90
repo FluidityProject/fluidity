@@ -943,6 +943,8 @@ contains
     character (len = OPTION_PATH_LEN) :: filename
     
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
+
+    allocate(zoltan_global_to_pack_detectors_list(num_ids))
     
     ! if there are some detectors on this process
     if (default_stat%detector_list%length .GT. 0) then
@@ -1020,10 +1022,6 @@ contains
     ewrite(1,*) "In zoltan_cb_pack_fields"
     
     ewrite(3,*) "Length of detector list BEFORE packing fields: ", default_stat%detector_list%length
-    
-    if(zoltan_global_to_pack_detectors_list%length /= 0) then
-       detector => zoltan_global_to_pack_detectors_list%firstnode
-    end if
 
     do i=1,num_ids
        
@@ -1066,6 +1064,10 @@ contains
        rbuf(rhead) = zoltan_global_ndets_in_ele(i)
        rhead = rhead + 1
 
+       if(zoltan_global_to_pack_detectors_list(i)%length /= 0) then
+          detector => zoltan_global_to_pack_detectors_list(i)%firstnode
+       end if
+
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
           
@@ -1081,7 +1083,7 @@ contains
           detector => detector%next
           
           ! delete the detector we just packed from the to_pack list
-          call delete(zoltan_global_to_pack_detectors_list, detector_to_delete)
+          call delete(zoltan_global_to_pack_detectors_list(i), detector_to_delete)
 
           rhead = rhead + zoltan_global_ndata_per_det
        end do
@@ -1099,10 +1101,12 @@ contains
        buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
        
        deallocate(rbuf)
+
+       assert(zoltan_global_to_pack_detectors_list(i)%length == 0)
        
     end do
-    
-    assert(zoltan_global_to_pack_detectors_list%length == 0)
+
+    deallocate(zoltan_global_to_pack_detectors_list)
 
     ewrite(3,*) "Length of detector list AFTER packing fields: ", default_stat%detector_list%length
     
@@ -1166,8 +1170,6 @@ contains
     
     ewrite(1,*) "In zoltan_cb_unpack_fields"
     
-    ewrite(3,*) "Length of detector list BEFORE unpacking fields: ", default_stat%detector_list%length
-    
     do i=1,num_ids
        
        old_universal_element_number = global_ids(i)
@@ -1230,52 +1232,31 @@ contains
        if(ndetectors_in_ele .GT. 0) then
           
           do det=1,ndetectors_in_ele
+             ! allocate a detector
+             shape=>ele_shape(zoltan_global_new_positions,1)
+             call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
+                   
+             ! unpack detector information 
+             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), zoltan_global_ndims, &
+                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
+
+             ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
+             ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", detector%element
+
+             ! Make sure the unpacked detector is in this element
+             assert(new_local_element_number==detector%element)
+                   
+             call insert(zoltan_global_unpacked_detectors_list, detector)
+             detector => null()
              
-             old_universal_element_number = rbuf(rhead)
-             
-             ewrite(3,*) "Unpacking detector from rbuf for old_universal_element_number: ", old_universal_element_number
-             
-             if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
-                new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos))
-                
-                if (new_ele_owner == getprocno()) then
-                   
-                   ! allocate a detector
-                   shape=>ele_shape(zoltan_global_new_positions,1)
-                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-                   ewrite(3,*) "Successfully allocated a new detector."
-                   
-                   ! unpack detector information 
-                   call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-                        zoltan_global_ndims)
-                   detector%element = new_local_element_number
-                   
-                   ! update other detector data
-                   call update_detector(detector, zoltan_global_new_positions)
-                   
-                   ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
-                   ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", new_local_element_number
-                   
-                   call insert(zoltan_global_unpacked_detectors_list, detector)
-                   detector => null()
-                   
-                end if
-             end if
-             
-             rhead = rhead + zoltan_global_ndata_per_det
-             
-          end do
-          
+             rhead = rhead + zoltan_global_ndata_per_det             
+          end do          
        end if
        
-       assert(rhead==sz+1)
-       
-       deallocate(rbuf)
-       
+       assert(rhead==sz+1)       
+       deallocate(rbuf)       
     end do
     
-    ewrite(3,*) "Length of detector list AFTER unpacking fields: ", default_stat%detector_list%length
     ewrite(3,*) "Length of zoltan_global_unpacked_detectors_list to be merged in AFTER unpacking fields: ", zoltan_global_unpacked_detectors_list%length
     
     ewrite(1,*) "Exiting zoltan_cb_unpack_fields"

@@ -217,9 +217,9 @@ contains
       open(unit = det_unit, &
         & file = trim(detectors_cp_filename) // '_det.groups', &
         & action = "write")
-      do i = 1, size(default_stat%name_of_detector_groups_in_read_order) 
+      do i = 1, size(default_stat%detector_group_names) 
         write(det_unit,'(a,i0)') &
-          & default_stat%name_of_detector_groups_in_read_order(i), default_stat%number_det_in_each_group(i)
+          & default_stat%detector_group_names(i), default_stat%number_det_in_each_group(i)
       end do
       close(det_unit)
     
@@ -303,7 +303,7 @@ contains
     end do
 
     do i = 0, static_dete-1
-       temp_string=default_stat%name_of_detector_groups_in_read_order(i+1)
+       temp_string=default_stat%detector_group_names(i+1)
 
         ewrite(1,*) 'In update_detectors_options static det loop'
         ewrite(1,*) temp_string
@@ -327,7 +327,7 @@ contains
 
     do i = 0, lagrangian_dete-1
 
-       temp_string=default_stat%name_of_detector_groups_in_read_order(i+1+static_dete)
+       temp_string=default_stat%detector_group_names(i+1+static_dete)
         
        call set_option_attribute("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
@@ -357,7 +357,7 @@ contains
     end do
 
     do i = 0, python_functions_or_files-1  
-        temp_string=default_stat%name_of_detector_groups_in_read_order(i+1+static_dete+lagrangian_dete)
+        temp_string=default_stat%detector_group_names(i+1+static_dete+lagrangian_dete)
 
         ewrite(1,*) 'In update_detectors_options'
         ewrite(1,*) temp_string

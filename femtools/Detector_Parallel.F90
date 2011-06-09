@@ -42,9 +42,11 @@ module detector_parallel
   
   private
 
-  public :: distribute_detectors, exchange_detectors, register_detector_list
+  public :: distribute_detectors, exchange_detectors, &
+            register_detector_list, get_registered_detector_lists
 
-  type(detector_list_ptr), dimension(:), allocatable, save :: detector_list_array
+  type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
+  integer :: num_detector_lists = 0
 
 contains
 
@@ -73,7 +75,18 @@ contains
        detector_list_array(1)%ptr=>detector_list
     end if
 
+    ! Advance counter and assign list ID
+    num_detector_lists=num_detector_lists+1
+    detector_list%id=num_detector_lists
+
   end subroutine register_detector_list
+
+  subroutine get_registered_detector_lists(all_registered_lists)
+    type(detector_list_ptr), dimension(:), pointer, intent(out) :: all_registered_lists
+
+    all_registered_lists=>detector_list_array
+
+  end subroutine get_registered_detector_lists
 
   subroutine distribute_detectors(state, detector_list, ihash)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
@@ -158,6 +171,8 @@ contains
     type(integer_hash_table) :: ihash_inverse
     logical :: have_update_vector
 
+    ewrite(2,*) "In exchange_detectors"  
+
     xfield => extract_vector_field(state,"Coordinate")
     shape=>ele_shape(xfield,1)
     dim=xfield%dim
@@ -191,6 +206,7 @@ contains
     do i=1, number_neigh_processors
        ndet_to_send=send_list_array(i)%length
        allocate(detector_buffer(ndet_to_send,det_size))
+       ewrite(2,*) "Neighbour", i, "ndet_to_send:", ndet_to_send
 
        detector => send_list_array(i)%firstnode
        if(ndet_to_send>0) then
@@ -200,7 +216,7 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim, n_stages)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim, nstages=n_stages)
              else
                 call pack_detector(detector, detector_buffer(j,1:det_size), dim)
              end if
@@ -222,7 +238,7 @@ contains
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, gens)
-    ewrite(1,*) "gens length is:", key_count(gens)    
+    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(gens)    
 
     do i=1, number_neigh_processors              
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
@@ -233,6 +249,7 @@ contains
 
        ndet_received=count/det_size
        allocate(detector_buffer(ndet_received,det_size))
+       ewrite(2,*) "Neighbour", i, "ndet_received:", ndet_received
 
        call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
@@ -242,16 +259,10 @@ contains
           allocate(detector_received)
 
           if (have_update_vector) then
-             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim, n_stages)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield,nstages=n_stages)
           else
-             call unpack_detector(detector_received, detector_buffer(j,1:det_size), dim)
+             call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,global_to_local=gens,coordinates=xfield)
           end if
-
-          assert(detector_received%element>0)
-          detector_received%element=fetch(gens,detector_received%element)
- 
-          allocate(detector_received%local_coords(local_coord_count(shape)))
-          detector_received%local_coords=local_coords(xfield,detector_received%element,detector_received%position)
 
           if (allocated(detector_list%detector_names)) then
              detector_received%name=detector_list%detector_names(detector_received%id_number)
@@ -269,6 +280,8 @@ contains
 
     call deallocate(gens)
     call deallocate(ihash_inverse) 
+
+    ewrite(2,*) "Exiting exchange_detectors"  
 
   end subroutine exchange_detectors
 

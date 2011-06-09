@@ -101,6 +101,8 @@ contains
     integer :: det_count,j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
 
+    ewrite(2,*) "In set_stage, stage:", stage0
+
     parameters => detector_list%move_parameters
     
     det0 => detector_list%firstnode
@@ -208,10 +210,11 @@ contains
                         end if
                      end do face_search
                      if (make_static) then
+                        ewrite(1,*) "WARNING: detector attempted to leave computational &
+                             domain; making it static, detector ID:", det0%id_number, "detector element:", det0%element
                         det0%type=STATIC_DETECTOR
-                        !move on to the next detector
-                        det0%position = det0%update_vector
-                        !move on to the next detector
+                        ! move on to the next detector, without updating det0%position, 
+                        ! because det0%update_vector is by now outside of the computational domain
                         det0 => det0%next
                         exit search_loop
                      end if
