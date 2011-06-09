@@ -1227,6 +1227,7 @@ contains
         new_positions = extract_vector_field(states(1), "Coordinate")
         call get_registered_detector_lists(detector_list_array)
         do j = 1, size(detector_list_array)
+           ewrite(3,*) "ml805: after Zoltan, checking det_list", j
            detector=>detector_list_array(j)%ptr%firstnode
            do k = 1, detector_list_array(j)%ptr%length
               assert(element_owned(new_positions%mesh,detector%element))
