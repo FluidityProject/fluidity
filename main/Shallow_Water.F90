@@ -102,6 +102,9 @@
                                          ! matrices in this state so that
                                          ! the adjoint callbacks can use
                                          ! them
+    character(len=1), allocatable :: matrices_data(:) ! We also cast the matrices state to be able to pass it to the 
+                                                      ! functional derivative callback.
+    integer :: lengthData                                                      
     real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     integer :: timestep, nonlinear_iterations
@@ -298,7 +301,12 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no, shallow_water_adjoint_timestep_callback)
+      ! Cast matrices 
+      lengthData = size(transfer(matrices, matrices_data))
+      allocate(matrices_data(lengthData))
+      matrices_data = transfer(matrices, matrices_data)
+      call compute_adjoint(state, dump_no, shallow_water_adjoint_timestep_callback, matrices_data)
+      deallocate(matrices_data)
 
       call deallocate_transform_cache
       call deallocate_reserve_state
