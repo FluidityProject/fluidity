@@ -947,7 +947,7 @@ contains
     logical, optional, intent(in) :: initialise_fields
 
     character(len = FIELD_NAME_LEN) :: metric_name
-    integer :: i, j, max_adapt_iteration
+    integer :: i, j, k, max_adapt_iteration
     integer, dimension(:), pointer :: node_ownership
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type), pointer :: old_linear_mesh
@@ -962,7 +962,8 @@ contains
     ! Zoltan with detectors stuff
     integer :: my_num_detectors, total_num_detectors_before_zoltan, total_num_detectors_after_zoltan
     integer :: ierr
-    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => NULL()
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
+    type(detector_type), pointer :: detector => null()
 
     ewrite(1, *) "In adapt_state_internal"
 
@@ -1078,6 +1079,18 @@ contains
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)
         end do
+
+#ifdef DDEBUG
+        ! Sanity check that all local detectors are owned
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           detector=>detector_list_array(j)%ptr%firstnode
+           do k = 1, detector_list_array(j)%ptr%length
+              assert(element_owned(new_positions%mesh,detector%element))
+              detector=>detector%next
+           end do
+        end do
+#endif
       end if
 
       ! Then reallocate all fields
@@ -1209,6 +1222,17 @@ contains
         assert(ierr == MPI_SUCCESS)
         
         assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
+
+        ! Sanity check that all local detectors are owned
+        new_positions = extract_vector_field(states(1), "Coordinate")
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           detector=>detector_list_array(j)%ptr%firstnode
+           do k = 1, detector_list_array(j)%ptr%length
+              assert(element_owned(new_positions%mesh,detector%element))
+              detector=>detector%next
+           end do
+        end do
 #endif
 
 #else
