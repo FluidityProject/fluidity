@@ -4978,6 +4978,7 @@ scalar_field_choice =
             )
          }|
          element scalar_field {
+            attribute rank { "0" },
             attribute name { "FreeSurfaceHistory" },
             (
                element diagnostic {

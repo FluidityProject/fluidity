@@ -422,17 +422,32 @@ start =
             element equation_of_state {
                (
                   (
-                     ## Equations of state for ocean (and simple fluid) applications
-                     element fluids {
+                     ## Equations of state
+                     element incompressible {
                         (
                            ## Incompressible linear equation of state
                            ## 
-                           ## (e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))
+                           ## (DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
+                           ## + EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
+                           ## + EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )
                            element linear {
+                              (
+                                 ## All eos_coefficients equal as in most of
+                                 ## the test cases (=1)
+                                 element all_equal {
+                                    real
+                                 }|
+                                 ## Specify the coefficients separately
+                                 ## There should probably be at least 9
+                                 ## see multi_eos.F90 lines 132-140
+                                 element specify_all {
+                                    real_vector
+                                 }
+                              ),
                               ## The reference or background density
                               element reference_density {
                                  real
-                              },
+                              }?,
                               ## Enable to add temperature dependency
                               ## to the equation of state.
                               element temperature_dependency {
@@ -468,14 +483,6 @@ start =
                               element subtract_out_hydrostatic_level {
                                  empty
                               }?
-                           }|
-                           ## 2002 McDougall, Jackett, Wright and
-                           ## Feistel equation of state using Pade
-                           ## approximation
-                           element ocean_pade_approximation {
-                              element include_depth_below_surface {
-                                 empty
-                              }?
                            }
                         )
                      }|
@@ -484,7 +491,11 @@ start =
                         ## Stiffened Gas EoS
                         ##
                         ## Used with compressible simulations
+                        ##
+                        ## DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T
                         element stiffened_gas {
+                           element eos_option1 { real },
+                           element eos_option2 { real },
                            ## reference uncompressed density
                            ##
                            ## if activated then either Liquid EoS or
@@ -507,35 +518,6 @@ start =
                            element bulk_sound_speed_squared {
                               real
                            }?
-                        }|
-                        ## Giraldo et. al. 2008, J. Comp. Phys.
-                        ##
-                        ## Used with compressible simulations
-                        element giraldo {
-                           ## reference pressure
-                           ##
-                           ## The pressure at which potential temperature
-                           ## equals actual temperature. Normally taken to
-                           ## be the surface pressure, 1.0e05.
-                           element reference_pressure {
-                              real
-                           },
-                           ## Heat capacity at constant pressure
-                           element C_P {
-                              real
-                           },
-                           ## Heat capacity at constant volume
-                           element C_V {
-                              real
-                           }
-                        }|
-                        ## Foam EoS
-                        ## Used with compressible simulations of liquid drainage in foams.
-                        ## It describes the liquid content in the foam as the product of the 
-                        ## Plateau border cross sectional area and the local Plateau 
-                        ## border length per unit volume (lambda). 
-                        element foam {
-                           empty
                         }  
                      }
                   )
@@ -620,15 +602,25 @@ start =
             scalar_field_choice*,
             vector_field_choice*,
             tensor_field_choice*,
-            ## Parameters required to model multiphase flow in porous media
+            ## Parameters required to model multiphase flow
             element multiphase_properties {
+               ## Option for rel perms in prototype code
+               ## Usually 3 except for the CompModel Non-equilibrium
+               ## test cases where it is 6
+               element relperm_option {integer},
                ## Relative permeability end point relperm_max
                ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
                ## Value between 0 and 1
-               element relperm_max {real},
+               element relperm_max {real}?,
                ## Relative permeability exponent relperm_exponent
                ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               element relperm_exponent {real},
+               element relperm_exponent {real}?,
+               ## Capillary pressure multiplier cp_A
+               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
+               element cp_A {real}?,
+               ## Capillary pressure exponent cp_expo
+               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
+               element cp_expo {real}?,
                ## Immobile volume of fluid phase
                element immobile_fraction {real}?
             }?
@@ -677,15 +669,7 @@ start =
                      prescribed_tensor_field
                   }
                }
-            ),
-            element multiphase_parameters {
-               ## Capillary pressure multiplier cp_A
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_A {real}?,
-               ## Capillary pressure exponent cp_expo
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_expo {real}?
-            }?
+            )
          }?
       }
    )

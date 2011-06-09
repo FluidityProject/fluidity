@@ -41,7 +41,7 @@ use state_module
 use transform_elements
 use boundary_conditions
 use parallel_tools
-use global_parameters, only: new_options, real_4, real_8
+use global_parameters, only: real_4, real_8
 use spud
 use dynamic_bin_sort_module
 use pickers

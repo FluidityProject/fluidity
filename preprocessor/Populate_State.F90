@@ -524,6 +524,8 @@ contains
              from_shape_type=ELEMENT_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
+          else if(trim(shape_type)=="trace") then
+             from_shape_type=ELEMENT_TRACE
            end if
            ! If new_shape_type does not match model mesh shape type, make new mesh.
            if(from_shape_type == model_mesh%shape%numbering%type) then
@@ -780,6 +782,8 @@ contains
            new_shape_type=ELEMENT_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
+        else if(trim(element_option)=="trace") then
+           new_shape_type=ELEMENT_TRACE
         end if
       else
         new_shape_type=from_mesh%shape%numbering%type

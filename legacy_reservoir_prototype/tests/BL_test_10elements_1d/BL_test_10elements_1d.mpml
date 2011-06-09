@@ -74,6 +74,15 @@
     </finish_time>
   </timestepping>
   <material_phase name="phase1">
+    <equation_of_state>
+      <incompressible>
+        <linear>
+          <all_equal>
+            <real_value rank="0">1.</real_value>
+          </all_equal>
+        </linear>
+      </incompressible>
+    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -356,6 +365,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <multiphase_properties>
+      <relperm_option>
+        <integer_value rank="0">3</integer_value>
+      </relperm_option>
+    </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
     <scalar_field name="Pressure" rank="0">

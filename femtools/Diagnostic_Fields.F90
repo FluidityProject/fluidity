@@ -30,7 +30,7 @@
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
 
-  use global_parameters, only:FIELD_NAME_LEN, current_time, new_options, OPTION_PATH_LEN
+  use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
   use fields
   use halos
   use field_derivatives

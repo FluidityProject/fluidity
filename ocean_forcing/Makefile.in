@@ -42,7 +42,7 @@ LINKER = $(CXX)
 # If /usr/include occurs too early it's going to
 # interfere with other compilers - and it would completely
 # stuff C++ with obsecure, ungoogleable, error messages. 
-FCFLAGS   = -I../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+FCFLAGS   = -I../include @MOD_FLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
 
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 
@@ -61,17 +61,18 @@ NEMOdataload_rotation.o bulk_parameterisations.o forcingERA40_fortran.o NEMO_loa
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	cp *.mod ../include/
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 test_StormMaker:
 	$(FC) $(FCFLAGS) -DDEBUG_WRITENETCDF -o testStormMaker StormMaker.F90 $(LIBFLUIDITY) $(LIBS)
@@ -86,10 +87,7 @@ install:
 clean:
 	rm -f *.o *.mod
 
-NEMO_load_fields.o: NEMO_load_fields_vars.o
-bulk_parameterisations.o: bulk_parameterisations.F90
-forcingERA40.o: forcingERA40_fortran.o
-# Add explicit dependency of forcingERA40_fortran on bulk_parameterisations.o. Will
-# stop race conditions on parallel builds
-forcingERA40_fortran.o: bulk_parameterisations.o
 
+forcingERA40.o: forcingERA40_fortran.o
+
+include Makefile.dependencies

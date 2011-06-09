@@ -109,7 +109,7 @@ contains
     integer, intent(out) :: tracer_id
 
     integer :: ierr
-    integer :: grid_id, method_id, mask_id, info
+    integer :: grid_id, method_id, mask_id
     integer, dimension(2,3) :: local_shape
 
     !The tracer field on the target mesh
@@ -227,8 +227,8 @@ contains
 
     call allocate(T_tgt, Mesh_tgt_Q0, name="GridTracer")
 
-    call insert(state,T_tgt,name="Tracer_tgt")
     call insert(state,X_tgt_Q0,name="Coordinate_tgt")
+    call insert(state,T_tgt,name="Tracer_tgt")
 
   end subroutine gen_def_grid
 
@@ -249,7 +249,7 @@ contains
     X_src=>extract_vector_field(state,"Coordinate")
 
     T_tgt=>extract_scalar_field(state,"Tracer_tgt")
-    X_tgt_Q0=>extract_scalar_field(state,"Coordinate_tgt")
+    X_tgt_Q0=>extract_vector_field(state,"Coordinate_tgt")
 
     !Perform linear interpolation to structured mesh
     call linear_interpolation(T_src, X_src, T_tgt, X_tgt_Q0)
@@ -269,8 +269,6 @@ contains
     type(scalar_field), pointer :: T_tgt
 
     real, dimension(:,:,:), allocatable :: Tracer_coupler
-
-
 
     T_tgt=>extract_scalar_field(state,"Tracer_tgt")
 

@@ -111,7 +111,7 @@ subroutine unifiedmesh(filename1, filename1_len, &
         do while(associated(llnode))
           ele_A = llnode%value
           supermesh_tmp = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
-          call unify_meshes(supermesh, supermesh_tmp, supermesh_accum)
+          call unify_meshes_quadratic(supermesh, supermesh_tmp, supermesh_accum)
           call deallocate(supermesh)
           call deallocate(supermesh_tmp)
           supermesh = supermesh_accum
@@ -129,7 +129,7 @@ subroutine unifiedmesh(filename1, filename1_len, &
         end if
         write(0,*) "Calling recursive_supermesh with element range ", new_start, new_end
         call recursive_supermesh(positionsA, positionsB, map_BA, supermesh_shape, new_start, new_end, supermesh_tmp)
-        call unify_meshes(supermesh, supermesh_tmp, supermesh_accum)
+        call unify_meshes_quadratic(supermesh, supermesh_tmp, supermesh_accum)
         call deallocate(supermesh)
         call deallocate(supermesh_tmp)
         supermesh = supermesh_accum

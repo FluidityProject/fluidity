@@ -723,7 +723,7 @@
                   assemble_cmc_m=.true.
 
                else
-                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenar
+                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
                end if
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
