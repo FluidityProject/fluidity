@@ -40,7 +40,8 @@ module lagrangian_biology
   use detector_tools
   use detector_move_lagrangian
   use detector_parallel
-  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, write_detectors
+  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, &
+                                  write_detectors, create_single_detector
 
 implicit none
 
@@ -90,6 +91,7 @@ contains
 
        ! Register the agent array, so Zoltan/Adaptivity will not forget about it
        call register_detector_list(agent_arrays(i))
+       agent_arrays(i)%total_num_det=n_agents
 
        ! Get options for lagrangian detector movement
        call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
@@ -121,23 +123,11 @@ contains
 
        ! Create agent and insert into list
        do j = 1, n_agents
-          allocate(agent)
-          call insert(agent_arrays(i), agent)
-
-          allocate(agent%position(dim))
-          agent%position=coords(:,j)
-
-          allocate(agent%local_coords(local_coord_count(shape))) 
-
-          agent%id_number=j
-          agent%name=int2str(j)
-          agent%local=.true.
-          agent%type=det_type
+          call create_single_detector(agent_arrays(i), xfield, coords(:,j), j, det_type, trim(int2str(j)))
        end do
        deallocate(coords)
 
-       ! Determine elements for current agent list
-       call search_for_detectors(agent_arrays(i), xfield)
+       ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
        ! Create simple position-only agent I/O header 
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -157,12 +147,10 @@ contains
           write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
 
           ! Next columns contain the positions of all the detectors.
-          agent => agent_arrays(i)%firstnode
-          positionloop: do j=1, agent_arrays(i)%length
-             buffer=field_tag(name=agent%name, column=column+1, statistic="position",components=size(agent%position))
+          positionloop: do j=1, n_agents
+             buffer=field_tag(name=trim(int2str(j)), column=column+1, statistic="position",components=dim)
              write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
-             column=column+size(agent%position)
-             agent => agent%next
+             column=column+dim
           end do positionloop
 
           write(agent_arrays(i)%output_unit, '(a)') "</header>"
@@ -179,21 +167,6 @@ contains
        call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_array_name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
        assert(ierror == MPI_SUCCESS)
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-       ! Delete all agents whose element we don't own
-       if (isparallel()) then
-          agent => agent_arrays(i)%firstnode
-          do while (associated(agent))
-             if (element_owner(xfield%mesh,agent%element)/=getprocno() .or. agent%element<0) then 
-                call delete(agent_arrays(i),agent)
-             else
-                agent%local=.true. 
-                agent => agent%next
-             end if
-          end do
-       end if
-
-       ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
     end do 
 
   end subroutine initialise_lagrangian_biology

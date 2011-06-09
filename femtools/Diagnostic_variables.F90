@@ -1371,7 +1371,7 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
-    call insert(default_stat%detector_list,detector)
+    call insert(detector_list,detector)
 
     ! Populate detector
     detector%name=name
