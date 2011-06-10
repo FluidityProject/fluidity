@@ -4,28 +4,33 @@ import shocktube
 import vtktools
 
 folders=['.']
-filename='shocktube_50.vtu'
+filename='shocktube_9.vtu'
 
 for folder in folders:
   vt=vtktools.vtu(folder + '/' + filename)
   t=vt.GetScalarField('Time')[0]
   xyz=vt.GetLocations()
   x=xyz[:,0]
+  xyz0=vt.GetVectorField('DiagnosticCoordinate')
+  print xyz0.shape
+  x0=xyz0[:,0]
+  print x0.shape
 
   p=vt.GetScalarField('Pressure')
+  print p.shape
   uvw=vt.GetVectorField('Velocity')
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
   ie=vt.GetScalarField('InternalEnergy')
   
   pylab.figure(1)
-  pylab.plot( x, p,'.', label=folder)
+  pylab.plot( x0, p,'.', label=folder)
   
   pylab.figure(2)
   pylab.plot( x, u,'.', label=folder)
   
   pylab.figure(3)
-  pylab.plot( x, rho,'.', label=folder)
+  pylab.plot( x0, rho,'.', label=folder)
   
   pylab.figure(4)
   pylab.plot( x, ie,'.', label=folder)
