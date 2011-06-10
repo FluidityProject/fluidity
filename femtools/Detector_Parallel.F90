@@ -187,12 +187,13 @@ contains
        ! Something should be done here...
     end if
 
-    ! If RK-GS parameters are still allocated, we need a bigger buffer
+    ! Get buffer size, depending on whether RK-GS parameters are still allocated
     have_update_vector=associated(detector_list%move_parameters)
-    det_size=dim+3
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
-       det_size=det_size+(n_stages+1)*dim
+       det_size=detector_buffer_size(dim,have_update_vector,n_stages)
+    else
+       det_size=detector_buffer_size(dim,have_update_vector)
     end if
     
     do target_proc=1, nprocs

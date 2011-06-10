@@ -32,6 +32,7 @@ module zoltan_integration
   use memory_diagnostics
   use detector_data_types
   use detector_tools
+  use detector_parallel
   use pickers
   use diagnostic_variables
   use hadapt_advancing_front
@@ -1636,6 +1637,7 @@ module zoltan_integration
     type(vector_field), pointer :: source_vfield, target_vfield
     type(tensor_field), pointer :: source_tfield, target_tfield
 
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
     ewrite(1,*) 'in transfer_fields'
@@ -1671,7 +1673,7 @@ module zoltan_integration
 
     ! calculate the amount of data to be transferred per detector
     zoltan_global_ndims = zoltan_global_zz_positions%dim
-    zoltan_global_ndata_per_det = zoltan_global_ndims + 3
+    zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims, .false.)
     ewrite(3,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1
@@ -1708,8 +1710,11 @@ module zoltan_integration
 
     deallocate(zoltan_global_ndets_in_ele)
     
-    ! update the detector%element for each detector in the default_stat%detector_list
-    call update_detector_list_element(default_stat%detector_list)
+    ! update the detector%element for each detector in each list
+    call get_registered_detector_lists(detector_list_array)
+    do j = 1, size(detector_list_array)
+       call update_detector_list_element(detector_list_array(j)%ptr)
+    end do
 
     ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
 
@@ -1721,9 +1726,14 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       ! update detector name and move to our local detector list
-       add_detector%name=default_stat%detector_list%detector_names(add_detector%id_number)
-       call move(zoltan_global_unpacked_detectors_list, add_detector, default_stat%detector_list)
+       ! update detector name if names are present on the list, otherwise det%name=id_number
+       if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
+          add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
+       else
+          add_detector%name=int2str(add_detector%id_number)
+       end if
+       ! move detector to the correct list
+       call move(zoltan_global_unpacked_detectors_list, add_detector, detector_list_array(add_detector%list_id)%ptr)
     end do
 
     ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"

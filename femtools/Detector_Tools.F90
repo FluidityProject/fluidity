@@ -40,7 +40,8 @@ module detector_tools
 
   public :: insert, allocate, deallocate, copy, move, move_all, remove, &
             delete, delete_all, pack_detector, unpack_detector, &
-            detector_value, set_detector_coords_from_python
+            detector_value, set_detector_coords_from_python, &
+            detector_buffer_size
 
   interface insert
      module procedure insert_into_detector_list
@@ -257,6 +258,22 @@ contains
 
   end subroutine delete_all_detectors
 
+  function detector_buffer_size(ndims, have_update_vector, nstages)
+    ! Returns the number of reals we need to pack a detector
+    integer, intent(in) :: ndims
+    logical, intent(in) :: have_update_vector
+    integer, intent(in), optional :: nstages
+    integer :: detector_buffer_size
+
+    if (have_update_vector) then
+       assert(present(nstages))
+       detector_buffer_size=(nstages+2)*ndims+3
+    else
+       detector_buffer_size=ndims+4
+    end if
+
+  end function detector_buffer_size
+
   subroutine pack_detector(detector,buff,ndims,nstages)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
@@ -268,6 +285,7 @@ contains
     integer, intent(in), optional :: nstages
 
     assert(detector%element>0)
+    assert(size(detector%position)==ndims)
     assert(size(buff)>=ndims+3)
 
     ! Basic fields: ndims+3
@@ -285,7 +303,8 @@ contains
        buff(ndims+4:2*ndims+3) = detector%update_vector
        buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
     else
-       assert(size(buff)==ndims+3)
+       assert(size(buff)==ndims+4)
+       buff(ndims+4) = detector%list_id
     end if
     
   end subroutine pack_detector
@@ -346,8 +365,9 @@ contains
        ! If update_vector still exists, we're not done moving
        detector%search_complete=.false.
     else
-       assert(size(buff)==ndims+3)
+       assert(size(buff)==ndims+4)
 
+       detector%list_id = buff(ndims+4)
        detector%search_complete=.true.
     end if
    
