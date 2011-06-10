@@ -314,125 +314,6 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="LayerThicknessSourceDerivative" rank="0">
-      <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants
-import numpy, numpy.linalg 
-
-coord  = state.vector_fields["Coordinate"]
-eta_mesh = state.meshes["PressureMesh"]
-u_mesh = state.meshes["VelocityMesh"]
-timeprime = time + constants.theta*dt
-field.val[:] = 0.0
-
-for ele in range(coord.ele_count):
-  t = Transform(ele, coord)
-  shape = field.ele_shape(ele)
-  eta_mass = t.shape_shape(shape, shape)
-  u_shape = u_mesh.shape
-  u_mass = t.shape_shape(u_shape, u_shape)
-     
-  if time == 0.0:   
-    source = numpy.dot(eta_mass, [constants.eta_exact(x[0], 0.0) for x in coord.remap_ele(ele, field.mesh)])
-  else:
-    # First, the eta source term contribution
-    source = numpy.dot(eta_mass, [constants.eta_src(x[0], timeprime)*abs(dt) for x in coord.remap_ele(ele, field.mesh)])
-      
-    # Now, the u source term contribution
-    ###Linv_Musrc = numpy.dot(numpy.linalg.inv(u_mass), # + coriolis matrix in here!!!!
-    ###            numpy.dot(u_mass, [constants.u_src(x, timeprime) for x in coord.remap_ele(ele, u_mesh)]))
-    Linv_Musrc = numpy.array([constants.u_src(x[0], timeprime) for x in coord.remap_ele(ele, u_mesh)])
-
-    u_dshape = t.grad(u_mesh.shape)
-    cT = t.shape_dshape(shape, u_dshape)
-    for dim in range(cT.shape[2]):
-      source += numpy.dot(cT[:,:,dim], Linv_Musrc[:,dim]) * (dt**2 * constants.d0 * constants.theta)
-  field.addto(field.ele_nodes(ele), source)</string_value>
-          <comment>import constants
-timeprime = time + constants.theta*dt
-print "timeprime, etasource", timeprime
-coord  = state.vector_fields["Coordinate"]
-field[:] = 0.0
-for ele in range(field.ele_count):
-  ele_vals = [constants.eta_src(x[0], timeprime) for x in coord.remap_ele(ele, field.mesh)]
-  field.set(field.ele_nodes(ele), ele_vals)
-print   "deta 2 at timeste ", timeprime, " is ", field.val</comment>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="dJdh_old" rank="0">
-      <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import fluidity.state_types
-import numpy
-import constants
-
-coord = state.vector_fields["Coordinate"]
-local_adj_delta_u = state.vector_fields["AdjointLocalVelocityDelta"]
-du_src = state.vector_fields["VelocitySourceDerivative"]
-adj_u = state.vector_fields["AdjointVelocity"]
-
-tmpval = numpy.zeros(du_src.val.shape)
-adj_delta_u = fluidity.state_types.VectorField("GlobalAdjointVelocityDelta", tmpval, 0, "/none", "None")
-adj_delta_u.mesh = du_src.mesh
-for node in range(adj_delta_u.node_count):
-  adj_delta_u.set(node, [-1 * local_adj_delta_u.node_val(node)[0], 0, 0])
-  
-adj_delta_eta = state.scalar_fields["AdjointLayerThicknessDelta"]
-deta_src = state.scalar_fields["LayerThicknessSourceDerivative"]
-adj_eta = state.scalar_fields["AdjointLayerThickness"]
-eta_init = state.scalar_fields["AnalyticalLayerThickness"]
-
-J = 0.0
-if time == 0.0:
-  J = numpy.dot(adj_eta.val, deta_src.val) + sum([numpy.dot(adj_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)])
-  
-else:
-  print "********* DIAMOND VERSION at time ", time
- 
-  print "sum([numpy.dot(adj_delta_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)]) + numpy.dot(adj_delta_eta.val, deta_src.val) ", numpy.dot(adj_delta_eta.val, deta_src.val) + sum([numpy.dot(adj_delta_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)])
-  print "********* END"  
-  
-  J = numpy.dot(adj_delta_eta.val, deta_src.val) + sum([numpy.dot(adj_delta_u.val[:,dim], du_src.val[:,dim]) for dim in range(3)])
-  
-field.val[:] = J</string_value>
-          <depends>
-            <string_value lines="1">LayerThicknessSourceDerivative,VelocitySourceDerivative,TESTdJdeta_init</string_value>
-          </depends>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="dJdh" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
@@ -449,30 +330,19 @@ dJdeta0 = state.scalar_fields['integral_eta_t1_InitEtaCtrl_TotalDerivative']
 dJdetasrc = state.scalar_fields['integral_eta_t1_EtaSrcCtrl_TotalDerivative']
 eta_exact = state.scalar_fields['AnalyticalLayerThickness']
 u_exact = state.vector_fields['AnalyticalVelocity']
-#eta_src = state.scalar_fields['AdjointLayerThicknessSource']
 eta_src = state.scalar_fields['MyEtaSource']
-#u_src = state.vector_fields['AdjointVelocitySource']
 u_src = state.vector_fields['MyVelocitySource']
 
 if time == 0.0:
-  test = 0.0
-  test_u = 0.0
   for node in range(dJdeta0.node_count):
     dJ = dJ + numpy.dot(dJdeta0.node_val(node), eta_exact.node_val(node))
   for node in range(dJdu0.node_count):    
     dJ = dJ + numpy.dot(dJdu0.node_val(node), u_exact.node_val(node))
 else:
-  test_eta = 0.0
-  test_u = 0.0  
   for node in range(dJdetasrc.node_count):
     dJ = dJ + numpy.dot(dJdetasrc.node_val(node), eta_src.node_val(node))
-    test_eta = test_eta + numpy.dot(dJdetasrc.node_val(node), eta_src.node_val(node))
   for node in range(dJdusrc.node_count):    
     dJ = dJ + numpy.dot(dJdusrc.node_val(node), u_src.node_val(node))
-    test_u = test_u + numpy.dot(dJdusrc.node_val(node), u_src.node_val(node))
-
-print "&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp; Fluidity Version at time", time
-print "&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp; dJdusrc * u_src + dJdetasrc * eta_src", sum([numpy.dot(dJdusrc.val[:,dim], u_src.val[:,dim]) for dim in range(3)]) + numpy.dot(dJdetasrc.val, eta_src.val)
 
 field.val[:] = dJ</string_value>
           <depends>
@@ -480,48 +350,6 @@ field.val[:] = dJ</string_value>
           </depends>
         </algorithm>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="TESTdJdeta_init" rank="0">
-      <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants
-import numpy, numpy.linalg 
-
-coord  = state.vector_fields["Coordinate"]
-eta_mesh = state.meshes["PressureMesh"]
-u_mesh = state.meshes["VelocityMesh"]
-timeprime = time + constants.theta*dt
-field.val[:] = 0.0
-
-adj_eta = state.scalar_fields["AdjointLayerThickness"]
-
-for ele in range(coord.ele_count):
-  t = Transform(ele, coord)
-  shape = field.ele_shape(ele)
-  eta_mass = t.shape_shape(shape, shape)
-  source = 0.0     
-  #from fluidity_tools import shell
-  #shell()()
-  if time == 0.0:
-    source = numpy.dot(eta_mass, adj_eta.ele_val(ele))
-  field.addto(field.ele_nodes(ele), source)</string_value>
-        </algorithm>
-        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -610,48 +438,6 @@ for ele in range(coord.ele_count):
         </steady_state>
         <adjoint_storage>
           <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="VelocitySourceDerivative" rank="1">
-      <diagnostic>
-        <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants
-import numpy, numpy.linalg 
-
-coord  = state.vector_fields["Coordinate"]
-u_mesh = state.meshes["VelocityMesh"]
-timeprime = time + constants.theta*dt   
-field.val[:] = 0.0
-
-for ele in range(coord.ele_count):
-  t = Transform(ele, coord)
-  u_shape = u_mesh.shape
-  u_mass = t.shape_shape(u_shape, u_shape)
-     
-  if time == 0.0:
-    source = numpy.dot(u_mass, [constants.u_exact(x[0], 0.0) for x in coord.remap_ele(ele, field.mesh)])
-  else:
-    # Add the u source term contribution
-    source = numpy.dot(u_mass, [constants.u_src(x[0], timeprime)*abs(dt) for x in coord.remap_ele(ele, field.mesh)])
-  field.addto(field.ele_nodes(ele), source)</string_value>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_adjoint/>
         </adjoint_storage>
       </diagnostic>
     </vector_field>
