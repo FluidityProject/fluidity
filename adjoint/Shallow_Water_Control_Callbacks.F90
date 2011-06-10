@@ -46,14 +46,15 @@ module shallow_water_adjoint_controls
     
     ! Data is a void pointer used to pass variables into the callback
     subroutine shallow_water_adjoint_timestep_callback(states, timestep, functional_name, data)
+      use iso_c_binding, only: c_ptr
       use global_parameters, only: OPTION_PATH_LEN
       use state_module
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: timestep
       character(len=*), intent(in) :: functional_name
-      character(len=1), intent(inout) :: data(:)
+      type(c_ptr), intent(in) :: data
       
-      type(state_type) :: matrices
+      type(state_type), pointer :: matrices
       type(state_type) :: state
       character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name
       integer :: nb_controls
@@ -69,7 +70,7 @@ module shallow_water_adjoint_controls
      
       state = states(1)
       ! Cast the data to the matrices state 
-      matrices = transfer(data, matrices)
+      call c_f_pointer(data, matrices)
       
 
       nb_controls = option_count("/adjoint/controls/control")
@@ -181,9 +182,6 @@ module shallow_water_adjoint_controls
             end if
         end select
       end do
-      
-      ! Cast back
-      data = transfer(matrices, data)
 
     end subroutine shallow_water_adjoint_timestep_callback 
 
