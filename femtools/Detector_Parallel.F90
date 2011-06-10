@@ -42,8 +42,8 @@ module detector_parallel
   
   private
 
-  public :: distribute_detectors, exchange_detectors, &
-            register_detector_list, get_registered_detector_lists
+  public :: distribute_detectors, exchange_detectors, register_detector_list, &
+            get_num_detector_lists, get_registered_detector_lists
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -82,11 +82,18 @@ contains
   end subroutine register_detector_list
 
   subroutine get_registered_detector_lists(all_registered_lists)
+    ! Return a pointer to a lists of pointers to all registered detector lists
     type(detector_list_ptr), dimension(:), pointer, intent(out) :: all_registered_lists
 
     all_registered_lists=>detector_list_array
-
   end subroutine get_registered_detector_lists
+
+  function get_num_detector_lists()
+    ! Return the number of registered detector lists
+    integer :: get_num_detector_lists
+
+    get_num_detector_lists=num_detector_lists
+  end function get_num_detector_lists
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 

@@ -23,7 +23,7 @@ module zoltan_detectors
 
   contains
 
-  subroutine prepare_detectors_for_packing(ndets_in_ele, detector_list, to_pack_detectors_list, num_ids, global_ids)
+  subroutine prepare_detectors_for_packing(ndets_in_ele, to_pack_detectors_list, num_ids, global_ids)
     ! Plan is to first count how many detectors are in each element we're sending
     ! While doing this if we find a detector which will need to be sent, we remove
     ! it from detectors_list and add it to the end of the to_pack_detectors_list
@@ -31,7 +31,6 @@ module zoltan_detectors
     ! counting being done in the same order as we'll do the packing
 
     integer, intent(out), dimension(:) :: ndets_in_ele
-    type(detector_linked_list), intent(inout), target :: detector_list
     type(detector_linked_list), dimension(:), intent(inout), target :: to_pack_detectors_list
     integer(zoltan_int), intent(in) :: num_ids 
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
@@ -42,12 +41,9 @@ module zoltan_detectors
     
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
-    
-    integer :: original_detector_list_length
     logical :: found_det_element
     
     ewrite(1,*) "In prepare_detectors_for_packing"    
-    ewrite(3,*) "Length of detector list BEFORE prepare_detectors_for_packing: ", detector_list%length
     
     assert(num_ids == size(ndets_in_ele))
     assert(num_ids == size(to_pack_detectors_list))
@@ -57,9 +53,8 @@ module zoltan_detectors
     do det_list = 1, size(detector_list_array)
 
        ! search through all the local detectors in this list
-       original_detector_list_length = detector_list_array(det_list)%ptr%length
        detector => detector_list_array(det_list)%ptr%firstnode
-       detector_loop: do i=1, original_detector_list_length
+       detector_loop: do i=1, detector_list_array(det_list)%ptr%length
           ! Store the list ID with the detector, so we can map the detector back when receiving it
           detector%list_id=det_list
 
@@ -101,7 +96,7 @@ module zoltan_detectors
                    detector_to_move%element = old_universal_element_number
                
                    ! Move detector to list of detectors we need to pack
-                   call move(detector_list, detector_to_move, to_pack_detectors_list(j))
+                   call move(detector_list_array(det_list)%ptr, detector_to_move, to_pack_detectors_list(j))
                    ewrite(3,*) "Detector ", detector_to_move%id_number, "(ID) removed from detector_list and added to to_pack_detectors_list."
                    detector_to_move => null()
                 end if
@@ -120,9 +115,7 @@ module zoltan_detectors
     do i=1, num_ids
        assert(ndets_in_ele(i) == to_pack_detectors_list(i)%length)
     end do
-    !assert(detector_list%length == (original_detector_list_length - sum(ndets_in_ele(:))))
-    
-    ewrite(3,*) "Length of detector list AFTER prepare_detectors_for_packing: ", detector_list%length    
+      
     ewrite(1,*) "Exiting prepare_detectors_for_packing"
     
   end subroutine prepare_detectors_for_packing
