@@ -152,8 +152,12 @@
           </conservative_advection>
         </spatial_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">500</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -237,8 +241,8 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -539,7 +543,6 @@ if time &lt; T &lt;= time+dt:
       </control>
     </controls>
     <debug>
-      <replay_forward_run/>
       <html_output/>
     </debug>
   </adjoint>
