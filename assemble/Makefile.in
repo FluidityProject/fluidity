@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -76,100 +76,40 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
 				Manifold_Projections.o
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	cp *.mod ../include/
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Advection_Diffusion_FV.o: Petsc_Solve_State.o
-Adapt_State_Prescribed.o: Interpolation_manager.o
-Adaptivity_1D.o: Node_Locking.o
-Adapt_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
-Sam_integration.o: Surface_Id_Interleaving.o
-Adapt_State.o: Adapt_Integration.o Adaptivity_1D.o \
-  Diagnostic_fields_wrapper.o Discrete_Properties.o Interpolation_manager.o \
-  Mba2d_Integration.o Mba3d_Integration.o Sam_integration.o Timeloop_utilities.o \
-  Zoltan_integration.o
-Adapt_State_Unittest.o: Adapt_Integration.o Mba2d_Integration.o Adapt_State.o \
-  Sam_integration.o
-Explicit_ALE.o: Solid_Configuration.o
-traffic.o: qmesh.o
-Implicit_Solids.o: qmesh.o
-Mba3d_Integration.o: Adapt_Integration.o Node_Locking.o qmesh.o \
-  Surface_Id_Interleaving.o
-Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
-Advection_Diffusion_CG.o: Upwind_Stabilisation.o Petsc_Solve_State.o
-Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o Petsc_Solve_State.o
-Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o \
-  Full_Projection.o
-Assemble_CMC.o: Multimaterials.o
-Field_Equations_CV.o: Divergence_Matrix_CV.o Petsc_Solve_State.o
-Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
-Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
-  Field_Equations_CV.o Vorticity_Diagnostics.o \
-  Diagnostic_Fields_Matrices.o Free_Surface.o Porous_Media.o \
-  Spontaneous_Potentials.o Geostrophic_Pressure.o Multiphase.o
-Multimaterials.o: Diagnostic_Fields_Matrices.o
-Foam_Drainage.o: Diagnostic_Fields_Matrices.o
-Foam_Flow.o : Petsc_Solve_State.o State_Matrices.o
-Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
-  Divergence_Matrix_CV.o State_Matrices.o
-State_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
-  Divergence_Matrix_CV.o
-Vorticity_Diagnostics.o: Coriolis.o
-Hydrostatic_Pressure.o: Vertical_Extrapolation.o State_Matrices.o \
-  Upwind_Stabilisation.o
-Vertical_Balance_Pressure.o: State_Matrices.o
-Geostrophic_Pressure.o: Petsc_Solve_State.o Assemble_CMC.o \
-  Divergence_Matrix_CG.o Hydrostatic_Pressure.o Momentum_CG.o Momentum_DG.o
-Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
-   Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
-   Drag.o Geostrophic_Pressure.o Hydrostatic_Pressure.o Vertical_Balance_Pressure.o \
-   Foam_Drainage.o Petsc_Solve_State.o State_Matrices.o Reduced_Model_Runtime.o OceanSurfaceForcing.o Implicit_Solids.o \
-   Multiphase.o
-Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
-Free_Surface.o: Vertical_Extrapolation.o
-Pseudo_supermesh.o: Adapt_State_Unittest.o
-Implicit_Solids.o: Timeloop_utilities.o
-Full_Projection.o: Petsc_Solve_State.o
-
-Interpolation_manager.o: Geostrophic_Pressure.o
-Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \
-  Divergence_Matrix_CV.o Momentum_CG.o Momentum_DG.o
-
-Discrete_Properties.o: Solenoidal_interpolation.o
-Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o State_Matrices.o \
-   LES_viscosity.o Petsc_Solve_State.o Multiphase.o
-Divergence_Matrix_CG.o: Upwind_Stabilisation.o Multiphase.o
-Momentum_Diagnostic_Fields.o: Multimaterials.o Multiphase.o
-Mba2d_Integration.o: Adapt_Integration.o Node_Locking.o \
-  Surface_Id_Interleaving.o
-Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
-Linear_Shallow_Water_Legacy.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
-Petsc_Solve_State.o: Free_Surface.o
-Spontaneous_Potentials.o: Porous_Media.o
-Zoltan_integration.o: Surface_Id_Interleaving.o Zoltan_global_variables.o Zoltan_callbacks.o Zoltan_detectors.o
-Zoltan_callbacks.o: Zoltan_global_variables.o Zoltan_detectors.o
-Zoltan_detectors.o: Zoltan_global_variables.o
-Saturation_Distribution_Search_HookeJeeves.o : Spontaneous_Potentials.o Momentum_Equation.o
-
 clean:
 	rm -f *.o *.d *.mod
+
+# Special case mba dependencies
+ifeq (@MBA2D@,yes)
+Mba2d_Integration.o ../include/mba2d_integration.mod: \
+../include/mba2d_module.mod
+endif
+ifeq (@MBA3D@,yes)
+Mba3d_Integration.o ../include/mba3d_integration.mod: \
+../include/mba3d_mba_nodal.mod
+endif
+
+include Makefile.dependencies
 

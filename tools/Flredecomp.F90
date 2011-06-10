@@ -29,7 +29,7 @@
 #include "confdefs.h"
 
 subroutine flredecomp(input_basename, input_basename_len, output_basename, output_basename_len, &
-  & input_nprocs, target_nprocs)
+  & input_nprocs, target_nprocs) bind(c)
   !!< Peform a redecomposition of an input checkpoint with input_nprocs
   !!< processes to a new checkpoint with target_nprocs processes.
   
@@ -46,7 +46,15 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #endif
   use zoltan_integration
   use state_module
+  use iso_c_binding
   implicit none
+
+  character(kind=c_char, len=1) :: input_basename(*)
+  integer(kind=c_size_t), value :: input_basename_len
+  character(kind=c_char, len=1) :: output_basename(*)
+  integer(kind=c_size_t), value :: output_basename_len
+  integer(kind=c_int), value :: input_nprocs
+  integer(kind=c_int), value :: target_nprocs
   
   interface
     subroutine check_options()
@@ -58,14 +66,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #endif
   end interface
   
-  integer :: input_basename_len
-  integer :: output_basename_len
-  
-  character(len = input_basename_len), intent(in) :: input_basename
-  character(len = output_basename_len), intent(in) :: output_basename
-  integer, intent(in) :: input_nprocs
-  integer, intent(in) :: target_nprocs
-  
+  character(len=input_basename_len):: input_base
+  character(len=output_basename_len):: output_base
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
   type(vector_field) :: extruded_position
@@ -86,9 +88,16 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #endif
   
   nprocs = getnprocs()
+  ! now turn into proper fortran strings (is there an easier way to do this?)
+  do i=1, input_basename_len
+    input_base(i:i)=input_basename(i)
+  end do
+  do i=1, output_basename_len
+    output_base(i:i)=output_basename(i)
+  end do
   
-  ewrite(2, "(a)") "Input base name: " // trim(input_basename)
-  ewrite(2, "(a)") "Output base name: " // trim(output_basename)
+  ewrite(2, "(a)") "Input base name: " // trim(input_base)
+  ewrite(2, "(a)") "Output base name: " // trim(output_base)
   ewrite(2, "(a,i0)") "Input number of processes: ", input_nprocs
   ewrite(2, "(a,i0)") "Target number of processes: ", target_nprocs
   ewrite(2, "(a,i0)") "Job number of processes: ", nprocs
@@ -107,7 +116,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   end if
   
   ! Load the options tree
-  call load_options(trim(input_basename) // ".flml")
+  call load_options(trim(input_base) // ".flml")
   if(.not. have_option("/simulation_name")) then
     FLExit("Failed to find simulation name after loading options file")
   end if
@@ -168,7 +177,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   ! Output
   assert(associated(state))
-  call checkpoint_simulation(state, prefix = output_basename, postfix = "", protect_simulation_name = .false., &
+  call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
     keep_initial_data=.true.)
 
   do i = 1, size(state)

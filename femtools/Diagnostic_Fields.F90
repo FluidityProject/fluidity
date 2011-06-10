@@ -30,7 +30,7 @@
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
 
-  use global_parameters, only:FIELD_NAME_LEN, current_time, new_options, OPTION_PATH_LEN
+  use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
   use fields
   use halos
   use field_derivatives
@@ -912,9 +912,7 @@ contains
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(psi))
     assert(ele_count(velocity) == ele_count(psi))
-    do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i,:))
-    end do
+    ewrite_minmax(velocity)
     
     ! Extract gravity direction
     gravity_direction => extract_vector_field(state, "GravityDirection")
@@ -932,7 +930,7 @@ contains
     do i = 1, ele_count(rhs)
       call assemble_horizontal_streamfunction_element(i, psi, matrix, rhs, positions, velocity, gravity_direction)
     end do
-    ewrite_minmax(rhs%val)
+    ewrite_minmax(rhs)
     
     ! Boundary conditions - apply strong Dirichlet boundary condition of zero
     ! on all surfaces for now
@@ -942,7 +940,7 @@ contains
     
     ! Solve
     call petsc_solve(psi, matrix, rhs)
-    ewrite_minmax(psi%val)
+    ewrite_minmax(psi)
     
     ! Deallocate
     call deallocate(matrix)
@@ -1370,9 +1368,7 @@ contains
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(ri))
     assert(ele_count(velocity) == ele_count(ri))
-    do i = 1, velocity%dim
-      ewrite_minmax(velocity%val(i,:))
-    end do
+    ewrite_minmax(velocity)
     
     ! Extract gravity
     gravity_direction => extract_vector_field(state, "GravityDirection")
@@ -1382,20 +1378,20 @@ contains
     
     ! Extract perturbation density
     perturbation_density => extract_scalar_field(state, "PerturbationDensity")
-    ewrite_minmax(perturbation_density%val)
+    ewrite_minmax(perturbation_density)
         
     ! Assemble
     call zero(ri)
     do i = 1, ele_count(ri)
       call assemble_richardson_number_element(i, ri, positions, velocity, g, perturbation_density)
     end do
-    ewrite_minmax(ri%val)
+    ewrite_minmax(ri)
     
     masslump => get_lumped_mass(state, ri%mesh)
     
     ! Solve (somewhat trivial)
     ri%val = ri%val / masslump%val
-    ewrite_minmax(ri%val)
+    ewrite_minmax(ri)
   
   end subroutine calculate_richardson_number_new
   

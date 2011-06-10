@@ -42,7 +42,7 @@ LINKER = $(CXX)
 # If /usr/include occurs too early it's going to
 # interfere with other compilers - and it would completely
 # stuff C++ with obsecure, ungoogleable, error messages. 
-FCFLAGS   = -I../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+FCFLAGS   = -I../include @MODFLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
 
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 
@@ -56,16 +56,18 @@ OBJS = NetCDF_reader.o SampleNetCDF2.o import_bath_data.o read_netcdf_interface.
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+$(LIB): $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+default: $(LIB)
 
 DEPTH_OBJS=import_bath_data.cpp
 
@@ -79,3 +81,4 @@ install:
 
 clean:
 	rm -f *.o *.mod
+include Makefile.dependencies

@@ -185,7 +185,7 @@
             end if
          end if
 
-         ewrite_minmax(nvfrac%val)
+         ewrite_minmax(nvfrac)
 
          ewrite(1,*) 'Exiting get_nonlinear_volume_fraction'
       

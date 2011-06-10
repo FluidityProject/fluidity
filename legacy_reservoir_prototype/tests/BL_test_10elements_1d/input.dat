@@ -20,7 +20,7 @@ nphase                2
 ncomp                 0
 
 # total number of elements
-totele               20
+totele                20 
 
 # Dimensionality
 ndim                  1
@@ -269,7 +269,7 @@ suf_w_bc_rob2  0.
 suf_t_bc_rob1  0.
   
 # suf_t_bc_rob2( stotel * cv_snloc * nphase )
-suf_t_bc_rob1  0.
+suf_t_bc_rob2  0.
   
 
 ###

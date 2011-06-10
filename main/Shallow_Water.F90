@@ -260,18 +260,20 @@
 
 #ifdef HAVE_ADJOINT
     if (adjoint) then
-      ! Let's run the forward model through libadjoint, too, for the craic
-      ewrite(1,*) "Entering forward computation through libadjoint"
-      call clear_options
-      call read_command_line
-      call mangle_options_tree_forward
-      call populate_state(state)
-      call allocate_and_insert_additional_fields(state(1))
-      call check_diagnostic_dependencies(state)
-      call compute_forward(state)
-      call deallocate_transform_cache
-      call deallocate_reserve_state
-      call deallocate(state)
+      if (have_option("/adjoint/debug/replay_forward_run")) then
+        ! Let's run the forward model through libadjoint, too, for the craic
+        ewrite(1,*) "Entering forward computation through libadjoint"
+        call clear_options
+        call read_command_line
+        call mangle_options_tree_forward
+        call populate_state(state)
+        call allocate_and_insert_additional_fields(state(1))
+        call check_diagnostic_dependencies(state)
+        call compute_forward(state)
+        call deallocate_transform_cache
+        call deallocate_reserve_state
+        call deallocate(state)
+      end if
 
       ewrite(1,*) "Entering adjoint computation"
       call clear_options
@@ -396,8 +398,12 @@
       call assemble_cartesian_velocity_mass_matrix(state(1))
       call insert(matrices, extract_block_csr_matrix(state(1), "CartesianVelocityMassMatrix"), "CartesianVelocityMassMatrix")
       ! And the VelocitySource and LayerThicknessSource
-      call insert(matrices, extract_vector_field(state(1), "VelocitySource"), "VelocitySource")
-      call insert(matrices, extract_scalar_field(state(1), "LayerThicknessSource"), "LayerThicknessSource")
+      if (has_vector_field(state(1), "VelocitySource")) then
+        call insert(matrices, extract_vector_field(state(1), "VelocitySource"), "VelocitySource")
+      end if
+      if (has_scalar_field(state(1), "LayerThicknessSource")) then
+        call insert(matrices, extract_scalar_field(state(1), "LayerThicknessSource"), "LayerThicknessSource")
+      end if  
     end subroutine get_parameters
 
     subroutine assemble_cartesian_velocity_mass_matrix(state)
@@ -661,7 +667,6 @@
       else
         call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
         call zero(U_local)
-        U_local%option_path=U%option_path
         call insert(state, U_local, "LocalVelocity")
         call deallocate(U_local)
       endif
@@ -952,12 +957,17 @@
       integer :: ierr
       type(adj_equation) :: equation
       type(adj_variable) :: local_u0, cartesian_u0, eta0
+      logical :: check_transposes
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
 
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
+
       if (.not. balanced) then ! we just read in u from file
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
 
         ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
@@ -976,7 +986,11 @@
 
         ierr = adj_create_block("LocalVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 100, 1.0d-10)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(P, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -999,7 +1013,11 @@
         ! The equation we have to register is the derivation of u0 from geostrophic balance
         ierr = adj_create_block("Coriolis", block=L, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(L, check_transposes, 100, 1.0d-10)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("Grad", block=gC, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(gC, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
@@ -1023,8 +1041,12 @@
 
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(I, check_transposes, 100, 1.0d-10)
+        call adj_chkierr(ierr)
 
         ierr = adj_create_block("MassCartesianProjection", block=P, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(P, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
@@ -1052,20 +1074,28 @@
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
-      type(adj_block) :: Mu, minusMu, Meta, minusMeta, W, CTMC, CTML, MBCdelta, MBL, MBC, CP, CI
+      type(adj_block) :: Mu, minusMu, Meta, minusMeta, W, CTMC, CTML, MBCdelta, MBL, MBC, CP, CI, P
       integer :: ierr
       type(adj_equation) :: equation
-      type(adj_variable) :: u, previous_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
+      type(adj_variable) :: u, previous_cartesian_u, delta_u, eta, previous_eta, delta_eta, cartesian_u
       real :: start_time
 
       integer :: j, nfunctionals
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
 
+      type(adj_storage_data) :: storage_u, storage_eta
+      type(scalar_field), pointer :: eta_ptr
+      type(vector_field), pointer :: u_ptr
+      type(adj_vector) :: u_vec, eta_vec
+      logical :: check_transposes
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
+
       ! Set up adj_variables
       ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_cartesian_u)
       call adj_chkierr(ierr)
       ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
       call adj_chkierr(ierr)
@@ -1083,11 +1113,17 @@
       ! Blocks for delta eta equation
       ierr = adj_create_block("WaveMatrix", context=c_loc(matrices), block=W)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(W, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("DivBigMatGrad", context=c_loc(matrices), block=CTMC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CTMC, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTMC, coefficient=dt**2 * D0 * theta * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("DivMinusDivBigMatCoriolis", context=c_loc(matrices), block=CTML)
+      ierr = adj_create_block("DivMinusDivBigMatCoriolisProjection", context=c_loc(matrices), block=CTML)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CTML, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=CTML, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1095,7 +1131,11 @@
       ! Blocks for eta_n equation
       ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=Meta)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(Meta, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("LayerThicknessMassMatrix", context=c_loc(matrices), block=minusMeta)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(minusMeta, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusMeta, coefficient=-1.0)
       call adj_chkierr(ierr)
@@ -1103,13 +1143,19 @@
       ! Blocks for delta u equation
       ierr = adj_create_block("MassBigMatGrad", context=c_loc(matrices), block=MBCdelta)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBCdelta, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBCdelta, coefficient=theta * dt * g)
       call adj_chkierr(ierr)
-      ierr = adj_create_block("MassBigMatCoriolis", context=c_loc(matrices), block=MBL)
+      ierr = adj_create_block("MassBigMatCoriolisProjection", context=c_loc(matrices), block=MBL)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBL, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBL, coefficient=dt)
       call adj_chkierr(ierr)
       ierr = adj_create_block("MassBigMatGrad", context=c_loc(matrices), block=MBC)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(MBC, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=MBC, coefficient=dt * g)
       call adj_chkierr(ierr)
@@ -1117,22 +1163,36 @@
       ! Blocks for u_n equation
       ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=Mu)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(Mu, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_create_block("LocalVelocityMassMatrix", context=c_loc(matrices), block=minusMu)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(minusMu, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(block=minusMu, coefficient=-1.0)
+      call adj_chkierr(ierr)
+      ierr = adj_create_block("MassLocalProjection", block=P, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(P, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_coefficient(P, coefficient=-1.0)
       call adj_chkierr(ierr)
 
       ! Blocks for embedded manifold business
       ierr = adj_create_block("MassCartesianProjection", context=c_loc(matrices), block=CP)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CP, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
       ierr = adj_block_set_coefficient(CP, coefficient=-1.0)
       call adj_chkierr(ierr)
       ierr = adj_create_block("CartesianVelocityMassMatrix", context=c_loc(matrices), block=CI)
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(CI, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
 
       ! Ahah! Now we can register our lovely equations. 
       ierr = adj_create_equation(delta_eta, blocks=(/CTMC, CTML, W/), &
-                                          & targets=(/previous_eta, previous_u, delta_eta/), equation=equation)
+                                          & targets=(/previous_eta, previous_cartesian_u, delta_eta/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1152,7 +1212,7 @@
       call adj_chkierr(ierr)
 
       ierr = adj_create_equation(delta_u, blocks=(/MBC, MBL, MBCdelta, Mu/), &
-                                        & targets=(/previous_eta, previous_u, delta_eta, delta_u/), equation=equation)
+                                        & targets=(/previous_eta, previous_cartesian_u, delta_eta, delta_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1161,8 +1221,8 @@
       ierr = adj_destroy_equation(equation)
       call adj_chkierr(ierr)
 
-      ierr = adj_create_equation(u, blocks=(/minusMu, minusMu, Mu/), &
-                                    & targets=(/previous_u, delta_u, u/), equation=equation)
+      ierr = adj_create_equation(u, blocks=(/P, minusMu, Mu/), &
+                                    & targets=(/previous_cartesian_u, delta_u, u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
@@ -1206,6 +1266,8 @@
       call adj_chkierr(ierr)
       ierr = adj_destroy_block(CI)
       call adj_chkierr(ierr)
+      ierr = adj_destroy_block(P)
+      call adj_chkierr(ierr)
 
       ! Set the times and functional dependencies for this timestep
       call get_option("/timestepping/current_time", start_time)
@@ -1222,6 +1284,28 @@
         ! We also need to check if these variables will be used
         call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
+
+      if (have_option("/adjoint/debug/replay_forward_run")) then
+        u_ptr => extract_vector_field(states(1), "Velocity")
+        u_vec = field_to_adj_vector(u_ptr)
+        ierr = adj_storage_memory_copy(u_vec, storage_u)
+        call adj_chkierr(ierr)
+        ierr = adj_storage_set_overwrite(storage_u, .true.)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, cartesian_u, storage_u)
+        call adj_chkierr(ierr)
+        call femtools_vec_destroy_proc(u_vec)
+
+        eta_ptr => extract_scalar_field(states(1), "LayerThickness")
+        eta_vec = field_to_adj_vector(eta_ptr)
+        ierr = adj_storage_memory_copy(eta_vec, storage_eta)
+        call adj_chkierr(ierr)
+        ierr = adj_storage_set_overwrite(storage_eta, .true.)
+        call adj_chkierr(ierr)
+        ierr = adj_record_variable(adjointer, eta, storage_eta)
+        call adj_chkierr(ierr)
+        call femtools_vec_destroy_proc(eta_vec)
+      end if
 
       ! And that's it!
 #endif

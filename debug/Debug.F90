@@ -33,6 +33,10 @@ module fldebug
   use fldebug_parameters
   
   implicit none
+
+  interface write_minmax
+    module procedure write_minmax_real_array, write_minmax_integer_array
+  end interface
   
 contains
   
@@ -118,5 +122,25 @@ contains
     
     STOP
   END SUBROUTINE FLExit_pinpoint
+
+  subroutine write_minmax_real_array(array, array_expression)
+    ! the array to print its min and max of
+    real, dimension(:), intent(in):: array
+    ! the actual array expression in the code
+    character(len=*), intent(in):: array_expression
+
+    ewrite(2,*) "Min, max of "//array_expression//" = ",minval(array), maxval(array)
+
+  end subroutine write_minmax_real_array
   
+  subroutine write_minmax_integer_array(array, array_expression)
+    ! the array to print its min and max of
+    integer, dimension(:), intent(in):: array
+    ! the actual array expression in the code
+    character(len=*), intent(in):: array_expression
+
+    ewrite(2,*) "Min, max of "//array_expression//" = ",minval(array), maxval(array)
+
+  end subroutine write_minmax_integer_array
+
 end module fldebug

@@ -64,10 +64,8 @@ scalar_boundary_conditions =
             element type {
                attribute name { "k_epsilon" },
                ## Select high/low Reynolds number wall functions for k and epsilon fields.
-               element wall_functions {
-                  element string_value {
-                  "low_Re"|"high_Re"
-                  }
+               element string_value {
+               "low_Re"|"high_Re"
                }
             }
          )
@@ -162,11 +160,11 @@ prognostic_scalar_field =
          ## diagnostic/algorithm(internal).
          element subgridscale_parameterisation {
             attribute name { "k-epsilon"},
-            ## Set Prandtl number for this field
-            ## (ratio of momentum diffusivity to field diffusivity)
+            ## Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
+            ##  for this field. Default = 1.0 if not specified.
             element Prandtl_number {
                input_choice_real
-            }
+            }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}

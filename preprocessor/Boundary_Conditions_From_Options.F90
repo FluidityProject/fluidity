@@ -46,6 +46,7 @@ use vector_tools
 use vtk_interfaces
 use pickers_inquire
 use bulk_parameterisations
+use k_epsilon
 use integer_set_module !for iceshelf
 use fields_base !for iceshelf
 use fields ! for iceshelf
@@ -130,6 +131,7 @@ contains
     ! - ocean boundaries
     ! - ocean forcing
     ! - GLS stable boundaries
+    ! - k-epsilon turbulence model
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -166,6 +168,10 @@ contains
     if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
         call populate_iceshelf_boundary_conditions(states(1))
     end if
+
+    !if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+    !    call populate_kepsilon_boundary_conditions(states(1))
+    !end if
     
   end subroutine populate_boundary_conditions
 
@@ -215,6 +221,7 @@ contains
           ! Any other scalar fields that have a bulk_formulae will be
           ! neumann. Options check should prevent this from
           ! being anything other than Temperature or Salinity
+          ewrite(2,*) "Changing bulk_formulae BC type to neumann"
           bc_type = "neumann"
        end if
 
@@ -224,6 +231,12 @@ contains
           ! set which ID it is as sediment classes are created onthe fly so
           ! aren't in the options tree as normal fields
           call set_sediment_bc_id(field%name, i+1)
+       end if
+
+       ! Same thing for k_epsilon turbulence model.
+       if (trim(bc_type) .eq. "k_epsilon") then
+          ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+          bc_type = "dirichlet"
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -267,15 +280,17 @@ contains
           ! nothing to be done here
 
        case( "k_epsilon" )
-       
-          if(.not. have_option &
-          ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-              FLExit("Incorrect boundary condition type for field")
-          end if
 
-          call allocate(surface_field, surface_mesh, name="value")
-          call insert_surface_field(field, i+1, surface_field)
-          call deallocate(surface_field)
+          FLAbort("Oops, you shouldn't get a k_epsilon type of BC. It should have been converted")
+
+          !if(.not. have_option &
+          !("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+          !    FLExit("Incorrect boundary condition type for field")
+          !end if
+
+          !call allocate(surface_field, surface_mesh, name="value")
+          !call insert_surface_field(field, i+1, surface_field)
+          !call deallocate(surface_field)
 
        case( "bulk_formulae" )
 
@@ -287,7 +302,7 @@ contains
 
        case default
 
-          ! This really shouldn'thas happen
+          ! This really shouldn't happen
           FLAbort("Incorrect boundary condition type for field")
 
        end select
@@ -602,6 +617,12 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
+    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+    !if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon')) then
+        ewrite(2,*) "Calling keps_bcs"
+        call keps_bcs(states(1))
+    end if
+
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -689,6 +710,12 @@ contains
        if (trim(bc_type) .eq. "sediment_reentrainment") then
             ! skip sediment boundareis - done seperately
             ! see assemble/Sediment.F90
+            cycle boundary_conditions
+       end if
+
+       if (trim(bc_type) .eq. "k_epsilon") then
+            ! skip k_epsilon boundaries - done seperately
+            ! see parameterisation/k_epsilon.F90
             cycle boundary_conditions
        end if
 
@@ -855,7 +882,6 @@ contains
           ! See set_ocean_forcing_boundary_conditions
           cycle boundary_conditions
        end if
-
 
        if(have_option(trim(bc_path_i)//"/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
@@ -2060,7 +2086,6 @@ contains
        call set(scalar_surface,0.0)
     end if
 
-    
   end subroutine populate_gls_boundary_conditions
 
   subroutine populate_iceshelf_boundary_conditions(state)
