@@ -57,10 +57,10 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.05</real_value>
+      <real_value rank="0">0.005</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">60.0</real_value>
+      <real_value rank="0">1.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -136,7 +136,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <no_stabilisation/>
+              <streamline_upwind>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -152,7 +157,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">0.5</real_value>
@@ -209,6 +214,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.1</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -240,6 +257,14 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <cap_values>
+          <upper_cap>
+            <real_value rank="0">1.0</real_value>
+          </upper_cap>
+          <lower_cap>
+            <real_value rank="0">0.0</real_value>
+          </lower_cap>
+        </cap_values>
       </diagnostic>
     </scalar_field>
   </material_phase>
@@ -248,7 +273,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">1.1</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -257,9 +282,7 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <remove_stabilisation_term/>
-          </continuous_galerkin>
+          <continuous_galerkin/>
         </spatial_discretisation>
         <reference_node>
           <integer_value rank="0">1</integer_value>
@@ -322,7 +345,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <no_stabilisation/>
+              <streamline_upwind>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -338,7 +366,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">0.5</real_value>
@@ -395,6 +423,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.1</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -422,20 +462,17 @@
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
+          <control_volumes>
+            <face_value name="FirstOrderUpwind"/>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
         <solver>
@@ -473,6 +510,14 @@
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
+        <cap_values>
+          <upper_cap>
+            <real_value rank="0">1.0</real_value>
+          </upper_cap>
+          <lower_cap>
+            <real_value rank="0">0.0</real_value>
+          </lower_cap>
+        </cap_values>
       </prognostic>
     </scalar_field>
   </material_phase>

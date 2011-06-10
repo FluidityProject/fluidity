@@ -343,15 +343,15 @@ contains
     end if
 
     if(present(density)) then
-      ewrite_minmax(density%val)
+      ewrite_minmax(density)
     end if
 
     if(present(pressure)) then
-      ewrite_minmax(pressure%val)
+      ewrite_minmax(pressure)
     end if
 
     if(present(drhodp)) then      
-      ewrite_minmax(drhodp%val)
+      ewrite_minmax(drhodp)
     else
       call deallocate(drhodp_local)
     end if
@@ -752,16 +752,16 @@ contains
     end if      
 
     if(present(materialdensity)) then
-      ewrite_minmax(materialdensity%val)
+      ewrite_minmax(materialdensity)
     end if
 
     if(present(materialpressure)) then
-      ewrite_minmax(materialpressure%val)
+      ewrite_minmax(materialpressure)
     end if
 
     if(present(materialdrhodp)) then
       materialdrhodp%val=drhodp%val
-      ewrite_minmax(materialdrhodp%val)
+      ewrite_minmax(materialdrhodp)
     end if
 
     call deallocate(drhodp)

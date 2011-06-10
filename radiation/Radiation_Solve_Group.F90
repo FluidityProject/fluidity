@@ -71,13 +71,16 @@ contains
       character(len=OPTION_PATH_LEN) :: field_name
       real :: dt
       type(scalar_field) :: extra_discretised_source
+      type(scalar_field) :: mass_matrix_coeff      
       type(scalar_field), pointer :: t 
             
       ! assemble the diffusivity and absorption 
       ! scalar fields and insert into particle%state
       ! Also form the extra production/scatter/delayed discretised source
+      ! and the 'density' term for time dependent problems
       call assemble_coeff_source_group_g(particle, &
                                          extra_discretised_source, &
+                                         mass_matrix_coeff, &
                                          g, &
                                          invoke_eigenvalue_group_solve)
       
@@ -110,6 +113,9 @@ contains
       
       ! deallocate the extra_discretised_source
       call deallocate(extra_discretised_source)
+      
+      ! deallocate the mass_matrix_coeff
+      call deallocate(mass_matrix_coeff)
             
    end subroutine particle_assemble_solve_group
 
@@ -117,22 +123,23 @@ contains
    
    subroutine assemble_coeff_source_group_g(particle, &
                                             extra_discretised_source, &
+                                            mass_matrix_coeff, &
                                             g, &
                                             invoke_eigenvalue_group_solve)
       
       !!< Assemble the coeff and discretised source fields for group g that will then be used 
       !!< somewhere else to assemble the linear system. For a time run the velocity coeff
-      !!< are times through the equation into the other material property fields
-      !!< as the assemble and solve procedure has no density term (this does not happen
+      !!< are used to form a mass matrix coeff term (this does not happen
       !!< if the option is chosen to exclude the mass terms)
 
       type(particle_type), intent(inout) :: particle
       type(scalar_field), intent(out) :: extra_discretised_source
+      type(scalar_field), intent(out) :: mass_matrix_coeff      
       integer, intent(in) :: g
       logical, intent(in) :: invoke_eigenvalue_group_solve
       
       ! local variables
-      logical :: scale_by_velocity_coeff
+      logical :: form_mass_matrix_coeff
       integer :: stat
       integer :: vele
       integer :: g_dash
@@ -140,10 +147,9 @@ contains
       real :: theta    
       real, dimension(:), allocatable :: detwei_vele
       real, dimension(:), allocatable :: rhs_addto      
-      type(scalar_field) :: production_coeff 
-      type(scalar_field) :: prompt_spectrum_coeff 
-      type(scalar_field) :: scatter_coeff 
-      type(scalar_field) :: velocity_coeff                 
+      type(scalar_field) :: production_coeff
+      type(scalar_field) :: prompt_spectrum_coeff
+      type(scalar_field) :: scatter_coeff
       type(scalar_field), pointer :: absorption_coeff
       type(tensor_field), pointer :: diffusivity_coeff
       type(mesh_type), pointer :: material_fn_space
@@ -188,7 +194,6 @@ contains
                                         'Coordinate')
       
       ! deduce if for a time equation the mass terms will be included
-      ! to deduce if the material properties should be scaled by the velocity coeff
       time_run: if (.not. invoke_eigenvalue_group_solve) then
          
          ! set the mass terms option path
@@ -204,17 +209,17 @@ contains
          
          exclude_mass: if (have_option(trim(mass_terms_path)//'/exclude_mass_terms')) then
 
-            scale_by_velocity_coeff = .false.
+            form_mass_matrix_coeff = .false.
 
          else exclude_mass
 
-            scale_by_velocity_coeff = .true.
+            form_mass_matrix_coeff = .true.
 
          end if exclude_mass
          
       else time_run
       
-         scale_by_velocity_coeff = .false.
+         form_mass_matrix_coeff = .false.
          
       end if time_run
       
@@ -227,23 +232,12 @@ contains
 
       field_name = trim(particle_flux(g)%ptr%name)//'Scatter'
       call allocate(scatter_coeff, material_fn_space, trim(field_name))
-      call zero(scatter_coeff)
 
       field_name = trim(particle_flux(g)%ptr%name)//'Production'
       call allocate(production_coeff, material_fn_space, trim(field_name))
-      call zero(production_coeff)
 
       field_name = trim(particle_flux(g)%ptr%name)//'PromptSpectrum'
       call allocate(prompt_spectrum_coeff, material_fn_space, trim(field_name))
-      call zero(prompt_spectrum_coeff)
-
-      alloc_velocity: if (scale_by_velocity_coeff) then
-         
-         field_name = trim(particle_flux(g)%ptr%name)//'Velocity'
-         call allocate(velocity_coeff, material_fn_space, trim(field_name))
-         call zero(velocity_coeff)
-      
-      end if alloc_velocity
       
       ! extract the assemble fields as needed
       absorption_coeff => extract_scalar_field(particle%state, &
@@ -253,19 +247,28 @@ contains
       diffusivity_coeff => extract_tensor_field(particle%state, &
                                                 trim(particle_flux(g)%ptr%name) // 'Diffusivity', &
                                                 stat = stat)
-
-      ! zero the extracted fields
-      call zero(absorption_coeff)
-      call zero(diffusivity_coeff)
       
       ! form the velocity coeff field for this energy group if time run
-      form_velocity: if (scale_by_velocity_coeff) then
+      field_name = trim(particle_flux(g)%ptr%name)//'MassMatrixCoeff'
+      form_velocity: if (form_mass_matrix_coeff) then
                  
+         call allocate(mass_matrix_coeff, material_fn_space, trim(field_name))
+                  
          call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                    particle%particle_radmat, &
-                   velocity_coeff, &
+                   mass_matrix_coeff, &
                    g, &
                    component = 'velocity')
+         
+         ! set as 1.0/velocity
+         call invert(mass_matrix_coeff)
+         
+      else form_velocity
+        
+        ! form a constant 1.0 field
+        call allocate(mass_matrix_coeff, material_fn_space, trim(field_name), field_type=FIELD_TYPE_CONSTANT)
+        
+        call set(mass_matrix_coeff, 1.0)
       
       end if form_velocity
             
@@ -275,29 +278,14 @@ contains
                 absorption_coeff, &
                 g, &
                 component = 'removal')
-      
-      ! if a time run scale the absorption coeff by the velocity coeff
-      scale_abs: if (scale_by_velocity_coeff) then
-      
-         call scale(absorption_coeff, &
-                    velocity_coeff)
-         
-      end if scale_abs 
             
       ! form the diffusivity tensor coeff field for this energy group
-      call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+      call form(particle%state, &
+                particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                 particle%particle_radmat, &
                 diffusivity_coeff, &
                 g, &
                 positions%dim)
-
-      ! if a time run scale the diffusivity coeff by the velocity coeff
-      scale_diff: if (scale_by_velocity_coeff) then
-      
-         call scale(diffusivity_coeff, &
-                    velocity_coeff)
-         
-      end if scale_diff 
             
       ! form the discretised source - scatter and production            
       
@@ -307,14 +295,6 @@ contains
                 prompt_spectrum_coeff, &
                 g, &
                 component = 'prompt_spectrum')
-
-      ! if a time run scale the prompt spectrum coeff by the velocity coeff
-      scale_prompt: if (scale_by_velocity_coeff) then
-      
-         call scale(prompt_spectrum_coeff, &
-                    velocity_coeff)
-         
-      end if scale_prompt 
                   
       group_loop: do g_dash = 1,size(particle_flux)
 
@@ -334,14 +314,6 @@ contains
                       g, &
                       component = 'scatter', &
                       g_dash = g_dash)
-
-            ! if a time run scale the scatter coeff by the velocity coeff
-            scale_scatter: if (scale_by_velocity_coeff) then
-      
-               call scale(scatter_coeff, &
-                          velocity_coeff)
-         
-            end if scale_scatter 
                                            
          end if not_within_group
 
@@ -425,12 +397,6 @@ contains
       call deallocate(scatter_coeff)
       call deallocate(production_coeff)
       call deallocate(prompt_spectrum_coeff)
-      
-      dealloc_velocity: if (scale_by_velocity_coeff) then
-         
-         call deallocate(velocity_coeff)
-      
-      end if dealloc_velocity
       
       ! deallocate the particle flux pointer fields
       if (associated(particle_flux)) deallocate(particle_flux)

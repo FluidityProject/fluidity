@@ -342,6 +342,7 @@ contains
     integer i, n, istate, stat
     type(halo_type), pointer :: my_halo
     integer nstates, universal_nodes, components
+    type(ele_numbering_type), pointer :: ele_num
 
     ewrite(1,*) "Opening flml file ", trim(flml)
     call load_options(flml)
@@ -443,7 +444,9 @@ contains
     else
     
       ! allocate a dummy shape and mesh:
-      call allocate(shape, 1, 1, 1, 1)
+       ele_num => find_element_numbering(&
+         &vertices = 1, dimension = 1, degree = 1)
+      call allocate(shape,ele_num,1)
       call allocate(mesh, n, 1, shape, "Mesh")
       
       ! setup trivial petsc numbering
@@ -487,7 +490,7 @@ contains
          call petsc_solve(x_field, A, rhs_field)
       end if
       
-      ewrite_minmax(x_field%val)
+      ewrite_minmax(x_field)
       
       ewrite(1,*) '-------------------------------------------------------------'
       ewrite(1,*) 'Finished petsc_solve'
@@ -570,7 +573,7 @@ contains
       call petsc_solve(x_field, A, rhs_field)
     end if
     
-    ewrite_minmax(x_field%val)
+    ewrite_minmax(x_field)
     
     ewrite(1,*) '-------------------------------------------------------------'
     ewrite(1,*) 'Finished petsc_solve'

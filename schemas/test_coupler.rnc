@@ -26,8 +26,23 @@ start =
          },
          geometry,
          io,
-         material_phase
+         material_phase,
+         coupling_options?
          }
+   )
+
+coupling_options =
+   (
+      ## These options activate coupling of Fluidity with OASIS.
+      ## NB: Currently only works in 2D
+      element coupling {
+         ## Number of elements in longitude and latitude dimension respectively
+         element element_count { integer_dim_vector },
+ ## The minimum and maximum longitude of the coupled domain
+ element longitude_extent { real_dim_vector },
+ ## The minimum and maximum latitude of the coupled domain
+ element latitude_extent { real_dim_vector}
+      }?
    )
 
 geometry = 
@@ -51,11 +66,6 @@ geometry =
          element mesh {
             attribute name { "TracerMesh" },
             mesh_info_frommesh
-         },
-         ## The structured mesh
-         element mesh {
-            attribute name { "StructuredMesh" },
-            mesh_info_fromfile
          },
          ## Quadrature
          element quadrature {
@@ -92,9 +102,6 @@ mesh_choice =
          }|
          element mesh {
             attribute name { "CoordinateMesh" }
-         }|
-         element mesh {
-            attribute name { "StructuredMesh" }
          }
       )
    )

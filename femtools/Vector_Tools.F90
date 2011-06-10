@@ -465,20 +465,20 @@ contains
     M = matmul(M, transpose(V))
   end subroutine eigenrecomposition
 
-  subroutine outer_product(x, y, M)
+  pure function outer_product(x, y)
     !!< Give two column vectors x, y
     !!< compute the matrix xy*
 
     real, dimension(:), intent(in) :: x, y
-    real, dimension(size(x), size(y)), intent(out) :: M
+    real, dimension(size(x), size(y)) :: outer_product
     integer :: i, j
 
     forall (i=1:size(x))
       forall (j=1:size(y))
-        M(i, j) = x(i) * y(j)
+        outer_product(i, j) = x(i) * y(j)
       end forall
     end forall
-  end subroutine outer_product
+  end function outer_product
   
   function blasmul_mm(A, B) result(C)
     !!< Use DGEMM to multiply A * B and get C.

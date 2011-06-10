@@ -47,12 +47,6 @@ module global_parameters
   implicit none
         
   !------------------------------------------------------------------------
-  ! Global flag for whether we are running off the new xml options file.
-  ! Legacy variable - to be removed in the future
-  !------------------------------------------------------------------------    
-  logical, parameter :: new_options = .true.
-
-  !------------------------------------------------------------------------
   ! Precision parameters
   !------------------------------------------------------------------------
   !! Number of digits past the decimal point for a real

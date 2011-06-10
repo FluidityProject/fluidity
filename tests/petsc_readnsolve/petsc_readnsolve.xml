@@ -4,11 +4,11 @@
   <owner userid="skramer"/>
   <tags> parallel </tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml &gt;&amp; /dev/null;
+    <command_line>( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump velocity_matrixdump;
 mkdir -p velocity_logs;
 mv fluidity.log* fluidity.err* velocity_logs/;
-mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure.flml &gt;&amp; /dev/null;
+( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump pressure_matrixdump;
 rm matrixdump.info;
 mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave.flml Velocity;

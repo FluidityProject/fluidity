@@ -125,7 +125,8 @@ contains
          call zero(diffusivity_coeff)
 
          ! form the diffusivity tensor coeff field for this energy group
-         call form(particle%particle_radmat_ii%energy_group_set_ii(g_set), &
+         call form(particle%state, &
+                   particle%particle_radmat_ii%energy_group_set_ii(g_set), &
                    particle%particle_radmat, &
                    diffusivity_coeff, &
                    g, &

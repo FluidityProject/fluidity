@@ -1458,14 +1458,15 @@ contains
     type(csr_matrix), pointer :: mass
 
     type(csr_sparsity), pointer :: eelist
-    integer :: ele
-    real :: node_max, node_min, line_max, line_min, extra_val, extra_val2
-    integer :: i, j, k
+    integer :: ele, i, j, k, row, column
+    integer :: rows, columns
+    real :: node_max, node_min, extra_val, extra_val2
 
     integer, dimension(:), pointer :: nodelist, faces, neighbouring_ele_nodes
     integer, dimension(:), allocatable :: face_nodes, neighbouring_nodes
     integer :: neighbouring_face, neighbouring_ele
-    logical :: first, midpoint=.false., extrapolate=.false., pre_dist_mass=.false.
+    logical, save :: first=.true.
+    logical :: midpoint, extrapolate, pre_dist_mass
 
     real :: beta=1.0, mean_val
     type(vector_field), pointer :: position
@@ -1479,7 +1480,34 @@ contains
     logical, dimension(ele_loc(t,1)) :: nweight, pweight
     real :: nodeval, nodemin, nodemax, adjust
 
-    ewrite(1,*) 'In limit_fpn'
+    integer, dimension(:,:,:), allocatable, save :: nodes_array
+!     real, dimension(2,4) :: local_values
+!     real, dimension(2) :: line_max, line_min
+    real, dimension(:,:), allocatable :: local_values
+    real, dimension(:), allocatable :: line_max, line_min
+    integer :: node, adjacent_node, local_face
+
+    integer, dimension(face_loc(t,1)) :: fnodes, neighbouring_face_nodes
+
+    type(vector_field), pointer :: u
+    real :: mod_u, tol
+    real, dimension(2) :: u_node, e_vec_2, e_vec_3
+    logical :: upwind=.false.
+    real :: cor1, cor2, cor3, cor4
+    integer :: problem_dimension, values
+
+    call get_option('/geometry/dimension', problem_dimension)
+
+    rows=problem_dimension ! The number of 'lines' to look along
+    columns=3 ! The number of nodes on each line. Should always be three
+    if (upwind) then
+      values=columns+1
+    else
+      values=columns
+    end if
+    tol=0.25
+
+    allocate(local_values(rows,values),line_max(rows),line_min(rows))
 
     midpoint=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme")
@@ -1490,8 +1518,8 @@ contains
            &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/extrapolate")
     end if
 
-    pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
+!     pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+!          &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
 
     mass => get_mass_matrix(state, t%mesh)
     lumped_mass => get_lumped_mass(state, t%mesh)
@@ -1500,13 +1528,15 @@ contains
 
     limiting_t => extract_scalar_field(state, trim(t%name))
 
-    eelist => extract_eelist(t%mesh)
+!     eelist => extract_eelist(t%mesh)
 
     call allocate(lowerbound, t%mesh, "LowerBound")
     call allocate(upperbound, t%mesh, "UpperBound")
     call zero(lowerbound); call zero(upperbound)
 
-    allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
+    allocate (neighbouring_nodes(ele_loc(limiting_t,1)))
+
+!     allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
 
     if (extrapolate) then
       position => extract_vector_field(state, "Coordinate")
@@ -1516,219 +1546,129 @@ contains
       allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
     end if
 
-    ! Loop through the elements
-    do ele=1,ele_count(limiting_t)
+    if (upwind) then
+      u => extract_vector_field(state, "Velocity")
+    end if
 
-      ! Get the global node numbers of the current element
+    ! Loop to construct an array containing the global node numbers required to compute the limiting values
+    ! at a node i. Only evaluated on the first timestep (and after every adapt for adaptive runs).
+    if (first) then
+      allocate (nodes_array(node_count(t),rows,columns))
+      first=.false.
+      do node=1,node_count(limiting_t)
+        ele=node_ele(limiting_t, node)
+        nodelist => ele_nodes(limiting_t, ele)
+        faces => ele_faces(limiting_t, ele)
+        row=0
+        do i=1,size(nodelist)
+          if (nodelist(i)==node) cycle
+          row=row+1
+          fnodes=face_global_nodes(limiting_t,faces(i))
+          do j=1,size(fnodes)
+            if (fnodes(j)==node) adjacent_node=j
+          end do
+          neighbouring_face = face_neigh(limiting_t, faces(i))
+          neighbouring_face_nodes = face_global_nodes(limiting_t,neighbouring_face)
+!           secnd_val=neighbouring_face_nodes(adjacent_node) ! 2nd node we want
+          local_face=local_face_number(limiting_t,neighbouring_face)
+          neighbouring_ele = face_ele(limiting_t, neighbouring_face)
+          neighbouring_nodes = ele_nodes(limiting_t, neighbouring_ele)
+!           thrid_val=neighbouring_nodes(local_face)
+          nodes_array(node,row,1)=nodelist(i)
+          nodes_array(node,row,2)=neighbouring_face_nodes(adjacent_node)
+          nodes_array(node,row,3)=neighbouring_nodes(local_face)
+        end do
+      end do
+    end if
+
+    ! Loop through the nodes and calculate the bounds for each node
+    do node=1,node_count(limiting_t)
+      ! Calculate the av. value of the tracer within the element
+      ele=node_ele(limiting_t, node)
       nodelist => ele_nodes(limiting_t, ele)
-
-      ! Get the face numbers of the current element
-      faces => ele_faces(limiting_t, ele)
-
-      ! Only limit if the tracer variation is above a certain threshold
       do i=1, size(nodelist)
         tracer_val(i)=node_val(limiting_t,nodelist(i))
       end do
-      if (abs(maxval(tracer_val)-minval(tracer_val))<1.0e-5) then
-        do i=1, size(nodelist)
-          call set(lowerbound, nodelist(i), minval(tracer_val))
-          call set(upperbound, nodelist(i), maxval(tracer_val))
+      mean_val=sum(tracer_val)/float(size(nodelist))
+      ! Get the values needed for calculating the bounds
+      do row=1,rows
+        do column=1,columns
+          local_values(row,column)=node_val(limiting_t, nodes_array(node,row,column))
         end do
-        cycle
-      end if
-
-      ! Average node values in the element
-      mean_val=sum(tracer_val(:))/float(size(nodelist))
-
-      ! Loop through the nodes 
-      do i=1, size(nodelist)
-
-        ! Get the max and min values within an element excluiding the value of the current node
-
-        ! Now work out and get the values at the neighbouring nodes.
-        ! First loop through the faces
-
-        node_max=0.0
-        node_min=0.0        
-
-        first=.true.
-        do j=1, size(faces)
-
-          face_nodes = face_global_nodes(limiting_t, faces(j))
-
-          do k=1,size(face_nodes)
-
-            if (nodelist(i)/=face_nodes(k)) cycle
-
-            ! We need to grab the value at the node opposite to the current face.
-            ! This node is at the same position in the ele_nodes array as the
-            ! opposite face is in the ele_faces array. This is the logic currently
-            ! used to obtain this value.
-            ! NOTE: Need to think about the boundary case
-
-            line_max=node_val(limiting_t,nodelist(j))
-            line_min=node_val(limiting_t,nodelist(j))
-
-            neighbouring_face = face_neigh(limiting_t, faces(j))
-
-            neighbouring_nodes = face_global_nodes(limiting_t, neighbouring_face)
-
-            if (midpoint) then
-
-              !Get the node_list of the neighbouring element of interest
-              neighbouring_ele = node_ele(limiting_t,neighbouring_nodes(k))
-              neighbouring_ele_nodes => ele_nodes(limiting_t,neighbouring_ele)
-
-              ! Get the extra mid point value
-              if (extrapolate) then
-                ! Extrapolate using the gradients of the neighbouring element to form our extra value
+        ! Adjust values depending on options
+        if (midpoint.and.(.not.extrapolate)) then
+          local_values(row,3) = (1.0-beta)*local_values(row,2)+beta*local_values(row,3)
+        else if (midpoint.and.extrapolate) then
+          local_values(row,3) = (1.0-beta)*local_values(row,2)+beta*local_values(row,3)
+          ! Extrapolate using the gradients of the neighbouring element to form our extra value
                 
-                ! 1st, work out the direction in which we want to extrapolate, e_vec_1
-                e_vec_1=node_val(dg_position,nodelist(i))-node_val(dg_position,nodelist(j))
-                ! Work out the distance to exprapolate
-                e_dist=beta*sqrt(sum(e_vec_1(:)**2))
-                ! Turn this into a unit vector
-                e_vec_1=e_vec_1/sqrt(sum(e_vec_1(:)**2))
+          ! 1st, work out the direction in which we want to extrapolate, e_vec_1
+          e_vec_1=node_val(dg_position,node)-node_val(dg_position,nodes_array(node,row,1))
+          ! Work out the distance to exprapolate
+          e_dist=sqrt(sum(e_vec_1(:)**2))
+          ! Turn this into a unit vector
+          e_vec_1=e_vec_1/e_dist
 
-                call transform_to_physical(dg_position, neighbouring_ele, ele_shape(limiting_t,neighbouring_ele), dshape=dt_t)
+          call transform_to_physical(dg_position, node_ele(limiting_t, nodes_array(node,row,2)), &
+                                     ele_shape(limiting_t,node_ele(limiting_t, nodes_array(node,row,2))), dshape=dt_t)
 
-                grad_t=ele_grad_at_quad(limiting_t, neighbouring_ele, dt_t)
+          grad_t=ele_grad_at_quad(limiting_t, node_ele(limiting_t, node), dt_t)
 
-                ! Calculate the gradient in the desired direction
-                grad=dot_product(grad_t(:,1),e_vec_1)
+          ! Calculate the gradient in the desired direction
+          ! Note that grad_t will be the same at all gauss points in the linear element case
+          grad=dot_product(grad_t(1,:),e_vec_1)
 
-                extra_val = node_val(limiting_t,neighbouring_nodes(k))+grad*e_dist
-
-
-                extra_val2 = (1.0-beta)*(node_val(limiting_t,neighbouring_nodes(k)))+beta*node_val(limiting_t,neighbouring_ele_nodes(j))
-
- 
-              else
-                extra_val = (1.0-beta)*(node_val(limiting_t,neighbouring_nodes(k)))+beta*node_val(limiting_t,neighbouring_ele_nodes(j))
-              end if
-
-              if (extra_val>line_max) line_max=extra_val
-              if (extra_val<line_min) line_min=extra_val
-
-              if (extrapolate) then
-                if (extra_val2>line_max) line_max=extra_val2
-                if (extra_val2<line_min) line_min=extra_val2
-              end if
-
-!               if (line_max<node_max) node_max=line_max
-!               if (line_min>node_min) node_min=line_min
-
-            end if
-
-            ! neighbouring_nodes(k) will now be the 'corresponding' node to face_nodes(k)
-            ! Note that is this logic is changed below code will need to be changed accordingly
-            if (first) then
-
-              if (node_val(limiting_t,neighbouring_nodes(k))>line_max) line_max=node_val(limiting_t,neighbouring_nodes(k))
-              if (node_val(limiting_t,neighbouring_nodes(k))<line_min) line_min=node_val(limiting_t,neighbouring_nodes(k))
-
-              node_max=line_max
-              node_min=line_min
-
-              first=.false.
-
-            else
-
-              if (node_val(limiting_t,neighbouring_nodes(k))>line_max) line_max=node_val(limiting_t,neighbouring_nodes(k))
-              if (node_val(limiting_t,neighbouring_nodes(k))<line_min) line_min=node_val(limiting_t,neighbouring_nodes(k))
-
-              if (line_max<node_max) node_max=line_max
-              if (line_min>node_min) node_min=line_min
-
-            end if
-
-          end do
-
-        end do
-
-        ! Make sure the bounds can be satisfied
-        if (node_max<mean_val) node_max=mean_val
-        if (node_min>mean_val) node_min=mean_val
-
-        call set(lowerbound, nodelist(i), node_min)
-        call set(upperbound, nodelist(i), node_max)
-
-      end do
-
-      weight=0.0
-      pweight=.false.
-      nweight=.false.
-      do i=1, size(nodelist)
-        nodeval=node_val(limiting_t, nodelist(i))
-        nodemin=node_val(lowerbound, nodelist(i))
-        nodemax=node_val(upperbound, nodelist(i))
-
-        if (nodeval>nodemax) then
-          weight(i)=nodeval-nodemax
-          pweight(i)=.true.
-        else if (nodeval<nodemin) then
-          weight(i)=nodeval-nodemin
-          nweight(i)=.true.
+          local_values(row,4) = local_values(row,2)+beta*grad*e_dist 
+        end if
+        if (upwind) then
+          u_node=node_val(u, node)
+          mod_u=sqrt(dot_product(u_node,u_node))
+          u_node=u_node/mod_u
+          e_vec_2=e_vec_1
+          e_vec_1=-e_vec_1
+          e_vec_3=node_val(dg_position,nodes_array(node,row,3))-node_val(dg_position,node)
+          e_vec_3=e_vec_3/sqrt(dot_product(e_vec_3,e_vec_3))
+          cor1=dot_product(u_node,e_vec_1)
+          cor2=dot_product(u_node,e_vec_2)
+          cor3=dot_product(u_node,e_vec_3)
+          cor4=dot_product(u_node,e_vec_3)
+          if (cor1<tol) then
+            local_values(row,1)=node_val(limiting_t,node)
+          end if
+          if (cor2<tol) then
+            local_values(row,2)=node_val(limiting_t,node)
+          end if
+          if (cor3<tol) then
+            local_values(row,3)=node_val(limiting_t,node)
+          end if
+          if (cor4<tol) then
+            local_values(row,4)=node_val(limiting_t,node)
+          end if
         end if
       end do
-
-      if (pre_dist_mass) then
-        ! Only adjust the mass if difference between the max and min
-        ! in the element is above a certain threshold
-        if (abs(maxval(weight)-minval(weight))<1.0e-5) cycle
-
-        do i=1, size(nodelist)
-
-          if (pweight(i).eqv..true.) then
-            do j=1, size(nodelist)
-              if (i==j) cycle
-              if (nweight(j).eqv..false.) cycle
-
-              if (abs(weight(i))>abs(weight(j))) then
-                adjust=abs(weight(j))
-                weight(j)=0.0
-                weight(i)=weight(i)-weight(j)
-              else
-                adjust=abs(weight(i))
-                weight(i)=0.0
-                weight(j)=weight(j)-weight(i)
-              endif
-
-              call addto(t, nodelist(i), -adjust)
-              call addto(t, nodelist(j),  adjust) 
-           end do
-
-          else if (nweight(i).eqv..true.) then
-            do j=1, size(nodelist)
-              if (i==j) cycle
-              if (pweight(j).eqv..false.) cycle
-
-              if (abs(weight(i))>abs(weight(j))) then
-                adjust=abs(weight(j))
-                weight(j)=0.0
-                weight(i)=weight(j)-weight(j)
-              else
-                adjust=abs(weight(i))
-                weight(i)=0.0
-                weight(j)=weight(j)-weight(i)
-              endif
-
-              call addto(t, nodelist(i),  adjust)
-              call addto(t, nodelist(j), -adjust) 
-            end do
-          end if
-        end do      
-      end if
-
+      ! Calculate and set the bounds
+      line_max(1)=maxval(local_values(1,:))
+      line_min(1)=minval(local_values(1,:))
+      line_max(2)=maxval(local_values(2,:))
+      line_min(2)=minval(local_values(2,:))
+      node_max=minval(line_max)
+      node_min=maxval(line_min)
+      if (node_max<mean_val) node_max=mean_val
+      if (node_min>mean_val) node_min=mean_val
+      call set(lowerbound, node, node_min)
+      call set(upperbound, node, node_max)
     end do
 
     call bound_field_diffuse(t, upperbound, lowerbound, mass, lumped_mass, inverse_lumped_mass)
 
-    deallocate (face_nodes,neighbouring_nodes,e_vec_1,dt_t,grad_t)
+    deallocate (neighbouring_nodes)
     call deallocate(inverse_lumped_mass)
     call deallocate(upperbound)
     call deallocate(lowerbound)
-    if (extrapolate) call deallocate(dg_position)
+    if (extrapolate) then
+      call deallocate(dg_position)
+      deallocate (e_vec_1, dt_t, grad_t)
+    end if
 
   end subroutine limit_fpn
 
