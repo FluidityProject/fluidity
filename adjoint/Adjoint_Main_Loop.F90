@@ -65,20 +65,22 @@ module adjoint_main_loop
     ! The optional adjoint timestep callback is called for each functional after every timestep in the adjoint loop.
     ! It is commonly used to compute the diangostics from the adjoint solution, e.g. the total derivative of the functional.
     subroutine compute_adjoint(state, dump_no, adjoint_timestep_callback, adjoint_timestep_callback_data)
+      use iso_c_binding, only: c_ptr
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
       optional :: adjoint_timestep_callback 
       ! Data is a void pointer used to pass variables into the callback
-      character(len=1), intent(inout), optional :: adjoint_timestep_callback_data(:)
+      type(c_ptr), intent(in) :: adjoint_timestep_callback_data 
       interface 
         subroutine adjoint_timestep_callback(state, timestep, functional_name, data)
+          use iso_c_binding, only: c_ptr
           use global_parameters, only: OPTION_PATH_LEN
           use state_module
           type(state_type), dimension(:), intent(inout) :: state
           integer, intent(in) :: timestep
           character(len=OPTION_PATH_LEN), intent(in) :: functional_name
           ! Data is a void pointer used to pass variables into the callback
-          character(len=1), intent(inout) :: data(:)
+          type(c_ptr), intent(in) :: data
         end subroutine adjoint_timestep_callback
       end interface
 
@@ -307,7 +309,7 @@ module adjoint_main_loop
           
           ! Callback for the computation of the functional total derivatives
           if (present(adjoint_timestep_callback)) then
-            call adjoint_timestep_callback(state, timestep, trim(functional_name), adjoint_timestep_callback_data)
+            call adjoint_timestep_callback(state, timestep, trim(functional_name), data=adjoint_timestep_callback_data)
           end if
           if (have_option("/adjoint/controls/write_controls_derivative")) then
             ! Write the functional's total derivatives to file
