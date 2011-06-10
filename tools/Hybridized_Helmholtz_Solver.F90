@@ -73,9 +73,9 @@
     end interface
 
     type(state_type), dimension(:), pointer :: state
-    type(scalar_field), pointer :: rhs, dgified_D, D, dgified_D_rhs
+    type(scalar_field), pointer :: D_rhs, dgified_D, D, dgified_D_rhs
     type(scalar_field) :: f
-    type(vector_field), pointer :: u,X
+    type(vector_field), pointer :: u,X,U_rhs
     type(vector_field) :: U_Local
     integer :: ierr,dump_no,stat
     character(len = OPTION_PATH_LEN) :: simulation_name
@@ -102,7 +102,8 @@
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
-    rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
+    D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
+    U_rhs=>extract_vector_field(state(1), "VelocityRHS")
     U=>extract_vector_field(state(1), "Velocity")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
     call zero(U_local)
@@ -121,8 +122,8 @@
     call deallocate(f)
     dump_no = 0
     call write_state(dump_no,state)
-    call solve_hybridized_helmholtz(state(1),rhs=rhs,&
-         &compute_cartesian=.true.,check_continuity=.true.)
+    call solve_hybridized_helmholtz(state(1),D_rhs=D_rhs,U_rhs=u_rhs,&
+         &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessP1dg",stat)
     if(stat==0) then
@@ -132,7 +133,7 @@
     dgified_D_rhs => extract_scalar_field(state(1), &
          &"LayerThicknessRHSP1dg",stat)
     if(stat==0) then
-       call remap_field(rhs,dgified_D_rhs)
+       call remap_field(D_rhs,dgified_D_rhs)
     end if
 
     call write_state(dump_no,state)

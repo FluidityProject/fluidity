@@ -1,3 +1,4 @@
+
   !    Copyright (C) 2006 Imperial College London and others.
   !
   !    Please see the AUTHORS file in the main source directory for a full list
@@ -47,13 +48,14 @@ module hybridized_helmholtz
     use vector_tools, only: solve
     implicit none
 
-contains 
-  subroutine solve_hybridized_helmholtz(state,rhs,compute_cartesian,&
+contains
+  subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
+       &compute_cartesian,&
        &check_continuity,output_dense)
     ! Subroutine to solve hybridized helmholtz equation
-    ! If rhs (scalar pressure field) is present, then solve:
-    ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = 0
-    ! <\phi,d> +  <\phi,div u> = <\phi, rhs>
+    ! If D_rhs (scalar pressure field) is present, then solve:
+    ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = <w,U_rhs>
+    ! <\phi,d> +  <\phi,div u> = <\phi, D_rhs>
     ! <<\gamma, [u]>> = 0
     ! (i.e. for unit testing)
     ! otherwise solve:
@@ -66,7 +68,8 @@ contains
     ! (i.e. for solving wave equation)
     implicit none
     type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout), optional :: rhs
+    type(scalar_field), intent(inout), optional :: D_rhs
+    type(vector_field), intent(inout), optional :: U_rhs
     logical, intent(in), optional :: compute_cartesian, check_continuity,&
          & output_dense
     !
@@ -123,7 +126,7 @@ contains
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
             &g,dt,theta,D0,lambda_mat=lambda_mat,&
-            &lambda_rhs=lambda_rhs,rhs=rhs)
+            &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs)
     end do
 
     !Solve the equations
@@ -132,7 +135,7 @@ contains
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-            &g,dt,theta,D0,rhs=rhs,lambda=lambda)
+            &g,dt,theta,D0,D_rhs=D_rhs,U_rhs=U_rhs,lambda=lambda)
     end do
 
     if(l_output_dense) then
@@ -173,11 +176,17 @@ contains
   end subroutine solve_hybridized_helmholtz
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-       g,dt,theta,D0,lambda_mat,lambda_rhs,rhs,lambda)
-    !subroutine to assemble hybridized helmholtz equation (should provide
-    !lambda_mat, lambda_rhs and optionally a rhs field on the pressure mesh
-    !otherwise rhs is constructed from D and U as part of an implicit
-    !timestepping algorithm)
+       g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs,lambda)
+    !subroutine to assemble hybridized helmholtz equation.
+    !For assembly, must provide:
+    !   lambda_mat,lambda_rhs
+    !For assembly, may provide:
+    !   D_rhs and U_rhs
+    !   If neither are present, D_rhs reconstructed from D and U
+    !   as part of an implicit timestepping algorithm
+
+    !For reconstruction, must provide:
+    !   lambda, D_rhs and U_rhs
 
     !lambda_rhs 
     !and also to reconstruct U and D from lambda 
@@ -187,8 +196,9 @@ contains
     type(vector_field), intent(inout) :: U,X,down
     integer, intent(in) :: ele
     real, intent(in) :: g,dt,theta,D0
+    type(vector_field), intent(inout), optional :: U_rhs
     type(csr_matrix), intent(inout), optional :: lambda_mat
-    type(scalar_field), intent(inout), target, optional :: lambda_rhs, rhs, lambda
+    type(scalar_field), intent(inout), target, optional :: lambda_rhs, D_rhs, lambda
     !
     real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
          &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
@@ -199,23 +209,28 @@ contains
     integer :: l_face_start, l_face_end
     integer, dimension(:), pointer :: neigh
     real, dimension(:), allocatable :: lambda_rhs_loc
-    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: rhs_loc
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_rhs_loc
+    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: Rhs_loc
     integer :: face2,ni2
-    logical :: assembly, have_rhs
+    logical :: assembly, have_D_rhs
+    type(element_type) :: U_shape
     integer :: d_start, d_end, dim1, dim2, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(scalar_field), pointer :: l_lambda
+    real, dimension(ele_ngi(D,ele)) :: detwei
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
 
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
+    U_shape = ele_shape(U,ele)
 
     !Check if we are in assembly mode or reconstruction mode and check if
     !the correct things have been passed in for those modes
     assembly = .false.
-    have_rhs = .false.
+    have_D_rhs = .false.
     if(present(lambda_mat)) assembly = .true.
-    if(present(rhs)) have_rhs = .true.
+    if(present(D_rhs)) have_D_rhs = .true.
     if(assembly) then
        if(.not.present(lambda_rhs)) then
           FLAbort('Need lambda_rhs for assembly')
@@ -229,8 +244,8 @@ contains
        if(present(lambda_rhs)) then
           FLAbort('Shouldn''t provide lambda_rhs for reconstruction')
        end if
-       if(.not.present(rhs)) then
-          FLAbort('Need rhs for reconstruction')
+       if(.not.present(D_rhs)) then
+          FLAbort('Need D_rhs for reconstruction')
        end if
        if(.not.present(lambda)) then
           FLAbort('Need lambda for reconstruction')
@@ -288,7 +303,11 @@ contains
        !compute helmholtz_loc_mat
        allocate(helmholtz_loc_mat(lloc,lloc))
        helmholtz_loc_mat = matmul(transpose(continuity_mat),continuity_mat2)
-       
+
+       !detwei is needed for pressure mass matrix
+       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+            detwei=detwei)
+              
        !construct lambda_rhs
        ! ( M    C  -L)(u)   (0)
        ! ( -C^T N  0 )(h) = (j)
@@ -300,11 +319,21 @@ contains
        !        (M    C)^{-1}(L)         (M    C)^{-1}(0)
        ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
        allocate(lambda_rhs_loc(ele_loc(lambda_rhs,ele)))
-       if(present(rhs)) then
-          rhs_loc = 0.
-          rhs_loc(d_start:d_end) = ele_val(rhs,ele)
-          call solve(local_solver,rhs_loc)
-          lambda_rhs_loc = -matmul(transpose(continuity_mat),rhs_loc)
+       if(present(D_rhs)) then
+          Rhs_loc = 0.
+          Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
+               &ele_val_at_quad(D_rhs,ele)*detwei)
+          if(present(u_rhs)) then
+             U_rhs_loc = shape_vector_rhs(ele_shape(U_rhs,ele),&
+                  ele_val_at_quad(u_rhs,ele),u_shape%quadrature%weight)
+
+             do dim1 = 1, mdim
+                Rhs_loc(u_start(dim1):u_end(dim1)) = &
+                     & U_rhs_loc(dim1,:)
+             end do
+          end if
+          call solve(local_solver,Rhs_loc)
+          lambda_rhs_loc = -matmul(transpose(continuity_mat),Rhs_loc)
        else
           FLExit('Haven''t coded a timestepping version yet.')
        end if
@@ -318,19 +347,20 @@ contains
     else
        !Reconstruct U and D from lambda
        rhs_loc = matmul(continuity_mat,ele_val(lambda,ele))
-       if(present(rhs)) then
-          rhs_loc(d_start:d_end) = rhs_loc(d_start:d_end) + ele_val(rhs,ele)
+       if(present(D_rhs)) then
+          call assemble_rhs_reconstruction(Rhs_loc(d_start:d_end),&
+               & D_rhs,X,ele)
        else
           FLExit('Haven''t coded a timestepping version yet.')             
        end if
 
-       call solve(local_solver,rhs_loc)
+       call solve(local_solver,Rhs_loc)
        
        do dim1 = 1, mdim
           call set(U,dim1,ele_nodes(u,ele),&
-               &rhs_loc(u_start(dim1):u_end(dim1)))
+               &Rhs_loc(u_start(dim1):u_end(dim1)))
        end do
-       call set(D,ele_nodes(d,ele),rhs_loc(d_start:d_end))
+       call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
     end if
 
   end subroutine assemble_hybridized_helmholtz_ele
@@ -528,8 +558,7 @@ contains
     integer, intent(in) :: ele
     !
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
-    real, dimension(ele_ngi(U,ele)) :: detJ,detwei
-    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
+     real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
     real, dimension(X%dim,ele_loc(U,ele)) :: u_rhs
     real, dimension(mesh_dim(U), ele_ngi(U,ele)) :: local_u_gi
     real, dimension(X%dim,ele_ngi(U,ele)) :: u_cart_gi
@@ -539,6 +568,8 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     integer, dimension(:), pointer :: U_ele
     integer :: mdim, uloc
+    real, dimension(ele_ngi(U,ele)) :: detwei
+
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
     do dim1 = 1, mdim
@@ -550,13 +581,10 @@ contains
 
     u_shape=ele_shape(u, ele)
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         &detJ=detJ, detwei=detwei)
+         detwei=detwei)
 
     local_u_gi = ele_val_at_quad(U,ele)
-    do gi = 1, ele_ngi(U,ele)
-       u_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),local_u_gi(:,gi))
-    end do
-    u_rhs = shape_vector_rhs(u_shape,u_cart_gi,detwei)
+    u_rhs = shape_vector_rhs(u_shape,local_u_gi,U_shape%quadrature%weight)
     l_u_mat = shape_shape(u_shape, u_shape, detwei)
 
     do dim1 = 1, mdim
@@ -671,4 +699,21 @@ contains
          &nc_rhs(face_local_nodes(lambda_nc,face)) &
          &+ shape_rhs(lambda_nc_face_shape,face_val_at_quad(lambda,face)*detwei)
   end subroutine get_nc_rhs_face
+
+  subroutine assemble_rhs_reconstruction(Rhs_loc,&
+       & D_rhs,X,ele)
+    integer, intent(in) :: ele
+    type(scalar_field), intent(in) :: D_rhs
+    type(vector_field), intent(in) :: X
+    real, dimension(ele_loc(D_rhs,ele)), intent(inout) :: Rhs_loc
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    Rhs_loc = Rhs_loc + shape_rhs(ele_shape(D_rhs,ele),&
+         ele_val_at_quad(D_rhs,ele)*detwei)
+  end subroutine assemble_rhs_reconstruction
+
 end module hybridized_helmholtz
