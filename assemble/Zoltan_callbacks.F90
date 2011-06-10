@@ -40,6 +40,7 @@ module zoltan_callbacks
   ! - added remove_det_from_current_det_list to use diagnostic variables
   use detector_data_types, only: detector_type
   use detector_tools
+  use detector_parallel
 
   ! Needed for zoltan_cb_unpack_fields
   use halos_derivation, only: ele_owner
@@ -947,10 +948,10 @@ contains
     allocate(zoltan_global_to_pack_detectors_list(num_ids))
     
     ! if there are some detectors on this process
-    if (default_stat%detector_list%length .GT. 0) then
+    if (get_num_detector_lists() .GT. 0) then
        ! create two arrays, one with the number of detectors in each element to be transferred
-       ! and one with the data for the detectors being transferred
-       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, default_stat%detector_list, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
+       ! and one that holds a list of detectors to be transferred for each element
+       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
     end if
     
     ! The person doing this for mixed meshes in a few years time: this is one of the things

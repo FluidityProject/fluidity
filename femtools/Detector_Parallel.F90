@@ -42,8 +42,8 @@ module detector_parallel
   
   private
 
-  public :: distribute_detectors, exchange_detectors, &
-            register_detector_list, get_registered_detector_lists
+  public :: distribute_detectors, exchange_detectors, register_detector_list, &
+            get_num_detector_lists, get_registered_detector_lists
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -82,11 +82,18 @@ contains
   end subroutine register_detector_list
 
   subroutine get_registered_detector_lists(all_registered_lists)
+    ! Return a pointer to a lists of pointers to all registered detector lists
     type(detector_list_ptr), dimension(:), pointer, intent(out) :: all_registered_lists
 
     all_registered_lists=>detector_list_array
-
   end subroutine get_registered_detector_lists
+
+  function get_num_detector_lists()
+    ! Return the number of registered detector lists
+    integer :: get_num_detector_lists
+
+    get_num_detector_lists=num_detector_lists
+  end function get_num_detector_lists
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
@@ -187,12 +194,13 @@ contains
        ! Something should be done here...
     end if
 
-    ! If RK-GS parameters are still allocated, we need a bigger buffer
+    ! Get buffer size, depending on whether RK-GS parameters are still allocated
     have_update_vector=associated(detector_list%move_parameters)
-    det_size=dim+3
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
-       det_size=det_size+(n_stages+1)*dim
+       det_size=detector_buffer_size(dim,have_update_vector,n_stages)
+    else
+       det_size=detector_buffer_size(dim,have_update_vector)
     end if
     
     do target_proc=1, nprocs
