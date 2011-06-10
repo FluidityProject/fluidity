@@ -68,12 +68,9 @@ module shallow_water_adjoint_controls
       real :: theta, d0, dt 
      
       state = states(1)
-      print *, "In shallow_water_adjoint_timestep_callback"
-      call print_state(state)
       ! Cast the data to the matrices state 
       matrices = transfer(data, matrices)
-      print*, " ************************* Matrices: ************************** "
-      call print_state(matrices) 
+      
 
       nb_controls = option_count("/adjoint/controls/control")
       do i = 0, nb_controls-1
@@ -117,15 +114,18 @@ module shallow_water_adjoint_controls
             FLAbort("Boundary condition control not implemented yet.")
           !!!!!!!!!!!!! Source !!!!!!!!!!!!
           case("source_term")
+            if (timestep == 0) then
+             cycle
+            end if 
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
+            call get_option("/timestepping/timestep", dt)
             if (has_scalar_field(state, field_deriv_name)) then
               if (trim(field_name) == "LayerThicknessSource") then
-                call get_option("/timestepping/timestep", dt)
                 adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
                 sfield => extract_scalar_field(state, field_deriv_name) ! Output field
                 h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
-                call mult(sfield, h_mass_mat, adj_sfield)
-                call scale(sfield, dt)
+                call mult_T(sfield, h_mass_mat, adj_sfield)
+                call scale(sfield, abs(dt))
               else
                 FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
               end if
@@ -135,11 +135,9 @@ module shallow_water_adjoint_controls
                 ! \lambda_{delta \eta} \Delta t^2 d_0 \theta C^T (M+\theta \Delta t L)^{-1} M P_{Cart to local}
                 vfield => extract_vector_field(state, field_deriv_name) ! Output field
                 adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
-                adj_vfield => extract_vector_field(state, "AdjointLocalVelocityDelta")
+                adj_vfield => extract_vector_field(state, "AdjointLocalVelocityDelta") 
                 ! We need the AdjointVelocity for the option path only
                 adj_sfield2 => extract_scalar_field(state, "AdjointLayerThickness")
-                
-                call get_option("/timestepping/timestep", dt)
                 call get_option(trim(adj_sfield2%option_path) // "/prognostic/temporal_discretisation/theta", theta)
                 call get_option(trim(adj_sfield2%option_path) // "/prognostic/mean_layer_thickness", d0)
                 
@@ -156,7 +154,10 @@ module shallow_water_adjoint_controls
                 call mult_T(local_src_tmp2, big_mat, local_src_tmp)
                 call mult_T(local_src_tmp, u_mass_mat, local_src_tmp2)
                 call project_cartesian_to_local(positions, src_tmp, local_src_tmp, transpose=.true.)
-                call addto(vfield, src_tmp, scale = dt**2 * d0 * theta)
+                call scale(src_tmp, factor = dt*dt * d0 * theta)
+                call zero(vfield)
+                ! TODO: Where does this minus come from?
+                call addto(vfield, src_tmp, scale=-1.0)
                
                 ! Now add the part from \lambda_{\Delta u}
                 ! \lambda_{\Delta u} M  M_{big} M P_{cart to local}
@@ -164,7 +165,7 @@ module shallow_water_adjoint_controls
                 call mult_T(local_src_tmp2, big_mat, local_src_tmp)
                 call mult_T(local_src_tmp, u_mass_mat, local_src_tmp2)
                 call project_cartesian_to_local(positions, src_tmp, local_src_tmp, transpose = .true.)
-                call addto(vfield, src_tmp, scale = dt)
+                call addto(vfield, src_tmp, scale = abs(dt))
 
                 call deallocate(local_src_tmp)
                 call deallocate(local_src_tmp2)
