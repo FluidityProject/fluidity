@@ -38,7 +38,7 @@ module adjoint_controls
 
     private
 
-    public :: adjoint_write_controls, adjoint_write_functional_totalderivatives, allocate_and_insert_functional_derivative_fields
+    public :: adjoint_write_controls, adjoint_write_control_derivatives, allocate_and_insert_functional_derivative_fields
 
     contains 
 
@@ -133,7 +133,7 @@ module adjoint_controls
     end subroutine adjoint_write_controls
 
     ! Extracts the total derivatives of the functional and saves them to disk.
-    subroutine adjoint_write_functional_totalderivatives(states, timestep, functional_name)
+    subroutine adjoint_write_control_derivatives(states, timestep, functional_name)
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: timestep
       character(len=*), intent(in) :: functional_name
@@ -169,6 +169,9 @@ module adjoint_controls
         field_name = "Adjoint" // trim(field_name)
         control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
         if (trim(control_type) == "initial_condition" .or. trim(control_type) == "source_term") then
+          if (trim(control_type) == "initial_condition" .and. timestep > 0) then
+            cycle
+          end if
           field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
           if (has_scalar_field(states(state_id), field_name)) then
             sfield => extract_scalar_field(states(state_id), field_deriv_name)
@@ -196,7 +199,7 @@ module adjoint_controls
                             &  "pickle.dump(" // control_deriv_name // ", f);" // &
                             &  "f.close();")
       end do
-    end subroutine adjoint_write_functional_totalderivatives
+    end subroutine adjoint_write_control_derivatives
 
     subroutine allocate_and_insert_functional_derivative_fields(states)
       type(state_type), dimension(:), intent(inout) :: states

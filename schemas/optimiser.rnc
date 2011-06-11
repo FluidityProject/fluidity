@@ -74,6 +74,11 @@ control_io =
             element control {
                 attribute name { xsd:string },
                   (
+                    ## A default control from the model
+                    element type {
+                      attribute name { "default" },
+                      comment
+                    }|
                     element type {
                       ## The custom control parameter is the most flexible one since it allows 
                       ## to code custom python functions for handling the controls.
@@ -88,16 +93,6 @@ control_io =
                          python_code
                       },
                       comment
-                    }|
-                    ## Initial condition 
-                    element type {
-                      attribute name { "initial_condition" },
-                      comment
-                    }|
-                    ## Boundary condition 
-                    element type {
-                       attribute name { "boundary_condition" },
-                       comment
                     }
                 )
            }+

@@ -12,22 +12,8 @@
     </tolerance>
   </optimisation_options>
   <control_io>
-    <type name="custom">
-      <get_initial_controls>
-        <string_value lines="20" type="python">def get_initial_controls():
-  import numpy
-  m = {}
-  h = numpy.array([1])
-  m['h'] = h
-  return m</string_value>
-      </get_initial_controls>
-      <update_controls>
-        <string_value lines="20" type="python">def update_controls(m):
-  import numpy
-  h = m['h']
-  numpy.save('control.npy', h)
-  print 'control state: ', h</string_value>
-      </update_controls>
-    </type>
+    <control name="InitVel">
+      <type name="default"/>
+    </control>
   </control_io>
 </optimiser_options>

@@ -10,7 +10,7 @@ copy_tests:
 	cp adjoint_A.swml adjoint_E.swml; sed -i 's/_A/_E/' adjoint_E.swml; spud-set adjoint_E.swml /timestepping/timestep 0.015625
 
 clean:
-	rm -f *.vtu *.stat *~*~ *.html *.pyc 
+	rm -f *.vtu *.stat *~*~ *.html *.pyc *.pkl 
 
 clean_all:
 	rm -f *.vtu *.stat *~*~ *.html *.pyc adjoint_B.swml adjoint_C.swml adjoint_D.swml adjoint_E.swml

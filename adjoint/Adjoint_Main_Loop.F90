@@ -313,7 +313,7 @@ module adjoint_main_loop
           end if
           if (have_option("/adjoint/controls/write_controls_derivative")) then
             ! Write the functional's total derivatives to file
-            call adjoint_write_functional_totalderivatives(state, timestep, trim(functional_name))
+            call adjoint_write_control_derivatives(state, timestep, trim(functional_name))
           end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
