@@ -302,17 +302,16 @@
         </functional>
         <controls>
             <control name="VelCtrl">
-                <type name="initial_condition" field_name="Velocity"></type>
+                <type name="initial_condition" field_name="Fluid::Velocity"></type>
             </control>
             <control name="EtaCtrl">
-                <type name="initial_condition" field_name="LayerThickness"></type>
+                <type name="initial_condition" field_name="Fluid::LayerThickness"></type>
             </control>
             <control name="VelSrcCtrl">
-                <type name="source_term" field_name="VelocitySource"></type>
+                <type name="source_term" field_name="Fluid::VelocitySource"></type>
             </control>
             <write_controls></write_controls>
             <write_controls_derivative></write_controls_derivative>
-            <record_controls></record_controls>
         </controls>
         <debug></debug>
     </adjoint>
