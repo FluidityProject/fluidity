@@ -257,9 +257,11 @@ module mangle_options_tree
         call move_option(trim(path) // trim(fields_to_move(field)), trim(path) // "Adjoint" // trim(fields_to_move(field)), stat=stat)
         assert(stat == SPUD_NO_ERROR)
         ! Delete the sources specified for the forward model -- if desired
-        if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source/")) &
-                      & // "adjoint_storage/exists_in_forward")) then
-          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source", stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source/")) then
+          if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source/")) &
+                        & // "adjoint_storage/exists_in_forward")) then
+            call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/scalar_field::Source", stat=stat)
+          end if
         end if
         ! And delete any initial conditions -- we will also specify these
         if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then
@@ -291,9 +293,11 @@ module mangle_options_tree
         call move_option(trim(path) // trim(fields_to_move(field)), trim(path) // "Adjoint" // trim(fields_to_move(field)), stat=stat)
         assert(stat == SPUD_NO_ERROR)
         ! Delete any sources specified for the forward model -- we deal with these ourselves
-        if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source/")) &
-                      & // "adjoint_storage/exists_in_forward")) then
-          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source", stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source/")) then
+          if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source/")) &
+                        & // "adjoint_storage/exists_in_forward")) then
+            call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/vector_field::Source", stat=stat)
+          end if
         end if
         ! And delete any initial conditions -- we will also specify these
         if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then
@@ -325,9 +329,11 @@ module mangle_options_tree
         call move_option(trim(path) // trim(fields_to_move(field)), trim(path) // "Adjoint" // trim(fields_to_move(field)), stat=stat)
         assert(stat == SPUD_NO_ERROR)
         ! Delete any sources specified for the forward model -- we deal with these ourselves
-        if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source/")) &
-                      & // "adjoint_storage/exists_in_forward")) then
-          call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source", stat=stat)
+        if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source/")) then
+          if (have_option(trim(complete_field_path(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source/")) &
+                        & // "adjoint_storage/exists_in_forward")) then
+            call delete_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/tensor_field::Source", stat=stat)
+          end if
         end if
         ! And delete any initial conditions -- we will also specify these
         if (have_option(trim(path) // "Adjoint" // trim(fields_to_move(field)) // "/prognostic/initial_condition")) then

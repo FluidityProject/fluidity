@@ -86,6 +86,13 @@ configuration template</a:documentation>
           </attribute>
           <choice>
             <element name="type">
+              <a:documentation>A default control from the model</a:documentation>
+              <attribute name="name">
+                <value>default</value>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+            <element name="type">
               <attribute name="name">
                 <a:documentation>The custom control parameter is the most flexible one since it allows 
 to code custom python functions for handling the controls.</a:documentation>
@@ -100,20 +107,6 @@ to code custom python functions for handling the controls.</a:documentation>
 updates the corresponding model configuration.</a:documentation>
                 <ref name="python_code"/>
               </element>
-              <ref name="comment"/>
-            </element>
-            <element name="type">
-              <a:documentation>Initial condition </a:documentation>
-              <attribute name="name">
-                <value>initial_condition</value>
-              </attribute>
-              <ref name="comment"/>
-            </element>
-            <element name="type">
-              <a:documentation>Boundary condition </a:documentation>
-              <attribute name="name">
-                <value>boundary_condition</value>
-              </attribute>
               <ref name="comment"/>
             </element>
           </choice>
