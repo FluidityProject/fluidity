@@ -55,10 +55,9 @@ module shallow_water_adjoint_controls
       type(c_ptr), intent(in) :: data
       
       type(state_type), pointer :: matrices
-      type(state_type) :: state
-      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name
+      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name, name, material_phase_name
       integer :: nb_controls
-      integer :: i
+      integer :: i, state_id, s_idx
       type(scalar_field), pointer :: sfield, adj_sfield, adj_sfield2
       type(vector_field), pointer :: vfield, adj_vfield, positions
       type(tensor_field), pointer :: tfield, adj_tfield
@@ -68,7 +67,6 @@ module shallow_water_adjoint_controls
       type(vector_field) :: local_src_tmp, local_src_tmp2, src_tmp
       real :: theta, d0, dt 
      
-      state = states(1)
       ! Cast the data to the matrices state 
       call c_f_pointer(data, matrices)
       
@@ -76,9 +74,26 @@ module shallow_water_adjoint_controls
       nb_controls = option_count("/adjoint/controls/control")
       do i = 0, nb_controls-1
         call get_option("/adjoint/controls/control[" // int2str(i) //"]/name", control_deriv_name)
-        control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
         call get_option("/adjoint/controls/control[" // int2str(i) //"]/type/name", control_type)
-        call get_option("/adjoint/controls/control[" // int2str(i) //"]/type::" // trim(control_type) // "/field_name", field_name)
+        call get_option("/adjoint/controls/control[" // int2str(i) //"]/type::" // trim(control_type) // "/field_name", name)
+        s_idx = scan(trim(name), "::")
+        if (s_idx == 0) then 
+          FLAbort("The control " // trim(control_deriv_name) // " uses an invalid field_name. It should be of the form Materialphase::Fieldname")
+        end if
+        material_phase_name = name(1:s_idx - 1)
+        field_name = name(s_idx + 2:len_trim(name))
+        ! Find state associated with the material phase
+        do state_id = 1, size(states) 
+          if (trim(states(state_id)%name) == trim(material_phase_name)) then
+            exit
+          end if
+        end do
+        ! Make sure we found the state
+        if (.not. trim(states(state_id)%name) == trim(material_phase_name)) then
+          FLAbort("Could not find state " // trim(material_phase_name) // " as specified in control " // trim(control_deriv_name) // ".")
+        end if
+        
+        control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
         select case(trim(control_type))
           !!!!!!!!!!!!! Initial condition !!!!!!!!!!!!
           case ("initial_condition")
@@ -86,26 +101,26 @@ module shallow_water_adjoint_controls
              cycle
             end if 
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
-            if (has_scalar_field(state, field_deriv_name)) then
+            if (has_scalar_field(states(state_id), field_deriv_name)) then
               if (trim(field_name) == "LayerThickness") then
-                adj_sfield => extract_scalar_field(state, "Adjoint" // trim(field_name))
-                sfield => extract_scalar_field(state, field_deriv_name) ! Output field
+                adj_sfield => extract_scalar_field(states(state_id), "Adjoint" // trim(field_name))
+                sfield => extract_scalar_field(states(state_id), field_deriv_name) ! Output field
                 h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
                 call mult(sfield, h_mass_mat, adj_sfield)
               else
                 FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
               end if
-            elseif (has_vector_field(state, field_deriv_name)) then
+            elseif (has_vector_field(states(state_id), field_deriv_name)) then
               if (trim(field_name) == "Velocity") then
-                adj_vfield => extract_vector_field(state, "Adjoint" // trim(field_name))
-                vfield => extract_vector_field(state, field_deriv_name) ! Output field
+                adj_vfield => extract_vector_field(states(state_id), "Adjoint" // trim(field_name))
+                vfield => extract_vector_field(states(state_id), field_deriv_name) ! Output field
                 u_mass_mat => extract_block_csr_matrix(matrices, "CartesianVelocityMassMatrix")
                 call mult(vfield, u_mass_mat, adj_vfield)
               else
                 FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
               end if
-            elseif (has_tensor_field(state, field_deriv_name)) then
-              tfield => extract_tensor_field(state, field_deriv_name) ! Output field
+            elseif (has_tensor_field(states(state_id), field_deriv_name)) then
+              tfield => extract_tensor_field(states(state_id), field_deriv_name) ! Output field
               FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
             else
               FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
@@ -120,25 +135,25 @@ module shallow_water_adjoint_controls
             end if 
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
             call get_option("/timestepping/timestep", dt)
-            if (has_scalar_field(state, field_deriv_name)) then
+            if (has_scalar_field(states(state_id), field_deriv_name)) then
               if (trim(field_name) == "LayerThicknessSource") then
-                adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
-                sfield => extract_scalar_field(state, field_deriv_name) ! Output field
+                adj_sfield => extract_scalar_field(states(state_id), "AdjointLayerThicknessDelta")
+                sfield => extract_scalar_field(states(state_id), field_deriv_name) ! Output field
                 h_mass_mat => extract_csr_matrix(matrices, "LayerThicknessMassMatrix")
                 call mult_T(sfield, h_mass_mat, adj_sfield)
                 call scale(sfield, abs(dt))
               else
                 FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
               end if
-            elseif (has_vector_field(state, field_deriv_name)) then
+            elseif (has_vector_field(states(state_id), field_deriv_name)) then
               if (trim(field_name) == "VelocitySource") then
                 ! We want to compute:
                 ! \lambda_{delta \eta} \Delta t^2 d_0 \theta C^T (M+\theta \Delta t L)^{-1} M P_{Cart to local}
-                vfield => extract_vector_field(state, field_deriv_name) ! Output field
-                adj_sfield => extract_scalar_field(state, "AdjointLayerThicknessDelta")
-                adj_vfield => extract_vector_field(state, "AdjointLocalVelocityDelta") 
+                vfield => extract_vector_field(states(state_id), field_deriv_name) ! Output field
+                adj_sfield => extract_scalar_field(states(state_id), "AdjointLayerThicknessDelta")
+                adj_vfield => extract_vector_field(states(state_id), "AdjointLocalVelocityDelta") 
                 ! We need the AdjointVelocity for the option path only
-                adj_sfield2 => extract_scalar_field(state, "AdjointLayerThickness")
+                adj_sfield2 => extract_scalar_field(states(state_id), "AdjointLayerThickness")
                 call get_option(trim(adj_sfield2%option_path) // "/prognostic/temporal_discretisation/theta", theta)
                 call get_option(trim(adj_sfield2%option_path) // "/prognostic/mean_layer_thickness", d0)
                 
@@ -174,8 +189,8 @@ module shallow_water_adjoint_controls
               else
                 FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
               end if
-            elseif (has_tensor_field(state, field_deriv_name)) then
-              tfield => extract_tensor_field(state, field_deriv_name) ! Output field
+            elseif (has_tensor_field(states(state_id), field_deriv_name)) then
+              tfield => extract_tensor_field(states(state_id), field_deriv_name) ! Output field
               FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
             else
               FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")

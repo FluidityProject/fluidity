@@ -312,6 +312,7 @@
             </control>
             <write_controls></write_controls>
             <write_controls_derivative></write_controls_derivative>
+            <record_controls></record_controls>
         </controls>
         <debug></debug>
     </adjoint>

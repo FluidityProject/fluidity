@@ -530,16 +530,16 @@ if time &lt; T &lt;= time+dt:
     </functional>
     <controls>
       <control name="InitVelCtrl">
-        <type field_name="Velocity" name="initial_condition"/>
+        <type field_name="Fluid::Velocity" name="initial_condition"/>
       </control>
       <control name="InitEtaCtrl">
-        <type field_name="LayerThickness" name="initial_condition"/>
+        <type field_name="Fluid::LayerThickness" name="initial_condition"/>
       </control>
       <control name="VelSrcCtrl">
-        <type field_name="VelocitySource" name="source_term"/>
+        <type field_name="Fluid::VelocitySource" name="source_term"/>
       </control>
       <control name="EtaSrcCtrl">
-        <type field_name="LayerThicknessSource" name="source_term"/>
+        <type field_name="Fluid::LayerThicknessSource" name="source_term"/>
       </control>
     </controls>
     <debug>
